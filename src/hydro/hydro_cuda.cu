@@ -621,6 +621,7 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
 {
   int id, xid, yid, zid, n_cells;
   Real d, d_inv, vx, vy, vz, E, max_dti;
+  Real speed, temp, P, cs;
   #ifdef  MHD
     Real avgBx, avgBy, avgBz;
   #endif  //MHD

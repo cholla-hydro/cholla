@@ -56,17 +56,17 @@ void Supernova::Initialize_GPU(void){
   #include "cluster_list_MW.data"                                                  
   // Defines cluster_data in local scope so it is deleted                       
   n_cluster = sizeof(cluster_data)/sizeof(cluster_data[0])/5;
-  CudaSafeCall( cudaMalloc (&d_cluster_array,5*n_cluster*sizeof(Real)));        
+  GPU_Error_Check( cudaMalloc (&d_cluster_array,5*n_cluster*sizeof(Real)));        
   cudaMemcpy(d_cluster_array, cluster_data,                                     
              5*n_cluster*sizeof(Real),                                          
              cudaMemcpyHostToDevice);  
-  CudaSafeCall( cudaMalloc (&d_omega_array, n_cluster*sizeof(Real)));           
-  CudaSafeCall( cudaMalloc (&d_flags_array, n_cluster*sizeof(bool)));           
-  CudaSafeCall( cudaMalloc (&d_tracker, n_tracker*sizeof(Real)));
+  GPU_Error_Check( cudaMalloc (&d_omega_array, n_cluster*sizeof(Real)));           
+  GPU_Error_Check( cudaMalloc (&d_flags_array, n_cluster*sizeof(bool)));           
+  GPU_Error_Check( cudaMalloc (&d_tracker, n_tracker*sizeof(Real)));
   cudaMemcpy(d_tracker, h_tracker, n_tracker*sizeof(Real),cudaMemcpyHostToDevice);
 
   #ifdef COOLING_GPU
-  CudaSafeCall( cudaMalloc(&d_cooling_weight, n_cells*sizeof(Real)) );
+  GPU_Error_Check( cudaMalloc(&d_cooling_weight, n_cells*sizeof(Real)) );
   #endif
 
   Calc_Omega();                                                                 
@@ -83,12 +83,12 @@ void Supernova::InitializeS99(void){
     E_dot[i] = s99_data[3*i+2];
   }
   // Allocate M_dot and E_dot arrays on cuda
-  CudaSafeCall( cudaMalloc (&d_mdot,n_entries*sizeof(Real)));
-  CudaSafeCall( cudaMalloc (&d_edot,n_entries*sizeof(Real)));
+  GPU_Error_Check( cudaMalloc (&d_mdot,n_entries*sizeof(Real)));
+  GPU_Error_Check( cudaMalloc (&d_edot,n_entries*sizeof(Real)));
   cudaMemcpy(d_mdot, M_dot, n_entries*sizeof(Real), cudaMemcpyHostToDevice);
   cudaMemcpy(d_edot, E_dot, n_entries*sizeof(Real), cudaMemcpyHostToDevice);
-  CudaSafeCall( cudaMalloc (&d_mdot_array,n_cluster*sizeof(Real)));
-  CudaSafeCall( cudaMalloc (&d_edot_array,n_cluster*sizeof(Real)));
+  GPU_Error_Check( cudaMalloc (&d_mdot_array,n_cluster*sizeof(Real)));
+  GPU_Error_Check( cudaMalloc (&d_edot_array,n_cluster*sizeof(Real)));
 }
 
 
@@ -376,7 +376,7 @@ __global__ void Calc_Flag_Kernel(Real *cluster_array, Real *omega_array, bool *f
 
   // If we got this far, then table_index will be a valid index for this array
 
-  Real volume_cl = (4./3.)*PI*R_cl*R_cl*R_cl;
+  Real volume_cl = (4./3.)*M_PI*R_cl*R_cl*R_cl;
   Real table_fraction = convert_time - table_index;
   Real f = (cluster_array[5*tid]*1e-6)/volume_cl;
   Real M_slope = d_mdot[table_index+1] - d_mdot[table_index];
@@ -389,7 +389,7 @@ __global__ void Calc_Flag_Kernel(Real *cluster_array, Real *omega_array, bool *f
 
 
 void Supernova::Calc_Flags(Real time){
-  CHECK(cudaDeviceSynchronize());
+  GPU_Error_Check(cudaDeviceSynchronize());
   // double start_time = get_time();
   dim3 dim1dGrid((n_cluster+TPB-1)/TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
@@ -398,7 +398,7 @@ void Supernova::Calc_Flags(Real time){
 		     d_mdot, d_edot, d_mdot_array, d_edot_array,
 		     n_cluster,
 		     time, xMin, yMin, zMin, xMax, yMax, zMax, R_cl, SFR);
-  CHECK(cudaDeviceSynchronize());
+  GPU_Error_Check(cudaDeviceSynchronize());
   // double end_time = get_time();
   //chprintf("Supernova Calc Flags: %9.4f \n",1000*(end_time-start_time));
 
@@ -524,7 +524,7 @@ __global__ void Supernova_Feedback_Kernel(Real *hydro_dev, Real *cluster_array, 
 }
 
 Real Supernova::Feedback(Real density, Real energy, Real time, Real dt){
-  CHECK(cudaDeviceSynchronize());
+  GPU_Error_Check(cudaDeviceSynchronize());
 
   Real h_dti = 0.0;
   Real* d_dti;
@@ -533,7 +533,7 @@ Real Supernova::Feedback(Real density, Real energy, Real time, Real dt){
 
   // Reset weights to 0
   #ifdef COOLING_GPU
-  CudaSafeCall(cudaMemset(d_cooling_weight, 0, n_cells*sizeof(Real)));
+  GPU_Error_Check(cudaMemset(d_cooling_weight, 0, n_cells*sizeof(Real)));
   #endif
   
   // double start_time = get_time();
@@ -548,7 +548,7 @@ Real Supernova::Feedback(Real density, Real energy, Real time, Real dt){
 		     d_mdot_array, d_edot_array,d_dti,d_tracker,d_cooling_weight,
 		     xMin, yMin, zMin, dx, dy, dz, nx, ny, nz, pnx, pny, pnz,
 		     n_cells, n_fields, n_ghost, R_cl, density, gama, time, dt, n_cluster, supernova_e);
-  CHECK(cudaDeviceSynchronize());
+  GPU_Error_Check(cudaDeviceSynchronize());
 
   if (dt > 0.0){
     cudaMemcpy(&h_dti, d_dti, sizeof(Real), cudaMemcpyDeviceToHost); 
@@ -561,8 +561,8 @@ Real Supernova::Feedback(Real density, Real energy, Real time, Real dt){
 }
 
 void Supernova::Copy_Tracker(){
-  CHECK(cudaDeviceSynchronize());
-  CHECK(cudaMemcpy(h_tracker, d_tracker, n_tracker*sizeof(Real), cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaDeviceSynchronize());
+  GPU_Error_Check(cudaMemcpy(h_tracker, d_tracker, n_tracker*sizeof(Real), cudaMemcpyDeviceToHost));
   return;
 }
 

@@ -42,7 +42,7 @@ namespace Supernova {
 
   extern Real R_cl;
   extern Real SFR;
-  void Initialize(Grid3D G, struct parameters *P);
+  void Initialize(Grid3D G, struct Parameters *P);
   void Initialize_GPU(void);
   void InitializeS99(void);
   void Calc_Omega(void);//Real *cluster_array, Real *omega_array, int n_cluster);

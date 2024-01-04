@@ -78,7 +78,7 @@ void Supernova::Test(Header H){
 }
 
 
-void Supernova::Initialize(Grid3D G, struct parameters *P){
+void Supernova::Initialize(Grid3D G, struct Parameters *P){
 
   //#include "cluster_list.data"
   // Defines cluster_data in local scope so it is deleted
@@ -154,7 +154,7 @@ void Supernova::Initialize(Grid3D G, struct parameters *P){
 Real Supernova::Update_Grid(Grid3D G,Real old_dti_local){
 
   // Let G.set_dt synchronize before Update Grid
-  double start_time = get_time();
+  double start_time = Get_Time();
 
   /*
   // Synchronize old 1/dt
@@ -184,7 +184,7 @@ C_cfl/old_dti;
     Feedback(1.0,0.0,G.H.t,new_dt-old_dt);
   }
 
-  double end_time = get_time();
+  double end_time = Get_Time();
   //chprintf("Supernova Update: %9.4f \n",1000*(end_time-start_time));
 
   //Copy_Tracker();
