@@ -6,10 +6,10 @@
  */
 
 // STL includes
-#include <string>
 #include <algorithm>
-#include <vector>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 // External Libraries and Headers
 #include <gtest/gtest.h>
@@ -18,85 +18,81 @@
 #include "utils/testing_utilities.h"
 
 /// This is the global variable to store the path to the root of Cholla
-testingUtilities::GlobalString globalChollaRoot;
-testingUtilities::GlobalString globalChollaBuild;
-testingUtilities::GlobalString globalChollaMachine;
-testingUtilities::GlobalString globalMpiLauncher;
+testing_utilities::GlobalString globalChollaRoot;
+testing_utilities::GlobalString globalChollaBuild;
+testing_utilities::GlobalString globalChollaMachine;
+testing_utilities::GlobalString globalMpiLauncher;
 bool globalRunCholla;
 bool globalCompareSystemTestResults;
-
 
 /*!
  * \brief Class for parsing input flags. Modified from
  * https://stackoverflow.com/questions/865668/parsing-command-line-arguments-in-c
  *
  */
-class InputParser{
-    public:
-        // =====================================================================
-        /*!
-         * \brief Get the option that follows the given flag. Also checks that
-         * the flag exists and is not empty
-         *
-         * \param option The string option to look for
-         * \return const std::string& The option the follows a given flag
-         */
-        const std::string& getCmdOption(const std::string &option) const
-        {
-            // First check that the option exists
-            if(not cmdOptionExists(option))
-            {
-                std::string errMessage = "Error: argument '" + option + "' not found. ";
-                throw std::invalid_argument(errMessage);
-            }
+class InputParser
+{
+ public:
+  // =====================================================================
+  /*!
+   * \brief Get the option that follows the given flag. Also checks that
+   * the flag exists and is not empty
+   *
+   * \param option The string option to look for
+   * \return const std::string& The option the follows a given flag
+   */
+  const std::string &Get_Cmd_Option(const std::string &option) const
+  {
+    // First check that the option exists
+    if (not Cmd_Option_Exists(option)) {
+      std::string errMessage = "Error: argument '" + option + "' not found. ";
+      throw std::invalid_argument(errMessage);
+    }
 
-            std::vector<std::string>::const_iterator itr;
-            itr =  std::find(this->_tokens.begin(), this->_tokens.end(), option);
-            if (itr != this->_tokens.end() && ++itr != this->_tokens.end())
-            {
-                return *itr;
-            }
-            else
-            {
-                std::string errMessage = "Error: empty argument '" + option + "'";
-                throw std::invalid_argument(errMessage);
-            }
-        }
-        // =====================================================================
+    std::vector<std::string>::const_iterator itr;
+    itr = std::find(this->_tokens.begin(), this->_tokens.end(), option);
+    if (itr != this->_tokens.end() && ++itr != this->_tokens.end()) {
+      return *itr;
+    } else {
+      std::string errMessage = "Error: empty argument '" + option + "'";
+      throw std::invalid_argument(errMessage);
+    }
+  }
+  // =====================================================================
 
-        // =====================================================================
-        /*!
-         * \brief Checks that an option exists. Returns True if it exists and
-         * False otherwise
-         *
-         * \param option The option flag to search for
-         * \return true The option flag exists in argv
-         * \return false The option flage does not exist in argv
-         */
-        bool cmdOptionExists(const std::string &option) const
-        {
-            return std::find(this->_tokens.begin(), this->_tokens.end(), option)
-            != this->_tokens.end();
-        }
-        // =====================================================================
+  // =====================================================================
+  /*!
+   * \brief Checks that an option exists. Returns True if it exists and
+   * False otherwise
+   *
+   * \param option The option flag to search for
+   * \return true The option flag exists in argv
+   * \return false The option flage does not exist in argv
+   */
+  bool Cmd_Option_Exists(const std::string &option) const
+  {
+    return std::find(this->_tokens.begin(), this->_tokens.end(), option) != this->_tokens.end();
+  }
+  // =====================================================================
 
-        // =====================================================================
-        // constructor and destructor
-        /*!
-         * \brief Construct a new Input Parser object
-         *
-         * \param argc argc from main
-         * \param argv argv from main
-         */
-        InputParser (int &argc, char **argv)
-        {
-            for (int i=1; i < argc; ++i)
-                this->_tokens.push_back(std::string(argv[i]));
-        }
-        ~InputParser() = default;
-        // =====================================================================
-    private:
-        std::vector <std::string> _tokens;
+  // =====================================================================
+  // constructor and destructor
+  /*!
+   * \brief Construct a new Input Parser object
+   *
+   * \param argc argc from main
+   * \param argv argv from main
+   */
+  InputParser(int &argc, char **argv)
+  {
+    for (int i = 1; i < argc; ++i) {
+      this->_tokens.emplace_back(argv[i]);
+    }
+  }
+  ~InputParser() = default;
+  // =====================================================================
+ private:
+  std::vector<std::string> _tokens;
 };
 
 /*!
@@ -111,48 +107,30 @@ class InputParser{
  */
 int main(int argc, char **argv)
 {
-    // First we initialize Googletest. Note, this removes all gtest related
-    // arguments from argv and argc
-    ::testing::InitGoogleTest(&argc, argv);
+  // First we initialize Googletest. Note, this removes all gtest related
+  // arguments from argv and argc
+  ::testing::InitGoogleTest(&argc, argv);
 
-    // Make sure death tests are threadsafe. This is potentially much slower than
-    // using "fast" instead of "threadsafe" but it makes sure tests are threadsafe
-    // in a multithreaded environment. If the performance becomes an issue we can
-    // try "fast", it can also be set on a test by test basis
-    ::testing::GTEST_FLAG(death_test_style) = "threadsafe";
+  // Make sure death tests are threadsafe. This is potentially much slower than
+  // using "fast" instead of "threadsafe" but it makes sure tests are threadsafe
+  // in a multithreaded environment. If the performance becomes an issue we can
+  // try "fast", it can also be set on a test by test basis
+  ::testing::GTEST_FLAG(death_test_style) = "threadsafe";
 
-    // Initialize global variables
-    InputParser input(argc, argv);
-    globalChollaRoot.init(input.getCmdOption("--cholla-root"));
-    globalChollaBuild.init(input.getCmdOption("--build-type"));
-    globalChollaMachine.init(input.getCmdOption("--machine"));
-    if (input.cmdOptionExists("--mpi-launcher"))
-    {
-        globalMpiLauncher.init(input.getCmdOption("--mpi-launcher"));
-    }
-    else
-    {
-        globalMpiLauncher.init("mpirun -np");
-    }
+  // Initialize global variables
+  InputParser input(argc, argv);
+  globalChollaRoot.init(input.Get_Cmd_Option("--cholla-root"));
+  globalChollaBuild.init(input.Get_Cmd_Option("--build-type"));
+  globalChollaMachine.init(input.Get_Cmd_Option("--machine"));
+  if (input.Cmd_Option_Exists("--mpi-launcher")) {
+    globalMpiLauncher.init(input.Get_Cmd_Option("--mpi-launcher"));
+  } else {
+    globalMpiLauncher.init("mpirun -np");
+  }
 
-    if (input.cmdOptionExists("--runCholla=false"))
-    {
-        globalRunCholla = false;
-    }
-    else
-    {
-        globalRunCholla = true;
-    }
+  globalRunCholla                = not input.Cmd_Option_Exists("--runCholla=false");
+  globalCompareSystemTestResults = not input.Cmd_Option_Exists("--compareSystemTestResults=false");
 
-    if (input.cmdOptionExists("--compareSystemTestResults=false"))
-    {
-        globalCompareSystemTestResults = false;
-    }
-    else
-    {
-        globalCompareSystemTestResults = true;
-    }
-
-    // Run test and return result
-    return RUN_ALL_TESTS();
+  // Run test and return result
+  return RUN_ALL_TESTS();
 }

@@ -3,14 +3,15 @@
 
 #ifdef CUDA
 
-#ifndef SIMPLE_2D_CUDA_H
-#define SIMPLE_2D_CUDA_H
+  #ifndef SIMPLE_2D_CUDA_H
+    #define SIMPLE_2D_CUDA_H
 
-#include "../global/global.h"
+    #include "../global/global.h"
 
-void Simple_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy, Real xbound, Real ybound, Real dt, int n_fields);
+void Simple_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy,
+                              Real xbound, Real ybound, Real dt, int n_fields, int custom_grav);
 
 void Free_Memory_Simple_2D();
 
-#endif //SIMPLE_2D_CUDA_H
-#endif //CUDA
+  #endif  // SIMPLE_2D_CUDA_H
+#endif    // CUDA

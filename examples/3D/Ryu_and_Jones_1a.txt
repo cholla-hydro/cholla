@@ -1,19 +1,19 @@
 #
-# Parameter File for 3D Ryu & Jones MHD shock tube 4d.
+# Parameter File for 3D Ryu & Jones MHD shock tube 1a.
 # Citation: Ryu & Jones 1995 "Numerical Magnetohydrodynamics in Astrophysics:
 # Algorithms and Tests for One-Dimensional Flow"
 #
 # Note: There are many shock tubes in this paper. This settings file is
-# specifically for shock tube 4d
+# specifically for shock tube 1a
 #
 
 ################################################
 # number of grid cells in the x dimension
-nx=32
+nx=256
 # number of grid cells in the y dimension
-ny=32
+ny=256
 # number of grid cells in the z dimension
-nz=32
+nz=256
 # final output time
 tout=0.08
 # time interval for output

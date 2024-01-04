@@ -9,15 +9,15 @@
 
 ################################################
 # number of grid cells in the x dimension
-nx=32
+nx=64
 # number of grid cells in the y dimension
-ny=32
+ny=64
 # number of grid cells in the z dimension
-nz=32
+nz=64
 # final output time
-tout=0.2
+tout=0.16
 # time interval for output
-outstep=0.2
+outstep=0.16
 # name of initial conditions
 init=Riemann
 
@@ -43,30 +43,30 @@ outdir=./
 #################################################
 # Parameters for 1D Riemann problems
 # density of left state
-rho_l=1.08
+rho_l=1.0
 # velocity of left state
-vx_l=1.2
-vy_l=0.01
-vz_l=0.5
+vx_l=0.0
+vy_l=0.0
+vz_l=0.0
 # pressure of left state
-P_l=0.95
+P_l=1.0
 # Magnetic field of the left state
-Bx_l=7.0898154036220635
-By_l=1.0155412503859613
-Bz_l=0.5641895835477563
+Bx_l=0.7
+By_l=0.0
+Bz_l=0.0
 
 # density of right state
-rho_r=1.0
+rho_r=0.3
 # velocity of right state
 vx_r=0.0
 vy_r=0.0
-vz_r=0.0
+vz_r=1.0
 # pressure of right state
-P_r=1.0
+P_r=0.2
 # Magnetic field of the right state
-Bx_r=7.0898154036220635
-By_r=1.1283791670955126
-Bz_r=0.5641895835477563
+Bx_r=0.7
+By_r=1.0
+Bz_r=0.0
 
 # location of initial discontinuity
 diaph=0.5

@@ -1,4 +1,7 @@
-name: Cholla Compile
+name: Build & Lint
+
+# This runs the HIP Builds. CUDA builds can be reenabled by adding the CUDA
+# container to the matrix and uncommenting the CUDA lines
 
 on:
   pull_request:
@@ -9,15 +12,15 @@ on:
 jobs:
   Build:
     name: >
-      Build
+      Build & Lint:
       ${{ matrix.container.name }}
       TYPE=${{ matrix.make-type }}
     # if: ${{ false }}  # If uncommented this line will disable this job
 
     # Choose OS/Runner
     runs-on: ubuntu-latest
-    container: 
-      image: ${{matrix.container.link}} 
+    container:
+      image: ${{matrix.container.link}}
     defaults:
       run:
         shell: bash
@@ -25,16 +28,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        make-type: [hydro, gravity, disk, particles, cosmology, mhd]
-        container: [{name: "CUDA", link: "docker://alwinm/cholla:cuda_github"}, {name: "HIP",link: "docker://alwinm/cholla:hip_github"},]
+        make-type: [hydro, gravity, disk, particles, cosmology, mhd, dust, cooling]
+        # The CUDA container can be added with {name: "CUDA", link: "docker://chollahydro/cholla:cuda_github"}
+        container: [{name: "HIP",link: "docker://chollahydro/cholla:rocm_github"}]
 
     # Setup environment variables
     env:
-      CHOLLA_MACHINE: github
       CHOLLA_MAKE_TYPE: ${{ matrix.make-type }}
-      CUDA_ROOT: /usr/local/cuda
-      HDF5_ROOT: /usr/lib/x86_64-linux-gnu/hdf5/serial
-      MPI_ROOT: /usr/lib/x86_64-linux-gnu/openmpi
 
     # Run the job itself
     steps:
@@ -53,22 +53,22 @@ jobs:
         git --version
         git config --global --add safe.directory /__w/cholla/cholla
         git config --global --add safe.directory '*'
-    - name: Show CUDA and gcc version
-      if: matrix.container.name == 'CUDA'
-      run: |
-        cc --version
-        c++ --version
-        nvcc -V
+    # - name: Show CUDA and gcc version
+    #   if: matrix.container.name == 'CUDA'
+    #   run: |
+    #     cc --version
+    #     c++ --version
+    #     nvcc -V
     - name: Show HIP and hipcc version
       if: matrix.container.name == 'HIP'
       run: |
         hipcc --version
         hipconfig --full
-    
 
     # Perform Build
     - name: Cholla setup
       run: |
+        make clobber
         source builds/run_tests.sh
         setupTests -c gcc
         echo "CHOLLA_ROOT           = ${CHOLLA_ROOT}"
@@ -77,11 +77,6 @@ jobs:
         echo "CHOLLA_LAUNCH_COMMAND=${CHOLLA_LAUNCH_COMMAND}" >> $GITHUB_ENV
         echo "F_OFFLOAD=${F_OFFLOAD}                          >> $GITHUB_ENV
         echo "CHOLLA_ENVSET=${CHOLLA_ENVSET}                  >> $GITHUB_ENV
-    - name: Build GoogleTest
-      run: |
-        source builds/run_tests.sh
-        buildGoogleTest
-        echo "GOOGLETEST_ROOT=${GOOGLETEST_ROOT}" >> $GITHUB_ENV
     - name: Build Cholla
       run: |
         source builds/run_tests.sh
@@ -90,3 +85,17 @@ jobs:
       run: |
         source builds/run_tests.sh
         buildChollaTests
+
+    # Run Clang-tidy
+    # - name: Run clang-tidy
+    #   if: matrix.container.name == 'CUDA'
+    #   run: make tidy TYPE=${{ matrix.make-type }} CLANG_TIDY_ARGS="--warnings-as-errors=*"
+    # - name: Display tidy_results_cpp.log
+    #   if: ${{ (matrix.container.name == 'CUDA') && (always()) }}
+    #   run: cat tidy_results_cpp.log
+    # - name: Display tidy_results_c.log
+    #   if: ${{ (matrix.container.name == 'CUDA') && (always()) }}
+    #   run: cat tidy_results_c.log
+    # - name: Display tidy_results_gpu.log
+    #   if: ${{ (matrix.container.name == 'CUDA') && (always()) }}
+    #   run: cat tidy_results_gpu.log

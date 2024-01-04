@@ -1,12 +1,8 @@
 #-- make.host for Frontier at the OLCF with
 #-- Compiler and flags for different build type
-CC                = cc
 CXX               = CC
 #GPUCXX           ?= CC -x hip
 GPUCXX           ?= hipcc
-
-CFLAGS_DEBUG      = -g -O0
-CFLAGS_OPTIMIZE   = -g -O2
 
 CXXFLAGS_DEBUG    = -g -O0 -std=c++17
 CXXFLAGS_OPTIMIZE = -g -Ofast -std=c++17 -Wno-unused-result
@@ -16,7 +12,7 @@ GPUFLAGS_DEBUG    = -g -O0 -std=c++17 --offload-arch=gfx90a -Wall -Wno-unused-re
 HIPCONFIG	  = -I$(ROCM_PATH)/include $(shell hipconfig -C) # workaround for Rocm 5.2 warnings
 #HIPCONFIG	  = $(shell hipconfig -C)
 
-OMP_NUM_THREADS   = 8
+OMP_NUM_THREADS   = 7
 #-- How to launch job
 JOB_LAUNCH        = srun -u -A STF016 -n 1 -c 8
 
