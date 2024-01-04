@@ -83,7 +83,7 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
     velocity_z = dev_conserved[id + n_cells * grid_enum::momentum_z] / density_gas;
   #ifdef DE
     energy_gas = dev_conserved[id + n_cells * grid_enum::GasEnergy] / density_gas;
-    energy_gas = fmax(ge, (Real)TINY_NUMBER);
+    energy_gas = fmax(energy_gas, (Real)TINY_NUMBER);
   #endif  // DE
 
     // calculate physical quantities
