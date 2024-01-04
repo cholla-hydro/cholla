@@ -1357,8 +1357,8 @@ void Grid3D::Clouds()
   T_bg          = 3e6;
   T_cl          = 1e4;
   p_bg          = n_bg * KB * T_bg / PRESSURE_UNIT;
-  p_cl          = p_bg;
-  // p_cl = n_cl * KB * T_cl / PRESSURE_UNIT;
+  // p_cl          = p_bg;
+  p_cl = n_cl * KB * T_cl / PRESSURE_UNIT;
 
   istart = H.n_ghost;
   iend   = H.nx - H.n_ghost;
