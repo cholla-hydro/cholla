@@ -14,7 +14,7 @@ DFLAGS    += -DHLLC
 
 DFLAGS    += -DDE
 DFLAGS    += -DAVERAGE_SLOW_CELLS
-# DFLAGS    += -DTEMPERATURE_FLOOR
+DFLAGS    += -DTEMPERATURE_FLOOR
 DFLAGS    += -DSCALAR_FLOOR
 
 DFLAGS    += -DVL
@@ -24,8 +24,6 @@ DFLAGS += -DSCALAR
 
 # Define dust macro
 DFLAGS += -DDUST
-
-DFLAGS += -DSCALAR_FLOOR
 
 # Apply the cooling in the GPU from precomputed tables
 DFLAGS += -DCOOLING_GPU

@@ -379,7 +379,8 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *Q_Lx, R
 
   #endif  // GRAVITY
 
-  #if !(defined(DENSITY_FLOOR) && defined(TEMPERATURE_FLOOR))
+  // #if !(defined(DENSITY_FLOOR) && defined(TEMPERATURE_FLOOR))
+  #if !(defined(DENSITY_FLOOR))
     if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id] || dev_conserved[4 * n_cells + id] < 0.0 ||
         dev_conserved[4 * n_cells + id] != dev_conserved[4 * n_cells + id]) {
       printf("%3d %3d %3d Thread crashed in final update. %e %e %e %e %e\n", xid + x_off, yid + y_off, zid + z_off,
