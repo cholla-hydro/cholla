@@ -609,3 +609,74 @@ TEST(tALLReconstructionWriteData, CorrectInputExpectCorrectOutput)
     testing_utilities::Check_Results(fiducial_val, test_val, "Interface at i=" + std::to_string(i));
   }
 }
+
+TEST(tHYDROReconstructionPlmLimitInterfaces, CorrectInputExpectCorrectOutput)
+{
+  // Set up values to test
+  reconstruction::Primitive interface_l_iph, interface_r_imh;
+  reconstruction::Primitive cell_im1, cell_i, cell_ip1;
+  interface_r_imh.density    = -1.94432878387898625e+14;
+  interface_r_imh.velocity_x = 1.42049955114756404e-04;
+  interface_r_imh.velocity_y = -2.61311412306644180e-06;
+  interface_r_imh.velocity_z = -1.99429361865204601e-07;
+  interface_r_imh.pressure   = -2.01130121665840250e-14;
+  interface_l_iph.density    = 1.94433200621991188e+14;
+  interface_l_iph.velocity_x = 1.42025407335853601e-04;
+  interface_l_iph.velocity_y = -2.61311412306644180e-06;
+  interface_l_iph.velocity_z = -6.01154878659959398e-06;
+  interface_l_iph.pressure   = 2.01130321665840277e-14;
+
+  cell_im1.density    = 1.61101072114153951e+08;
+  cell_i.density      = 1.61117046279133737e+08;
+  cell_ip1.density    = 1.61011252191243321e+08;
+  cell_im1.velocity_x = 1.42067642369120116e-04;
+  cell_i.velocity_x   = 1.42037681225305003e-04;
+  cell_ip1.velocity_x = 1.41901817571928041e-04;
+  cell_im1.velocity_y = -2.61228250783092252e-06;
+  cell_i.velocity_y   = -2.61311412306644180e-06;
+  cell_ip1.velocity_y = -2.61155204131260820e-06;
+  cell_im1.velocity_z = 2.71420653365757378e-06;
+  cell_i.velocity_z   = -3.10548907423239929e-06;
+  cell_ip1.velocity_z = -8.91005201578514336e-06;
+  cell_im1.pressure   = 9.99999999999999945e-21;
+  cell_i.pressure     = 9.99999999999999945e-21;
+  cell_ip1.pressure   = 4.70262856027679407e-03;
+
+  // Set fiducial values
+  reconstruction::Primitive interface_r_imh_fiducial, interface_l_iph_fiducial;
+  interface_r_imh_fiducial.density    = 1.61117046283366263e+08;
+  interface_r_imh_fiducial.velocity_x = 1.42049955114756404e-04;
+  interface_r_imh_fiducial.velocity_y = -2.61311412306644180e-06;
+  interface_r_imh_fiducial.velocity_z = -1.99429361865204601e-07;
+  interface_r_imh_fiducial.pressure   = 9.99999999999999945e-21;
+  interface_l_iph_fiducial.density    = 1.61117046279133737e+08;
+  interface_l_iph_fiducial.velocity_x = 1.42025407335853601e-04;
+  interface_l_iph_fiducial.velocity_y = -2.61311412306644180e-06;
+  interface_l_iph_fiducial.velocity_z = -6.01154878659959398e-06;
+  interface_l_iph_fiducial.pressure   = 1.00000000027100627e-20;
+
+  // Run function
+  reconstruction::Plm_Limit_Interfaces(interface_l_iph, interface_r_imh, cell_im1, cell_i, cell_ip1);
+
+  // Check values
+  testing_utilities::Check_Results(interface_l_iph_fiducial.density, interface_l_iph.density,
+                                   "Mismatch in l_iph density");
+  testing_utilities::Check_Results(interface_l_iph_fiducial.velocity_x, interface_l_iph.velocity_x,
+                                   "Mismatch in l_iph velocity_x");
+  testing_utilities::Check_Results(interface_l_iph_fiducial.velocity_y, interface_l_iph.velocity_y,
+                                   "Mismatch in l_iph velocity_y");
+  testing_utilities::Check_Results(interface_l_iph_fiducial.velocity_z, interface_l_iph.velocity_z,
+                                   "Mismatch in l_iph velocity_z");
+  testing_utilities::Check_Results(interface_l_iph_fiducial.pressure, interface_l_iph.pressure,
+                                   "Mismatch in l_iph pressure");
+  testing_utilities::Check_Results(interface_r_imh_fiducial.density, interface_r_imh.density,
+                                   "Mismatch in r_imh density");
+  testing_utilities::Check_Results(interface_r_imh_fiducial.velocity_x, interface_r_imh.velocity_x,
+                                   "Mismatch in r_imh velocity_x");
+  testing_utilities::Check_Results(interface_r_imh_fiducial.velocity_y, interface_r_imh.velocity_y,
+                                   "Mismatch in r_imh velocity_y");
+  testing_utilities::Check_Results(interface_r_imh_fiducial.velocity_z, interface_r_imh.velocity_z,
+                                   "Mismatch in r_imh velocity_z");
+  testing_utilities::Check_Results(interface_r_imh_fiducial.pressure, interface_r_imh.pressure,
+                                   "Mismatch in r_imh pressure");
+}
