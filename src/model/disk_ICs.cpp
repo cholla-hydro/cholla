@@ -778,7 +778,6 @@ void Grid3D::Disk_3D(parameters p)
   Real d, a, a_d, a_h, v, vx, vy, vz, P, T_d, T_h, mu;
   Real M_vir, M_h, M_d, c_vir, R_vir, R_s, R_d, z_d;
   Real K_eos, rho_eos, cs, K_eos_h, rho_eos_h, cs_h;
-  Real Sigma_0, R_g, H_g;
   Real rho_floor;
   Real r_cool;
 
@@ -805,11 +804,24 @@ void Grid3D::Disk_3D(parameters p)
   rho_eos_h = 3.0e3;  // gas eos normalized at 3e3 Msun/kpc^3 (about n_h = 10^-3.5)
   mu        = 0.6;
 
-  R_g     = 2.0 * R_d;                            // gas scale length in kpc
-  Sigma_0 = 0.15 * M_d / (2 * M_PI * R_g * R_g);  // central surface density in Msun/kpc^2
-                                                  // FIXME 0.15 -> 0.25 for M82
-  H_g = z_d;                                      // initial guess for gas scale height
+  Real R_g       = 2.0 * R_d;                           // gas scale length in kpc
+  Real M_gasdisk = 0.15 * M_d;                          // FIXME 0.15 -> 0.25 for M82
+  Real Sigma_0   = M_gasdisk / (2 * M_PI * R_g * R_g);  // central surface density in Msun/kpc^2
+  Real H_g       = z_d;                                 // initial guess for gas scale height
   // rho_floor = 1.0e3; //ICs minimum density in Msun/kpc^3
+
+  if (true){
+    printf("\nNominal Disk properties:\n");
+    printf("                                            Stellar            Gas\n");
+    printf("                                            -------          -------\n");
+    printf("scale length (kpc):                      %.7e    %.7e\n", R_d, R_g);
+    printf("scale height (kpc):                      %.7e          - \n", z_d);
+    printf("total mass (Msolar):                     %.7e    %.7e\n", M_d, M_gasdisk);
+    printf("central surface density (Msolar/kpc^2):        -          %.7e\n", Sigma_0);
+
+    printf("\n");
+  }
+
 
   // EOS info
   cs   = sqrt(KB * T_d / (mu * MP)) * TIME_UNIT / LENGTH_UNIT;  // sound speed in kpc/kyr
