@@ -93,20 +93,44 @@ Real gr_halo_D3D(Real R, Real z, const DataPack& hdp)
 Real Sigma_disk_D3D(Real r, const DataPack& hdp)
 {
   // return the exponential surface density
-  Real Sigma_0 = hdp.Sigma_0;
+  Real Sigma_0 = hdp.Sigma_0; // surface density at the center of the disk
   Real R_g     = hdp.R_g;
+  Real Sigma = Sigma_0 * exp(-r / R_g);
+
+  // taper the edge of the disk to 0
+  //
+  // NOTE: this is a really weird step-function
+  // -> a more typical choice would be to derive it from f(x) = (1+exp(-x))^(-1)
+  //    - it can be rewritten in terms of tanh
+  //    - it is sometimes called the sigmoid or "standard logistic" function
+  // -> instead, we derive it from h(x) = (1-exp(-x))^(-1)
+  //    - it can be rewritten in terms of coth
+  //    - this is a weird choice because it diverges at x = 0
+  //    - to work around this divergence, we use a piecewise function and stitch
+  //      together different parts
+  //
+  // Is there a compelling reason to stick with what we are using?
   Real R_c     = hdp.xlen / 2.0 - 0.1;
-  Real Sigma;
   Real delta = 0.01;
   Real norm  = log(1.0 / 3.0);
-  Sigma      = Sigma_0 * exp(-r / R_g);
-  // taper the edge of the disk to 0
+  Real taper_factor;
   if (r < R_c) {
-    Sigma *= 2.0 - 1.0 / (1.0 - exp((r - (R_c - delta * norm)) / delta));
+    taper_factor = 2.0 - 1.0 / (1.0 - exp((r - (R_c - delta * norm)) / delta));
   } else {
-    Sigma *= 1.0 / (1.0 - exp(((R_c + delta * norm) - r) / delta)) - 1.0;
+    double exp_power = ((R_c + delta * norm) - r) / delta;
+    taper_factor = 1.0 / (1.0 - exp(exp_power)) - 1.0;
+
+
+    // force surface density to 0 when taper_factor drops below exp(-14) or roughly 1e-6
+    // -> this is a crude hack to limit how far we are setting the circular velocity
+    //    outside of R_c (at the time of writing this, we set the circular velocity
+    //    everywhere that the density from the disk exceeds 0)
+    // -> we explain down below (where we initialize azimuthal velocity) why this is
+    //    necessary
+    if (exp_power < -14) taper_factor = 0.0;
   }
-  return Sigma;
+
+  return Sigma*taper_factor;
 }
 
 // vertical acceleration in miyamoto nagai
@@ -382,6 +406,16 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, const DataPack& hdp, R
   //    disk surface density divided by rho_0
   const Real rho_0 = 0.5 * Sigma_disk_D3D(R, hdp) / half_unnormalized_integral;
 
+  // Step2c: exit early if the density is 0 here
+  // -> this may not be strictly necessary (the rest of the function may work properly),
+  //    but include this just to be safe
+  if (rho_0 == 0.0) {
+    for (int k = 0; k < nzt; k++) {
+      rho[k] = 0;
+    }
+    return;
+  }
+
   // Step 3: Let's now compute the cell-averaged density in each cell
   bool flag  = false;
   const int n_int = 10;  // integrate over a 1/10 cell
@@ -417,15 +451,6 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, const DataPack& hdp, R
     rho[km] = rho[k];
   }
 
-  //if (true) { // check the surface density
-  //  Real phi_int = 0.0;
-  //  for (int k = 0; k < nzt; k++) {
-  //    phi_int += rho[k] * dz;
-  //  }
-  //  Real Sigma_r = Sigma_disk_D3D(R, hdp);
-  //  printf(("Surface density check R %e Sigma_r %e integral(rho*dz) %e\n"
-  //          "Done with isothermal disk.\n"),R,Sigma_r,phi_int);
-  //}
 }
 
 /*! \fn void hydrostatic_column_analytical_D3D(Real *rho, Real R, const DataPack& hdp,
@@ -911,7 +936,27 @@ void Grid3D::Disk_3D(parameters p)
   // the rotational velocity
   Real dPdx, dPdy, dPdr;
 
-  // compute radial pressure gradients, adjust circular velocities
+  // Assign the circular velocities
+  // -> everywhere that density >= 0, we compute the radial acceleration and use
+  //    it to initialize the circular velocity
+  // -> radial acceleration = -(rhat * grad Phi) + (dP/dr) / density
+  //     -> of course "radial" is along the cylindrical radius
+  //     -> Phi is the total gravitational potential of the disk and the halo
+  //        (At this time, the gravitational potential does NOT consider disk
+  //        truncation)
+  //     -> dPdr is the radial component of the pressure gradient
+  //     -> within the loop we actually flip the sign
+  // -> when radial acceleration has an unexpected sign, we set circular velocity to 0
+  //     -> This is important after we start tapering the velocity
+  //
+  // We currently rely upon the disk density getting truncated to 0 outside the disk.
+  // When we didn't do that, some issues cropped up
+  // -> we previously were seeing an issue in a MW galaxy were the velocity would go to
+  //    zero relatively close to a taper-radius of 1.9 and then a brief spike of velocity
+  //    at r_cyl ~2.25
+  // -> this effect was most pronounced at cylindrical-phi = 0.25*pi, 0.75*pi, 1.25*pi, 1.75*pi
+  //    (the effect is cut off at cylindrical-phi = 0, 0.5*pi, pi, 1.5*pi)
+  // -> at these locations, Pressure gradient seems to change signs
   for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
     for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
       for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
@@ -1015,6 +1060,7 @@ void Grid3D::Disk_3D(parameters p)
             }
           }
         }
+
       }
     }
   }
