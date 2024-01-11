@@ -121,13 +121,13 @@ Real Sigma_disk_D3D(Real r, const DataPack& hdp)
     taper_factor = 1.0 / (1.0 - exp(exp_power)) - 1.0;
 
 
-    // force surface density to 0 when taper_factor drops below exp(-14) or roughly 1e-6
+    // force surface density to 0 when taper_factor drops below 1e-6
     // -> this is a crude hack to limit how far we are setting the circular velocity
     //    outside of R_c (at the time of writing this, we set the circular velocity
     //    everywhere that the density from the disk exceeds 0)
     // -> we explain down below (where we initialize azimuthal velocity) why this is
     //    necessary
-    if (exp_power < -14) taper_factor = 0.0;
+    if (taper_factor < 1e-6) taper_factor = 0.0;
   }
 
   return Sigma*taper_factor;
