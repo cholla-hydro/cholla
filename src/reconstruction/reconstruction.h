@@ -688,13 +688,10 @@ void __device__ __host__ __inline__ Plm_Limit_Interfaces(Primitive &interface_L_
                                                          Primitive const &cell_ipo)
 {
   auto limiter = [](Real &l_iph, Real &r_imh, Real const &val_imo, Real const &val_i, Real const &val_ipo) {
-    Real sum = l_iph + r_imh;
-    r_imh    = fmax(fmin(val_i, val_imo), r_imh);
-    r_imh    = fmin(fmax(val_i, val_imo), r_imh);
-    l_iph    = sum - r_imh;
-    l_iph    = fmax(fmin(val_i, val_ipo), l_iph);
-    l_iph    = fmin(fmax(val_i, val_ipo), l_iph);
-    r_imh    = sum - l_iph;
+    r_imh = fmax(fmin(val_i, val_imo), r_imh);
+    r_imh = fmin(fmax(val_i, val_imo), r_imh);
+    l_iph = fmax(fmin(val_i, val_ipo), l_iph);
+    l_iph = fmin(fmax(val_i, val_ipo), l_iph);
   };
 
   limiter(interface_L_iph.density, interface_R_imh.density, cell_imo.density, cell_i.density, cell_ipo.density);

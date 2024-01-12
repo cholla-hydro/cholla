@@ -644,7 +644,7 @@ TEST(tHYDROReconstructionPlmLimitInterfaces, CorrectInputExpectCorrectOutput)
 
   // Set fiducial values
   reconstruction::Primitive interface_r_imh_fiducial, interface_l_iph_fiducial;
-  interface_r_imh_fiducial.density    = 1.61117046283366263e+08;
+  interface_r_imh_fiducial.density    = 161101072.11415395;
   interface_r_imh_fiducial.velocity_x = 1.42049955114756404e-04;
   interface_r_imh_fiducial.velocity_y = -2.61311412306644180e-06;
   interface_r_imh_fiducial.velocity_z = -1.99429361865204601e-07;
@@ -653,7 +653,7 @@ TEST(tHYDROReconstructionPlmLimitInterfaces, CorrectInputExpectCorrectOutput)
   interface_l_iph_fiducial.velocity_x = 1.42025407335853601e-04;
   interface_l_iph_fiducial.velocity_y = -2.61311412306644180e-06;
   interface_l_iph_fiducial.velocity_z = -6.01154878659959398e-06;
-  interface_l_iph_fiducial.pressure   = 1.00000000027100627e-20;
+  interface_l_iph_fiducial.pressure   = 2.0113032166584028e-14;
 
   // Run function
   reconstruction::Plm_Limit_Interfaces(interface_l_iph, interface_r_imh, cell_im1, cell_i, cell_ip1);
