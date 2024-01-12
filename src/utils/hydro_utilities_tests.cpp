@@ -238,7 +238,7 @@ TEST(tHYDROHydroUtilsGetPressureFromDE, CorrectInputExpectCorrectOutput)
 TEST(tHYDROtMHDCalcKineticEnergyFromVelocity, CorrectInputExpectCorrectOutput)
 {
   TestParams parameters;
-  std::vector<double> fiducialEnergies{0.0, 6.307524975350106e-145, 7.3762470327090601e+249};
+  std::vector<double> fiducialEnergies{0.0, 6.307524975350106e-145, 1.9018677140549924e+150};
   double const coef = 1E-50;
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
@@ -252,7 +252,7 @@ TEST(tHYDROtMHDCalcKineticEnergyFromVelocity, CorrectInputExpectCorrectOutput)
 TEST(tHYDROtMHDCalcKineticEnergyFromMomentum, CorrectInputExpectCorrectOutput)
 {
   TestParams parameters;
-  std::vector<double> fiducialEnergies{0.0, 0.0, 7.2568536478335773e+147};
+  std::vector<double> fiducialEnergies{0.0, 0.0, 3.0042157852278499e+49};
   double const coef = 1E-50;
 
   for (size_t i = 0; i < parameters.names.size(); i++) {

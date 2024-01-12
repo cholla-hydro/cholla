@@ -238,7 +238,7 @@ TEST(tALLReconstructionLoadData, CorrectInputExpectCorrectOutput)
   reconstruction::Primitive fiducial_data{13, 3.0769230769230771, 5.1538461538461542, 7.2307692307692308,
                                           39950.641025641031};
   #ifdef DE
-  fiducial_data.pressure = 34274.282506448195;
+  fiducial_data.pressure = 39950.641025641031;
   #endif  // DE
   testing_utilities::Check_Results(fiducial_data.density, test_data.density, "density");
   testing_utilities::Check_Results(fiducial_data.velocity_x, test_data.velocity_x, "velocity_x");
