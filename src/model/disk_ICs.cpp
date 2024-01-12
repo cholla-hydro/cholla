@@ -89,6 +89,16 @@ Real gr_halo_D3D(Real R, Real z, const DataPack& hdp)
   return -C * A * B * r_comp;
 }
 
+/* Compute the standard logistic function f(x) = 1.0 / (1.0 + exp(-x))
+ *
+ * This is sometimes called "the sigmoid" or "expit". 
+ */
+static Real standard_logistic_function(Real x) noexcept {
+  // we make use of tanh since it is probably better behaved than directly
+  // computing 1.0 /(1.0 + std::exp(-x))
+  return 0.5 + 0.5 * std::tanh(0.5*x);
+}
+
 // disk radial surface density profile
 Real Sigma_disk_D3D(Real r, const DataPack& hdp)
 {
@@ -98,37 +108,16 @@ Real Sigma_disk_D3D(Real r, const DataPack& hdp)
   Real Sigma = Sigma_0 * exp(-r / R_g);
 
   // taper the edge of the disk to 0
-  //
-  // NOTE: this is a really weird step-function
-  // -> a more typical choice would be to derive it from f(x) = (1+exp(-x))^(-1)
-  //    - it can be rewritten in terms of tanh
-  //    - it is sometimes called the sigmoid or "standard logistic" function
-  // -> instead, we derive it from h(x) = (1-exp(-x))^(-1)
-  //    - it can be rewritten in terms of coth
-  //    - this is a weird choice because it diverges at x = 0
-  //    - to work around this divergence, we use a piecewise function and stitch
-  //      together different parts
-  //
-  // Is there a compelling reason to stick with what we are using?
   Real R_c     = hdp.xlen / 2.0 - 0.1;
-  Real delta = 0.01;
-  Real norm  = log(1.0 / 3.0);
-  Real taper_factor;
-  if (r < R_c) {
-    taper_factor = 2.0 - 1.0 / (1.0 - exp((r - (R_c - delta * norm)) / delta));
-  } else {
-    double exp_power = ((R_c + delta * norm) - r) / delta;
-    taper_factor = 1.0 / (1.0 - exp(exp_power)) - 1.0;
+  Real taper_factor = 1.0 - standard_logistic_function((r - R_c) / 0.005);
 
-
-    // force surface density to 0 when taper_factor drops below 1e-6
-    // -> this is a crude hack to limit how far we are setting the circular velocity
-    //    outside of R_c (at the time of writing this, we set the circular velocity
-    //    everywhere that the density from the disk exceeds 0)
-    // -> we explain down below (where we initialize azimuthal velocity) why this is
-    //    necessary
-    if (taper_factor < 1e-6) taper_factor = 0.0;
-  }
+  // force surface density to 0 when taper_factor drops below 1e-6
+  // -> this is a crude hack to limit how far we are setting the circular velocity
+  //    outside of R_c (at the time of writing this, we set the circular velocity
+  //    everywhere that the density from the disk exceeds 0)
+  // -> we explain down below (where we initialize azimuthal velocity) why this is
+  //    necessary
+  if (taper_factor < 1e-6) taper_factor = 0.0;
 
   return Sigma*taper_factor;
 }
