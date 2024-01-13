@@ -148,7 +148,6 @@ TEST(tMHDMhdInverseCrossingTime, CorrectInputExpectCorrectOutput)
 
 TEST(tHYDROScalarFloor, CorrectInputExpectCorrectOutput)
 {
-  // Call the function we are testing
   int num_blocks = 1;
   dim3 dim1dGrid(num_blocks, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);

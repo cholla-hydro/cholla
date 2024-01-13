@@ -37,7 +37,7 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
 void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int ny, int nz, int x_off, int y_off,
                           int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound,
                           Real dt, int n_fields, int custom_grav, Real density_floor, Real U_floor,
-                          Real *host_grav_potential)
+                          Real *host_grav_potential, Real scalar_floor)
 {
   // Here, *dev_conserved contains the entire
   // set of conserved variables on the grid
@@ -197,11 +197,6 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
                      F_x, F_y, F_z, nx, ny, nz, n_ghost, dx, dy, dz, 0.5 * dt, gama, n_fields, density_floor);
   GPU_Error_Check();
 
-  #ifdef DENSITY_FLOOR
-  hipLaunchKernelGGL(Apply_Density_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, nx, ny, nz, n_ghost,
-                     density_floor);
-  #endif  // DENSITY_FLOOR
-
   #ifdef MHD
   // Update the magnetic fields
   hipLaunchKernelGGL(mhd::Update_Magnetic_Field_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, dev_conserved_half,
@@ -334,7 +329,7 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   #ifdef SCALAR_FLOOR
   #ifdef DUST
   hipLaunchKernelGGL(Apply_Scalar_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost,
-                     grid_enum::dust_density, 1e-10);
+                     grid_enum::dust_density, scalar_floor);
   GPU_Error_Check();
   #endif
   #endif  // SCALAR_FLOOR

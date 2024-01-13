@@ -49,10 +49,6 @@ typedef double Real;
 
 #define LOG_FILE_NAME "run_output.log"
 
-// Conserved Floor Values
-#define TEMP_FLOOR 1e-3
-#define DENS_FLOOR 1e-5  // in code units
-
 // Parameters for Enzo dual Energy Condition
 // - Prior to GH PR #356, DE_ETA_1 nominally had a value of 0.001 in all
 //   simulations (in practice, the value of DE_ETA_1 had minimal significance
@@ -324,6 +320,15 @@ struct Parameters {
 #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
   char UVB_rates_file[MAXLEN];  // File for the UVB photoheating and
                                 // photoionization rates of HI, HeI and HeII
+#endif
+#ifdef TEMPERATURE_FLOOR
+  Real temperature_floor;
+#endif
+#ifdef DENSITY_FLOOR
+  Real density_floor;
+#endif
+#ifdef SCALAR_FLOOR
+  Real scalar_floor;
 #endif
 #ifdef ANALYSIS
   char analysis_scale_outputs_file[MAXLEN];  // File for the scale_factor output

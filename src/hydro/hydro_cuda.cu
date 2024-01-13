@@ -379,8 +379,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *Q_Lx, R
 
   #endif  // GRAVITY
 
-  // #if !(defined(DENSITY_FLOOR) && defined(TEMPERATURE_FLOOR))
-  #if !(defined(DENSITY_FLOOR))
+  #if !(defined(DENSITY_FLOOR) && defined(TEMPERATURE_FLOOR))
     if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id] || dev_conserved[4 * n_cells + id] < 0.0 ||
         dev_conserved[4 * n_cells + id] != dev_conserved[4 * n_cells + id]) {
       printf("%3d %3d %3d Thread crashed in final update. %e %e %e %e %e\n", xid + x_off, yid + y_off, zid + z_off,
@@ -1140,37 +1139,6 @@ __global__ void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int
   }
 }
 
-__global__ void Apply_Density_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real density_floor)
-{
-  int id, xid, yid, zid, n_cells;
-  Real density_init;  // variable to store the value of the scalar before a floor is applied
-  n_cells = nx * ny * nz;
-
-  // get a global thread ID
-  id  = threadIdx.x + blockIdx.x * blockDim.x;
-  zid = id / (nx * ny);
-  yid = (id - zid * nx * ny) / nx;
-  xid = id - zid * nx * ny - yid * nx;
-
-  // threads corresponding to real cells do the calculation
-  if (xid > n_ghost - 1 && xid < nx - n_ghost && yid > n_ghost - 1 && yid < ny - n_ghost && zid > n_ghost - 1 &&
-      zid < nz - n_ghost) {
-    density_init = dev_conserved[id + n_cells * grid_enum::density];
-
-    if (density_init < density_floor) {
-      printf("###Thread density change  %f -> %f \n", density_init, density_floor);
-      dev_conserved[id] = density_floor;
-      // Scale the conserved values to the new density
-      dev_conserved[id + n_cells * grid_enum::momentum_x] *= (density_floor / density_init);
-      dev_conserved[id + n_cells * grid_enum::momentum_y] *= (density_floor / density_init);
-      dev_conserved[id + n_cells * grid_enum::momentum_z] *= (density_floor / density_init);
-      dev_conserved[id + n_cells * grid_enum::Energy] *= (density_floor / density_init);
-  #ifdef DE
-      dev_conserved[id + n_cells * grid_enum::GasEnergy] *= (density_floor / density_init);
-  #endif  // DE
-    }
-  }
-}
 __device__ Real Average_Cell_Single_Field(int field_indx, int i, int j, int k, int nx, int ny, int nz, int ncells,
                                           Real *conserved)
 {
@@ -1305,6 +1273,7 @@ __global__ void Apply_Scalar_Floor(Real *dev_conserved, int nx, int ny, int nz, 
     scalar = dev_conserved[id + n_cells * field_num];
 
     if (scalar < scalar_floor) {
+      printf("###Thread scalar change  %f -> %f \n", scalar, scalar_floor);
       dev_conserved[id + n_cells * field_num] = scalar_floor;
     }
   }

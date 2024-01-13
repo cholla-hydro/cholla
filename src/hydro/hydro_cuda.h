@@ -88,8 +88,6 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
 __global__ void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields,
                                         Real U_floor);
 
-__global__ void Apply_Density_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real density_floor);
-
 __global__ void Apply_Scalar_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int field_num,
                                    Real scalar_floor);
 

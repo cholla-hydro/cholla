@@ -15,6 +15,7 @@ DFLAGS    += -DHLLC
 DFLAGS    += -DDE
 DFLAGS    += -DAVERAGE_SLOW_CELLS
 DFLAGS    += -DTEMPERATURE_FLOOR
+DFLAGS    += -DDENSITY_FLOOR
 
 DFLAGS    += -DVL
 
@@ -36,6 +37,8 @@ DFLAGS    += -DSLICES
 DFLAGS    += -DPROJECTION
 
 DFLAGS    += $(OUTPUT)
+
+DFLAGS    += -DOUTPUT_ALWAYS
 
 #Select if the Hydro Conserved data will reside in the GPU
 #and the MPI transfers are done from the GPU

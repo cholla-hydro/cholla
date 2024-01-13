@@ -258,16 +258,22 @@ void Grid3D::Initialize(struct Parameters *P)
 #endif /*ROTATED_PROJECTION*/
 
 // Values for lower limit for density and temperature
+#ifdef TEMPERATURE_FLOOR
+  H.temperature_floor = P->temperature_floor;
+#else
+  H.temperature_floor = 0.0;
+#endif
+
 #ifdef DENSITY_FLOOR
-  H.density_floor = DENS_FLOOR;
+  H.density_floor = P->density_floor;
 #else
   H.density_floor = 0.0;
 #endif
 
-#ifdef TEMPERATURE_FLOOR
-  H.temperature_floor = TEMP_FLOOR;
+#ifdef SCALAR_FLOOR
+  H.scalar_floor = P->scalar_floor;
 #else
-  H.temperature_floor = 0.0;
+  H.scalar_floor = 0.0;
 #endif
 
 #ifdef COSMOLOGY
@@ -461,12 +467,12 @@ void Grid3D::Execute_Hydro_Integrator(void)
   #ifdef VL
     VL_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
                          H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, density_floor, U_floor,
-                         C.Grav_potential);
+                         C.Grav_potential, H.scalar_floor);
   #endif  // VL
   #ifdef SIMPLE
     Simple_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
                              H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, density_floor,
-                             U_floor, C.Grav_potential);
+                             U_floor, C.Grav_potential, H.scalar_floor);
   #endif  // SIMPLE
 #endif
   } else {

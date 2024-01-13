@@ -27,7 +27,7 @@
 void Simple_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int ny, int nz, int x_off, int y_off,
                               int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound,
                               Real dt, int n_fields, int custom_grav, Real density_floor, Real U_floor,
-                              Real *host_grav_potential)
+                              Real *host_grav_potential, Real scalar_floor)
 {
   // Here, *dev_conserved contains the entire
   // set of conserved variables on the grid
@@ -189,7 +189,7 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx,
     #ifdef SCALAR_FLOOR
     #ifdef DUST
   hipLaunchKernelGGL(Apply_Scalar_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost,
-                     grid_enum::dust_density, 1e-5);
+                     grid_enum::dust_density, scalar_floor);
   CudaCheckError();
     #endif DUST
     #endif  // SCALAR_FLOOR
