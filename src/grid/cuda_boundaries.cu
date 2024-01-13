@@ -318,7 +318,7 @@ __global__ void Wind_Boundary_kernel(Real *c_device, int nx, int ny, int nz, int
   d_0 = n_0 * mu * MP / DENSITY_UNIT;
   P_0 = n_0 * KB * T_0 / PRESSURE_UNIT;
 
-  vx = 1000 * TIME_UNIT / KPC;  // km/s * (cholla unit conversion)
+  vx = 100 * TIME_UNIT / KPC;  // km/s * (cholla unit conversion)
   vy = 0.0;
   vz = 0.0;
 
