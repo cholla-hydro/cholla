@@ -32,7 +32,8 @@
 
 __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x,
                                                    Real *dev_F_y, Real *dev_F_z, int nx, int ny, int nz, int n_ghost,
-                                                   Real dx, Real dy, Real dz, Real dt, Real gamma, int n_fields, Real density_floor);
+                                                   Real dx, Real dy, Real dz, Real dt, Real gamma, int n_fields,
+                                                   Real density_floor);
 
 void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int ny, int nz, int x_off, int y_off,
                           int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound,
@@ -122,7 +123,7 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   #if defined(GRAVITY)
     dev_grav_potential = d_grav_potential;
   #else   // not GRAVITY
-    dev_grav_potential = NULL;
+    dev_grav_potential     = NULL;
   #endif  // GRAVITY
 
     // If memory is single allocated: memory_allocated becomes true and
@@ -327,11 +328,11 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   #endif  // TEMPERATURE_FLOOR
 
   #ifdef SCALAR_FLOOR
-  #ifdef DUST
+    #ifdef DUST
   hipLaunchKernelGGL(Apply_Scalar_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost,
                      grid_enum::dust_density, scalar_floor);
   GPU_Error_Check();
-  #endif
+    #endif
   #endif  // SCALAR_FLOOR
 
   return;

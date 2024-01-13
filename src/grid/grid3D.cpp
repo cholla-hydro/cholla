@@ -158,7 +158,7 @@ void Grid3D::Initialize(struct Parameters *P)
 
 #ifdef AVERAGE_SLOW_CELLS
   H.min_dt_slow = 1e-5;  // Initialize the minumum dt to a tiny number
-#endif                     // AVERAGE_SLOW_CELLS
+#endif                   // AVERAGE_SLOW_CELLS
 
 #ifndef MPI_CHOLLA
 
@@ -267,13 +267,13 @@ void Grid3D::Initialize(struct Parameters *P)
 #ifdef DENSITY_FLOOR
   H.density_floor = P->density_floor;
 #else
-  H.density_floor = 0.0;
+  H.density_floor     = 0.0;
 #endif
 
 #ifdef SCALAR_FLOOR
   H.scalar_floor = P->scalar_floor;
 #else
-  H.scalar_floor = 0.0;
+  H.scalar_floor      = 0.0;
 #endif
 
 #ifdef COSMOLOGY
@@ -345,8 +345,8 @@ void Grid3D::AllocateMemory(void)
   GPU_Error_Check(cudaHostAlloc(&C.Grav_potential, H.n_cells * sizeof(Real), cudaHostAllocDefault));
   GPU_Error_Check(cudaMalloc((void **)&C.d_Grav_potential, H.n_cells * sizeof(Real)));
 #else
-  C.Grav_potential   = NULL;
-  C.d_Grav_potential = NULL;
+  C.Grav_potential    = NULL;
+  C.d_Grav_potential  = NULL;
 #endif
 
 #ifdef CHEMISTRY_GPU

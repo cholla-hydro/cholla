@@ -428,18 +428,18 @@ void Parse_Param(char *name, char *value, struct Parameters *parms)
   } else if (strcmp(name, "UVB_rates_file") == 0) {
     strncpy(parms->UVB_rates_file, value, MAXLEN);
 #endif
-# ifdef TEMPERATURE_FLOOR
+#ifdef TEMPERATURE_FLOOR
   } else if (strcmp(name, "temperature_floor") == 0) {
     parms->temperature_floor = atof(value);
-# endif
-# ifdef DENSITY_FLOOR
+#endif
+#ifdef DENSITY_FLOOR
   } else if (strcmp(name, "density_floor") == 0) {
     parms->density_floor = atof(value);
-# endif
-# ifdef SCALAR_FLOOR
+#endif
+#ifdef SCALAR_FLOOR
   } else if (strcmp(name, "scalar_floor") == 0) {
     parms->scalar_floor = atof(value);
-# endif
+#endif
 #ifdef ANALYSIS
   } else if (strcmp(name, "analysis_scale_outputs_file") == 0) {
     strncpy(parms->analysis_scale_outputs_file, value, MAXLEN);
