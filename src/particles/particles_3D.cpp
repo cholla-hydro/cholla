@@ -794,16 +794,37 @@ void Particles_3D::Initialize_Isolated_Stellar_Cluster(struct parameters *P)
   this->Initialize_Stellar_Clusters_Helper_(real_props, int_props);
 }
 
-  #if defined(PARTICLE_AGE) && !defined(SINGLE_PARTICLE_MASS) && defined(PARTICLE_IDS)
-/**
- *   Initializes a disk population of uniform mass stellar clusters
- */
-void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
-{
-  chprintf(" Initializing Particles Stellar Disk\n");
+namespace { // stuff inside the anonymous namespace is local-only
 
-  // Set up the PRNG
-  std::mt19937_64 generator(P->prng_seed);
+/* A simple struct used to hold the results of disk_star_cluster_init_ */
+struct StarClusterInitRsltPack {
+  std::map<std::string, int_vector_t> int_props;
+  std::map<std::string, real_vector_t> real_props;
+};
+
+/* Helper function used to initialize the properties of stellar-clusters in a disk
+ *
+ * This initializes all necessary clusters in a simulation. The "age" property
+ * effectively specifies the formation time. If the simulation time is smaller
+ * than the "age" property, then the particle has not "formed yet".
+ *
+ * \param generator Reference to the PRNG used for initialization
+ * \param R_max specifies the maximum radius (in code-units). Clusters initialized
+ *     outside this radius are omitted from the simulation.
+ * \param t_max specifies the final time at which we want to form a cluster. This
+ *     typically coincides with the final simulation time.
+ * \param G specifies the domain properties
+ */
+StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
+                                                   const Real R_max,
+                                                   const Real t_max,
+                                                   const Particles_3D::Grid& G)
+{
+  // todo: move away from using the distribution functions defined in the standard library
+  //  -> apparently, the results of distribution functions are not portable across different
+  //     implementions (the C++ standard was not precise enough to guarantee this)
+  //  -> with that said, it's fine to use the generator classes (e.g. std::mt19937_64)
+  const bool provide_summary = true;
 
   std::gamma_distribution<Real> radialDist(2, 1);  // for generating cyclindrical radii
   std::uniform_real_distribution<Real> zDist(-0.005, 0.005);
@@ -813,9 +834,6 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
 
   Real M_d   = Galaxies::MW.getM_d();  // MW disk mass in M_sun (assumed to be all in stars)
   Real R_d   = Galaxies::MW.getR_d();  // MW stellar disk scale length in kpc
-  Real Z_d   = Galaxies::MW.getZ_d();  // MW stellar height scale length in kpc
-  Real R_max = P->xlen / 2.0 - 0.2;
-  Real t_max = P->tout;
 
   real_vector_t temp_pos_x;
   real_vector_t temp_pos_y;
@@ -887,7 +905,15 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
     t_cluster += cluster_mass / SFR;  // t_cluster is now the age for the next cluster
   }
 
-  n_local = temp_pos_x.size();
+  // print out summary:
+  if (provide_summary) {
+    chprintf(
+      "Stellar Disk Particle Initialization summary: \n"
+      "  lost %lu particles\n"
+      "  n_total = %lu, n_local = %zu, total_mass = %.3e s.m.\n",
+      lost_particles, id + 1, temp_ids.size(), cumulative_mass
+    );
+  }
 
   std::map<std::string, int_vector_t> int_props = {{"id", temp_ids}};
   std::map<std::string, real_vector_t> real_props = { 
@@ -896,16 +922,34 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
     {"vel_x", temp_vel_x}, {"vel_y", temp_vel_y}, {"vel_z", temp_vel_z},
     {"grav_x", temp_grav_x}, {"grav_y", temp_grav_y}, {"grav_z", temp_grav_z},
   };
+  return {std::move(int_props), std::move(real_props)};
+}
 
-  this->Initialize_Stellar_Clusters_Helper_(real_props, int_props);
+} // anonymous namespace
 
-  if (lost_particles > 0) {
-    chprintf("  lost %lu particles\n", lost_particles);
-  }
-  chprintf(
-      "Stellar Disk Particles Initialized, n_total: %lu, n_local: %lu, "
-      "total_mass: %.3e s.m.\n",
-      id + 1, n_local, cumulative_mass);
+  #if defined(PARTICLE_AGE) && !defined(SINGLE_PARTICLE_MASS) && defined(PARTICLE_IDS)
+
+/**
+ *   Initializes a disk population of stellar clusters
+ */
+void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
+{
+  chprintf(" Initializing Particles Stellar Disk\n");
+
+  // Set up the PRNG
+  std::mt19937_64 generator(P->prng_seed);
+
+  Real R_max = P->xlen / 2.0 - 0.2;
+  Real t_max = P->tout;
+
+  StarClusterInitRsltPack pack = disk_stellar_cluster_init_(generator,
+                                                            R_max, t_max,
+                                                            this->G);
+
+  this->n_local = pack.int_props.at("id").size();  // may be a little redundant
+
+  this->Initialize_Stellar_Clusters_Helper_(pack.real_props, pack.int_props);
+
 }
   #endif
 
