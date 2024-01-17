@@ -853,29 +853,38 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
       SFR, Rgas_scale_length, k_s_power, earliest_t_formation);
   }
 
-  real_vector_t temp_pos_x;
-  real_vector_t temp_pos_y;
-  real_vector_t temp_pos_z;
-  real_vector_t temp_vel_x;
-  real_vector_t temp_vel_y;
-  real_vector_t temp_vel_z;
-  real_vector_t temp_grav_x;
-  real_vector_t temp_grav_y;
-  real_vector_t temp_grav_z;
-  real_vector_t temp_mass;
-  int_vector_t temp_ids;
-  real_vector_t temp_age;
+  // initialize the std::map instances of vectors used to hold the output properties
+  // part a: Initialize the maps in the output struct
+  StarClusterInitRsltPack pack = {
+    /* initialize int_props: */
+    {{"id", {}}},
+    /* initialize real_props */
+    {{"age", {}}, {"mass", {}}, {"pos_x", {}}, {"pos_y", {}}, {"pos_z", {}},
+     {"vel_x", {}}, {"vel_y", {}}, {"vel_z", {}},
+     {"grav_x", {}}, {"grav_y", {}}, {"grav_z", {}}}
+  };
 
-  Real vx, vy, vz, vel, ac;
-  Real expFactor, vR_rms, vR, vPhi_str, vPhi, v_c2, vPhi_rand_rms, kappa2;
-  // unsigned long int N = (long int)(6.5e6 * 0.11258580827352116);  //2kpc
-  // radius unsigned long int N = 13; //(long int)(6.5e6 * 0.9272485558395908);
-  // // 15kpc radius
+  // part b: create references to each of vectors stored in the dictionare
+  int_vector_t& temp_ids     = pack.int_props.at("id");
+  real_vector_t& temp_age    = pack.real_props.at("age");
+  real_vector_t& temp_mass   = pack.real_props.at("mass");
+  real_vector_t& temp_pos_x  = pack.real_props.at("pos_x");
+  real_vector_t& temp_pos_y  = pack.real_props.at("pos_y");
+  real_vector_t& temp_pos_z  = pack.real_props.at("pos_z");
+  real_vector_t& temp_vel_x  = pack.real_props.at("vel_x");
+  real_vector_t& temp_vel_y  = pack.real_props.at("vel_y");
+  real_vector_t& temp_vel_z  = pack.real_props.at("vel_z");
+  real_vector_t& temp_grav_x = pack.real_props.at("grav_x");
+  real_vector_t& temp_grav_y = pack.real_props.at("grav_y");
+  real_vector_t& temp_grav_z = pack.real_props.at("grav_z");
+
+  // initialize accumulator variables updated throughout the loop
   Real cumulative_mass = 0;
   Real t_cluster       = earliest_t_formation;
   long lost_particles  = 0;
   part_int_t id        = -1;
 
+  // now actually initialize the clusters
   while (t_cluster < t_max) {
     Real cluster_mass = Galaxies::MW.singleClusterMass(generator);
 
@@ -898,12 +907,12 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
       continue;
     }
 
-    ac   = fabs(Galaxies::MW.gr_disk_D3D(R, 0) + Galaxies::MW.gr_halo_D3D(R, 0));
-    vPhi = sqrt(R * ac);
+    Real ac   = fabs(Galaxies::MW.gr_disk_D3D(R, 0) + Galaxies::MW.gr_halo_D3D(R, 0));
+    Real vPhi = sqrt(R * ac);
 
-    vx = -vPhi * sin(phi);
-    vy = vPhi * cos(phi);
-    vz = 0.0;  // vzDist(generator);
+    Real vx = -vPhi * sin(phi);
+    Real vy = vPhi * cos(phi);
+    Real vz = 0.0;  // vzDist(generator);
 
     // add particle data to the particles vectors
     temp_pos_x.push_back(x);
@@ -931,14 +940,7 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
     );
   }
 
-  std::map<std::string, int_vector_t> int_props = {{"id", temp_ids}};
-  std::map<std::string, real_vector_t> real_props = { 
-    {"age", temp_age}, {"mass", temp_mass},
-    {"pos_x", temp_pos_x}, {"pos_y", temp_pos_y}, {"pos_z", temp_pos_z},
-    {"vel_x", temp_vel_x}, {"vel_y", temp_vel_y}, {"vel_z", temp_vel_z},
-    {"grav_x", temp_grav_x}, {"grav_y", temp_grav_y}, {"grav_z", temp_grav_z},
-  };
-  return {std::move(int_props), std::move(real_props)};
+  return pack;
 }
 
 } // anonymous namespace
