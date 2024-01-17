@@ -796,6 +796,38 @@ void Particles_3D::Initialize_Isolated_Stellar_Cluster(struct parameters *P)
 
 namespace { // stuff inside the anonymous namespace is local-only
 
+struct ClusterCreator{
+
+  ClusterCreator(ClusteredDiskGalaxy& galaxy, Real SFR, Real earliest_t_formation)
+    : galaxy_(galaxy),
+      SFR_(SFR),
+      cached_formation_time_(earliest_t_formation)
+  { }
+
+  /* fetch the next cluster (and prepare internally for the following cluster)
+   *
+   * \param[in] generator Reference to the PRNG used for generating cluster masses
+   * \param[out] t_formation_time The formation time of the next cluster
+   * \param[out] cluster_mass The mass of the next cluster
+   */
+  void next_cluster(std::mt19937_64& generator,
+                    Real& t_formation_time, Real& cluster_mass)
+  {
+    t_formation_time = cached_formation_time_;
+    cluster_mass = galaxy_.singleClusterMass(generator);
+    cached_formation_time_ += cluster_mass / SFR_; // store the age of the next cluster
+  }
+
+  // return the minimum allowed formation time of the next cluster
+  Real peek_next_min_formation_time() const { return cached_formation_time_; }
+
+private: // attributes
+  ClusteredDiskGalaxy& galaxy_;
+  const Real SFR_;  // global star formation rate
+  //const Real cluster_formation_rate_;  // cluster formation rate
+  Real cached_formation_time_;
+};
+
 /* A simple struct used to hold the results of disk_star_cluster_init_ */
 struct StarClusterInitRsltPack {
   std::map<std::string, int_vector_t> int_props;
@@ -853,6 +885,8 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
       SFR, Rgas_scale_length, k_s_power, earliest_t_formation);
   }
 
+  ClusterCreator cluster_creator(Galaxies::MW, SFR, earliest_t_formation);
+
   // initialize the std::map instances of vectors used to hold the output properties
   // part a: Initialize the maps in the output struct
   StarClusterInitRsltPack pack = {
@@ -880,19 +914,16 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
 
   // initialize accumulator variables updated throughout the loop
   Real cumulative_mass = 0;
-  Real t_cluster       = earliest_t_formation;
   long lost_particles  = 0;
   part_int_t id        = -1;
 
   // now actually initialize the clusters
-  while (t_cluster < t_max) {
-    Real cluster_mass = Galaxies::MW.singleClusterMass(generator);
+  while (cluster_creator.peek_next_min_formation_time() < t_max) {
+    Real t_cluster, cluster_mass;
+    cluster_creator.next_cluster(generator, t_cluster, cluster_mass);
 
     Real R = Rgas_scale_length * radialDist(generator);
-    if (R > R_max) {
-      t_cluster += cluster_mass / SFR;
-      continue;
-    }
+    if (R > R_max) continue;
 
     id += 1;  // do this here before we check whether the particle is in the MPI
               // domain, otherwise could end up with duplicated IDs
@@ -903,7 +934,6 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
 
     cumulative_mass += cluster_mass;
     if ((x < G.xMin || x >= G.xMax) || (y < G.yMin || y >= G.yMax) || (z < G.zMin || z >= G.zMax)) {
-      t_cluster += cluster_mass / SFR;  // all mpi ranks need to have the same value of t_cluster for the next cluster
       continue;
     }
 
@@ -927,7 +957,6 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
     temp_mass.push_back(cluster_mass);
     temp_age.push_back(t_cluster);
     temp_ids.push_back(id);
-    t_cluster += cluster_mass / SFR;  // t_cluster is now the age for the next cluster
   }
 
   // print out summary:

@@ -164,7 +164,7 @@ class ClusteredDiskGalaxy : public DiskGalaxy
   Real getHigherClusterMass() const { return higher_cluster_mass; }
   Real getNormalization() const { return normalization; }
 
-  std::vector<Real> generateClusterPopulationMasses(int N, std::mt19937_64 generator)
+  std::vector<Real> generateClusterPopulationMasses(int N, std::mt19937_64 generator) const
   {
     std::vector<Real> population;
     for (int i = 0; i < N; i++) {
@@ -173,10 +173,15 @@ class ClusteredDiskGalaxy : public DiskGalaxy
     return population;
   }
 
-  Real singleClusterMass(std::mt19937_64 generator)
+  Real singleClusterMass(std::mt19937_64 generator) const
   {
     std::uniform_real_distribution<Real> uniform_distro(0, 1);
     return lower_cluster_mass * exp(uniform_distro(generator) / normalization);
+  }
+
+  Real meanClusterMass() const
+  {
+    return normalization * (higher_cluster_mass - lower_cluster_mass);
   }
 };
 
