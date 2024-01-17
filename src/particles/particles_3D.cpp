@@ -832,8 +832,26 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
   std::uniform_real_distribution<Real> phiDist(0, 2 * M_PI);  // for generating phi
   std::normal_distribution<Real> speedDist(0, 1);             // for generating random speeds.
 
+  // fetch governing physical parameters:
   Real M_d   = Galaxies::MW.getM_d();  // MW disk mass in M_sun (assumed to be all in stars)
   Real R_d   = Galaxies::MW.getR_d();  // MW stellar disk scale length in kpc
+  // todo: store the following directly within the Galaxy object
+  const Real SFR               = 2e3;     // global MW SFR: 2 SM / yr
+  const Real Rgas_scale_length = 2 * R_d; // gas-disk scale length
+  // the following are theoretically tunable
+  const Real k_s_power            = 1.0;     // the power in the Kennicut-Schmidt law
+                                             // (at the moment, this isn't tunable)
+  const Real earliest_t_formation = -4e4;    // earliest cluster time
+
+  if (provide_summary) {
+    chprintf(
+      "Stellar Disk Particle Initialization:\n"
+      "  SFR: %.3e Msun/kyr\n"
+      "  Gas disk scale-length: %.3e kpc\n"
+      "  Kennicutt–Schmidt power: %.3f\n"
+      "  earliest-cluster-formation time: %.3e kyr\n",
+      SFR, Rgas_scale_length, k_s_power, earliest_t_formation);
+  }
 
   real_vector_t temp_pos_x;
   real_vector_t temp_pos_y;
@@ -848,22 +866,20 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
   int_vector_t temp_ids;
   real_vector_t temp_age;
 
-  Real x, y, z, R, phi;
   Real vx, vy, vz, vel, ac;
   Real expFactor, vR_rms, vR, vPhi_str, vPhi, v_c2, vPhi_rand_rms, kappa2;
   // unsigned long int N = (long int)(6.5e6 * 0.11258580827352116);  //2kpc
   // radius unsigned long int N = 13; //(long int)(6.5e6 * 0.9272485558395908);
   // // 15kpc radius
   Real cumulative_mass = 0;
-  Real SFR             = 2e3;   // global MW SFR: 2 SM / yr
-  Real t_cluster       = -4e4;  // earliest cluster time
+  Real t_cluster       = earliest_t_formation;
   long lost_particles  = 0;
   part_int_t id        = -1;
 
   while (t_cluster < t_max) {
     Real cluster_mass = Galaxies::MW.singleClusterMass(generator);
 
-    R = 2 * R_d * radialDist(generator);  // R_gas = 2 * R_d
+    Real R = Rgas_scale_length * radialDist(generator);
     if (R > R_max) {
       t_cluster += cluster_mass / SFR;
       continue;
@@ -871,10 +887,10 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
 
     id += 1;  // do this here before we check whether the particle is in the MPI
               // domain, otherwise could end up with duplicated IDs
-    phi = phiDist(generator);
-    x   = R * cos(phi);
-    y   = R * sin(phi);
-    z   = zDist(generator);
+    Real phi = phiDist(generator);
+    Real x   = R * cos(phi);
+    Real y   = R * sin(phi);
+    Real z   = zDist(generator);
 
     cumulative_mass += cluster_mass;
     if ((x < G.xMin || x >= G.xMax) || (y < G.yMin || y >= G.yMax) || (z < G.zMin || z >= G.zMax)) {
@@ -908,7 +924,7 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
   // print out summary:
   if (provide_summary) {
     chprintf(
-      "Stellar Disk Particle Initialization summary: \n"
+      "Disk Particle Statistics: \n"
       "  lost %lu particles\n"
       "  n_total = %lu, n_local = %zu, total_mass = %.3e s.m.\n",
       lost_particles, id + 1, temp_ids.size(), cumulative_mass
