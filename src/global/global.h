@@ -337,6 +337,11 @@ struct Parameters {
   char skewersdir[MAXLEN];
   #endif
 #endif
+#ifdef SCALAR
+  #ifdef DUST
+  Real grain_radius;
+  #endif
+#endif
 };
 
 /*! \fn void parse_params(char *param_file, struct Parameters * parms);

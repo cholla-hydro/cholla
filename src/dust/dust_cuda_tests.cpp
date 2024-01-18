@@ -28,9 +28,11 @@ TEST(tDUSTTestSputteringTimescale,
   Real YR_IN_S                     = 3.154e7;
   Real const k_test_number_density = 1;
   Real const k_test_temperature    = pow(10, 5.0);
+  Real const k_test_grain_radius   = 1;
   Real const k_fiducial_num        = 182565146.96398282;
 
-  Real test_num = Calc_Sputtering_Timescale(k_test_number_density, k_test_temperature) / YR_IN_S;  // yr
+  Real test_num =
+      Calc_Sputtering_Timescale(k_test_number_density, k_test_temperature, k_test_grain_radius) / YR_IN_S;  // yr
 
   double abs_diff;
   int64_t ulps_diff;
