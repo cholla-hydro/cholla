@@ -794,13 +794,52 @@ void Particles_3D::Initialize_Isolated_Stellar_Cluster(struct parameters *P)
   this->Initialize_Stellar_Clusters_Helper_(real_props, int_props);
 }
 
+// An anonymous namespace to group together a bunch of local-only code used to help
+// with initializing disk particles
 namespace { // stuff inside the anonymous namespace is local-only
 
-struct ClusterCreator{
+/* This class encapsulates the logic for determining the mass and formation times
+ * of stellar cluster particles
+ *
+ * In short, we initialize an instance of this class. Then we call the next_cluster
+ * method to determine the formation time and cluster-mass of the next cluster that
+ * will be formed (it also updates the internal state of this object).
+ *
+ * \tparam UsePoissonPointProcess Specifies the strategy determining cluster formation times.
+ *
+ * Currently, there are 2 strategies for determing the properties of a newly formed
+ * cluster. While both approaches randomly draw the cluster mass in the same way,
+ * there are some differences in exactly how the formation times are determined:
+ *   1. The legacy approach will have precomputed the formation time of a given cluster
+ *      ahead of time. After determining the mass of the current cluster, it
+ *      will set the formation time of the next cluster to the sum of the current
+ *      cluster's formation time and `cur_cluster_mass/SFR`, where `SFR` specifies
+ *      the desired global star formation rate
+ *   2. The alternate apporach models the cluster formation rate as a Poisson process,
+ *      with a cluster-formation-rate of `SFR/avg_cluster_mass`, where `avg_cluster_mass`
+ *      is computed from the initial-cluster-mass PDF.
+ *        - The delay in formation-times between different clusters is drawn from a
+ *          separate distribution from the one used to determine the cluster mass.
+ *        - One can show that this is strategy is equivalent to modelling N independent
+ *          Poisson point-processes that each model that the rate of an individual cluster
+ *          mass. Of course N would be a really large number (it approaches infinity).
+ *
+ * Both strategies should acheive the desired star-formation-rate. However, the second
+ * strategy is arguably more robust (since the formation times of a cluster in one part
+ * of the galaxy shouldn't really care about the size of the last cluster formed in a
+ * different part of the galaxy)
+ */
+template<bool UsePoissonPointProcess>
+class ClusterCreator{
+public: // interface
 
-  ClusterCreator(ClusteredDiskGalaxy& galaxy, Real SFR, Real earliest_t_formation)
+  ClusterCreator() = delete;
+
+  /* Primary constructor */
+  ClusterCreator(const ClusteredDiskGalaxy& galaxy, Real SFR, Real earliest_t_formation)
     : galaxy_(galaxy),
       SFR_(SFR),
+      cluster_formation_rate_(SFR / galaxy.meanClusterMass()),
       cached_formation_time_(earliest_t_formation)
   { }
 
@@ -813,18 +852,47 @@ struct ClusterCreator{
   void next_cluster(std::mt19937_64& generator,
                     Real& t_formation_time, Real& cluster_mass)
   {
-    t_formation_time = cached_formation_time_;
+    // first, determine the mass of the next cluster that will be formed
     cluster_mass = galaxy_.singleClusterMass(generator);
-    cached_formation_time_ += cluster_mass / SFR_; // store the age of the next cluster
+
+    // next, determine the formation time of that cluster & make the appropriate
+    // updates to the internal state of this.
+    if (UsePoissonPointProcess){
+      // In a PoissonPoint Process with rate lambda = cluster_formation_rate_,
+      // the holding times between points follows an exponential distribution
+      // with lambda = cluster_formation_rate_
+      std::exponential_distribution<Real> holding_times_(cluster_formation_rate_);
+
+      // in this case, cached_formation_time_ stores the age of the last cluster
+      t_formation_time = holding_times_(generator) + cached_formation_time_;
+      cached_formation_time_ = t_formation_time;
+    } else {
+      // in this case, cached_formation_time_ already stores the age of this next
+      // cluster
+      t_formation_time = cached_formation_time_;
+      cached_formation_time_ += cluster_mass / SFR_;
+    }
   }
 
-  // return the minimum allowed formation time of the next cluster
+  /* returns time represents the earliest possible formation time of the next cluster */
   Real peek_next_min_formation_time() const { return cached_formation_time_; }
 
 private: // attributes
-  ClusteredDiskGalaxy& galaxy_;
-  const Real SFR_;  // global star formation rate
-  //const Real cluster_formation_rate_;  // cluster formation rate
+  // we declare certain attributes as const to make it clear which ones are fixed
+  // after initialization. The other ones represent mutable state.
+
+  const ClusteredDiskGalaxy& galaxy_;
+  /* represents the desired global star formation rate */
+  const Real SFR_;
+  /* represents the rate of forming clusters. This is computed from SFR_
+   * and is only used when modelling cluster formation as a point process */
+  const Real cluster_formation_rate_;
+
+  /* This essentially encodes the state of the ClusterCreator
+   * - when `UsePoissonPointProcess` is `true`, this represents the time at which
+   *   the previous cluster formed
+   * - otherwise, this directly stores the formation time of the next cluster
+   */
   Real cached_formation_time_;
 };
 
@@ -847,6 +915,7 @@ struct StarClusterInitRsltPack {
  *     typically coincides with the final simulation time.
  * \param G specifies the domain properties
  */
+template<bool UsePoissonPointProcess = false>
 StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
                                                    const Real R_max,
                                                    const Real t_max,
@@ -885,7 +954,7 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
       SFR, Rgas_scale_length, k_s_power, earliest_t_formation);
   }
 
-  ClusterCreator cluster_creator(Galaxies::MW, SFR, earliest_t_formation);
+  ClusterCreator<UsePoissonPointProcess> cluster_creator(Galaxies::MW, SFR, earliest_t_formation);
 
   // initialize the std::map instances of vectors used to hold the output properties
   // part a: Initialize the maps in the output struct
@@ -989,9 +1058,13 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
   Real R_max = P->xlen / 2.0 - 0.2;
   Real t_max = P->tout;
 
-  StarClusterInitRsltPack pack = disk_stellar_cluster_init_(generator,
-                                                            R_max, t_max,
-                                                            this->G);
+  // in the future, we may want to let users adjust this parameter OR we may want
+  // to remove the older strategy of determining cluster formation times
+  bool poisson_process_formation_strat = true;
+
+  StarClusterInitRsltPack pack = (poisson_process_formation_strat)
+    ? disk_stellar_cluster_init_<true>(generator, R_max, t_max, this->G)
+    : disk_stellar_cluster_init_<false>(generator, R_max, t_max, this->G);
 
   this->n_local = pack.int_props.at("id").size();  // may be a little redundant
 
