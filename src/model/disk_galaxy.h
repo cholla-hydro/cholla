@@ -8,6 +8,7 @@
 #include <random>
 
 #include "../global/global.h"
+#include "../utils/error_handling.h"
 
 class DiskGalaxy
 {
@@ -146,50 +147,60 @@ class DiskGalaxy
   Real getR_cool() const { return r_cool; };
 };
 
-class ClusteredDiskGalaxy : public DiskGalaxy
-{
- private:
-  Real lower_cluster_mass, higher_cluster_mass;
-  Real normalization;
+/* Encapsulates the cluster-mass distribution function */
+class ClusterMassDistribution{
 
- public:
-  ClusteredDiskGalaxy(Real lm, Real hm, Real md, Real rd, Real zd, Real mvir, Real rvir, Real cvir, Real rcool)
-      : DiskGalaxy{md, rd, zd, mvir, rvir, cvir, rcool}, lower_cluster_mass{lm}, higher_cluster_mass{hm}
+public: // interface
+  ClusterMassDistribution() = delete;
+
+  ClusterMassDistribution(Real lower_mass, Real higher_mass)
+  : lo_mass_(lower_mass), hi_mass_(higher_mass)
   {
-    // if (lower_cluster_mass >= higher_cluster_mass)
-    normalization = 1 / log(higher_cluster_mass / lower_cluster_mass);
-  };
-
-  Real getLowerClusterMass() const { return lower_cluster_mass; }
-  Real getHigherClusterMass() const { return higher_cluster_mass; }
-  Real getNormalization() const { return normalization; }
-
-  std::vector<Real> generateClusterPopulationMasses(int N, std::mt19937_64 generator) const
-  {
-    std::vector<Real> population;
-    for (int i = 0; i < N; i++) {
-      population.push_back(singleClusterMass(generator));
-    }
-    return population;
+    CHOLLA_ASSERT(lower_mass > 0.0, "The minimum cluster-mass must exceed 0");
+    CHOLLA_ASSERT(higher_mass > lower_mass, "The max mass must exceed the min mass");
+    normalization_ = 1 / log(higher_mass / lower_mass);
   }
+
+  Real getLowerClusterMass() const { return lo_mass_; }
+  Real getHigherClusterMass() const { return hi_mass_; }
+  Real meanClusterMass() const { return normalization_ * (hi_mass_ - lo_mass_); }
 
   Real singleClusterMass(std::mt19937_64 generator) const
   {
     std::uniform_real_distribution<Real> uniform_distro(0, 1);
-    return lower_cluster_mass * exp(uniform_distro(generator) / normalization);
+    return lo_mass_ * exp(uniform_distro(generator) / normalization_);
   }
 
-  Real meanClusterMass() const
-  {
-    return normalization * (higher_cluster_mass - lower_cluster_mass);
+private: // attributes
+  Real lo_mass_;
+  Real hi_mass_;
+  Real normalization_;
+};
+
+// TODO: consider doing away with the ClusteredDiskGalaxy class and instead storing
+//       cluster_mass_distribution_ as an optional attribute of DiskGalaxy
+class ClusteredDiskGalaxy : public DiskGalaxy
+{
+ private:
+  ClusterMassDistribution cluster_mass_distribution_;
+
+ public:
+  ClusteredDiskGalaxy(ClusterMassDistribution cluster_mass_distribution,
+                      Real md, Real rd, Real zd, Real mvir, Real rvir, Real cvir, Real rcool)
+      : DiskGalaxy{md, rd, zd, mvir, rvir, cvir, rcool}, cluster_mass_distribution_(cluster_mass_distribution)
+  { }
+
+  ClusterMassDistribution getClusterMassDistribution() const {
+    // we should return a CONST reference or a copy (so that the internal object isn't mutated)
+    return cluster_mass_distribution_;
   }
 };
 
 namespace Galaxies
 {
 // all masses in M_sun and all distances in kpc
-// static DiskGalaxy MW(6.5e10, 3.5, (3.5/5.0), 1.0e12, 261, 20, 157.0);
-static ClusteredDiskGalaxy MW(1e2, 5e5, 6.5e10, 2.7, 0.7, 1.077e12, 261, 18, 157.0);
+static ClusteredDiskGalaxy MW(ClusterMassDistribution{1e2, 5e5},
+                              6.5e10, 2.7, 0.7, 1.077e12, 261, 18, 157.0);
 static DiskGalaxy M82(1.0e10, 0.8, 0.15, 5.0e10, 0.8 / 0.015, 10, 100.0);
 };  // namespace Galaxies
 
