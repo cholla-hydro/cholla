@@ -208,7 +208,7 @@ struct Parameters {
 #ifdef DE
   int out_float32_GasEnergy = 0;
 #endif
-  bool output_always = 0;
+  bool output_always = false;
 #ifdef STATIC_GRAV
   int custom_grav = 0;  // flag to set specific static gravity field
 #endif
