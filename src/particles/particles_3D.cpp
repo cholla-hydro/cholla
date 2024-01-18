@@ -836,10 +836,11 @@ public: // interface
   ClusterCreator() = delete;
 
   /* Primary constructor */
-  ClusterCreator(const ClusteredDiskGalaxy& galaxy, Real SFR, Real earliest_t_formation)
-    : galaxy_(galaxy),
+  ClusterCreator(const ClusterMassDistribution& cluster_mass_distribution,
+                 Real SFR, Real earliest_t_formation)
+    : cluster_mass_distribution_(cluster_mass_distribution),
       SFR_(SFR),
-      cluster_formation_rate_(SFR / galaxy.meanClusterMass()),
+      cluster_formation_rate_(SFR / cluster_mass_distribution.meanClusterMass()),
       cached_formation_time_(earliest_t_formation)
   { }
 
@@ -853,7 +854,7 @@ public: // interface
                     Real& t_formation_time, Real& cluster_mass)
   {
     // first, determine the mass of the next cluster that will be formed
-    cluster_mass = galaxy_.singleClusterMass(generator);
+    cluster_mass = cluster_mass_distribution_.singleClusterMass(generator);
 
     // next, determine the formation time of that cluster & make the appropriate
     // updates to the internal state of this.
@@ -881,7 +882,7 @@ private: // attributes
   // we declare certain attributes as const to make it clear which ones are fixed
   // after initialization. The other ones represent mutable state.
 
-  const ClusteredDiskGalaxy& galaxy_;
+  const ClusterMassDistribution cluster_mass_distribution_;
   /* represents the desired global star formation rate */
   const Real SFR_;
   /* represents the rate of forming clusters. This is computed from SFR_
@@ -954,7 +955,8 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
       SFR, Rgas_scale_length, k_s_power, earliest_t_formation);
   }
 
-  ClusterCreator<UsePoissonPointProcess> cluster_creator(Galaxies::MW, SFR, earliest_t_formation);
+  ClusterCreator<UsePoissonPointProcess> cluster_creator(Galaxies::MW.getClusterMassDistribution(),
+                                                         SFR, earliest_t_formation);
 
   // initialize the std::map instances of vectors used to hold the output properties
   // part a: Initialize the maps in the output struct
