@@ -675,6 +675,56 @@ Primitive __device__ __host__ __inline__ Calc_Interface_Linear(Primitive const &
 
 // =====================================================================================================================
 /*!
+ * \brief Apply limiting the the primitive interfaces in PLM reconstructions
+ *
+ * \param[in,out] interface_L_iph The unlimited left plus 1/2 interface
+ * \param[in,out] interface_R_imh The unlimited right minus 1/2 interface
+ * \param[in] cell_imo The cell centered values at i-1
+ * \param[in] cell_i The cell centered values at i
+ * \param[in] cell_ipo The cell centered values at i+1
+ */
+void __device__ __host__ __inline__ Plm_Limit_Interfaces(Primitive &interface_L_iph, Primitive &interface_R_imh,
+                                                         Primitive const &cell_imo, Primitive const &cell_i,
+                                                         Primitive const &cell_ipo)
+{
+  auto limiter = [](Real &l_iph, Real &r_imh, Real const &val_imo, Real const &val_i, Real const &val_ipo) {
+    r_imh = fmax(fmin(val_i, val_imo), r_imh);
+    r_imh = fmin(fmax(val_i, val_imo), r_imh);
+    l_iph = fmax(fmin(val_i, val_ipo), l_iph);
+    l_iph = fmin(fmax(val_i, val_ipo), l_iph);
+  };
+
+  limiter(interface_L_iph.density, interface_R_imh.density, cell_imo.density, cell_i.density, cell_ipo.density);
+  limiter(interface_L_iph.velocity_x, interface_R_imh.velocity_x, cell_imo.velocity_x, cell_i.velocity_x,
+          cell_ipo.velocity_x);
+  limiter(interface_L_iph.velocity_y, interface_R_imh.velocity_y, cell_imo.velocity_y, cell_i.velocity_y,
+          cell_ipo.velocity_y);
+  limiter(interface_L_iph.velocity_z, interface_R_imh.velocity_z, cell_imo.velocity_z, cell_i.velocity_z,
+          cell_ipo.velocity_z);
+  limiter(interface_L_iph.pressure, interface_R_imh.pressure, cell_imo.pressure, cell_i.pressure, cell_ipo.pressure);
+
+#ifdef MHD
+  limiter(interface_L_iph.magnetic_y, interface_R_imh.magnetic_y, cell_imo.magnetic_y, cell_i.magnetic_y,
+          cell_ipo.magnetic_y);
+  limiter(interface_L_iph.magnetic_z, interface_R_imh.magnetic_z, cell_imo.magnetic_z, cell_i.magnetic_z,
+          cell_ipo.magnetic_z);
+#endif  // MHD
+
+#ifdef DE
+  limiter(interface_L_iph.gas_energy, interface_R_imh.gas_energy, cell_imo.gas_energy, cell_i.gas_energy,
+          cell_ipo.gas_energy);
+#endif  // DE
+#ifdef SCALAR
+  for (int i = 0; i < NSCALARS; i++) {
+    limiter(interface_L_iph.scalar[i], interface_R_imh.scalar[i], cell_imo.scalar[i], cell_i.scalar[i],
+            cell_ipo.scalar[i]);
+  }
+#endif  // SCALAR
+}
+// =====================================================================================================================
+
+// =====================================================================================================================
+/*!
  * \brief Compute the interface state for the CTU version fo the reconstructor from the slope and cell centered state
  * using parabolic interpolation
  *
