@@ -385,6 +385,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *Q_Lx, R
       printf("%3d %3d %3d Thread crashed in final update. %e %e %e %e %e\n", xid + x_off, yid + y_off, zid + z_off,
              dev_conserved[id], dtodx * (dev_F_x[imo] - dev_F_x[id]), dtody * (dev_F_y[jmo] - dev_F_y[id]),
              dtodz * (dev_F_z[kmo] - dev_F_z[id]), dev_conserved[4 * n_cells + id]);
+      Average_Cell_All_Fields(xid, yid, zid, nx, ny, nz, n_cells, n_fields, gamma, dev_conserved);
     }
   #endif  // DENSITY_FLOOR
     /*
@@ -653,7 +654,7 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
           xid, yid, zid, 1. / max_dti, 1. / max_dti_slow, dev_conserved[id] * DENSITY_UNIT / 0.6 / MP, temp,
           speed * VELOCITY_UNIT * 1e-5, vx * VELOCITY_UNIT * 1e-5, vy * VELOCITY_UNIT * 1e-5, vz * VELOCITY_UNIT * 1e-5,
           cs);
-      Average_Cell_All_Fields(xid, yid, zid, nx, ny, nz, n_cells, n_fields, dev_conserved);
+      Average_Cell_All_Fields(xid, yid, zid, nx, ny, nz, n_cells, n_fields, gamma, dev_conserved);
     }
   }
 }
@@ -839,6 +840,7 @@ __global__ void Select_Internal_Energy_1D(Real *dev_conserved, int nx, int n_gho
   int imo, ipo;
   n_cells = nx;
 
+  Real eta_1 = DE_ETA_1;
   Real eta_2 = DE_ETA_2;
 
   // get a global thread ID
@@ -864,7 +866,10 @@ __global__ void Select_Internal_Energy_1D(Real *dev_conserved, int nx, int n_gho
     Emax = fmax(dev_conserved[4 * n_cells + imo], E);
     Emax = fmax(Emax, dev_conserved[4 * n_cells + ipo]);
 
-    if (U_total / Emax > eta_2) {
+    // We only use the "advected" internal energy if both:
+    // - the thermal energy divided by total energy is a small fraction (smaller than eta_1)
+    // - AND we aren't masking shock heating (details controlled by Emax & eta_2)
+    if ((U_total / E > eta_1) or (U_total / Emax > eta_2)) {
       U = U_total;
     } else {
       U = U_advected;
@@ -887,6 +892,7 @@ __global__ void Select_Internal_Energy_2D(Real *dev_conserved, int nx, int ny, i
   int imo, ipo, jmo, jpo;
   n_cells = nx * ny;
 
+  Real eta_1 = DE_ETA_1;
   Real eta_2 = DE_ETA_2;
 
   // get a global thread ID
@@ -922,7 +928,10 @@ __global__ void Select_Internal_Energy_2D(Real *dev_conserved, int nx, int ny, i
     Emax = fmax(Emax, dev_conserved[4 * n_cells + jmo]);
     Emax = fmax(Emax, dev_conserved[4 * n_cells + jpo]);
 
-    if (U_total / Emax > eta_2) {
+    // We only use the "advected" internal energy if both:
+    // - the thermal energy divided by total energy is a small fraction (smaller than eta_1)
+    // - AND we aren't masking shock heating (details controlled by Emax & eta_2)
+    if ((U_total / E > eta_1) or (U_total / Emax > eta_2)) {
       U = U_total;
     } else {
       U = U_advected;
@@ -945,6 +954,7 @@ __global__ void Select_Internal_Energy_3D(Real *dev_conserved, int nx, int ny, i
   int imo, ipo, jmo, jpo, kmo, kpo;
   n_cells = nx * ny * nz;
 
+  Real eta_1 = DE_ETA_1;
   Real eta_2 = DE_ETA_2;
 
   // get a global thread ID
@@ -987,7 +997,10 @@ __global__ void Select_Internal_Energy_3D(Real *dev_conserved, int nx, int ny, i
     Emax = fmax(Emax, dev_conserved[4 * n_cells + kmo]);
     Emax = fmax(Emax, dev_conserved[4 * n_cells + kpo]);
 
-    if (U_total / Emax > eta_2) {
+    // We only use the "advected" internal energy if both:
+    // - the thermal energy divided by total energy is a small fraction (smaller than eta_1)
+    // - AND we aren't masking shock heating (details controlled by Emax & eta_2)
+    if ((U_total / E > eta_1) or (U_total / Emax > eta_2)) {
       U = U_total;
     } else {
       U = U_advected;
@@ -1153,23 +1166,94 @@ __device__ Real Average_Cell_Single_Field(int field_indx, int i, int j, int k, i
 }
 
 __device__ void Average_Cell_All_Fields(int i, int j, int k, int nx, int ny, int nz, int ncells, int n_fields,
-                                        Real *conserved)
+                                        Real gamma, Real *conserved)
 {
-  // Average Density
-  Average_Cell_Single_Field(0, i, j, k, nx, ny, nz, ncells, conserved);
-  // Average Momentum_x
-  Average_Cell_Single_Field(1, i, j, k, nx, ny, nz, ncells, conserved);
-  // Average Momentum_y
-  Average_Cell_Single_Field(2, i, j, k, nx, ny, nz, ncells, conserved);
-  // Average Momentum_z
-  Average_Cell_Single_Field(3, i, j, k, nx, ny, nz, ncells, conserved);
-  // Average Energy
-  Average_Cell_Single_Field(4, i, j, k, nx, ny, nz, ncells, conserved);
+  int id = i + (j)*nx + (k)*nx * ny;
 
+  Real d, mx, my, mz, E, P;
+  d  = conserved[grid_enum::density * ncells + id];
+  mx = conserved[grid_enum::momentum_x * ncells + id];
+  my = conserved[grid_enum::momentum_y * ncells + id];
+  mz = conserved[grid_enum::momentum_z * ncells + id];
+  E  = conserved[grid_enum::Energy * ncells + id];
+  P  = (E - (0.5 / d) * (mx * mx + my * my + mz * mz)) * (gamma - 1.0);
+
+  printf("%3d %3d %3d BC: d: %e  E:%e  P:%e  vx:%e  vy:%e  vz:%e\n", i, j, k, d, E, P, mx / d, my / d, mz / d);
+
+  int idn;
+  int N = 0;
+  Real d_av, vx_av, vy_av, vz_av, P_av;
+  d_av = vx_av = vy_av = vz_av = P_av = 0.0;
+  #ifdef SCALAR
+  Real scalar[NSCALARS], scalar_av[NSCALARS];
+  for (int n = 0; n < NSCALARS; n++) {  // NOLINT
+    scalar_av[n] = 0.0;
+  }
+  #endif
+
+  for (int kk = k - 1; kk <= k + 1; kk++) {
+    for (int jj = j - 1; jj <= j + 1; jj++) {
+      for (int ii = i - 1; ii <= i + 1; ii++) {
+        idn = ii + jj * nx + kk * nx * ny;
+        d   = conserved[grid_enum::density * ncells + idn];
+        mx  = conserved[grid_enum::momentum_x * ncells + idn];
+        my  = conserved[grid_enum::momentum_y * ncells + idn];
+        mz  = conserved[grid_enum::momentum_z * ncells + idn];
+        P   = (conserved[grid_enum::Energy * ncells + idn] - (0.5 / d) * (mx * mx + my * my + mz * mz)) * (gamma - 1.0);
+  #ifdef SCALAR
+        for (int n = 0; n < NSCALARS; n++) {  // NOLINT
+          scalar[n] = conserved[grid_enum::scalar * ncells + idn];
+        }
+  #endif
+        if (d > 0.0 && P > 0.0) {
+          d_av += d;
+          vx_av += mx;
+          vy_av += my;
+          vz_av += mz;
+          P_av += P / (gamma - 1.0);
+  #ifdef SCALAR
+          for (int n = 0; n < NSCALARS; n++) {  // NOLINT
+            scalar_av[n] += scalar[n];
+          }
+  #endif
+          N++;
+        }
+      }
+    }
+  }
+
+  P_av  = P_av / N;
+  vx_av = vx_av / d_av;
+  vy_av = vy_av / d_av;
+  vz_av = vz_av / d_av;
+  #ifdef SCALAR
+  for (int n = 0; n < NSCALARS; n++) {  // NOLINT
+    scalar_av[n] = scalar_av[n] / d_av;
+  }
+  #endif
+  d_av = d_av / N;
+
+  // replace cell values with new averaged values
+  conserved[id + ncells * grid_enum::density]    = d_av;
+  conserved[id + ncells * grid_enum::momentum_x] = d_av * vx_av;
+  conserved[id + ncells * grid_enum::momentum_y] = d_av * vy_av;
+  conserved[id + ncells * grid_enum::momentum_z] = d_av * vz_av;
+  conserved[id + ncells * grid_enum::Energy] =
+      P_av / (gamma - 1.0) + 0.5 * d_av * (vx_av * vx_av + vy_av * vy_av + vz_av * vz_av);
   #ifdef DE
-  // Average GasEnergy
-  Average_Cell_Single_Field(n_fields - 1, i, j, k, nx, ny, nz, ncells, conserved);
-  #endif  // DE
+  conserved[id + ncells * grid_enum::GasEnergy] = P_av / (gamma - 1.0);
+  #endif
+  #ifdef SCALAR
+  for (int n = 0; n < NSCALARS; n++) {  // NOLINT
+    conserved[id + ncells * grid_enum::scalar] = d_av * scalar_av[n];
+  }
+  #endif
+
+  d = d_av;
+  E = P_av / (gamma - 1.0) + 0.5 * d_av * (vx_av * vx_av + vy_av * vy_av + vz_av * vz_av);
+  P = P_av;
+
+  printf("%3d %3d %3d FC: d: %e  E:%e  P:%e  vx:%e  vy:%e  vz:%e\n", i, j, k, d, E, P, vx_av, vy_av, vz_av);
 }
 
 #endif  // CUDA

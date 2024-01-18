@@ -124,6 +124,9 @@ __global__ __launch_bounds__(TPB) void PLMC_cuda(Real *dev_conserved, Real *dev_
   reconstruction::Primitive interface_L_iph = reconstruction::Calc_Interface_Linear(cell_i, del_m_i, 1.0);
   reconstruction::Primitive interface_R_imh = reconstruction::Calc_Interface_Linear(cell_i, del_m_i, -1.0);
 
+  // Limit the interfaces
+  reconstruction::Plm_Limit_Interfaces(interface_L_iph, interface_R_imh, cell_imo, cell_i, cell_ipo);
+
 #ifndef VL
 
   Real const dtodx = dt / dx;

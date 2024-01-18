@@ -57,3 +57,21 @@ TEST(tALLDotProduct, CorrectInputExpectCorrectOutput)
   testing_utilities::Check_Results(fiducialDotProduct, testDotProduct, "dot product");
 }
 // =========================================================================
+
+// =========================================================================
+/*!
+ * \brief Test the math_utils::dotProduct function
+ *
+ */
+TEST(tALLSquareMagnitude, CorrectInputExpectCorrectOutput)
+{
+  std::vector<double> a = {11.503067766457753, 98.316634031589935, 41.12177317622657};
+
+  double const fiducial_square_magnitude = 11489.481324498336;
+
+  double test_square_magnitude = math_utils::SquareMagnitude(a.at(0), a.at(1), a.at(2));
+
+  // Now check results
+  testing_utilities::Check_Results(fiducial_square_magnitude, test_square_magnitude, "dot product");
+}
+// =========================================================================

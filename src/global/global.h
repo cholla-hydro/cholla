@@ -53,10 +53,25 @@ typedef double Real;
 #define TEMP_FLOOR 1e-3
 #define DENS_FLOOR 1e-5  // in code units
 
-// Parameter for Enzo dual Energy Condition
-#define DE_ETA_1 \
-  0.001  // Ratio of U to E for which  Internal Energy is used to compute the
-         // Pressure
+// Parameters for Enzo dual Energy Condition
+// - Prior to GH PR #356, DE_ETA_1 nominally had a value of 0.001 in all
+//   simulations (in practice, the value of DE_ETA_1 had minimal significance
+//   in those simulations). In PR #356, we revised the internal-energy
+//   synchronization to account for the value of DE_ETA_1. This was necessary
+//   for non-cosmology simulations.
+// - In Cosmological simulation, we set DE_ETA_1 to a large number (it doesn't
+//   really matter what, as long as its >=1) to maintain the older behavior
+// - In the future, we run tests and revisit the choice of DE_ETA_1 in
+//   cosmological simulations
+#ifdef COSMOLOGY
+  #define DE_ETA_1 10.0
+#else
+  #define DE_ETA_1 \
+    0.001  // Ratio of U to E for which  Internal Energy is used to compute the
+           // Pressure. This also affects when the Internal Energy is used for
+           // the update.
+#endif
+
 #define DE_ETA_2 \
   0.035  // Ratio of U to max(E_local) used to select which Internal Energy is
          // used for the update.
@@ -154,6 +169,20 @@ extern double Get_Time(void);
 /*! \fn int sgn
  *  \brief Mathematical sign function. Returns sign of x. */
 extern int Sgn(Real x);
+
+/* Global variables for mpi (but they are also initialized to sensible defaults when not using mpi)
+ *
+ * It may make sense to move these back into mpi_routines (but reorganizing the ifdef statements
+ * would take some work). It may make sense to also put these into their own namespace.
+ */
+extern int procID; /*process rank*/
+extern int nproc;  /*number of processes executing simulation*/
+extern int root;   /*rank of root process*/
+
+/* Used when MPI_CHOLLA is not defined to initialize a subset of the global mpi-related variables
+ * that still meaningful in non-mpi simulations.
+ */
+void Init_Global_Parallel_Vars_No_MPI();
 
 struct Parameters {
   int nx;

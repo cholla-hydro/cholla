@@ -57,6 +57,26 @@ int Sgn(Real x)
   }
 }
 
+// global mpi-related variables (they are declared here because they are initialized even when
+// the MPI_CHOLLA variable is not defined)
+
+int procID; /*process rank*/
+int nproc;  /*number of processes in global comm*/
+int root;   /*rank of root process*/
+
+/* Used when MPI_CHOLLA is not defined to initialize a subset of the global mpi-related variables
+ * that still meaningful in non-mpi simulations.
+ */
+void Init_Global_Parallel_Vars_No_MPI()
+{
+#ifdef MPI_CHOLLA
+  CHOLLA_ERROR("This function should not be executed when compiled with MPI");
+#endif
+  procID = 0;
+  nproc  = 1;
+  root   = 0;
+}
+
 /*! \fn char Trim(char *s)
  *  \brief Gets rid of trailing and leading whitespace. */
 char *Trim(char *s)

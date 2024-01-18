@@ -13,9 +13,7 @@
   #include "../utils/error_handling.h"
 
 /*Global MPI Variables*/
-int procID; /*process rank*/
-int nproc;  /*number of processes in global comm*/
-int root;   /*rank of root process*/
+// note: some relevant global variables are declared in global.h
 
 int procID_node; /*process rank on node*/
 int nproc_node;  /*number of MPI processes on node*/
