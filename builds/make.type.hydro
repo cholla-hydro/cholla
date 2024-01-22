@@ -7,8 +7,11 @@ DFLAGS    += -DPLMC
 DFLAGS    += -DHLLC
 
 # Integrator
-# DFLAGS    += -DSIMPLE
+ifeq ($(findstring cosmology,$(TYPE)),cosmology)
+DFLAGS    += -DSIMPLE
+else
 DFLAGS    += -DVL
+endif
 
 # Apply a density and temperature floor
 DFLAGS    += -DDENSITY_FLOOR
