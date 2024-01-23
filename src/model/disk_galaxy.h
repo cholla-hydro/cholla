@@ -10,23 +10,52 @@
 #include "../global/global.h"
 #include "../utils/error_handling.h"
 
+/* Aggregates properties related to a disk
+ *
+ * The radial surface-density distribution satisfies
+ *   `Sigma(r) = Sigma_0 * exp(-r_cyl/R_d)
+ *
+ * \note
+ * If we add more functionality to this object, an argument could be made for
+ * defining separate types for representing the stellar-disks and gas disk.
+ */
+struct DiskProps{
+  Real M_d;  /*!< total mass (in Msolar) */
+  Real R_d;  /*!< scale-length (in kpc) */
+  Real Z_d;  /*!< scale-height (in kpc). In the case of a gas disk, this is more
+              *!< of an initial guess */
+
+  /* Returns Sigma_0. This is just
+   * \f$\Sigma_0 = \frac{M_d}{\int Sigma(r)\ dA} =  \frac{M_d}{2\pi \int_0^\infty r\ \Sigma\ dr} \f$
+   */
+  Real CentralSurfaceDensity() const noexcept {return M_d / (2 * M_PI * R_d * R_d);}
+
+  /* Compute the surface density at cylindrical radius*/
+  Real surface_density(Real R) const noexcept {return CentralSurfaceDensity() * exp(-R / R_d);};
+};
+
+/* Intended to serve as a centralized location where all properties of the underlying galaxy-model
+ * are agregated.
+ *
+ * This object also defines some methods for computing an analytic gravitational potential. At this
+ * time, that gravitational potential is only for the stellar disk and the background halo.
+ */
 class DiskGalaxy
 {
  private:
-  Real M_vir, M_d, R_d, Z_d, R_vir, c_vir, r_cool, M_h, R_h;
+  DiskProps stellar_disk;
+  Real M_vir, R_vir, c_vir, r_cool, M_h, R_h;
   Real log_func(Real y) { return log(1 + y) - y / (1 + y); };
 
  public:
-  DiskGalaxy(Real md, Real rd, Real zd, Real mvir, Real rvir, Real cvir, Real rcool)
+  DiskGalaxy(DiskProps stellar_disk, Real mvir, Real rvir, Real cvir, Real rcool)
+    : stellar_disk(stellar_disk)
   {
-    M_d    = md;
-    R_d    = rd;
-    Z_d    = zd;
     M_vir  = mvir;
     R_vir  = rvir;
     c_vir  = cvir;
     r_cool = rcool;
-    M_h    = M_vir - M_d;
+    M_h    = M_vir - stellar_disk.M_d;
     R_h    = R_vir / c_vir;
   };
 
@@ -35,10 +64,10 @@ class DiskGalaxy
    */
   Real gr_disk_D3D(Real R, Real z)
   {
-    Real A = R_d + sqrt(Z_d * Z_d + z * z);
+    Real A = stellar_disk.R_d + sqrt(stellar_disk.Z_d * stellar_disk.Z_d + z * z);
     Real B = pow(A * A + R * R, 1.5);
 
-    return -GN * M_d * R / B;
+    return -GN * stellar_disk.M_d * R / B;
   };
 
   /**
@@ -89,22 +118,22 @@ class DiskGalaxy
    */
   Real phi_disk_D3D(Real R, Real z)
   {
-    Real A = sqrt(z * z + Z_d * Z_d);
-    Real B = R_d + A;
+    Real A = sqrt(z * z + stellar_disk.Z_d * stellar_disk.Z_d);
+    Real B = stellar_disk.R_d + A;
     Real C = sqrt(R * R + B * B);
 
     // patel et al. 2017, eqn 2
-    return -GN * M_d / C;
+    return -GN * stellar_disk.M_d / C;
   };
 
   Real rho_disk_D3D(const Real r, const Real z)
   {
-    const Real a = R_d;
-    const Real c = Z_d;
+    const Real a = stellar_disk.R_d;
+    const Real c = stellar_disk.Z_d;
     const Real b = sqrt(z * z + c * c);
     const Real d = a + b;
     const Real s = r * r + d * d;
-    return M_d * c * c * (a * (d * d + r * r) + 3.0 * b * d * d) / (4.0 * M_PI * b * b * b * pow(s, 2.5));
+    return stellar_disk.M_d * c * c * (a * (d * d + r * r) + 3.0 * b * d * d) / (4.0 * M_PI * b * b * b * pow(s, 2.5));
   }
 
   /**
@@ -118,6 +147,10 @@ class DiskGalaxy
    */
   Real kappa2(Real R, Real z)
   {
+    const Real R_d = stellar_disk.R_d;
+    const Real M_d = stellar_disk.M_d;
+    const Real Z_d = stellar_disk.Z_d;
+
     Real r = sqrt(R * R + z * z);
     Real x = r / R_h;
     Real C = GN * M_h / (R_h * log_func(c_vir));
@@ -134,13 +167,14 @@ class DiskGalaxy
     return 3 / R * phiH_prime + phiH_prime_prime;
   };
 
-  Real surface_density(Real R) { return M_d / (2 * M_PI) / (R_d * R_d) * exp(-R / R_d); };
+  Real sigma_crit(Real R)
+  {
+    return 3.36 * GN * stellar_disk.surface_density(R) / sqrt(kappa2(R, 0.0));
+  };
 
-  Real sigma_crit(Real R) { return 3.36 * GN * surface_density(R) / sqrt(kappa2(R, 0.0)); };
-
-  Real getM_d() const { return M_d; };
-  Real getR_d() const { return R_d; };
-  Real getZ_d() const { return Z_d; };
+  Real getM_d() const { return stellar_disk.M_d; };
+  Real getR_d() const { return stellar_disk.R_d; };
+  Real getZ_d() const { return stellar_disk.Z_d; };
   Real getM_vir() const { return M_vir; };
   Real getR_vir() const { return R_vir; };
   Real getC_vir() const { return c_vir; };
@@ -210,8 +244,8 @@ class ClusteredDiskGalaxy : public DiskGalaxy
 
  public:
   ClusteredDiskGalaxy(ClusterMassDistribution cluster_mass_distribution,
-                      Real md, Real rd, Real zd, Real mvir, Real rvir, Real cvir, Real rcool)
-      : DiskGalaxy{md, rd, zd, mvir, rvir, cvir, rcool}, cluster_mass_distribution_(cluster_mass_distribution)
+                      DiskProps stellar_disk, Real mvir, Real rvir, Real cvir, Real rcool)
+      : DiskGalaxy{stellar_disk, mvir, rvir, cvir, rcool}, cluster_mass_distribution_(cluster_mass_distribution)
   { }
 
   ClusterMassDistribution getClusterMassDistribution() const {
@@ -224,8 +258,10 @@ namespace Galaxies
 {
 // all masses in M_sun and all distances in kpc
 static ClusteredDiskGalaxy MW(ClusterMassDistribution{1e2, 5e5, 2.0},
-                              6.5e10, 2.7, 0.7, 1.077e12, 261, 18, 157.0);
-static DiskGalaxy M82(1.0e10, 0.8, 0.15, 5.0e10, 0.8 / 0.015, 10, 100.0);
+                              DiskProps{6.5e10, 2.7, 0.7},
+                              1.077e12, 261, 18, 157.0);
+static DiskGalaxy M82(DiskProps{1.0e10, 0.8, 0.15},
+                      5.0e10, 0.8 / 0.015, 10, 100.0);
 };  // namespace Galaxies
 
 #endif  // DISK_GALAXY
