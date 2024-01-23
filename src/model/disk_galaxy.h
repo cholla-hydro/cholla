@@ -34,6 +34,29 @@ struct DiskProps{
   Real surface_density(Real R) const noexcept {return CentralSurfaceDensity() * exp(-R / R_d);};
 };
 
+/* Aggregates properties related to a gas disk
+ *
+ * The radial surface-density distribution satisfies
+ *   `Sigma(r) = Sigma_0 * exp(-r_cyl/R_d)
+ */
+struct GasDiskProps{
+  Real M_d;  /*!< total mass (in Msolar) */
+  Real R_d;  /*!< scale-length (in kpc) */
+  Real H_d;  /*!< initial guess at the scale-height (in kpc) */
+  Real T_d;  /*!< gas temperature */
+  bool isothermal; /*!< Indicates whether to initialize an isothermal or adiabatic disk
+                    *!< (it's unclear whether the adiabatic configuration still works)
+                    */
+
+  /* Returns Sigma_0. This is just
+   * \f$\Sigma_0 = \frac{M_d}{\int Sigma(r)\ dA} =  \frac{M_d}{2\pi \int_0^\infty r\ \Sigma\ dr} \f$
+   */
+  Real CentralSurfaceDensity() const noexcept {return M_d / (2 * M_PI * R_d * R_d);}
+
+  /* Compute the surface density at cylindrical radius*/
+  Real surface_density(Real R) const noexcept {return CentralSurfaceDensity() * exp(-R / R_d);};
+};
+
 /* Intended to serve as a centralized location where all properties of the underlying galaxy-model
  * are agregated.
  *
@@ -44,12 +67,12 @@ class DiskGalaxy
 {
  private:
   DiskProps stellar_disk;
-  DiskProps gas_disk;
+  GasDiskProps gas_disk;
   Real M_vir, R_vir, c_vir, r_cool, M_h, R_h;
   Real log_func(Real y) { return log(1 + y) - y / (1 + y); };
 
  public:
-  DiskGalaxy(DiskProps stellar_disk, DiskProps gas_disk,
+  DiskGalaxy(DiskProps stellar_disk, GasDiskProps gas_disk,
              Real mvir, Real rvir, Real cvir, Real rcool)
     : stellar_disk(stellar_disk), gas_disk(gas_disk)
   {
@@ -178,7 +201,7 @@ class DiskGalaxy
   Real getR_d() const { return stellar_disk.R_d; };
   Real getZ_d() const { return stellar_disk.Z_d; };
   DiskProps getStellarDisk() const { return stellar_disk; };
-  DiskProps getGasDisk() const { return gas_disk; };
+  GasDiskProps getGasDisk() const { return gas_disk; };
   Real getM_vir() const { return M_vir; };
   Real getR_vir() const { return R_vir; };
   Real getC_vir() const { return c_vir; };
@@ -248,7 +271,7 @@ class ClusteredDiskGalaxy : public DiskGalaxy
 
  public:
   ClusteredDiskGalaxy(ClusterMassDistribution cluster_mass_distribution,
-                      DiskProps stellar_disk, DiskProps gas_disk,
+                      DiskProps stellar_disk, GasDiskProps gas_disk,
                       Real mvir, Real rvir, Real cvir, Real rcool)
       : DiskGalaxy{stellar_disk, gas_disk, mvir, rvir, cvir, rcool},
         cluster_mass_distribution_(cluster_mass_distribution)
@@ -265,10 +288,10 @@ namespace Galaxies
 // all masses in M_sun and all distances in kpc
 static ClusteredDiskGalaxy MW(ClusterMassDistribution{1e2, 5e5, 2.0},
                               DiskProps{6.5e10, 2.7, 0.7}, // stellar_disk
-                              DiskProps{0.15 * 6.5e10, 2*2.7, 0.7}, // gas_disk
+                              GasDiskProps{0.15 * 6.5e10, 2*2.7, 0.7, 1e4, true}, // gas_disk
                               1.077e12, 261, 18, 157.0);
 static DiskGalaxy M82(DiskProps{1.0e10, 0.8, 0.15}, // stellar_disk
-                      DiskProps{0.25 * 1.0e10, 2*0.8, 0.15}, // gas_disk
+                      GasDiskProps{0.25 * 1.0e10, 2*0.8, 0.15, 1e4, true}, // gas_disk
                       5.0e10, 0.8 / 0.015, 10, 100.0);
 };  // namespace Galaxies
 

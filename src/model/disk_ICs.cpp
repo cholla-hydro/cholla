@@ -767,7 +767,6 @@ void Grid3D::Disk_3D(parameters p)
   Real d, a, a_d, a_h, v, vx, vy, vz, P, T_d, T_h, mu;
   Real M_vir, M_h, M_d, c_vir, R_vir, R_s, R_d, z_d;
   Real K_eos, rho_eos, cs, K_eos_h, rho_eos_h, cs_h;
-  Real rho_floor;
   Real r_cool;
 
   // MW model
@@ -785,17 +784,19 @@ void Grid3D::Disk_3D(parameters p)
 
   M_h = M_vir - M_d;    // halo mass in M_sun
   R_s = R_vir / c_vir;  // halo scale length in kpc
-  // T_d = 5.9406e5; // SET TO MATCH K_EOS SET BY HAND for K_eos = 1.859984e-14
-  // T_d = 2.0e5;
-  T_d       = 1.0e4;  // CHANGED FOR ISOTHERMAL
   T_h       = 1.0e6;  // halo temperature, at density floor
   rho_eos   = 1.0e7;  // gas eos normalized at 1e7 Msun/kpc^3
   rho_eos_h = 3.0e3;  // gas eos normalized at 3e3 Msun/kpc^3 (about n_h = 10^-3.5)
   mu        = 0.6;
 
-  const DiskProps gas_disk = galaxy.getGasDisk();
-  Real Sigma_0             = gas_disk.CentralSurfaceDensity();  // (in Msun/kpc^2)
-  // rho_floor = 1.0e3; //ICs minimum density in Msun/kpc^3
+  const GasDiskProps gas_disk = galaxy.getGasDisk();
+  Real Sigma_0                = gas_disk.CentralSurfaceDensity();  // (in Msun/kpc^2)
+  // changing the following 3 lines directly assign T_d the value stored in gas_disk.T_d slightly
+  // changes the result of the simulation (its worrying that I can't explain why!)
+  T_d       = 1.0e4;
+  if (T_d != gas_disk.T_d) {
+    CHOLLA_ERROR("unexpected disk temperature");
+  }
 
   if (true){
     printf("\nNominal Disk properties:\n");
@@ -828,16 +829,37 @@ void Grid3D::Disk_3D(parameters p)
   hdp.T_d     = T_d;
   hdp.Sigma_0 = Sigma_0;
   hdp.R_g     = gas_disk.R_d;
-  hdp.H_g     = gas_disk.Z_d;  // initial guess for gas scale height (kpc)
+  hdp.H_g     = gas_disk.H_d;  // initial guess for gas scale height (kpc)
   hdp.gamma   = p.gamma;
 
-  // determine rho_eos by setting central density of disk
-  // based on central temperature
-  rho_eos = determine_rho_eos_D3D(cs, Sigma_0, hdp);
+  if (gas_disk.isothermal){
+    // determine rho_eos by setting central density of disk based on central temperature
+    rho_eos = determine_rho_eos_D3D(cs, Sigma_0, hdp);
+    K_eos   = cs * cs * rho_eos;  // CHANGED FOR ISOTHERMAL
+  } else {
+    CHOLLA_ERROR("Initializing a non-isothermal gas disk hasn't been tested");
+    // this branch represents older logic that was partially commented out throughout
+    // this function
+    // - a lot of this logic was scattered throughout this function so I consolidated it
+    //   into a single spot
 
-  // set EOS parameters
-  // K_eos = cs*cs*pow(rho_eos,1.0-p.gamma)/p.gamma; //P = K\rho^gamma
-  K_eos   = cs * cs * rho_eos;  // CHANGED FOR ISOTHERMAL
+    // previously, when T_d was set to 1e4 K in this function, there was a note that the value
+    // was changed for an Isothermal disk. These lines preceded the definition of T_d
+    // T_d = 5.9406e5; // SET TO MATCH K_EOS SET BY HAND for K_eos = 1.859984e-14
+    // T_d = 2.0e5;
+
+    // previously, we set the value of rho_eos near the top of the function with the following line:
+    //   rho_eos   = 1.0e7;  // gas eos normalized at 1e7 Msun/kpc^3
+    // Then further down in the function, overwrote the value of rho_eos by setting central
+    // density of disk based on central temperature with the following line:
+    //   rho_eos = determine_rho_eos_D3D(cs, Sigma_0, hdp);
+    // It's unclear whether we always did this, or if the 2nd line got added when we started
+    // using an isothermal disk
+
+    // finally, here is the logic for initializing K_eos:
+    //   K_eos = cs*cs*pow(rho_eos,1.0-p.gamma)/p.gamma; //P = K\rho^gamma
+  }
+
   K_eos_h = cs_h * cs_h * pow(rho_eos_h, 1.0 - p.gamma) / p.gamma;
 
   // Store remaining parameters
