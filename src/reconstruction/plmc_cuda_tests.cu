@@ -26,7 +26,10 @@
 TEST(tHYDROPlmcReconstructor, CorrectInputExpectCorrectOutput)
 {
 #ifndef VL
-  #warning "The tHYDROPlmcReconstructor.CorrectInputExpectCorrectOutput only supports the Van Leer (VL) integrator"
+  std::cerr << "Warning: The tHYDROPlmcReconstructor.CorrectInputExpectCorrectOutput only supports the Van Leer (VL) "
+               "integrator"
+            << std::endl;
+  return;
 #endif  // VL
   // Set up PRNG to use
   std::mt19937_64 prng(42);
