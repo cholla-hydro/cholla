@@ -166,7 +166,7 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     dge   = dev_conserved[(n_fields - 1) * n_cells + id];
     p_i   = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
     #else
-    p_i = (dev_conserved[4 * n_cells + id] - 0.5 * d_i * (vx_i * vx_i + vy_i * vy_i + vz_i * vz_i)) * (gamma - 1.0);
+    p_i   = (dev_conserved[4 * n_cells + id] - 0.5 * d_i * (vx_i * vx_i + vy_i * vy_i + vz_i * vz_i)) * (gamma - 1.0);
     #endif  // PRESSURE_DE
     p_i = fmax(p_i, (Real)TINY_NUMBER);
     #ifdef DE

@@ -137,7 +137,7 @@ void Grid3D::set_dt_Gravity()
   dt_particles = Calc_Particles_dt();
   dt_particles = fmin(dt_particles, Particles.max_dt);
       #ifdef ONLY_PARTICLES
-  dt_min = dt_particles;
+  dt_min       = dt_particles;
   chprintf(" dt_particles: %f \n", dt_particles);
       #else
   chprintf(" dt_hydro: %f   dt_particles: %f \n", dt_hydro, dt_particles);
@@ -211,7 +211,7 @@ Real Grav3D::Get_Average_Density()
   #ifdef MPI_CHOLLA
   dens_avrg_all = ReduceRealAvg(dens_mean);
   #else
-  dens_avrg_all = dens_mean;
+  dens_avrg_all            = dens_mean;
   #endif
 
   dens_avrg = dens_avrg_all;
@@ -530,8 +530,8 @@ void Grid3D::Compute_Gravitational_Potential(struct Parameters *P)
   input_density    = Grav.F.density_d;
   output_potential = Grav.F.potential_d;
   #else
-  input_density    = Grav.F.density_h;
-  output_potential = Grav.F.potential_h;
+  input_density        = Grav.F.density_h;
+  output_potential     = Grav.F.potential_h;
   #endif
 
   #ifdef SOR

@@ -433,13 +433,13 @@ void Particles3D::Unload_Particles_from_Buffer_CPU(int direction, int side, Real
     offset_extra += 1;
     pId = recv_buffer[offset_extra];
     #else
-    pId = 0;
+    pId   = 0;
     #endif
     #ifdef PARTICLE_AGE
     offset_extra += 1;
     pAge = recv_buffer[offset_extra];
     #else
-    pAge = 0.0;
+    pAge  = 0.0;
     #endif
 
     offset_buff += N_DATA_PER_PARTICLE_TRANSFER;
