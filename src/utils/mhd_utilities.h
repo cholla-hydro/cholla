@@ -18,6 +18,7 @@
 #include "../grid/grid3D.h"
 #include "../utils/cuda_utilities.h"
 #include "../utils/gpu.hpp"
+#include "../utils/math_utilities.h"
 
 namespace mhd::utils
 {
@@ -74,7 +75,7 @@ inline __host__ __device__ Real _magnetosonicSpeed(Real const &density, Real con
 inline __host__ __device__ Real computeMagneticEnergy(Real const &magneticX, Real const &magneticY,
                                                       Real const &magneticZ)
 {
-  return 0.5 * (magneticX * magneticX + ((magneticY * magneticY) + (magneticZ * magneticZ)));
+  return 0.5 * math_utils::SquareMagnitude(magneticX, magneticY, magneticZ);
 }
 // =========================================================================
 
@@ -98,9 +99,7 @@ inline __host__ __device__ Real computeThermalEnergy(Real const &energyTot, Real
                                                      Real const &magneticX, Real const &magneticY,
                                                      Real const &magneticZ, Real const &gamma)
 {
-  return energyTot -
-         0.5 * (momentumX * momentumX + ((momentumY * momentumY) + (momentumZ * momentumZ))) /
-             fmax(density, TINY_NUMBER) -
+  return energyTot - 0.5 * math_utils::SquareMagnitude(momentumX, momentumY, momentumZ) / fmax(density, TINY_NUMBER) -
          computeMagneticEnergy(magneticX, magneticY, magneticZ);
 }
 // =========================================================================

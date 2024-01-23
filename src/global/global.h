@@ -204,6 +204,7 @@ struct Parameters {
 #ifdef DE
   int out_float32_GasEnergy = 0;
 #endif
+  bool output_always = false;
 #ifdef STATIC_GRAV
   int custom_grav = 0;  // flag to set specific static gravity field
 #endif
@@ -339,6 +340,11 @@ struct Parameters {
   Real lya_Pk_d_log_k;
   #ifdef OUTPUT_SKEWERS
   char skewersdir[MAXLEN];
+  #endif
+#endif
+#ifdef SCALAR
+  #ifdef DUST
+  Real grain_radius;
   #endif
 #endif
 };
