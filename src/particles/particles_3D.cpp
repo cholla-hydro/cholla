@@ -935,11 +935,9 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
   std::normal_distribution<Real> speedDist(0, 1);             // for generating random speeds.
 
   // fetch governing physical parameters:
-  Real M_d   = Galaxies::MW.getM_d();  // MW disk mass in M_sun (assumed to be all in stars)
-  Real R_d   = Galaxies::MW.getR_d();  // MW stellar disk scale length in kpc
   // todo: store the following directly within the Galaxy object
-  const Real SFR               = 2e3;     // global MW SFR: 2 SM / yr
-  const Real Rgas_scale_length = 2 * R_d; // gas-disk scale length
+  const Real SFR               = 2e3;                            // global MW SFR: 2 SM / yr
+  const Real Rgas_scale_length = Galaxies::MW.getGasDisk().R_d;  // gas-disk scale length
   // the following are theoretically tunable
   const Real k_s_power            = 1.0;     // the power in the Kennicut-Schmidt law
                                              // (at the moment, this isn't tunable)
