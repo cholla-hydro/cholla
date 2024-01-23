@@ -123,7 +123,7 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   #if defined(GRAVITY)
     dev_grav_potential = d_grav_potential;
   #else   // not GRAVITY
-    dev_grav_potential     = NULL;
+    dev_grav_potential = NULL;
   #endif  // GRAVITY
 
     // If memory is single allocated: memory_allocated becomes true and

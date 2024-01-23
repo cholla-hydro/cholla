@@ -87,7 +87,7 @@ void FeedbackAnalysis::Compute_Gas_Velocity_Dispersion(Grid3D& G)
   #ifdef MPI_CHOLLA
   MPI_Allreduce(&partial_mass, &total_mass, 1, MPI_CHREAL, MPI_SUM, world);
   #else
-  total_mass         = partial_mass;
+  total_mass = partial_mass;
   #endif
 
   for (k = G.H.n_ghost; k < G.H.nz - G.H.n_ghost; k++) {

@@ -89,7 +89,7 @@ void Cool_GK::Initialize(struct Parameters *P, Cosmology &Cosmo)
   data->metal_cooling = 1;  // metal cooling off
   #else
   chprintf("WARNING: Metal Cooling is Off. \n");
-  data->metal_cooling       = 0;  // metal cooling off
+  data->metal_cooling = 0;  // metal cooling off
   #endif
 
   #ifdef PARALLEL_OMP
