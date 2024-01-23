@@ -1702,7 +1702,6 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
  * time. */
 void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
 {
-  int i, j, k, id, buf_id;
   hid_t dataset_id, dataspace_xzr_id;
   Real *dataset_buffer_dxzr;
   Real *dataset_buffer_Txzr;
@@ -1712,14 +1711,14 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
 
   herr_t status;
   Real dxy, dxz, Txy, Txz;
-  Real d, n, T, vx, vy, vz;
+  Real d, n, vx, vy, vz;
 
   Real x, y, z;      // cell positions
   Real xp, yp, zp;   // rotated positions
   Real alpha, beta;  // projected positions
   int ix, iz;        // projected index positions
 
-  n = T   = 0;
+  n       = 0;
   Real mu = 0.6;
 
   srand(137);      // initialize a random number
@@ -1766,11 +1765,14 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
     dataspace_xzr_id = H5Screate_simple(2, dims, NULL);
 
     // Copy the xz rotated projection to the memory buffer
-    for (k = 0; k < H.nz_real; k++) {
-      for (i = 0; i < H.nx_real; i++) {
-        for (j = 0; j < H.ny_real; j++) {
+    for (int k = 0; k < H.nz_real; k++) {
+      for (int i = 0; i < H.nx_real; i++) {
+        for (int j = 0; j < H.ny_real; j++) {
           // get cell index
-          id = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
+          int const xid = i + H.n_ghost;
+          int const yid = j + H.n_ghost;
+          int const zid = k + H.n_ghost;
+          int const id  = cuda_utilities::compute1DIndex(xid, yid, zid, H.nx, H.ny);
 
           // get cell positions
           Get_Position(i + H.n_ghost, j + H.n_ghost, k + H.n_ghost, &x, &y, &z);
@@ -1795,33 +1797,40 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
   #endif
 
           if ((ix >= 0) && (ix < nx_dset) && (iz >= 0) && (iz < nz_dset)) {
-            buf_id = iz + ix * nz_dset;
-            d      = C.density[id];
+            int const buf_id = iz + ix * nz_dset;
+            d                = C.density[id];
             // project density
             dataset_buffer_dxzr[buf_id] += d * H.dy;
             // calculate number density
             n = d * DENSITY_UNIT / (mu * MP);
+
   // calculate temperature
-  #ifndef DE
-            Real mx = C.momentum_x[id];
-            Real my = C.momentum_y[id];
-            Real mz = C.momentum_z[id];
-            Real E  = C.Energy[id];
-            T = (E - 0.5 * (mx * mx + my * my + mz * mz) / C.density[id]) * (gama - 1.0) * PRESSURE_UNIT / (n * KB);
-  #endif
   #ifdef DE
-            T = C.GasEnergy[id] * PRESSURE_UNIT * (gama - 1.0) / (n * KB);
-  #endif
+            Real const T = hydro_utilities::Calc_Temp_DE(C.GasEnergy[id], gama, n);
+  #else  // DE is not defined
+            Real const mx = C.momentum_x[id];
+            Real const my = C.momentum_y[id];
+            Real const mz = C.momentum_z[id];
+            Real const E  = C.Energy[id];
+
+    #ifdef MHD
+            auto const [magnetic_x, magnetic_y, magnetic_z] =
+                mhd::utils::cellCenteredMagneticFields(C.host, id, xid, yid, zid, H.n_cells, H.nx, H.ny);
+    #else   // MHD is not defined
+            Real const magnetic_x = 0.0, magnetic_y = 0.0, magnetic_z = 0.0;
+    #endif  // MHD
+
+            Real const T =
+                hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n, magnetic_x, magnetic_y, magnetic_z);
+  #endif    // DE
+
             Txz = T * d * H.dy;
             dataset_buffer_Txzr[buf_id] += Txz;
 
             // compute velocities
-            vx = C.momentum_x[id];
-            dataset_buffer_vxxzr[buf_id] += vx * H.dy;
-            vy = C.momentum_y[id];
-            dataset_buffer_vyxzr[buf_id] += vy * H.dy;
-            vz = C.momentum_z[id];
-            dataset_buffer_vzxzr[buf_id] += vz * H.dy;
+            dataset_buffer_vxxzr[buf_id] += C.momentum_x[id] * H.dy;
+            dataset_buffer_vyxzr[buf_id] += C.momentum_y[id] * H.dy;
+            dataset_buffer_vzxzr[buf_id] += C.momentum_z[id] * H.dy;
           }
         }
       }
