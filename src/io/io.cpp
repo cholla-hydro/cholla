@@ -1578,16 +1578,17 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
           int const id  = cuda_utilities::compute1DIndex(xid, yid, zid, H.nx, H.ny);
 
           // sum density
-          dxy += C.density[id] * H.dz;
+          Real const d = C.density[id];
+          dxy += d * H.dz;
   #ifdef DUST
           dust_xy += C.dust_density[id] * H.dz;
   #endif
           // calculate number density
-          Real const n = C.density[id] * DENSITY_UNIT / (mu * MP);
+          Real const n = d * DENSITY_UNIT / (mu * MP);
 
   // calculate temperature
   #ifdef DE
-          Real const T = hydro_utilities::Calc_Temp_DE(C.density[id], C.GasEnergy[id], gama, n);
+          Real const T = hydro_utilities::Calc_Temp_DE(C.GasEnergy[id], gama, n);
   #else  // DE is not defined
           Real const mx = C.momentum_x[id];
           Real const my = C.momentum_y[id];
@@ -1601,11 +1602,11 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
           Real const magnetic_x = 0.0, magnetic_y = 0.0, magnetic_z = 0.0;
     #endif  // MHD
 
-          Real const T = hydro_utilities::Calc_Temp_Conserved(E, C.density[id], mx, my, mz, gama, n, magnetic_x,
-                                                              magnetic_y, magnetic_z);
+          Real const T =
+              hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n, magnetic_x, magnetic_y, magnetic_z);
   #endif    // DE
 
-          Txy += T * H.dz;
+          Txy += T * d * H.dz;
         }
         int const buf_id           = j + i * H.ny_real;
         dataset_buffer_dxy[buf_id] = dxy;
@@ -1631,14 +1632,15 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
           int const zid = k + H.n_ghost;
           int const id  = cuda_utilities::compute1DIndex(xid, yid, zid, H.nx, H.ny);
           // sum density
-          dxz += C.density[id] * H.dy;
+          Real const d = C.density[id];
+          dxz += d * H.dy;
   #ifdef DUST
           dust_xz += C.dust_density[id] * H.dy;
   #endif
           // calculate number density
-          Real const n = C.density[id] * DENSITY_UNIT / (mu * MP);
+          Real const n = d * DENSITY_UNIT / (mu * MP);
   #ifdef DE
-          Real const T = hydro_utilities::Calc_Temp_DE(C.density[id], C.GasEnergy[id], gama, n);
+          Real const T = hydro_utilities::Calc_Temp_DE(C.GasEnergy[id], gama, n);
   #else  // DE is not defined
           Real const mx = C.momentum_x[id];
           Real const my = C.momentum_y[id];
@@ -1652,10 +1654,10 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
           Real const magnetic_x = 0.0, magnetic_y = 0.0, magnetic_z = 0.0;
     #endif  // MHD
 
-          Real const T = hydro_utilities::Calc_Temp_Conserved(E, C.density[id], mx, my, mz, gama, n, magnetic_x,
-                                                              magnetic_y, magnetic_z);
+          Real const T =
+              hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n, magnetic_x, magnetic_y, magnetic_z);
   #endif    // DE
-          Txz += T * H.dy;
+          Txz += T * d * H.dy;
         }
         int const buf_id           = k + i * H.nz_real;
         dataset_buffer_dxz[buf_id] = dxz;

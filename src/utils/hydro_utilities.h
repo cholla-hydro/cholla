@@ -88,10 +88,17 @@ inline __host__ __device__ Real Calc_Temp_Conserved(Real const E, Real const d, 
 }
 
 #ifdef DE
-inline __host__ __device__ Real Calc_Temp_DE(Real const &d, Real const &ge, Real const &gamma, Real const &n)
+/*!
+ * \brief Compute the temperature when DE is turned on
+ *
+ * \param total_gas_energy The total gas energy in the cell. This is the value stored in the grid
+ * \param gamma The adiabatic index
+ * \param n The number density
+ * \return Real The temperature
+ */
+inline __host__ __device__ Real Calc_Temp_DE(Real const &total_gas_energy, Real const &gamma, Real const &n)
 {
-  Real T = d * ge * (gamma - 1.0) * PRESSURE_UNIT / (n * KB);
-  return T;
+  return total_gas_energy * (gamma - 1.0) * PRESSURE_UNIT / (n * KB);
 }
 #endif  // DE
 

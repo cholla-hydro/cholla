@@ -52,14 +52,9 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
   int id_x    = id - id_z * nx * ny - id_y * nx;
 
   // define physics variables
-  Real density_gas, density_dust;           // fluid mass densities
-  Real number_density;                      // gas number density
-  Real mu = 0.6;                            // mean molecular weight
-  Real temperature, energy, pressure;       // temperature, energy, pressure
-  Real velocity_x, velocity_y, velocity_z;  // velocities
-  #ifdef DE
-  Real energy_gas;
-  #endif  // DE
+  Real density_gas, density_dust;  // fluid mass densities
+  Real number_density;             // gas number density
+  Real mu = 0.6;                   // mean molecular weight
 
   // define integration variables
   Real dd_dt;          // instantaneous rate of change in dust density
@@ -71,36 +66,30 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
     // get conserved quanitites
     density_gas  = dev_conserved[id + n_cells * grid_enum::density];
     density_dust = dev_conserved[id + n_cells * grid_enum::dust_density];
-    energy       = dev_conserved[id + n_cells * grid_enum::Energy];
 
     // convert mass density to number density
     number_density = density_gas * DENSITY_UNIT / (mu * MP);
 
-    if (energy < 0.0 || energy != energy) {
-      return;
-    }
-
-    // get conserved quanitites
-    velocity_x = dev_conserved[id + n_cells * grid_enum::momentum_x] / density_gas;
-    velocity_y = dev_conserved[id + n_cells * grid_enum::momentum_y] / density_gas;
-    velocity_z = dev_conserved[id + n_cells * grid_enum::momentum_z] / density_gas;
+    // Compute the temperature
   #ifdef DE
-    energy_gas = dev_conserved[id + n_cells * grid_enum::GasEnergy] / density_gas;
-    energy_gas = fmax(ge, (Real)TINY_NUMBER);
-  #endif  // DE
+    Real const total_gas_energy = dev_conserved[id + n_cells * grid_enum::GasEnergy];
+    Real const temperature      = hydro_utilities::Calc_Temp_DE(total_gas_energy, gamma, number_density);
+  #else  // DE is not enabled
+    Real const energy     = dev_conserved[id + n_cells * grid_enum::Energy];
+    Real const momentum_x = dev_conserved[id + n_cells * grid_enum::momentum_x];
+    Real const momentum_y = dev_conserved[id + n_cells * grid_enum::momentum_y];
+    Real const momentum_z = dev_conserved[id + n_cells * grid_enum::momentum_z];
 
-    // calculate physical quantities
-    pressure = hydro_utilities::Calc_Pressure_Primitive(energy, density_gas, velocity_x, velocity_y, velocity_z, gamma);
+    #ifdef MHD
+    auto const [magnetic_x, magnetic_y, magnetic_z] =
+        mhd::utils::cellCenteredMagneticFields(C.host, id, xid, yid, zid, H.n_cells, H.nx, H.ny);
+    #else   // MHD is not defined
+    Real const magnetic_x = 0.0, magnetic_y = 0.0, magnetic_z = 0.0;
+    #endif  // MHD
 
-    Real temperature_init;
-    temperature_init = hydro_utilities::Calc_Temp(pressure, number_density);
-
-  #ifdef DE
-    temperature_init = hydro_utilities::Calc_Temp_DE(density_gas, energy_gas, gamma, number_density);
-  #endif  // DE
-
-    // if dual energy is turned on use temp from total internal energy
-    temperature = temperature_init;
+    Real const temperature = hydro_utilities::Calc_Temp_Conserved(
+        energy, density, momentum_x, momentum_y, momentum_z, gamma, number_density, magnetic_x, magnetic_y, magnetic_z);
+  #endif    // DE
 
     Real tau_sp = Calc_Sputtering_Timescale(number_density, temperature, grain_radius) /
                   TIME_UNIT;  // sputtering timescale, kyr (sim units)
@@ -121,10 +110,6 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
     density_dust += dd;
 
     dev_conserved[id + n_cells * grid_enum::dust_density] = density_dust;
-
-  #ifdef DE
-    dev_conserved[id + n_cells * grid_enum::GasEnergy] = density_dust * energy_gas;
-  #endif
   }
 }
 
