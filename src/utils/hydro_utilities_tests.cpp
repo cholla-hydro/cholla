@@ -145,7 +145,7 @@ TEST(tHYDROHydroUtilsCalcTempDE, CorrectInputExpectCorrectOutput)
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
     Real test_Ts =
-        hydro_utilities::Calc_Temp_DE(parameters.d.at(i), parameters.ge.at(i), parameters.gamma, parameters.n.at(i));
+        hydro_utilities::Calc_Temp_DE(parameters.d.at(i) * parameters.ge.at(i), parameters.gamma, parameters.n.at(i));
 
     testing_utilities::Check_Results(fiducial_Ts.at(i), test_Ts, parameters.names.at(i));
   }
