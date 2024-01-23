@@ -51,6 +51,3 @@ DFLAGS    += $(MPI_GPU)
 
 # Limit the number of steps to evolve.
 # DFLAGS += -DN_STEPS_LIMIT=1000
-
-# Output on every time step
-# DFLAGS += -DOUTPUT_ALWAYS

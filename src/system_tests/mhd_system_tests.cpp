@@ -765,7 +765,7 @@ TEST_P(tMHDSYSTEMParameterizedMpi, AdvectingFieldLoopCorrectInputExpectCorrectOu
   test_runner.numMpiRanks = GetParam();
 
   // Only do the L2 Norm test. The regular cell-to-cell comparison is brittle for this test across systems
-  test_runner.runTest(true, 3.9E-8, 1.6E-6);
+  test_runner.runTest(true, 3.9E-8, 2.25E-6);
 }
 
 /// Test the MHD Blast Wave

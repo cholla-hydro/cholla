@@ -27,7 +27,8 @@
  * \param[in] dt Simulation timestep
  * \param[in] gamma Specific heat ratio
  */
-void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma);
+void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma,
+                 Real grain_radius);
 
 /*!
  * \brief Compute the change in dust density for a cell and update its value in dev_conserved.
@@ -42,8 +43,8 @@ void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
  * \param[in] dt Simulation timestep
  * \param[in] gamma Specific heat ratio
  */
-__global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
-                            Real gamma);
+__global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma,
+                            Real grain_radius);
 
 /*!
  * \brief Compute the sputtering timescale based on a cell's density and temperature.
@@ -53,7 +54,7 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
  *
  * \return Real Sputtering timescale in seconds (McKinnon et al. 2017)
  */
-__device__ __host__ Real Calc_Sputtering_Timescale(Real number_density, Real temperature);
+__device__ __host__ Real Calc_Sputtering_Timescale(Real number_density, Real temperature, Real grain_radius);
 
 /*!
  * \brief Compute the rate of change in dust density based on the current dust density and sputtering timescale.
