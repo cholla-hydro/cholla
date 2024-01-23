@@ -1055,7 +1055,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
   // Set up the PRNG
   std::mt19937_64 generator(P->prng_seed);
 
-  Real R_max = P->xlen / 2.0 - 0.2;
+  Real R_max = Get_StarCluster_Truncation_Radius(*P);
   Real t_max = P->tout;
 
   // in the future, we may want to let users adjust this parameter OR we may want

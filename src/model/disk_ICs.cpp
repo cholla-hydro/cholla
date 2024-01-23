@@ -44,7 +44,7 @@ struct DataPack{
   Real rho_eos_h;
   Real cs_h;
   Real r_cool;    // cooling radius
-  Real xlen;
+  Real Rgas_truncation_radius;
 
 };
 
@@ -106,7 +106,7 @@ Real Sigma_disk_D3D(Real r, const DataPack& hdp)
   Real Sigma = Sigma_0 * exp(-r / R_g);
 
   // taper the edge of the disk to 0
-  Real R_c     = hdp.xlen / 2.0 - 0.1;
+  Real R_c     = hdp.Rgas_truncation_radius;
   Real taper_factor = 1.0 - standard_logistic_function((r - R_c) / 0.005);
 
   // force surface density to 0 when taper_factor drops below 1e-6
@@ -823,7 +823,7 @@ void Grid3D::Disk_3D(parameters p)
   hdp.cs_h      = cs_h;
   hdp.r_cool    = r_cool;
 
-  hdp.xlen = p.xlen;
+  hdp.Rgas_truncation_radius = Get_Gas_Truncation_Radius(p);
 
   // Now we can start the density calculation
   // we will loop over each column and compute
