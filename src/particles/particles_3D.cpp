@@ -928,18 +928,12 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
   //  -> with that said, it's fine to use the generator classes (e.g. std::mt19937_64)
   const bool provide_summary = true;
 
-  std::gamma_distribution<Real> radialDist(2, 1);  // for generating cyclindrical radii
-  std::uniform_real_distribution<Real> zDist(-0.005, 0.005);
-  std::uniform_real_distribution<Real> vzDist(-1e-8, 1e-8);
-  std::uniform_real_distribution<Real> phiDist(0, 2 * M_PI);  // for generating phi
-  std::normal_distribution<Real> speedDist(0, 1);             // for generating random speeds.
-
   // fetch governing physical parameters:
   // todo: store the following directly within the Galaxy object
   const Real SFR               = 2e3;                            // global MW SFR: 2 SM / yr
   const Real Rgas_scale_length = Galaxies::MW.getGasDisk().R_d;  // gas-disk scale length
   // the following are theoretically tunable
-  const Real k_s_power            = 1.0;     // the power in the Kennicut-Schmidt law
+  const Real k_s_power            = 1.4;     // the power in the Kennicut-Schmidt law
                                              // (at the moment, this isn't tunable)
   const Real earliest_t_formation = -4e4;    // earliest cluster time
 
@@ -952,6 +946,43 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
       "  earliest-cluster-formation time: %.3e kyr\n",
       SFR, Rgas_scale_length, k_s_power, earliest_t_formation);
   }
+
+  // define distribution for generating cyclindrical radii
+  std::gamma_distribution<Real> radialDistHelper(2, 1);
+  auto radialDist = [&radialDistHelper, Rgas_scale_length, k_s_power](std::mt19937_64& generator) -> Real {
+    // we use the Kennicutt–Schmidt law to determine the distribution of particles with respect to r_cyl
+    //   Sigma_SFR(r_cyl) = a * Sigma_gas^k_s_power,
+    // where `a` is some arbitrary normalization constant and k_s_power is usually 1.4. We can combine
+    // this with the formula for the gas surface density,
+    //   Sigma_gas(r_cyl) = Sigma_gas0 * exp(-r_cyl / Rgas_scale_length),
+    // to get a more detailed formula for star-formation surfacte denstiy:
+    //   Sigma_SFR(r_cyl) = a * Sigma_gas^k_s_power * exp(-k_s_power * r_cyl / Rgas_scale_length).
+    //
+    // The incremental rate of star-formation dSFR in the disk between r_cyl and (r_cyl + dr_cyl) is
+    // given by
+    //   dSFR = a * Sigma_gas^k_s_power * exp(-k_s_power * r_cyl / Rgas_scale_length) * (2*pi*r_cyl*dr_cyl)
+    // In principle, we could compute `a` by choosing a value that gives the desired global SFR rate
+    // when we integrate dSFR from r_cyl = 0 to infinity. But that's not really necessary. Instead,
+    // we consolidate all constants into a variable b:
+    //   dSFR = b * r_cyl * exp(-k_s_power * r_cyl / Rgas_scale_length) * dr_cyl
+    // If we multiply by some duration of time tau, the number of stars formed between r_cyl and
+    // (r_cyl + dr_cyl) over that duration is:
+    //   dN = tau*b * r_cyl * exp(-k_s_power * r_cyl / Rgas_scale_length) * dr_cyl
+    // If you were to randomly pick a star formed over this duration, the probability that it would
+    // lie between cylindrical radii R1 and R2 is
+    //   prob = CONST * int_{R1}^{R2} r_cyl * exp(-k_s_power * r_cyl / Rgas_scale_length) * dr_cyl.
+    // If u = (k_s_power * r_cyl / Rgas_scale_length), then this just the gamma distribution with
+    // alpha = 2 and beta = 1.
+
+    Real u = radialDistHelper(generator);      // draw u from gamma distribution
+    return Rgas_scale_length * u / k_s_power;  // compute r_cyl from u
+  };
+
+  // define the other distributions
+  std::uniform_real_distribution<Real> zDist(-0.005, 0.005);
+  std::uniform_real_distribution<Real> vzDist(-1e-8, 1e-8);
+  std::uniform_real_distribution<Real> phiDist(0, 2 * M_PI);  // for generating phi
+  std::normal_distribution<Real> speedDist(0, 1);             // for generating random speeds.
 
   ClusterCreator<UsePoissonPointProcess> cluster_creator(Galaxies::MW.getClusterMassDistribution(),
                                                          SFR, earliest_t_formation);
@@ -991,7 +1022,7 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
     Real t_cluster, cluster_mass;
     cluster_creator.next_cluster(generator, t_cluster, cluster_mass);
 
-    Real R = Rgas_scale_length * radialDist(generator);
+    Real R = radialDist(generator);
     if (R > R_max) continue;
 
     id += 1;  // do this here before we check whether the particle is in the MPI
