@@ -322,9 +322,14 @@ inline Real Get_Gas_Truncation_Radius(const parameters& p)
 namespace Galaxies
 {
 // all masses in M_sun and all distances in kpc
+
+// For the MilkyWay model, we adopt radial scale lengths of 2.5 kpc and 3.5 kpc for
+// the stellar and gas disks, respectively. If the newly formed stars follow the
+// Kennicut-Schmidt law with a power of 1.4, the newly formed stars will organize
+// into a disk with scale-length of 2.5 kpc
 static ClusteredDiskGalaxy MW(ClusterMassDistribution{1e2, 5e5, 2.0},
-                              MiyamotoNagaiDiskProps{6.5e10, 2.7, 0.7}, // stellar_disk
-                              GasDiskProps{0.15 * 6.5e10, 2*2.7, 0.7, 1e4, true}, // gas_disk
+                              MiyamotoNagaiDiskProps{6.5e10, 2.5, 0.7}, // stellar_disk
+                              GasDiskProps{0.15 * 6.5e10, 3.5, 0.7, 1e4, true}, // gas_disk
                               1.077e12, 261, 18, 157.0);
 static DiskGalaxy M82(MiyamotoNagaiDiskProps{1.0e10, 0.8, 0.15}, // stellar_disk
                       GasDiskProps{0.25 * 1.0e10, 2*0.8, 0.15, 1e4, true}, // gas_disk
