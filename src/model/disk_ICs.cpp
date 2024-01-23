@@ -775,7 +775,7 @@ void Grid3D::Disk_3D(parameters p)
   // M82 model Galaxies::M82;
 
   M_vir = galaxy.getM_vir();    // viral mass in M_sun
-  M_d   = galaxy.getM_d();      // mass of disk in M_sun (assume all stars)
+  M_d   = galaxy.getM_d();      // mass of stellar disk in M_sun
   R_d   = galaxy.getR_d();      // stellar disk scale length in kpc
   z_d   = galaxy.getZ_d();      // stellar disk scale height in kpc
   R_vir = galaxy.getR_vir();    // viral radius in kpc
@@ -793,19 +793,17 @@ void Grid3D::Disk_3D(parameters p)
   rho_eos_h = 3.0e3;  // gas eos normalized at 3e3 Msun/kpc^3 (about n_h = 10^-3.5)
   mu        = 0.6;
 
-  Real R_g       = 2.0 * R_d;                           // gas scale length in kpc
-  Real M_gasdisk = 0.15 * M_d;                          // FIXME 0.15 -> 0.25 for M82
-  Real Sigma_0   = M_gasdisk / (2 * M_PI * R_g * R_g);  // central surface density in Msun/kpc^2
-  Real H_g       = z_d;                                 // initial guess for gas scale height
+  const DiskProps gas_disk = galaxy.getGasDisk();
+  Real Sigma_0             = gas_disk.CentralSurfaceDensity();  // (in Msun/kpc^2)
   // rho_floor = 1.0e3; //ICs minimum density in Msun/kpc^3
 
   if (true){
     printf("\nNominal Disk properties:\n");
     printf("                                            Stellar            Gas\n");
     printf("                                            -------          -------\n");
-    printf("scale length (kpc):                      %.7e    %.7e\n", R_d, R_g);
+    printf("scale length (kpc):                      %.7e    %.7e\n", R_d, gas_disk.R_d);
     printf("scale height (kpc):                      %.7e          - \n", z_d);
-    printf("total mass (Msolar):                     %.7e    %.7e\n", M_d, M_gasdisk);
+    printf("total mass (Msolar):                     %.7e    %.7e\n", M_d, gas_disk.M_d);
     printf("central surface density (Msolar/kpc^2):        -          %.7e\n", Sigma_0);
 
     printf("\n");
@@ -829,8 +827,8 @@ void Grid3D::Disk_3D(parameters p)
   hdp.z_d     = z_d;
   hdp.T_d     = T_d;
   hdp.Sigma_0 = Sigma_0;
-  hdp.R_g     = R_g;
-  hdp.H_g     = H_g;
+  hdp.R_g     = gas_disk.R_d;
+  hdp.H_g     = gas_disk.Z_d;  // initial guess for gas scale height (kpc)
   hdp.gamma   = p.gamma;
 
   // determine rho_eos by setting central density of disk

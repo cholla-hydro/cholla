@@ -44,12 +44,14 @@ class DiskGalaxy
 {
  private:
   DiskProps stellar_disk;
+  DiskProps gas_disk;
   Real M_vir, R_vir, c_vir, r_cool, M_h, R_h;
   Real log_func(Real y) { return log(1 + y) - y / (1 + y); };
 
  public:
-  DiskGalaxy(DiskProps stellar_disk, Real mvir, Real rvir, Real cvir, Real rcool)
-    : stellar_disk(stellar_disk)
+  DiskGalaxy(DiskProps stellar_disk, DiskProps gas_disk,
+             Real mvir, Real rvir, Real cvir, Real rcool)
+    : stellar_disk(stellar_disk), gas_disk(gas_disk)
   {
     M_vir  = mvir;
     R_vir  = rvir;
@@ -175,6 +177,8 @@ class DiskGalaxy
   Real getM_d() const { return stellar_disk.M_d; };
   Real getR_d() const { return stellar_disk.R_d; };
   Real getZ_d() const { return stellar_disk.Z_d; };
+  DiskProps getStellarDisk() const { return stellar_disk; };
+  DiskProps getGasDisk() const { return gas_disk; };
   Real getM_vir() const { return M_vir; };
   Real getR_vir() const { return R_vir; };
   Real getC_vir() const { return c_vir; };
@@ -244,8 +248,10 @@ class ClusteredDiskGalaxy : public DiskGalaxy
 
  public:
   ClusteredDiskGalaxy(ClusterMassDistribution cluster_mass_distribution,
-                      DiskProps stellar_disk, Real mvir, Real rvir, Real cvir, Real rcool)
-      : DiskGalaxy{stellar_disk, mvir, rvir, cvir, rcool}, cluster_mass_distribution_(cluster_mass_distribution)
+                      DiskProps stellar_disk, DiskProps gas_disk,
+                      Real mvir, Real rvir, Real cvir, Real rcool)
+      : DiskGalaxy{stellar_disk, gas_disk, mvir, rvir, cvir, rcool},
+        cluster_mass_distribution_(cluster_mass_distribution)
   { }
 
   ClusterMassDistribution getClusterMassDistribution() const {
@@ -258,9 +264,11 @@ namespace Galaxies
 {
 // all masses in M_sun and all distances in kpc
 static ClusteredDiskGalaxy MW(ClusterMassDistribution{1e2, 5e5, 2.0},
-                              DiskProps{6.5e10, 2.7, 0.7},
+                              DiskProps{6.5e10, 2.7, 0.7}, // stellar_disk
+                              DiskProps{0.15 * 6.5e10, 2*2.7, 0.7}, // gas_disk
                               1.077e12, 261, 18, 157.0);
-static DiskGalaxy M82(DiskProps{1.0e10, 0.8, 0.15},
+static DiskGalaxy M82(DiskProps{1.0e10, 0.8, 0.15}, // stellar_disk
+                      DiskProps{0.25 * 1.0e10, 2*0.8, 0.15}, // gas_disk
                       5.0e10, 0.8 / 0.015, 10, 100.0);
 };  // namespace Galaxies
 
