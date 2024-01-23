@@ -14,12 +14,8 @@
  *
  * The radial surface-density distribution satisfies
  *   `Sigma(r) = Sigma_0 * exp(-r_cyl/R_d)
- *
- * \note
- * If we add more functionality to this object, an argument could be made for
- * defining separate types for representing the stellar-disks and gas disk.
  */
-struct DiskProps{
+struct MiyamotoNagaiDiskProps{
   Real M_d;  /*!< total mass (in Msolar) */
   Real R_d;  /*!< scale-length (in kpc) */
   Real Z_d;  /*!< scale-height (in kpc). In the case of a gas disk, this is more
@@ -32,6 +28,49 @@ struct DiskProps{
 
   /* Compute the surface density at cylindrical radius*/
   Real surface_density(Real R) const noexcept {return CentralSurfaceDensity() * exp(-R / R_d);};
+
+  /* Radial acceleration in miyamoto nagai */
+  Real gr_disk_D3D(Real R, Real z) const noexcept
+  {
+    Real A = R_d + sqrt(Z_d * Z_d + z * z);
+    Real B = pow(A * A + R * R, 1.5);
+
+    return -GN * M_d * R / B;
+  };
+
+  // vertical acceleration in miyamoto nagai
+  Real gz_disk_D3D(Real R, Real z) const noexcept
+  {
+    Real a   = R_d;
+    Real b   = Z_d;
+    Real A   = sqrt(b * b + z * z);
+    Real B   = a + A;
+    Real C   = pow(B * B + R * R, 1.5);
+
+    // checked with wolfram alpha
+    return -GN * M_d * z * B / (A * C);
+  }
+
+   /* Miyamoto-Nagai potential */
+  Real phi_disk_D3D(Real R, Real z) const noexcept
+  {
+    Real A = sqrt(z * z + Z_d * Z_d);
+    Real B = R_d + A;
+    Real C = sqrt(R * R + B * B);
+
+    // patel et al. 2017, eqn 2
+    return -GN * M_d / C;
+  };
+
+  Real rho_disk_D3D(const Real r, const Real z) const noexcept
+  {
+    const Real a = R_d;
+    const Real c = Z_d;
+    const Real b = sqrt(z * z + c * c);
+    const Real d = a + b;
+    const Real s = r * r + d * d;
+    return M_d * c * c * (a * (d * d + r * r) + 3.0 * b * d * d) / (4.0 * M_PI * b * b * b * pow(s, 2.5));
+  }
 };
 
 /* Aggregates properties related to a gas disk
@@ -66,13 +105,13 @@ struct GasDiskProps{
 class DiskGalaxy
 {
  private:
-  DiskProps stellar_disk;
+  MiyamotoNagaiDiskProps stellar_disk;
   GasDiskProps gas_disk;
   Real M_vir, R_vir, c_vir, r_cool, M_h, R_h;
   Real log_func(Real y) { return log(1 + y) - y / (1 + y); };
 
  public:
-  DiskGalaxy(DiskProps stellar_disk, GasDiskProps gas_disk,
+  DiskGalaxy(MiyamotoNagaiDiskProps stellar_disk, GasDiskProps gas_disk,
              Real mvir, Real rvir, Real cvir, Real rcool)
     : stellar_disk(stellar_disk), gas_disk(gas_disk)
   {
@@ -84,15 +123,10 @@ class DiskGalaxy
     R_h    = R_vir / c_vir;
   };
 
-  /**
-   *     Radial acceleration in miyamoto nagai
-   */
+  /* Radial acceleration in miyamoto nagai */
   Real gr_disk_D3D(Real R, Real z)
   {
-    Real A = stellar_disk.R_d + sqrt(stellar_disk.Z_d * stellar_disk.Z_d + z * z);
-    Real B = pow(A * A + R * R, 1.5);
-
-    return -GN * stellar_disk.M_d * R / B;
+    return stellar_disk.gr_disk_D3D(R, z);
   };
 
   /**
@@ -138,27 +172,15 @@ class DiskGalaxy
     return -C * log(1 + x) / x;
   };
 
-  /**
-   *  Miyamoto-Nagai potential
-   */
+  /* Miyamoto-Nagai potential */
   Real phi_disk_D3D(Real R, Real z)
   {
-    Real A = sqrt(z * z + stellar_disk.Z_d * stellar_disk.Z_d);
-    Real B = stellar_disk.R_d + A;
-    Real C = sqrt(R * R + B * B);
-
-    // patel et al. 2017, eqn 2
-    return -GN * stellar_disk.M_d / C;
+    return stellar_disk.phi_disk_D3D(R, z);
   };
 
   Real rho_disk_D3D(const Real r, const Real z)
   {
-    const Real a = stellar_disk.R_d;
-    const Real c = stellar_disk.Z_d;
-    const Real b = sqrt(z * z + c * c);
-    const Real d = a + b;
-    const Real s = r * r + d * d;
-    return stellar_disk.M_d * c * c * (a * (d * d + r * r) + 3.0 * b * d * d) / (4.0 * M_PI * b * b * b * pow(s, 2.5));
+    return stellar_disk.rho_disk_D3D(r, z);
   }
 
   /**
@@ -200,7 +222,7 @@ class DiskGalaxy
   Real getM_d() const { return stellar_disk.M_d; };
   Real getR_d() const { return stellar_disk.R_d; };
   Real getZ_d() const { return stellar_disk.Z_d; };
-  DiskProps getStellarDisk() const { return stellar_disk; };
+  MiyamotoNagaiDiskProps getStellarDisk() const { return stellar_disk; };
   GasDiskProps getGasDisk() const { return gas_disk; };
   Real getM_vir() const { return M_vir; };
   Real getR_vir() const { return R_vir; };
@@ -271,7 +293,7 @@ class ClusteredDiskGalaxy : public DiskGalaxy
 
  public:
   ClusteredDiskGalaxy(ClusterMassDistribution cluster_mass_distribution,
-                      DiskProps stellar_disk, GasDiskProps gas_disk,
+                      MiyamotoNagaiDiskProps stellar_disk, GasDiskProps gas_disk,
                       Real mvir, Real rvir, Real cvir, Real rcool)
       : DiskGalaxy{stellar_disk, gas_disk, mvir, rvir, cvir, rcool},
         cluster_mass_distribution_(cluster_mass_distribution)
@@ -287,10 +309,10 @@ namespace Galaxies
 {
 // all masses in M_sun and all distances in kpc
 static ClusteredDiskGalaxy MW(ClusterMassDistribution{1e2, 5e5, 2.0},
-                              DiskProps{6.5e10, 2.7, 0.7}, // stellar_disk
+                              MiyamotoNagaiDiskProps{6.5e10, 2.7, 0.7}, // stellar_disk
                               GasDiskProps{0.15 * 6.5e10, 2*2.7, 0.7, 1e4, true}, // gas_disk
                               1.077e12, 261, 18, 157.0);
-static DiskGalaxy M82(DiskProps{1.0e10, 0.8, 0.15}, // stellar_disk
+static DiskGalaxy M82(MiyamotoNagaiDiskProps{1.0e10, 0.8, 0.15}, // stellar_disk
                       GasDiskProps{0.25 * 1.0e10, 2*0.8, 0.15, 1e4, true}, // gas_disk
                       5.0e10, 0.8 / 0.015, 10, 100.0);
 };  // namespace Galaxies

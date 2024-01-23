@@ -23,14 +23,12 @@
  * is introduced to replace that array
  */
 struct DataPack{
+  MiyamotoNagaiDiskProps stellar_disk;
   Real M_vir;
-  Real M_d;        // disk mass
   Real M_h;        // halo mass
   Real R_vir;
   Real c_vir;      // halo concentration parameter
   Real R_s;        // halo scale length
-  Real R_d;        // miyamoto nagai disk length
-  Real z_d;        // miyamoto nagai disk height
   Real T_d;
   Real Sigma_0;
   Real R_g;
@@ -122,36 +120,6 @@ Real Sigma_disk_D3D(Real r, const DataPack& hdp)
   return Sigma*taper_factor;
 }
 
-// vertical acceleration in miyamoto nagai
-Real gz_disk_D3D(Real R, Real z, const DataPack& hdp)
-{
-  Real M_d = hdp.M_d;  // disk mass
-  Real R_d = hdp.R_d;  // MN disk length
-  Real Z_d = hdp.z_d;  // MN disk height
-  Real a   = R_d;
-  Real b   = Z_d;
-  Real A   = sqrt(b * b + z * z);
-  Real B   = a + A;
-  Real C   = pow(B * B + R * R, 1.5);
-
-  // checked with wolfram alpha
-  return -GN * M_d * z * B / (A * C);
-}
-
-// radial acceleration in miyamoto nagai
-Real gr_disk_D3D(Real R, Real z, const DataPack& hdp)
-{
-  Real M_d = hdp.M_d;  // disk mass
-  Real R_d = hdp.R_d;  // MN disk length
-  Real Z_d = hdp.z_d;  // MN disk height
-  Real A   = sqrt(Z_d * Z_d + z * z);
-  Real B   = R_d + A;
-  Real C   = pow(B * B + R * R, 1.5);
-
-  // checked with wolfram alpha
-  return -GN * M_d * R / C;
-}
-
 // NFW halo potential
 Real phi_halo_D3D(Real R, Real z, const DataPack& hdp)
 {
@@ -172,32 +140,18 @@ Real phi_halo_D3D(Real R, Real z, const DataPack& hdp)
   return -C * log(1 + x) / x;
 }
 
-// Miyamoto-Nagai potential
-Real phi_disk_D3D(Real R, Real z, const DataPack& hdp)
-{
-  Real M_d = hdp.M_d;  // disk mass
-  Real R_d = hdp.R_d;  // MN disk length
-  Real Z_d = hdp.z_d;  // MN disk height
-  Real A   = sqrt(z * z + Z_d * Z_d);
-  Real B   = R_d + A;
-  Real C   = sqrt(R * R + B * B);
-
-  // patel et al. 2017, eqn 2
-  return -GN * M_d / C;
-}
-
 // total potential
 Real phi_total_D3D(Real R, Real z, const DataPack& hdp)
 {
   Real Phi_A = phi_halo_D3D(R, z, hdp);
-  Real Phi_B = phi_disk_D3D(R, z, hdp);
+  Real Phi_B = hdp.stellar_disk.phi_disk_D3D(R, z);
   return Phi_A + Phi_B;
 }
 
 Real phi_hot_halo_D3D(Real r, const DataPack& hdp)
 {
   Real Phi_A = phi_halo_D3D(0, r, hdp);
-  Real Phi_B = phi_disk_D3D(0, r, hdp);
+  Real Phi_B = hdp.stellar_disk.phi_disk_D3D(0, r);
   // return Phi_A;
   return Phi_A + Phi_B;
 }
@@ -765,7 +719,7 @@ void Grid3D::Disk_3D(parameters p)
   int i, j, k, id;
   Real x_pos, y_pos, z_pos, r, phi;
   Real d, a, a_d, a_h, v, vx, vy, vz, P, T_d, T_h, mu;
-  Real M_vir, M_h, M_d, c_vir, R_vir, R_s, R_d, z_d;
+  Real M_vir, M_h, c_vir, R_vir, R_s;
   Real K_eos, rho_eos, cs, K_eos_h, rho_eos_h, cs_h;
   Real r_cool;
 
@@ -773,24 +727,23 @@ void Grid3D::Disk_3D(parameters p)
   DiskGalaxy galaxy = Galaxies::MW;
   // M82 model Galaxies::M82;
 
+  const MiyamotoNagaiDiskProps stellar_disk = galaxy.getStellarDisk();
+  const GasDiskProps gas_disk               = galaxy.getGasDisk();
+
   M_vir = galaxy.getM_vir();    // viral mass in M_sun
-  M_d   = galaxy.getM_d();      // mass of stellar disk in M_sun
-  R_d   = galaxy.getR_d();      // stellar disk scale length in kpc
-  z_d   = galaxy.getZ_d();      // stellar disk scale height in kpc
   R_vir = galaxy.getR_vir();    // viral radius in kpc
   c_vir = galaxy.getC_vir();    // halo concentration (to account for adiabatic
                                 // contraction)
   r_cool = galaxy.getR_cool();  // cooling radius in kpc (MW)
 
-  M_h = M_vir - M_d;    // halo mass in M_sun
+  M_h = M_vir - stellar_disk.M_d;    // halo mass in M_sun
   R_s = R_vir / c_vir;  // halo scale length in kpc
   T_h       = 1.0e6;  // halo temperature, at density floor
   rho_eos   = 1.0e7;  // gas eos normalized at 1e7 Msun/kpc^3
   rho_eos_h = 3.0e3;  // gas eos normalized at 3e3 Msun/kpc^3 (about n_h = 10^-3.5)
   mu        = 0.6;
 
-  const GasDiskProps gas_disk = galaxy.getGasDisk();
-  Real Sigma_0                = gas_disk.CentralSurfaceDensity();  // (in Msun/kpc^2)
+  Real Sigma_0 = gas_disk.CentralSurfaceDensity();  // (in Msun/kpc^2)
   // changing the following 3 lines directly assign T_d the value stored in gas_disk.T_d slightly
   // changes the result of the simulation (its worrying that I can't explain why!)
   T_d       = 1.0e4;
@@ -802,9 +755,9 @@ void Grid3D::Disk_3D(parameters p)
     printf("\nNominal Disk properties:\n");
     printf("                                            Stellar            Gas\n");
     printf("                                            -------          -------\n");
-    printf("scale length (kpc):                      %.7e    %.7e\n", R_d, gas_disk.R_d);
-    printf("scale height (kpc):                      %.7e          - \n", z_d);
-    printf("total mass (Msolar):                     %.7e    %.7e\n", M_d, gas_disk.M_d);
+    printf("scale length (kpc):                      %.7e    %.7e\n", stellar_disk.R_d, gas_disk.R_d);
+    printf("scale height (kpc):                      %.7e          - \n", stellar_disk.Z_d);
+    printf("total mass (Msolar):                     %.7e    %.7e\n", stellar_disk.M_d, gas_disk.M_d);
     printf("central surface density (Msolar/kpc^2):        -          %.7e\n", Sigma_0);
 
     printf("\n");
@@ -818,14 +771,12 @@ void Grid3D::Disk_3D(parameters p)
   // set some initial parameters
   // these parameters are mostly passed to hydrostatic column
   DataPack hdp;  // parameters
+  hdp.stellar_disk = galaxy.getStellarDisk();
   hdp.M_vir   = M_vir;
-  hdp.M_d     = M_d;
   hdp.M_h     = M_h;
   hdp.R_vir   = R_vir;
   hdp.c_vir   = c_vir;
   hdp.R_s     = R_s;
-  hdp.R_d     = R_d;
-  hdp.z_d     = z_d;
   hdp.T_d     = T_d;
   hdp.Sigma_0 = Sigma_0;
   hdp.R_g     = gas_disk.R_d;
@@ -998,7 +949,7 @@ void Grid3D::Disk_3D(parameters p)
           phi = atan2(y_pos, x_pos);  // azimuthal angle (in x-y plane)
 
           // radial acceleration from disk
-          a_d = fabs(gr_disk_D3D(r, z_pos, hdp));
+          a_d = fabs(hdp.stellar_disk.gr_disk_D3D(r, z_pos));
           // radial acceleration from halo
           a_h = fabs(gr_halo_D3D(r, z_pos, hdp));
 
