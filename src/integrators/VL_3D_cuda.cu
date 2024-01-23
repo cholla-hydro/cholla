@@ -455,6 +455,21 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
         dtodz * (dev_F_z[(n_fields - 1) * n_cells + kmo] - dev_F_z[(n_fields - 1) * n_cells + id]) +
         0.5 * P * (dtodx * (vx_imo - vx_ipo) + dtody * (vy_jmo - vy_jpo) + dtodz * (vz_kmo - vz_kpo));
   #endif  // DE
+  #ifdef DENSITY_FLOOR
+    if (dev_conserved_half[id] < density_floor) {
+      dens_0 = dev_conserved_half[id];
+      printf("###Thread density change  %f -> %f \n", dens_0, density_floor);
+      dev_conserved_half[id] = density_floor;
+      // Scale the conserved values to the new density
+      dev_conserved_half[1 * n_cells + id] *= (density_floor / dens_0);
+      dev_conserved_half[2 * n_cells + id] *= (density_floor / dens_0);
+      dev_conserved_half[3 * n_cells + id] *= (density_floor / dens_0);
+      dev_conserved_half[4 * n_cells + id] *= (density_floor / dens_0);
+    #ifdef DE
+      dev_conserved_half[(n_fields - 1) * n_cells + id] *= (density_floor / dens_0);
+    #endif  // DE
+    }
+  #endif  // DENSITY_FLOOR
   }
 }
 
