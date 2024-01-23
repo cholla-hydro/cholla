@@ -16,6 +16,8 @@
 #include "../grid/grid3D.h"
 #include "../io/io.h"
 #include "../utils/cuda_utilities.h"
+#include "../utils/hydro_utilities.h"
+#include "../utils/mhd_utilities.h"
 #include "../utils/timing_functions.h"  // provides ScopedTimer
 #ifdef MPI_CHOLLA
   #include "../mpi/mpi_routines.h"
@@ -1526,18 +1528,16 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
  * current simulation time. */
 void Grid3D::Write_Projection_HDF5(hid_t file_id)
 {
-  int i, j, k, id, buf_id;
   hid_t dataset_id, dataspace_xy_id, dataspace_xz_id;
   Real *dataset_buffer_dxy, *dataset_buffer_dxz;
   Real *dataset_buffer_Txy, *dataset_buffer_Txz;
   herr_t status;
-  Real dxy, dxz, Txy, Txz, n, T;
+  Real dxy, dxz, Txy, Txz;
   #ifdef DUST
   Real dust_xy, dust_xz;
   Real *dataset_buffer_dust_xy, *dataset_buffer_dust_xz;
   #endif
 
-  n = T   = 0;
   Real mu = 0.6;
 
   // 3D
@@ -1563,37 +1563,51 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
     dataspace_xz_id = H5Screate_simple(2, dims, NULL);
 
     // Copy the xy density and temperature projections to the memory buffer
-    for (j = 0; j < H.ny_real; j++) {
-      for (i = 0; i < H.nx_real; i++) {
+    for (int j = 0; j < H.ny_real; j++) {
+      for (int i = 0; i < H.nx_real; i++) {
         dxy = 0;
         Txy = 0;
   #ifdef DUST
         dust_xy = 0;
   #endif
         // for each xy element, sum over the z column
-        for (k = 0; k < H.nz_real; k++) {
-          id = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
+        for (int k = 0; k < H.nz_real; k++) {
+          int const xid = i + H.n_ghost;
+          int const yid = j + H.n_ghost;
+          int const zid = k + H.n_ghost;
+          int const id  = cuda_utilities::compute1DIndex(xid, yid, zid, H.nx, H.ny);
+
           // sum density
           dxy += C.density[id] * H.dz;
   #ifdef DUST
           dust_xy += C.dust_density[id] * H.dz;
   #endif
           // calculate number density
-          n = C.density[id] * DENSITY_UNIT / (mu * MP);
+          Real const n = C.density[id] * DENSITY_UNIT / (mu * MP);
+
   // calculate temperature
-  #ifndef DE
-          Real mx = C.momentum_x[id];
-          Real my = C.momentum_y[id];
-          Real mz = C.momentum_z[id];
-          Real E  = C.Energy[id];
-          T       = (E - 0.5 * (mx * mx + my * my + mz * mz) / C.density[id]) * (gama - 1.0) * PRESSURE_UNIT / (n * KB);
-  #endif
   #ifdef DE
-          T = C.GasEnergy[id] * PRESSURE_UNIT * (gama - 1.0) / (n * KB);
-  #endif
-          Txy += T * C.density[id] * H.dz;
+          Real const T = hydro_utilities::Calc_Temp_DE(C.density[id], C.GasEnergy[id], gama, n);
+  #else  // DE is not defined
+          Real const mx = C.momentum_x[id];
+          Real const my = C.momentum_y[id];
+          Real const mz = C.momentum_z[id];
+          Real const E  = C.Energy[id];
+
+    #ifdef MHD
+          auto const [magnetic_x, magnetic_y, magnetic_z] =
+              mhd::utils::cellCenteredMagneticFields(C.host, id, xid, yid, zid, H.n_cells, H.nx, H.ny);
+    #else   // MHD is not defined
+          Real const magnetic_x = 0.0, magnetic_y = 0.0, magnetic_z = 0.0;
+    #endif  // MHD
+
+          Real const T = hydro_utilities::Calc_Temp_Conserved(E, C.density[id], mx, my, mz, gama, n, magnetic_x,
+                                                              magnetic_y, magnetic_z);
+  #endif    // DE
+
+          Txy += T * H.dz;
         }
-        buf_id                     = j + i * H.ny_real;
+        int const buf_id           = j + i * H.ny_real;
         dataset_buffer_dxy[buf_id] = dxy;
         dataset_buffer_Txy[buf_id] = Txy;
   #ifdef DUST
@@ -1603,37 +1617,46 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
     }
 
     // Copy the xz density and temperature projections to the memory buffer
-    for (k = 0; k < H.nz_real; k++) {
-      for (i = 0; i < H.nx_real; i++) {
+    for (int k = 0; k < H.nz_real; k++) {
+      for (int i = 0; i < H.nx_real; i++) {
         dxz = 0;
         Txz = 0;
   #ifdef DUST
         dust_xz = 0;
   #endif
         // for each xz element, sum over the y column
-        for (j = 0; j < H.ny_real; j++) {
-          id = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
+        for (int j = 0; j < H.ny_real; j++) {
+          int const xid = i + H.n_ghost;
+          int const yid = j + H.n_ghost;
+          int const zid = k + H.n_ghost;
+          int const id  = cuda_utilities::compute1DIndex(xid, yid, zid, H.nx, H.ny);
           // sum density
           dxz += C.density[id] * H.dy;
   #ifdef DUST
           dust_xz += C.dust_density[id] * H.dy;
   #endif
           // calculate number density
-          n = C.density[id] * DENSITY_UNIT / (mu * MP);
-  // calculate temperature
-  #ifndef DE
-          Real mx = C.momentum_x[id];
-          Real my = C.momentum_y[id];
-          Real mz = C.momentum_z[id];
-          Real E  = C.Energy[id];
-          T       = (E - 0.5 * (mx * mx + my * my + mz * mz) / C.density[id]) * (gama - 1.0) * PRESSURE_UNIT / (n * KB);
-  #endif
   #ifdef DE
-          T = C.GasEnergy[id] * PRESSURE_UNIT * (gama - 1.0) / (n * KB);
-  #endif
-          Txz += T * C.density[id] * H.dy;
+          Real const T = hydro_utilities::Calc_Temp_DE(C.density[id], C.GasEnergy[id], gama, n);
+  #else  // DE is not defined
+          Real const mx = C.momentum_x[id];
+          Real const my = C.momentum_y[id];
+          Real const mz = C.momentum_z[id];
+          Real const E  = C.Energy[id];
+
+    #ifdef MHD
+          auto const [magnetic_x, magnetic_y, magnetic_z] =
+              mhd::utils::cellCenteredMagneticFields(C.host, id, xid, yid, zid, H.n_cells, H.nx, H.ny);
+    #else   // MHD is not defined
+          Real const magnetic_x = 0.0, magnetic_y = 0.0, magnetic_z = 0.0;
+    #endif  // MHD
+
+          Real const T = hydro_utilities::Calc_Temp_Conserved(E, C.density[id], mx, my, mz, gama, n, magnetic_x,
+                                                              magnetic_y, magnetic_z);
+  #endif    // DE
+          Txz += T * H.dy;
         }
-        buf_id                     = k + i * H.nz_real;
+        int const buf_id           = k + i * H.nz_real;
         dataset_buffer_dxz[buf_id] = dxz;
         dataset_buffer_Txz[buf_id] = Txz;
   #ifdef DUST
