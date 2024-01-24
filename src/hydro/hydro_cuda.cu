@@ -1101,7 +1101,6 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
 
   #endif  // DE
 
-
 void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real U_floor)
 {
   // set values for GPU kernels
@@ -1111,8 +1110,9 @@ void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block
   dim3 dim1dBlock(TPB, 1, 1);
-  
-  hipLaunchKernelGGL(Temperature_Floor_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, U_floor);
+
+  hipLaunchKernelGGL(Temperature_Floor_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost,
+                     n_fields, U_floor);
 }
 
 __global__ void Temperature_Floor_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields,
@@ -1277,8 +1277,9 @@ void Apply_Scalar_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block
   dim3 dim1dBlock(TPB, 1, 1);
-  
-  hipLaunchKernelGGL(Scalar_Floor_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, field_num, scalar_floor);
+
+  hipLaunchKernelGGL(Scalar_Floor_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, field_num,
+                     scalar_floor);
 }
 
 __global__ void Scalar_Floor_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int field_num,

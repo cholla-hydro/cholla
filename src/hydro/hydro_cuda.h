@@ -88,12 +88,12 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
 void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real U_floor);
 
 __global__ void Temperature_Floor_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields,
-                                        Real U_floor);
+                                         Real U_floor);
 
 void Apply_Scalar_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int field_num, Real scalar_floor);
 
 __global__ void Scalar_Floor_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int field_num,
-                                   Real scalar_floor);
+                                    Real scalar_floor);
 
 __global__ void Partial_Update_Advected_Internal_Energy_1D(Real *dev_conserved, Real *Q_Lx, Real *Q_Rx, int nx,
                                                            int n_ghost, Real dx, Real dt, Real gamma, int n_fields);

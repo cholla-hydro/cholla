@@ -158,7 +158,7 @@ void Grid3D::Initialize(struct Parameters *P)
 
 #ifdef AVERAGE_SLOW_CELLS
   H.min_dt_slow = 1e-100;  // Initialize the minumum dt to a tiny number
-#endif                   // AVERAGE_SLOW_CELLS
+#endif                     // AVERAGE_SLOW_CELLS
 
 #ifndef MPI_CHOLLA
 
@@ -467,7 +467,8 @@ void Grid3D::Execute_Hydro_Integrator(void)
   #endif  // VL
   #ifdef SIMPLE
     Simple_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
-                             H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, H.density_floor, C.Grav_potential);
+                             H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, H.density_floor,
+                             C.Grav_potential);
   #endif  // SIMPLE
 #endif
   } else {
@@ -508,16 +509,16 @@ Real Grid3D::Update_Hydro_Grid()
   Real U_floor;
   // Minimum of internal energy from minumum of temperature
   U_floor = H.temperature_floor * KB / (gama - 1) / MP / SP_ENERGY_UNIT;
-  #ifdef COSMOLOGY
+    #ifdef COSMOLOGY
   U_floor = H.temperature_floor / (gama - 1) / MP * KB * 1e-10;  // ( km/s )^2
   U_floor /= Cosmo.v_0_gas * Cosmo.v_0_gas / Cosmo.current_a / Cosmo.current_a;
-  #endif
+    #endif
   Apply_Temperature_Floor(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, U_floor);
   #endif  // TEMPERATURE_FLOOR
 
   #ifdef SCALAR_FLOOR
     #ifdef DUST
-    Apply_Scalar_Floor(C.device, H.nx, H.ny, H.nz, H.n_ghost, grid_enum::dust_density, H.scalar_floor);
+  Apply_Scalar_Floor(C.device, H.nx, H.ny, H.nz, H.n_ghost, grid_enum::dust_density, H.scalar_floor);
     #endif
   #endif  // SCALAR_FLOOR
 
