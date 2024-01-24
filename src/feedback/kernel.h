@@ -13,7 +13,6 @@
 #include "../utils/gpu.hpp"
 
 #include <climits>
-#include <cooperative_groups.h>
 
 #include <type_traits>
 
@@ -667,7 +666,7 @@ void Exec_Cluster_Feedback_Kernel(const feedback_details::ParticleProps& particl
                          (void *)(&ov_scheduler)};
 
   cudaLaunchCooperativeKernel((void *)tmp.kernel_ptr, tmp.dim_grid, tmp.dim_block, kernelArgs,
-                              dynamic_shared_mem_per_block);
+                              dynamic_shared_mem_per_block, 0);
 
   /*
   // compute the grid-size or the number of thread-blocks per grid. The number of threads in a block is
