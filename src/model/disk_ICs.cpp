@@ -752,15 +752,15 @@ void Grid3D::Disk_3D(parameters p)
   }
 
   if (true){
-    printf("\nNominal Disk properties:\n");
-    printf("                                            Stellar            Gas\n");
-    printf("                                            -------          -------\n");
-    printf("scale length (kpc):                      %.7e    %.7e\n", stellar_disk.R_d, gas_disk.R_d);
-    printf("scale height (kpc):                      %.7e          - \n", stellar_disk.Z_d);
-    printf("total mass (Msolar):                     %.7e    %.7e\n", stellar_disk.M_d, gas_disk.M_d);
-    printf("central surface density (Msolar/kpc^2):        -          %.7e\n", Sigma_0);
+    chprintf("\nNominal Disk properties:\n");
+    chprintf("                                            Stellar            Gas\n");
+    chprintf("                                            -------          -------\n");
+    chprintf("scale length (kpc):                      %.7e    %.7e\n", stellar_disk.R_d, gas_disk.R_d);
+    chprintf("scale height (kpc):                      %.7e          - \n", stellar_disk.Z_d);
+    chprintf("total mass (Msolar):                     %.7e    %.7e\n", stellar_disk.M_d, gas_disk.M_d);
+    chprintf("central surface density (Msolar/kpc^2):        -          %.7e\n", Sigma_0);
 
-    printf("\n");
+    chprintf("\n");
   }
 
 
