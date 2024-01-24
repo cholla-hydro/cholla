@@ -83,14 +83,15 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
     #ifdef MHD
     auto const [magnetic_x, magnetic_y, magnetic_z] =
         mhd::utils::cellCenteredMagneticFields(C.host, id, xid, yid, zid, H.n_cells, H.nx, H.ny);
-    #else   // MHD is not defined
-    Real const magnetic_x = 0.0, magnetic_y = 0.0, magnetic_z = 0.0;
-    #endif  // MHD
-
     Real const temperature =
         hydro_utilities::Calc_Temp_Conserved(energy, density_gas, momentum_x, momentum_y, momentum_z, gamma,
                                              number_density, magnetic_x, magnetic_y, magnetic_z);
-  #endif    // DE
+    #else   // MHD is not defined
+    Real const temperature = hydro_utilities::Calc_Temp_Conserved(energy, density_gas, momentum_x, momentum_y,
+                                                                  momentum_z, gamma, number_density);
+    #endif  // MHD
+
+  #endif  // DE
 
     Real tau_sp = Calc_Sputtering_Timescale(number_density, temperature, grain_radius) /
                   TIME_UNIT;  // sputtering timescale, kyr (sim units)
