@@ -174,21 +174,21 @@ TEST(tHYDROScalarFloor, CorrectInputExpectCorrectOutput)
   // Case where scalar is below the floor
   host_conserved.at(field_num) = 0.0;  // scalar
   dev_conserved.cpyHostToDevice(host_conserved);
-  hipLaunchKernelGGL(Apply_Scalar_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved.data(), nx, ny, nz, n_ghost,
+  hipLaunchKernelGGL(Scalar_Floor_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved.data(), nx, ny, nz, n_ghost,
                      field_num, scalar_floor);
   testing_utilities::Check_Results(scalar_floor, dev_conserved.at(field_num), "below floor");
 
   // Case where scalar is above the floor
   host_conserved.at(field_num) = 2.0;  // scalar
   dev_conserved.cpyHostToDevice(host_conserved);
-  hipLaunchKernelGGL(Apply_Scalar_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved.data(), nx, ny, nz, n_ghost,
+  hipLaunchKernelGGL(Scalar_Floor_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved.data(), nx, ny, nz, n_ghost,
                      field_num, scalar_floor);
   testing_utilities::Check_Results(host_conserved.at(field_num), dev_conserved.at(field_num), "above floor");
 
   // Case where scalar is at the floor
   host_conserved.at(field_num) = 1.0;  // scalar
   dev_conserved.cpyHostToDevice(host_conserved);
-  hipLaunchKernelGGL(Apply_Scalar_Floor, dim1dGrid, dim1dBlock, 0, 0, dev_conserved.data(), nx, ny, nz, n_ghost,
+  hipLaunchKernelGGL(Scalar_Floor_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved.data(), nx, ny, nz, n_ghost,
                      field_num, scalar_floor);
   testing_utilities::Check_Results(host_conserved.at(field_num), dev_conserved.at(field_num), "at floor");
 }

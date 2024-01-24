@@ -1101,8 +1101,22 @@ __global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, in
 
   #endif  // DE
 
-__global__ void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields,
-                                        Real U_floor)
+
+void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real U_floor)
+{
+  // set values for GPU kernels
+  int n_cells = nx * ny * nz;
+  int ngrid   = (n_cells + TPB - 1) / TPB;
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB, 1, 1);
+  
+  hipLaunchKernelGGL(Temperature_Floor_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, U_floor);
+}
+
+__global__ void Temperature_Floor_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields,
+                                         Real U_floor)
 {
   int id, xid, yid, zid, n_cells;
   Real d, d_inv, vx, vy, vz, E, Ekin, U;
@@ -1254,8 +1268,21 @@ __device__ void Average_Cell_All_Fields(int i, int j, int k, int nx, int ny, int
   printf("%3d %3d %3d FC: d: %e  E:%e  P:%e  vx:%e  vy:%e  vz:%e\n", i, j, k, d, E, P, vx_av, vy_av, vz_av);
 }
 
-__global__ void Apply_Scalar_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int field_num,
-                                   Real scalar_floor)
+void Apply_Scalar_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int field_num, Real scalar_floor)
+{
+  // set values for GPU kernels
+  int n_cells = nx * ny * nz;
+  int ngrid   = (n_cells + TPB - 1) / TPB;
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB, 1, 1);
+  
+  hipLaunchKernelGGL(Scalar_Floor_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, field_num, scalar_floor);
+}
+
+__global__ void Scalar_Floor_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int field_num,
+                                    Real scalar_floor)
 {
   int id, xid, yid, zid, n_cells;
   Real scalar;  // variable to store the value of the scalar before a floor is applied
@@ -1273,7 +1300,7 @@ __global__ void Apply_Scalar_Floor(Real *dev_conserved, int nx, int ny, int nz, 
     scalar = dev_conserved[id + n_cells * field_num];
 
     if (scalar < scalar_floor) {
-      printf("###Thread scalar change  %f -> %f \n", scalar, scalar_floor);
+      // printf("###Thread scalar change  %f -> %f \n", scalar, scalar_floor);
       dev_conserved[id + n_cells * field_num] = scalar_floor;
     }
   }
