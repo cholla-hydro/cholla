@@ -72,8 +72,8 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
 
     // Compute the temperature
   #ifdef DE
-    Real const total_gas_energy = dev_conserved[id + n_cells * grid_enum::GasEnergy];
-    Real const temperature      = hydro_utilities::Calc_Temp_DE(total_gas_energy, gamma, number_density);
+    Real const gas_energy  = dev_conserved[id + n_cells * grid_enum::GasEnergy];
+    Real const temperature = hydro_utilities::Calc_Temp_DE(gas_energy, gamma, number_density);
   #else  // DE is not enabled
     Real const energy     = dev_conserved[id + n_cells * grid_enum::Energy];
     Real const momentum_x = dev_conserved[id + n_cells * grid_enum::momentum_x];
