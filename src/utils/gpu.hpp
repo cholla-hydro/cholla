@@ -7,6 +7,7 @@
 #ifdef O_HIP
 
   #include <hip/hip_runtime.h>
+  #include <hip/hip_cooperative_groups.h>
 
   #if defined(PARIS) || defined(PARIS_GALACTIC)
 
@@ -124,6 +125,7 @@ static void __attribute__((unused)) check(const hipError_t err, const char *cons
 #else  // not O_HIP
 
   #include <cuda_runtime.h>
+  #include <cooperative_groups.h>
 
   #if defined(PARIS) || defined(PARIS_GALACTIC)
 
