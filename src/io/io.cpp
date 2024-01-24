@@ -1598,12 +1598,11 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
     #ifdef MHD
           auto const [magnetic_x, magnetic_y, magnetic_z] =
               mhd::utils::cellCenteredMagneticFields(C.host, id, xid, yid, zid, H.n_cells, H.nx, H.ny);
-    #else   // MHD is not defined
-          Real const magnetic_x = 0.0, magnetic_y = 0.0, magnetic_z = 0.0;
-    #endif  // MHD
-
           Real const T =
               hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n, magnetic_x, magnetic_y, magnetic_z);
+    #else   // MHD is not defined
+          Real const T = hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n);
+    #endif  // MHD
   #endif    // DE
 
           Txy += T * d * H.dz;
@@ -1650,12 +1649,11 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
     #ifdef MHD
           auto const [magnetic_x, magnetic_y, magnetic_z] =
               mhd::utils::cellCenteredMagneticFields(C.host, id, xid, yid, zid, H.n_cells, H.nx, H.ny);
-    #else   // MHD is not defined
-          Real const magnetic_x = 0.0, magnetic_y = 0.0, magnetic_z = 0.0;
-    #endif  // MHD
-
           Real const T =
               hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n, magnetic_x, magnetic_y, magnetic_z);
+    #else   // MHD is not defined
+          Real const T = hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n);
+    #endif  // MHD
   #endif    // DE
           Txz += T * d * H.dy;
         }
@@ -1711,14 +1709,13 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
 
   herr_t status;
   Real dxy, dxz, Txy, Txz;
-  Real d, n, vx, vy, vz;
+  Real d, vx, vy, vz;
 
   Real x, y, z;      // cell positions
   Real xp, yp, zp;   // rotated positions
   Real alpha, beta;  // projected positions
   int ix, iz;        // projected index positions
 
-  n       = 0;
   Real mu = 0.6;
 
   srand(137);      // initialize a random number
@@ -1802,7 +1799,7 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
             // project density
             dataset_buffer_dxzr[buf_id] += d * H.dy;
             // calculate number density
-            n = d * DENSITY_UNIT / (mu * MP);
+            Real const n = d * DENSITY_UNIT / (mu * MP);
 
   // calculate temperature
   #ifdef DE
@@ -1816,12 +1813,11 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
     #ifdef MHD
             auto const [magnetic_x, magnetic_y, magnetic_z] =
                 mhd::utils::cellCenteredMagneticFields(C.host, id, xid, yid, zid, H.n_cells, H.nx, H.ny);
-    #else   // MHD is not defined
-            Real const magnetic_x = 0.0, magnetic_y = 0.0, magnetic_z = 0.0;
-    #endif  // MHD
-
             Real const T =
                 hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n, magnetic_x, magnetic_y, magnetic_z);
+    #else   // MHD is not defined
+            Real const T = hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n);
+    #endif  // MHD
   #endif    // DE
 
             Txz = T * d * H.dy;
