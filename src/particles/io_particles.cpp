@@ -757,23 +757,11 @@ void Grid3D::Write_Particles_Data_HDF5(hid_t file_id)
 void Grid3D::OutputData_Particles(struct Parameters P, int nfile)
 {
   FILE *out;
-  char filename[MAXLEN];
-  char timestep[20];
+  std::string filename = FnameTemplate(P).format_fname(nfile, "_particles");
 
-  // create the filename
-  strcpy(filename, P.outdir);
-  sprintf(timestep, "%d", nfile);
-  strcat(filename, timestep);
   // a binary file is created for each process
   #if defined BINARY
   chprintf("\nERROR: Particles only support HDF5 outputs\n") return;
-  // only one HDF5 file is created
-  #elif defined HDF5
-  strcat(filename, "_particles");
-  strcat(filename, ".h5");
-    #ifdef MPI_CHOLLA
-  sprintf(filename, "%s.%d", filename, procID);
-    #endif
   #endif
 
   #if defined HDF5
@@ -781,7 +769,7 @@ void Grid3D::OutputData_Particles(struct Parameters P, int nfile)
   herr_t status;
 
   // Create a new file collectively
-  file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  file_id = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   // Write header (file attributes)
   Write_Header_HDF5(file_id);
