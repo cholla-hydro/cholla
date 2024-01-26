@@ -242,6 +242,10 @@ void Parse_Param(char *name, char *value, struct Parameters *parms)
 #endif  // DE
   } else if (strcmp(name, "output_always") == 0) {
     int tmp = atoi(value);
+    // In this case the CHOLLA_ASSERT macro runs into issuse with the readability-simplify-boolean-expr clang-tidy check
+    // due to some weird macro expansion stuff. That check has been disabled here for now but in clang-tidy 18 the
+    // IgnoreMacro option should be used instead.
+    // NOLINTNEXTLINE(readability-simplify-boolean-expr)
     CHOLLA_ASSERT((tmp == 0) or (tmp == 1), "output_always must be 1 or 0.");
     parms->output_always = tmp;
 #ifdef MHD
