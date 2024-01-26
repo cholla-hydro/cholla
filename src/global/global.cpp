@@ -244,6 +244,10 @@ void Parse_Param(char *name, char *value, struct Parameters *parms)
     int tmp = atoi(value);
     CHOLLA_ASSERT((tmp == 0) or (tmp == 1), "output_always must be 1 or 0.");
     parms->output_always = tmp;
+  } else if (strcmp(name, "legacy_flat_outdir") == 0) {
+    int tmp = atoi(value);
+    CHOLLA_ASSERT((tmp == 0) or (tmp == 1), "legacy_flat_outdir must be 1 or 0.");
+    parms->legacy_flat_outdir = tmp;
 #ifdef MHD
   } else if (strcmp(name, "out_float32_magnetic_x") == 0) {
     parms->out_float32_magnetic_x = atoi(value);

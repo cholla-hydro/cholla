@@ -83,7 +83,7 @@ class FnameTemplate
  public:
   FnameTemplate() = delete;
 
-  FnameTemplate(const Parameters& P) : separate_cycle_dirs_(false), outdir_(P.outdir) {}
+  FnameTemplate(const Parameters& P) : separate_cycle_dirs_(not P.legacy_flat_outdir), outdir_(P.outdir) {}
 
   /* Specifies whether separate cycles are written to separate directories */
   bool separate_cycle_dirs() const noexcept { return separate_cycle_dirs_; }
