@@ -90,7 +90,7 @@ __global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_g
     Real const temperature = hydro_utilities::Calc_Temp_Conserved(energy, density_gas, momentum_x, momentum_y,
                                                                   momentum_z, gamma, number_density);
     #endif  // MHD
-  #endif  // DE
+  #endif    // DE
 
     Real tau_sp = Calc_Sputtering_Timescale(number_density, temperature, grain_radius) /
                   TIME_UNIT;  // sputtering timescale, kyr (sim units)
