@@ -63,11 +63,43 @@ inline __host__ __device__ Real Calc_Temp(Real const &P, Real const &n)
   return T;
 }
 
-#ifdef DE
-inline __host__ __device__ Real Calc_Temp_DE(Real const &d, Real const &ge, Real const &gamma, Real const &n)
+/*!
+ * \brief Compute the temperature from the conserved variables
+ *
+ * \param[in] E The energy
+ * \param[in] d The density
+ * \param[in] mx The momentum in the X-direction
+ * \param[in] my The momentum in the Y-direction
+ * \param[in] mz The momentum in the Z-direction
+ * \param[in] gamma The adiabatic index
+ * \param[in] n The number density
+ * \param[in] magnetic_x The cell centered magnetic field in the X-direction
+ * \param[in] magnetic_y The cell centered magnetic field in the Y-direction
+ * \param[in] magnetic_z The cell centered magnetic field in the Z-direction
+ * \return Real The temperature of the gas in a cell
+ */
+inline __host__ __device__ Real Calc_Temp_Conserved(Real const E, Real const d, Real const mx, Real const my,
+                                                    Real const mz, Real const gamma, Real const n,
+                                                    Real const magnetic_x = 0.0, Real const magnetic_y = 0.0,
+                                                    Real const magnetic_z = 0.0)
 {
-  Real T = d * ge * (gamma - 1.0) * PRESSURE_UNIT / (n * KB);
-  return T;
+  Real const P = Calc_Pressure_Conserved(E, d, mx, my, mz, gamma, magnetic_x, magnetic_y, magnetic_z);
+  return Calc_Temp(P, n);
+}
+
+#ifdef DE
+/*!
+ * \brief Compute the temperature when DE is turned on
+ *
+ * \param[in] gas_energy The total gas energy in the cell. This is the value stored in the grid at
+ * grid_enum::GasEnergy
+ * \param[in] gamma The adiabatic index
+ * \param[in] n The number density
+ * \return Real The temperature
+ */
+inline __host__ __device__ Real Calc_Temp_DE(Real const gas_energy, Real const gamma, Real const n)
+{
+  return gas_energy * (gamma - 1.0) * PRESSURE_UNIT / (n * KB);
 }
 #endif  // DE
 
