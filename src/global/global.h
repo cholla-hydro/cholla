@@ -323,13 +323,13 @@ struct Parameters {
                                 // photoionization rates of HI, HeI and HeII
 #endif
 #ifdef TEMPERATURE_FLOOR
-  Real temperature_floor;
+  Real temperature_floor = 0;
 #endif
 #ifdef DENSITY_FLOOR
-  Real density_floor;
+  Real density_floor = 0;
 #endif
 #ifdef SCALAR_FLOOR
-  Real scalar_floor;
+  Real scalar_floor = 0;
 #endif
 #ifdef ANALYSIS
   char analysis_scale_outputs_file[MAXLEN];  // File for the scale_factor output
