@@ -1,12 +1,10 @@
 /*! \file VL_3D_cuda.h
  *  \brief Declarations for the cuda version of the 3D VL algorithm. */
 
-#ifdef CUDA
+#ifndef VL_3D_CUDA_H
+#define VL_3D_CUDA_H
 
-  #ifndef VL_3D_CUDA_H
-    #define VL_3D_CUDA_H
-
-    #include "../global/global.h"
+#include "../global/global.h"
 
 void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int ny, int nz, int x_off, int y_off,
                           int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound,
@@ -14,5 +12,4 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
 
 void Free_Memory_VL_3D();
 
-  #endif  // VL_3D_CUDA_H
-#endif    // CUDA
+#endif  // VL_3D_CUDA_H

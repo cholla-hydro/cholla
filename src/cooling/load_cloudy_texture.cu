@@ -1,18 +1,17 @@
 /*! \file load_cloudy_texture.cu
  *  \brief Wrapper file to load cloudy cooling table as CUDA texture. */
 
-#ifdef CUDA
-  #ifdef CLOUDY_COOL
+#ifdef CLOUDY_COOL
 
-    #include <stdio.h>
-    #include <stdlib.h>
+  #include <stdio.h>
+  #include <stdlib.h>
 
-    #include "../cooling/cooling_cuda.h"
-    #include "../cooling/load_cloudy_texture.h"
-    #include "../cooling/texture_utilities.h"
-    #include "../global/global.h"
-    #include "../global/global_cuda.h"
-    #include "../io/io.h"  // provides chprintf
+  #include "../cooling/cooling_cuda.h"
+  #include "../cooling/load_cloudy_texture.h"
+  #include "../cooling/texture_utilities.h"
+  #include "../global/global.h"
+  #include "../global/global_cuda.h"
+  #include "../io/io.h"  // provides chprintf
 
 cudaArray *cuCoolArray;
 cudaArray *cuHeatArray;
@@ -284,5 +283,4 @@ void Test_Cloudy_Speed()
   exit(0);
 }
 
-  #endif
-#endif
+#endif  // CLOUDY_COOL

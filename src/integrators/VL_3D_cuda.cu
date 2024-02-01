@@ -4,7 +4,7 @@
  *  multidimensional MHD"
  */
 
-#if defined(CUDA) && defined(VL)
+#ifdef VL
 
   #include <math.h>
   #include <stdio.h>
@@ -494,4 +494,4 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
   }
 }
 
-#endif  // CUDA and VL
+#endif  // VL

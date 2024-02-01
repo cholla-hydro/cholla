@@ -15,7 +15,6 @@
 #include "../global/global.h"
 #include "../utils/hydro_utilities.h"
 
-#ifdef CUDA
 /*!
  * \brief Namespace for MHD code
  *
@@ -62,12 +61,12 @@ Real static const _hlldSmallNumber = 1.0e-8;
  */
 struct State {
   Real density, velocityX, velocityY, velocityZ, energy, magneticY, magneticZ, gasPressure, totalPressure;
-  #ifdef SCALAR
+#ifdef SCALAR
   Real scalarSpecific[grid_enum::nscalars];
-  #endif  // SCALAR
-  #ifdef DE
+#endif  // SCALAR
+#ifdef DE
   Real thermalEnergySpecific;
-  #endif  // DE
+#endif  // DE
 };
 
 /*!
@@ -268,4 +267,3 @@ inline __host__ __device__ Real Calc_Pressure_Primitive(mhd::internal::State con
 }
 }  // namespace internal
 }  // end namespace mhd
-#endif  // CUDA

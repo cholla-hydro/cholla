@@ -2,12 +2,10 @@
  *  \brief Declarations of functions for the cuda exact riemann solver kernel.
  */
 
-#ifdef CUDA
+#ifndef EXACT_CUDA_H
+#define EXACT_CUDA_H
 
-  #ifndef EXACT_CUDA_H
-    #define EXACT_CUDA_H
-
-    #include "../global/global.h"
+#include "../global/global.h"
 
 /*! \fn Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real
  * *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int
@@ -26,5 +24,4 @@ __device__ void starpv_CUDA(Real *p, Real *v, Real dl, Real vxl, Real pl, Real c
 __device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v, Real *p, Real dl, Real vxl, Real pl,
                             Real cl, Real dr, Real vxr, Real pr, Real cr, Real gamma);
 
-  #endif  // EXACT_CUDA_H
-#endif    // CUDA
+#endif  // EXACT_CUDA_H

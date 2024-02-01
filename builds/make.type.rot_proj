@@ -1,6 +1,5 @@
 #-- Default hydro only build with rotated projection
 
-DFLAGS    += -DCUDA
 DFLAGS    += -DMPI_CHOLLA
 DFLAGS    += -DPRECISION=2
 DFLAGS    += -DPLMC

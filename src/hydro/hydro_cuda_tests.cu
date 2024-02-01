@@ -23,8 +23,6 @@
 #include "../utils/gpu.hpp"
 #include "../utils/testing_utilities.h"
 
-#if defined(CUDA)
-
 // =============================================================================
 // Tests for the Calc_dt_GPU function
 // =============================================================================
@@ -192,5 +190,3 @@ TEST(tHYDROScalarFloor, CorrectInputExpectCorrectOutput)
                      field_num, scalar_floor);
   testing_utilities::Check_Results(host_conserved.at(field_num), dev_conserved.at(field_num), "at floor");
 }
-
-#endif  // CUDA
