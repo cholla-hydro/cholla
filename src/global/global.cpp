@@ -440,21 +440,21 @@ void Parse_Param(char *name, char *value, struct Parameters *parms)
   } else if (strcmp(name, "temperature_floor") == 0) {
     parms->temperature_floor = atof(value);
     if (parms->temperature_floor == 0) {
-      chprintf("WARNING: temperature floor is set to its default value!\n");
+      chprintf("WARNING: temperature floor is set to its default value (zero)! It can be set to a different value in the input parameter file.\n");
     }
 #endif
 #ifdef DENSITY_FLOOR
   } else if (strcmp(name, "density_floor") == 0) {
     parms->density_floor = atof(value);
     if (parms->density_floor == 0) {
-      chprintf("WARNING: density floor is set to its default value!\n");
+      chprintf("WARNING: density floor is set to its default value (zero)! It can be set to a different value in the input parameter file.\n");
     }
 #endif
 #ifdef SCALAR_FLOOR
   } else if (strcmp(name, "scalar_floor") == 0) {
     parms->scalar_floor = atof(value);
     if (parms->scalar_floor == 0) {
-      chprintf("WARNING: scalar floor is set to its default value!\n");
+      chprintf("WARNING: scalar floor is set to its default value (zero)! It can be set to a different value in the input parameter file.\n");
     }
 #endif
 #ifdef ANALYSIS

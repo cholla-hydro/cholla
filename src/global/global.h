@@ -322,15 +322,9 @@ struct Parameters {
   char UVB_rates_file[MAXLEN];  // File for the UVB photoheating and
                                 // photoionization rates of HI, HeI and HeII
 #endif
-#ifdef TEMPERATURE_FLOOR
   Real temperature_floor = 0;
-#endif
-#ifdef DENSITY_FLOOR
   Real density_floor = 0;
-#endif
-#ifdef SCALAR_FLOOR
   Real scalar_floor = 0;
-#endif
 #ifdef ANALYSIS
   char analysis_scale_outputs_file[MAXLEN];  // File for the scale_factor output
                                              // values for cosmological

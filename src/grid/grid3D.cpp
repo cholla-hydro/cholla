@@ -261,20 +261,14 @@ void Grid3D::Initialize(struct Parameters *P)
 #ifdef TEMPERATURE_FLOOR
   H.temperature_floor = P->temperature_floor;
 #else
-  H.temperature_floor = 0.0;
-#endif
 
 #ifdef DENSITY_FLOOR
   H.density_floor = P->density_floor;
 #else
-  H.density_floor = 0.0;
-#endif
 
 #ifdef SCALAR_FLOOR
   H.scalar_floor = P->scalar_floor;
 #else
-  H.scalar_floor = 0.0;
-#endif
 
 #ifdef COSMOLOGY
   H.OUTPUT_SCALE_FACOR = not(P->scale_outputs_file[0] == '\0');
