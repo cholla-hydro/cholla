@@ -138,68 +138,85 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
 
   // Step 1: Use PCM reconstruction to put primitive variables into interface
   // arrays
-  hipLaunchKernelGGL(PCM_Reconstruction_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz,
-                     Q_Rz, nx, ny, nz, n_ghost, gama, n_fields);
+  cuda_utilities::AutomaticLaunchParams static const pcm_launch_params(PCM_Reconstruction_3D, n_cells);
+  hipLaunchKernelGGL(PCM_Reconstruction_3D, pcm_launch_params.numBlocks, pcm_launch_params.threadsPerBlock, 0, 0,
+                     dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, gama, n_fields);
   GPU_Error_Check();
 
   // Step 2: Calculate first-order upwind fluxes
   #ifdef EXACT
-  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost,
-                     gama, 0, n_fields);
-  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost,
-                     gama, 1, n_fields);
-  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost,
-                     gama, 2, n_fields);
+  cuda_utilities::AutomaticLaunchParams static const exact_launch_params(Calculate_Exact_Fluxes_CUDA,
+                                                                         n_cellsCalculate_Exact_Fluxes_CUDA);
+  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, exact_launch_params.numBlocks, exact_launch_params.threadsPerBlock, 0,
+                     0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, exact_launch_params.numBlocks, exact_launch_params.threadsPerBlock, 0,
+                     0, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, 1, n_fields);
+  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, exact_launch_params.numBlocks, exact_launch_params.threadsPerBlock, 0,
+                     0, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, 2, n_fields);
   #endif  // EXACT
   #ifdef ROE
-  hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama,
-                     0, n_fields);
-  hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama,
-                     1, n_fields);
-  hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama,
-                     2, n_fields);
+  cuda_utilities::AutomaticLaunchParams static const roe_launch_params(Calculate_Roe_Fluxes_CUDA, n_cells);
+  hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, roe_launch_params.numBlocks, roe_launch_params.threadsPerBlock, 0, 0,
+                     Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, roe_launch_params.numBlocks, roe_launch_params.threadsPerBlock, 0, 0,
+                     Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, 1, n_fields);
+  hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, roe_launch_params.numBlocks, roe_launch_params.threadsPerBlock, 0, 0,
+                     Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, 2, n_fields);
   #endif  // ROE
   #ifdef HLLC
-  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost,
-                     gama, 0, n_fields);
-  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost,
-                     gama, 1, n_fields);
-  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost,
-                     gama, 2, n_fields);
+  cuda_utilities::AutomaticLaunchParams static const hllc_launch_params(Calculate_HLLC_Fluxes_CUDA, n_cells);
+  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, hllc_launch_params.numBlocks, hllc_launch_params.threadsPerBlock, 0, 0,
+                     Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, hllc_launch_params.numBlocks, hllc_launch_params.threadsPerBlock, 0, 0,
+                     Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, 1, n_fields);
+  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, hllc_launch_params.numBlocks, hllc_launch_params.threadsPerBlock, 0, 0,
+                     Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, 2, n_fields);
   #endif  // HLLC
   #ifdef HLL
-  hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama,
-                     0, n_fields);
-  hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama,
-                     1, n_fields);
-  hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama,
-                     2, n_fields);
+  cuda_utilities::AutomaticLaunchParams static const hll_launch_params(Calculate_HLL_Fluxes_CUDA, n_cells);
+  hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, hll_launch_params.numBlocks, hll_launch_params.threadsPerBlock, 0, 0,
+                     Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, hll_launch_params.numBlocks, hll_launch_params.threadsPerBlock, 0, 0,
+                     Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, 1, n_fields);
+  hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, hll_launch_params.numBlocks, hll_launch_params.threadsPerBlock, 0, 0,
+                     Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, 2, n_fields);
   #endif  // HLL
   #ifdef HLLD
-  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx,
-                     &(dev_conserved[(grid_enum::magnetic_x)*n_cells]), F_x, n_cells, gama, 0, n_fields);
-  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry,
-                     &(dev_conserved[(grid_enum::magnetic_y)*n_cells]), F_y, n_cells, gama, 1, n_fields);
-  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz,
-                     &(dev_conserved[(grid_enum::magnetic_z)*n_cells]), F_z, n_cells, gama, 2, n_fields);
+  cuda_utilities::AutomaticLaunchParams static const hlld_launch_params(mhd::Calculate_HLLD_Fluxes_CUDA, n_cells);
+  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, hlld_launch_params.numBlocks, hlld_launch_params.threadsPerBlock,
+                     0, 0, Q_Lx, Q_Rx, &(dev_conserved[(grid_enum::magnetic_x)*n_cells]), F_x, n_cells, gama, 0,
+                     n_fields);
+  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, hlld_launch_params.numBlocks, hlld_launch_params.threadsPerBlock,
+                     0, 0, Q_Ly, Q_Ry, &(dev_conserved[(grid_enum::magnetic_y)*n_cells]), F_y, n_cells, gama, 1,
+                     n_fields);
+  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, hlld_launch_params.numBlocks, hlld_launch_params.threadsPerBlock,
+                     0, 0, Q_Lz, Q_Rz, &(dev_conserved[(grid_enum::magnetic_z)*n_cells]), F_z, n_cells, gama, 2,
+                     n_fields);
   #endif  // HLLD
   GPU_Error_Check();
 
   #ifdef MHD
   // Step 2.5: Compute the Constrained transport electric fields
-  hipLaunchKernelGGL(mhd::Calculate_CT_Electric_Fields, dim1dGrid, dim1dBlock, 0, 0, F_x, F_y, F_z, dev_conserved,
-                     ctElectricFields, nx, ny, nz, n_cells);
+  cuda_utilities::AutomaticLaunchParams static const ct_launch_params(mhd::Calculate_CT_Electric_Fields, n_cells);
+  hipLaunchKernelGGL(mhd::Calculate_CT_Electric_Fields, ct_launch_params.numBlocks, ct_launch_params.threadsPerBlock, 0,
+                     0, F_x, F_y, F_z, dev_conserved, ctElectricFields, nx, ny, nz, n_cells);
   GPU_Error_Check();
   #endif  // MHD
 
   // Step 3: Update the conserved variables half a timestep
-  hipLaunchKernelGGL(Update_Conserved_Variables_3D_half, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, dev_conserved_half,
-                     F_x, F_y, F_z, nx, ny, nz, n_ghost, dx, dy, dz, 0.5 * dt, gama, n_fields, density_floor);
+  cuda_utilities::AutomaticLaunchParams static const update_half_launch_params(Update_Conserved_Variables_3D_half,
+                                                                               n_cells);
+  hipLaunchKernelGGL(Update_Conserved_Variables_3D_half, update_half_launch_params.numBlocks,
+                     update_half_launch_params.threadsPerBlock, 0, 0, dev_conserved, dev_conserved_half, F_x, F_y, F_z,
+                     nx, ny, nz, n_ghost, dx, dy, dz, 0.5 * dt, gama, n_fields, density_floor);
   GPU_Error_Check();
 
   #ifdef MHD
   // Update the magnetic fields
-  hipLaunchKernelGGL(mhd::Update_Magnetic_Field_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, dev_conserved_half,
+  cuda_utilities::AutomaticLaunchParams static const update_magnetic_launch_params(mhd::Update_Magnetic_Field_3D,
+                                                                                   n_cells);
+  hipLaunchKernelGGL(mhd::Update_Magnetic_Field_3D, update_magnetic_launch_params.numBlocks,
+                     update_magnetic_launch_params.threadsPerBlock, 0, 0, dev_conserved, dev_conserved_half,
                      ctElectricFields, nx, ny, nz, n_cells, 0.5 * dt, dx, dy, dz);
   GPU_Error_Check();
   #endif  // MHD
@@ -211,76 +228,86 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
                      Q_Lz, Q_Rz, nx, ny, nz, n_ghost, gama, n_fields);
   #endif  // PCM
   #ifdef PLMP
-  hipLaunchKernelGGL(PLMP_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx,
-                     dt, gama, 0, n_fields);
-  hipLaunchKernelGGL(PLMP_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, n_ghost, dy,
-                     dt, gama, 1, n_fields);
-  hipLaunchKernelGGL(PLMP_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, dz,
-                     dt, gama, 2, n_fields);
+  cuda_utilities::AutomaticLaunchParams static const plmp_launch_params(PLMP_cuda, n_cells);
+  hipLaunchKernelGGL(PLMP_cuda, plmp_launch_params.numBlocks, plmp_launch_params.threadsPerBlock, 0, 0,
+                     dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
+  hipLaunchKernelGGL(PLMP_cuda, plmp_launch_params.numBlocks, plmp_launch_params.threadsPerBlock, 0, 0,
+                     dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, n_ghost, dy, dt, gama, 1, n_fields);
+  hipLaunchKernelGGL(PLMP_cuda, plmp_launch_params.numBlocks, plmp_launch_params.threadsPerBlock, 0, 0,
+                     dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, dz, dt, gama, 2, n_fields);
   #endif  // PLMP
   #ifdef PLMC
-  hipLaunchKernelGGL(PLMC_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, dx, dt, gama,
-                     0, n_fields);
-  hipLaunchKernelGGL(PLMC_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, dy, dt, gama,
-                     1, n_fields);
-  hipLaunchKernelGGL(PLMC_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, dz, dt, gama,
-                     2, n_fields);
+  cuda_utilities::AutomaticLaunchParams static const plmc_vl_launch_params(PLMC_cuda, n_cells);
+  hipLaunchKernelGGL(PLMC_cuda, plmc_vl_launch_params.numBlocks, plmc_vl_launch_params.threadsPerBlock, 0, 0,
+                     dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, dx, dt, gama, 0, n_fields);
+  hipLaunchKernelGGL(PLMC_cuda, plmc_vl_launch_params.numBlocks, plmc_vl_launch_params.threadsPerBlock, 0, 0,
+                     dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, dy, dt, gama, 1, n_fields);
+  hipLaunchKernelGGL(PLMC_cuda, plmc_vl_launch_params.numBlocks, plmc_vl_launch_params.threadsPerBlock, 0, 0,
+                     dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, dz, dt, gama, 2, n_fields);
   #endif  // PLMC
   #ifdef PPMP
-  hipLaunchKernelGGL(PPMP_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx,
-                     dt, gama, 0, n_fields);
-  hipLaunchKernelGGL(PPMP_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, n_ghost, dy,
-                     dt, gama, 1, n_fields);
-  hipLaunchKernelGGL(PPMP_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, dz,
-                     dt, gama, 2, n_fields);
+  cuda_utilities::AutomaticLaunchParams static const ppmp_launch_params(PPMP_cuda, n_cells);
+  hipLaunchKernelGGL(PPMP_cuda, ppmp_launch_params.numBlocks, ppmp_launch_params.threadsPerBlock, 0, 0,
+                     dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama, 0, n_fields);
+  hipLaunchKernelGGL(PPMP_cuda, ppmp_launch_params.numBlocks, ppmp_launch_params.threadsPerBlock, 0, 0,
+                     dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, n_ghost, dy, dt, gama, 1, n_fields);
+  hipLaunchKernelGGL(PPMP_cuda, ppmp_launch_params.numBlocks, ppmp_launch_params.threadsPerBlock, 0, 0,
+                     dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, dz, dt, gama, 2, n_fields);
   #endif  // PPMP
   #ifdef PPMC
-  hipLaunchKernelGGL(PPMC_VL, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, gama, 0);
-  hipLaunchKernelGGL(PPMC_VL, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, gama, 1);
-  hipLaunchKernelGGL(PPMC_VL, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, gama, 2);
+  cuda_utilities::AutomaticLaunchParams static const ppmc_vl_launch_params(PPMC_VL, n_cells);
+  hipLaunchKernelGGL(PPMC_VL, ppmc_vl_launch_params.numBlocks, ppmc_vl_launch_params.threadsPerBlock, 0, 0,
+                     dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, gama, 0);
+  hipLaunchKernelGGL(PPMC_VL, ppmc_vl_launch_params.numBlocks, ppmc_vl_launch_params.threadsPerBlock, 0, 0,
+                     dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, gama, 1);
+  hipLaunchKernelGGL(PPMC_VL, ppmc_vl_launch_params.numBlocks, ppmc_vl_launch_params.threadsPerBlock, 0, 0,
+                     dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, gama, 2);
   #endif  // PPMC
   GPU_Error_Check();
 
   // Step 5: Calculate the fluxes again
   #ifdef EXACT
-  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost,
-                     gama, 0, n_fields);
-  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost,
-                     gama, 1, n_fields);
-  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost,
-                     gama, 2, n_fields);
+  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, exact_launch_params.numBlocks, exact_launch_params.threadsPerBlock, 0,
+                     0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, exact_launch_params.numBlocks, exact_launch_params.threadsPerBlock, 0,
+                     0, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, 1, n_fields);
+  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, exact_launch_params.numBlocks, exact_launch_params.threadsPerBlock, 0,
+                     0, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, 2, n_fields);
   #endif  // EXACT
   #ifdef ROE
-  hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama,
-                     0, n_fields);
-  hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama,
-                     1, n_fields);
-  hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama,
-                     2, n_fields);
+  hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, roe_launch_params.numBlocks, roe_launch_params.threadsPerBlock, 0, 0,
+                     Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, roe_launch_params.numBlocks, roe_launch_params.threadsPerBlock, 0, 0,
+                     Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, 1, n_fields);
+  hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, roe_launch_params.numBlocks, roe_launch_params.threadsPerBlock, 0, 0,
+                     Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, 2, n_fields);
   #endif  // ROE
   #ifdef HLLC
-  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost,
-                     gama, 0, n_fields);
-  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost,
-                     gama, 1, n_fields);
-  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost,
-                     gama, 2, n_fields);
+  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, hllc_launch_params.numBlocks, hllc_launch_params.threadsPerBlock, 0, 0,
+                     Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, hllc_launch_params.numBlocks, hllc_launch_params.threadsPerBlock, 0, 0,
+                     Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, 1, n_fields);
+  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, hllc_launch_params.numBlocks, hllc_launch_params.threadsPerBlock, 0, 0,
+                     Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, 2, n_fields);
   #endif  // HLLC
   #ifdef HLL
-  hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama,
-                     0, n_fields);
-  hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama,
-                     1, n_fields);
-  hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama,
-                     2, n_fields);
+  hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, hll_launch_params.numBlocks, hll_launch_params.threadsPerBlock, 0, 0,
+                     Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
+  hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, hll_launch_params.numBlocks, hll_launch_params.threadsPerBlock, 0, 0,
+                     Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, 1, n_fields);
+  hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, hll_launch_params.numBlocks, hll_launch_params.threadsPerBlock, 0, 0,
+                     Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, 2, n_fields);
   #endif  // HLLC
   #ifdef HLLD
-  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx,
-                     &(dev_conserved_half[(grid_enum::magnetic_x)*n_cells]), F_x, n_cells, gama, 0, n_fields);
-  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry,
-                     &(dev_conserved_half[(grid_enum::magnetic_y)*n_cells]), F_y, n_cells, gama, 1, n_fields);
-  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dim1dGrid, dim1dBlock, 0, 0, Q_Lz, Q_Rz,
-                     &(dev_conserved_half[(grid_enum::magnetic_z)*n_cells]), F_z, n_cells, gama, 2, n_fields);
+  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, hlld_launch_params.numBlocks, hlld_launch_params.threadsPerBlock,
+                     0, 0, Q_Lx, Q_Rx, &(dev_conserved_half[(grid_enum::magnetic_x)*n_cells]), F_x, n_cells, gama, 0,
+                     n_fields);
+  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, hlld_launch_params.numBlocks, hlld_launch_params.threadsPerBlock,
+                     0, 0, Q_Ly, Q_Ry, &(dev_conserved_half[(grid_enum::magnetic_y)*n_cells]), F_y, n_cells, gama, 1,
+                     n_fields);
+  hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, hlld_launch_params.numBlocks, hlld_launch_params.threadsPerBlock,
+                     0, 0, Q_Lz, Q_Rz, &(dev_conserved_half[(grid_enum::magnetic_z)*n_cells]), F_z, n_cells, gama, 2,
+                     n_fields);
   #endif  // HLLD
   GPU_Error_Check();
 
@@ -288,35 +315,44 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   // Compute the divergence of Vel before updating the conserved array, this
   // solves synchronization issues when adding this term on
   // Update_Conserved_Variables_3D
-  hipLaunchKernelGGL(Partial_Update_Advected_Internal_Energy_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx,
-                     Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, dx, dy, dz, dt, gama, n_fields);
+  cuda_utilities::AutomaticLaunchParams static const de_advect_launch_params(Partial_Update_Advected_Internal_Energy_3D,
+                                                                             n_cells);
+  hipLaunchKernelGGL(Partial_Update_Advected_Internal_Energy_3D, de_advect_launch_params.numBlocks,
+                     de_advect_launch_params.threadsPerBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz,
+                     nx, ny, nz, n_ghost, dx, dy, dz, dt, gama, n_fields);
   GPU_Error_Check();
   #endif  // DE
 
   #ifdef MHD
   // Step 5.5: Compute the Constrained transport electric fields
-  hipLaunchKernelGGL(mhd::Calculate_CT_Electric_Fields, dim1dGrid, dim1dBlock, 0, 0, F_x, F_y, F_z, dev_conserved_half,
-                     ctElectricFields, nx, ny, nz, n_cells);
+  hipLaunchKernelGGL(mhd::Calculate_CT_Electric_Fields, ct_launch_params.numBlocks, ct_launch_params.threadsPerBlock, 0,
+                     0, F_x, F_y, F_z, dev_conserved_half, ctElectricFields, nx, ny, nz, n_cells);
   GPU_Error_Check();
   #endif  // MHD
 
   // Step 6: Update the conserved variable array
-  hipLaunchKernelGGL(Update_Conserved_Variables_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry,
-                     Q_Lz, Q_Rz, F_x, F_y, F_z, nx, ny, nz, x_off, y_off, z_off, n_ghost, dx, dy, dz, xbound, ybound,
-                     zbound, dt, gama, n_fields, custom_grav, density_floor, dev_grav_potential);
+  cuda_utilities::AutomaticLaunchParams static const update_full_launch_params(Update_Conserved_Variables_3D, n_cells);
+  hipLaunchKernelGGL(Update_Conserved_Variables_3D, update_full_launch_params.numBlocks,
+                     update_full_launch_params.threadsPerBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz,
+                     F_x, F_y, F_z, nx, ny, nz, x_off, y_off, z_off, n_ghost, dx, dy, dz, xbound, ybound, zbound, dt,
+                     gama, n_fields, custom_grav, density_floor, dev_grav_potential);
   GPU_Error_Check();
 
   #ifdef MHD
   // Update the magnetic fields
-  hipLaunchKernelGGL(mhd::Update_Magnetic_Field_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, dev_conserved,
+  hipLaunchKernelGGL(mhd::Update_Magnetic_Field_3D, update_magnetic_launch_params.numBlocks,
+                     update_magnetic_launch_params.threadsPerBlock, 0, 0, dev_conserved, dev_conserved,
                      ctElectricFields, nx, ny, nz, n_cells, dt, dx, dy, dz);
   GPU_Error_Check();
   #endif  // MHD
 
   #ifdef DE
-  hipLaunchKernelGGL(Select_Internal_Energy_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost,
-                     n_fields);
-  hipLaunchKernelGGL(Sync_Energies_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, gama, n_fields);
+  cuda_utilities::AutomaticLaunchParams static const de_select_launch_params(Select_Internal_Energy_3D, n_cells);
+  hipLaunchKernelGGL(Select_Internal_Energy_3D, de_select_launch_params.numBlocks,
+                     de_select_launch_params.threadsPerBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields);
+  cuda_utilities::AutomaticLaunchParams static const de_sync_launch_params(Sync_Energies_3D, n_cells);
+  hipLaunchKernelGGL(Sync_Energies_3D, de_sync_launch_params.numBlocks, de_sync_launch_params.threadsPerBlock, 0, 0,
+                     dev_conserved, nx, ny, nz, n_ghost, gama, n_fields);
   GPU_Error_Check();
   #endif  // DE
 

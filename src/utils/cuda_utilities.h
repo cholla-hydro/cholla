@@ -84,18 +84,14 @@ inline void initGpuMemory(Real *ptr, size_t N) { GPU_Error_Check(cudaMemset(ptr,
  * \brief Struct to determine the optimal number of blocks and threads
  * per block to use when launching a kernel. The member
  * variables are `threadsPerBlock` and `numBlocks` which are chosen with
- the occupancy API. Can target any device on the system through the
- * optional constructor argument.
- * NOTE: On AMD there's currently an issue that stops kernels from being
- * passed. As a workaround for now this struct just returns the maximum
- * number of blocks and threads per block that a MI250X can run at once.
+ * the occupancy API.
  *
  */
 template <typename T>
 struct AutomaticLaunchParams {
  public:
   /*!
-   * \brief Construct a new Reduction Launch Params object. By default it
+   * \brief Construct a new AutomaticLaunchParams object. By default it
    * generates values of numBlocks and threadsPerBlock suitable for a
    * kernel with a grid-stride loop. For a kernel with one thread per
    * element set the optional `numElements` argument to the number of
@@ -110,6 +106,12 @@ struct AutomaticLaunchParams {
     cudaOccupancyMaxPotentialBlockSize(&numBlocks, &threadsPerBlock, kernel, 0, 0);
 
     if (numElements > 0) {
+      // This line is needed to check that threadsPerBlock isn't zero. Somewhere inside
+      // cudaOccupancyMaxPotentialBlockSize threadsPerBlock can be zero according to clang-tidy so this line sets it to
+      // a more reasonable value
+      threadsPerBlock = (threadsPerBlock == 0) ? TPB : threadsPerBlock;
+
+      // Compute the number of blocks
       numBlocks = (numElements + threadsPerBlock - 1) / threadsPerBlock;
     }
   }
