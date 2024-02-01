@@ -1143,12 +1143,12 @@ __global__ void Temperature_Floor_Kernel(Real *dev_conserved, int nx, int ny, in
       dev_conserved[4 * n_cells + id] = Ekin + d * U_floor;
     }
 
-  #ifdef DE
+#ifdef DE
     U = dev_conserved[(n_fields - 1) * n_cells + id] / d;
     if (U < U_floor) {
       dev_conserved[(n_fields - 1) * n_cells + id] = d * U_floor;
     }
-  #endif
+#endif
   }
 }
 

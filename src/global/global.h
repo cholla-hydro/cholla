@@ -323,8 +323,8 @@ struct Parameters {
                                 // photoionization rates of HI, HeI and HeII
 #endif
   Real temperature_floor = 0;
-  Real density_floor = 0;
-  Real scalar_floor = 0;
+  Real density_floor     = 0;
+  Real scalar_floor      = 0;
 #ifdef ANALYSIS
   char analysis_scale_outputs_file[MAXLEN];  // File for the scale_factor output
                                              // values for cosmological
