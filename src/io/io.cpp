@@ -2796,6 +2796,17 @@ std::string FnameTemplate::effective_output_dir_path(int nfile) const noexcept
 
 std::string FnameTemplate::format_fname(int nfile, const std::string &pre_extension_suffix) const noexcept
 {
+#ifdef MPI_CHOLLA
+  int file_proc_id = procID;
+#else
+  int file_proc_id = 0;
+#endif
+  return format_fname(nfile, file_proc_id, pre_extension_suffix);
+}
+
+std::string FnameTemplate::format_fname(int nfile, int file_proc_id,
+                                        const std::string &pre_extension_suffix) const noexcept
+{
   // get the leading section of the string
   const std::string path_prefix =
       (separate_cycle_dirs_)
@@ -2811,10 +2822,7 @@ std::string FnameTemplate::format_fname(int nfile, const std::string &pre_extens
   const char *extension = ".txt";
 #endif
 
-  std::string procID_part;  // initialized to empty string
-#ifdef MPI_CHOLLA
-  procID_part = ("." + std::to_string(procID));
-#endif
+  std::string procID_part = "." + std::to_string(procID);  // initialized to empty string
 
   return path_prefix + std::to_string(nfile) + pre_extension_suffix + extension + procID_part;
 }
