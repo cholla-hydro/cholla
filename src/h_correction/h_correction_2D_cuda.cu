@@ -1,15 +1,15 @@
 /*! \file h_correction_2D_cuda.cu
  *  \brief Functions definitions for the H correction kernels.
            Written following Sanders et al. 1998. */
-#ifdef CUDA
-  #ifdef H_CORRECTION
 
-    #include <math.h>
+#ifdef H_CORRECTION
 
-    #include "../global/global.h"
-    #include "../global/global_cuda.h"
-    #include "../h_correction/h_correction_2D_cuda.h"
-    #include "../utils/gpu.hpp"
+  #include <math.h>
+
+  #include "../global/global.h"
+  #include "../global/global_cuda.h"
+  #include "../h_correction/h_correction_2D_cuda.h"
+  #include "../utils/gpu.hpp"
 
 /*! \fn void calc_eta_x_2D(Real *dev_bounds_L, Real *dev_bounds_R, Real *eta_x,
  int nx, int ny, int n_ghost, Real gamma)
@@ -165,5 +165,4 @@ __global__ void calc_etah_y_2D(Real *eta_x, Real *eta_y, Real *etah_y, int nx, i
   }
 }
 
-  #endif  // H_CORRECTION
-#endif    // CUDA
+#endif  // H_CORRECTION

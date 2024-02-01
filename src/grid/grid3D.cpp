@@ -441,40 +441,34 @@ void Grid3D::Execute_Hydro_Integrator(void)
   // Run the hydro integrator on the grid
   if (H.nx > 1 && H.ny == 1 && H.nz == 1)  // 1D
   {
-#ifdef CUDA
-  #ifdef VL
+#ifdef VL
     VL_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields, H.custom_grav);
-  #endif  // VL
-  #ifdef SIMPLE
+#endif  // VL
+#ifdef SIMPLE
     Simple_Algorithm_1D_CUDA(C.device, H.nx, x_off, H.n_ghost, H.dx, H.xbound, H.dt, H.n_fields, H.custom_grav);
-  #endif                                         // SIMPLE
-#endif                                           // CUDA
+#endif                                           // SIMPLE
   } else if (H.nx > 1 && H.ny > 1 && H.nz == 1)  // 2D
   {
-#ifdef CUDA
-  #ifdef VL
+#ifdef VL
     VL_Algorithm_2D_CUDA(C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt,
                          H.n_fields, H.custom_grav);
-  #endif  // VL
-  #ifdef SIMPLE
+#endif  // VL
+#ifdef SIMPLE
     Simple_Algorithm_2D_CUDA(C.device, H.nx, H.ny, x_off, y_off, H.n_ghost, H.dx, H.dy, H.xbound, H.ybound, H.dt,
                              H.n_fields, H.custom_grav);
-  #endif                                        // SIMPLE
-#endif                                          // CUDA
+#endif                                          // SIMPLE
   } else if (H.nx > 1 && H.ny > 1 && H.nz > 1)  // 3D
   {
-#ifdef CUDA
-  #ifdef VL
+#ifdef VL
     VL_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
                          H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, density_floor, U_floor,
                          C.Grav_potential);
-  #endif  // VL
-  #ifdef SIMPLE
+#endif  // VL
+#ifdef SIMPLE
     Simple_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
                              H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, density_floor,
                              U_floor, C.Grav_potential);
-  #endif  // SIMPLE
-#endif
+#endif  // SIMPLE
   } else {
     chprintf("Error: Grid dimensions nx: %d  ny: %d  nz: %d  not supported.\n", H.nx, H.ny, H.nz);
     chexit(-1);
@@ -508,26 +502,22 @@ Real Grid3D::Update_Hydro_Grid()
 
   // == Perform chemistry/cooling (there are a few different cases) ==
 
-#ifdef CUDA
-
-  #ifdef COOLING_GPU
-    #ifdef CPU_TIME
+#ifdef COOLING_GPU
+  #ifdef CPU_TIME
   Timer.Cooling_GPU.Start();
-    #endif
+  #endif
   // ==Apply Cooling from cooling/cooling_cuda.h==
   Cooling_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama);
-    #ifdef CPU_TIME
+  #ifdef CPU_TIME
   Timer.Cooling_GPU.End();
-    #endif
+  #endif
 
-  #endif  // COOLING_GPU
+#endif  // COOLING_GPU
 
-  #ifdef DUST
+#ifdef DUST
   // ==Apply dust from dust/dust_cuda.h==
   Dust_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama, H.grain_radius);
-  #endif  // DUST
-
-#endif  // CUDA
+#endif  // DUST
 
 #ifdef CHEMISTRY_GPU
   // Update the H and He ionization fractions and apply cooling and photoheating
