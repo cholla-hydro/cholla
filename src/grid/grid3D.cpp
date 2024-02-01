@@ -260,15 +260,15 @@ void Grid3D::Initialize(struct Parameters *P)
 // Values for lower limit for density and temperature
 #ifdef TEMPERATURE_FLOOR
   H.temperature_floor = P->temperature_floor;
-#else
+#endif
 
 #ifdef DENSITY_FLOOR
   H.density_floor = P->density_floor;
-#else
+#endif
 
 #ifdef SCALAR_FLOOR
   H.scalar_floor = P->scalar_floor;
-#else
+#endif
 
 #ifdef COSMOLOGY
   H.OUTPUT_SCALE_FACOR = not(P->scale_outputs_file[0] == '\0');
@@ -489,8 +489,6 @@ Real Grid3D::Update_Hydro_Grid()
 #endif  // GRAVITY
 
   Execute_Hydro_Integrator();
-
-#ifdef CUDA
 
   #ifdef TEMPERATURE_FLOOR
   // Set the lower limit temperature (Internal Energy)

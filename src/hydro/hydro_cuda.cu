@@ -1305,5 +1305,3 @@ __global__ void Scalar_Floor_Kernel(Real *dev_conserved, int nx, int ny, int nz,
     }
   }
 }
-
-#endif  // CUDA
