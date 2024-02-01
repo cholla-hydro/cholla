@@ -19,10 +19,10 @@ import pathlib
 import concat_internals
 
 # ======================================================================================================================
-def concat_particles_dataset(source_directory: pathlib.Path,
-                             output_directory: pathlib.Path,
+def concat_particles_dataset(output_directory: pathlib.Path,
                              num_processes: int,
                              output_number: int,
+                             build_source_path,
                              skip_fields: list = [],
                              destination_dtype: np.dtype = None,
                              compression_type: str = None,
@@ -33,14 +33,14 @@ def concat_particles_dataset(source_directory: pathlib.Path,
 
   Parameters
   ----------
-  source_directory : pathlib.Path
-      The directory containing the unconcatenated files
   output_directory : pathlib.Path
       The directory containing the new concatenated files
   num_processes : int
       The number of ranks that Cholla was run with
   output_number : int
       The output number to concatenate
+  build_source_path : callable
+      A function used to construct the paths to the files that are to be concatenated.
   skip_fields : list
       List of fields to skip concatenating. Defaults to [].
   destination_dtype : np.dtype
@@ -51,8 +51,6 @@ def concat_particles_dataset(source_directory: pathlib.Path,
       What compression settings to use if compressing. Defaults to None.
   chunking : bool or tuple
       Whether or not to use chunking and the chunk size. Defaults to None.
-  source_directory: pathlib.Path :
-
   output_directory: pathlib.Path :
 
   num_processes: int :
@@ -83,8 +81,8 @@ def concat_particles_dataset(source_directory: pathlib.Path,
   # Setup the output file
   # Note that the call to `__get_num_particles` is potentially expensive as it
   # opens every single file to read the number of particles in that file
-  num_particles    = __get_num_particles(source_directory, num_processes, output_number)
-  destination_file = __setup_destination_file(source_directory,
+  num_particles    = __get_num_particles(build_source_path, num_processes, output_number)
+  destination_file = __setup_destination_file(build_source_path,
                                               destination_file,
                                               output_number,
                                               num_particles,
@@ -98,7 +96,7 @@ def concat_particles_dataset(source_directory: pathlib.Path,
   particles_offset = 0
   for i in range(0, num_processes):
     # open the input file for reading
-    source_file = h5py.File(source_directory / f'{output_number}_particles.h5.{i}', 'r')
+    source_file = h5py.File(build_source_path(proc_id = i, nfile = output_number), 'r')
 
     # Compute the offset slicing for the 3D data
     nx_local, ny_local, nz_local = source_file.attrs['dims_local']
@@ -131,7 +129,7 @@ def concat_particles_dataset(source_directory: pathlib.Path,
 # ==============================================================================
 
 # ==============================================================================
-def __get_num_particles(source_directory: pathlib.Path,
+def __get_num_particles(build_source_path,
                         num_processes: int,
                         output_number: int) -> int:
   """Get the total number of particles in the output. This function is heavily
@@ -139,8 +137,8 @@ def __get_num_particles(source_directory: pathlib.Path,
 
   Parameters
   ----------
-  source_directory : pathlib.Path
-      The directory of the unconcatenated files
+  build_source_path : callable
+      A function used to construct the paths to the files that are to be concatenated.
   num_processes : int
       The number of processes
   output_number : int
@@ -155,14 +153,14 @@ def __get_num_particles(source_directory: pathlib.Path,
   num_particles = 0
   for i in range(0, num_processes):
     # open the input file for reading
-    with h5py.File(source_directory / f'{output_number}_particles.h5.{i}', 'r') as source_file:
+    with h5py.File(build_source_path(proc_id = i, nfile = output_number), 'r') as source_file:
       num_particles += source_file.attrs['n_particles_local']
 
   return num_particles
 # ==============================================================================
 
 # ==============================================================================
-def __setup_destination_file(source_directory: pathlib.Path,
+def __setup_destination_file(build_source_path,
                              destination_file: h5py.File,
                              output_number: int,
                              num_particles: int,
@@ -175,8 +173,8 @@ def __setup_destination_file(source_directory: pathlib.Path,
 
   Parameters
   ----------
-  source_directory : pathlib.Path
-      The directory containing the unconcatenated files
+  build_source_path : callable
+      A function used to construct the paths to the files that are to be concatenated.
   destination_file : h5py.File
       The destination file
   output_number : int
@@ -199,7 +197,7 @@ def __setup_destination_file(source_directory: pathlib.Path,
   h5py.File
       The fully set up destination file
   """
-  with h5py.File(source_directory / f'{output_number}_particles.h5.0', 'r') as source_file:
+  with h5py.File(build_source_path(proc_id = 0, nfile = output_number), 'r') as source_file:
     # Copy header data
     destination_file = concat_internals.copy_header(source_file, destination_file)
 
@@ -235,10 +233,14 @@ if __name__ == '__main__':
   cli = concat_internals.common_cli()
   args = cli.parse_args()
 
+  build_source_path = concat_internals.get_source_path_builder(
+    source_directory = args.source_directory,
+    pre_extension_suffix = f'_particles',
+    known_output_snap = args.concat_outputs[0])
+
   # Perform the concatenation
   for output in args.concat_outputs:
-    concat_particles_dataset(source_directory=args.source_directory,
-                             output_directory=args.output_directory,
+    concat_particles_dataset(output_directory=args.output_directory,
                              num_processes=args.num_processes,
                              output_number=output,
                              skip_fields=args.skip_fields,

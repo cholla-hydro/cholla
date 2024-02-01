@@ -5,6 +5,7 @@ Contains all the common tools for the various concatnation functions/scipts
 
 import h5py
 import argparse
+import functools
 import pathlib
 
 # ==============================================================================
@@ -119,7 +120,7 @@ def common_cli() -> argparse.ArgumentParser:
           raise ValueError()
         iterable_argument = iterable_argument.union(set(range(start, end+1)))
 
-    return iterable_argument
+    return list(iterable_argument)
   # ============================================================================
 
   # ============================================================================
@@ -176,3 +177,44 @@ def common_cli() -> argparse.ArgumentParser:
 
   return cli
 # ==============================================================================
+
+def _get_source_path(proc_id : int, source_directory : pathlib.Path,
+                     pre_extension_suffix : str, nfile : int, new_style : bool,
+                     extension : str = '.h5'):
+  dirname = str(source_directory)
+  if new_style:
+    out = f"{dirname}/{nfile}/{nfile}{pre_extension_suffix}{extension}.{proc_id}"
+  else:
+    # in principle, when source_directory isn't an empty string and it doesn't end
+    # end in a '/', part of it should act like a filename prefix
+    # -> with that said, the concatenation scripts have not supported this behavior
+    #    since we've made use of pathlib.Path
+    out = f"{dirname}/{nfile}{pre_extension_suffix}{extension}.{proc_id}"
+  return pathlib.Path(out)
+
+def get_source_path_builder(source_directory : pathlib.Path,
+                            pre_extension_suffix : str,
+                            known_output_snap : int):
+  """
+  Source files (that are to be concatenated) have one of 2 formats. This identifies
+  the format in use and returns a function appropriate for building the pathnames
+
+  This function auto-detect the format and returns a function to construct paths to these
+  files
+  """
+
+  # try newer format first:
+  common_kw = {'source_directory' : source_directory, 'extension' : '.h5',
+               'pre_extension_suffix' : pre_extension_suffix}
+  new_style_path = _get_source_path(proc_id = 0, nfile = known_output_snap,
+                                    new_style = True, **common_kw)
+  old_style_path = _get_source_path(proc_id = 0, nfile = known_output_snap,
+                                    new_style = False, **common_kw)
+  if new_style_path.is_file():
+    return functools.partial(_get_source_path, new_style = True, **common_kw)
+  elif old_style_path.is_file():
+    return functools.partial(_get_source_path, new_style = False, **common_kw)
+  raise RuntimeError(
+    "Could not find any files to concatenate. We searched "
+    f"{new_style_path!s} and {old_style_path!s}"
+  )
