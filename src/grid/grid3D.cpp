@@ -517,7 +517,7 @@ Real Grid3D::Update_Hydro_Grid()
 #ifdef DUST
   // ==Apply dust from dust/dust_cuda.h==
   Dust_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama, H.grain_radius);
-  #endif  // DUST
+#endif  // DUST
 
 #ifdef CHEMISTRY_GPU
   // Update the H and He ionization fractions and apply cooling and photoheating
