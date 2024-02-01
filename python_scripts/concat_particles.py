@@ -243,6 +243,7 @@ if __name__ == '__main__':
     concat_particles_dataset(output_directory=args.output_directory,
                              num_processes=args.num_processes,
                              output_number=output,
+                             build_source_path = build_source_path,
                              skip_fields=args.skip_fields,
                              destination_dtype=args.dtype,
                              compression_type=args.compression_type,
