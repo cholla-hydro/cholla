@@ -231,8 +231,9 @@ struct Header {
   int custom_grav;
 
   // Values for lower limit for density and temperature
-  Real density_floor;
   Real temperature_floor;
+  Real density_floor;
+  Real scalar_floor;
 
   Real Ekin_avrg;
 

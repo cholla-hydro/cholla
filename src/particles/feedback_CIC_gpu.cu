@@ -157,9 +157,9 @@ __device__ Real GetSNRate(Real t, Real* dev_snr, Real snr_dt, Real t_start, Real
 }
 
 __device__ Real Calc_Timestep(Real gamma, Real* density, Real* momentum_x, Real* momentum_y, Real* momentum_z,
-                              Real* energy, int index, Real dx, Real dy, Real dz)
+                              Real* energy, int index, Real dx, Real dy, Real dz, Real density_floor)
 {
-  Real dens  = fmax(density[index], DENS_FLOOR);
+  Real dens  = fmax(density[index], density_floor);
   Real d_inv = 1.0 / dens;
   Real vx    = momentum_x[index] * d_inv;
   Real vy    = momentum_y[index] * d_inv;
@@ -236,7 +236,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id, Real
                                         Real* gasEnergy, Real* energy, Real* momentum_x, Real* momentum_y,
                                         Real* momentum_z, Real gamma, FeedbackPrng* states, Real* prev_dens,
                                         int* prev_N, short direction, Real* dev_snr, Real snr_dt, Real time_sn_start,
-                                        Real time_sn_end, int n_step)
+                                        Real time_sn_end, int n_step, Real density_floor)
 {
   __shared__ Real s_info[FEED_INFO_N * TPB_FEEDBACK];  // for collecting SN feedback information, like #
                                                        // of SNe or # resolved.
@@ -443,7 +443,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id, Real
 
                   if (direction > 0) {
                     local_dti = fmax(local_dti, Calc_Timestep(gamma, density, momentum_x, momentum_y, momentum_z,
-                                                              energy, indx, dx, dy, dz));
+                                                              energy, indx, dx, dy, dz, density_floor));
                   }
                 }
               }
@@ -605,7 +605,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id, Real
                     // kernel_printf("urs time:%.3e id:%d N:%d d:%.5e\n", t,
                     // id[gtid], N, n_0);
                     local_dti = fmax(local_dti, Calc_Timestep(gamma, density, momentum_x, momentum_y, momentum_z,
-                                                              energy, indx, dx, dy, dz));
+                                                              energy, indx, dx, dy, dz, density_floor));
                   }
                 }
               }
@@ -698,7 +698,7 @@ Real supernova::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
                          G.H.nz, G.H.n_ghost, G.H.t, G.H.dt, d_dti, d_info, G.C.d_density, G.C.d_GasEnergy,
                          G.C.d_Energy, G.C.d_momentum_x, G.C.d_momentum_y, G.C.d_momentum_z, gama,
                          supernova::randStates, d_prev_dens, d_prev_N, direction, dev_snr, snr_dt, time_sn_start,
-                         time_sn_end, G.H.n_step);
+                         time_sn_end, G.H.n_step, G.H.density_floor);
 
       GPU_Error_Check(cudaMemcpy(&h_dti, d_dti, sizeof(Real), cudaMemcpyDeviceToHost));
     }
@@ -719,7 +719,7 @@ Real supernova::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
                            G.H.nz, G.H.n_ghost, G.H.t, G.H.dt, d_dti, d_info, G.C.d_density, G.C.d_GasEnergy,
                            G.C.d_Energy, G.C.d_momentum_x, G.C.d_momentum_y, G.C.d_momentum_z, gama,
                            supernova::randStates, d_prev_dens, d_prev_N, direction, dev_snr, snr_dt, time_sn_start,
-                           time_sn_end, G.H.n_step);
+                           time_sn_end, G.H.n_step, G.H.density_floor);
 
         GPU_Error_Check(cudaDeviceSynchronize());
       }

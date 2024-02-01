@@ -37,8 +37,7 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
 
 void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int ny, int nz, int x_off, int y_off,
                           int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound,
-                          Real dt, int n_fields, int custom_grav, Real density_floor, Real U_floor,
-                          Real *host_grav_potential)
+                          Real dt, int n_fields, int custom_grav, Real density_floor, Real *host_grav_potential)
 {
   // Here, *dev_conserved contains the entire
   // set of conserved variables on the grid
@@ -211,6 +210,7 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
                      update_half_launch_params.threadsPerBlock, 0, 0, dev_conserved, dev_conserved_half, F_x, F_y, F_z,
                      nx, ny, nz, n_ghost, dx, dy, dz, 0.5 * dt, gama, n_fields, density_floor);
   GPU_Error_Check();
+
   #ifdef MHD
   // Update the magnetic fields
   cuda_utilities::AutomaticLaunchParams static const update_magnetic_launch_params(mhd::Update_Magnetic_Field_3D,
@@ -356,14 +356,6 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   GPU_Error_Check();
   #endif  // DE
 
-  #ifdef TEMPERATURE_FLOOR
-  cuda_utilities::AutomaticLaunchParams static const temp_floor_launch_params(Apply_Temperature_Floor, n_cells);
-  hipLaunchKernelGGL(Apply_Temperature_Floor, temp_floor_launch_params.numBlocks,
-                     temp_floor_launch_params.threadsPerBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields,
-                     U_floor);
-  GPU_Error_Check();
-  #endif  // TEMPERATURE_FLOOR
-
   return;
 }
 
@@ -410,10 +402,6 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
   Real vx_imo, vx_ipo, vy_jmo, vy_jpo, vz_kmo, vz_kpo, P, E, E_kin, GE;
   int ipo, jpo, kpo;
   #endif  // DE
-
-  #ifdef DENSITY_FLOOR
-  Real dens_0;
-  #endif  // DENSITY_FLOOR
 
   // threads corresponding to all cells except outer ring of ghost cells do the
   // calculation
@@ -488,10 +476,9 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
         dtodz * (dev_F_z[(n_fields - 1) * n_cells + kmo] - dev_F_z[(n_fields - 1) * n_cells + id]) +
         0.5 * P * (dtodx * (vx_imo - vx_ipo) + dtody * (vy_jmo - vy_jpo) + dtodz * (vz_kmo - vz_kpo));
   #endif  // DE
-
   #ifdef DENSITY_FLOOR
     if (dev_conserved_half[id] < density_floor) {
-      dens_0 = dev_conserved_half[id];
+      Real dens_0 = dev_conserved_half[id];
       printf("###Thread density change  %f -> %f \n", dens_0, density_floor);
       dev_conserved_half[id] = density_floor;
       // Scale the conserved values to the new density

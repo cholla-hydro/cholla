@@ -258,16 +258,16 @@ void Grid3D::Initialize(struct Parameters *P)
 #endif /*ROTATED_PROJECTION*/
 
 // Values for lower limit for density and temperature
-#ifdef DENSITY_FLOOR
-  H.density_floor = DENS_FLOOR;
-#else
-  H.density_floor = 0.0;
+#ifdef TEMPERATURE_FLOOR
+  H.temperature_floor = P->temperature_floor;
 #endif
 
-#ifdef TEMPERATURE_FLOOR
-  H.temperature_floor = TEMP_FLOOR;
-#else
-  H.temperature_floor = 0.0;
+#ifdef DENSITY_FLOOR
+  H.density_floor = P->density_floor;
+#endif
+
+#ifdef SCALAR_FLOOR
+  H.scalar_floor = P->scalar_floor;
 #endif
 
 #ifdef COSMOLOGY
@@ -424,16 +424,6 @@ void Grid3D::Execute_Hydro_Integrator(void)
   z_off = nz_local_start;
 #endif
 
-  // Set the lower limit for density and temperature (Internal Energy)
-  Real U_floor, density_floor;
-  density_floor = H.density_floor;
-  // Minimum of internal energy from minumum of temperature
-  U_floor = H.temperature_floor * KB / (gama - 1) / MP / SP_ENERGY_UNIT;
-#ifdef COSMOLOGY
-  U_floor = H.temperature_floor / (gama - 1) / MP * KB * 1e-10;  // ( km/s )^2
-  U_floor /= Cosmo.v_0_gas * Cosmo.v_0_gas / Cosmo.current_a / Cosmo.current_a;
-#endif
-
 #ifdef CPU_TIME
   Timer.Hydro_Integrator.Start();
 #endif  // CPU_TIME
@@ -461,13 +451,13 @@ void Grid3D::Execute_Hydro_Integrator(void)
   {
 #ifdef VL
     VL_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
-                         H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, density_floor, U_floor,
+                         H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, H.density_floor,
                          C.Grav_potential);
 #endif  // VL
 #ifdef SIMPLE
     Simple_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
-                             H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, density_floor,
-                             U_floor, C.Grav_potential);
+                             H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, H.density_floor,
+                             C.Grav_potential);
 #endif  // SIMPLE
   } else {
     chprintf("Error: Grid dimensions nx: %d  ny: %d  nz: %d  not supported.\n", H.nx, H.ny, H.nz);
@@ -500,8 +490,25 @@ Real Grid3D::Update_Hydro_Grid()
 
   Execute_Hydro_Integrator();
 
-  // == Perform chemistry/cooling (there are a few different cases) ==
+#ifdef TEMPERATURE_FLOOR
+  // Set the lower limit temperature (Internal Energy)
+  Real U_floor;
+  // Minimum of internal energy from minumum of temperature
+  U_floor = H.temperature_floor * KB / (gama - 1) / MP / SP_ENERGY_UNIT;
+  #ifdef COSMOLOGY
+  U_floor = H.temperature_floor / (gama - 1) / MP * KB * 1e-10;  // ( km/s )^2
+  U_floor /= Cosmo.v_0_gas * Cosmo.v_0_gas / Cosmo.current_a / Cosmo.current_a;
+  #endif
+  Apply_Temperature_Floor(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, U_floor);
+#endif  // TEMPERATURE_FLOOR
 
+#ifdef SCALAR_FLOOR
+  #ifdef DUST
+  Apply_Scalar_Floor(C.device, H.nx, H.ny, H.nz, H.n_ghost, grid_enum::dust_density, H.scalar_floor);
+  #endif
+#endif  // SCALAR_FLOOR
+
+// == Perform chemistry/cooling (there are a few different cases) ==
 #ifdef COOLING_GPU
   #ifdef CPU_TIME
   Timer.Cooling_GPU.Start();
