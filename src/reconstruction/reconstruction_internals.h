@@ -16,6 +16,7 @@
 #include "../utils/gpu.hpp"
 #include "../utils/hydro_utilities.h"
 #include "../utils/mhd_utilities.h"
+// #include "../reconstruction/pcm_cuda.h"
 
 /*!
  * \brief Namespace to contain various utilities for the interface reconstruction kernels
@@ -23,6 +24,38 @@
  */
 namespace reconstruction
 {
+// =====================================================================================================================
+/*!
+ * \brief This enum is used to select which reconstructor to use. The idea is that either one of its implicitly defined
+ * members (i.e. not `chosen`) can be used to tell a kernel which reconstruction to perform and the member `chosen` can
+ * be used to indicate which reconstruction method was chosen at compile time. I.e. in a Van Leer integrator the `pcm`
+ * member would be passed to the first riemann solve to tell it to use PCM reconstruction and `chosen` would be passed
+ * to the second riemann solve to indicate which higher order reconstruction it should use.
+ *
+ */
+enum Kind {
+  pcm,
+  plmp,
+  plmc,
+  ppmp,
+  ppmc,
+
+#if defined(PCM)
+  chosen = pcm
+#elif defined(PLMP)
+  chosen = plmp
+#elif defined(PLMC)
+  chosen = plmc
+#elif defined(PPMP)
+  chosen = ppmp
+#elif defined(PLMC)
+  chosen = ppmc
+#else
+  #error "no reconstruction selected"
+#endif
+};
+// =====================================================================================================================
+
 // =====================================================================================================================
 /*!
  * \brief A struct for the primitive variables
