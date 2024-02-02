@@ -2822,7 +2822,7 @@ std::string FnameTemplate::format_fname(int nfile, int file_proc_id,
   const char *extension = ".txt";
 #endif
 
-  std::string procID_part = "." + std::to_string(procID);  // initialized to empty string
+  std::string procID_part = "." + std::to_string(file_proc_id);  // initialized to empty string
 
   return path_prefix + std::to_string(nfile) + pre_extension_suffix + extension + procID_part;
 }
