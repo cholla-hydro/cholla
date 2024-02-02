@@ -56,28 +56,28 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 
   // load the 5-cell stencil into registers
   // cell i
-  reconstruction::Primitive const cell_i =
+  hydro_utilities::Primitive const cell_i =
       reconstruction::Load_Data(dev_conserved, xid, yid, zid, nx, ny, n_cells, o1, o2, o3, gamma);
 
   // cell i-1. The equality checks check the direction and subtracts one from the direction
   // im1 stands for "i minus 1"
-  reconstruction::Primitive const cell_im1 = reconstruction::Load_Data(
+  hydro_utilities::Primitive const cell_im1 = reconstruction::Load_Data(
       dev_conserved, xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
 
   // cell i+1. The equality checks check the direction and adds one to the direction
   // ip1 stands for "i plus 1"
-  reconstruction::Primitive const cell_ip1 = reconstruction::Load_Data(
+  hydro_utilities::Primitive const cell_ip1 = reconstruction::Load_Data(
       dev_conserved, xid + int(dir == 0), yid + int(dir == 1), zid + int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
 
   // cell i-2. The equality checks check the direction and subtracts one from the direction
   // im2 stands for "i minus 2"
-  reconstruction::Primitive const cell_im2 =
+  hydro_utilities::Primitive const cell_im2 =
       reconstruction::Load_Data(dev_conserved, xid - 2 * int(dir == 0), yid - 2 * int(dir == 1),
                                 zid - 2 * int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
 
   // cell i+2. The equality checks check the direction and adds one to the direction
   // ip2 stands for "i plus 2"
-  reconstruction::Primitive const cell_ip2 =
+  hydro_utilities::Primitive const cell_ip2 =
       reconstruction::Load_Data(dev_conserved, xid + 2 * int(dir == 0), yid + 2 * int(dir == 1),
                                 zid + 2 * int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
 
@@ -97,16 +97,16 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   // and R refer to locations relative to the cell center Stone Eqn 36
 
   // left
-  reconstruction::Primitive del_L = reconstruction::Compute_Slope(cell_im2, cell_im1);
+  hydro_utilities::Primitive del_L = reconstruction::Compute_Slope(cell_im2, cell_im1);
 
   // right
-  reconstruction::Primitive del_R = reconstruction::Compute_Slope(cell_im1, cell_i);
+  hydro_utilities::Primitive del_R = reconstruction::Compute_Slope(cell_im1, cell_i);
 
   // centered
-  reconstruction::Primitive del_C = reconstruction::Compute_Slope(cell_im2, cell_i, 0.5);
+  hydro_utilities::Primitive del_C = reconstruction::Compute_Slope(cell_im2, cell_i, 0.5);
 
   // Van Leer
-  reconstruction::Primitive del_G = reconstruction::Van_Leer_Slope(del_L, del_R);
+  hydro_utilities::Primitive del_G = reconstruction::Van_Leer_Slope(del_L, del_R);
 
   // Step 3 - Project the left, right, centered and van Leer differences onto the
   // characteristic variables Stone Eqn 37 (del_a are differences in
@@ -127,7 +127,7 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   // Step 4 - Apply monotonicity constraints to the differences in the characteristic variables
   // Step 5 - and project the monotonized difference in the characteristic variables back onto the primitive variables
   // Stone Eqn 39
-  reconstruction::Primitive const del_m_im1 = reconstruction::Monotonize_Characteristic_Return_Primitive(
+  hydro_utilities::Primitive const del_m_im1 = reconstruction::Monotonize_Characteristic_Return_Primitive(
       cell_im1, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, eigenvector, sound_speed,
       sound_speed * sound_speed, gamma);
 
@@ -172,7 +172,7 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   // Step 4 - Apply monotonicity constraints to the differences in the characteristic variables
   // Step 5 - and project the monotonized difference in the characteristic variables back onto the primitive variables
   // Stone Eqn 39
-  reconstruction::Primitive del_m_i = reconstruction::Monotonize_Characteristic_Return_Primitive(
+  hydro_utilities::Primitive del_m_i = reconstruction::Monotonize_Characteristic_Return_Primitive(
       cell_i, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, eigenvector, sound_speed,
       sound_speed * sound_speed, gamma);
 
@@ -217,16 +217,16 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   // Step 4 - Apply monotonicity constraints to the differences in the characteristic variables
   // Step 5 - and project the monotonized difference in the characteristic variables back onto the primitive variables
   // Stone Eqn 39
-  reconstruction::Primitive const del_m_ip1 = reconstruction::Monotonize_Characteristic_Return_Primitive(
+  hydro_utilities::Primitive const del_m_ip1 = reconstruction::Monotonize_Characteristic_Return_Primitive(
       cell_ip1, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, eigenvector, sound_speed,
       sound_speed * sound_speed, gamma);
 
   // Step 6 - Use parabolic interpolation to compute values at the left and right of each cell center Here, the
   // subscripts L and R refer to the left and right side of the ith cell center Stone Eqn 46
-  reconstruction::Primitive interface_L_iph =
+  hydro_utilities::Primitive interface_L_iph =
       reconstruction::Calc_Interface_Parabolic(cell_ip1, cell_i, del_m_ip1, del_m_i);
 
-  reconstruction::Primitive interface_R_imh =
+  hydro_utilities::Primitive interface_R_imh =
       reconstruction::Calc_Interface_Parabolic(cell_i, cell_im1, del_m_i, del_m_im1);
 
   // Step 7 - Apply further monotonicity constraints to ensure the values on the left and right side of cell center lie
@@ -239,15 +239,15 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   //          Stone Eqn 54
 
   del_m_i.density    = interface_L_iph.density - interface_R_imh.density;
-  del_m_i.velocity_x = interface_L_iph.velocity_x - interface_R_imh.velocity_x;
-  del_m_i.velocity_y = interface_L_iph.velocity_y - interface_R_imh.velocity_y;
-  del_m_i.velocity_z = interface_L_iph.velocity_z - interface_R_imh.velocity_z;
+  del_m_i.velocity.x = interface_L_iph.velocity.x - interface_R_imh.velocity.x;
+  del_m_i.velocity.y = interface_L_iph.velocity.y - interface_R_imh.velocity.y;
+  del_m_i.velocity.z = interface_L_iph.velocity.z - interface_R_imh.velocity.z;
   del_m_i.pressure   = interface_L_iph.pressure - interface_R_imh.pressure;
 
   Real const d_6  = 6.0 * (cell_i.density - 0.5 * (interface_R_imh.density + interface_L_iph.density));
-  Real const vx_6 = 6.0 * (cell_i.velocity_x - 0.5 * (interface_R_imh.velocity_x + interface_L_iph.velocity_x));
-  Real const vy_6 = 6.0 * (cell_i.velocity_y - 0.5 * (interface_R_imh.velocity_y + interface_L_iph.velocity_y));
-  Real const vz_6 = 6.0 * (cell_i.velocity_z - 0.5 * (interface_R_imh.velocity_z + interface_L_iph.velocity_z));
+  Real const vx_6 = 6.0 * (cell_i.velocity.x - 0.5 * (interface_R_imh.velocity.x + interface_L_iph.velocity.x));
+  Real const vy_6 = 6.0 * (cell_i.velocity.y - 0.5 * (interface_R_imh.velocity.y + interface_L_iph.velocity.y));
+  Real const vz_6 = 6.0 * (cell_i.velocity.z - 0.5 * (interface_R_imh.velocity.z + interface_L_iph.velocity.z));
   Real const p_6  = 6.0 * (cell_i.pressure - 0.5 * (interface_R_imh.pressure + interface_L_iph.pressure));
 
 #ifdef DE
@@ -269,9 +269,9 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   // recalculate the adiabatic sound speed in cell i
   sound_speed = hydro_utilities::Calc_Sound_Speed(cell_i.pressure, cell_i.density, gamma);
 
-  Real const lambda_m = cell_i.velocity_x - sound_speed;
-  Real const lambda_0 = cell_i.velocity_x;
-  Real const lambda_p = cell_i.velocity_x + sound_speed;
+  Real const lambda_m = cell_i.velocity.x - sound_speed;
+  Real const lambda_0 = cell_i.velocity.x;
+  Real const lambda_p = cell_i.velocity.x + sound_speed;
 
   // Step 9 - Compute the left and right interface values using monotonized
   // parabolic interpolation
@@ -287,15 +287,15 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   interface_L_iph.density =
       interface_L_iph.density -
       lambda_max * (0.5 * dtodx) * (del_m_i.density - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * d_6);
-  interface_L_iph.velocity_x =
-      interface_L_iph.velocity_x -
-      lambda_max * (0.5 * dtodx) * (del_m_i.velocity_x - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * vx_6);
-  interface_L_iph.velocity_y =
-      interface_L_iph.velocity_y -
-      lambda_max * (0.5 * dtodx) * (del_m_i.velocity_y - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * vy_6);
-  interface_L_iph.velocity_z =
-      interface_L_iph.velocity_z -
-      lambda_max * (0.5 * dtodx) * (del_m_i.velocity_z - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * vz_6);
+  interface_L_iph.velocity.x =
+      interface_L_iph.velocity.x -
+      lambda_max * (0.5 * dtodx) * (del_m_i.velocity.x - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * vx_6);
+  interface_L_iph.velocity.y =
+      interface_L_iph.velocity.y -
+      lambda_max * (0.5 * dtodx) * (del_m_i.velocity.y - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * vy_6);
+  interface_L_iph.velocity.z =
+      interface_L_iph.velocity.z -
+      lambda_max * (0.5 * dtodx) * (del_m_i.velocity.z - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * vz_6);
   interface_L_iph.pressure =
       interface_L_iph.pressure -
       lambda_max * (0.5 * dtodx) * (del_m_i.pressure - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * p_6);
@@ -304,15 +304,15 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   interface_R_imh.density =
       interface_R_imh.density -
       lambda_min * (0.5 * dtodx) * (del_m_i.density + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * d_6);
-  interface_R_imh.velocity_x =
-      interface_R_imh.velocity_x -
-      lambda_min * (0.5 * dtodx) * (del_m_i.velocity_x + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * vx_6);
-  interface_R_imh.velocity_y =
-      interface_R_imh.velocity_y -
-      lambda_min * (0.5 * dtodx) * (del_m_i.velocity_y + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * vy_6);
-  interface_R_imh.velocity_z =
-      interface_R_imh.velocity_z -
-      lambda_min * (0.5 * dtodx) * (del_m_i.velocity_z + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * vz_6);
+  interface_R_imh.velocity.x =
+      interface_R_imh.velocity.x -
+      lambda_min * (0.5 * dtodx) * (del_m_i.velocity.x + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * vx_6);
+  interface_R_imh.velocity.y =
+      interface_R_imh.velocity.y -
+      lambda_min * (0.5 * dtodx) * (del_m_i.velocity.y + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * vy_6);
+  interface_R_imh.velocity.z =
+      interface_R_imh.velocity.z -
+      lambda_min * (0.5 * dtodx) * (del_m_i.velocity.z + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * vz_6);
   interface_R_imh.pressure =
       interface_R_imh.pressure -
       lambda_min * (0.5 * dtodx) * (del_m_i.pressure + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * p_6);
@@ -359,9 +359,9 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     Real const B = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_p * lambda_p - lambda_m * lambda_m);
 
     Real const chi_1 = A * (del_m_i.density - d_6) + B * d_6;
-    Real const chi_2 = A * (del_m_i.velocity_x - vx_6) + B * vx_6;
-    Real const chi_3 = A * (del_m_i.velocity_y - vy_6) + B * vy_6;
-    Real const chi_4 = A * (del_m_i.velocity_z - vz_6) + B * vz_6;
+    Real const chi_2 = A * (del_m_i.velocity.x - vx_6) + B * vx_6;
+    Real const chi_3 = A * (del_m_i.velocity.y - vy_6) + B * vy_6;
+    Real const chi_4 = A * (del_m_i.velocity.z - vz_6) + B * vz_6;
     Real const chi_5 = A * (del_m_i.pressure - p_6) + B * p_6;
 
     sum_1 += -0.5 * (cell_i.density * chi_2 / sound_speed - chi_5 / (sound_speed * sound_speed));
@@ -373,9 +373,9 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     Real const B = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_p * lambda_p - lambda_0 * lambda_0);
 
     Real const chi_1 = A * (del_m_i.density - d_6) + B * d_6;
-    Real const chi_2 = A * (del_m_i.velocity_x - vx_6) + B * vx_6;
-    Real const chi_3 = A * (del_m_i.velocity_y - vy_6) + B * vy_6;
-    Real const chi_4 = A * (del_m_i.velocity_z - vz_6) + B * vz_6;
+    Real const chi_2 = A * (del_m_i.velocity.x - vx_6) + B * vx_6;
+    Real const chi_3 = A * (del_m_i.velocity.y - vy_6) + B * vy_6;
+    Real const chi_4 = A * (del_m_i.velocity.z - vz_6) + B * vz_6;
     Real const chi_5 = A * (del_m_i.pressure - p_6) + B * p_6;
 #ifdef DE
     chi_ge = A * (del_m_i.gas_energy - ge_6) + B * ge_6;
@@ -403,9 +403,9 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     Real const B = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_p * lambda_p - lambda_p * lambda_p);
 
     Real const chi_1 = A * (del_m_i.density - d_6) + B * d_6;
-    Real const chi_2 = A * (del_m_i.velocity_x - vx_6) + B * vx_6;
-    Real const chi_3 = A * (del_m_i.velocity_y - vy_6) + B * vy_6;
-    Real const chi_4 = A * (del_m_i.velocity_z - vz_6) + B * vz_6;
+    Real const chi_2 = A * (del_m_i.velocity.x - vx_6) + B * vx_6;
+    Real const chi_3 = A * (del_m_i.velocity.y - vy_6) + B * vy_6;
+    Real const chi_4 = A * (del_m_i.velocity.z - vz_6) + B * vz_6;
     Real const chi_5 = A * (del_m_i.pressure - p_6) + B * p_6;
 
     sum_1 += 0.5 * (cell_i.density * chi_2 / sound_speed + chi_5 / (sound_speed * sound_speed));
@@ -415,9 +415,9 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 
   // add the corrections to the initial guesses for the interface values
   interface_L_iph.density += sum_1;
-  interface_L_iph.velocity_x += sum_2;
-  interface_L_iph.velocity_y += sum_3;
-  interface_L_iph.velocity_z += sum_4;
+  interface_L_iph.velocity.x += sum_2;
+  interface_L_iph.velocity.y += sum_3;
+  interface_L_iph.velocity.z += sum_4;
   interface_L_iph.pressure += sum_5;
 #ifdef DE
   interface_L_iph.gas_energy += sum_ge;
@@ -447,9 +447,9 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     Real const D = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_m * lambda_m - lambda_m * lambda_m);
 
     Real const chi_1 = C * (del_m_i.density + d_6) + D * d_6;
-    Real const chi_2 = C * (del_m_i.velocity_x + vx_6) + D * vx_6;
-    Real const chi_3 = C * (del_m_i.velocity_y + vy_6) + D * vy_6;
-    Real const chi_4 = C * (del_m_i.velocity_z + vz_6) + D * vz_6;
+    Real const chi_2 = C * (del_m_i.velocity.x + vx_6) + D * vx_6;
+    Real const chi_3 = C * (del_m_i.velocity.y + vy_6) + D * vy_6;
+    Real const chi_4 = C * (del_m_i.velocity.z + vz_6) + D * vz_6;
     Real const chi_5 = C * (del_m_i.pressure + p_6) + D * p_6;
 
     sum_1 += -0.5 * (cell_i.density * chi_2 / sound_speed - chi_5 / (sound_speed * sound_speed));
@@ -461,9 +461,9 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     Real const D = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_m * lambda_m - lambda_0 * lambda_0);
 
     Real const chi_1 = C * (del_m_i.density + d_6) + D * d_6;
-    Real const chi_2 = C * (del_m_i.velocity_x + vx_6) + D * vx_6;
-    Real const chi_3 = C * (del_m_i.velocity_y + vy_6) + D * vy_6;
-    Real const chi_4 = C * (del_m_i.velocity_z + vz_6) + D * vz_6;
+    Real const chi_2 = C * (del_m_i.velocity.x + vx_6) + D * vx_6;
+    Real const chi_3 = C * (del_m_i.velocity.y + vy_6) + D * vy_6;
+    Real const chi_4 = C * (del_m_i.velocity.z + vz_6) + D * vz_6;
     Real const chi_5 = C * (del_m_i.pressure + p_6) + D * p_6;
 #ifdef DE
     chi_ge = C * (del_m_i.gas_energy + ge_6) + D * ge_6;
@@ -491,9 +491,9 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     Real const D = (1.0 / 3.0) * (dtodx) * (dtodx) * (lambda_m * lambda_m - lambda_p * lambda_p);
 
     Real const chi_1 = C * (del_m_i.density + d_6) + D * d_6;
-    Real const chi_2 = C * (del_m_i.velocity_x + vx_6) + D * vx_6;
-    Real const chi_3 = C * (del_m_i.velocity_y + vy_6) + D * vy_6;
-    Real const chi_4 = C * (del_m_i.velocity_z + vz_6) + D * vz_6;
+    Real const chi_2 = C * (del_m_i.velocity.x + vx_6) + D * vx_6;
+    Real const chi_3 = C * (del_m_i.velocity.y + vy_6) + D * vy_6;
+    Real const chi_4 = C * (del_m_i.velocity.z + vz_6) + D * vz_6;
     Real const chi_5 = C * (del_m_i.pressure + p_6) + D * p_6;
 
     sum_1 += 0.5 * (cell_i.density * chi_2 / sound_speed + chi_5 / (sound_speed * sound_speed));
@@ -503,9 +503,9 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 
   // add the corrections
   interface_R_imh.density += sum_1;
-  interface_R_imh.velocity_x += sum_2;
-  interface_R_imh.velocity_y += sum_3;
-  interface_R_imh.velocity_z += sum_4;
+  interface_R_imh.velocity.x += sum_2;
+  interface_R_imh.velocity.y += sum_3;
+  interface_R_imh.velocity.z += sum_4;
   interface_R_imh.pressure += sum_5;
 #ifdef DE
   interface_R_imh.gas_energy += sum_ge;
@@ -575,28 +575,28 @@ __global__ __launch_bounds__(TPB) void PPMC_VL(Real *dev_conserved, Real *dev_bo
 
   // load the 5-cell stencil into registers
   // cell i
-  reconstruction::Primitive const cell_i =
+  hydro_utilities::Primitive const cell_i =
       reconstruction::Load_Data(dev_conserved, xid, yid, zid, nx, ny, n_cells, o1, o2, o3, gamma);
 
   // cell i-1. The equality checks the direction and will subtract one from the correct direction
   // im1 stands for "i minus 1"
-  reconstruction::Primitive const cell_im1 = reconstruction::Load_Data(
+  hydro_utilities::Primitive const cell_im1 = reconstruction::Load_Data(
       dev_conserved, xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
 
   // cell i+1.  The equality checks the direction and add one to the correct direction
   // ip1 stands for "i plus 1"
-  reconstruction::Primitive const cell_ip1 = reconstruction::Load_Data(
+  hydro_utilities::Primitive const cell_ip1 = reconstruction::Load_Data(
       dev_conserved, xid + int(dir == 0), yid + int(dir == 1), zid + int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
 
   // cell i-2. The equality checks the direction and will subtract two from the correct direction
   // im2 stands for "i minus 2"
-  reconstruction::Primitive const cell_im2 =
+  hydro_utilities::Primitive const cell_im2 =
       reconstruction::Load_Data(dev_conserved, xid - 2 * int(dir == 0), yid - 2 * int(dir == 1),
                                 zid - 2 * int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
 
   // cell i+2.  The equality checks the direction and add two to the correct direction
   // ip2 stands for "i plus 2"
-  reconstruction::Primitive const cell_ip2 =
+  hydro_utilities::Primitive const cell_ip2 =
       reconstruction::Load_Data(dev_conserved, xid + 2 * int(dir == 0), yid + 2 * int(dir == 1),
                                 zid + 2 * int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
 
@@ -660,9 +660,9 @@ __global__ __launch_bounds__(TPB) void PPMC_VL(Real *dev_conserved, Real *dev_bo
 #endif  // MHD
 
   // Convert back to primitive variables
-  reconstruction::Primitive interface_L_iph = reconstruction::Characteristic_To_Primitive(
+  hydro_utilities::Primitive interface_L_iph = reconstruction::Characteristic_To_Primitive(
       cell_i, interface_L_iph_characteristic, eigenvectors, sound_speed, sound_speed_squared, gamma);
-  reconstruction::Primitive interface_R_imh = reconstruction::Characteristic_To_Primitive(
+  hydro_utilities::Primitive interface_R_imh = reconstruction::Characteristic_To_Primitive(
       cell_i, interface_R_imh_characteristic, eigenvectors, sound_speed, sound_speed_squared, gamma);
 
   // Compute the interfaces for the variables that don't have characteristics

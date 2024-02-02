@@ -30,6 +30,67 @@
 
 namespace hydro_utilities
 {
+// =====================================================================================================================
+// Here are some basic structs that can be used in various places when needed
+// =====================================================================================================================
+/*!
+ * \brief A data only struct that contains the Real members x, y, and z for usage as a vector
+ *
+ */
+struct Vector {
+  Real x, y, z;
+};
+// =====================================================================================================================
+
+// =====================================================================================================================
+/*!
+ * \brief A data only struct for the conserved variables
+ *
+ */
+struct Conserved {
+  // Hydro variables
+  Real density, energy;
+  Vector velocity;
+
+#ifdef MHD
+  // These are all cell centered values
+  Vector magnetic;
+#endif  // MHD
+
+#ifdef DE
+  Real gas_energy;
+#endif  // DE
+
+#ifdef SCALAR
+  Real scalar[grid_enum::nscalars];
+#endif  // SCALAR
+};
+// =====================================================================================================================
+
+// =====================================================================================================================
+/*!
+ * \brief A data only struct for the primtive variables
+ *
+ */
+struct Primitive {
+  // Hydro variables
+  Real density, pressure;
+  Vector velocity;
+
+#ifdef MHD
+  // These are all cell centered values
+  Vector magnetic;
+#endif  // MHD
+
+#ifdef DE
+  Real gas_energy;
+#endif  // DE
+
+#ifdef SCALAR
+  Real scalar[grid_enum::nscalars];
+#endif  // SCALAR
+};
+// =====================================================================================================================
 
 inline __host__ __device__ Real Calc_Pressure_Primitive(Real const &E, Real const &d, Real const &vx, Real const &vy,
                                                         Real const &vz, Real const &gamma, Real const &magnetic_x = 0.0,
