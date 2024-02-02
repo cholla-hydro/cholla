@@ -8,7 +8,7 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../reconstruction/plmc_cuda.h"
-#include "../reconstruction/reconstruction.h"
+#include "../reconstruction/reconstruction_internals.h"
 #include "../utils/cuda_utilities.h"
 #include "../utils/gpu.hpp"
 

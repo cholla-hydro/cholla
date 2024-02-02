@@ -7,7 +7,7 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../reconstruction/ppmc_cuda.h"
-#include "../reconstruction/reconstruction.h"
+#include "../reconstruction/reconstruction_internals.h"
 #include "../utils/gpu.hpp"
 #include "../utils/hydro_utilities.h"
 
