@@ -95,6 +95,11 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile)
 
   chprintf("\nSaving Snapshot: %d \n", nfile);
 
+  // ensure the output-directory exists (try to create it if it doesn't exist)
+  // -> Aside: it would be nice to pass an FnameTemplate instance into each function that uses it,
+  //    rather than reconstructing it everywhere
+  Ensure_Dir_Exists(FnameTemplate(P).effective_output_dir_path(nfile));
+
 #ifdef HDF5
   // Initialize HDF5 interface
   H5open();
@@ -193,19 +198,10 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile)
 void Output_Data(Grid3D &G, struct Parameters P, int nfile)
 {
   // create the filename
-  std::string filename(P.outdir);
-  filename += std::to_string(nfile);
+  std::string filename = FnameTemplate(P).format_fname(nfile, "");
 
-#if defined BINARY
-  filename += ".bin";
-#elif defined HDF5
-  filename += ".h5";
-#else
-  filename += ".txt";
+#if !defined(BINARY) && !defined(HDF5)
   if (G.H.nx * G.H.ny * G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
-#endif
-#ifdef MPI_CHOLLA
-  filename += "." + std::to_string(procID);
 #endif
 
 // open the file for binary writes
@@ -285,12 +281,7 @@ void Output_Float32(Grid3D &G, struct Parameters P, int nfile)
   }
 
   // create the filename
-  std::string filename(P.outdir);
-  filename += std::to_string(nfile);
-  filename += ".float32.h5";
-  #ifdef MPI_CHOLLA
-  filename += "." + std::to_string(procID);
-  #endif  // MPI_CHOLLA
+  std::string filename = FnameTemplate(P).format_fname(nfile, ".float32");
 
   // create hdf5 file
   hid_t file_id; /* file identifier */
@@ -393,13 +384,7 @@ void Output_Projected_Data(Grid3D &G, struct Parameters P, int nfile)
   herr_t status;
 
   // create the filename
-  std::string filename(P.outdir);
-  filename += std::to_string(nfile);
-  filename += "_proj.h5";
-
-  #ifdef MPI_CHOLLA
-  filename += "." + std::to_string(procID);
-  #endif /*MPI_CHOLLA*/
+  std::string filename = FnameTemplate(P).format_fname(nfile, "_proj");
 
   // Create a new file
   file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -438,13 +423,7 @@ void Output_Rotated_Projected_Data(Grid3D &G, struct Parameters P, int nfile)
   herr_t status;
 
   // create the filename
-  std::string filename(P.outdir);
-  filename += std::to_string(nfile);
-  filename += "_rot_proj.h5";
-
-  #ifdef MPI_CHOLLA
-  filename += "." + std::to_string(procID);
-  #endif /*MPI_CHOLLA*/
+  std::string filename = FnameTemplate(P).format_fname(nfile, "_rot_proj");
 
   if (G.R.flag_delta == 1) {
     // if flag_delta==1, then we are just outputting a
@@ -543,13 +522,7 @@ void Output_Slices(Grid3D &G, struct Parameters P, int nfile)
   herr_t status;
 
   // create the filename
-  std::string filename(P.outdir);
-  filename += std::to_string(nfile);
-  filename += "_slice.h5";
-
-  #ifdef MPI_CHOLLA
-  filename += "." + std::to_string(procID);
-  #endif /*MPI_CHOLLA*/
+  std::string filename = FnameTemplate(P).format_fname(nfile, "_slice");
 
   // Create a new file
   file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -2803,32 +2776,81 @@ void Write_Debug(Real *Value, const char *fname, int nValues, int iProc)
   fclose(fp);
 }
 
-void Ensure_Outdir_Exists(std::string outdir)
+std::string FnameTemplate::effective_output_dir_path(int nfile) const noexcept
 {
-  if (outdir == "") {
-    return;
-  } else if (Is_Root_Proc()) {
+  // for consistency, ensure that the returned string always has a trailing "/"
+  if (outdir_.empty()) {
+    return "./";
+  } else if (separate_cycle_dirs_) {
+    return this->outdir_ + "/" + std::to_string(nfile) + "/";
+  } else {
     // if the last character of outdir is not a '/', then the substring of
     // characters after the final '/' (or entire string if there isn't any '/')
     // is treated as a file-prefix
     //
     // this is accomplished here:
-    std::filesystem::path without_file_prefix = std::filesystem::path(outdir).parent_path();
+    std::filesystem::path without_file_prefix = std::filesystem::path(this->outdir_).parent_path();
+    return without_file_prefix.string() + "/";
+  }
+}
 
-    if (!without_file_prefix.empty()) {
+std::string FnameTemplate::format_fname(int nfile, const std::string &pre_extension_suffix) const noexcept
+{
+#ifdef MPI_CHOLLA
+  int file_proc_id = procID;
+#else
+  int file_proc_id = 0;
+#endif
+  return format_fname(nfile, file_proc_id, pre_extension_suffix);
+}
+
+std::string FnameTemplate::format_fname(int nfile, int file_proc_id,
+                                        const std::string &pre_extension_suffix) const noexcept
+{
+  // get the leading section of the string
+  const std::string path_prefix =
+      (separate_cycle_dirs_)
+          ? (effective_output_dir_path(nfile) + "/")  // while redundant, the slash signals our intent
+          : outdir_;
+
+  // get the file extension
+#if defined BINARY
+  const char *extension = ".bin";
+#elif defined HDF5
+  const char *extension = ".h5";
+#else
+  const char *extension = ".txt";
+#endif
+
+  std::string procID_part = "." + std::to_string(file_proc_id);  // initialized to empty string
+
+  return path_prefix + std::to_string(nfile) + pre_extension_suffix + extension + procID_part;
+}
+
+void Ensure_Dir_Exists(std::string dir_path)
+{
+  if (Is_Root_Proc()) {
+    // if the last character of outdir is not a '/', then the substring of
+    // characters after the final '/' (or entire string if there isn't any '/')
+    // is treated as a file-prefix
+    //
+    // this is accomplished here:
+    std::filesystem::path path = std::filesystem::path(dir_path);
+
+    if (!dir_path.empty()) {
       // try to create all directories specified within outdir (does nothing if
       // the directories already exist)
       std::error_code err_code;
-      std::filesystem::create_directories(without_file_prefix, err_code);
+      std::filesystem::create_directories(path, err_code);
 
       // confirm that an error-code wasn't set & that the path actually refers
       // to a directory (it's unclear from docs whether err-code is set in that
       // case)
-      if (err_code or not std::filesystem::is_directory(without_file_prefix)) {
+      if (err_code or not std::filesystem::is_directory(path)) {
         CHOLLA_ERROR(
             "something went wrong while trying to create the path to the "
-            "output-dir: %s",
-            outdir.c_str());
+            "directory: %s",
+            dir_path.c_str());
       }
     }
   }
