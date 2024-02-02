@@ -224,7 +224,6 @@ void Parse_Param(char *name, char *value, struct Parameters *parms)
     parms->n_rotated_projection = atoi(value);
   } else if (strcmp(name, "n_slice") == 0) {
     parms->n_slice = atoi(value);
-<<<<<<< HEAD
   } else if (strcmp(name, "n_out_float32") == 0) {
     parms->n_out_float32 = atoi(value);
   } else if (strcmp(name, "out_float32_density") == 0) {
