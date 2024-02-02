@@ -251,8 +251,9 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   Real const p_6  = 6.0 * (cell_i.pressure - 0.5 * (interface_R_imh.pressure + interface_L_iph.pressure));
 
 #ifdef DE
-  del_m_i.gas_energy = interface_L_iph.gas_energy - interface_R_imh.gas_energy;
-  Real const ge_6    = 6.0 * (cell_i.gas_energy - 0.5 * (interface_R_imh.gas_energy + interface_L_iph.gas_energy));
+  del_m_i.gas_energy_specific = interface_L_iph.gas_energy_specific - interface_R_imh.gas_energy_specific;
+  Real const ge_6             = 6.0 * (cell_i.gas_energy_specific -
+                           0.5 * (interface_R_imh.gas_energy_specific + interface_L_iph.gas_energy_specific));
 #endif  // DE
 
 #ifdef SCALAR
@@ -318,12 +319,12 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
       lambda_min * (0.5 * dtodx) * (del_m_i.pressure + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * p_6);
 
 #ifdef DE
-  interface_L_iph.gas_energy =
-      interface_L_iph.gas_energy -
-      lambda_max * (0.5 * dtodx) * (del_m_i.gas_energy - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * ge_6);
-  interface_R_imh.gas_energy =
-      interface_R_imh.gas_energy -
-      lambda_min * (0.5 * dtodx) * (del_m_i.gas_energy + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * ge_6);
+  interface_L_iph.gas_energy_specific =
+      interface_L_iph.gas_energy_specific -
+      lambda_max * (0.5 * dtodx) * (del_m_i.gas_energy_specific - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * ge_6);
+  interface_R_imh.gas_energy_specific =
+      interface_R_imh.gas_energy_specific -
+      lambda_min * (0.5 * dtodx) * (del_m_i.gas_energy_specific + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * ge_6);
 #endif  // DE
 
 #ifdef SCALAR
@@ -378,7 +379,7 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     Real const chi_4 = A * (del_m_i.velocity.z - vz_6) + B * vz_6;
     Real const chi_5 = A * (del_m_i.pressure - p_6) + B * p_6;
 #ifdef DE
-    chi_ge = A * (del_m_i.gas_energy - ge_6) + B * ge_6;
+    chi_ge = A * (del_m_i.gas_energy_specific - ge_6) + B * ge_6;
 #endif  // DE
 #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
@@ -420,7 +421,7 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   interface_L_iph.velocity.z += sum_4;
   interface_L_iph.pressure += sum_5;
 #ifdef DE
-  interface_L_iph.gas_energy += sum_ge;
+  interface_L_iph.gas_energy_specific += sum_ge;
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
@@ -466,7 +467,7 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
     Real const chi_4 = C * (del_m_i.velocity.z + vz_6) + D * vz_6;
     Real const chi_5 = C * (del_m_i.pressure + p_6) + D * p_6;
 #ifdef DE
-    chi_ge = C * (del_m_i.gas_energy + ge_6) + D * ge_6;
+    chi_ge = C * (del_m_i.gas_energy_specific + ge_6) + D * ge_6;
 #endif  // DE
 #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
@@ -508,7 +509,7 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   interface_R_imh.velocity.z += sum_4;
   interface_R_imh.pressure += sum_5;
 #ifdef DE
-  interface_R_imh.gas_energy += sum_ge;
+  interface_R_imh.gas_energy_specific += sum_ge;
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
@@ -667,8 +668,10 @@ __global__ __launch_bounds__(TPB) void PPMC_VL(Real *dev_conserved, Real *dev_bo
 
   // Compute the interfaces for the variables that don't have characteristics
 #ifdef DE
-  reconstruction::PPM_Single_Variable(cell_im2.gas_energy, cell_im1.gas_energy, cell_i.gas_energy, cell_ip1.gas_energy,
-                                      cell_ip2.gas_energy, interface_L_iph.gas_energy, interface_R_imh.gas_energy);
+  reconstruction::PPM_Single_Variable(cell_im2.gas_energy_specific, cell_im1.gas_energy_specific,
+                                      cell_i.gas_energy_specific, cell_ip1.gas_energy_specific,
+                                      cell_ip2.gas_energy_specific, interface_L_iph.gas_energy_specific,
+                                      interface_R_imh.gas_energy_specific);
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {

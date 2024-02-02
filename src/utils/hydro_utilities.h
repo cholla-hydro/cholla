@@ -83,7 +83,8 @@ struct Primitive {
 #endif  // MHD
 
 #ifdef DE
-  Real gas_energy;
+  /// The specific thermal energy in the gas
+  Real gas_energy_specific;
 #endif  // DE
 
 #ifdef SCALAR

@@ -195,8 +195,8 @@ hydro_utilities::Primitive __device__ __host__ __inline__ Load_Data(
   E_non_thermal += mhd::utils::computeMagneticEnergy(magnetic_centered.x, magnetic_centered.y, magnetic_centered.z);
   #endif  // MHD
 
-  loaded_data.pressure   = hydro_utilities::Get_Pressure_From_DE(E, E - E_non_thermal, gas_energy, gamma);
-  loaded_data.gas_energy = gas_energy / loaded_data.density;
+  loaded_data.pressure            = hydro_utilities::Get_Pressure_From_DE(E, E - E_non_thermal, gas_energy, gamma);
+  loaded_data.gas_energy_specific = gas_energy / loaded_data.density;
 #else  // not DE
   #ifdef MHD
   loaded_data.pressure = hydro_utilities::Calc_Pressure_Primitive(
@@ -247,7 +247,7 @@ hydro_utilities::Primitive __device__ __host__ __inline__ Compute_Slope(hydro_ut
 #endif  // MHD
 
 #ifdef DE
-  slopes.gas_energy = coef * (right.gas_energy - left.gas_energy);
+  slopes.gas_energy_specific = coef * (right.gas_energy_specific - left.gas_energy_specific);
 #endif  // DE
 
 #ifdef SCALAR
@@ -293,7 +293,7 @@ hydro_utilities::Primitive __device__ __host__ __inline__ Van_Leer_Slope(hydro_u
 #endif  // MHD
 
 #ifdef DE
-  vl_slopes.gas_energy = Calc_Vl_Slope(left_slope.gas_energy, right_slope.gas_energy);
+  vl_slopes.gas_energy_specific = Calc_Vl_Slope(left_slope.gas_energy_specific, right_slope.gas_energy_specific);
 #endif  // DE
 
 #ifdef SCALAR
@@ -558,7 +558,8 @@ hydro_utilities::Primitive __device__ __inline__ Monotonize_Characteristic_Retur
       Characteristic_To_Primitive(primitive, del_a_m, eigenvectors, sound_speed, sound_speed_squared, gamma);
 
 #ifdef DE
-  output.gas_energy = Monotonize(del_L.gas_energy, del_R.gas_energy, del_C.gas_energy, del_G.gas_energy);
+  output.gas_energy_specific = Monotonize(del_L.gas_energy_specific, del_R.gas_energy_specific,
+                                          del_C.gas_energy_specific, del_G.gas_energy_specific);
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
@@ -633,8 +634,8 @@ void __device__ __host__ __inline__ Monotonize_Parabolic_Interface(hydro_utiliti
 #endif  // MHD
 
 #ifdef DE
-  Monotonize(cell_i.gas_energy, cell_im1.gas_energy, cell_ip1.gas_energy, interface_L_iph.gas_energy,
-             interface_R_imh.gas_energy);
+  Monotonize(cell_i.gas_energy_specific, cell_im1.gas_energy_specific, cell_ip1.gas_energy_specific,
+             interface_L_iph.gas_energy_specific, interface_R_imh.gas_energy_specific);
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
@@ -673,7 +674,7 @@ hydro_utilities::Primitive __device__ __host__ __inline__ Calc_Interface_Linear(
 #endif  // MHD
 
 #ifdef DE
-  output.gas_energy = interface(primitive.gas_energy, slopes.gas_energy);
+  output.gas_energy_specific = interface(primitive.gas_energy_specific, slopes.gas_energy_specific);
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
@@ -718,7 +719,8 @@ hydro_utilities::Primitive __device__ __host__ __inline__ Calc_Interface_Parabol
 #endif  // MHD
 
 #ifdef DE
-  output.gas_energy = interface(cell_i.gas_energy, cell_im1.gas_energy, slopes_i.gas_energy, slopes_im1.gas_energy);
+  output.gas_energy_specific = interface(cell_i.gas_energy_specific, cell_im1.gas_energy_specific,
+                                         slopes_i.gas_energy_specific, slopes_im1.gas_energy_specific);
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
@@ -920,7 +922,7 @@ void __device__ __host__ __inline__ Write_Data(hydro_utilities::Primitive const 
 #endif  // MHD
 
 #ifdef DE
-  dev_interface[grid_enum::GasEnergy * n_cells + id] = interface_state.density * interface_state.gas_energy;
+  dev_interface[grid_enum::GasEnergy * n_cells + id] = interface_state.density * interface_state.gas_energy_specific;
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
