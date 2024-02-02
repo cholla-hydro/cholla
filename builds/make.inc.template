@@ -1,13 +1,8 @@
 #POISSON_SOLVER ?= -DPFFT
 #DFLAGS += $(POISSON_SOLVER)
 
-
-#To use GPUs, CUDA must be turned on here
-#Optional error checking can also be enabled
-DFLAGS += -DCUDA #-DCUDA_ERROR_CHECK
-
 #To use MPI, DFLAGS must include -DMPI_CHOLLA
-DFLAGS += -DMPI_CHOLLA -DBLOCK
+DFLAGS += -DMPI_CHOLLA
 
 #Set the MPI Processes grid [nproc_x, nproc_y, nproc_z]
 #DFLAGS += -DSET_MPI_GRID
@@ -33,8 +28,8 @@ DFLAGS += -DHDF5
 # Reconstruction
 #DFLAGS += -DPCM
 #DFLAGS += -DPLMP
-#DFLAGS += -DPLMC
-DFLAGS += -DPPMP
+DFLAGS += -DPLMC
+#DFLAGS += -DPPMP
 #DFLAGS += -DPPMC
 
 # Riemann Solver
@@ -65,7 +60,7 @@ DFLAGS += -DTEMPERATURE_FLOOR
 #DFLAGS += -DDYNAMIC_GPU_ALLOC
 
 # Set the cooling function
-#DFLAGS += -DCOOLING_GPU 
+#DFLAGS += -DCOOLING_GPU
 #DFLAGS += -DCLOUDY_COOL
 
 # Use Tiled Iitial Conditions for Scaling Tets

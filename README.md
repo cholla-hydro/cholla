@@ -1,4 +1,5 @@
-![Compile](https://github.com/cholla-hydro/cholla/actions/workflows/build_tests.yml/badge.svg)
+![Build & Lint](https://github.com/cholla-hydro/cholla/actions/workflows/build_and_lint.yml/badge.svg)
+![Code Formatting](https://github.com/cholla-hydro/cholla/actions/workflows/code_formatting.yml/badge.svg)
 
 CHOLLA
 ============

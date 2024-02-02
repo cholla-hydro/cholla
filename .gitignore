@@ -1,7 +1,8 @@
 # Files specific to this repo #
 ##############################
-cholla*
 googletest*
+tidy_results*.txt
+bin/*
 
 # Compiled source #
 ###################
@@ -15,6 +16,7 @@ googletest*
 *.a
 a.out
 *.dSYM
+__pycache__
 
 # Makefiles #
 #############
@@ -24,7 +26,7 @@ makefile.summit
 *.o
 
 ##executable
-cholla*
+cholla.*
 
 ## input files
 #parameter_file.txt
@@ -38,10 +40,9 @@ data
 out.*
 o.*
 run
-
-
 disk.*
-
+*.gcno
+*.gcda
 
 # Logs and databases #
 ######################
@@ -66,7 +67,6 @@ disk.*
 # OS generated files #
 ######################
 .DS_Store
-
 .remote-sync.json
 .remote-sync_macos.json
 ._*
@@ -84,4 +84,3 @@ Thumbs.db
 #############################
 docs/doxygen/build
 docs/sphinx/build
-

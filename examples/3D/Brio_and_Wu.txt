@@ -6,11 +6,11 @@
 
 ################################################
 # number of grid cells in the x dimension
-nx=32
+nx=256
 # number of grid cells in the y dimension
-ny=32
+ny=256
 # number of grid cells in the z dimension
-nz=32
+nz=256
 # final output time
 tout=0.1
 # time interval for output
@@ -68,5 +68,5 @@ Bz_r=0.0
 # location of initial discontinuity
 diaph=0.5
 # value of gamma
-gamma=2
+gamma=2.0
 

@@ -1,12 +1,9 @@
 #-- make.inc for the Lux Cluster
 
 #-- Compiler and flags for different build type
-CC                = gcc
 CXX               = g++
-CFLAGS_DEBUG      = -g -O0
-CFLAGS_OPTIMIZE   = -g -O2
-CXXFLAGS_DEBUG    = -g -O0 -std=c++14
-CXXFLAGS_OPTIMIZE = -Ofast -std=c++14
+CXXFLAGS_DEBUG    = -g -O0 -std=c++17
+CXXFLAGS_OPTIMIZE = -Ofast -std=c++17
 
 
 OMP_NUM_THREADS = 10

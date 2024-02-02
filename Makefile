@@ -1,3 +1,4 @@
+SHELL = /usr/bin/env bash
 #-- Set default include makefile
 MACHINE ?= $(shell builds/machine.sh)
 TYPE    ?= hydro
@@ -10,67 +11,78 @@ CUDA_ARCH ?= sm_70
 
 DIRS     := src src/analysis src/chemistry_gpu src/cooling src/cooling_grackle src/cosmology \
             src/cpu src/global src/gravity src/gravity/paris src/grid src/hydro \
-            src/integrators src/io src/main.cpp src/main_tests.cpp \
+            src/integrators src/io src/main.cpp src/main_tests.cpp src/mhd\
             src/model src/mpi src/old_cholla src/particles src/reconstruction \
-            src/riemann_solvers src/system_tests src/utils
+            src/riemann_solvers src/system_tests src/utils src/dust
 
 SUFFIX ?= .$(TYPE).$(MACHINE)
 
-CFILES   := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.c))
 CPPFILES := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.cpp))
 GPUFILES := $(foreach DIR,$(DIRS),$(wildcard $(DIR)/*.cu))
 
 # Build a list of all potential object files so cleaning works properly
-CLEAN_OBJS := $(subst .c,.o,$(CFILES)) \
-              $(subst .cpp,.o,$(CPPFILES)) \
+CLEAN_OBJS := $(subst .cpp,.o,$(CPPFILES)) \
               $(subst .cu,.o,$(GPUFILES))
 
-# Set testing related lists and variables
+# Check if it should include testing flags
 ifeq ($(TEST), true)
-  # This is a test build so lets clear out Cholla's main file and set
-  # appropriate compiler flags, suffix, etc
+  ADD_TEST_FLAGS = yes
   $(info Building Tests...)
   $(info )
-  SUFFIX    := $(strip $(SUFFIX)).tests
   CPPFILES  := $(filter-out src/main.cpp,$(CPPFILES))
-  LIBS      += -L$(GOOGLETEST_ROOT)/lib64 -pthread -lgtest -lhdf5_cpp
-  TEST_FLAGS = -I$(GOOGLETEST_ROOT)/include
-  CFLAGS   = $(TEST_FLAGS)
-  CXXFLAGS = $(TEST_FLAGS)
-  GPUFLAGS = $(TEST_FLAGS)
-
+  # HACK
   # Set the build flags to debug. This is mostly to avoid the approximations
   # made by Ofast which break std::isnan and std::isinf which are required for
   # the testing
   BUILD = DEBUG
+endif
+ifeq ($(MAKECMDGOALS), tidy)
+	ADD_TEST_FLAGS = yes
+endif
+
+# Set testing related lists and variables
+ifeq ($(ADD_TEST_FLAGS), yes)
+  # This is a test build so lets clear out Cholla's main file and set
+  # appropriate compiler flags, suffix, etc
+  SUFFIX    := $(strip $(SUFFIX)).tests
+  LIBS      += -L$(GOOGLETEST_ROOT)/lib64 -pthread -lgtest -lhdf5_cpp
+  TEST_FLAGS = -I$(GOOGLETEST_ROOT)/include
+  CXXFLAGS += $(TEST_FLAGS)
+  GPUFLAGS += $(TEST_FLAGS)
 else
   # This isn't a test build so clear out testing related files
-  CFILES   := $(filter-out src/system_tests/% %_tests.c,$(CFILES))
   CPPFILES := $(filter-out src/system_tests/% %_tests.cpp,$(CPPFILES))
   CPPFILES := $(filter-out src/utils/testing_utilities.cpp,$(CPPFILES))
   GPUFILES := $(filter-out src/system_tests/% %_tests.cu,$(GPUFILES))
 endif
 
-OBJS     := $(subst .c,.o,$(CFILES)) \
-            $(subst .cpp,.o,$(CPPFILES)) \
+ifeq ($(COVERAGE), true)
+  CXXFLAGS += --coverage
+endif
+
+OBJS     := $(subst .cpp,.o,$(CPPFILES)) \
             $(subst .cu,.o,$(GPUFILES))
 
 #-- Set default compilers and flags
-CC                ?= cc
 CXX               ?= CC
 
-CFLAGS_OPTIMIZE   ?= -g -Ofast
-CXXFLAGS_OPTIMIZE ?= -g -Ofast -std=c++14
-GPUFLAGS_OPTIMIZE ?= -g -O3 -std=c++14
+CXXFLAGS_OPTIMIZE ?= -g -Ofast -std=c++17
+GPUFLAGS_OPTIMIZE ?= -g -O3 -std=c++17
+
+CXXFLAGS_DEBUG    ?= -g -O0 -std=c++17
+ifdef HIPCONFIG
+  GPUFLAGS_DEBUG    ?= -g -O0 -std=c++17
+else
+  GPUFLAGS_DEBUG    ?= -g -G -cudart shared -O0 -std=c++17 -ccbin=mpicxx
+endif
+
 BUILD             ?= OPTIMIZE
 
-CFLAGS            += $(CFLAGS_$(BUILD))
 CXXFLAGS          += $(CXXFLAGS_$(BUILD))
 GPUFLAGS          += $(GPUFLAGS_$(BUILD))
 
 #-- Add flags and libraries as needed
 
-CFLAGS   += $(DFLAGS) -Isrc
 CXXFLAGS += $(DFLAGS) -Isrc
 GPUFLAGS += $(DFLAGS) -Isrc
 
@@ -87,6 +99,13 @@ ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
   else
     DFLAGS += -DPARIS_3PT
   endif
+endif
+
+ifeq ($(findstring -DSUPERNOVA,$(DFLAGS)),-DSUPERNOVA)
+    ifdef HIPCONFIG
+	CXXFLAGS += -I$(ROCM_PATH)/include/hiprand -I$(ROCM_PATH)/hiprand/include
+	GPUFLAGS += -I$(ROCM_PATH)/include/hiprand -I$(ROCM_PATH)/hiprand/include
+    endif
 endif
 
 ifeq ($(findstring -DHDF5,$(DFLAGS)),-DHDF5)
@@ -117,6 +136,7 @@ ifdef HIPCONFIG
   DFLAGS    += -DO_HIP
   CXXFLAGS  += $(HIPCONFIG)
   GPUCXX    ?= hipcc
+  #GPUFLAGS  += -Wall
   LD        := $(CXX)
   LDFLAGS   := $(CXXFLAGS) -L$(ROCM_PATH)/lib
   LIBS      += -lamdhip64
@@ -144,7 +164,7 @@ ifeq ($(findstring -DCHEMISTRY_GPU,$(DFLAGS)),-DCHEMISTRY_GPU)
   DFLAGS += -DSCALAR
 endif
 
-.SUFFIXES: .c .cpp .cu .o
+.SUFFIXES: .cpp .cu .o
 
 EXEC := bin/cholla$(SUFFIX)
 
@@ -154,12 +174,25 @@ DFLAGS      += -DGIT_HASH='"$(shell git rev-parse --verify HEAD)"'
 MACRO_FLAGS := -DMACRO_FLAGS='"$(DFLAGS)"'
 DFLAGS      += $(MACRO_FLAGS)
 
+# Setup variables for clang-tidy
+LIBS_CLANG_TIDY     := $(subst -I/, -isystem /,$(LIBS))
+# This tells clang-tidy that the path after each -isystem command is a system library so that it can be easily ignored by the header filter regex
+LIBS_CLANG_TIDY     += -isystem $(MPI_ROOT)/include -isystem $(HDF5_ROOT)/include
+CXXFLAGS_CLANG_TIDY := $(subst -I/, -isystem /,$(LDFLAGS))
+GPUFLAGS_CLANG_TIDY := $(subst -I/, -isystem /,$(GPUFLAGS))
+GPUFLAGS_CLANG_TIDY := $(filter-out -ccbin=mpicxx -fmad=false --expt-extended-lambda,$(GPUFLAGS_CLANG_TIDY))
+GPUFLAGS_CLANG_TIDY += --cuda-host-only --cuda-path=$(CUDA_ROOT) -isystem /clang/includes
+CPPFILES_TIDY := $(CPPFILES)
+GPUFILES_TIDY := $(GPUFILES)
+
+ifdef TIDY_FILES
+  CPPFILES_TIDY := $(filter $(TIDY_FILES), $(CPPFILES_TIDY))
+  GPUFILES_TIDY := $(filter $(TIDY_FILES), $(GPUFILES_TIDY))
+endif
+
 $(EXEC): prereq-build $(OBJS)
 	mkdir -p bin/ && $(LD) $(LDFLAGS) $(OBJS) -o $(EXEC) $(LIBS)
 	eval $(EXTRA_COMMANDS)
-
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
@@ -167,15 +200,30 @@ $(EXEC): prereq-build $(OBJS)
 %.o: %.cu
 	$(GPUCXX) $(GPUFLAGS) -c $< -o $@
 
-.PHONY: clean
+.PHONY: clean, clobber, tidy, format
+
+format:
+	tools/clang-format_runner.sh
+
+tidy:
+# Flags we might want
+# - --warnings-as-errors=<string> Upgrade all warnings to error, good for CI
+	clang-tidy --verify-config
+	@echo -e
+	(time clang-tidy $(CLANG_TIDY_ARGS) $(CPPFILES_TIDY) -- $(DFLAGS) $(CXXFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_cpp_$(TYPE).log 2>&1 & \
+	(time clang-tidy $(CLANG_TIDY_ARGS) $(GPUFILES_TIDY) -- $(DFLAGS) $(GPUFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_gpu_$(TYPE).log 2>&1 & \
+	for i in 1 2; do wait -n; done
+	@echo -e "\nResults from clang-tidy are available in the 'tidy_results_cpp_$(TYPE).log' and 'tidy_results_gpu_$(TYPE).log' files."
 
 clean:
 	rm -f $(CLEAN_OBJS)
 	rm -rf googletest
 	-find bin/ -type f -executable -name "cholla.*.$(MACHINE)*" -exec rm -f '{}' \;
+	-find src/ -type f -name "*.gcno" -delete
+	-find src/ -type f -name "*.gcda" -delete
 
 clobber: clean
-	find . -type f -executable -name "cholla*" -exec rm -f '{}' \;
+	-find bin/ -type f -executable -name "cholla*" -exec rm -f '{}' \;
 	-find bin/ -type d -name "t*" -prune -exec rm -rf '{}' \;
 	rm -rf bin/cholla.*tests*.xml
 
