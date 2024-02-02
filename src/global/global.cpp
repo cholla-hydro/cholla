@@ -241,13 +241,13 @@ void Parse_Param(char *name, char *value, struct Parameters *parms)
     parms->out_float32_GasEnergy = atoi(value);
 #endif  // DE
 #ifdef MHD
-  } else if (strcmp(name, "out_float32_magnetic_x")==0) {
+  } else if (strcmp(name, "out_float32_magnetic_x") == 0) {
     parms->out_float32_magnetic_x = atoi(value);
-  } else if (strcmp(name, "out_float32_magnetic_y")==0) {
+  } else if (strcmp(name, "out_float32_magnetic_y") == 0) {
     parms->out_float32_magnetic_y = atoi(value);
-  } else if (strcmp(name, "out_float32_magnetic_z")==0) {
+  } else if (strcmp(name, "out_float32_magnetic_z") == 0) {
     parms->out_float32_magnetic_z = atoi(value);
-#endif // MHD
+#endif  // MHD
   } else if (strcmp(name, "output_always") == 0) {
     int tmp = atoi(value);
     // In this case the CHOLLA_ASSERT macro runs into issuse with the readability-simplify-boolean-expr clang-tidy check
