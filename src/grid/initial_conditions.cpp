@@ -1414,12 +1414,11 @@ void Grid3D::Clouds()
 #ifdef DE
             C.GasEnergy[id] = p_cl / (gama - 1.0);
 #endif  // DE
-
 #ifdef SCALAR
   #ifdef DUST
             C.host[id + H.n_cells * grid_enum::dust_density] = rho_cl * 1e-2;
   #endif  // DUST
-#endif
+#endif    // SCALAR
           }
         }
       }

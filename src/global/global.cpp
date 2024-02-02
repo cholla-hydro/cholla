@@ -242,6 +242,10 @@ void Parse_Param(char *name, char *value, struct Parameters *parms)
 #endif  // DE
   } else if (strcmp(name, "output_always") == 0) {
     int tmp = atoi(value);
+    // In this case the CHOLLA_ASSERT macro runs into issuse with the readability-simplify-boolean-expr clang-tidy check
+    // due to some weird macro expansion stuff. That check has been disabled here for now but in clang-tidy 18 the
+    // IgnoreMacro option should be used instead.
+    // NOLINTNEXTLINE(readability-simplify-boolean-expr)
     CHOLLA_ASSERT((tmp == 0) or (tmp == 1), "output_always must be 1 or 0.");
     parms->output_always = tmp;
   } else if (strcmp(name, "legacy_flat_outdir") == 0) {
@@ -435,6 +439,33 @@ void Parse_Param(char *name, char *value, struct Parameters *parms)
 #ifdef COOLING_GRACKLE
   } else if (strcmp(name, "UVB_rates_file") == 0) {
     strncpy(parms->UVB_rates_file, value, MAXLEN);
+#endif
+#ifdef TEMPERATURE_FLOOR
+  } else if (strcmp(name, "temperature_floor") == 0) {
+    parms->temperature_floor = atof(value);
+    if (parms->temperature_floor == 0) {
+      chprintf(
+          "WARNING: temperature floor is set to its default value (zero)! It can be set to a different value in the "
+          "input parameter file.\n");
+    }
+#endif
+#ifdef DENSITY_FLOOR
+  } else if (strcmp(name, "density_floor") == 0) {
+    parms->density_floor = atof(value);
+    if (parms->density_floor == 0) {
+      chprintf(
+          "WARNING: density floor is set to its default value (zero)! It can be set to a different value in the input "
+          "parameter file.\n");
+    }
+#endif
+#ifdef SCALAR_FLOOR
+  } else if (strcmp(name, "scalar_floor") == 0) {
+    parms->scalar_floor = atof(value);
+    if (parms->scalar_floor == 0) {
+      chprintf(
+          "WARNING: scalar floor is set to its default value (zero)! It can be set to a different value in the input "
+          "parameter file.\n");
+    }
 #endif
 #ifdef ANALYSIS
   } else if (strcmp(name, "analysis_scale_outputs_file") == 0) {

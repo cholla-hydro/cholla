@@ -24,9 +24,7 @@
   #include "../utils/hydro_utilities.h"
 #endif  // DE
 
-#ifdef CUDA
-
-  #ifdef MHD
+#ifdef MHD
 namespace mhd
 {
 // =========================================================================
@@ -184,12 +182,12 @@ __device__ __host__ mhd::internal::State loadState(Real const *interfaceArr, Rea
   state.magneticY = interfaceArr[threadId + n_cells * grid_enum::Q_x_magnetic_y];
   state.magneticZ = interfaceArr[threadId + n_cells * grid_enum::Q_x_magnetic_z];
 
-    #ifdef SCALAR
+  #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
     state.scalarSpecific[i] = interfaceArr[threadId + n_cells * (grid_enum::scalar + i)] / state.density;
   }
-    #endif  // SCALAR
-    #ifdef DE
+  #endif  // SCALAR
+  #ifdef DE
   state.thermalEnergySpecific = interfaceArr[threadId + n_cells * grid_enum::GasEnergy] / state.density;
 
   Real energyNonThermal = hydro_utilities::Calc_Kinetic_Energy_From_Velocity(state.density, state.velocityX,
@@ -199,11 +197,11 @@ __device__ __host__ mhd::internal::State loadState(Real const *interfaceArr, Rea
   state.gasPressure = fmax(hydro_utilities::Get_Pressure_From_DE(state.energy, state.energy - energyNonThermal,
                                                                  state.thermalEnergySpecific * state.density, gamma),
                            (Real)TINY_NUMBER);
-    #else
+  #else
   // Note that this function does the positive pressure check
   // internally
   state.gasPressure = mhd::internal::Calc_Pressure_Primitive(state, magneticX, gamma);
-    #endif  // DE
+  #endif  // DE
 
   state.totalPressure =
       mhd::utils::computeTotalPressure(state.gasPressure, magneticX, state.magneticY, state.magneticZ);
@@ -303,14 +301,14 @@ __device__ __host__ void returnFluxes(int const &threadId, int const &o1, int co
   dev_flux[threadId + n_cells * grid_enum::fluxX_magnetic_z] = flux.magneticY;
   dev_flux[threadId + n_cells * grid_enum::fluxX_magnetic_y] = flux.magneticZ;
 
-    #ifdef SCALAR
+  #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
     dev_flux[threadId + n_cells * (grid_enum::scalar + i)] = state.scalarSpecific[i] * flux.density;
   }
-    #endif  // SCALAR
-    #ifdef DE
+  #endif  // SCALAR
+  #ifdef DE
   dev_flux[threadId + n_cells * grid_enum::GasEnergy] = state.thermalEnergySpecific * flux.density;
-    #endif  // DE
+  #endif  // DE
 }
 // =====================================================================
 
@@ -512,5 +510,4 @@ __device__ __host__ mhd::internal::Flux computeDoubleStarFluxes(
 
 }  // namespace internal
 }  // end namespace mhd
-  #endif  // MHD
-#endif    // CUDA
+#endif  // MHD

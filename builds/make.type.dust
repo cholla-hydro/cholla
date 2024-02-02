@@ -6,39 +6,38 @@ OUTPUT    ?=  -DOUTPUT -DHDF5
 
 MPI_GPU   ?=
 
-DFLAGS    += -DCUDA
 DFLAGS    += -DMPI_CHOLLA
 DFLAGS    += -DPRECISION=2
-DFLAGS    += -DPPMC
+DFLAGS    += -DPLMC
 DFLAGS    += -DHLLC
 
-# DFLAGS    += -DDE
+DFLAGS    += -DDE
 DFLAGS    += -DAVERAGE_SLOW_CELLS
 DFLAGS    += -DTEMPERATURE_FLOOR
+DFLAGS    += -DDENSITY_FLOOR
 
-ifeq ($(findstring cosmology,$(TYPE)),cosmology)
-DFLAGS    += -DSIMPLE
-else
 DFLAGS    += -DVL
-# DFLAGS    += -DSIMPLE
-endif
 
 # Evolve additional scalars
-DFLAGS += -DSCALAR
+DFLAGS    += -DSCALAR
+DFLAGS    += -DSCALAR_FLOOR
 
 # Define dust macro
-DFLAGS += -DDUST
+DFLAGS    += -DDUST
 
 # Apply the cooling in the GPU from precomputed tables
-DFLAGS += -DCOOLING_GPU
+DFLAGS    += -DCOOLING_GPU
+DFLAGS    += -DCLOUDY_COOLING
 
 #Measure the Timing of the different stages
-#DFLAGS += -DCPU_TIME
+#DFLAGS   += -DCPU_TIME
 
-DFLAGS += -DSLICES
-DFLAGS += -DPROJECTION
+DFLAGS    += -DSLICES
+DFLAGS    += -DPROJECTION
 
 DFLAGS    += $(OUTPUT)
+
+DFLAGS    += -DOUTPUT_ALWAYS
 
 #Select if the Hydro Conserved data will reside in the GPU
 #and the MPI transfers are done from the GPU

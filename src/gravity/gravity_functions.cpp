@@ -5,11 +5,8 @@
   #include "../global/global.h"
   #include "../grid/grid3D.h"
   #include "../io/io.h"
+  #include "../mpi/cuda_mpi_routines.h"
   #include "../utils/error_handling.h"
-
-  #ifdef CUDA
-    #include "../mpi/cuda_mpi_routines.h"
-  #endif
 
   #ifdef PARALLEL_OMP
     #include "../utils/parallel_omp.h"

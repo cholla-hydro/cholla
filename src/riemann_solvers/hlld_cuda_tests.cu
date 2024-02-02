@@ -23,8 +23,7 @@
 #include "../utils/mhd_utilities.h"
 #include "../utils/testing_utilities.h"
 
-#ifdef CUDA
-  #ifdef MHD
+#ifdef MHD
 // =========================================================================
 // Integration tests for the entire HLLD solver. Unit tests are below
 // =========================================================================
@@ -78,12 +77,12 @@ class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
     int const nz      = 1;  // Number of cells in the z-direction
     int const n_cells = nx * ny * nz;
     int nFields       = 8;  // Total number of conserved fields
-    #ifdef SCALAR
+  #ifdef SCALAR
     nFields += NSCALARS;
-    #endif  // SCALAR
-    #ifdef DE
+  #endif  // SCALAR
+  #ifdef DE
     nFields++;
-    #endif  // DE
+  #endif  // DE
 
     // Launch Parameters
     dim3 const dimGrid(1, 1, 1);   // How many blocks in the grid
@@ -168,18 +167,18 @@ class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
     // Field names
     std::vector<std::string> fieldNames{"Densities", "X Momentum",       "Y Momentum",       "Z Momentum",
                                         "Energies",  "X Magnetic Field", "Y Magnetic Field", "Z Magnetic Field"};
-    #ifdef DE
+  #ifdef DE
     fieldNames.push_back("Thermal energy (dual energy)");
     fiducialFlux.push_back(thermalEnergyFlux);
-    #endif  // DE
-    #ifdef SCALAR
+  #endif  // DE
+  #ifdef SCALAR
     std::vector<std::string> scalarNames{"Scalar 1", "Scalar 2", "Scalar 3"};
     fieldNames.insert(fieldNames.begin() + grid_enum::magnetic_start, scalarNames.begin(),
                       scalarNames.begin() + grid_enum::nscalars);
 
     fiducialFlux.insert(fiducialFlux.begin() + grid_enum::magnetic_start, scalarFlux.begin(),
                         scalarFlux.begin() + grid_enum::nscalars);
-    #endif  // SCALAR
+  #endif  // SCALAR
 
     ASSERT_TRUE((fiducialFlux.size() == testFlux.size()) and (fiducialFlux.size() == fieldNames.size()))
         << "The fiducial flux, test flux, and field name vectors are not all "
@@ -243,18 +242,18 @@ class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
     output.at(6) = input.at(6);                                                         // Y Magnetic Field
     output.at(7) = input.at(7);                                                         // Z Magnetic Field
 
-    #ifdef SCALAR
+  #ifdef SCALAR
     std::vector<Real> conservedScalar(primitiveScalars.size());
     std::transform(primitiveScalars.begin(), primitiveScalars.end(), conservedScalar.begin(),
                    [&](Real const &c) { return c * output.at(0); });
     output.insert(output.begin() + grid_enum::magnetic_start, conservedScalar.begin(),
                   conservedScalar.begin() + grid_enum::nscalars);
-    #endif  // SCALAR
-    #ifdef DE
+  #endif  // SCALAR
+  #ifdef DE
     output.push_back(mhd::utils::computeThermalEnergy(
         output.at(4), output.at(0), output.at(1), output.at(2), output.at(3), output.at(grid_enum::magnetic_x),
         output.at(grid_enum::magnetic_y), output.at(grid_enum::magnetic_z), gamma));
-    #endif  // DE
+  #endif  // DE
     return output;
   }
   // =====================================================================
@@ -266,14 +265,14 @@ class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
    */
   void SetUp()
   {
-    #ifdef SCALAR
+  #ifdef SCALAR
     ASSERT_LE(NSCALARS, 3) << "Only up to 3 passive scalars are currently "
                               "supported in HLLD tests. NSCALARS = "
                            << NSCALARS;
     ASSERT_GE(NSCALARS, 1) << "There must be at least 1 passive scalar to test "
                               "with passive scalars. NSCALARS = "
                            << NSCALARS;
-    #endif  // SCALAR
+  #endif  // SCALAR
   }
   // =====================================================================
  private:
@@ -1649,9 +1648,9 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, AllZeroesExpectAllZeroes)
 
   // State
   size_t numElements = 8;
-    #ifdef SCALAR
+  #ifdef SCALAR
   numElements += 3;
-    #endif  // SCALAR
+  #endif  // SCALAR
 
   std::vector<Real> const state(numElements, 0.0);
   std::vector<Real> const fiducialFlux(8, 0.0);
@@ -1693,7 +1692,7 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, UnphysicalValuesExpectAutomaticFix)
       negativeDensityEnergyPressure = {-1.0, -1.0, -1.0, -1.0, -gamma, 1.0, 1.0, 1.0},
       negativeDensityPressure       = {-1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0};
 
-    #ifdef SCALAR
+  #ifdef SCALAR
   std::vector<Real> const conservedScalar{1.1069975296, 2.2286185018, 3.3155141875};
   negativePressure.insert(negativePressure.begin() + 5, conservedScalar.begin(),
                           conservedScalar.begin() + grid_enum::nscalars);
@@ -1705,8 +1704,8 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, UnphysicalValuesExpectAutomaticFix)
                                        conservedScalar.begin() + grid_enum::nscalars);
   negativeDensityPressure.insert(negativeDensityPressure.begin() + 5, conservedScalar.begin(),
                                  conservedScalar.begin() + grid_enum::nscalars);
-    #endif  // SCALAR
-    #ifdef DE
+  #endif  // SCALAR
+  #ifdef DE
   negativePressure.push_back(mhd::utils::computeThermalEnergy(
       negativePressure.at(4), negativePressure.at(0), negativePressure.at(1), negativePressure.at(2),
       negativePressure.at(3), negativePressure.at(grid_enum::magnetic_x), negativePressure.at(grid_enum::magnetic_y),
@@ -1728,7 +1727,7 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, UnphysicalValuesExpectAutomaticFix)
       negativeDensityPressure.at(4), negativeDensityPressure.at(0), negativeDensityPressure.at(1),
       negativeDensityPressure.at(2), negativeDensityPressure.at(3), negativeDensityPressure.at(grid_enum::magnetic_x),
       negativeDensityPressure.at(grid_enum::magnetic_y), negativeDensityPressure.at(grid_enum::magnetic_z), gamma));
-    #endif  // DE
+  #endif  // DE
 
   for (size_t direction = 0; direction < 3; direction++) {
     {
@@ -2259,12 +2258,12 @@ TEST(tMHDHlldInternalReturnFluxes, CorrectInputExpectCorrectOutput)
   int threadId = 0;
   int n_cells  = 10;
   int nFields  = 8;  // Total number of conserved fields
-    #ifdef SCALAR
+  #ifdef SCALAR
   nFields += NSCALARS;
-    #endif  // SCALAR
-    #ifdef DE
+  #endif  // SCALAR
+  #ifdef DE
   nFields++;
-    #endif  // DE
+  #endif  // DE
 
   // Lambda for finding indices and check if they're correct
   auto findIndex = [](std::vector<double> const &vec, double const &num, int const &fidIndex, std::string const &name) {
@@ -2408,6 +2407,5 @@ TEST(tMHDHlldInternalLoadState, CorrectInputExpectCorrectOutput)
                                      ", totalPressure");
   }
 }
-  // =========================================================================
-  #endif  // MHD
-#endif    // CUDA
+// =========================================================================
+#endif  // MHD
