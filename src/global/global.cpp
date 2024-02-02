@@ -224,6 +224,7 @@ void Parse_Param(char *name, char *value, struct Parameters *parms)
     parms->n_rotated_projection = atoi(value);
   } else if (strcmp(name, "n_slice") == 0) {
     parms->n_slice = atoi(value);
+<<<<<<< HEAD
   } else if (strcmp(name, "n_out_float32") == 0) {
     parms->n_out_float32 = atoi(value);
   } else if (strcmp(name, "out_float32_density") == 0) {
@@ -240,6 +241,14 @@ void Parse_Param(char *name, char *value, struct Parameters *parms)
   } else if (strcmp(name, "out_float32_GasEnergy") == 0) {
     parms->out_float32_GasEnergy = atoi(value);
 #endif  // DE
+#ifdef MHD
+  } else if (strcmp(name, "out_float32_magnetic_x")==0) {
+    parms->out_float32_magnetic_x = atoi(value);
+  } else if (strcmp(name, "out_float32_magnetic_y")==0) {
+    parms->out_float32_magnetic_y = atoi(value);
+  } else if (strcmp(name, "out_float32_magnetic_z")==0) {
+    parms->out_float32_magnetic_z = atoi(value);
+#endif // MHD
   } else if (strcmp(name, "output_always") == 0) {
     int tmp = atoi(value);
     // In this case the CHOLLA_ASSERT macro runs into issuse with the readability-simplify-boolean-expr clang-tidy check
@@ -252,14 +261,6 @@ void Parse_Param(char *name, char *value, struct Parameters *parms)
     int tmp = atoi(value);
     CHOLLA_ASSERT((tmp == 0) or (tmp == 1), "legacy_flat_outdir must be 1 or 0.");
     parms->legacy_flat_outdir = tmp;
-#ifdef MHD
-  } else if (strcmp(name, "out_float32_magnetic_x") == 0) {
-    parms->out_float32_magnetic_x = atoi(value);
-  } else if (strcmp(name, "out_float32_magnetic_y") == 0) {
-    parms->out_float32_magnetic_y = atoi(value);
-  } else if (strcmp(name, "out_float32_magnetic_z") == 0) {
-    parms->out_float32_magnetic_z = atoi(value);
-#endif  // MHD
   } else if (strcmp(name, "xmin") == 0) {
     parms->xmin = atof(value);
   } else if (strcmp(name, "ymin") == 0) {
