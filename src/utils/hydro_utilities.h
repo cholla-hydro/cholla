@@ -13,6 +13,7 @@
 // Local Includes
 #include "../global/global.h"
 #include "../global/global_cuda.h"
+#include "../utils/basic_structs.h"
 #include "../utils/gpu.hpp"
 #include "../utils/math_utilities.h"
 #include "../utils/mhd_utilities.h"
@@ -30,81 +31,6 @@
 
 namespace hydro_utilities
 {
-// =====================================================================================================================
-// Here are some basic structs that can be used in various places when needed
-// =====================================================================================================================
-/*!
- * \brief A data only struct that contains the Real members x, y, and z for usage as a vector
- *
- */
-struct Vector {
-  Real x, y, z;
-};
-// =====================================================================================================================
-
-// =====================================================================================================================
-/*!
- * \brief A data only struct for the conserved variables
- *
- */
-struct Conserved {
-  // Hydro variables
-  Real density, energy;
-  Vector velocity;
-
-#ifdef MHD
-  // These are all cell centered values
-  Vector magnetic;
-#endif  // MHD
-
-#ifdef DE
-  Real gas_energy;
-#endif  // DE
-
-#ifdef SCALAR
-  Real scalar[grid_enum::nscalars];
-#endif  // SCALAR
-};
-// =====================================================================================================================
-
-// =====================================================================================================================
-/*!
- * \brief A data only struct for the primtive variables
- *
- */
-struct Primitive {
-  // Hydro variables
-  Real density, pressure;
-  Vector velocity;
-
-#ifdef MHD
-  // These are all cell centered values
-  Vector magnetic;
-#endif  // MHD
-
-#ifdef DE
-  /// The specific thermal energy in the gas
-  Real gas_energy_specific;
-#endif  // DE
-
-#ifdef SCALAR
-  Real scalar[grid_enum::nscalars];
-#endif  // SCALAR
-
-  /// Default constructor, should init everything to zero
-  Primitive() = default;
-  /// Manual constructor, mostly used for testing and doesn't init all members
-  Primitive(Real const in_density, Vector const &in_velocity, Real const in_pressure,
-            Vector const &in_magnetic = {0, 0, 0})
-      : density(in_density), velocity(in_velocity), pressure(in_pressure)
-  {
-#ifdef MHD
-    magnetic = in_magnetic;
-#endif  // mhd
-  };
-};
-// =====================================================================================================================
-
 inline __host__ __device__ Real Calc_Pressure_Primitive(Real const &E, Real const &d, Real const &vx, Real const &vy,
                                                         Real const &vz, Real const &gamma, Real const &magnetic_x = 0.0,
                                                         Real const &magnetic_y = 0.0, Real const &magnetic_z = 0.0)
