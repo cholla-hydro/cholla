@@ -211,4 +211,71 @@ inline __host__ __device__ Real Calc_Sound_Speed(Real const &P, Real const &d, R
   return sqrt(gamma * P / d);
 }
 
+// =====================================================================================================================
+template <size_t dir = 0>
+inline __host__ __device__ Conserved Load_Cell_Conserved(Real const *dev_conserved, size_t const xid, size_t const yid,
+                                                         size_t const zid, size_t const nx, size_t const ny,
+                                                         size_t const n_cells)
+{
+  // First, check that our direction is correct
+  static_assert((0 <= dir) and (dir <= 2), "dir is not in the proper range");
+
+  // Compute index
+  size_t const cell_id = cuda_utilities::compute1DIndex(xid, yid, zid, nx, ny);
+
+  // Load all the data
+  Conserved loaded_data;
+
+  // Hydro variables
+  loaded_data.density    = dev_conserved[cell_id + n_cells * grid_enum::density];
+  loaded_data.momentum.x = dev_conserved[cell_id + n_cells * grid_enum::momentum_x];
+  loaded_data.momentum.y = dev_conserved[cell_id + n_cells * grid_enum::momentum_y];
+  loaded_data.momentum.z = dev_conserved[cell_id + n_cells * grid_enum::momentum_z];
+  loaded_data.energy     = dev_conserved[cell_id + n_cells * grid_enum::Energy];
+
+#ifdef MHD
+  // These are all cell centered values
+  loaded_data.magnetic = mhd::utils::cellCenteredMagneticFields(dev_conserved, cell_id, xid, yid, zid, n_cells, nx, ny);
+#endif  // MHD
+
+#ifdef DE
+  loaded_data.gas_energy = dev_conserved[cell_id + n_cells * grid_enum::GasEnergy];
+#endif  // DE
+
+#ifdef SCALAR
+  for (size_t i = 0; i < grid_enum::nscalars; i++) {
+    loaded_data.scalar[i] = dev_conserved[cell_id + n_cells * (grid_enum::scalar + i)];
+  }
+#endif  // SCALAR
+
+  // Now that all the data is loaded, let's sort out the direction
+  // if constexpr(dir == 0) in this case everything is already set so we'll skip this case
+  if constexpr (dir == 1) {
+    math_utils::Cyclic_Permute_Once(loaded_data.momentum);
+#ifdef MHD
+    math_utils::Cyclic_Permute_Once(loaded_data.magnetic);
+#endif  // MHD
+  } else if constexpr (dir == 2) {
+    math_utils::Cyclic_Permute_Twice(loaded_data.momentum);
+#ifdef MHD
+    math_utils::Cyclic_Permute_Twice(loaded_data.magnetic);
+#endif  // MHD
+  }
+
+  return loaded_data;
+}
+// =====================================================================================================================
+
+// =====================================================================================================================
+// Conserved_2_Primitive
+// =====================================================================================================================
+
+// =====================================================================================================================
+// Primitive_2_Conserved
+// =====================================================================================================================
+
+// =====================================================================================================================
+// Load_Cell_Primitive
+// =====================================================================================================================
+
 }  // namespace hydro_utilities
