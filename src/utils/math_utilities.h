@@ -16,6 +16,7 @@
 // Local Includes
 #include "../global/global.h"
 #include "../global/global_cuda.h"
+#include "../utils/basic_structs.h"
 #include "../utils/gpu.hpp"
 
 namespace math_utils
@@ -97,5 +98,35 @@ inline __device__ __host__ Real SquareMagnitude(Real const &v1, Real const &v2, 
   return dotProduct(v1, v2, v3, v1, v2, v3);
 };
 // =========================================================================
+
+// =====================================================================================================================
+/*!
+ * \brief Cyclically permute a Vector once. i.e. (x,y,z) becomes (y,z,x)
+ *
+ * \param[in,out] vec The vector to permute
+ */
+inline __device__ __host__ void Cyclic_Permute_Once(hydro_utilities::Vector &vec)
+{
+  Real temp = vec.x;
+  vec.x     = vec.y;
+  vec.y     = vec.z;
+  vec.z     = temp;
+}
+// =====================================================================================================================
+
+// =====================================================================================================================
+/*!
+ * \brief Cyclically permute a Vector twice. i.e. (x,y,z) becomes (z,x,y)
+ *
+ * \param[in,out] vec The vector to permute
+ */
+inline __device__ __host__ void Cyclic_Permute_Twice(hydro_utilities::Vector &vec)
+{
+  Real temp = vec.y;
+  vec.x     = vec.z;
+  vec.y     = vec.x;
+  vec.z     = temp;
+}
+// =====================================================================================================================
 
 }  // namespace math_utils
