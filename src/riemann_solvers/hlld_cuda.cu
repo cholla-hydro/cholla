@@ -66,9 +66,9 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const 
   // The magnetic field in the X-direction
   Real const magneticX = dev_magnetic_face[threadId];
 
-  mhd::internal::State const stateL =
+  reconstruction::InterfaceState const stateL =
       mhd::internal::loadState(dev_bounds_L, magneticX, gamma, threadId, n_cells, o1, o2, o3);
-  mhd::internal::State const stateR =
+  reconstruction::InterfaceState const stateR =
       mhd::internal::loadState(dev_bounds_R, magneticX, gamma, threadId, n_cells, o1, o2, o3);
 
   // Compute the approximate Left and Right wave speeds
@@ -167,85 +167,85 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const 
 namespace internal
 {
 // =====================================================================
-__device__ __host__ mhd::internal::State loadState(Real const *interfaceArr, Real const &magneticX, Real const &gamma,
-                                                   int const &threadId, int const &n_cells, int const &o1,
-                                                   int const &o2, int const &o3)
+__device__ __host__ reconstruction::InterfaceState loadState(Real const *interfaceArr, Real const &magneticX,
+                                                             Real const &gamma, int const &threadId, int const &n_cells,
+                                                             int const &o1, int const &o2, int const &o3)
 {
-  mhd::internal::State state;
-  state.density   = interfaceArr[threadId + n_cells * grid_enum::density];
-  state.density   = fmax(state.density, (Real)TINY_NUMBER);
-  state.velocityX = interfaceArr[threadId + n_cells * o1] / state.density;
-  state.velocityY = interfaceArr[threadId + n_cells * o2] / state.density;
-  state.velocityZ = interfaceArr[threadId + n_cells * o3] / state.density;
-  state.energy    = interfaceArr[threadId + n_cells * grid_enum::Energy];
-  state.energy    = fmax(state.energy, (Real)TINY_NUMBER);
-  state.magneticY = interfaceArr[threadId + n_cells * grid_enum::Q_x_magnetic_y];
-  state.magneticZ = interfaceArr[threadId + n_cells * grid_enum::Q_x_magnetic_z];
+  reconstruction::InterfaceState state;
+  state.density    = interfaceArr[threadId + n_cells * grid_enum::density];
+  state.density    = fmax(state.density, (Real)TINY_NUMBER);
+  state.velocity.x = interfaceArr[threadId + n_cells * o1] / state.density;
+  state.velocity.y = interfaceArr[threadId + n_cells * o2] / state.density;
+  state.velocity.z = interfaceArr[threadId + n_cells * o3] / state.density;
+  state.energy     = interfaceArr[threadId + n_cells * grid_enum::Energy];
+  state.energy     = fmax(state.energy, (Real)TINY_NUMBER);
+  state.magnetic.y = interfaceArr[threadId + n_cells * grid_enum::Q_x_magnetic_y];
+  state.magnetic.z = interfaceArr[threadId + n_cells * grid_enum::Q_x_magnetic_z];
 
   #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    state.scalarSpecific[i] = interfaceArr[threadId + n_cells * (grid_enum::scalar + i)] / state.density;
+    state.scalar_specific[i] = interfaceArr[threadId + n_cells * (grid_enum::scalar + i)] / state.density;
   }
   #endif  // SCALAR
   #ifdef DE
   state.thermalEnergySpecific = interfaceArr[threadId + n_cells * grid_enum::GasEnergy] / state.density;
 
-  Real energyNonThermal = hydro_utilities::Calc_Kinetic_Energy_From_Velocity(state.density, state.velocityX,
-                                                                             state.velocityY, state.velocityZ) +
-                          mhd::utils::computeMagneticEnergy(magneticX, state.magneticY, state.magneticZ);
+  Real energyNonThermal = hydro_utilities::Calc_Kinetic_Energy_From_Velocity(state.density, state.velocity.x,
+                                                                             state.velocity.y, state.velocity.z) +
+                          mhd::utils::computeMagneticEnergy(magneticX, state.magnetic.y, state.magnetic.z);
 
-  state.gasPressure = fmax(hydro_utilities::Get_Pressure_From_DE(state.energy, state.energy - energyNonThermal,
-                                                                 state.thermalEnergySpecific * state.density, gamma),
-                           (Real)TINY_NUMBER);
+  state.pressure = fmax(hydro_utilities::Get_Pressure_From_DE(state.energy, state.energy - energyNonThermal,
+                                                              state.thermalEnergySpecific * state.density, gamma),
+                        (Real)TINY_NUMBER);
   #else
   // Note that this function does the positive pressure check
   // internally
-  state.gasPressure = mhd::internal::Calc_Pressure_Primitive(state, magneticX, gamma);
+  state.pressure = mhd::internal::Calc_Pressure_Primitive(state, magneticX, gamma);
   #endif  // DE
 
-  state.totalPressure =
-      mhd::utils::computeTotalPressure(state.gasPressure, magneticX, state.magneticY, state.magneticZ);
+  state.total_pressure =
+      mhd::utils::computeTotalPressure(state.pressure, magneticX, state.magnetic.y, state.magnetic.z);
 
   return state;
 }
 // =====================================================================
 
 // =====================================================================
-__device__ __host__ mhd::internal::Speeds approximateLRWaveSpeeds(mhd::internal::State const &stateL,
-                                                                  mhd::internal::State const &stateR,
+__device__ __host__ mhd::internal::Speeds approximateLRWaveSpeeds(reconstruction::InterfaceState const &stateL,
+                                                                  reconstruction::InterfaceState const &stateR,
                                                                   Real const &magneticX, Real const &gamma)
 {
   // Get the fast magnetosonic wave speeds
-  Real magSonicL = mhd::utils::fastMagnetosonicSpeed(stateL.density, stateL.gasPressure, magneticX, stateL.magneticY,
-                                                     stateL.magneticZ, gamma);
-  Real magSonicR = mhd::utils::fastMagnetosonicSpeed(stateR.density, stateR.gasPressure, magneticX, stateR.magneticY,
-                                                     stateR.magneticZ, gamma);
+  Real magSonicL = mhd::utils::fastMagnetosonicSpeed(stateL.density, stateL.pressure, magneticX, stateL.magnetic.y,
+                                                     stateL.magnetic.z, gamma);
+  Real magSonicR = mhd::utils::fastMagnetosonicSpeed(stateR.density, stateR.pressure, magneticX, stateR.magnetic.y,
+                                                     stateR.magnetic.z, gamma);
 
   // Compute the S_L and S_R wave speeds.
   // Version suggested by Miyoshi & Kusano 2005 and used in Athena
   // M&K 2005 equation 67
   Real magSonicMax = fmax(magSonicL, magSonicR);
   mhd::internal::Speeds speed;
-  speed.L = fmin(stateL.velocityX, stateR.velocityX) - magSonicMax;
-  speed.R = fmax(stateL.velocityX, stateR.velocityX) + magSonicMax;
+  speed.L = fmin(stateL.velocity.x, stateR.velocity.x) - magSonicMax;
+  speed.R = fmax(stateL.velocity.x, stateR.velocity.x) + magSonicMax;
 
   return speed;
 }
 // =====================================================================
 
 // =====================================================================
-__device__ __host__ Real approximateMiddleWaveSpeed(mhd::internal::State const &stateL,
-                                                    mhd::internal::State const &stateR,
+__device__ __host__ Real approximateMiddleWaveSpeed(reconstruction::InterfaceState const &stateL,
+                                                    reconstruction::InterfaceState const &stateR,
                                                     mhd::internal::Speeds const &speed)
 {
   // Compute the S_M wave speed
   // M&K 2005 equation 38
-  Real const speed_r_diff = speed.R - stateR.velocityX;
-  Real const speed_l_diff = speed.L - stateL.velocityX;
+  Real const speed_r_diff = speed.R - stateR.velocity.x;
+  Real const speed_l_diff = speed.L - stateL.velocity.x;
 
   return  // Numerator
-      (speed_r_diff * stateR.density * stateR.velocityX - speed_l_diff * stateL.density * stateL.velocityX -
-       stateR.totalPressure + stateL.totalPressure) /
+      (speed_r_diff * stateR.density * stateR.velocity.x - speed_l_diff * stateL.density * stateL.velocity.x -
+       stateR.total_pressure + stateL.total_pressure) /
       // Denominator
       (speed_r_diff * stateR.density - speed_l_diff * stateL.density);
 }
@@ -263,23 +263,24 @@ __device__ __host__ Real approximateStarWaveSpeed(mhd::internal::StarState const
 // =====================================================================
 
 // =====================================================================
-__device__ __host__ mhd::internal::Flux nonStarFluxes(mhd::internal::State const &state, Real const &magneticX)
+__device__ __host__ mhd::internal::Flux nonStarFluxes(reconstruction::InterfaceState const &state,
+                                                      Real const &magneticX)
 {
   mhd::internal::Flux flux;
   // M&K 2005 equation 2
-  flux.density = state.density * state.velocityX;
+  flux.density = state.density * state.velocity.x;
 
-  flux.momentumX = flux.density * state.velocityX + state.totalPressure - magneticX * magneticX;
-  flux.momentumY = flux.density * state.velocityY - magneticX * state.magneticY;
-  flux.momentumZ = flux.density * state.velocityZ - magneticX * state.magneticZ;
+  flux.momentumX = flux.density * state.velocity.x + state.total_pressure - magneticX * magneticX;
+  flux.momentumY = flux.density * state.velocity.y - magneticX * state.magnetic.y;
+  flux.momentumZ = flux.density * state.velocity.z - magneticX * state.magnetic.z;
 
-  flux.magneticY = state.magneticY * state.velocityX - magneticX * state.velocityY;
-  flux.magneticZ = state.magneticZ * state.velocityX - magneticX * state.velocityZ;
+  flux.magneticY = state.magnetic.y * state.velocity.x - magneticX * state.velocity.y;
+  flux.magneticZ = state.magnetic.z * state.velocity.x - magneticX * state.velocity.z;
 
   // Group transverse terms for FP associative symmetry
-  flux.energy = state.velocityX * (state.energy + state.totalPressure) -
-                magneticX * (state.velocityX * magneticX +
-                             ((state.velocityY * state.magneticY) + (state.velocityZ * state.magneticZ)));
+  flux.energy = state.velocity.x * (state.energy + state.total_pressure) -
+                magneticX * (state.velocity.x * magneticX +
+                             ((state.velocity.y * state.magnetic.y) + (state.velocity.z * state.magnetic.z)));
 
   return flux;
 }
@@ -288,7 +289,7 @@ __device__ __host__ mhd::internal::Flux nonStarFluxes(mhd::internal::State const
 // =====================================================================
 __device__ __host__ void returnFluxes(int const &threadId, int const &o1, int const &o2, int const &o3,
                                       int const &n_cells, Real *dev_flux, mhd::internal::Flux const &flux,
-                                      mhd::internal::State const &state)
+                                      reconstruction::InterfaceState const &state)
 {
   // Note that the direction of the grid_enum::fluxX_magnetic_DIR is the
   // direction of the electric field that the magnetic flux is, not the magnetic
@@ -303,7 +304,7 @@ __device__ __host__ void returnFluxes(int const &threadId, int const &o1, int co
 
   #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    dev_flux[threadId + n_cells * (grid_enum::scalar + i)] = state.scalarSpecific[i] * flux.density;
+    dev_flux[threadId + n_cells * (grid_enum::scalar + i)] = state.scalar_specific[i] * flux.density;
   }
   #endif  // SCALAR
   #ifdef DE
@@ -313,22 +314,23 @@ __device__ __host__ void returnFluxes(int const &threadId, int const &o1, int co
 // =====================================================================
 
 // =====================================================================
-__device__ __host__ Real starTotalPressure(mhd::internal::State const &stateL, mhd::internal::State const &stateR,
+__device__ __host__ Real starTotalPressure(reconstruction::InterfaceState const &stateL,
+                                           reconstruction::InterfaceState const &stateR,
                                            mhd::internal::Speeds const &speed)
 {
   // M&K 2005 equation 41
   return  // Numerator
-      (stateR.density * stateL.totalPressure * (speed.R - stateR.velocityX) -
-       stateL.density * stateR.totalPressure * (speed.L - stateL.velocityX) +
-       stateL.density * stateR.density * (speed.R - stateR.velocityX) * (speed.L - stateL.velocityX) *
-           (stateR.velocityX - stateL.velocityX)) /
+      (stateR.density * stateL.total_pressure * (speed.R - stateR.velocity.x) -
+       stateL.density * stateR.total_pressure * (speed.L - stateL.velocity.x) +
+       stateL.density * stateR.density * (speed.R - stateR.velocity.x) * (speed.L - stateL.velocity.x) *
+           (stateR.velocity.x - stateL.velocity.x)) /
       // Denominator
-      (stateR.density * (speed.R - stateR.velocityX) - stateL.density * (speed.L - stateL.velocityX));
+      (stateR.density * (speed.R - stateR.velocity.x) - stateL.density * (speed.L - stateL.velocity.x));
 }
 // =====================================================================
 
 // =====================================================================
-__device__ __host__ mhd::internal::StarState computeStarState(mhd::internal::State const &state,
+__device__ __host__ mhd::internal::StarState computeStarState(reconstruction::InterfaceState const &state,
                                                               mhd::internal::Speeds const &speed, Real const &speedSide,
                                                               Real const &magneticX, Real const &totalPressureStar)
 {
@@ -336,39 +338,39 @@ __device__ __host__ mhd::internal::StarState computeStarState(mhd::internal::Sta
 
   // Compute the densities in the star state
   // M&K 2005 equation 43
-  starState.density = state.density * (speedSide - state.velocityX) / (speedSide - speed.M);
+  starState.density = state.density * (speedSide - state.velocity.x) / (speedSide - speed.M);
 
   // Check for and handle the degenerate case
   // Explained at the top of page 326 in M&K 2005
-  if (fabs(state.density * (speedSide - state.velocityX) * (speedSide - speed.M) - (magneticX * magneticX)) <
+  if (fabs(state.density * (speedSide - state.velocity.x) * (speedSide - speed.M) - (magneticX * magneticX)) <
       totalPressureStar * mhd::internal::_hlldSmallNumber) {
-    starState.velocityY = state.velocityY;
-    starState.velocityZ = state.velocityZ;
-    starState.magneticY = state.magneticY;
-    starState.magneticZ = state.magneticZ;
+    starState.velocityY = state.velocity.y;
+    starState.velocityZ = state.velocity.z;
+    starState.magneticY = state.magnetic.y;
+    starState.magneticZ = state.magnetic.z;
   } else {
     // Denominator for M&K 2005 equations 44-47
-    Real const denom = state.density * (speedSide - state.velocityX) * (speedSide - speed.M) - (magneticX * magneticX);
+    Real const denom = state.density * (speedSide - state.velocity.x) * (speedSide - speed.M) - (magneticX * magneticX);
 
     // Compute the velocity and magnetic field in the star state
     // M&K 2005 equations 44 & 46
-    Real coef           = magneticX * (speed.M - state.velocityX) / denom;
-    starState.velocityY = state.velocityY - state.magneticY * coef;
-    starState.velocityZ = state.velocityZ - state.magneticZ * coef;
+    Real coef           = magneticX * (speed.M - state.velocity.x) / denom;
+    starState.velocityY = state.velocity.y - state.magnetic.y * coef;
+    starState.velocityZ = state.velocity.z - state.magnetic.z * coef;
 
     // M&K 2005 equations 45 & 47
-    Real tmpPower       = (speedSide - state.velocityX);
+    Real tmpPower       = (speedSide - state.velocity.x);
     tmpPower            = tmpPower * tmpPower;
     coef                = (state.density * tmpPower - (magneticX * magneticX)) / denom;
-    starState.magneticY = state.magneticY * coef;
-    starState.magneticZ = state.magneticZ * coef;
+    starState.magneticY = state.magnetic.y * coef;
+    starState.magneticZ = state.magnetic.z * coef;
   }
 
   // M&K 2005 equation 48
-  starState.energy = (state.energy * (speedSide - state.velocityX) - state.totalPressure * state.velocityX +
+  starState.energy = (state.energy * (speedSide - state.velocity.x) - state.total_pressure * state.velocity.x +
                       totalPressureStar * speed.M +
-                      magneticX * (math_utils::dotProduct(state.velocityX, state.velocityY, state.velocityZ, magneticX,
-                                                          state.magneticY, state.magneticZ) -
+                      magneticX * (math_utils::dotProduct(state.velocity.x, state.velocity.y, state.velocity.z,
+                                                          magneticX, state.magnetic.y, state.magnetic.z) -
                                    math_utils::dotProduct(speed.M, starState.velocityY, starState.velocityZ, magneticX,
                                                           starState.magneticY, starState.magneticZ))) /
                      (speedSide - speed.M);
@@ -379,22 +381,23 @@ __device__ __host__ mhd::internal::StarState computeStarState(mhd::internal::Sta
 
 // =====================================================================
 __device__ __host__ mhd::internal::Flux starFluxes(mhd::internal::StarState const &starState,
-                                                   mhd::internal::State const &state, mhd::internal::Flux const &flux,
-                                                   mhd::internal::Speeds const &speed, Real const &speedSide)
+                                                   reconstruction::InterfaceState const &state,
+                                                   mhd::internal::Flux const &flux, mhd::internal::Speeds const &speed,
+                                                   Real const &speedSide)
 {
   mhd::internal::Flux starFlux;
 
   // Now compute the star state fluxes
   // M&K 2005 equations 64
   starFlux.density   = flux.density + speedSide * (starState.density - state.density);
-  starFlux.momentumX = flux.momentumX + speedSide * (starState.density * speed.M - state.density * state.velocityX);
+  starFlux.momentumX = flux.momentumX + speedSide * (starState.density * speed.M - state.density * state.velocity.x);
   starFlux.momentumY =
-      flux.momentumY + speedSide * (starState.density * starState.velocityY - state.density * state.velocityY);
+      flux.momentumY + speedSide * (starState.density * starState.velocityY - state.density * state.velocity.y);
   starFlux.momentumZ =
-      flux.momentumZ + speedSide * (starState.density * starState.velocityZ - state.density * state.velocityZ);
+      flux.momentumZ + speedSide * (starState.density * starState.velocityZ - state.density * state.velocity.z);
   starFlux.energy    = flux.energy + speedSide * (starState.energy - state.energy);
-  starFlux.magneticY = flux.magneticY + speedSide * (starState.magneticY - state.magneticY);
-  starFlux.magneticZ = flux.magneticZ + speedSide * (starState.magneticZ - state.magneticZ);
+  starFlux.magneticY = flux.magneticY + speedSide * (starState.magneticY - state.magnetic.y);
+  starFlux.magneticZ = flux.magneticZ + speedSide * (starState.magneticZ - state.magnetic.z);
 
   return starFlux;
 }
@@ -476,10 +479,13 @@ __device__ __host__ mhd::internal::DoubleStarState computeDoubleStarState(mhd::i
 // =====================================================================
 
 // =====================================================================
-__device__ __host__ mhd::internal::Flux computeDoubleStarFluxes(
-    mhd::internal::DoubleStarState const &doubleStarState, Real const &doubleStarStateEnergy,
-    mhd::internal::StarState const &starState, mhd::internal::State const &state, mhd::internal::Flux const &flux,
-    mhd::internal::Speeds const &speed, Real const &speedSide, Real const &speedSideStar)
+__device__ __host__ mhd::internal::Flux computeDoubleStarFluxes(mhd::internal::DoubleStarState const &doubleStarState,
+                                                                Real const &doubleStarStateEnergy,
+                                                                mhd::internal::StarState const &starState,
+                                                                reconstruction::InterfaceState const &state,
+                                                                mhd::internal::Flux const &flux,
+                                                                mhd::internal::Speeds const &speed,
+                                                                Real const &speedSide, Real const &speedSideStar)
 {
   mhd::internal::Flux doubleStarFlux;
 
@@ -489,19 +495,19 @@ __device__ __host__ mhd::internal::Flux computeDoubleStarFluxes(
   doubleStarFlux.density =
       flux.density - speedSide * state.density - speed_diff * starState.density + speedSideStar * starState.density;
 
-  doubleStarFlux.momentumX = flux.momentumX - speedSide * (state.density * state.velocityX) -
+  doubleStarFlux.momentumX = flux.momentumX - speedSide * (state.density * state.velocity.x) -
                              speed_diff * (starState.density * speed.M) + speedSideStar * (starState.density * speed.M);
-  doubleStarFlux.momentumY = flux.momentumY - speedSide * (state.density * state.velocityY) -
+  doubleStarFlux.momentumY = flux.momentumY - speedSide * (state.density * state.velocity.y) -
                              speed_diff * (starState.density * starState.velocityY) +
                              speedSideStar * (starState.density * doubleStarState.velocityY);
-  doubleStarFlux.momentumZ = flux.momentumZ - speedSide * (state.density * state.velocityZ) -
+  doubleStarFlux.momentumZ = flux.momentumZ - speedSide * (state.density * state.velocity.z) -
                              speed_diff * (starState.density * starState.velocityZ) +
                              speedSideStar * (starState.density * doubleStarState.velocityZ);
   doubleStarFlux.energy =
       flux.energy - speedSide * state.energy - speed_diff * starState.energy + speedSideStar * doubleStarStateEnergy;
-  doubleStarFlux.magneticY = flux.magneticY - speedSide * state.magneticY - speed_diff * starState.magneticY +
+  doubleStarFlux.magneticY = flux.magneticY - speedSide * state.magnetic.y - speed_diff * starState.magneticY +
                              speedSideStar * doubleStarState.magneticY;
-  doubleStarFlux.magneticZ = flux.magneticZ - speedSide * state.magneticZ - speed_diff * starState.magneticZ +
+  doubleStarFlux.magneticZ = flux.magneticZ - speedSide * state.magnetic.z - speed_diff * starState.magneticZ +
                              speedSideStar * doubleStarState.magneticZ;
 
   return doubleStarFlux;

@@ -31,6 +31,22 @@ struct InterfaceState {
 #ifdef SCALAR
   Real scalar_specific[grid_enum::nscalars];
 #endif  // SCALAR
+
+  // Define the constructors
+  /// Default constructor, should set everything to 0
+  InterfaceState() = default;
+  /// Initializing constructor: used to initialize to specific values, mostly used in tests. It only initializes a
+  /// subset of the member variables since that is what is used in tests at the time of writing.
+  InterfaceState(Real const in_density, hydro_utilities::Vector const in_velocity, Real const in_energy,
+                 Real const in_pressure, hydro_utilities::Vector const in_magnetic = {0, 0, 0},
+                 Real const in_total_pressure = 0.0)
+      : density(in_density), velocity(in_velocity), energy(in_energy), pressure(in_pressure)
+  {
+#ifdef MHD
+    magnetic       = in_magnetic;
+    total_pressure = in_total_pressure;
+#endif  // MHD
+  };
 };
 }  // namespace reconstruction
 
