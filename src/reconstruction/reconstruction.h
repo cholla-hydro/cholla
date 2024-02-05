@@ -25,11 +25,11 @@ struct InterfaceState {
 #endif  // MHD
 
 #ifdef DE
-  Real gas_energy_specific
+  Real gas_energy_specific;
 #endif  // DE
 
 #ifdef SCALAR
-      Real scalar_specific[grid_enum::nscalars];
+  Real scalar_specific[grid_enum::nscalars];
 #endif  // SCALAR
 };
 }  // namespace reconstruction

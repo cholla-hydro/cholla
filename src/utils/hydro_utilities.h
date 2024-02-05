@@ -90,6 +90,18 @@ struct Primitive {
 #ifdef SCALAR
   Real scalar[grid_enum::nscalars];
 #endif  // SCALAR
+
+  /// Default constructor, should init everything to zero
+  Primitive() = default;
+  /// Manual constructor, mostly used for testing and doesn't init all members
+  Primitive(Real const in_density, Vector const &in_velocity, Real const in_pressure,
+            Vector const &in_magnetic = {0, 0, 0})
+      : density(in_density), velocity(in_velocity), pressure(in_pressure)
+  {
+#ifdef MHD
+    magnetic = in_magnetic;
+#endif  // mhd
+  };
 };
 // =====================================================================================================================
 
