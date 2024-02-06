@@ -42,6 +42,9 @@ struct InterfaceState {
                  Real const in_total_pressure = 0.0)
       : density(in_density), velocity(in_velocity), energy(in_energy), pressure(in_pressure)
   {
+    momentum.x = velocity.x * density;
+    momentum.y = velocity.y * density;
+    momentum.z = velocity.z * density;
 #ifdef MHD
     magnetic       = in_magnetic;
     total_pressure = in_total_pressure;

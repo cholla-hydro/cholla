@@ -78,12 +78,16 @@ struct Primitive {
   Primitive() = default;
   /// Manual constructor, mostly used for testing and doesn't init all members
   Primitive(Real const in_density, Vector const &in_velocity, Real const in_pressure,
-            Vector const &in_magnetic = {0, 0, 0})
+            Vector const &in_magnetic = {0, 0, 0}, Real const in_gas_energy_specific = 0.0)
       : density(in_density), velocity(in_velocity), pressure(in_pressure)
   {
 #ifdef MHD
     magnetic = in_magnetic;
 #endif  // mhd
+
+#ifdef DE
+    gas_energy_specific = in_gas_energy_specific;
+#endif  // DE
   };
 };
 // =====================================================================================================================
