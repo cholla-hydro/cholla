@@ -259,8 +259,9 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 #ifdef SCALAR
   Real scalar_6[NSCALARS];
   for (int i = 0; i < NSCALARS; i++) {
-    del_m_i.scalar[i] = interface_L_iph.scalar[i] - interface_R_imh.scalar[i];
-    scalar_6[i]       = 6.0 * (cell_i.scalar[i] - 0.5 * (interface_R_imh.scalar[i] + interface_L_iph.scalar[i]));
+    del_m_i.scalar_specific[i] = interface_L_iph.scalar_specific[i] - interface_R_imh.scalar_specific[i];
+    scalar_6[i]                = 6.0 * (cell_i.scalar_specific[i] -
+                         0.5 * (interface_R_imh.scalar_specific[i] + interface_L_iph.scalar_specific[i]));
   }
 #endif  // SCALAR
 
@@ -329,12 +330,14 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    interface_L_iph.scalar[i] =
-        interface_L_iph.scalar[i] -
-        lambda_max * (0.5 * dtodx) * (del_m_i.scalar[i] - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * scalar_6[i]);
-    interface_R_imh.scalar[i] =
-        interface_R_imh.scalar[i] -
-        lambda_min * (0.5 * dtodx) * (del_m_i.scalar[i] + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * scalar_6[i]);
+    interface_L_iph.scalar_specific[i] =
+        interface_L_iph.scalar_specific[i] -
+        lambda_max * (0.5 * dtodx) *
+            (del_m_i.scalar_specific[i] - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * scalar_6[i]);
+    interface_R_imh.scalar_specific[i] =
+        interface_R_imh.scalar_specific[i] -
+        lambda_min * (0.5 * dtodx) *
+            (del_m_i.scalar_specific[i] + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * scalar_6[i]);
   }
 #endif  // SCALAR
 
@@ -383,7 +386,7 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 #endif  // DE
 #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
-      chi_scalar[i] = A * (del_m_i.scalar[i] - scalar_6[i]) + B * scalar_6[i];
+      chi_scalar[i] = A * (del_m_i.scalar_specific[i] - scalar_6[i]) + B * scalar_6[i];
     }
 #endif  // SCALAR
 
@@ -425,7 +428,7 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    interface_L_iph.scalar[i] += sum_scalar[i];
+    interface_L_iph.scalar_specific[i] += sum_scalar[i];
   }
 #endif  // SCALAR
 
@@ -471,7 +474,7 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 #endif  // DE
 #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
-      chi_scalar[i] = C * (del_m_i.scalar[i] + scalar_6[i]) + D * scalar_6[i];
+      chi_scalar[i] = C * (del_m_i.scalar_specific[i] + scalar_6[i]) + D * scalar_6[i];
     }
 #endif  // SCALAR
 
@@ -513,7 +516,7 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    interface_R_imh.scalar[i] += sum_scalar[i];
+    interface_R_imh.scalar_specific[i] += sum_scalar[i];
   }
 #endif  // SCALAR
 
@@ -675,8 +678,10 @@ __global__ __launch_bounds__(TPB) void PPMC_VL(Real *dev_conserved, Real *dev_bo
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    reconstruction::PPM_Single_Variable(cell_im2.scalar[i], cell_im1.scalar[i], cell_i.scalar[i], cell_ip1.scalar[i],
-                                        cell_ip2.scalar[i], interface_L_iph.scalar[i], interface_R_imh.scalar[i]);
+    reconstruction::PPM_Single_Variable(cell_im2.scalar_specific[i], cell_im1.scalar_specific[i],
+                                        cell_i.scalar_specific[i], cell_ip1.scalar_specific[i],
+                                        cell_ip2.scalar_specific[i], interface_L_iph.scalar_specific[i],
+                                        interface_R_imh.scalar_specific[i]);
   }
 #endif  // SCALAR
 

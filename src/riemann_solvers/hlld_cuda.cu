@@ -188,14 +188,14 @@ __device__ __host__ reconstruction::InterfaceState loadState(Real const *interfa
   }
   #endif  // SCALAR
   #ifdef DE
-  state.thermalEnergySpecific = interfaceArr[threadId + n_cells * grid_enum::GasEnergy] / state.density;
+  state.gas_energy_specific = interfaceArr[threadId + n_cells * grid_enum::GasEnergy] / state.density;
 
   Real energyNonThermal = hydro_utilities::Calc_Kinetic_Energy_From_Velocity(state.density, state.velocity.x,
                                                                              state.velocity.y, state.velocity.z) +
                           mhd::utils::computeMagneticEnergy(magneticX, state.magnetic.y, state.magnetic.z);
 
   state.pressure = fmax(hydro_utilities::Get_Pressure_From_DE(state.energy, state.energy - energyNonThermal,
-                                                              state.thermalEnergySpecific * state.density, gamma),
+                                                              state.gas_energy_specific * state.density, gamma),
                         (Real)TINY_NUMBER);
   #else
   // Note that this function does the positive pressure check
@@ -308,7 +308,7 @@ __device__ __host__ void returnFluxes(int const &threadId, int const &o1, int co
   }
   #endif  // SCALAR
   #ifdef DE
-  dev_flux[threadId + n_cells * grid_enum::GasEnergy] = state.thermalEnergySpecific * flux.density;
+  dev_flux[threadId + n_cells * grid_enum::GasEnergy] = state.gas_energy_specific * flux.density;
   #endif  // DE
 }
 // =====================================================================

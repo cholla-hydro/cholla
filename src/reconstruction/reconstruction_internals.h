@@ -212,7 +212,7 @@ hydro_utilities::Primitive __device__ __host__ __inline__ Load_Data(
 
 #ifdef SCALAR
   for (size_t i = 0; i < grid_enum::nscalars; i++) {
-    loaded_data.scalar[i] = dev_conserved[(grid_enum::scalar + i) * n_cells + id] / loaded_data.density;
+    loaded_data.scalar_specific[i] = dev_conserved[(grid_enum::scalar + i) * n_cells + id] / loaded_data.density;
   }
 #endif  // SCALAR
 
@@ -252,7 +252,7 @@ hydro_utilities::Primitive __device__ __host__ __inline__ Compute_Slope(hydro_ut
 
 #ifdef SCALAR
   for (size_t i = 0; i < grid_enum::nscalars; i++) {
-    slopes.scalar[i] = coef * (right.scalar[i] - left.scalar[i]);
+    slopes.scalar_specific[i] = coef * (right.scalar_specific[i] - left.scalar_specific[i]);
   }
 #endif  // SCALAR
 
@@ -298,7 +298,7 @@ hydro_utilities::Primitive __device__ __host__ __inline__ Van_Leer_Slope(hydro_u
 
 #ifdef SCALAR
   for (size_t i = 0; i < grid_enum::nscalars; i++) {
-    vl_slopes.scalar[i] = Calc_Vl_Slope(left_slope.scalar[i], right_slope.scalar[i]);
+    vl_slopes.scalar_specific[i] = Calc_Vl_Slope(left_slope.scalar_specific[i], right_slope.scalar_specific[i]);
   }
 #endif  // SCALAR
 
@@ -563,7 +563,8 @@ hydro_utilities::Primitive __device__ __inline__ Monotonize_Characteristic_Retur
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    output.scalar[i] = Monotonize(del_L.scalar[i], del_R.scalar[i], del_C.scalar[i], del_G.scalar[i]);
+    output.scalar_specific[i] = Monotonize(del_L.scalar_specific[i], del_R.scalar_specific[i], del_C.scalar_specific[i],
+                                           del_G.scalar_specific[i]);
   }
 #endif  // SCALAR
 
@@ -639,8 +640,8 @@ void __device__ __host__ __inline__ Monotonize_Parabolic_Interface(hydro_utiliti
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    Monotonize(cell_i.scalar[i], cell_im1.scalar[i], cell_ip1.scalar[i], interface_L_iph.scalar[i],
-               interface_R_imh.scalar[i]);
+    Monotonize(cell_i.scalar_specific[i], cell_im1.scalar_specific[i], cell_ip1.scalar_specific[i],
+               interface_L_iph.scalar_specific[i], interface_R_imh.scalar_specific[i]);
   }
 #endif  // SCALAR
 }
@@ -678,7 +679,7 @@ hydro_utilities::Primitive __device__ __host__ __inline__ Calc_Interface_Linear(
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    output.scalar[i] = interface(primitive.scalar[i], slopes.scalar[i]);
+    output.scalar_specific[i] = interface(primitive.scalar_specific[i], slopes.scalar_specific[i]);
   }
 #endif  // SCALAR
 
@@ -724,7 +725,8 @@ hydro_utilities::Primitive __device__ __host__ __inline__ Calc_Interface_Parabol
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    output.scalar[i] = interface(cell_i.scalar[i], cell_im1.scalar[i], slopes_i.scalar[i], slopes_im1.scalar[i]);
+    output.scalar_specific[i] = interface(cell_i.scalar_specific[i], cell_im1.scalar_specific[i],
+                                          slopes_i.scalar_specific[i], slopes_im1.scalar_specific[i]);
   }
 #endif  // SCALAR
 
@@ -926,7 +928,8 @@ void __device__ __host__ __inline__ Write_Data(hydro_utilities::Primitive const 
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    dev_interface[(grid_enum::scalar + i) * n_cells + id] = interface_state.density * interface_state.scalar[i];
+    dev_interface[(grid_enum::scalar + i) * n_cells + id] =
+        interface_state.density * interface_state.scalar_specific[i];
   }
 #endif  // SCALAR
 }

@@ -52,7 +52,7 @@ struct Conserved {
 
 // =====================================================================================================================
 /*!
- * \brief A data only struct for the primtive variables
+ * \brief A data only struct for the primitive variables
  *
  */
 struct Primitive {
@@ -71,7 +71,7 @@ struct Primitive {
 #endif  // DE
 
 #ifdef SCALAR
-  Real scalar[grid_enum::nscalars];
+  Real scalar_specific[grid_enum::nscalars];
 #endif  // SCALAR
 
   /// Default constructor, should init everything to zero
