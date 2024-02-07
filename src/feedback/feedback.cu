@@ -255,7 +255,9 @@ std::function<void(Grid3D&)> feedback::configure_feedback_callback(struct parame
   // parse the boundary-strategy to initialize some values
   const std::string bndy_strat_name = P.feedback_boundary_strategy;
   feedback_details::BoundaryStrategy bndy_strat;
-  if (bndy_strat_name.empty() or (bndy_strat_name == "ignore_issues")) {
+  if (bndy_strat_name.empty()) {
+    CHOLLA_ERROR("feedback_boundary_strategy was not passed an argument");
+  } else if (bndy_strat_name == "ignore_issues") {
     bndy_strat = feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues;
   } else if (bndy_strat_name == "snap") {
     bndy_strat = feedback_details::BoundaryStrategy::excludeGhostParticle_snapActiveStencil;

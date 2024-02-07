@@ -110,9 +110,13 @@ public:
                                                             part_int_t cluster_id)
   {
     feedback_prng_t state;
-    curand_init(FEEDBACK_SEED, 0, 0, &state);
-    unsigned long long skip = n_step * 10000 + cluster_id;
-    skipahead(skip, &state);  // provided by curand
+    // Note: in the C++ spec, wrap-around behavior is well-defined for unsigned types during integer
+    //       overflow (overflow for signed types invokes undefined behavior)
+    unsigned long long seed = (cluster_id < 0)
+     ? (unsigned long long)(FEEDBACK_SEED) - (unsigned long long)(-1*cluster_id)
+     : (unsigned long long)(FEEDBACK_SEED) + (unsigned long long)(cluster_id);
+    curand_init(seed, 0, 0, &state);
+    skipahead((unsigned long long)(n_step), &state);  // provided by curand
     return (int)curand_poisson(&state, ave_num_sn);
   }
 
