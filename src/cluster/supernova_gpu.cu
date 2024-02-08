@@ -42,7 +42,7 @@ __device__ double atomicMax(double* address, double val)
 */
 
 __device__ Real Calc_Timestep(Real *hydro_dev, int gidx, int n_cells, Real gamma, Real dx, Real dy, Real dz){
-  Real density = fmax(hydro_dev[gidx],DENS_FLOOR);
+  Real density = fmax(hydro_dev[gidx],TINY_NUMBER);
   Real d_inv = 1.0 / density;
   Real vx = d_inv * hydro_dev[gidx + n_cells];
   Real vy = d_inv * hydro_dev[gidx + 2*n_cells];
@@ -165,8 +165,8 @@ __device__ Real Supernova_Helper(Real *hydro_dev,
   // Add values to hydro_dev
   atomicAdd(&hydro_dev[gidx],weight*density);
   atomicAdd(&hydro_dev[gidx+4*n_cells],weight*energy);
-#ifdef SCALAR
-  atomicAdd(&hydro_dev[gidx+5*n_cells],weight*density);
+#ifdef BASIC_SCALAR
+  atomicAdd(&hydro_dev[gidx+5*n_cells],5.0*weight*density);
 #endif
 #ifdef DE
   atomicAdd(&hydro_dev[gidx+(n_fields-1)*n_cells],weight*energy);
