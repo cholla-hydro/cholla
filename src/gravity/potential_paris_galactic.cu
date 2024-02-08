@@ -62,7 +62,7 @@ void Potential_Paris_Galactic::Get_Potential(const Real *const density, Real *co
   const Real dy = dr_[1];
   const Real dz = dr_[0];
 
-  const Real md = SIMULATED_FRACTION * galaxy.getM_d();
+  const Real md = galaxy.getM_d();
   const Real rd = galaxy.getR_d();
   const Real zd = galaxy.getZ_d();
 
