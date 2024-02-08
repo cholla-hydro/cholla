@@ -362,7 +362,14 @@ __inline__ __host__ __device__ Conserved Primitive_2_Conserved(Primitive const &
 // =====================================================================================================================
 
 // =====================================================================================================================
-// Load_Cell_Primitive
+template <size_t dir = 0>
+inline __host__ __device__ Primitive Load_Cell_Primitive(Real const *dev_conserved, size_t const xid, size_t const yid,
+                                                         size_t const zid, size_t const nx, size_t const ny,
+                                                         size_t const n_cells, Real const gamma)
+{
+  Conserved const conserved_cell = Load_Cell_Conserved<dir>(dev_conserved, xid, yid, zid, nx, ny, n_cells);
+  return Conserved_2_Primitive(conserved_cell, gamma);
+}
 // =====================================================================================================================
 
 }  // namespace hydro_utilities
