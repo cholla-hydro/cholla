@@ -231,7 +231,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
         } else if (bc_potential_type == 1) {
           // M-W disk potential
           r       = sqrt(pos_x * pos_x + pos_y * pos_y);
-          pot_val = Galaxies::MW.phi_disk_D3D(r, pos_z);
+          pot_val = Galaxies::MW.phi_disk_D3D(r, pos_z) + Galaxies::MW.phi_halo_D3D(r, pos_z);
         } else {
           chprintf(
               "ERROR: Boundary Potential not set, need to set appropriate "
