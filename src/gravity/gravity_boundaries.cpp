@@ -184,9 +184,6 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
     cm_pos_z      = H.sphere_center_z;
   }
 
-  // for bc_pontential_type = 1 the mod_frac is the fraction
-  // of the disk mass contributed by the simulated particles
-  Real mod_frac = SIMULATED_FRACTION;
   Real pot_val  = 0.0;
   int i, j, k, id;
   for (k = 0; k < nGHST; k++) {
@@ -234,7 +231,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
         } else if (bc_potential_type == 1) {
           // M-W disk potential
           r       = sqrt(pos_x * pos_x + pos_y * pos_y);
-          pot_val = mod_frac * Galaxies::MW.phi_disk_D3D(r, pos_z);
+          pot_val = Galaxies::MW.phi_disk_D3D(r, pos_z);
         } else {
           chprintf(
               "ERROR: Boundary Potential not set, need to set appropriate "

@@ -1,8 +1,6 @@
 #ifndef DISK_GALAXY
 #define DISK_GALAXY
 
-#define SIMULATED_FRACTION 0.1
-
 #include <cmath>
 #include <iostream>
 #include <random>
@@ -12,22 +10,13 @@
 
 /* Aggregates properties related to a disk
  *
- * The radial surface-density distribution satisfies
- *   `Sigma(r) = Sigma_0 * exp(-r_cyl/R_d)
+ * Take note that this is NOT an exponential disk!
  */
 struct MiyamotoNagaiDiskProps{
   Real M_d;  /*!< total mass (in Msolar) */
   Real R_d;  /*!< scale-length (in kpc) */
   Real Z_d;  /*!< scale-height (in kpc). In the case of a gas disk, this is more
               *!< of an initial guess */
-
-  /* Returns Sigma_0. This is just
-   * \f$\Sigma_0 = \frac{M_d}{\int Sigma(r)\ dA} =  \frac{M_d}{2\pi \int_0^\infty r\ \Sigma\ dr} \f$
-   */
-  Real CentralSurfaceDensity() const noexcept {return M_d / (2 * M_PI * R_d * R_d);}
-
-  /* Compute the surface density at cylindrical radius*/
-  Real surface_density(Real R) const noexcept {return CentralSurfaceDensity() * exp(-R / R_d);};
 
   /* Radial acceleration in miyamoto nagai */
   Real gr_disk_D3D(Real R, Real z) const noexcept
@@ -214,10 +203,10 @@ class DiskGalaxy
     return 3 / R * phiH_prime + phiH_prime_prime;
   };
 
-  Real sigma_crit(Real R)
-  {
-    return 3.36 * GN * stellar_disk.surface_density(R) / sqrt(kappa2(R, 0.0));
-  };
+  //Real sigma_crit(Real R)
+  //{
+  //  return 3.36 * GN * stellar_disk.surface_density(R) / sqrt(kappa2(R, 0.0));
+  //};
 
   Real getM_d() const { return stellar_disk.M_d; };
   Real getR_d() const { return stellar_disk.R_d; };
