@@ -185,27 +185,27 @@ void Parse_Params(char *param_file, struct Parameters *parms, int argc, char **a
     Parse_Param(name, value, parms);
     chprintf("Override with %s=%s\n", name, value);
   }
-  #ifdef TEMPERATURE_FLOOR
+#ifdef TEMPERATURE_FLOOR
   if (parms->temperature_floor == 0) {
     chprintf(
         "WARNING: temperature floor is set to its default value (zero)! It can be set to a different value in the "
         "input parameter file.\n");
   }
-  #endif
-  #ifdef DENSITY_FLOOR
+#endif
+#ifdef DENSITY_FLOOR
   if (parms->density_floor == 0) {
     chprintf(
         "WARNING: density floor is set to its default value (zero)! It can be set to a different value in the input "
         "parameter file.\n");
   }
-  #endif
-  #ifdef SCALAR_FLOOR
+#endif
+#ifdef SCALAR_FLOOR
   if (parms->scalar_floor == 0) {
     chprintf(
         "WARNING: scalar floor is set to its default value (zero)! It can be set to a different value in the input "
         "parameter file.\n");
   }
-  #endif
+#endif
 }
 
 /*! \fn void Parse_Param(char *name,char *value, struct Parameters *parms);
