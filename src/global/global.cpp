@@ -185,6 +185,27 @@ void Parse_Params(char *param_file, struct Parameters *parms, int argc, char **a
     Parse_Param(name, value, parms);
     chprintf("Override with %s=%s\n", name, value);
   }
+#ifdef TEMPERATURE_FLOOR
+  if (parms->temperature_floor == 0) {
+    chprintf(
+        "WARNING: temperature floor is set to its default value (zero)! It can be set to a different value in the "
+        "input parameter file.\n");
+  }
+#endif
+#ifdef DENSITY_FLOOR
+  if (parms->density_floor == 0) {
+    chprintf(
+        "WARNING: density floor is set to its default value (zero)! It can be set to a different value in the input "
+        "parameter file.\n");
+  }
+#endif
+#ifdef SCALAR_FLOOR
+  if (parms->scalar_floor == 0) {
+    chprintf(
+        "WARNING: scalar floor is set to its default value (zero)! It can be set to a different value in the input "
+        "parameter file.\n");
+  }
+#endif
 }
 
 /*! \fn void Parse_Param(char *name,char *value, struct Parameters *parms);
@@ -248,6 +269,18 @@ void Parse_Param(char *name, char *value, struct Parameters *parms)
   } else if (strcmp(name, "out_float32_magnetic_z") == 0) {
     parms->out_float32_magnetic_z = atoi(value);
 #endif  // MHD
+  } else if (strcmp(name, "output_always") == 0) {
+    int tmp = atoi(value);
+    // In this case the CHOLLA_ASSERT macro runs into issuse with the readability-simplify-boolean-expr clang-tidy check
+    // due to some weird macro expansion stuff. That check has been disabled here for now but in clang-tidy 18 the
+    // IgnoreMacro option should be used instead.
+    // NOLINTNEXTLINE(readability-simplify-boolean-expr)
+    CHOLLA_ASSERT((tmp == 0) or (tmp == 1), "output_always must be 1 or 0.");
+    parms->output_always = tmp;
+  } else if (strcmp(name, "legacy_flat_outdir") == 0) {
+    int tmp = atoi(value);
+    CHOLLA_ASSERT((tmp == 0) or (tmp == 1), "legacy_flat_outdir must be 1 or 0.");
+    parms->legacy_flat_outdir = tmp;
   } else if (strcmp(name, "xmin") == 0) {
     parms->xmin = atof(value);
   } else if (strcmp(name, "ymin") == 0) {
@@ -428,6 +461,18 @@ void Parse_Param(char *name, char *value, struct Parameters *parms)
   } else if (strcmp(name, "UVB_rates_file") == 0) {
     strncpy(parms->UVB_rates_file, value, MAXLEN);
 #endif
+#ifdef TEMPERATURE_FLOOR
+  } else if (strcmp(name, "temperature_floor") == 0) {
+    parms->temperature_floor = atof(value);
+#endif
+#ifdef DENSITY_FLOOR
+  } else if (strcmp(name, "density_floor") == 0) {
+    parms->density_floor = atof(value);
+#endif
+#ifdef SCALAR_FLOOR
+  } else if (strcmp(name, "scalar_floor") == 0) {
+    parms->scalar_floor = atof(value);
+#endif
 #ifdef ANALYSIS
   } else if (strcmp(name, "analysis_scale_outputs_file") == 0) {
     strncpy(parms->analysis_scale_outputs_file, value, MAXLEN);
@@ -447,6 +492,12 @@ void Parse_Param(char *name, char *value, struct Parameters *parms)
     parms->supernova_e = atoi(value);
   } else if (strcmp(name, "supernova_rcl")==0) { 
     parms->supernova_rcl = atof(value);
+#endif
+#ifdef SCALAR
+  #ifdef DUST
+  } else if (strcmp(name, "grain_radius") == 0) {
+    parms->grain_radius = atoi(value);
+  #endif
 #endif
   } else if (!Is_Param_Valid(name)) {
     chprintf("WARNING: %s/%s: Unknown parameter/value pair!\n", name, value);

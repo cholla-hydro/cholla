@@ -98,7 +98,6 @@ int main(int argc, char *argv[])
     chprintf("Input directory:  %s\n", P.indir);
   }
   chprintf("Output directory:  %s\n", P.outdir);
-  Ensure_Outdir_Exists(P.outdir);
 
   // Check the configuration
   Check_Configuration(P);
@@ -334,9 +333,7 @@ Supernova::Update_Grid(G, dti);
         "%9.3f ms   total time = %9.4f s\n\n",
         G.H.n_step, G.H.t, G.H.dt, (stop_step - start_step) * 1000, G.H.t_wall);
 
-#ifdef OUTPUT_ALWAYS
-    G.H.Output_Now = true;
-#endif
+    if (P.output_always) G.H.Output_Now = true;
 
 #ifdef ANALYSIS
     if (G.Analysis.Output_Now) {

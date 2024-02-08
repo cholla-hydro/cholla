@@ -1,14 +1,13 @@
 /*! \file cooling_cuda.h
  *  \brief Declarations of cooling functions. */
 
-#ifdef CUDA
-  #ifdef COOLING_GPU
-    #pragma once
+#ifdef COOLING_GPU
+  #pragma once
 
-    #include <math.h>
+  #include <math.h>
 
-    #include "../global/global.h"
-    #include "../utils/gpu.hpp"
+  #include "../global/global.h"
+  #include "../utils/gpu.hpp"
 
 extern cudaTextureObject_t coolTexObj;
 extern cudaTextureObject_t heatTexObj;
@@ -48,5 +47,4 @@ __device__ Real CIE_cool(Real n, Real T);
           tables at z = 0 with solar metallicity and an HM05 UV background. */
 __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj);
 
-  #endif  // COOLING_GPU
-#endif    // CUDA
+#endif  // COOLING_GPU

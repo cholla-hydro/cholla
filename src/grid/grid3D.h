@@ -231,8 +231,9 @@ struct Header {
   int custom_grav;
 
   // Values for lower limit for density and temperature
-  Real density_floor;
   Real temperature_floor;
+  Real density_floor;
+  Real scalar_floor;
 
   Real Ekin_avrg;
 
@@ -267,6 +268,12 @@ struct Header {
    *  \brief Flag set to true when all the data will  be written to file
    * (Restart File ) */
   bool Output_Complete_Data;
+
+#ifdef SCALAR
+  #ifdef DUST
+  Real grain_radius;
+  #endif
+#endif
 };
 
 /*! \class Grid3D

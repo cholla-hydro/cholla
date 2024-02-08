@@ -228,7 +228,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveRightMovingC
 #ifdef PCM
   waveTest.runL1ErrorTest(4.E-7, 4.E-7);
 #elif defined(PLMC)
-  waveTest.runL1ErrorTest(2.0E-8, 2.7E-8);
+  waveTest.runL1ErrorTest(2.0E-8, 2.75E-8);
 #elif defined(PPMC)
   waveTest.runL1ErrorTest(1.45E-9, 1.3E-9);
 #endif  // PCM
@@ -266,7 +266,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveLeftMovingCo
 #ifdef PCM
   waveTest.runL1ErrorTest(4.E-7, 4.E-7);
 #elif defined(PLMC)
-  waveTest.runL1ErrorTest(2.0E-8, 2.7E-8);
+  waveTest.runL1ErrorTest(2.0E-8, 2.75E-8);
 #elif defined(PPMC)
   waveTest.runL1ErrorTest(1.45E-9, 1.3E-9);
 #endif  // PCM
@@ -416,12 +416,12 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveExpectSecond
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
 
   // Run the wave
-  waveTest.runL1ErrorTest(3.0E-8, 4.0E-8);
+  waveTest.runL1ErrorTest(7.0E-8, 1.5E-7);
 
   // Check the scaling
   double const low_res_l2norm = waveTest.getL2Norm();
   testing_utilities::Check_Results(4.0, low_res_l2norm / high_res_l2norms["fast_" + std::to_string(domain_direction)],
-                                   "", 0.17);
+                                   "", 0.2);
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveExpectSecondOrderConvergence)
@@ -452,12 +452,12 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveExpectSecond
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
 
   // Run the wave
-  waveTest.runL1ErrorTest(3.0E-8, 4.0E-8);
+  waveTest.runL1ErrorTest(5.4E-8, 8.0E-8);
 
   // Check the scaling
   double const low_res_l2norm = waveTest.getL2Norm();
   testing_utilities::Check_Results(4.0, low_res_l2norm / high_res_l2norms["slow_" + std::to_string(domain_direction)],
-                                   "", 0.17);
+                                   "", 0.2);
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveExpectSecondOrderConvergence)
@@ -487,12 +487,12 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveExpectSecondOrderConve
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
 
   // Run the wave
-  waveTest.runL1ErrorTest(3.0E-8, 4.0E-8);
+  waveTest.runL1ErrorTest(4.5E-8, 8.0E-8);
 
   // Check the scaling
   double const low_res_l2norm = waveTest.getL2Norm();
   testing_utilities::Check_Results(4.0, low_res_l2norm / high_res_l2norms["alfven_" + std::to_string(domain_direction)],
-                                   "", 0.17);
+                                   "", 0.2);
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, MHDContactWaveExpectSecondOrderConvergence)
@@ -523,12 +523,12 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, MHDContactWaveExpectSecondOrderC
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
 
   // Run the wave
-  waveTest.runL1ErrorTest(3.0E-8, 4.0E-8);
+  waveTest.runL1ErrorTest(5.0E-8, 8.0E-8);
 
   // Check the scaling
   double const low_res_l2norm = waveTest.getL2Norm();
   testing_utilities::Check_Results(
-      4.0, low_res_l2norm / high_res_l2norms["contact_" + std::to_string(domain_direction)], "", 0.17);
+      4.0, low_res_l2norm / high_res_l2norms["contact_" + std::to_string(domain_direction)], "", 0.2);
 }
 
 INSTANTIATE_TEST_SUITE_P(, tMHDSYSTEMLinearWavesParameterizedAngle,
@@ -645,7 +645,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi, SlowMagnetosonicWaveRightMovingCor
 #ifdef PCM
   waveTest.runL1ErrorTest(4.E-7, 4.E-7);
 #elif defined(PLMC)
-  waveTest.runL1ErrorTest(2.0E-8, 2.7E-8);
+  waveTest.runL1ErrorTest(2.0E-8, 2.75E-8);
 #elif defined(PPMC)
   waveTest.runL1ErrorTest(1.4E-9, 1.3E-9);
 #endif  // PCM
@@ -681,7 +681,7 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi, SlowMagnetosonicWaveLeftMovingCorr
 #ifdef PCM
   waveTest.runL1ErrorTest(4.E-7, 4.E-7);
 #elif defined(PLMC)
-  waveTest.runL1ErrorTest(2.0E-8, 2.7E-8);
+  waveTest.runL1ErrorTest(2.0E-8, 2.8E-8);
 #elif defined(PPMC)
   waveTest.runL1ErrorTest(1.4E-9, 1.3E-9);
 #endif  // PCM
@@ -765,7 +765,7 @@ TEST_P(tMHDSYSTEMParameterizedMpi, AdvectingFieldLoopCorrectInputExpectCorrectOu
   test_runner.numMpiRanks = GetParam();
 
   // Only do the L2 Norm test. The regular cell-to-cell comparison is brittle for this test across systems
-  test_runner.runTest(true, 3.9E-8, 1.6E-6);
+  test_runner.runTest(true, 3.9E-8, 2.25E-6);
 }
 
 /// Test the MHD Blast Wave

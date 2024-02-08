@@ -1,11 +1,6 @@
 #POISSON_SOLVER ?= -DPFFT
 #DFLAGS += $(POISSON_SOLVER)
 
-
-#To use GPUs, CUDA must be turned on here
-#Optional error checking can also be enabled
-DFLAGS += -DCUDA
-
 #To use MPI, DFLAGS must include -DMPI_CHOLLA
 DFLAGS += -DMPI_CHOLLA
 
@@ -33,8 +28,8 @@ DFLAGS += -DHDF5
 # Reconstruction
 #DFLAGS += -DPCM
 #DFLAGS += -DPLMP
-#DFLAGS += -DPLMC
-DFLAGS += -DPPMP
+DFLAGS += -DPLMC
+#DFLAGS += -DPPMP
 #DFLAGS += -DPPMC
 
 # Riemann Solver

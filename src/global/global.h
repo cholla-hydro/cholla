@@ -49,10 +49,6 @@ typedef double Real;
 
 #define LOG_FILE_NAME "run_output.log"
 
-// Conserved Floor Values
-#define TEMP_FLOOR 1e-3
-#define DENS_FLOOR 1e-5  // in code units
-
 // Parameters for Enzo dual Energy Condition
 // - Prior to GH PR #356, DE_ETA_1 nominally had a value of 0.001 in all
 //   simulations (in practice, the value of DE_ETA_1 had minimal significance
@@ -214,6 +210,8 @@ struct Parameters {
 #ifdef DE
   int out_float32_GasEnergy = 0;
 #endif
+  bool output_always      = false;
+  bool legacy_flat_outdir = false;
 #ifdef STATIC_GRAV
   int custom_grav = 0;  // flag to set specific static gravity field
 #endif
@@ -331,6 +329,9 @@ struct Parameters {
   char UVB_rates_file[MAXLEN];  // File for the UVB photoheating and
                                 // photoionization rates of HI, HeI and HeII
 #endif
+  Real temperature_floor = 0;
+  Real density_floor     = 0;
+  Real scalar_floor      = 0;
 #ifdef ANALYSIS
   char analysis_scale_outputs_file[MAXLEN];  // File for the scale_factor output
                                              // values for cosmological
@@ -345,6 +346,11 @@ struct Parameters {
 #ifdef SUPERNOVA
   int supernova_e;
   Real supernova_rcl;
+#endif
+#ifdef SCALAR
+  #ifdef DUST
+  Real grain_radius;
+  #endif
 #endif
 };
 

@@ -1,17 +1,15 @@
 /*! \file error_check_cuda.cu
  *  \brief Error Check Cuda */
 
-#ifdef CUDA
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-  #include <math.h>
-  #include <stdio.h>
-  #include <stdlib.h>
-
-  #include "../global/global.h"
-  #include "../global/global_cuda.h"
-  #include "../io/io.h"
-  #include "../utils/error_check_cuda.h"
-  #include "../utils/gpu.hpp"
+#include "../global/global.h"
+#include "../global/global_cuda.h"
+#include "../io/io.h"
+#include "../utils/error_check_cuda.h"
+#include "../utils/gpu.hpp"
 
 __global__ void Check_Value_Along_Axis(Real *dev_array, int n_field, int nx, int ny, int nz, int n_ghost,
                                        int *return_value)
@@ -72,5 +70,3 @@ int Check_Field_Along_Axis(Real *dev_array, int n_field, int nx, int ny, int nz,
 
   return error_value_host;
 }
-
-#endif

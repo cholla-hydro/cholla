@@ -55,15 +55,16 @@ void system_test::SystemTestRunner::runTest(bool const &compute_L2_norm_only, do
   // Make sure we have all the required data files and open the test data file
   _testHydroFieldsFileVec.resize(numMpiRanks);
   _testParticlesFileVec.resize(numMpiRanks);
+  FnameTemplate fname_template(true, _outputDirectory);
   for (size_t fileIndex = 0; fileIndex < numMpiRanks; fileIndex++) {
     // Load the hydro data
-    std::string filePath = _outputDirectory + "/1.h5." + std::to_string(fileIndex);
+    std::string filePath = fname_template.format_fname(1, fileIndex, "");
     if (_hydroDataExists and std::filesystem::exists(filePath)) {
       _testHydroFieldsFileVec[fileIndex].openFile(filePath, H5F_ACC_RDONLY);
     }
 
     // Load the particles data
-    filePath = _outputDirectory + "/1_particles.h5." + std::to_string(fileIndex);
+    filePath = fname_template.format_fname(1, fileIndex, "_particles");
     if (_particleDataExists and std::filesystem::exists(filePath)) {
       _testParticlesFileVec[fileIndex].openFile(filePath, H5F_ACC_RDONLY);
     }
@@ -236,15 +237,16 @@ void system_test::SystemTestRunner::runL1ErrorTest(double const &maxAllowedL1Err
   // Make sure we have all the required data files and open the data files
   _testHydroFieldsFileVec.resize(numMpiRanks);
   std::vector<H5::H5File> initialHydroFieldsFileVec(numMpiRanks);
+  FnameTemplate fname_template(true, _outputDirectory);
   for (size_t fileIndex = 0; fileIndex < numMpiRanks; fileIndex++) {
     // Initial time data
-    std::string filePath = _outputDirectory + "/0.h5." + std::to_string(fileIndex);
+    std::string filePath = fname_template.format_fname(0, fileIndex, "");
     if (std::filesystem::exists(filePath)) {
       initialHydroFieldsFileVec[fileIndex].openFile(filePath, H5F_ACC_RDONLY);
     }
 
     // Final time data
-    filePath = _outputDirectory + "/1.h5." + std::to_string(fileIndex);
+    filePath = fname_template.format_fname(1, fileIndex, "");
     if (std::filesystem::exists(filePath)) {
       _testHydroFieldsFileVec[fileIndex].openFile(filePath, H5F_ACC_RDONLY);
     }
@@ -359,7 +361,7 @@ void system_test::SystemTestRunner::openHydroTestData()
 {
   _testHydroFieldsFileVec.resize(numMpiRanks);
   for (size_t fileIndex = 0; fileIndex < numMpiRanks; fileIndex++) {
-    std::string filePath = _outputDirectory + "/1.h5." + std::to_string(fileIndex);
+    std::string filePath = FnameTemplate(true, _outputDirectory).format_fname(1, fileIndex, "");
     if (std::filesystem::exists(filePath)) {
       _testHydroFieldsFileVec[fileIndex].openFile(filePath, H5F_ACC_RDONLY);
     }

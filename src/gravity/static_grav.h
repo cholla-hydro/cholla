@@ -2,14 +2,13 @@
  *  \brief Definitions of functions to calculate gravitational
            acceleration in 1, 2, and 3D. Called in Update_Conserved_Variables
            functions in hydro_cuda.cu. */
-#ifdef CUDA
 
-  #pragma once
+#pragma once
 
-  #include <math.h>  // provides sqrt log cos sin atan etc.
-  #include <stdio.h>
+#include <math.h>  // provides sqrt log cos sin atan etc.
+#include <stdio.h>
 
-  #include "../global/global.h"  // provides GN etc.
+#include "../global/global.h"  // provides GN etc.
 
 // Work around lack of pow(Real,int) in Hip Clang for Rocm 3.5
 static inline __device__ Real pow2(const Real x) { return x * x; }
@@ -209,5 +208,3 @@ inline __device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off
   }
   return;
 }
-
-#endif  // CUDA

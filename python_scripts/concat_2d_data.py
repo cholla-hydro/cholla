@@ -21,11 +21,11 @@ import numpy as np
 import concat_internals
 
 # ==============================================================================
-def concat_2d_dataset(source_directory: pathlib.Path,
-                      output_directory: pathlib.Path,
+def concat_2d_dataset(output_directory: pathlib.Path,
                       num_processes: int,
                       output_number: int,
                       dataset_kind: str,
+                      build_source_path,
                       concat_xy: bool = True,
                       concat_yz: bool = True,
                       concat_xz: bool = True,
@@ -41,8 +41,6 @@ def concat_2d_dataset(source_directory: pathlib.Path,
 
   Parameters
   ----------
-  source_directory : pathlib.Path
-      The directory containing the unconcatenated files
   output_directory : pathlib.Path
       The directory containing the new concatenated files
   num_processes : int
@@ -51,6 +49,8 @@ def concat_2d_dataset(source_directory: pathlib.Path,
       The output number to concatenate
   dataset_kind : str
       The type of 2D dataset to concatenate. Can be 'slice', 'proj', or 'rot_proj'.
+  build_source_path : callable
+      A function used to construct the paths to the files that are to be concatenated.
   concat_xy : bool
       If True then concatenate the XY slices/projections. Defaults to True.
   concat_yz : bool
@@ -67,8 +67,6 @@ def concat_2d_dataset(source_directory: pathlib.Path,
       What compression settings to use if compressing. Defaults to None.
   chunking : bool or tuple
       Whether or not to use chunking and the chunk size. Defaults to None.
-  source_directory: pathlib.Path :
-
   output_directory: pathlib.Path :
 
   num_processes: int :
@@ -106,7 +104,7 @@ def concat_2d_dataset(source_directory: pathlib.Path,
   destination_file = concat_internals.destination_safe_open(output_directory / f'{output_number}_{dataset_kind}.h5')
 
   # Setup the destination file
-  with h5py.File(source_directory / f'{output_number}_{dataset_kind}.h5.0', 'r') as source_file:
+  with h5py.File(build_source_path(proc_id = 0, nfile = output_number), 'r') as source_file:
     # Copy over header
     destination_file = concat_internals.copy_header(source_file, destination_file)
 
@@ -144,7 +142,7 @@ def concat_2d_dataset(source_directory: pathlib.Path,
   # Copy data
   for rank in range(num_processes):
     # Open source file
-    source_file = h5py.File(source_directory / f'{output_number}_{dataset_kind}.h5.{rank}', 'r')
+    source_file = h5py.File(build_source_path(proc_id = rank, nfile = output_number), 'r')
 
     # Loop through and copy datasets
     for dataset in datasets_to_copy:
@@ -249,13 +247,18 @@ if __name__ == '__main__':
   cli.add_argument('--disable-xz', default=True, action='store_false', help='Disables concating the XZ datasets.')
   args = cli.parse_args()
 
+  build_source_path = concat_internals.get_source_path_builder(
+    source_directory = args.source_directory,
+    pre_extension_suffix = f'_{args.dataset_kind}',
+    known_output_snap = args.concat_outputs[0])
+
   # Perform the concatenation
   for output in args.concat_outputs:
-    concat_2d_dataset(source_directory=args.source_directory,
-                      output_directory=args.output_directory,
+    concat_2d_dataset(output_directory=args.output_directory,
                       num_processes=args.num_processes,
                       output_number=output,
                       dataset_kind=args.dataset_kind,
+                      build_source_path = build_source_path,
                       concat_xy=args.disable_xy,
                       concat_yz=args.disable_yz,
                       concat_xz=args.disable_xz,

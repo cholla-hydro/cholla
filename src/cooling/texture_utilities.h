@@ -5,13 +5,12 @@
 // would be included into a .cpp file because tex2D is undefined when compiling
 // with gcc.
 
-#ifdef CUDA
-  #pragma once
+#pragma once
 
-  #include <math.h>
+#include <math.h>
 
-  #include "../global/global.h"
-  #include "../utils/gpu.hpp"
+#include "../global/global.h"
+#include "../utils/gpu.hpp"
 
 inline __device__ float lerp(float v0, float v1, float f) { return fma(f, v1, fma(-f, v0, v0)); }
 
@@ -40,5 +39,3 @@ inline __device__ float Bilinear_Texture(cudaTextureObject_t tex, float x, float
   // The outer lerp interpolates along y
   return lerp(lerp(t00, t10, fx), lerp(t01, t11, fx), fy);
 }
-
-#endif  // CUDA
