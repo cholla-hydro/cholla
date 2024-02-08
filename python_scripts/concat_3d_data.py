@@ -19,10 +19,10 @@ import pathlib
 import concat_internals
 
 # ==============================================================================
-def concat_3d_dataset(source_directory: pathlib.Path,
-                      output_directory: pathlib.Path,
+def concat_3d_dataset(output_directory: pathlib.Path,
                       num_processes: int,
                       output_number: int,
+                      build_source_path,
                       skip_fields: list = [],
                       destination_dtype: np.dtype = None,
                       compression_type: str = None,
@@ -33,8 +33,6 @@ def concat_3d_dataset(source_directory: pathlib.Path,
 
   Parameters
   ----------
-  source_directory : pathlib.Path
-      The directory containing the unconcatenated files
   output_directory : pathlib.Path
       The directory containing the new concatenated files
   num_processes : int
@@ -43,6 +41,8 @@ def concat_3d_dataset(source_directory: pathlib.Path,
       The output number to concatenate
   skip_fields : list
       List of fields to skip concatenating. Defaults to [].
+  build_source_path : callable
+      A function used to construct the paths to the files that are to be concatenated.
   destination_dtype : np.dtype
       The data type of the output datasets. Accepts most numpy types. Defaults to the same as the input datasets.
   compression_type : str
@@ -51,8 +51,6 @@ def concat_3d_dataset(source_directory: pathlib.Path,
       What compression settings to use if compressing. Defaults to None.
   chunking : bool or tuple
       Whether or not to use chunking and the chunk size. Defaults to None.
-  source_directory: pathlib.Path :
-
   output_directory: pathlib.Path :
 
   num_processes: int :
@@ -81,7 +79,7 @@ def concat_3d_dataset(source_directory: pathlib.Path,
   destination_file = concat_internals.destination_safe_open(output_directory / f'{output_number}.h5')
 
   # Setup the output file
-  with h5py.File(source_directory / f'{output_number}.h5.0', 'r') as source_file:
+  with h5py.File(build_source_path(proc_id = 0, nfile = output_number), 'r') as source_file:
     # Copy header data
     destination_file = concat_internals.copy_header(source_file, destination_file)
 
@@ -108,7 +106,7 @@ def concat_3d_dataset(source_directory: pathlib.Path,
   # loop over files for a given output
   for i in range(0, num_processes):
     # open the input file for reading
-    source_file = h5py.File(source_directory / f'{output_number}.h5.{i}', 'r')
+    source_file = h5py.File(build_source_path(proc_id = i, nfile = output_number), 'r')
 
     # Compute the offset slicing
     nx_local, ny_local, nz_local = source_file.attrs['dims_local']
@@ -140,12 +138,17 @@ if __name__ == '__main__':
   cli = concat_internals.common_cli()
   args = cli.parse_args()
 
+  build_source_path = concat_internals.get_source_path_builder(
+    source_directory = args.source_directory,
+    pre_extension_suffix = '',
+    known_output_snap = args.concat_outputs[0])
+
   # Perform the concatenation
   for output in args.concat_outputs:
-    concat_3d_dataset(source_directory=args.source_directory,
-                      output_directory=args.output_directory,
+    concat_3d_dataset(output_directory=args.output_directory,
                       num_processes=args.num_processes,
                       output_number=output,
+                      build_source_path = build_source_path,
                       skip_fields=args.skip_fields,
                       destination_dtype=args.dtype,
                       compression_type=args.compression_type,
