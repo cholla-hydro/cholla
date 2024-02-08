@@ -320,7 +320,45 @@ __inline__ __host__ __device__ Primitive Conserved_2_Primitive(Conserved const &
 // =====================================================================================================================
 
 // =====================================================================================================================
-// Primitive_2_Conserved
+__inline__ __host__ __device__ Conserved Primitive_2_Conserved(Primitive const &primitive_in, Real const gamma)
+{
+  Conserved output;
+
+  // First the easy ones
+  output.density    = primitive_in.density;
+  output.momentum.x = primitive_in.velocity.x * primitive_in.density;
+  output.momentum.y = primitive_in.velocity.y * primitive_in.density;
+  output.momentum.z = primitive_in.velocity.z * primitive_in.density;
+
+#ifdef MHD
+  output.magnetic.x = primitive_in.magnetic.x;
+  output.magnetic.y = primitive_in.magnetic.y;
+  output.magnetic.z = primitive_in.magnetic.z;
+#endif  // MHD
+
+#ifdef DE
+  output.gas_energy = primitive_in.gas_energy_specific * primitive_in.density;
+#endif  // DE
+
+#ifdef SCALAR
+  for (size_t i = 0; i < grid_enum::nscalars; i++) {
+    output.scalar[i] = primitive_in.scalar_specific[i] * primitive_in.density;
+  }
+#endif  // SCALAR
+
+// Now that the easy ones are done let's figure out the energy
+#ifdef MHD
+  output.energy = hydro_utilities::Calc_Energy_Primitive(
+      primitive_in.pressure, primitive_in.density, primitive_in.velocity.x, primitive_in.velocity.y,
+      primitive_in.velocity.z, gamma, primitive_in.magnetic.x, primitive_in.magnetic.y, primitive_in.magnetic.z);
+#else   // not MHD
+  output.energy =
+      hydro_utilities::Calc_Energy_Primitive(primitive_in.pressure, primitive_in.density, primitive_in.velocity.x,
+                                             primitive_in.velocity.y, primitive_in.velocity.z, gamma);
+#endif  // MHD
+
+  return output;
+}
 // =====================================================================================================================
 
 // =====================================================================================================================
