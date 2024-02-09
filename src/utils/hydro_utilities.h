@@ -212,6 +212,23 @@ inline __host__ __device__ Real Calc_Sound_Speed(Real const &P, Real const &d, R
 }
 
 // =====================================================================================================================
+/*!
+ * \brief Load the conserved variables from a single cell. Note that with MHD this returns cell-centered magnetic
+ * fields, not face centered fields.
+ *
+ * \tparam dir The direction to load the data in. i.e. which direction is the cell x, y, and z. If dir = 0 then local
+ * xyz is the same as the true xyz. If dir = 1 then local xyz is true yzx, for dir = 2 then local xyz is true zxy. This
+ * option is so that the reconstructors, and any other split kernels, can load data that is in the appropriated
+ * direction for that kernel.
+ * \param[in] dev_conserved The pointer to the conserved variable array
+ * \param[in] xid The index for the x location
+ * \param[in] yid The index for the y location
+ * \param[in] zid The index for the z location
+ * \param[in] nx The total number of cells in the x direction
+ * \param[in] ny The total number of cells in the y direction
+ * \param[in] n_cells The total number of cells
+ * \return Conserved The cell centered conserved variables in the cell at location xid, yid, zid.
+ */
 template <size_t dir = 0>
 inline __host__ __device__ Conserved Load_Cell_Conserved(Real const *dev_conserved, size_t const xid, size_t const yid,
                                                          size_t const zid, size_t const nx, size_t const ny,
@@ -267,6 +284,13 @@ inline __host__ __device__ Conserved Load_Cell_Conserved(Real const *dev_conserv
 // =====================================================================================================================
 
 // =====================================================================================================================
+/*!
+ * \brief Convert Conserved cell centered variables to primitive variables
+ *
+ * \param conserved_in The conserved variables to convert
+ * \param gamma The adiabatic index
+ * \return Primitive The cell centered primitive variables
+ */
 __inline__ __host__ __device__ Primitive Conserved_2_Primitive(Conserved const &conserved_in, Real const gamma)
 {
   Primitive output;
@@ -320,6 +344,13 @@ __inline__ __host__ __device__ Primitive Conserved_2_Primitive(Conserved const &
 // =====================================================================================================================
 
 // =====================================================================================================================
+/*!
+ * \brief Convert primitive cell centered variables to conserved variables
+ *
+ * \param primitive_in The primitive variables to convert
+ * \param gamma The adiabatic index
+ * \return Conserved The cell centered conserved variables
+ */
 __inline__ __host__ __device__ Conserved Primitive_2_Conserved(Primitive const &primitive_in, Real const gamma)
 {
   Conserved output;
@@ -362,6 +393,24 @@ __inline__ __host__ __device__ Conserved Primitive_2_Conserved(Primitive const &
 // =====================================================================================================================
 
 // =====================================================================================================================
+/*!
+ * \brief Load the primitive variables from a single cell. Note that with MHD this returns cell-centered magnetic
+ * fields, not face centered fields.
+ *
+ * \tparam dir The direction to load the data in. i.e. which direction is the cell x, y, and z. If dir = 0 then local
+ * xyz is the same as the true xyz. If dir = 1 then local xyz is true yzx, for dir = 2 then local xyz is true zxy. This
+ * option is so that the reconstructors, and any other split kernels, can load data that is in the appropriated
+ * direction for that kernel.
+ * \param[in] dev_conserved The pointer to the conserved variable array
+ * \param[in] xid The index for the x location
+ * \param[in] yid The index for the y location
+ * \param[in] zid The index for the z location
+ * \param[in] nx The total number of cells in the x direction
+ * \param[in] ny The total number of cells in the y direction
+ * \param[in] n_cells The total number of cells
+ * \param[in] gamma The adiabatic index
+ * \return Primitive The cell centered conserved variables in the cell at location xid, yid, zid.
+ */
 template <size_t dir = 0>
 inline __host__ __device__ Primitive Load_Cell_Primitive(Real const *dev_conserved, size_t const xid, size_t const yid,
                                                          size_t const zid, size_t const nx, size_t const ny,
