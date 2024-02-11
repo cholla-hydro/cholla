@@ -10,6 +10,7 @@
 #include <time.h>
 
 #include <cmath>
+#include <vector>
 
 #include "../global/global.h"
 #include "../grid/grid3D.h"
@@ -712,6 +713,14 @@ Real halo_density_D3D(Real r, Real *r_halo, Real *rho_halo, Real dr, int nr)
   return (rho_halo[i + 1] - rho_halo[i]) * (r - r_halo[i]) / (r_halo[i + 1] - r_halo[i]) + rho_halo[i];
 }
 
+// we need to forward declare the following functions
+// (we opt to )forward declare them rather than move them because they're large)
+void initialize_halo(const parameters& p, const Header& H,
+                     const Grid3D& grid, const Grid3D::Conserved& C,
+                     DataPack hdp);
+
+
+
 /*! \fn void Disk_3D(parameters P)
  *  \brief Initialize the grid with a 3D disk. */
 void Grid3D::Disk_3D(parameters p)
@@ -720,8 +729,7 @@ void Grid3D::Disk_3D(parameters p)
   Real x_pos, y_pos, z_pos, r, phi;
   Real d, a, a_d, a_h, v, vx, vy, vz, P, T_d, T_h, mu;
   Real M_vir, M_h, c_vir, R_vir, R_s;
-  Real K_eos, rho_eos, cs, K_eos_h, rho_eos_h, cs_h;
-  Real r_cool;
+  Real K_eos, rho_eos, cs, rho_eos_h, cs_h, r_cool;
 
   // MW model
   DiskGalaxy galaxy = Galaxies::MW;
@@ -811,14 +819,12 @@ void Grid3D::Disk_3D(parameters p)
     //   K_eos = cs*cs*pow(rho_eos,1.0-p.gamma)/p.gamma; //P = K\rho^gamma
   }
 
-  K_eos_h = cs_h * cs_h * pow(rho_eos_h, 1.0 - p.gamma) / p.gamma;
-
   // Store remaining parameters
   hdp.K_eos     = K_eos;
   hdp.rho_floor = 0.0;  // rho_floor, set to 0
   hdp.rho_eos   = rho_eos;
   hdp.cs        = cs;
-  hdp.K_eos_h   = K_eos_h;
+  hdp.K_eos_h   = cs_h * cs_h * pow(rho_eos_h, 1.0 - p.gamma) / p.gamma;
   hdp.rho_eos_h = rho_eos_h;
   hdp.cs_h      = cs_h;
   hdp.r_cool    = r_cool;
@@ -832,20 +838,6 @@ void Grid3D::Disk_3D(parameters p)
   int nzt   = 2 * H.n_ghost + nz;
   Real dz   = p.zlen / ((Real)nz);
   Real *rho = (Real *)calloc(nzt, sizeof(Real));
-
-  // create a look up table for the halo gas profile
-  int nr         = 1000;
-  Real dr        = sqrt(3) * 0.5 * fmax(p.xlen, p.zlen) / ((Real)nr);
-  Real *rho_halo = (Real *)calloc(nr, sizeof(Real));
-  Real *r_halo   = (Real *)calloc(nr, sizeof(Real));
-
-  //////////////////////////////////////////////
-  //////////////////////////////////////////////
-  // Produce a look up table for a hydrostatic hot halo
-  //////////////////////////////////////////////
-  //////////////////////////////////////////////
-  hydrostatic_ray_analytical_D3D(rho_halo, r_halo, hdp, dr, nr);
-  chprintf("Hot halo lookup table generated...\n");
 
   //////////////////////////////////////////////
   //////////////////////////////////////////////
@@ -1037,29 +1029,56 @@ void Grid3D::Disk_3D(parameters p)
     }
   }
 
+  // free density profile
+  free(rho);
+
+  initialize_halo(p, this->H, *this, this->C, hdp);
+}
+
+
+// This is called after initializing the disk
+void initialize_halo(const parameters& p, const Header& H,
+                     const Grid3D& grid, const Grid3D::Conserved& C,
+                     DataPack hdp)
+{
+    // create a look up table for the halo gas profile
+  const int nr  = 1000;
+  const Real dr = sqrt(3) * 0.5 * fmax(p.xlen, p.zlen) / ((Real)nr);
+  std::vector<Real> rho_halo(nr, 0.0);
+  std::vector<Real> r_halo(nr, 0.0);
+
+  //////////////////////////////////////////////
+  //////////////////////////////////////////////
+  // Produce a look up table for a hydrostatic hot halo
+  //////////////////////////////////////////////
+  //////////////////////////////////////////////
+  hydrostatic_ray_analytical_D3D(rho_halo.data(), r_halo.data(), hdp, dr, nr);
+  chprintf("Hot halo lookup table generated...\n");
+
   //////////////////////////////////////////////
   //////////////////////////////////////////////
   // Add a hot, hydrostatic halo
   //////////////////////////////////////////////
   //////////////////////////////////////////////
-  for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
-    for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
-      for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+  for (int k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
+    for (int j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
+      for (int i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
         // get the cell index
-        id = i + j * H.nx + k * H.nx * H.ny;
+        int id = i + j * H.nx + k * H.nx * H.ny;
 
         // get the centered x, y, and z positions
-        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+        Real x_pos, y_pos, z_pos;
+        grid.Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
 
         // calculate 3D radial position and phi (assumes halo is centered at 0,
         // 0)
-        r = sqrt(x_pos * x_pos + y_pos * y_pos + z_pos * z_pos);
+        Real r = sqrt(x_pos * x_pos + y_pos * y_pos + z_pos * z_pos);
 
         // interpolate the density at this position
-        d = halo_density_D3D(r, r_halo, rho_halo, dr, nr);
+        Real d = halo_density_D3D(r, r_halo.data(), rho_halo.data(), dr, nr);
 
         // set pressure adiabatically
-        P = K_eos_h * pow(d, p.gamma);
+        Real P = hdp.K_eos_h * pow(d, p.gamma);
 
         // store density in density
         C.density[id] += d;
@@ -1076,10 +1095,10 @@ void Grid3D::Disk_3D(parameters p)
   //////////////////////////////////////////////
   //////////////////////////////////////////////
 
-  for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
-    for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
-      for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
-        id = i + j * H.nx + k * H.nx * H.ny;
+  for (int k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
+    for (int j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
+      for (int i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+        int id = i + j * H.nx + k * H.nx * H.ny;
 
 // set internal energy
 #ifdef DE
@@ -1095,12 +1114,4 @@ void Grid3D::Disk_3D(parameters p)
     }
   }
 
-  // free density profile
-  free(rho);
-
-  // free the arrays
-  // for the hot halo
-  // gas lookup table
-  free(r_halo);
-  free(rho_halo);
 }
