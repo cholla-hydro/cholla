@@ -85,7 +85,7 @@ Grid3D::Grid3D(void)
 
 /*! \fn void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real
  * *zpos) \brief Get the cell-centered position based on cell index */
-void Grid3D::Get_Position(long i, long j, long k, Real *x_pos, Real *y_pos, Real *z_pos)
+void Grid3D::Get_Position(long i, long j, long k, Real *x_pos, Real *y_pos, Real *z_pos) const
 {
 #ifndef MPI_CHOLLA
 
