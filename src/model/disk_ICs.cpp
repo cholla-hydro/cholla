@@ -397,6 +397,42 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, const DataPack& hdp, R
 
 }
 
+class IsothermalStaticGravHydroStaticColMaker{
+
+public: // interface
+
+  IsothermalStaticGravHydroStaticColMaker() = delete;
+  IsothermalStaticGravHydroStaticColMaker(Real dz, int nz, int ghost_depth, DataPack hdp)
+    : dz(dz), nz(nz), ghost_depth(ghost_depth), hdp(hdp)
+  {}
+
+  /* global total number of ghost zones along z-axis plus twice the ghost depth */
+  int buffer_len() const noexcept {return nz + 2*ghost_depth; }
+
+  /* Fill the buffer with the density values of a hydrostatic column
+   *
+   * \param[in]  cur_R The current cylindrical radius
+   * \param[out] buffer is filled by this function. It is assumed to be an
+   *     array of length `this->buffer_len()`
+   */
+  void construct_col(Real cur_R, Real* buffer) const noexcept
+  {
+    hydrostatic_column_isothermal_D3D(buffer, cur_R, hdp, dz, nz,
+                                      ghost_depth);
+  }
+
+private:
+  /* cell width */
+  const Real dz;
+  /* global number of active-zone cells along the z-direction */
+  const int nz;
+  /* depth of the ghost-zone */
+  const int ghost_depth;
+  /* assorted data parameters */
+  const DataPack hdp;
+
+};
+
 /*! \fn void hydrostatic_column_analytical_D3D(Real *rho, Real R, const DataPack& hdp,
  Real dz, int nz, int ng)
  *  \brief Calculate the 1D density distribution in a hydrostatic column.
@@ -871,10 +907,8 @@ void partial_initialize_disk(const parameters& p, const Header& H,
   // Now we can start the density calculation
   // we will loop over each column and compute
   // the density distribution
-  const int nz    = p.nz;
-  const int nzt   = 2 * H.n_ghost + nz;
-  const Real dz   = p.zlen / ((Real)nz);
-  std::vector<Real> rho(nzt, 0.0);
+  IsothermalStaticGravHydroStaticColMaker col_maker(p.zlen / ((Real)p.nz), p.nz, H.n_ghost, hdp);
+  std::vector<Real> rho(col_maker.buffer_len(), 0.0);
 
   //////////////////////////////////////////////
   // Add a disk component
@@ -895,9 +929,7 @@ void partial_initialize_disk(const parameters& p, const Header& H,
 
       // Compute the hydrostatic density profile in this z column
       // owing to the disk
-      // hydrostatic_column_analytical_D3D(rho.data(), r, hdp, dz, nz, H.n_ghost);
-      hydrostatic_column_isothermal_D3D(rho.data(), r, hdp, dz, nz,
-                                        H.n_ghost);  // CHANGED_FOR_ISOTHERMAL
+      col_maker.construct_col(r, rho.data());
 
       // store densities
       for (int k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
@@ -914,7 +946,7 @@ void partial_initialize_disk(const parameters& p, const Header& H,
         // set pressure adiabatically
         // P = K_eos*pow(d,p.gamma);
         // set pressure isothermally
-        Real P = d * hdp.cs * hdp.cs;  // CHANGED FOR ISOTHERMAL
+        Real P = d * (hdp.cs * hdp.cs);  // CHANGED FOR ISOTHERMAL
 
         // store density in density
         C.density[id] = d;
