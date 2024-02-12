@@ -294,11 +294,12 @@ Real integrate_density_zax(Real z_int_min, Real z_int_max, int n_int, Real R,
  * \param[out] rho A buffer that will be filled with the computed densities. This has a size of
  *     nz * 2*ng
  * \param[in]  R the radial position in the disk where the calculation is to be performed.
+ * \param[in]  cur_Sigma the surface density at the given R
  * \param[in]  dz is cell width in z direction
  * \param[in]  nz is number of real cells (across all grids)
  * \param[in]  ng is number of ghost cells
  */
-void hydrostatic_column_isothermal_D3D(Real *rho, Real R, const DataPack& hdp, Real dz, int nz, int ng)
+void hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real cur_Sigma, const DataPack& hdp, Real dz, int nz, int ng)
 {
 
   Real cs = hdp.cs;
@@ -348,7 +349,7 @@ void hydrostatic_column_isothermal_D3D(Real *rho, Real R, const DataPack& hdp, R
   // Step2b: actually compute rho_0
   // -> we leverage the fact that unnormalized_integral is equal to the
   //    disk surface density divided by rho_0
-  const Real rho_0 = 0.5 * Sigma_disk_D3D(R, hdp) / half_unnormalized_integral;
+  const Real rho_0 = 0.5 * cur_Sigma / half_unnormalized_integral;
 
   // Step2c: exit early if the density is 0 here
   // -> this may not be strictly necessary (the rest of the function may work properly),
@@ -412,13 +413,13 @@ public: // interface
   /* Fill the buffer with the density values of a hydrostatic column
    *
    * \param[in]  cur_R The current cylindrical radius
+   * \param[in]  cur_Sigma The surface density at `cur_R`.
    * \param[out] buffer is filled by this function. It is assumed to be an
    *     array of length `this->buffer_len()`
    */
-  void construct_col(Real cur_R, Real* buffer) const noexcept
+  void construct_col(Real cur_R, Real cur_Sigma, Real* buffer) const noexcept
   {
-    hydrostatic_column_isothermal_D3D(buffer, cur_R, hdp, dz, nz,
-                                      ghost_depth);
+    hydrostatic_column_isothermal_D3D(buffer, cur_R, cur_Sigma, hdp, dz, nz, ghost_depth);
   }
 
 private:
@@ -438,7 +439,7 @@ private:
  *  \brief Calculate the 1D density distribution in a hydrostatic column.
      Uses an iterative to scheme to determine the density at (R, z=0) relative
  to (R=0,z=0), then sets the densities according to an analytic expression. */
-void hydrostatic_column_analytical_D3D(Real *rho, Real R, const DataPack& hdp, Real dz, int nz, int ng)
+void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real cur_Sigma, const DataPack& hdp, Real dz, int nz, int ng)
 {
   // x is cell center in x direction
   // y is cell center in y direction
@@ -488,8 +489,7 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, const DataPack& hdp, R
   }
 
   // get the disk surface density
-  // have verified that at this point, Sigma_r is correct
-  Sigma_r = Sigma_disk_D3D(R, hdp);
+  Sigma_r = cur_Sigma;
 
   // set the z-column size, including ghost cells
   nzt = nz + 2 * ng;
@@ -928,8 +928,8 @@ void partial_initialize_disk(const parameters& p, const Header& H,
       Real r = sqrt(x_pos * x_pos + y_pos * y_pos);
 
       // Compute the hydrostatic density profile in this z column
-      // owing to the disk
-      col_maker.construct_col(r, rho.data());
+      Real cur_Sigma = Sigma_disk_D3D(r, hdp);
+      col_maker.construct_col(r, cur_Sigma, rho.data());
 
       // store densities
       for (int k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
