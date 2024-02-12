@@ -925,12 +925,6 @@ void partial_initialize_disk(const parameters& p, const Header& H,
     }
   }
 
-  int idm, idp;
-  Real xpm, xpp;
-  Real ypm, ypp;
-  Real zpm, zpp;
-  Real Pm, Pp;
-
   // Assign the circular velocities
   // -> everywhere that density >= 0, we compute the radial acceleration and use
   //    it to initialize the circular velocity
@@ -952,6 +946,8 @@ void partial_initialize_disk(const parameters& p, const Header& H,
   // -> this effect was most pronounced at cylindrical-phi = 0.25*pi, 0.75*pi, 1.25*pi, 1.75*pi
   //    (the effect is cut off at cylindrical-phi = 0, 0.5*pi, pi, 1.5*pi)
   // -> at these locations, Pressure gradient seems to change signs
+  const Real dx = p.xlen / ((Real)p.nx);  // cell-width x
+  const Real dy = p.xlen / ((Real)p.nx);  // cell-width y
   for (int k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
     for (int j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
       for (int i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
@@ -979,38 +975,20 @@ void partial_initialize_disk(const parameters& p, const Header& H,
 
           //  pressure gradient along x direction
           // gradient calc is first order at boundaries
-          if (i == H.n_ghost) {
-            idm = i + j * H.nx + k * H.nx * H.ny;
-          } else {
-            idm = (i - 1) + j * H.nx + k * H.nx * H.ny;
-          }
-          if (i == H.nx - H.n_ghost - 1) {
-            idp = i + j * H.nx + k * H.nx * H.ny;
-          } else {
-            idp = (i + 1) + j * H.nx + k * H.nx * H.ny;
-          }
-          grid.Get_Position(i - 1, j, k, &xpm, &ypm, &zpm);
-          grid.Get_Position(i + 1, j, k, &xpp, &ypp, &zpp);
-          Pm   = C.Energy[idm] * (gama - 1.0);  // only internal energy stored in energy currently
-          Pp   = C.Energy[idp] * (gama - 1.0);  // only internal energy stored in energy currently
-          Real dPdx = (Pp - Pm) / (xpp - xpm);
+          int i_left   = std::max<int>((i-1), H.n_ghost);
+          int i_right  = std::min<int>((i+1), H.nx - H.n_ghost - 1);
+          // Currently, C.Energy just stores internal energy density
+          Real P_xL = C.Energy[i_left + j * H.nx + k * H.nx * H.ny] * (gama - 1.0);
+          Real P_xR = C.Energy[i_right + j * H.nx + k * H.nx * H.ny] * (gama - 1.0);
+          Real dPdx = (P_xR - P_xL) / (dx*(i_right - i_left));
 
           // pressure gradient along y direction
-          if (j == H.n_ghost) {
-            idm = i + j * H.nx + k * H.nx * H.ny;
-          } else {
-            idm = i + (j - 1) * H.nx + k * H.nx * H.ny;
-          }
-          if (j == H.ny - H.n_ghost - 1) {
-            idp = i + j * H.nx + k * H.nx * H.ny;
-          } else {
-            idp = i + (j + 1) * H.nx + k * H.nx * H.ny;
-          }
-          grid.Get_Position(i, j - 1, k, &xpm, &ypm, &zpm);
-          grid.Get_Position(i, j + 1, k, &xpp, &ypp, &zpm);
-          Pm   = C.Energy[idm] * (gama - 1.0);  // only internal energy stored in energy currently
-          Pp   = C.Energy[idp] * (gama - 1.0);  // only internal energy stored in energy currently
-          Real dPdy = (Pp - Pm) / (ypp - ypm);
+          int j_left   = std::max<int>((j-1), H.n_ghost);
+          int j_right  = std::min<int>((j+1), H.ny - H.n_ghost - 1);
+          // Currently, C.Energy just stores internal energy density
+          Real P_yL = C.Energy[i + j_left * H.nx + k * H.nx * H.ny] * (gama - 1.0);
+          Real P_yR = C.Energy[i + j_right * H.nx + k * H.nx * H.ny] * (gama - 1.0);
+          Real dPdy = (P_yR - P_yL) / (dy * (j_right - j_left));
 
           // radial pressure gradient
           Real dPdr = x_pos * dPdx / r + y_pos * dPdy / r;
