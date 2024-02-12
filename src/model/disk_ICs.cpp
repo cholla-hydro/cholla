@@ -18,6 +18,7 @@
 #include "../mpi/mpi_routines.h"
 #include "../utils/error_handling.h"
 #include "disk_galaxy.h"
+#include "selfgrav_hydrostatic_col.h"
 
 /* Originally, we passed around a 22-element array of parameters. Mapping the 
  * index to the parameter-name made the code harder to follow. The following
