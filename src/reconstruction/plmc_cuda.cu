@@ -21,8 +21,9 @@
  gamma, int dir)
  *  \brief When passed a stencil of conserved variables, returns the left and
  right boundary values for the interface calculated using plm. */
+template <int dir>
 __global__ __launch_bounds__(TPB) void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx,
-                                                 int ny, int nz, Real dx, Real dt, Real gamma, int dir, int n_fields)
+                                                 int ny, int nz, Real dx, Real dt, Real gamma, int n_fields)
 {
   // get a thread ID
   int const thread_id = threadIdx.x + blockIdx.x * blockDim.x;
@@ -60,15 +61,15 @@ __global__ __launch_bounds__(TPB) void PLMC_cuda(Real *dev_conserved, Real *dev_
   // load the 3-cell stencil into registers
   // cell i
   hydro_utilities::Primitive const cell_i =
-      reconstruction::Load_Data(dev_conserved, xid, yid, zid, nx, ny, n_cells, o1, o2, o3, gamma);
+      hydro_utilities::Load_Cell_Primitive<dir>(dev_conserved, xid, yid, zid, nx, ny, n_cells, gamma);
 
   // cell i-1. The equality checks the direction and will subtract one from the correct direction
-  hydro_utilities::Primitive const cell_imo = reconstruction::Load_Data(
-      dev_conserved, xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
+  hydro_utilities::Primitive const cell_imo = hydro_utilities::Load_Cell_Primitive<dir>(
+      dev_conserved, xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny, n_cells, gamma);
 
   // cell i+1. The equality checks the direction and add one to the correct direction
-  hydro_utilities::Primitive const cell_ipo = reconstruction::Load_Data(
-      dev_conserved, xid + int(dir == 0), yid + int(dir == 1), zid + int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
+  hydro_utilities::Primitive const cell_ipo = hydro_utilities::Load_Cell_Primitive<dir>(
+      dev_conserved, xid + int(dir == 0), yid + int(dir == 1), zid + int(dir == 2), nx, ny, n_cells, gamma);
 
   // calculate the adiabatic sound speed in cell i
   Real const sound_speed         = hydro_utilities::Calc_Sound_Speed(cell_i.pressure, cell_i.density, gamma);
@@ -295,3 +296,14 @@ __global__ __launch_bounds__(TPB) void PLMC_cuda(Real *dev_conserved, Real *dev_
   id = cuda_utilities::compute1DIndex(xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny);
   reconstruction::Write_Data(interface_R_imh, dev_bounds_R, dev_conserved, id, n_cells, o1, o2, o3, gamma);
 }
+
+// Instantiate the relevant template specifications
+template __global__ __launch_bounds__(TPB) void PLMC_cuda<0>(Real *dev_conserved, Real *dev_bounds_L,
+                                                             Real *dev_bounds_R, int nx, int ny, int nz, Real dx,
+                                                             Real dt, Real gamma, int n_fields);
+template __global__ __launch_bounds__(TPB) void PLMC_cuda<1>(Real *dev_conserved, Real *dev_bounds_L,
+                                                             Real *dev_bounds_R, int nx, int ny, int nz, Real dx,
+                                                             Real dt, Real gamma, int n_fields);
+template __global__ __launch_bounds__(TPB) void PLMC_cuda<2>(Real *dev_conserved, Real *dev_bounds_L,
+                                                             Real *dev_bounds_R, int nx, int ny, int nz, Real dx,
+                                                             Real dt, Real gamma, int n_fields);
