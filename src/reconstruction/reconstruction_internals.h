@@ -48,7 +48,7 @@ enum Kind {
   chosen = plmc
 #elif defined(PPMP)
   chosen = ppmp
-#elif defined(PLMC)
+#elif defined(PPMC)
   chosen = ppmc
 #else
   #error "no reconstruction selected"
