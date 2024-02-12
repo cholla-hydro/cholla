@@ -715,12 +715,13 @@ Real halo_density_D3D(Real r, Real *r_halo, Real *rho_halo, Real dr, int nr)
 
 // we need to forward declare the following functions
 // -> we opt to forward declare them rather than move them because the functions are fairly large
-void initialize_disk(const parameters& p, const Header& H,
-                     const Grid3D& grid, const Grid3D::Conserved& C,
-                     const DataPack hdp);
-void initialize_halo(const parameters& p, const Header& H,
-                     const Grid3D& grid, const Grid3D::Conserved& C,
-                     DataPack hdp);
+// -> in both cases, the functions only initialize thermal-energy in the total-energy field
+void partial_initialize_disk(const parameters& p, const Header& H,
+                             const Grid3D& grid, const Grid3D::Conserved& C,
+                             const DataPack hdp);
+void partial_initialize_halo(const parameters& p, const Header& H,
+                             const Grid3D& grid, const Grid3D::Conserved& C,
+                             DataPack hdp);
 
 
 
@@ -832,13 +833,39 @@ void Grid3D::Disk_3D(parameters p)
 
   hdp.Rgas_truncation_radius = Get_Gas_Truncation_Radius(p);
 
-  initialize_disk(p, this->H, *this, this->C, hdp);
-  initialize_halo(p, this->H, *this, this->C, hdp);
+  // most of the heavy-lifting happens in the following function-calls below:
+  // - they all assume that the fields start out with values that are uniformly zero
+  // - they then update the density and momenta fields. They also store the 
+  //   thermal-energy-density field in the total-energy-density field (we need to
+  //   add the kinetic energy contribution afterwards)
+  partial_initialize_disk(p, this->H, *this, this->C, hdp);
+  partial_initialize_halo(p, this->H, *this, this->C, hdp);
+
+  // Final Step: add kinetic energy to total energy
+  for (int k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
+    for (int j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
+      for (int i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+        int id = i + j * H.nx + k * H.nx * H.ny;
+
+        // set internal energy
+#ifdef DE
+        C.GasEnergy[id] = C.Energy[id];
+#endif
+
+        // add kinetic contribution to total energy
+        C.Energy[id] += 0.5 *
+                        (C.momentum_x[id] * C.momentum_x[id] + C.momentum_y[id] * C.momentum_y[id] +
+                         C.momentum_z[id] * C.momentum_z[id]) /
+                        C.density[id];
+      }
+    }
+  }
+
 }
 
-void initialize_disk(const parameters& p, const Header& H,
-                     const Grid3D& grid, const Grid3D::Conserved& C,
-                     const DataPack hdp)
+void partial_initialize_disk(const parameters& p, const Header& H,
+                             const Grid3D& grid, const Grid3D::Conserved& C,
+                             const DataPack hdp)
 {
 
   // Now we can start the density calculation
@@ -850,12 +877,9 @@ void initialize_disk(const parameters& p, const Header& H,
   std::vector<Real> rho(nzt, 0.0);
 
   //////////////////////////////////////////////
-  //////////////////////////////////////////////
   // Add a disk component
   //////////////////////////////////////////////
-  //////////////////////////////////////////////
-  // compute a
-  // hydrostatic column for the disk
+  // compute a hydrostatic column for the disk
   // and add the disk density and thermal energy
   // to the density and energy arrays
   for (int j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
@@ -1041,9 +1065,9 @@ void initialize_disk(const parameters& p, const Header& H,
 
 
 // This is called after initializing the disk
-void initialize_halo(const parameters& p, const Header& H,
-                     const Grid3D& grid, const Grid3D::Conserved& C,
-                     DataPack hdp)
+void partial_initialize_halo(const parameters& p, const Header& H,
+                             const Grid3D& grid, const Grid3D::Conserved& C,
+                             DataPack hdp)
 {
     // create a look up table for the halo gas profile
   const int nr  = 1000;
@@ -1089,31 +1113,6 @@ void initialize_halo(const parameters& p, const Header& H,
 
         // store internal energy in Energy array
         C.Energy[id] += P / (gama - 1.0);
-      }
-    }
-  }
-
-  //////////////////////////////////////////////
-  //////////////////////////////////////////////
-  // Add kinetic energy to total energy
-  //////////////////////////////////////////////
-  //////////////////////////////////////////////
-
-  for (int k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
-    for (int j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
-      for (int i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
-        int id = i + j * H.nx + k * H.nx * H.ny;
-
-// set internal energy
-#ifdef DE
-        C.GasEnergy[id] = C.Energy[id];
-#endif
-
-        // add kinetic contribution to total energy
-        C.Energy[id] += 0.5 *
-                        (C.momentum_x[id] * C.momentum_x[id] + C.momentum_y[id] * C.momentum_y[id] +
-                         C.momentum_z[id] * C.momentum_z[id]) /
-                        C.density[id];
       }
     }
   }
