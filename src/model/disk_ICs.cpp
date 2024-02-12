@@ -753,9 +753,10 @@ Real halo_density_D3D(Real r, Real *r_halo, Real *rho_halo, Real dr, int nr)
 // we need to forward declare the following functions
 // -> we opt to forward declare them rather than move them because the functions are fairly large
 // -> in both cases, the functions only initialize thermal-energy in the total-energy field
-void partial_initialize_disk(const parameters& p, const Header& H,
-                             const Grid3D& grid, const Grid3D::Conserved& C,
-                             const DataPack hdp);
+template<typename HydroStaticColMaker>
+void partial_initialize_isothermal_disk(const parameters& p, const Header& H,
+                                        const Grid3D& grid, const Grid3D::Conserved& C,
+                                        const DataPack hdp, const HydroStaticColMaker& col_maker);
 void partial_initialize_halo(const parameters& p, const Header& H,
                              const Grid3D& grid, const Grid3D::Conserved& C,
                              DataPack hdp);
@@ -875,7 +876,19 @@ void Grid3D::Disk_3D(parameters p)
   // - they then update the density and momenta fields. They also store the 
   //   thermal-energy-density field in the total-energy-density field (we need to
   //   add the kinetic energy contribution afterwards)
-  partial_initialize_disk(p, this->H, *this, this->C, hdp);
+
+  bool self_gravity = false;
+
+  if (gas_disk.isothermal){
+    if (self_gravity){
+      CHOLLA_ERROR("Currently, there isn't support for an isothermal gas disk with self-gravity");
+    } else {
+      IsothermalStaticGravHydroStaticColMaker col_maker(p.zlen / ((Real)p.nz), p.nz, H.n_ghost, hdp);
+      partial_initialize_isothermal_disk(p, this->H, *this, this->C, hdp, col_maker);
+    }
+  } else {
+    CHOLLA_ERROR("Currently, there isn't support for a non-isothermal gas disk");
+  }
   partial_initialize_halo(p, this->H, *this, this->C, hdp);
 
   // Final Step: add kinetic energy to total energy
@@ -900,49 +913,43 @@ void Grid3D::Disk_3D(parameters p)
 
 }
 
-void partial_initialize_disk(const parameters& p, const Header& H,
-                             const Grid3D& grid, const Grid3D::Conserved& C,
-                             const DataPack hdp)
+template<typename HydroStaticColMaker>
+void partial_initialize_isothermal_disk(const parameters& p, const Header& H,
+                                        const Grid3D& grid, const Grid3D::Conserved& C,
+                                        const DataPack hdp, const HydroStaticColMaker& col_maker)
 {
-
-  // Now we can start the density calculation
-  // we will loop over each column and compute
-  // the density distribution
-  IsothermalStaticGravHydroStaticColMaker col_maker(p.zlen / ((Real)p.nz), p.nz, H.n_ghost, hdp);
-  std::vector<Real> rho(col_maker.buffer_len(), 0.0);
-
-  //////////////////////////////////////////////
-  // Add a disk component
-  //////////////////////////////////////////////
-  // compute a hydrostatic column for the disk
-  // and add the disk density and thermal energy
-  // to the density and energy arrays
+  // Step 1: add the gas-disk density and thermal energy to the density and energy arrays
+  // -> At each (x,y) pair, we use col_maker to loop over all z-values and compute "hydrostatic column"
+  //    (i.e. the vertical density profile for the gas in the disk that is in hydrostatic equlibrium).
+  // -> in slightly more detail, col_maker stores the density-profile in a buffer
+  // -> then we compute the disk density & thermal energy based on values in that buffer
+  std::vector<Real> rho_buffer(col_maker.buffer_len(), 0.0);
+  bool any_density_error = false;
   for (int j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
-    // chprintf("j %d\n",j);
     for (int i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
-      // get the centered x, y, and z positions
-      const int tmp_k = H.n_ghost + H.ny;
-      Real x_pos, y_pos, z_pos;
-      grid.Get_Position(i, j, tmp_k, &x_pos, &y_pos, &z_pos);
+      // get the centered x & y positions (the way the function is written, we also get a z position)
+      const int dummy_k = H.n_ghost + H.ny;
+      Real x_pos, y_pos, dummy_z_pos;
+      grid.Get_Position(i, j, dummy_k, &x_pos, &y_pos, &dummy_z_pos);
 
       // cylindrical radius
       Real r = sqrt(x_pos * x_pos + y_pos * y_pos);
 
       // Compute the hydrostatic density profile in this z column
       Real cur_Sigma = Sigma_disk_D3D(r, hdp);
-      col_maker.construct_col(r, cur_Sigma, rho.data());
+      col_maker.construct_col(r, cur_Sigma, rho_buffer.data());
 
       // store densities
       for (int k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
         int id = i + j * H.nx + k * H.nx * H.ny;
 
-// get density from hydrostatic column computation
+        // get density from hydrostatic column computation
 #ifdef MPI_CHOLLA
-        Real d = rho[nz_local_start + H.n_ghost + (k - H.n_ghost)];
+        Real d = rho_buffer[nz_local_start + H.n_ghost + (k - H.n_ghost)];
 #else
-        Real d = rho[H.n_ghost + (k - H.n_ghost)];
+        Real d = rho_buffer[H.n_ghost + (k - H.n_ghost)];
 #endif
-        // if (d != d || d < 0) printf("Error calculating density. d: %e\n", d);
+        any_density_error = any_density_error or (d < 0) or (not std::isfinite(d));
 
         // set pressure adiabatically
         // P = K_eos*pow(d,p.gamma);
@@ -957,21 +964,22 @@ void partial_initialize_disk(const parameters& p, const Header& H,
       }
     }
   }
+  // todo: consider writing another function to write a error message with problematic denisty
+  CHOLLA_ASSERT(not any_density_error, "There was a problem initializing disk density");
 
   // Assign the circular velocities
   // -> everywhere that density >= 0, we compute the radial acceleration and use
   //    it to initialize the circular velocity
   // -> radial acceleration = -(rhat * grad Phi) + (dP/dr) / density
   //     -> of course "radial" is along the cylindrical radius
-  //     -> Phi is the total gravitational potential of the disk and the halo
-  //        (At this time, the gravitational potential does NOT consider disk
-  //        truncation)
+  //     -> Phi is the total gravitational potential of the stellar-disk and the halo
+  //        (At this time, the gravitational potential does NOT consider gas-disk contributions)
   //     -> dPdr is the radial component of the pressure gradient
   //     -> within the loop we actually flip the sign
   // -> when radial acceleration has an unexpected sign, we set circular velocity to 0
   //     -> This is important after we start tapering the velocity
   //
-  // We currently rely upon the disk density getting truncated to 0 outside the disk.
+  // We currently rely upon the gas-density getting truncated to 0 outside the gas-disk.
   // When we didn't do that, some issues cropped up
   // -> we previously were seeing an issue in a MW galaxy were the velocity would go to
   //    zero relatively close to a taper-radius of 1.9 and then a brief spike of velocity
@@ -981,6 +989,8 @@ void partial_initialize_disk(const parameters& p, const Header& H,
   // -> at these locations, Pressure gradient seems to change signs
   const Real dx = p.xlen / ((Real)p.nx);  // cell-width x
   const Real dy = p.xlen / ((Real)p.nx);  // cell-width y
+  bool any_accel_error = false;
+  bool any_vel_error = false;
   for (int k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
     for (int j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
       for (int i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
@@ -1001,7 +1011,7 @@ void partial_initialize_disk(const parameters& p, const Header& H,
           Real r   = sqrt(x_pos * x_pos + y_pos * y_pos);
           Real phi = atan2(y_pos, x_pos);  // azimuthal angle (in x-y plane)
 
-          // radial acceleration from disk
+          // radial acceleration from stellar-disk
           Real a_d = fabs(hdp.stellar_disk.gr_disk_D3D(r, z_pos));
           // radial acceleration from halo
           Real a_h = fabs(gr_halo_D3D(r, z_pos, hdp));
@@ -1029,48 +1039,33 @@ void partial_initialize_disk(const parameters& p, const Header& H,
           // radial acceleration
           Real a = a_d + a_h + dPdr / d;
 
-          if (isnan(a) || (a != a) || (r * a < 0)) {
-            // printf("i %d j %d k %d a %e a_d %e dPdr %e d
-            // %e\n",i,j,k,a,a_d,dPdr,d); printf("i %d j %d k %d x_pos %e y_pos
-            // %e z_pos %e dPdx %e dPdy
-            // %e\n",i,j,k,x_pos,y_pos,z_pos,dPdx,dPdy); printf("i %d j %d k %d
-            // Pm %e Pp %e\n",i,j,k,Pm,Pp); printf("ypp %e ypm %e xpp %e zpm %e
-            // r %e\n",ypp,ypm, xpp, xpm ,r); printf("Energy pm %e pp %e density
-            // pm %e pp
-            // %e\n",C.Energy[idm],C.Energy[idp],C.density[idm],C.density[idp]);
-          } else {
-            // radial velocity
-            Real v  = sqrt(r * a);
-            Real vx = -sin(phi) * v;
-            Real vy = cos(phi) * v;
-            Real vz = 0;
-
-            // set the momenta
-            C.momentum_x[id] = d * vx;
-            C.momentum_y[id] = d * vy;
-            C.momentum_z[id] = d * vz;
-
-            // sheepishly check for NaN's!
-
-            if ((d < 0) || (isnan(d)) || (d != d)) {
-              printf("d %e i %d j %d k %d id %d\n", d, i, j, k, id);
-            }
-
-            if ((isnan(vx)) || (isnan(vy)) || (isnan(vz)) || (vx != vx) || (vy != vy) || (vz != vz)) {
-              printf("vx %e vy %e vz %e i %d j %d k %d id %d\n", vx, vy, vz, i, j, k, id);
-            } else {
-              // if the density is negative, there
-              // is a bigger problem!
-              if (d < 0) {
-                printf("pid %d error negative density i %d j %d k %d d %e\n", -1, i, j, k, d);
-              }
-            }
+          if ((r * a) < 0){
+            continue;
+          } else if (not std::isfinite(a)) {
+            any_accel_error = true;
+            continue;
           }
+
+          Real v  = sqrt(r * a); // circular velocity
+          Real vx = -sin(phi) * v;
+          Real vy = cos(phi) * v;
+          Real vz = 0;
+          any_vel_error = ( any_vel_error or (not std::isfinite(vx)) or (not std::isfinite(vy)) or
+                            (not std::isfinite(vz)) );
+
+          // set the momenta
+          C.momentum_x[id] = d * vx;
+          C.momentum_y[id] = d * vy;
+          C.momentum_z[id] = d * vz;
         }
 
       }
     }
   }
+
+  // todo: consider writing another function to write a error messages with problematic values
+  CHOLLA_ASSERT(not any_accel_error, "There was a problem with a computed acceleration");
+  CHOLLA_ASSERT(not any_vel_error, "There was a problem with a computed velocity");
 
 }
 
