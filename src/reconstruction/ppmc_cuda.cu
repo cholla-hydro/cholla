@@ -541,8 +541,9 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 // =====================================================================================================================
 
 // =====================================================================================================================
+template <int dir>
 __global__ __launch_bounds__(TPB) void PPMC_VL(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx,
-                                               int ny, int nz, Real gamma, int dir)
+                                               int ny, int nz, Real gamma)
 {
   // get a thread ID
   int const thread_id = threadIdx.x + blockIdx.x * blockDim.x;
@@ -580,29 +581,27 @@ __global__ __launch_bounds__(TPB) void PPMC_VL(Real *dev_conserved, Real *dev_bo
   // load the 5-cell stencil into registers
   // cell i
   hydro_utilities::Primitive const cell_i =
-      reconstruction::Load_Data(dev_conserved, xid, yid, zid, nx, ny, n_cells, o1, o2, o3, gamma);
+      hydro_utilities::Load_Cell_Primitive<dir>(dev_conserved, xid, yid, zid, nx, ny, n_cells, gamma);
 
   // cell i-1. The equality checks the direction and will subtract one from the correct direction
   // im1 stands for "i minus 1"
-  hydro_utilities::Primitive const cell_im1 = reconstruction::Load_Data(
-      dev_conserved, xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
+  hydro_utilities::Primitive const cell_im1 = hydro_utilities::Load_Cell_Primitive<dir>(
+      dev_conserved, xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny, n_cells, gamma);
 
   // cell i+1.  The equality checks the direction and add one to the correct direction
   // ip1 stands for "i plus 1"
-  hydro_utilities::Primitive const cell_ip1 = reconstruction::Load_Data(
-      dev_conserved, xid + int(dir == 0), yid + int(dir == 1), zid + int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
+  hydro_utilities::Primitive const cell_ip1 = hydro_utilities::Load_Cell_Primitive<dir>(
+      dev_conserved, xid + int(dir == 0), yid + int(dir == 1), zid + int(dir == 2), nx, ny, n_cells, gamma);
 
   // cell i-2. The equality checks the direction and will subtract two from the correct direction
   // im2 stands for "i minus 2"
-  hydro_utilities::Primitive const cell_im2 =
-      reconstruction::Load_Data(dev_conserved, xid - 2 * int(dir == 0), yid - 2 * int(dir == 1),
-                                zid - 2 * int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
+  hydro_utilities::Primitive const cell_im2 = hydro_utilities::Load_Cell_Primitive<dir>(
+      dev_conserved, xid - 2 * int(dir == 0), yid - 2 * int(dir == 1), zid - 2 * int(dir == 2), nx, ny, n_cells, gamma);
 
   // cell i+2.  The equality checks the direction and add two to the correct direction
   // ip2 stands for "i plus 2"
-  hydro_utilities::Primitive const cell_ip2 =
-      reconstruction::Load_Data(dev_conserved, xid + 2 * int(dir == 0), yid + 2 * int(dir == 1),
-                                zid + 2 * int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
+  hydro_utilities::Primitive const cell_ip2 = hydro_utilities::Load_Cell_Primitive<dir>(
+      dev_conserved, xid + 2 * int(dir == 0), yid + 2 * int(dir == 1), zid + 2 * int(dir == 2), nx, ny, n_cells, gamma);
 
   // Convert to the characteristic variables
   Real const sound_speed         = hydro_utilities::Calc_Sound_Speed(cell_i.pressure, cell_i.density, gamma);
@@ -701,4 +700,11 @@ __global__ __launch_bounds__(TPB) void PPMC_VL(Real *dev_conserved, Real *dev_bo
   id = cuda_utilities::compute1DIndex(xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny);
   reconstruction::Write_Data(interface_R_imh, dev_bounds_R, dev_conserved, id, n_cells, o1, o2, o3, gamma);
 }
+// Instantiate the relevant template specifications
+template __global__ __launch_bounds__(TPB) void PPMC_VL<0>(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R,
+                                                           int nx, int ny, int nz, Real gamma);
+template __global__ __launch_bounds__(TPB) void PPMC_VL<1>(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R,
+                                                           int nx, int ny, int nz, Real gamma);
+template __global__ __launch_bounds__(TPB) void PPMC_VL<2>(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R,
+                                                           int nx, int ny, int nz, Real gamma);
 // =====================================================================================================================

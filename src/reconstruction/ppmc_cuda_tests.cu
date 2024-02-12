@@ -227,8 +227,20 @@ TEST(tALLPpmcVLReconstructor, CorrectInputExpectCorrectOutput)
     cuda_utilities::DeviceVector<double> dev_interface_right(nx * ny * nz * (n_fields - 1), true);
 
     // Launch kernel
-    hipLaunchKernelGGL(PPMC_VL, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
-                       dev_interface_right.data(), nx, ny, nz, gamma, direction);
+    switch (direction) {
+      case 0:
+        hipLaunchKernelGGL(PPMC_VL<0>, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
+                           dev_interface_right.data(), nx, ny, nz, gamma);
+        break;
+      case 1:
+        hipLaunchKernelGGL(PPMC_VL<1>, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
+                           dev_interface_right.data(), nx, ny, nz, gamma);
+        break;
+      case 2:
+        hipLaunchKernelGGL(PPMC_VL<2>, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
+                           dev_interface_right.data(), nx, ny, nz, gamma);
+        break;
+    }
     GPU_Error_Check();
     GPU_Error_Check(cudaDeviceSynchronize());
 
