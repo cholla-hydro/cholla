@@ -123,8 +123,8 @@ inline __device__ __host__ void Cyclic_Permute_Once(hydro_utilities::Vector &vec
 inline __device__ __host__ void Cyclic_Permute_Twice(hydro_utilities::Vector &vec)
 {
   Real temp = vec.y;
-  vec.x     = vec.z;
   vec.y     = vec.x;
+  vec.x     = vec.z;
   vec.z     = temp;
 }
 // =====================================================================================================================
