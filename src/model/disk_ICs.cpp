@@ -714,7 +714,10 @@ Real halo_density_D3D(Real r, Real *r_halo, Real *rho_halo, Real dr, int nr)
 }
 
 // we need to forward declare the following functions
-// (we opt to )forward declare them rather than move them because they're large)
+// -> we opt to forward declare them rather than move them because the functions are fairly large
+void initialize_disk(const parameters& p, const Header& H,
+                     const Grid3D& grid, const Grid3D::Conserved& C,
+                     const DataPack hdp);
 void initialize_halo(const parameters& p, const Header& H,
                      const Grid3D& grid, const Grid3D::Conserved& C,
                      DataPack hdp);
@@ -725,9 +728,7 @@ void initialize_halo(const parameters& p, const Header& H,
  *  \brief Initialize the grid with a 3D disk. */
 void Grid3D::Disk_3D(parameters p)
 {
-  int i, j, k, id;
-  Real x_pos, y_pos, z_pos, r, phi;
-  Real d, a, a_d, a_h, v, vx, vy, vz, P, T_d, T_h, mu;
+  Real T_d, T_h, mu;
   Real M_vir, M_h, c_vir, R_vir, R_s;
   Real K_eos, rho_eos, cs, rho_eos_h, cs_h, r_cool;
 
@@ -831,13 +832,22 @@ void Grid3D::Disk_3D(parameters p)
 
   hdp.Rgas_truncation_radius = Get_Gas_Truncation_Radius(p);
 
+  initialize_disk(p, this->H, *this, this->C, hdp);
+  initialize_halo(p, this->H, *this, this->C, hdp);
+}
+
+void initialize_disk(const parameters& p, const Header& H,
+                     const Grid3D& grid, const Grid3D::Conserved& C,
+                     const DataPack hdp)
+{
+
   // Now we can start the density calculation
   // we will loop over each column and compute
   // the density distribution
-  int nz    = p.nz;
-  int nzt   = 2 * H.n_ghost + nz;
-  Real dz   = p.zlen / ((Real)nz);
-  Real *rho = (Real *)calloc(nzt, sizeof(Real));
+  const int nz    = p.nz;
+  const int nzt   = 2 * H.n_ghost + nz;
+  const Real dz   = p.zlen / ((Real)nz);
+  std::vector<Real> rho(nzt, 0.0);
 
   //////////////////////////////////////////////
   //////////////////////////////////////////////
@@ -848,38 +858,39 @@ void Grid3D::Disk_3D(parameters p)
   // hydrostatic column for the disk
   // and add the disk density and thermal energy
   // to the density and energy arrays
-  for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
+  for (int j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
     // chprintf("j %d\n",j);
-    for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+    for (int i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
       // get the centered x, y, and z positions
-      k = H.n_ghost + H.ny;
-      Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+      const int tmp_k = H.n_ghost + H.ny;
+      Real x_pos, y_pos, z_pos;
+      grid.Get_Position(i, j, tmp_k, &x_pos, &y_pos, &z_pos);
 
       // cylindrical radius
-      r = sqrt(x_pos * x_pos + y_pos * y_pos);
+      Real r = sqrt(x_pos * x_pos + y_pos * y_pos);
 
       // Compute the hydrostatic density profile in this z column
       // owing to the disk
-      // hydrostatic_column_analytical_D3D(rho, r, hdp, dz, nz, H.n_ghost);
-      hydrostatic_column_isothermal_D3D(rho, r, hdp, dz, nz,
+      // hydrostatic_column_analytical_D3D(rho.data(), r, hdp, dz, nz, H.n_ghost);
+      hydrostatic_column_isothermal_D3D(rho.data(), r, hdp, dz, nz,
                                         H.n_ghost);  // CHANGED_FOR_ISOTHERMAL
 
       // store densities
-      for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
-        id = i + j * H.nx + k * H.nx * H.ny;
+      for (int k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
+        int id = i + j * H.nx + k * H.nx * H.ny;
 
 // get density from hydrostatic column computation
 #ifdef MPI_CHOLLA
-        d = rho[nz_local_start + H.n_ghost + (k - H.n_ghost)];
+        Real d = rho[nz_local_start + H.n_ghost + (k - H.n_ghost)];
 #else
-        d = rho[H.n_ghost + (k - H.n_ghost)];
+        Real d = rho[H.n_ghost + (k - H.n_ghost)];
 #endif
         // if (d != d || d < 0) printf("Error calculating density. d: %e\n", d);
 
         // set pressure adiabatically
         // P = K_eos*pow(d,p.gamma);
         // set pressure isothermally
-        P = d * cs * cs;  // CHANGED FOR ISOTHERMAL
+        Real P = d * hdp.cs * hdp.cs;  // CHANGED FOR ISOTHERMAL
 
         // store density in density
         C.density[id] = d;
@@ -895,10 +906,6 @@ void Grid3D::Disk_3D(parameters p)
   Real ypm, ypp;
   Real zpm, zpp;
   Real Pm, Pp;
-
-  // pressure gradients for changing
-  // the rotational velocity
-  Real dPdx, dPdy, dPdr;
 
   // Assign the circular velocities
   // -> everywhere that density >= 0, we compute the radial acceleration and use
@@ -921,29 +928,30 @@ void Grid3D::Disk_3D(parameters p)
   // -> this effect was most pronounced at cylindrical-phi = 0.25*pi, 0.75*pi, 1.25*pi, 1.75*pi
   //    (the effect is cut off at cylindrical-phi = 0, 0.5*pi, pi, 1.5*pi)
   // -> at these locations, Pressure gradient seems to change signs
-  for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
-    for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
-      for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
-        id = i + j * H.nx + k * H.nx * H.ny;
+  for (int k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
+    for (int j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
+      for (int i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+        int id = i + j * H.nx + k * H.nx * H.ny;
 
         // get density
-        d = C.density[id];
+        Real d = C.density[id];
 
         // restrict to regions where the density
         // has been set
         if (d > 0.0) {
           // get the centered x, y, and z positions
-          Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+          Real x_pos, y_pos, z_pos;
+          grid.Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
 
           // calculate radial position and phi (assumes disk is centered at 0,
           // 0)
-          r   = sqrt(x_pos * x_pos + y_pos * y_pos);
-          phi = atan2(y_pos, x_pos);  // azimuthal angle (in x-y plane)
+          Real r   = sqrt(x_pos * x_pos + y_pos * y_pos);
+          Real phi = atan2(y_pos, x_pos);  // azimuthal angle (in x-y plane)
 
           // radial acceleration from disk
-          a_d = fabs(hdp.stellar_disk.gr_disk_D3D(r, z_pos));
+          Real a_d = fabs(hdp.stellar_disk.gr_disk_D3D(r, z_pos));
           // radial acceleration from halo
-          a_h = fabs(gr_halo_D3D(r, z_pos, hdp));
+          Real a_h = fabs(gr_halo_D3D(r, z_pos, hdp));
 
           //  pressure gradient along x direction
           // gradient calc is first order at boundaries
@@ -957,11 +965,11 @@ void Grid3D::Disk_3D(parameters p)
           } else {
             idp = (i + 1) + j * H.nx + k * H.nx * H.ny;
           }
-          Get_Position(i - 1, j, k, &xpm, &ypm, &zpm);
-          Get_Position(i + 1, j, k, &xpp, &ypp, &zpp);
+          grid.Get_Position(i - 1, j, k, &xpm, &ypm, &zpm);
+          grid.Get_Position(i + 1, j, k, &xpp, &ypp, &zpp);
           Pm   = C.Energy[idm] * (gama - 1.0);  // only internal energy stored in energy currently
           Pp   = C.Energy[idp] * (gama - 1.0);  // only internal energy stored in energy currently
-          dPdx = (Pp - Pm) / (xpp - xpm);
+          Real dPdx = (Pp - Pm) / (xpp - xpm);
 
           // pressure gradient along y direction
           if (j == H.n_ghost) {
@@ -974,17 +982,17 @@ void Grid3D::Disk_3D(parameters p)
           } else {
             idp = i + (j + 1) * H.nx + k * H.nx * H.ny;
           }
-          Get_Position(i, j - 1, k, &xpm, &ypm, &zpm);
-          Get_Position(i, j + 1, k, &xpp, &ypp, &zpm);
+          grid.Get_Position(i, j - 1, k, &xpm, &ypm, &zpm);
+          grid.Get_Position(i, j + 1, k, &xpp, &ypp, &zpm);
           Pm   = C.Energy[idm] * (gama - 1.0);  // only internal energy stored in energy currently
           Pp   = C.Energy[idp] * (gama - 1.0);  // only internal energy stored in energy currently
-          dPdy = (Pp - Pm) / (ypp - ypm);
+          Real dPdy = (Pp - Pm) / (ypp - ypm);
 
           // radial pressure gradient
-          dPdr = x_pos * dPdx / r + y_pos * dPdy / r;
+          Real dPdr = x_pos * dPdx / r + y_pos * dPdy / r;
 
           // radial acceleration
-          a = a_d + a_h + dPdr / d;
+          Real a = a_d + a_h + dPdr / d;
 
           if (isnan(a) || (a != a) || (r * a < 0)) {
             // printf("i %d j %d k %d a %e a_d %e dPdr %e d
@@ -997,10 +1005,10 @@ void Grid3D::Disk_3D(parameters p)
             // %e\n",C.Energy[idm],C.Energy[idp],C.density[idm],C.density[idp]);
           } else {
             // radial velocity
-            v  = sqrt(r * a);
-            vx = -sin(phi) * v;
-            vy = cos(phi) * v;
-            vz = 0;
+            Real v  = sqrt(r * a);
+            Real vx = -sin(phi) * v;
+            Real vy = cos(phi) * v;
+            Real vz = 0;
 
             // set the momenta
             C.momentum_x[id] = d * vx;
@@ -1009,8 +1017,8 @@ void Grid3D::Disk_3D(parameters p)
 
             // sheepishly check for NaN's!
 
-            if ((d < 0) || (P < 0) || (isnan(d)) || (isnan(P)) || (d != d) || (P != P)) {
-              printf("d %e P %e i %d j %d k %d id %d\n", d, P, i, j, k, id);
+            if ((d < 0) || (isnan(d)) || (d != d)) {
+              printf("d %e i %d j %d k %d id %d\n", d, i, j, k, id);
             }
 
             if ((isnan(vx)) || (isnan(vy)) || (isnan(vz)) || (vx != vx) || (vy != vy) || (vz != vz)) {
@@ -1029,10 +1037,6 @@ void Grid3D::Disk_3D(parameters p)
     }
   }
 
-  // free density profile
-  free(rho);
-
-  initialize_halo(p, this->H, *this, this->C, hdp);
 }
 
 
