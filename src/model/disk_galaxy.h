@@ -52,20 +52,20 @@ class DiskGalaxy
  private:
   MiyamotoNagaiDiskProps stellar_disk;
   GasDiskProps gas_disk;
-  Real M_vir, R_vir, c_vir, r_cool, M_h, R_h;
+  NFWHaloPotential halo_potential;
+  Real M_vir, R_vir, r_cool;
   static Real log_func(Real y) { return log(1 + y) - y / (1 + y); };
 
  public:
   DiskGalaxy(MiyamotoNagaiDiskProps stellar_disk, GasDiskProps gas_disk,
              Real mvir, Real rvir, Real cvir, Real rcool)
-    : stellar_disk(stellar_disk), gas_disk(gas_disk)
+    : stellar_disk(stellar_disk), gas_disk(gas_disk),
+      halo_potential{/* halo mass: */ mvir - stellar_disk.M_d,
+                     /* scale length:*/ (rvir / cvir), cvir}
   {
     M_vir  = mvir;
     R_vir  = rvir;
-    c_vir  = cvir;
     r_cool = rcool;
-    M_h    = M_vir - stellar_disk.M_d;
-    R_h    = R_vir / c_vir;
   };
 
   /* Radial acceleration in miyamoto nagai */
@@ -80,12 +80,12 @@ class DiskGalaxy
   Real gr_halo_D3D(Real R, Real z) const noexcept
   {
     Real r      = sqrt(R * R + z * z);  // spherical radius
-    Real x      = r / R_h;
+    Real x      = r / halo_potential.R_h;
     Real r_comp = R / r;
 
     Real A = log_func(x);
     Real B = 1.0 / (r * r);
-    Real C = GN * M_h / log_func(c_vir);
+    Real C = GN * halo_potential.M_h / log_func(halo_potential.c_vir);
 
     return -C * A * B * r_comp;
   };
@@ -111,8 +111,8 @@ class DiskGalaxy
   Real phi_halo_D3D(Real R, Real z) const noexcept
   {
     Real r = sqrt(R * R + z * z);  // spherical radius
-    Real x = r / R_h;
-    Real C = GN * M_h / (R_h * log_func(c_vir));
+    Real x = r / halo_potential.R_h;
+    Real C = GN * halo_potential.M_h / (halo_potential.R_h * log_func(halo_potential.c_vir));
 
     // limit x to non-zero value
     if (x < 1.0e-9) {
@@ -147,10 +147,12 @@ class DiskGalaxy
     const Real R_d = stellar_disk.R_d;
     const Real M_d = stellar_disk.M_d;
     const Real Z_d = stellar_disk.Z_d;
+    const Real M_h = halo_potential.M_h;
+    const Real R_h = halo_potential.R_h;
 
     Real r = sqrt(R * R + z * z);
     Real x = r / R_h;
-    Real C = GN * M_h / (R_h * log_func(c_vir));
+    Real C = GN * M_h / (R_h * log_func(halo_potential.c_vir));
     Real A = R_d + sqrt(z * z + Z_d * Z_d);
     Real B = sqrt(R * R + A * A);
 
@@ -176,7 +178,7 @@ class DiskGalaxy
   GasDiskProps getGasDisk() const { return gas_disk; };
   Real getM_vir() const { return M_vir; };
   Real getR_vir() const { return R_vir; };
-  Real getC_vir() const { return c_vir; };
+  Real getC_vir() const { return halo_potential.c_vir; };
   Real getR_cool() const { return r_cool; };
 };
 

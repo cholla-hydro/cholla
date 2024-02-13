@@ -26,7 +26,6 @@
  */
 struct DataPack{
   MiyamotoNagaiDiskProps stellar_disk;
-  Real M_vir;
   Real M_h;        // halo mass
   Real R_vir;
   Real c_vir;      // halo concentration parameter
@@ -773,7 +772,7 @@ void partial_initialize_halo(const parameters& p, const Header& H,
 void Grid3D::Disk_3D(parameters p)
 {
   Real T_d, T_h, mu;
-  Real M_vir, M_h, c_vir, R_vir, R_s;
+  Real M_h, c_vir, R_vir, R_s;
   Real K_eos, rho_eos, cs, rho_eos_h, cs_h, r_cool;
 
   // MW model
@@ -783,13 +782,12 @@ void Grid3D::Disk_3D(parameters p)
   const MiyamotoNagaiDiskProps stellar_disk = galaxy.getStellarDisk();
   const GasDiskProps gas_disk               = galaxy.getGasDisk();
 
-  M_vir = galaxy.getM_vir();    // viral mass in M_sun
   R_vir = galaxy.getR_vir();    // viral radius in kpc
   c_vir = galaxy.getC_vir();    // halo concentration (to account for adiabatic
                                 // contraction)
   r_cool = galaxy.getR_cool();  // cooling radius in kpc (MW)
 
-  M_h = M_vir - stellar_disk.M_d;    // halo mass in M_sun
+  M_h = galaxy.getM_vir() - stellar_disk.M_d;    // halo mass in M_sun
   R_s = R_vir / c_vir;  // halo scale length in kpc
   T_h       = 1.0e6;  // halo temperature, at density floor
   rho_eos   = 1.0e7;  // gas eos normalized at 1e7 Msun/kpc^3
@@ -825,7 +823,6 @@ void Grid3D::Disk_3D(parameters p)
   // these parameters are mostly passed to hydrostatic column
   DataPack hdp;  // parameters
   hdp.stellar_disk = galaxy.getStellarDisk();
-  hdp.M_vir   = M_vir;
   hdp.M_h     = M_h;
   hdp.R_vir   = R_vir;
   hdp.c_vir   = c_vir;
