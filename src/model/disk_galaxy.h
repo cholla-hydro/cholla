@@ -7,60 +7,7 @@
 
 #include "../global/global.h"
 #include "../utils/error_handling.h"
-
-/* Aggregates properties related to a disk
- *
- * Take note that this is NOT an exponential disk!
- */
-struct MiyamotoNagaiDiskProps{
-  Real M_d;  /*!< total mass (in Msolar) */
-  Real R_d;  /*!< scale-length (in kpc) */
-  Real Z_d;  /*!< scale-height (in kpc). In the case of a gas disk, this is more
-              *!< of an initial guess */
-
-  /* Radial acceleration in miyamoto nagai */
-  Real gr_disk_D3D(Real R, Real z) const noexcept
-  {
-    Real A = R_d + sqrt(Z_d * Z_d + z * z);
-    Real B = pow(A * A + R * R, 1.5);
-
-    return -GN * M_d * R / B;
-  };
-
-  // vertical acceleration in miyamoto nagai
-  Real gz_disk_D3D(Real R, Real z) const noexcept
-  {
-    Real a   = R_d;
-    Real b   = Z_d;
-    Real A   = sqrt(b * b + z * z);
-    Real B   = a + A;
-    Real C   = pow(B * B + R * R, 1.5);
-
-    // checked with wolfram alpha
-    return -GN * M_d * z * B / (A * C);
-  }
-
-   /* Miyamoto-Nagai potential */
-  Real phi_disk_D3D(Real R, Real z) const noexcept
-  {
-    Real A = sqrt(z * z + Z_d * Z_d);
-    Real B = R_d + A;
-    Real C = sqrt(R * R + B * B);
-
-    // patel et al. 2017, eqn 2
-    return -GN * M_d / C;
-  };
-
-  Real rho_disk_D3D(const Real r, const Real z) const noexcept
-  {
-    const Real a = R_d;
-    const Real c = Z_d;
-    const Real b = sqrt(z * z + c * c);
-    const Real d = a + b;
-    const Real s = r * r + d * d;
-    return M_d * c * c * (a * (d * d + r * r) + 3.0 * b * d * d) / (4.0 * M_PI * b * b * b * pow(s, 2.5));
-  }
-};
+#include "potentials.h"
 
 /* Aggregates properties related to a gas disk
  *
