@@ -19,8 +19,9 @@
 /*!
  *  \brief When passed a stencil of conserved variables, returns the left and
  right boundary values for the interface calculated using ppm. */
+template <int dir>
 __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny, int nz, Real dx,
-                         Real dt, Real gamma, int dir)
+                         Real dt, Real gamma)
 {
   // get a thread ID
   int const thread_id = threadIdx.x + blockIdx.x * blockDim.x;
@@ -57,29 +58,27 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   // load the 5-cell stencil into registers
   // cell i
   hydro_utilities::Primitive const cell_i =
-      reconstruction::Load_Data(dev_conserved, xid, yid, zid, nx, ny, n_cells, o1, o2, o3, gamma);
+      hydro_utilities::Load_Cell_Primitive<dir>(dev_conserved, xid, yid, zid, nx, ny, n_cells, gamma);
 
   // cell i-1. The equality checks check the direction and subtracts one from the direction
   // im1 stands for "i minus 1"
-  hydro_utilities::Primitive const cell_im1 = reconstruction::Load_Data(
-      dev_conserved, xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
+  hydro_utilities::Primitive const cell_im1 = hydro_utilities::Load_Cell_Primitive<dir>(
+      dev_conserved, xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny, n_cells, gamma);
 
   // cell i+1. The equality checks check the direction and adds one to the direction
   // ip1 stands for "i plus 1"
-  hydro_utilities::Primitive const cell_ip1 = reconstruction::Load_Data(
-      dev_conserved, xid + int(dir == 0), yid + int(dir == 1), zid + int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
+  hydro_utilities::Primitive const cell_ip1 = hydro_utilities::Load_Cell_Primitive<dir>(
+      dev_conserved, xid + int(dir == 0), yid + int(dir == 1), zid + int(dir == 2), nx, ny, n_cells, gamma);
 
   // cell i-2. The equality checks check the direction and subtracts one from the direction
   // im2 stands for "i minus 2"
-  hydro_utilities::Primitive const cell_im2 =
-      reconstruction::Load_Data(dev_conserved, xid - 2 * int(dir == 0), yid - 2 * int(dir == 1),
-                                zid - 2 * int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
+  hydro_utilities::Primitive const cell_im2 = hydro_utilities::Load_Cell_Primitive<dir>(
+      dev_conserved, xid - 2 * int(dir == 0), yid - 2 * int(dir == 1), zid - 2 * int(dir == 2), nx, ny, n_cells, gamma);
 
   // cell i+2. The equality checks check the direction and adds one to the direction
   // ip2 stands for "i plus 2"
-  hydro_utilities::Primitive const cell_ip2 =
-      reconstruction::Load_Data(dev_conserved, xid + 2 * int(dir == 0), yid + 2 * int(dir == 1),
-                                zid + 2 * int(dir == 2), nx, ny, n_cells, o1, o2, o3, gamma);
+  hydro_utilities::Primitive const cell_ip2 = hydro_utilities::Load_Cell_Primitive<dir>(
+      dev_conserved, xid + 2 * int(dir == 0), yid + 2 * int(dir == 1), zid + 2 * int(dir == 2), nx, ny, n_cells, gamma);
 
   // Steps 2 - 5 are repeated for cell i-1, i, and i+1
 
@@ -701,6 +700,13 @@ __global__ __launch_bounds__(TPB) void PPMC_VL(Real *dev_conserved, Real *dev_bo
   reconstruction::Write_Data(interface_R_imh, dev_bounds_R, dev_conserved, id, n_cells, o1, o2, o3, gamma);
 }
 // Instantiate the relevant template specifications
+template __global__ void PPMC_CTU<0>(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny,
+                                     int nz, Real dx, Real dt, Real gamma);
+template __global__ void PPMC_CTU<1>(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny,
+                                     int nz, Real dx, Real dt, Real gamma);
+template __global__ void PPMC_CTU<2>(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx, int ny,
+                                     int nz, Real dx, Real dt, Real gamma);
+
 template __global__ __launch_bounds__(TPB) void PPMC_VL<0>(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R,
                                                            int nx, int ny, int nz, Real gamma);
 template __global__ __launch_bounds__(TPB) void PPMC_VL<1>(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R,
