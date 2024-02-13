@@ -878,10 +878,28 @@ void Grid3D::Disk_3D(parameters p)
   //   add the kinetic energy contribution afterwards)
 
   bool self_gravity = false;
+#ifdef GRAVITY
+  self_gravity = true;
+#endif
 
   if (gas_disk.isothermal){
     if (self_gravity){
-      CHOLLA_ERROR("Currently, there isn't support for an isothermal gas disk with self-gravity");
+      // nongas_phi calculates the gravitational potential contributed by material other than the
+      // gas disk at a given (R,z), where R is cylindrical radius
+      // -> currently this just includes the static-gravitational potentials (from the stellar-disk
+      //    and the dark-matter halo)
+      // -> in principle this is also allowed to include other contributions (e.g. an estimate for 
+      //    potential contributed by a star-particle disk, gas in the halo)
+      auto nongas_phi_fn = [hdp](Real R, Real z) -> Real {return phi_total_D3D(R, z, hdp); };
+
+      // isoth_term is constant value of pressure/rho at the desired isothermal temperature.
+      // equivalent to:  `(isothermal_sound_speed)^2` OR `(adiabatic_sound_speed)^2/gamma` OR
+      //                 `(gamma - 1) * specific_internal_energy`
+      Real isoth_term = hdp.cs * hdp.cs; // <- square of the isothermal sound speed
+      Real initial_gas_scale_height_guess = gas_disk.H_d;
+      SelfGravHydroStaticColMaker col_maker(H.n_ghost, ZGridProps(p.zmin, p.zlen, p.nz),
+                                            isoth_term, nongas_phi_fn, initial_gas_scale_height_guess);
+      partial_initialize_isothermal_disk(p, this->H, *this, this->C, hdp, col_maker);
     } else {
       IsothermalStaticGravHydroStaticColMaker col_maker(p.zlen / ((Real)p.nz), p.nz, H.n_ghost, hdp);
       partial_initialize_isothermal_disk(p, this->H, *this, this->C, hdp, col_maker);
@@ -937,6 +955,7 @@ void partial_initialize_isothermal_disk(const parameters& p, const Header& H,
 
       // Compute the hydrostatic density profile in this z column
       Real cur_Sigma = Sigma_disk_D3D(r, hdp);
+      if (cur_Sigma == 0.0) continue;
       col_maker.construct_col(r, cur_Sigma, rho_buffer.data());
 
       // store densities

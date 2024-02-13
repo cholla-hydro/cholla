@@ -347,10 +347,14 @@ public:
   /* global total number of ghost zones along z-axis plus twice the ghost depth */
   int buffer_len() const noexcept {return this->z_grid_props.global_ncells + 2*ghost_depth; }
   
+  /// Compute the vertical density column in hydrostatic equilibrium
+  ///
   /// @param[in]  cur_R The current cylindrical radius
+  /// @param[in]  cur_Sigma The current surface density
   /// @param[out] buffer is filled by this function. It is assumed to be an
   ///     array of length `this->buffer_len()`
-  void construct_col(Real cur_R, Real* buffer) const noexcept
+  /// @returns best estimate for the midplane mass-density
+  Real construct_col(Real cur_R, Real cur_Sigma, Real* buffer) const noexcept
   {
     for (int i = 0; i < this->ghost_depth; i++){
       buffer[i] = 0.0;
@@ -358,21 +362,20 @@ public:
     for (int i = this->z_grid_props.global_ncells + ghost_depth; i < this->buffer_len(); i++){
       buffer[i] = 0.0;
     }
-
-    Real cur_Sigma = 1.0;
-    this->construct_col(cur_R, cur_Sigma, buffer + this->ghost_depth);
+    return this->construct_col_helper(cur_R, cur_Sigma, buffer + this->ghost_depth);
   }
 
 private: // helper methods
 
-  /// This does the heavy lifting of computing the self-gravitating hydrostatic column
+  /// Does the heavy lifting of computing the hydrostatic vertical density profile
   ///
   /// @param[in]  cur_R The current cylindrical radius
   /// @param[in]  cur_Sigma The current surface density
   /// @param[out] buffer is filled by this function. It is assumed to be an
   ///     array of length `this->z_grid_props.global_ncells`. This is DIFFERENT from
   ///     `this->buffer_len()`.
-  void construct_col_helper(Real cur_R, Real cur_Sigma, Real* buffer) const noexcept;
+  /// @returns best estimate for the midplane mass-density
+  Real construct_col_helper(Real cur_R, Real cur_Sigma, Real* buffer) const noexcept;
 
 private:
 
@@ -385,10 +388,12 @@ private:
 };
 
 template <typename NonGasPhiFn>
-void SelfGravHydroStaticColMaker<NonGasPhiFn>::construct_col_helper(Real cur_R, Real cur_Sigma, Real* buffer)
+Real SelfGravHydroStaticColMaker<NonGasPhiFn>::construct_col_helper(Real cur_R, Real cur_Sigma, Real* buffer)
   const noexcept
 {
   using MyDerivFn = selfgrav_hydrostatic_col::DerivFn<NonGasPhiFn>;
+
+  //CHOLLA_ASSERT(cur_Sigma > 0, "Surface density must be positive");
   // STEP 0: come up with an initial guess for the midplane mass density.
   //  -> to do that, we assume mass is distributed in the vertical direction
   //     with an exponential distribution
@@ -446,18 +451,21 @@ void SelfGravHydroStaticColMaker<NonGasPhiFn>::construct_col_helper(Real cur_R, 
        (2 * yvec_end[selfgrav_hydrostatic_col::LUT::posZ_unnormalized_Sigma]));
 
     est_abs_diff = std::fabs(prev_rho_midplane_est- latest_rho_midplane_est);
-    //printf("midplane density est, old: %.15e, new: %.15e, rdiff: %e\n",
-    //       prev_rho_midplane_est, latest_rho_midplane_est,
+    //printf("R = %e, midplane density est, old: %.15e, new: %.15e, rdiff: %e\n",
+    //       cur_R, prev_rho_midplane_est, latest_rho_midplane_est,
     //       est_abs_diff/prev_rho_midplane_est);
 
     if (est_abs_diff < fabs(TOL * prev_rho_midplane_est)) { break; }
   }
 
   // STEP 4: some error checking
-  if (est_abs_diff >= fabs(TOL * prev_rho_midplane_est)) {
+  if ((not std::isfinite(est_abs_diff)) or (est_abs_diff >= fabs(TOL * prev_rho_midplane_est))) {
     CHOLLA_ERROR("vertical density profile unconverged at Rcyl = %g.\n"
-                 "The relative difference is %e",
-                cur_R, est_abs_diff/prev_rho_midplane_est);
+                 "   rho_midplane estimate used to compute profile: %e\n"
+                 "   rho_midplane estimate computed from profile: %e\n"
+                 "   The relative difference is %e",
+                cur_R, prev_rho_midplane_est, prev_rho_midplane_est,
+                est_abs_diff/prev_rho_midplane_est);
   }
 
   // so I think it probably makes more sense to use prev_rho_midplane_est for
@@ -525,11 +533,11 @@ void SelfGravHydroStaticColMaker<NonGasPhiFn>::construct_col_helper(Real cur_R, 
 
       if (seg_z_end >= zend) { break; }
     }
-    printf("\n");
+    //printf("\n");
 
   }
 
-
+  return rho_midplane;
 }
 
 #endif /* SELFGRAV_HYDROSTATIC_COL */
