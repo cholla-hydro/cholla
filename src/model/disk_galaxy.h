@@ -54,7 +54,6 @@ class DiskGalaxy
   GasDiskProps gas_disk;
   NFWHaloPotential halo_potential;
   Real M_vir, R_vir, r_cool;
-  static Real log_func(Real y) { return log(1 + y) - y / (1 + y); };
 
  public:
   DiskGalaxy(MiyamotoNagaiDiskProps stellar_disk, GasDiskProps gas_disk,
@@ -74,20 +73,10 @@ class DiskGalaxy
     return stellar_disk.gr_disk_D3D(R, z);
   };
 
-  /**
-   *     Radial acceleration in NFW halo
-   */
+  /* Radial acceleration in NFW halo */
   Real gr_halo_D3D(Real R, Real z) const noexcept
   {
-    Real r      = sqrt(R * R + z * z);  // spherical radius
-    Real x      = r / halo_potential.R_h;
-    Real r_comp = R / r;
-
-    Real A = log_func(x);
-    Real B = 1.0 / (r * r);
-    Real C = GN * halo_potential.M_h / log_func(halo_potential.c_vir);
-
-    return -C * A * B * r_comp;
+    return halo_potential.gr_halo_D3D(R, z);
   };
 
   /**
@@ -105,21 +94,10 @@ class DiskGalaxy
     return gas_disk.approx_selfgrav_for_vcirc.gr_disk_D3D(R,z) + gr_total_D3D(R,z);
   };
 
-  /**
-   *    Potential of NFW halo
-   */
+  /* Potential of NFW halo */
   Real phi_halo_D3D(Real R, Real z) const noexcept
   {
-    Real r = sqrt(R * R + z * z);  // spherical radius
-    Real x = r / halo_potential.R_h;
-    Real C = GN * halo_potential.M_h / (halo_potential.R_h * log_func(halo_potential.c_vir));
-
-    // limit x to non-zero value
-    if (x < 1.0e-9) {
-      x = 1.0e-9;
-    }
-
-    return -C * log(1 + x) / x;
+    return halo_potential.phi_halo_D3D(R, z);
   };
 
   /* Miyamoto-Nagai potential */
@@ -152,7 +130,7 @@ class DiskGalaxy
 
     Real r = sqrt(R * R + z * z);
     Real x = r / R_h;
-    Real C = GN * M_h / (R_h * log_func(halo_potential.c_vir));
+    Real C = GN * M_h / (R_h * NFWHaloPotential::log_func(halo_potential.c_vir));
     Real A = R_d + sqrt(z * z + Z_d * Z_d);
     Real B = sqrt(R * R + A * A);
 
