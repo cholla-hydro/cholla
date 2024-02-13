@@ -22,6 +22,15 @@ struct GasDiskProps{
   bool isothermal; /*!< Indicates whether to initialize an isothermal or adiabatic disk
                     *!< (it's unclear whether the adiabatic configuration still works)
                     */
+  AprroxExponentialDisk3MN approx_selfgrav_for_vcirc; /*!< facilitates rough estimate of the self-gravity
+                                                       *!< (to help with setting up circular-velocity in ICs).
+                                                       *!< While this is always initialized, it's not always used
+                                                       */
+
+  GasDiskProps(Real M_d, Real R_d, Real H_d, Real T_d, bool isothermal, Real selfgrav_scale_height_estimate)
+    : M_d(M_d), R_d(R_d), H_d(H_d), T_d(T_d), isothermal(isothermal),
+      approx_selfgrav_for_vcirc(AprroxExponentialDisk3MN::create(M_d, R_d, selfgrav_scale_height_estimate, true))
+  {}
 
   /* Returns Sigma_0. This is just
    * \f$\Sigma_0 = \frac{M_d}{\int Sigma(r)\ dA} =  \frac{M_d}{2\pi \int_0^\infty r\ \Sigma\ dr} \f$
@@ -44,7 +53,7 @@ class DiskGalaxy
   MiyamotoNagaiDiskProps stellar_disk;
   GasDiskProps gas_disk;
   Real M_vir, R_vir, c_vir, r_cool, M_h, R_h;
-  Real log_func(Real y) { return log(1 + y) - y / (1 + y); };
+  static Real log_func(Real y) { return log(1 + y) - y / (1 + y); };
 
  public:
   DiskGalaxy(MiyamotoNagaiDiskProps stellar_disk, GasDiskProps gas_disk,
@@ -60,7 +69,7 @@ class DiskGalaxy
   };
 
   /* Radial acceleration in miyamoto nagai */
-  Real gr_disk_D3D(Real R, Real z)
+  Real gr_disk_D3D(Real R, Real z) const noexcept
   {
     return stellar_disk.gr_disk_D3D(R, z);
   };
@@ -68,7 +77,7 @@ class DiskGalaxy
   /**
    *     Radial acceleration in NFW halo
    */
-  Real gr_halo_D3D(Real R, Real z)
+  Real gr_halo_D3D(Real R, Real z) const noexcept
   {
     Real r      = sqrt(R * R + z * z);  // spherical radius
     Real x      = r / R_h;
@@ -89,12 +98,17 @@ class DiskGalaxy
    * point
    * @return
    */
-  Real gr_total_D3D(Real R, Real z) { return gr_disk_D3D(R, z) + gr_halo_D3D(R, z); };
+  Real gr_total_D3D(Real R, Real z) const noexcept { return gr_disk_D3D(R, z) + gr_halo_D3D(R, z); };
+
+  Real gr_total_with_GasSelfGravEstimate(Real R, Real z) const noexcept
+  {
+    return gas_disk.approx_selfgrav_for_vcirc.gr_disk_D3D(R,z) + gr_total_D3D(R,z);
+  };
 
   /**
    *    Potential of NFW halo
    */
-  Real phi_halo_D3D(Real R, Real z)
+  Real phi_halo_D3D(Real R, Real z) const noexcept
   {
     Real r = sqrt(R * R + z * z);  // spherical radius
     Real x = r / R_h;
@@ -109,21 +123,21 @@ class DiskGalaxy
   };
 
   /* Miyamoto-Nagai potential */
-  Real phi_disk_D3D(Real R, Real z)
+  Real phi_disk_D3D(Real R, Real z) const noexcept
   {
     return stellar_disk.phi_disk_D3D(R, z);
   };
-
-  Real rho_disk_D3D(const Real r, const Real z)
-  {
-    return stellar_disk.rho_disk_D3D(r, z);
-  }
 
   /**
    *  Convenience method that returns the combined gravitational potential
    *  of the disk and halo.
    */
-  Real phi_total_D3D(Real R, Real z) { return phi_halo_D3D(R, z) + phi_disk_D3D(R, z); };
+  Real phi_total_D3D(Real R, Real z) const noexcept { return phi_halo_D3D(R, z) + phi_disk_D3D(R, z); };
+
+  Real phi_total_with_GasSelfGravEstimate(Real R, Real z) const noexcept
+  {
+    return gas_disk.approx_selfgrav_for_vcirc.phi_disk_D3D(R,z) + gr_total_D3D(R,z);
+  };
 
   /**
    * epicyclic frequency
@@ -265,10 +279,10 @@ namespace Galaxies
 // into a disk with scale-length of 2.5 kpc
 static ClusteredDiskGalaxy MW(ClusterMassDistribution{1e2, 5e5, 2.0},
                               MiyamotoNagaiDiskProps{6.5e10, 2.5, 0.7}, // stellar_disk
-                              GasDiskProps{0.15 * 6.5e10, 3.5, 0.7, 1e4, true}, // gas_disk
+                              GasDiskProps{0.15 * 6.5e10, 3.5, 0.7, 1e4, true, 0.02}, // gas_disk
                               1.077e12, 261, 18, 157.0);
 static DiskGalaxy M82(MiyamotoNagaiDiskProps{1.0e10, 0.8, 0.15}, // stellar_disk
-                      GasDiskProps{0.25 * 1.0e10, 2*0.8, 0.15, 1e4, true}, // gas_disk
+                      GasDiskProps{0.25 * 1.0e10, 2*0.8, 0.15, 1e4, true, 2*0.8}, // gas_disk
                       5.0e10, 0.8 / 0.015, 10, 100.0);
 };  // namespace Galaxies
 
