@@ -421,3 +421,29 @@ TEST(tALLConserved2Primitive, CorrectInputExpectCorrectOutput)
                                    "gas_energy_specific");
 #endif  // DE
 }
+
+TEST(tALLPrimitive2Conserved, CorrectInputExpectCorrectOutput)
+{
+  Real const gamma = 5. / 3.;
+  hydro_utilities::Primitive input_data{2, {2, 3, 4}, 90, {6, 7, 8}, 9};
+  hydro_utilities::Conserved test_data = hydro_utilities::Primitive_2_Conserved(input_data, gamma);
+
+  hydro_utilities::Conserved fiducial_data{2, {4, 6, 8}, 163.99999999999997, {6, 7, 8}, 18};
+#ifdef MHD
+  fiducial_data.energy = 238.49999999999997;
+#endif  // MHD
+
+  testing_utilities::Check_Results(fiducial_data.density, test_data.density, "density");
+  testing_utilities::Check_Results(fiducial_data.momentum.x, test_data.momentum.x, "momentum.x");
+  testing_utilities::Check_Results(fiducial_data.momentum.y, test_data.momentum.y, "momentum.y");
+  testing_utilities::Check_Results(fiducial_data.momentum.z, test_data.momentum.z, "momentum.z");
+  testing_utilities::Check_Results(fiducial_data.energy, test_data.energy, "energy");
+#ifdef MHD
+  testing_utilities::Check_Results(fiducial_data.magnetic.x, test_data.magnetic.x, "magnetic.x");
+  testing_utilities::Check_Results(fiducial_data.magnetic.y, test_data.magnetic.y, "magnetic.y");
+  testing_utilities::Check_Results(fiducial_data.magnetic.z, test_data.magnetic.z, "magnetic.z");
+#endif  // MHD
+#ifdef DE
+  testing_utilities::Check_Results(fiducial_data.gas_energy, test_data.gas_energy, "gas_energy");
+#endif  // DE
+}
