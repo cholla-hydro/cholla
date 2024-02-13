@@ -47,6 +47,22 @@ struct Conserved {
 #ifdef SCALAR
   Real scalar[grid_enum::nscalars];
 #endif  // SCALAR
+
+  /// Default constructor, should init everything to zero
+  Conserved() = default;
+  /// Manual constructor, mostly used for testing and doesn't init all members
+  Conserved(Real const in_density, Vector const &in_momentum, Real const in_energy,
+            Vector const &in_magnetic = {0, 0, 0}, Real const in_gas_energy = 0.0)
+      : density(in_density), momentum(in_momentum), energy(in_energy)
+  {
+#ifdef MHD
+    magnetic = in_magnetic;
+#endif  // mhd
+
+#ifdef DE
+    gas_energy = in_gas_energy;
+#endif  // DE
+  };
 };
 // =====================================================================================================================
 
