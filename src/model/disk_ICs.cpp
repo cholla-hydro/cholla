@@ -26,10 +26,7 @@
  */
 struct DataPack{
   MiyamotoNagaiDiskProps stellar_disk;
-  Real M_h;        // halo mass
-  Real R_vir;
-  Real c_vir;      // halo concentration parameter
-  Real R_s;        // halo scale length
+  NFWHaloPotential halo_potential;
   Real T_d;
   Real Sigma_0;
   Real R_g;
@@ -55,9 +52,9 @@ Real log_func(Real y) { return log(1 + y) - y / (1 + y); }
 // vertical acceleration in NFW halo
 Real gz_halo_D3D(Real R, Real z, DataPack hdp)
 {
-  Real M_h    = hdp.M_h;              // halo mass
-  Real R_h    = hdp.R_s;              // halo scale length
-  Real c_vir  = hdp.c_vir;            // halo concentration parameter
+  Real M_h    = hdp.halo_potential.M_h;      // halo mass
+  Real R_h    = hdp.halo_potential.R_h;      // halo scale length
+  Real c_vir  = hdp.halo_potential.c_vir;    // halo concentration parameter
   Real r      = sqrt(R * R + z * z);  // spherical radius
   Real x      = r / R_h;
   Real z_comp = z / r;
@@ -73,9 +70,9 @@ Real gz_halo_D3D(Real R, Real z, DataPack hdp)
 // radial acceleration in NFW halo
 Real gr_halo_D3D(Real R, Real z, const DataPack& hdp)
 {
-  Real M_h    = hdp.M_h;              // halo mass
-  Real R_h    = hdp.R_s;              // halo scale length
-  Real c_vir  = hdp.c_vir;            // halo concentration parameter
+  Real M_h    = hdp.halo_potential.M_h;      // halo mass
+  Real R_h    = hdp.halo_potential.R_h;      // halo scale length
+  Real c_vir  = hdp.halo_potential.c_vir;    // halo concentration parameter
   Real r      = sqrt(R * R + z * z);  // spherical radius
   Real x      = r / R_h;
   Real r_comp = R / r;
@@ -124,9 +121,9 @@ Real Sigma_disk_D3D(Real r, const DataPack& hdp)
 // NFW halo potential
 Real phi_halo_D3D(Real R, Real z, const DataPack& hdp)
 {
-  Real M_h   = hdp.M_h;              // halo mass
-  Real R_h   = hdp.R_s;              // halo scale length
-  Real c_vir = hdp.c_vir;            // halo concentration parameter
+  Real M_h   = hdp.halo_potential.M_h;      // halo mass
+  Real R_h   = hdp.halo_potential.R_h;      // halo scale length
+  Real c_vir = hdp.halo_potential.c_vir;    // halo concentration parameter
   Real r     = sqrt(R * R + z * z);  // spherical radius
   Real x     = r / R_h;
 
@@ -772,7 +769,6 @@ void partial_initialize_halo(const parameters& p, const Header& H,
 void Grid3D::Disk_3D(parameters p)
 {
   Real T_d, T_h, mu;
-  Real M_h, c_vir, R_vir, R_s;
   Real K_eos, rho_eos, cs, rho_eos_h, cs_h, r_cool;
 
   // MW model
@@ -782,13 +778,8 @@ void Grid3D::Disk_3D(parameters p)
   const MiyamotoNagaiDiskProps stellar_disk = galaxy.getStellarDisk();
   const GasDiskProps gas_disk               = galaxy.getGasDisk();
 
-  R_vir = galaxy.getR_vir();    // viral radius in kpc
-  c_vir = galaxy.getC_vir();    // halo concentration (to account for adiabatic
-                                // contraction)
   r_cool = galaxy.getR_cool();  // cooling radius in kpc (MW)
 
-  M_h = galaxy.getM_vir() - stellar_disk.M_d;    // halo mass in M_sun
-  R_s = R_vir / c_vir;  // halo scale length in kpc
   T_h       = 1.0e6;  // halo temperature, at density floor
   rho_eos   = 1.0e7;  // gas eos normalized at 1e7 Msun/kpc^3
   rho_eos_h = 3.0e3;  // gas eos normalized at 3e3 Msun/kpc^3 (about n_h = 10^-3.5)
@@ -822,16 +813,13 @@ void Grid3D::Disk_3D(parameters p)
   // set some initial parameters
   // these parameters are mostly passed to hydrostatic column
   DataPack hdp;  // parameters
-  hdp.stellar_disk = galaxy.getStellarDisk();
-  hdp.M_h     = M_h;
-  hdp.R_vir   = R_vir;
-  hdp.c_vir   = c_vir;
-  hdp.R_s     = R_s;
-  hdp.T_d     = T_d;
-  hdp.Sigma_0 = Sigma_0;
-  hdp.R_g     = gas_disk.R_d;
-  hdp.H_g     = gas_disk.H_d;  // initial guess for gas scale height (kpc)
-  hdp.gamma   = p.gamma;
+  hdp.stellar_disk   = stellar_disk;
+  hdp.halo_potential = galaxy.getHaloPotential();
+  hdp.T_d            = T_d;
+  hdp.Sigma_0        = Sigma_0;
+  hdp.R_g            = gas_disk.R_d;
+  hdp.H_g            = gas_disk.H_d;  // initial guess for gas scale height (kpc)
+  hdp.gamma          = p.gamma;
 
   if (gas_disk.isothermal){
     // determine rho_eos by setting central density of disk based on central temperature

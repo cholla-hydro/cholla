@@ -154,9 +154,9 @@ class DiskGalaxy
   Real getZ_d() const { return stellar_disk.Z_d; };
   MiyamotoNagaiDiskProps getStellarDisk() const { return stellar_disk; };
   GasDiskProps getGasDisk() const { return gas_disk; };
+  NFWHaloPotential getHaloPotential() const { return halo_potential; }
   Real getM_vir() const { return M_vir; };
   Real getR_vir() const { return R_vir; };
-  Real getC_vir() const { return halo_potential.c_vir; };
   Real getR_cool() const { return r_cool; };
 };
 

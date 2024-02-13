@@ -12,7 +12,7 @@
 struct NFWHaloPotential{
   Real M_h;   /*!< total halo mass in Msolar */
   Real R_h;   /*!< halo scale length (NOT the virial radius) */
-  Real c_vir;  /*!< halo concentration parameter */
+  Real c_vir;  /*!< halo concentration parameter (to account for adiabatic contraction) */
 
   /* function with logarithms used in NFW definitions */
   static Real log_func(Real y) { return log(1 + y) - y / (1 + y); };
