@@ -9,6 +9,12 @@
 #include "../global/global.h"
 #include "../utils/error_handling.h"
 
+struct NFWHaloPotential{
+  Real M_h;   /*!< total halo mass in Msolar */
+  Real R_h;   /*!< halo scale length (NOT the virial radius) */
+  Real c_vir;  /*!< halo concentration parameter */
+};
+
 /* Aggregates properties related to a disk
  *
  * Take note that this is NOT an exponential disk!
