@@ -706,11 +706,11 @@ Real halo_density_D3D(Real r, Real *r_halo, Real *rho_halo, Real dr, int nr)
 // we need to forward declare the following functions
 // -> we opt to forward declare them rather than move them because the functions are fairly large
 // -> in both cases, the functions only initialize thermal-energy in the total-energy field
-template<typename HydroStaticColMaker, typename MidplaneVrot2FromPotential>
+template<typename HydroStaticColMaker, typename Vrot2FromPotential>
 void partial_initialize_isothermal_disk(const parameters& p, const Header& H,
                                         const Grid3D& grid, const Grid3D::Conserved& C,
                                         const DataPack hdp, const HydroStaticColMaker& col_maker,
-                                        const MidplaneVrot2FromPotential& midplane_vrot2_from_phi_fn);
+                                        const Vrot2FromPotential& vrot2_from_phi_fn);
 void partial_initialize_halo(const parameters& p, const Header& H,
                              const Grid3D& grid, const Grid3D::Conserved& C,
                              DataPack hdp);
@@ -842,21 +842,21 @@ void Grid3D::Disk_3D(parameters p)
       Real initial_gas_scale_height_guess = gas_disk.H_d;
       SelfGravHydroStaticColMaker col_maker(H.n_ghost, ZGridProps(p.zmin, p.zlen, p.nz),
                                             isoth_term, nongas_phi_fn, initial_gas_scale_height_guess);
-      // the following function is used to compute the midplane rotational velocity for a collisionless particle
-      auto midplane_vrot2_from_phi_fn = [hdp](Real R) -> Real {
-        return R * (std::fabs(hdp.stellar_disk.gr_disk_D3D(R, 0.0)) + 
-                    std::fabs(gr_halo_D3D(R, 0.0, hdp)));
+      // the following function is used to compute the rotational velocity for a collisionless particle
+      auto vrot2_from_phi_fn = [hdp](Real R, Real z) -> Real {
+        return R * (std::fabs(hdp.stellar_disk.gr_disk_D3D(R, z)) +
+                    std::fabs(gr_halo_D3D(R, z, hdp)));
       };
       partial_initialize_isothermal_disk(p, this->H, *this, this->C, hdp, col_maker,
-                                         midplane_vrot2_from_phi_fn);
+                                         vrot2_from_phi_fn);
     } else {
       IsothermalStaticGravHydroStaticColMaker col_maker(p.zlen / ((Real)p.nz), p.nz, H.n_ghost, hdp);
-      auto midplane_vrot2_from_phi_fn = [hdp](Real R) -> Real {
-        return R * (std::fabs(hdp.stellar_disk.gr_disk_D3D(R, 0.0)) + 
-                    std::fabs(gr_halo_D3D(R, 0.0, hdp)));
+      auto vrot2_from_phi_fn = [hdp](Real R, Real z) -> Real {
+        return R * (std::fabs(hdp.stellar_disk.gr_disk_D3D(R, z)) +
+                    std::fabs(gr_halo_D3D(R, z, hdp)));
       };
       partial_initialize_isothermal_disk(p, this->H, *this, this->C, hdp, col_maker,
-                                         midplane_vrot2_from_phi_fn);
+                                         vrot2_from_phi_fn);
     }
   } else {
     CHOLLA_ERROR("Currently, there isn't support for a non-isothermal gas disk");
@@ -885,11 +885,11 @@ void Grid3D::Disk_3D(parameters p)
 
 }
 
-template<typename MidplaneVrot2FromPotential>
+template<typename Vrot2FromPotential>
 void assign_vcirc_from_midplane_isothermal_disk(const parameters& p, const Header& H,
                                                 const Grid3D& grid, const Grid3D::Conserved& C,
                                                 const DataPack hdp,
-                                                const MidplaneVrot2FromPotential& midplane_vrot2_from_phi_fn,
+                                                const Vrot2FromPotential& vrot2_from_phi_fn,
                                                 const std::vector<Real>& rho_midplane_2Dbuffer)
 {
   // we are adopting the strategy for initializing the circular velocity in an isothermal disk 
@@ -931,7 +931,7 @@ void assign_vcirc_from_midplane_isothermal_disk(const parameters& p, const Heade
       // -> this is equal to the `-1 * accel_radial * r` (it should be a positive number)
       // -> this may or may not include an estimate for the gas disk's own gravitational potential
       //    (that decision is made by the caller of this function)
-      Real vrot2_contrib_from_phi = midplane_vrot2_from_phi_fn(r);
+      Real vrot2_contrib_from_phi = vrot2_from_phi_fn(r, 0.0);
 
       // calculate the radial pressure gradient in the midplane (gradient calc is first order at boundaries)
 
@@ -987,9 +987,10 @@ void assign_vcirc_from_midplane_isothermal_disk(const parameters& p, const Heade
   CHOLLA_ASSERT(not any_error, "There was a problem when initializing the circular velocity");
 }
 
+template<typename Vrot2FromPotential>
 void older_assign_vels(const parameters& p, const Header& H,
                        const Grid3D& grid, const Grid3D::Conserved& C,
-                       const DataPack hdp)
+                       const Vrot2FromPotential& vrot2_from_phi_fn)
 {
   // Assign the circular velocities
   // -> everywhere that density >= 0, we compute the radial acceleration and use
@@ -1035,10 +1036,8 @@ void older_assign_vels(const parameters& p, const Header& H,
           Real r   = sqrt(x_pos * x_pos + y_pos * y_pos);
           Real phi = atan2(y_pos, x_pos);  // azimuthal angle (in x-y plane)
 
-          // radial acceleration from stellar-disk
-          Real a_d = fabs(hdp.stellar_disk.gr_disk_D3D(r, z_pos));
-          // radial acceleration from halo
-          Real a_h = fabs(gr_halo_D3D(r, z_pos, hdp));
+          // consider radial acceleration from gravitational potential
+          Real agrav_times_r = vrot2_from_phi_fn(r,z_pos);
 
           //  pressure gradient along x direction
           // gradient calc is first order at boundaries
@@ -1060,17 +1059,17 @@ void older_assign_vels(const parameters& p, const Header& H,
           // radial pressure gradient
           Real dPdr = x_pos * dPdx / r + y_pos * dPdy / r;
 
-          // radial acceleration
-          Real a = a_d + a_h + dPdr / d;
+          // radial acceleration (multiplied by cylindrical radius)
+          Real a_times_r = agrav_times_r + r * (dPdr / d); // = r * (a_grav + dPdr / d)
 
-          if ((r * a) < 0){
+          if (a_times_r < 0){
             continue;
-          } else if (not std::isfinite(a)) {
+          } else if (not std::isfinite(a_times_r)) {
             any_accel_error = true;
             continue;
           }
 
-          Real v  = sqrt(r * a); // circular velocity
+          Real v  = sqrt(a_times_r); // circular velocity
           Real vx = -sin(phi) * v;
           Real vy = cos(phi) * v;
           Real vz = 0;
@@ -1094,11 +1093,11 @@ void older_assign_vels(const parameters& p, const Header& H,
 }
 
 
-template<typename HydroStaticColMaker, typename MidplaneVrot2FromPotential>
+template<typename HydroStaticColMaker, typename Vrot2FromPotential>
 void partial_initialize_isothermal_disk(const parameters& p, const Header& H,
                                         const Grid3D& grid, const Grid3D::Conserved& C,
                                         const DataPack hdp, const HydroStaticColMaker& col_maker,
-                                        const MidplaneVrot2FromPotential& midplane_vrot2_from_phi_fn)
+                                        const Vrot2FromPotential& vrot2_from_phi_fn)
 {
   // Step 0: allocate a buffer to track the midplane mass density
   std::vector<Real> rho_midplane_2Dbuffer((H.ny * H.nx), 0.0);
@@ -1158,10 +1157,10 @@ void partial_initialize_isothermal_disk(const parameters& p, const Header& H,
   CHOLLA_ASSERT(not any_density_error, "There was a problem initializing disk density");
 
   if (false){
-    assign_vcirc_from_midplane_isothermal_disk(p, H, grid, C, hdp, midplane_vrot2_from_phi_fn,
+    assign_vcirc_from_midplane_isothermal_disk(p, H, grid, C, hdp, vrot2_from_phi_fn,
                                                rho_midplane_2Dbuffer);
   } else {
-    older_assign_vels(p, H, grid, C, hdp);
+    older_assign_vels(p, H, grid, C, vrot2_from_phi_fn);
   }
 
 }
