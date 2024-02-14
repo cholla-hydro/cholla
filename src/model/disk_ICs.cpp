@@ -842,18 +842,20 @@ void Grid3D::Disk_3D(parameters p)
       Real initial_gas_scale_height_guess = gas_disk.H_d;
       SelfGravHydroStaticColMaker col_maker(H.n_ghost, ZGridProps(p.zmin, p.zlen, p.nz),
                                             isoth_term, nongas_phi_fn, initial_gas_scale_height_guess);
+
       // the following function is used to compute the rotational velocity for a collisionless particle
-      auto vrot2_from_phi_fn = [hdp](Real R, Real z) -> Real {
-        return R * (std::fabs(hdp.stellar_disk.gr_disk_D3D(R, z)) +
-                    std::fabs(gr_halo_D3D(R, z, hdp)));
+      // (this includes an estimate for the potential of the gas disk)
+      auto vrot2_from_phi_fn = [galaxy](Real R, Real z) -> Real {
+        return galaxy.circular_vel2_with_selfgrav_estimates(R, z);
       };
       partial_initialize_isothermal_disk(p, this->H, *this, this->C, hdp, col_maker,
                                          vrot2_from_phi_fn);
     } else {
       IsothermalStaticGravHydroStaticColMaker col_maker(p.zlen / ((Real)p.nz), p.nz, H.n_ghost, hdp);
-      auto vrot2_from_phi_fn = [hdp](Real R, Real z) -> Real {
-        return R * (std::fabs(hdp.stellar_disk.gr_disk_D3D(R, z)) +
-                    std::fabs(gr_halo_D3D(R, z, hdp)));
+      // the following function is used to compute the rotational velocity for a collisionless particle
+      // (this includes an estimate for the potential of the gas disk)
+      auto vrot2_from_phi_fn = [galaxy](Real R, Real z) -> Real {
+        return galaxy.circular_vel2(R, z);
       };
       partial_initialize_isothermal_disk(p, this->H, *this, this->C, hdp, col_maker,
                                          vrot2_from_phi_fn);
