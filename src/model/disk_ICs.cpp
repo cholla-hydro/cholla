@@ -70,19 +70,7 @@ Real gz_halo_D3D(Real R, Real z, DataPack hdp)
 // radial acceleration in NFW halo
 Real gr_halo_D3D(Real R, Real z, const DataPack& hdp)
 {
-  Real M_h    = hdp.halo_potential.M_h;      // halo mass
-  Real R_h    = hdp.halo_potential.R_h;      // halo scale length
-  Real c_vir  = hdp.halo_potential.c_vir;    // halo concentration parameter
-  Real r      = sqrt(R * R + z * z);  // spherical radius
-  Real x      = r / R_h;
-  Real r_comp = R / r;
-
-  Real A = log_func(x);
-  Real B = 1.0 / (r * r);
-  Real C = GN * M_h / log_func(c_vir);
-
-  // checked with wolfram alpha
-  return -C * A * B * r_comp;
+  return hdp.halo_potential.gr_halo_D3D(R, z);
 }
 
 /* Compute the standard logistic function f(x) = 1.0 / (1.0 + exp(-x))
