@@ -46,27 +46,6 @@ struct DataPack{
 
 };
 
-// function with logarithms used in NFW definitions
-Real log_func(Real y) { return log(1 + y) - y / (1 + y); }
-
-// vertical acceleration in NFW halo
-Real gz_halo_D3D(Real R, Real z, DataPack hdp)
-{
-  Real M_h    = hdp.halo_potential.M_h;      // halo mass
-  Real R_h    = hdp.halo_potential.R_h;      // halo scale length
-  Real c_vir  = hdp.halo_potential.c_vir;    // halo concentration parameter
-  Real r      = sqrt(R * R + z * z);  // spherical radius
-  Real x      = r / R_h;
-  Real z_comp = z / r;
-
-  Real A = log_func(x);
-  Real B = 1.0 / (r * r);
-  Real C = GN * M_h / log_func(c_vir);
-
-  // checked with wolfram alpha
-  return -C * A * B * z_comp;
-}
-
 // radial acceleration in NFW halo
 Real gr_halo_D3D(Real R, Real z, const DataPack& hdp)
 {
@@ -109,21 +88,7 @@ Real Sigma_disk_D3D(Real r, const DataPack& hdp)
 // NFW halo potential
 Real phi_halo_D3D(Real R, Real z, const DataPack& hdp)
 {
-  Real M_h   = hdp.halo_potential.M_h;      // halo mass
-  Real R_h   = hdp.halo_potential.R_h;      // halo scale length
-  Real c_vir = hdp.halo_potential.c_vir;    // halo concentration parameter
-  Real r     = sqrt(R * R + z * z);  // spherical radius
-  Real x     = r / R_h;
-
-  Real C = GN * M_h / (R_h * log_func(c_vir));
-
-  // limit x to non-zero value
-  if (x < 1.0e-9) {
-    x = 1.0e-9;
-  }
-
-  // checked with wolfram alpha
-  return -C * log(1 + x) / x;
+  return hdp.halo_potential.phi_halo_D3D(R, z);
 }
 
 // total potential
