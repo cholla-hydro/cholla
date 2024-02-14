@@ -94,6 +94,21 @@ class DiskGalaxy
     return gas_disk.approx_selfgrav_for_vcirc.gr_disk_D3D(R,z) + gr_total_D3D(R,z);
   };
 
+  /* returns the circular velocity of a massless test particle in the static gravitational
+   * potential at the specified (cylindrical radius, z) pair. */
+  Real circular_vel2(Real R, Real z) const noexcept
+  {
+    return R * std::fabs(gr_total_D3D(R, z));
+  }
+
+  /* returns the circular velocity of a massless test particle in the gravitational
+   * potential (including an estimate for self-gravity) at the specified 
+   * (cylindrical radius, z) pair. */
+  Real circular_vel2_with_selfgrav_estimates(Real R, Real z) const noexcept
+  {
+    return R * std::fabs(gr_total_with_GasSelfGravEstimate(R, z));
+  }
+
   /* Potential of NFW halo */
   Real phi_halo_D3D(Real R, Real z) const noexcept
   {

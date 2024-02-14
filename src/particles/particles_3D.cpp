@@ -1037,8 +1037,12 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
       continue;
     }
 
-    Real ac   = fabs(Galaxies::MW.gr_disk_D3D(R, 0) + Galaxies::MW.gr_halo_D3D(R, 0));
-    Real vPhi = sqrt(R * ac);
+    Real vPhi;
+    if (true) {
+      vPhi = std::sqrt(Galaxies::MW.circular_vel2_with_selfgrav_estimates(R, z));
+    } else {
+      vPhi = std::sqrt(Galaxies::MW.circular_vel2(R, z));
+    }
 
     Real vx = -vPhi * sin(phi);
     Real vy = vPhi * cos(phi);
