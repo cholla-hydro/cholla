@@ -31,6 +31,20 @@ struct NFWHaloPotential{
     return -C * A * B * r_comp;
   };
 
+  /* vertical acceleration in NFW halo */
+  Real gz_halo_D3D(Real R, Real z)
+  {
+    Real r      = sqrt(R * R + z * z);  // spherical radius
+    Real x      = r / R_h;
+    Real z_comp = z / r;
+
+    Real A = log_func(x);
+    Real B = 1.0 / (r * r);
+    Real C = GN * M_h / log_func(c_vir);
+
+    return -C * A * B * z_comp;  // checked with wolfram alpha
+  }
+
   /* Potential of NFW halo */
   Real phi_halo_D3D(Real R, Real z) const noexcept
   {
