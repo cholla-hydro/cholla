@@ -308,3 +308,9 @@ TEST_P(tHYDROtMHDSYSTEMLinearWavesParameterizedMpi, HydroContactWaveCorrectInput
 INSTANTIATE_TEST_SUITE_P(, tHYDROtMHDSYSTEMLinearWavesParameterizedMpi, ::testing::Values(1));
 /// @}
 // =============================================================================
+
+TEST(tHYDROSYSTEMKhDiscontinuous, CorrectInputExpectCorrectOutput)
+{
+  system_test::SystemTestRunner kh_discon_test;
+  kh_discon_test.runTest();
+}
