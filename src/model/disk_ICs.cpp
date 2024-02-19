@@ -72,7 +72,9 @@ Real Sigma_disk_D3D(Real r, const DataPack& hdp)
 
   // taper the edge of the disk to 0
   Real R_c     = hdp.Rgas_truncation_radius;
-  Real taper_factor = 1.0 - standard_logistic_function((r - R_c) / 0.005);
+  Real alpha   = 0.005;
+  //Real alpha   = 0.1;
+  Real taper_factor = 1.0 - standard_logistic_function((r - R_c) / 0.1);
 
   // force surface density to 0 when taper_factor drops below 1e-6
   // -> this is a crude hack to limit how far we are setting the circular velocity
@@ -825,6 +827,11 @@ void Grid3D::Disk_3D(parameters p)
   self_gravity = true;
 #endif
 
+  // since we are adding contributions from the halo across the entire domain, let's initialize it 
+  // first (we will need to account for its influence on the radial pressure gradients when
+  // initializing the circular velocity of the disk)
+  partial_initialize_halo(p, this->H, *this, this->C, hdp);
+
   if (gas_disk.isothermal){
     if (self_gravity){
       // nongas_phi calculates the gravitational potential contributed by material other than the
@@ -863,7 +870,6 @@ void Grid3D::Disk_3D(parameters p)
   } else {
     CHOLLA_ERROR("Currently, there isn't support for a non-isothermal gas disk");
   }
-  partial_initialize_halo(p, this->H, *this, this->C, hdp);
 
   // Final Step: add kinetic energy to total energy
   for (int k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
@@ -989,10 +995,25 @@ void assign_vcirc_from_midplane_isothermal_disk(const parameters& p, const Heade
   CHOLLA_ASSERT(not any_error, "There was a problem when initializing the circular velocity");
 }
 
+
+/* Assign the velocities. As we do this, we go out of our way to ensure that the centrifugal-force
+ * balances the radial pressure gradient from the disk AND from the halo.
+ *
+ * This assumes that `C.Energy` just tracks thermal energy.
+ *
+ * `rho_disk` has the same layout as `C.d`. While `C.d` records the total_density, `rho_disk`
+ * only records the contributions from the disk. Essentially we use `rho_disk` as a mask. We
+ * initialize velocity everywhere it's non-zero.
+ *
+ * @note
+ * This only initializes values in the active zone. However, it assumes that the pressure values
+ * were already initialized in the ghost zone
+ */
 template<typename Vrot2FromPotential>
 void older_assign_vels(const parameters& p, const Header& H,
                        const Grid3D& grid, const Grid3D::Conserved& C,
-                       const Vrot2FromPotential& vrot2_from_phi_fn)
+                       const Vrot2FromPotential& vrot2_from_phi_fn,
+                       const std::vector<Real>& rho_disk)
 {
   // Assign the circular velocities
   // -> everywhere that density >= 0, we compute the radial acceleration and use
@@ -1028,7 +1049,7 @@ void older_assign_vels(const parameters& p, const Header& H,
 
         // restrict to regions where the density
         // has been set
-        if (d > 0.0) {
+        if (rho_disk[id] > 0.0) {
           // get the centered x, y, and z positions
           Real x_pos, y_pos, z_pos;
           grid.Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
@@ -1042,17 +1063,16 @@ void older_assign_vels(const parameters& p, const Header& H,
           Real agrav_times_r = vrot2_from_phi_fn(r,z_pos);
 
           //  pressure gradient along x direction
-          // gradient calc is first order at boundaries
-          int i_left   = std::max<int>((i-1), H.n_ghost);
-          int i_right  = std::min<int>((i+1), H.nx - H.n_ghost - 1);
+          int i_left   = (i-1);
+          int i_right  = (i+1);
           // Currently, C.Energy just stores internal energy density
           Real P_xL = C.Energy[i_left + j * H.nx + k * H.nx * H.ny] * (gama - 1.0);
           Real P_xR = C.Energy[i_right + j * H.nx + k * H.nx * H.ny] * (gama - 1.0);
           Real dPdx = (P_xR - P_xL) / (dx*(i_right - i_left));
 
           // pressure gradient along y direction
-          int j_left   = std::max<int>((j-1), H.n_ghost);
-          int j_right  = std::min<int>((j+1), H.ny - H.n_ghost - 1);
+          int j_left   = j-1;
+          int j_right  = j+1;
           // Currently, C.Energy just stores internal energy density
           Real P_yL = C.Energy[i + j_left * H.nx + k * H.nx * H.ny] * (gama - 1.0);
           Real P_yR = C.Energy[i + j_right * H.nx + k * H.nx * H.ny] * (gama - 1.0);
@@ -1101,9 +1121,11 @@ void partial_initialize_isothermal_disk(const parameters& p, const Header& H,
                                         const DataPack hdp, const HydroStaticColMaker& col_maker,
                                         const Vrot2FromPotential& vrot2_from_phi_fn)
 {
-  // Step 0: allocate a buffer to track the midplane mass density
+  // Step 0: allocate buffers
+  // -> this buffer tracks the midplane mass density
   std::vector<Real> rho_midplane_2Dbuffer((H.ny * H.nx), 0.0);
-
+  // -> this buffer tracks the locations where we have contributed mass from the disk
+  std::vector<Real> rho_disk((H.nz * H.ny * H.nx), 0.0);
 
   // Step 1: add the gas-disk density and thermal energy to the density and energy arrays
   // -> At each (x,y) pair, we use col_maker to loop over all z-values and compute "hydrostatic column"
@@ -1147,11 +1169,14 @@ void partial_initialize_isothermal_disk(const parameters& p, const Header& H,
         // set pressure isothermally
         Real P = d * (hdp.cs * hdp.cs);  // CHANGED FOR ISOTHERMAL
 
+        // record density in rho_disk
+        rho_disk[id] = d;
+
         // store density in density
-        C.density[id] = d;
+        C.density[id] += d;
 
         // store internal energy in Energy array
-        C.Energy[id] = P / (gama - 1.0);
+        C.Energy[id] += P / (gama - 1.0);
       }
     }
   }
@@ -1162,7 +1187,7 @@ void partial_initialize_isothermal_disk(const parameters& p, const Header& H,
     assign_vcirc_from_midplane_isothermal_disk(p, H, grid, C, hdp, vrot2_from_phi_fn,
                                                rho_midplane_2Dbuffer);
   } else {
-    older_assign_vels(p, H, grid, C, vrot2_from_phi_fn);
+    older_assign_vels(p, H, grid, C, vrot2_from_phi_fn, rho_disk);
   }
 
 }
@@ -1192,9 +1217,11 @@ void partial_initialize_halo(const parameters& p, const Header& H,
   // Add a hot, hydrostatic halo
   //////////////////////////////////////////////
   //////////////////////////////////////////////
-  for (int k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
-    for (int j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
-      for (int i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+  // we make a point of initializing the ghost zones (this is important for initializing
+  // the circular velocity in the disk)
+  for (int k = 0; k < H.nz; k++) {
+    for (int j = 0; j < H.ny; j++) {
+      for (int i = 0; i < H.nx; i++) {
         // get the cell index
         int id = i + j * H.nx + k * H.nx * H.ny;
 
