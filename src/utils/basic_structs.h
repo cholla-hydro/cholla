@@ -72,7 +72,7 @@ struct Conserved {
  *
  */
 struct Primitive {
-  // Hydro variables
+  // Hydro variable
   Real density, pressure;
   Vector velocity;
 
