@@ -123,6 +123,11 @@ inline __host__ __device__ Real computeTotalPressure(Real const &gasPressure, Re
 
   return fmax(pTot, TINY_NUMBER);
 }
+/// Overload for Vector objects
+inline __host__ __device__ Real computeTotalPressure(Real const &gasPressure, hydro_utilities::Vector const &magnetic)
+{
+  return computeTotalPressure(gasPressure, magnetic.x, magnetic.y, magnetic.z);
+}
 // =========================================================================
 
 // =========================================================================
