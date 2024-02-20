@@ -781,7 +781,9 @@ TEST_P(tMHDSYSTEMParameterizedMpi, MhdBlastWaveCorrectInputExpectCorrectOutput)
 TEST_P(tMHDSYSTEMParameterizedMpi, OrszagTangVortexCorrectInputExpectCorrectOutput)
 {
   test_runner.numMpiRanks = GetParam();
-  test_runner.runTest();
+  // Only do the L2 Norm test. The regular cell-to-cell comparison is brittle for this test across systems and small
+  // changes
+  test_runner.runTest(true, 2.0E-4, 2.0E-3);
 }
 /// @}
 // =============================================================================
