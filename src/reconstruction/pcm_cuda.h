@@ -58,7 +58,6 @@ reconstruction::InterfaceState __device__ __host__ inline PCM_Reconstruction(Rea
 #endif  // SCALAR
 
   return interface_state;
-  // repeat function call for second side
 }
 }  // namespace reconstruction
 #endif  // PCM_CUDA_H
