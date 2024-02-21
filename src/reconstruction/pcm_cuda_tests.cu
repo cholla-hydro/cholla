@@ -16,29 +16,6 @@
 #include "../utils/basic_structs.h"
 #include "../utils/testing_utilities.h"
 
-void Check_Interface(reconstruction::InterfaceState const &test_data,
-                     reconstruction::InterfaceState const &fiducial_data, size_t const direction)
-{
-  std::string const message = "Direction " + std::to_string(direction);
-
-  testing_utilities::Check_Results(test_data.density, fiducial_data.density, "density " + message);
-  testing_utilities::Check_Results(test_data.energy, fiducial_data.energy, "energy " + message);
-  testing_utilities::Check_Results(test_data.pressure, fiducial_data.pressure, "pressure " + message);
-  testing_utilities::Check_Results(test_data.velocity.x, fiducial_data.velocity.x, "velocity.x " + message);
-  testing_utilities::Check_Results(test_data.velocity.y, fiducial_data.velocity.y, "velocity.y " + message);
-  testing_utilities::Check_Results(test_data.velocity.z, fiducial_data.velocity.z, "velocity.z " + message);
-  testing_utilities::Check_Results(test_data.momentum.x, fiducial_data.momentum.x, "momentum.x " + message);
-  testing_utilities::Check_Results(test_data.momentum.y, fiducial_data.momentum.y, "momentum.y " + message);
-  testing_utilities::Check_Results(test_data.momentum.z, fiducial_data.momentum.z, "momentum.z " + message);
-
-#ifdef MHD
-  testing_utilities::Check_Results(test_data.total_pressure, fiducial_data.total_pressure, "total_pressure" + message);
-  testing_utilities::Check_Results(test_data.magnetic.x, fiducial_data.magnetic.x, "magnetic.x " + message);
-  testing_utilities::Check_Results(test_data.magnetic.y, fiducial_data.magnetic.y, "magnetic.y " + message);
-  testing_utilities::Check_Results(test_data.magnetic.z, fiducial_data.magnetic.z, "magnetic.z " + message);
-#endif  // MHD
-}
-
 TEST(tAllReconstructionPCM, CorrectInputExpectCorrectOutput)
 {
   // Set up PRNG to use
@@ -83,7 +60,7 @@ TEST(tAllReconstructionPCM, CorrectInputExpectCorrectOutput)
           9.9999999999999995e-21, {3.6497594046359176, 1.9592441096173099, 0.9613575629289659},    9.041794778299586};
 
   // Check correctness
-  Check_Interface(test_interface_0, fiducial_interface_0, 0);
-  Check_Interface(test_interface_1, fiducial_interface_1, 1);
-  Check_Interface(test_interface_2, fiducial_interface_2, 2);
+  testing_utilities::Check_Interface(test_interface_0, fiducial_interface_0, 0);
+  testing_utilities::Check_Interface(test_interface_1, fiducial_interface_1, 1);
+  testing_utilities::Check_Interface(test_interface_2, fiducial_interface_2, 2);
 }
