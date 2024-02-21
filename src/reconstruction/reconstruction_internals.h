@@ -130,6 +130,38 @@ bool __device__ __host__ __inline__ Thread_Guard(int const &nx, int const &ny, i
 
 // =====================================================================================================================
 /*!
+ * \brief Determine if a thread is within the allowed range
+ *
+ * \tparam reconstruction A member of reconstruction::Kind used to determine the order of reconstruction
+ * \param nx The number of cells in the X-direction
+ * \param ny The number of cells in the Y-direction
+ * \param nz The number of cells in the Z-direction
+ * \param xid The X thread index
+ * \param yid The Y thread index
+ * \param zid The Z thread index
+ * \return true The thread is NOT in the allowed range
+ * \return false The thread is in the allowed range
+ */
+template <int reconstruction>
+bool __device__ __host__ __inline__ Riemann_Thread_Guard(size_t const nx, size_t const ny, size_t const nz,
+                                                         size_t const xid, size_t const yid, size_t const zid)
+{
+  int order;
+  if constexpr (reconstruction == reconstruction::Kind::pcm) {
+    order = 1;
+  } else if constexpr (reconstruction == reconstruction::Kind::plmc or reconstruction == reconstruction::Kind::plmp) {
+    order = 2;
+  } else if constexpr (reconstruction == reconstruction::Kind::ppmc or reconstruction == reconstruction::Kind::ppmp) {
+    order = 3;
+  }
+
+  return xid < order - 1 or yid < order - 1 or zid < order - 1 or xid >= nx - order + 1 or yid >= ny - order + 1 or
+         zid >= nz - order + 1;
+}
+// =====================================================================================================================
+
+// =====================================================================================================================
+/*!
  * \brief Compute a simple slope. Equation is `coef * (right - left)`.
  *
  * \param[in] left The data with the lower index (on the "left" side)

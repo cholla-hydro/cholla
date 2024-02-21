@@ -28,36 +28,36 @@
 namespace mhd
 {
 // =========================================================================
-__global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const *dev_bounds_R,
-                                           Real const *dev_magnetic_face, Real *dev_flux, int const n_cells,
-                                           Real const gamma, int const direction, int const n_fields)
+template <int reconstruction, uint direction>
+__global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_conserved, Real const *dev_bounds_L,
+                                           Real const *dev_bounds_R, Real const *dev_magnetic_face, Real *dev_flux,
+                                           int const nx, int const ny, int const nz, int const n_cells,
+                                           Real const gamma, int const n_fields)
 {
   // get a thread index
   int const threadId = threadIdx.x + blockIdx.x * blockDim.x;
+  int xid, yid, zid;
+  cuda_utilities::compute3DIndices(threadId, nx, ny, xid, yid, zid);
 
   // Thread guard to avoid overrun
-  if (threadId >= n_cells) {
+  if (reconstruction::Riemann_Thread_Guard<reconstruction>(nx, ny, nz, xid, yid, zid)) {
     return;
   }
 
   // Offsets & indices
   int o1, o2, o3;
-  switch (direction) {
-    case 0:
-      o1 = grid_enum::momentum_x;
-      o2 = grid_enum::momentum_y;
-      o3 = grid_enum::momentum_z;
-      break;
-    case 1:
-      o1 = grid_enum::momentum_y;
-      o2 = grid_enum::momentum_z;
-      o3 = grid_enum::momentum_x;
-      break;
-    case 2:
-      o1 = grid_enum::momentum_z;
-      o2 = grid_enum::momentum_x;
-      o3 = grid_enum::momentum_y;
-      break;
+  if constexpr (direction == 0) {
+    o1 = grid_enum::momentum_x;
+    o2 = grid_enum::momentum_y;
+    o3 = grid_enum::momentum_z;
+  } else if constexpr (direction == 1) {
+    o1 = grid_enum::momentum_y;
+    o2 = grid_enum::momentum_z;
+    o3 = grid_enum::momentum_x;
+  } else if constexpr (direction == 2) {
+    o1 = grid_enum::momentum_z;
+    o2 = grid_enum::momentum_x;
+    o3 = grid_enum::momentum_y;
   }
 
   // ============================
@@ -66,10 +66,15 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const 
   // The magnetic field in the X-direction
   Real const magneticX = dev_magnetic_face[threadId];
 
-  reconstruction::InterfaceState const stateL =
-      mhd::internal::loadState(dev_bounds_L, magneticX, gamma, threadId, n_cells, o1, o2, o3);
-  reconstruction::InterfaceState const stateR =
-      mhd::internal::loadState(dev_bounds_R, magneticX, gamma, threadId, n_cells, o1, o2, o3);
+  reconstruction::InterfaceState stateL, stateR;
+  // Check if the reconstruction chosen is implemented as a device function yet
+  if constexpr (reconstruction == reconstruction::Kind::pcm) {
+    reconstruction::Reconstruct_Interface_States<reconstruction, direction>(dev_conserved, xid, yid, zid, nx, ny,
+                                                                            n_cells, gamma, stateL, stateR);
+  } else {
+    stateL = mhd::internal::loadState(dev_bounds_L, magneticX, gamma, threadId, n_cells, o1, o2, o3);
+    stateR = mhd::internal::loadState(dev_bounds_R, magneticX, gamma, threadId, n_cells, o1, o2, o3);
+  }
 
   // Compute the approximate Left and Right wave speeds
   mhd::internal::Speeds speed = mhd::internal::approximateLRWaveSpeeds(stateL, stateR, magneticX, gamma);
@@ -516,4 +521,27 @@ __device__ __host__ mhd::internal::Flux computeDoubleStarFluxes(mhd::internal::D
 
 }  // namespace internal
 }  // end namespace mhd
-#endif  // MHD
+
+// Instantiate the templates we need
+template __global__ void mhd::Calculate_HLLD_Fluxes_CUDA<reconstruction::Kind::pcm, 0>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real const *dev_magnetic_face,
+    Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+template __global__ void mhd::Calculate_HLLD_Fluxes_CUDA<reconstruction::Kind::pcm, 1>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real const *dev_magnetic_face,
+    Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+template __global__ void mhd::Calculate_HLLD_Fluxes_CUDA<reconstruction::Kind::pcm, 2>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real const *dev_magnetic_face,
+    Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+
+  #ifndef PCM
+template __global__ void mhd::Calculate_HLLD_Fluxes_CUDA<reconstruction::Kind::chosen, 0>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real const *dev_magnetic_face,
+    Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+template __global__ void mhd::Calculate_HLLD_Fluxes_CUDA<reconstruction::Kind::chosen, 1>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real const *dev_magnetic_face,
+    Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+template __global__ void mhd::Calculate_HLLD_Fluxes_CUDA<reconstruction::Kind::chosen, 2>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real const *dev_magnetic_face,
+    Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+  #endif  // PCM
+#endif    // MHD

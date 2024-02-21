@@ -26,6 +26,9 @@ namespace mhd
 /*!
  * \brief Compute the HLLD fluxes from Miyoshi & Kusano 2005
  *
+ * \tparam reconstruction What kind of reconstruction to use, PCM, PLMC, etc. This argument should always be a
+ * member of the reconstruction::Kind enum, behaviour is undefined otherwise.
+ * \tparam direction The direction that the solve is taking place in. 0=X, 1=Y, 2=Z
  * \param[in]  dev_bounds_L The interface states on the left side of the
  * interface
  * \param[in]  dev_bounds_R The interface states on the right side of
@@ -36,13 +39,13 @@ namespace mhd
  * \param[out] dev_flux The output flux
  * \param[in]  n_cells Total number of cells
  * \param[in]  n_ghost Number of ghost cells on each side
- * \param[in]  dir The direction that the solve is taking place in. 0=X, 1=Y,
- * 2=Z
  * \param[in]  n_fields The total number of fields
  */
-__global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const *dev_bounds_R,
-                                           Real const *dev_magnetic_face, Real *dev_flux, int const n_cells,
-                                           Real const gamma, int const direction, int const n_fields);
+template <int reconstruction, uint direction>
+__global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_conserved, Real const *dev_bounds_L,
+                                           Real const *dev_bounds_R, Real const *dev_magnetic_face, Real *dev_flux,
+                                           int const nx, int const ny, int const nz, int const n_cells,
+                                           Real const gamma, int const n_fields);
 
 /*!
  * \brief Namespace to hold private functions used within the HLLD

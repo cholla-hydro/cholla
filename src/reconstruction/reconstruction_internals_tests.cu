@@ -196,7 +196,35 @@ TEST(tALLReconstructionThreadGuard, CorrectInputExpectCorrectOutput)
 
         // Compare
         int id = cuda_utilities::compute1DIndex(xid, yid, zid, nx, ny);
-        ASSERT_EQ(test_val, fiducial_vals.at(id))
+        EXPECT_EQ(test_val, fiducial_vals.at(id))
+            << "Test value not equal to fiducial value at id = " << id << std::endl;
+      }
+    }
+  }
+}
+
+TEST(tALLReconstructionRiemannThreadGuard, CorrectInputExpectCorrectOutput)
+{
+  // Test parameters
+  int const order = 3;
+  int const nx    = 5;
+  int const ny    = 5;
+  int const nz    = 5;
+
+  // fiducial data
+  std::vector<int> fiducial_vals(nx * ny * nz, 1);
+  fiducial_vals.at(62) = 0;
+
+  // loop through all values of the indices and check them
+  for (int xid = 0; xid < nx; xid++) {
+    for (int yid = 0; yid < ny; yid++) {
+      for (int zid = 0; zid < nz; zid++) {
+        // Get the test value
+        bool test_val = reconstruction::Riemann_Thread_Guard<order>(nx, ny, nz, xid, yid, zid);
+
+        // Compare
+        int id = cuda_utilities::compute1DIndex(xid, yid, zid, nx, ny);
+        EXPECT_EQ(test_val, fiducial_vals.at(id))
             << "Test value not equal to fiducial value at id = " << id << std::endl;
       }
     }

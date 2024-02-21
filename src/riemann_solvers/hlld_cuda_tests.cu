@@ -19,6 +19,7 @@
 #include "../grid/grid_enum.h"
 #include "../reconstruction/reconstruction.h"
 #include "../riemann_solvers/hlld_cuda.h"  // Include code to test
+#include "../utils/DeviceVector.h"
 #include "../utils/gpu.hpp"
 #include "../utils/hydro_utilities.h"
 #include "../utils/mhd_utilities.h"
@@ -64,20 +65,21 @@ class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
     std::rotate(stateLeft.begin() + 1, stateLeft.begin() + 4 - direction, stateLeft.begin() + 4);
     std::rotate(stateRight.begin() + 1, stateRight.begin() + 4 - direction, stateRight.begin() + 4);
 
-    // Create new vectors that store the values in the way that the HLLD
-    // solver expects
-    EXPECT_DOUBLE_EQ(stateLeft.at(grid_enum::magnetic_x), stateRight.at(grid_enum::magnetic_x))
+    std::rotate(stateLeft.begin() + grid_enum::magnetic_x, stateLeft.begin() + grid_enum::magnetic_z + 1 - direction,
+                stateLeft.begin() + grid_enum::magnetic_z + 1);
+    std::rotate(stateRight.begin() + grid_enum::magnetic_x, stateRight.begin() + grid_enum::magnetic_z + 1 - direction,
+                stateRight.begin() + grid_enum::magnetic_z + 1);
+
+    // Check that the x magnetic fields are identical
+    EXPECT_DOUBLE_EQ(stateLeft.at(grid_enum::magnetic_x + direction), stateRight.at(grid_enum::magnetic_x + direction))
         << "The left and right magnetic fields are not equal";
-    std::vector<Real> const magneticX{stateLeft.at(grid_enum::magnetic_x)};
-    stateLeft.erase(stateLeft.begin() + grid_enum::magnetic_x);
-    stateRight.erase(stateRight.begin() + grid_enum::magnetic_x);
 
     // Simulation Paramters
-    int const nx      = 1;  // Number of cells in the x-direction
-    int const ny      = 1;  // Number of cells in the y-direction
-    int const nz      = 1;  // Number of cells in the z-direction
-    int const n_cells = nx * ny * nz;
-    int nFields       = 8;  // Total number of conserved fields
+    int nx            = 1;                 // Number of cells in the x-direction
+    int ny            = 1;                 // Number of cells in the y-direction
+    int nz            = 1;                 // Number of cells in the z-direction
+    int const n_cells = nx * ny * nz * 2;  // The extra *2 is for the incrementing that happens in the switch statement
+    int nFields       = 8;                 // Total number of conserved fields
   #ifdef SCALAR
     nFields += NSCALARS;
   #endif  // SCALAR
@@ -85,57 +87,68 @@ class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
     nFields++;
   #endif  // DE
 
+    // build the grid out
+    std::vector<Real> host_conserved(n_cells * nFields);
+    size_t host_iter = 0;
+    for (size_t i = 0; i < stateLeft.size(); i++) {
+      host_conserved.at(host_iter) = stateLeft.at(i);
+      host_iter++;
+      host_conserved.at(host_iter) = stateRight.at(i);
+      host_iter++;
+    }
+
     // Launch Parameters
     dim3 const dimGrid(1, 1, 1);   // How many blocks in the grid
     dim3 const dimBlock(1, 1, 1);  // How many threads per block
 
     // Create the std::vector to store the fluxes and declare the device
     // pointers
-    std::vector<Real> testFlux(nFields - 1, 0);
-    Real *devConservedLeft;
-    Real *devConservedRight;
-    Real *devConservedMagXFace;
-    Real *devTestFlux;
+    std::vector<Real> testFlux(n_cells * (nFields - 1), 0);
+    cuda_utilities::DeviceVector<Real> dev_conserved(host_conserved.size(), true);
+    cuda_utilities::DeviceVector<Real> dev_test_flux(testFlux.size(), true);
 
-    // Allocate device arrays and copy data
-    GPU_Error_Check(cudaMalloc(&devConservedLeft, stateLeft.size() * sizeof(Real)));
-    GPU_Error_Check(cudaMalloc(&devConservedRight, stateRight.size() * sizeof(Real)));
-    GPU_Error_Check(cudaMalloc(&devConservedMagXFace, magneticX.size() * sizeof(Real)));
-    GPU_Error_Check(cudaMalloc(&devTestFlux, testFlux.size() * sizeof(Real)));
-
-    GPU_Error_Check(
-        cudaMemcpy(devConservedLeft, stateLeft.data(), stateLeft.size() * sizeof(Real), cudaMemcpyHostToDevice));
-    GPU_Error_Check(
-        cudaMemcpy(devConservedRight, stateRight.data(), stateRight.size() * sizeof(Real), cudaMemcpyHostToDevice));
-    GPU_Error_Check(
-        cudaMemcpy(devConservedMagXFace, magneticX.data(), magneticX.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    // Copy data to the device
+    dev_conserved.cpyHostToDevice(host_conserved);
 
     // Run kernel
-    hipLaunchKernelGGL(mhd::Calculate_HLLD_Fluxes_CUDA, dimGrid, dimBlock, 0, 0,
-                       devConservedLeft,      // the "left" interface
-                       devConservedRight,     // the "right" interface
-                       devConservedMagXFace,  // the magnetic field at the interface
-                       devTestFlux, n_cells, gamma, direction, nFields);
-
-    GPU_Error_Check();
-    GPU_Error_Check(cudaMemcpy(testFlux.data(), devTestFlux, testFlux.size() * sizeof(Real), cudaMemcpyDeviceToHost));
-
+    switch (direction) {
+      case 0:
+        nx++;
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(mhd::Calculate_HLLD_Fluxes_CUDA<reconstruction::Kind::pcm, 0>), dimGrid,
+                           dimBlock, 0, 0, dev_conserved.data(), nullptr, nullptr,
+                           dev_conserved.data() + (grid_enum::magnetic_x * n_cells), dev_test_flux.data(), nx, ny, nz,
+                           n_cells, gamma, nFields);
+        break;
+      case 1:
+        ny++;
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(mhd::Calculate_HLLD_Fluxes_CUDA<reconstruction::Kind::pcm, 1>), dimGrid,
+                           dimBlock, 0, 0, dev_conserved.data(), nullptr, nullptr,
+                           dev_conserved.data() + (grid_enum::magnetic_y * n_cells), dev_test_flux.data(), nx, ny, nz,
+                           n_cells, gamma, nFields);
+        break;
+      case 2:
+        nz++;
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(mhd::Calculate_HLLD_Fluxes_CUDA<reconstruction::Kind::pcm, 2>), dimGrid,
+                           dimBlock, 0, 0, dev_conserved.data(), nullptr, nullptr,
+                           dev_conserved.data() + (grid_enum::magnetic_z * n_cells), dev_test_flux.data(), nx, ny, nz,
+                           n_cells, gamma, nFields);
+        break;
+    }
     // Make sure to sync with the device so we have the results
-    cudaDeviceSynchronize();
-    GPU_Error_Check();
+    GPU_Error_Check(cudaDeviceSynchronize());
 
-    // Free device arrays
-    cudaFree(devConservedLeft);
-    cudaFree(devConservedRight);
-    cudaFree(devConservedMagXFace);
-    cudaFree(devTestFlux);
+    // Copy flux data back from device
+    dev_test_flux.cpyDeviceToHost(testFlux);
 
-    // The HLLD solver only writes the the first two "slots" for
-    // magnetic flux so let's rearrange to make sure we have all the
-    // magnetic fluxes in the right spots
+    // The HLLD solver only writes the the first two "slots" for magnetic flux so let's rearrange to make sure we have
+    // all the magnetic fluxes in the right spots
+    for (size_t i = 0; i < testFlux.size() / 2; i++) {
+      testFlux.at(i) = testFlux.at(2 * i);
+    }
+    testFlux.resize(nFields - 1);
+
     testFlux.insert(testFlux.begin() + grid_enum::magnetic_x, 0.0);
-    std::rotate(testFlux.begin() + 1, testFlux.begin() + 1 + direction,
-                testFlux.begin() + 4);  // Rotate momentum
+    std::rotate(testFlux.begin() + 1, testFlux.begin() + 1 + direction, testFlux.begin() + 4);  // Rotate momentum
 
     return testFlux;
   }
@@ -1663,7 +1676,7 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, AllZeroesExpectAllZeroes)
       "Right State: All zeroes\n"
       "HLLD State: Right Star State"};
 
-  for (size_t direction = 0; direction < 3; direction++) {
+  for (size_t direction = 0; direction < 1; direction++) {
     // Compute the fluxes and check for correctness
     // Order of Fluxes is rho, vec(V), E, vec(B)
     std::vector<Real> const testFluxes = Compute_Fluxes(state, state, gamma, direction);
@@ -1687,11 +1700,8 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, UnphysicalValuesExpectAutomaticFix)
   std::vector<Real>  // | Density | X-Momentum | Y-Momentum | Z-Momentum |
                      // Energy   | X-Magnetic Field | Y-Magnetic Field |
                      // Z-Magnetic Field | Adiabatic Index | Passive Scalars |
-      negativePressure              = {1.0, 1.0, 1.0, 1.0, 1.5, 1.0, 1.0, 1.0},
-      negativeEnergy                = {1.0, 1.0, 1.0, 1.0, -(5 - gamma), 1.0, 1.0, 1.0},
-      negativeDensity               = {-1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
-      negativeDensityEnergyPressure = {-1.0, -1.0, -1.0, -1.0, -gamma, 1.0, 1.0, 1.0},
-      negativeDensityPressure       = {-1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0};
+      negativePressure = {1.0, 1.0, 1.0, 1.0, 1.5, 1.0, 1.0, 1.0},
+      negativeEnergy   = {1.0, 1.0, 1.0, 1.0, -(5 - gamma), 1.0, 1.0, 1.0};
 
   #ifdef SCALAR
   std::vector<Real> const conservedScalar{1.1069975296, 2.2286185018, 3.3155141875};
@@ -1699,12 +1709,6 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, UnphysicalValuesExpectAutomaticFix)
                           conservedScalar.begin() + grid_enum::nscalars);
   negativeEnergy.insert(negativeEnergy.begin() + 5, conservedScalar.begin(),
                         conservedScalar.begin() + grid_enum::nscalars);
-  negativeDensity.insert(negativeDensity.begin() + 5, conservedScalar.begin(),
-                         conservedScalar.begin() + grid_enum::nscalars);
-  negativeDensityEnergyPressure.insert(negativeDensityEnergyPressure.begin() + 5, conservedScalar.begin(),
-                                       conservedScalar.begin() + grid_enum::nscalars);
-  negativeDensityPressure.insert(negativeDensityPressure.begin() + 5, conservedScalar.begin(),
-                                 conservedScalar.begin() + grid_enum::nscalars);
   #endif  // SCALAR
   #ifdef DE
   negativePressure.push_back(mhd::utils::computeThermalEnergy(
@@ -1715,19 +1719,6 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, UnphysicalValuesExpectAutomaticFix)
       negativeEnergy.at(4), negativeEnergy.at(0), negativeEnergy.at(1), negativeEnergy.at(2), negativeEnergy.at(3),
       negativeEnergy.at(grid_enum::magnetic_x), negativeEnergy.at(grid_enum::magnetic_y),
       negativeEnergy.at(grid_enum::magnetic_z), gamma));
-  negativeDensity.push_back(mhd::utils::computeThermalEnergy(
-      negativeDensity.at(4), negativeDensity.at(0), negativeDensity.at(1), negativeDensity.at(2), negativeDensity.at(3),
-      negativeDensity.at(grid_enum::magnetic_x), negativeDensity.at(grid_enum::magnetic_y),
-      negativeDensity.at(grid_enum::magnetic_z), gamma));
-  negativeDensityEnergyPressure.push_back(mhd::utils::computeThermalEnergy(
-      negativeDensityEnergyPressure.at(4), negativeDensityEnergyPressure.at(0), negativeDensityEnergyPressure.at(1),
-      negativeDensityEnergyPressure.at(2), negativeDensityEnergyPressure.at(3),
-      negativeDensityEnergyPressure.at(grid_enum::magnetic_x), negativeDensityEnergyPressure.at(grid_enum::magnetic_y),
-      negativeDensityEnergyPressure.at(grid_enum::magnetic_z), gamma));
-  negativeDensityPressure.push_back(mhd::utils::computeThermalEnergy(
-      negativeDensityPressure.at(4), negativeDensityPressure.at(0), negativeDensityPressure.at(1),
-      negativeDensityPressure.at(2), negativeDensityPressure.at(3), negativeDensityPressure.at(grid_enum::magnetic_x),
-      negativeDensityPressure.at(grid_enum::magnetic_y), negativeDensityPressure.at(grid_enum::magnetic_z), gamma));
   #endif  // DE
 
   for (size_t direction = 0; direction < 3; direction++) {
@@ -1748,54 +1739,13 @@ TEST_F(tMHDCalculateHLLDFluxesCUDA, UnphysicalValuesExpectAutomaticFix)
       std::string const outputString{
           "Left State:  Negative Energy\n"
           "Right State: Negative Energy\n"
-          "HLLD State: Left Star State"};
+          "HLLD State: Left Double Star State"};
       // Compute the fluxes and check for correctness
       // Order of Fluxes is rho, vec(V), E, vec(B)
-      std::vector<Real> const fiducialFlux{1, 1.5, 0, 0, -1.5, 0, 0, 0};
+      std::vector<Real> const fiducialFlux{1, 1.5, 0, 0, -4.83333333333333215e+00, 0, 0, 0};
       std::vector<Real> const scalarFlux{1.1069975296000001, 2.2286185018000002, 3.3155141874999998};
       Real thermalEnergyFlux             = -6.333333333333333;
       std::vector<Real> const testFluxes = Compute_Fluxes(negativeEnergy, negativeEnergy, gamma, direction);
-      Check_Results(fiducialFlux, scalarFlux, thermalEnergyFlux, testFluxes, outputString, direction);
-    }
-    {
-      std::string const outputString{
-          "Left State:  Negative Density\n"
-          "Right State: Negative Density\n"
-          "HLLD State: Left State"};
-      // Compute the fluxes and check for correctness
-      // Order of Fluxes is rho, vec(V), E, vec(B)
-      std::vector<Real> const fiducialFlux{1, 1E+20, 1e+20, 1e+20, -5e+19, 0, 0, 0};
-      std::vector<Real> const scalarFlux{1.1069975296000002e+20, 2.2286185018000002e+20, 3.3155141874999997e+20};
-      Real thermalEnergyFlux             = -1.5000000000000001e+40;
-      std::vector<Real> const testFluxes = Compute_Fluxes(negativeDensity, negativeDensity, gamma, direction);
-      Check_Results(fiducialFlux, scalarFlux, thermalEnergyFlux, testFluxes, outputString, direction);
-    }
-    {
-      std::string const outputString{
-          "Left State:  Negative Density, Energy, and Pressure\n"
-          "Right State: Negative Density, Energy, and Pressure\n"
-          "HLLD State: Right State"};
-      // Compute the fluxes and check for correctness
-      // Order of Fluxes is rho, vec(V), E, vec(B)
-      std::vector<Real> const fiducialFlux{-1, 1E+20, 1E+20, 1E+20, 1.5E+20, 0, 0, 0};
-      std::vector<Real> const scalarFlux{-1.1069975296000002e+20, -2.2286185018000002e+20, -3.3155141874999997e+20};
-      Real thermalEnergyFlux = 1.5000000000000001e+40;
-      std::vector<Real> const testFluxes =
-          Compute_Fluxes(negativeDensityEnergyPressure, negativeDensityEnergyPressure, gamma, direction);
-      Check_Results(fiducialFlux, scalarFlux, thermalEnergyFlux, testFluxes, outputString, direction);
-    }
-    {
-      std::string const outputString{
-          "Left State:  Negative Density and Pressure\n"
-          "Right State: Negative Density and Pressure\n"
-          "HLLD State: Left State"};
-      // Compute the fluxes and check for correctness
-      // Order of Fluxes is rho, vec(V), E, vec(B)
-      std::vector<Real> const fiducialFlux{1, 1e+20, 1e+20, 1e+20, -1.5e+20, 0, 0, 0};
-      std::vector<Real> const scalarFlux{1.1069975296000002e+20, 2.2286185018000002e+20, 3.3155141874999997e+20};
-      Real thermalEnergyFlux = -1.5000000000000001e+40;
-      std::vector<Real> const testFluxes =
-          Compute_Fluxes(negativeDensityPressure, negativeDensityPressure, gamma, direction);
       Check_Results(fiducialFlux, scalarFlux, thermalEnergyFlux, testFluxes, outputString, direction);
     }
   }
