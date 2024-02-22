@@ -155,8 +155,25 @@ bool __device__ __host__ __inline__ Riemann_Thread_Guard(size_t const nx, size_t
     order = 3;
   }
 
-  return xid < order - 1 or yid < order - 1 or zid < order - 1 or xid >= nx - order + 1 or yid >= ny - order + 1 or
-         zid >= nz - order + 1;
+  // X check
+  bool out_of_bounds_thread = xid < order - 1 or xid >= nx - order + 1;
+
+  // Y check, only used for 2D and 3D
+  if (ny > 1) {
+    out_of_bounds_thread = yid < order - 1 or yid >= ny - order + 1 or out_of_bounds_thread;
+  }
+
+  // z check, only used for 3D
+  if (nz > 1) {
+    out_of_bounds_thread = zid < order - 1 or zid >= nz - order + 1 or out_of_bounds_thread;
+  }
+  // This is needed in the case that nz == 1 to avoid overrun
+  else {
+    out_of_bounds_thread = zid >= nz or out_of_bounds_thread;
+  }
+
+  return out_of_bounds_thread;
+  return out_of_bounds_thread;
 }
 // =====================================================================================================================
 
