@@ -13,6 +13,7 @@
 #include "../reconstruction/plmp_cuda.h"
 #include "../reconstruction/ppmc_cuda.h"
 #include "../reconstruction/ppmp_cuda.h"
+#include "../reconstruction/reconstruction.h"
 #include "../riemann_solvers/exact_cuda.h"
 #include "../riemann_solvers/hllc_cuda.h"
 #include "../riemann_solvers/roe_cuda.h"
@@ -96,10 +97,10 @@ void Simple_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int 
                      1, n_fields);
 #endif
 #ifdef HLLC
-  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost,
-                     gama, 0, n_fields);
-  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost,
-                     gama, 1, n_fields);
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLLC_Fluxes_CUDA<reconstruction::Kind::chosen, 0>), dim2dGrid,
+                     dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, n_fields);
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLLC_Fluxes_CUDA<reconstruction::Kind::chosen, 1>), dim2dGrid,
+                     dim1dBlock, 0, 0, dev_conserved, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_cells, gama, n_fields);
 #endif
   GPU_Error_Check();
 
