@@ -1018,49 +1018,52 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
   part_int_t id        = -1;
 
   // now actually initialize the clusters
-  while (cluster_creator.peek_next_min_formation_time() < t_max) {
-    Real t_cluster, cluster_mass;
-    cluster_creator.next_cluster(generator, t_cluster, cluster_mass);
+  if (SFR > 0.0) {
+    while (cluster_creator.peek_next_min_formation_time() < t_max) {
+      Real t_cluster, cluster_mass;
+      cluster_creator.next_cluster(generator, t_cluster, cluster_mass);
 
-    Real R = radialDist(generator);
-    if (R > R_max) continue;
+      Real R = radialDist(generator);
+      if (R > R_max) continue;
 
-    id += 1;  // do this here before we check whether the particle is in the MPI
-              // domain, otherwise could end up with duplicated IDs
-    Real phi = phiDist(generator);
-    Real x   = R * cos(phi);
-    Real y   = R * sin(phi);
-    Real z   = zDist(generator);
+      id += 1;  // do this here before we check whether the particle is in the MPI
+                // domain, otherwise could end up with duplicated IDs
+      Real phi = phiDist(generator);
+      Real x   = R * cos(phi);
+      Real y   = R * sin(phi);
+      Real z   = zDist(generator);
 
-    cumulative_mass += cluster_mass;
-    if ((x < G.xMin || x >= G.xMax) || (y < G.yMin || y >= G.yMax) || (z < G.zMin || z >= G.zMax)) {
-      continue;
-    }
+      cumulative_mass += cluster_mass;
+      if ((x < G.xMin || x >= G.xMax) || (y < G.yMin || y >= G.yMax) || (z < G.zMin || z >= G.zMax)) {
+        continue;
+      }
 
-    Real vPhi;
-    if (true) {
-      vPhi = std::sqrt(Galaxies::MW.circular_vel2_with_selfgrav_estimates(R, z));
-    } else {
-      vPhi = std::sqrt(Galaxies::MW.circular_vel2(R, z));
-    }
+      Real vPhi;
+      if (true) {
+        vPhi = std::sqrt(Galaxies::MW.circular_vel2_with_selfgrav_estimates(R, z));
+      } else {
+        vPhi = std::sqrt(Galaxies::MW.circular_vel2(R, z));
+      }
 
-    Real vx = -vPhi * sin(phi);
-    Real vy = vPhi * cos(phi);
-    Real vz = 0.0;  // vzDist(generator);
+      Real vx = -vPhi * sin(phi);
+      Real vy = vPhi * cos(phi);
+      Real vz = 0.0;  // vzDist(generator);
 
-    // add particle data to the particles vectors
-    temp_pos_x.push_back(x);
-    temp_pos_y.push_back(y);
-    temp_pos_z.push_back(z);
-    temp_vel_x.push_back(vx);
-    temp_vel_y.push_back(vy);
-    temp_vel_z.push_back(vz);
-    temp_grav_x.push_back(0.0);
-    temp_grav_y.push_back(0.0);
-    temp_grav_z.push_back(0.0);
-    temp_mass.push_back(cluster_mass);
-    temp_age.push_back(t_cluster);
-    temp_ids.push_back(id);
+      // add particle data to the particles vectors
+      temp_pos_x.push_back(x);
+      temp_pos_y.push_back(y);
+      temp_pos_z.push_back(z);
+      temp_vel_x.push_back(vx);
+      temp_vel_y.push_back(vy);
+      temp_vel_z.push_back(vz);
+      temp_grav_x.push_back(0.0);
+      temp_grav_y.push_back(0.0);
+      temp_grav_z.push_back(0.0);
+      temp_mass.push_back(cluster_mass);
+      temp_age.push_back(t_cluster);
+      temp_ids.push_back(id);
+    } // end of while-loop
+
   }
 
   // print out summary:
