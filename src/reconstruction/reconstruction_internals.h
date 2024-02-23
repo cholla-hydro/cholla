@@ -173,7 +173,6 @@ bool __device__ __host__ __inline__ Riemann_Thread_Guard(size_t const nx, size_t
   }
 
   return out_of_bounds_thread;
-  return out_of_bounds_thread;
 }
 // =====================================================================================================================
 
