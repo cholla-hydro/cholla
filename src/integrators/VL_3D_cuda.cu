@@ -145,8 +145,7 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
 
   // Step 2: Calculate first-order upwind fluxes
   #ifdef EXACT
-  cuda_utilities::AutomaticLaunchParams static const exact_launch_params(Calculate_Exact_Fluxes_CUDA,
-                                                                         n_cellsCalculate_Exact_Fluxes_CUDA);
+  cuda_utilities::AutomaticLaunchParams static const exact_launch_params(Calculate_Exact_Fluxes_CUDA, n_cells);
   hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, exact_launch_params.get_numBlocks(),
                      exact_launch_params.get_threadsPerBlock(), 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0,
                      n_fields);
