@@ -145,10 +145,10 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Exact_Fluxes_CUDA<reconstruction::Kind::pcm, 0>),
                      exact_pcm_launch_params.get_numBlocks(), exact_pcm_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved,
                      Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, n_fields);
-  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Exact_Fluxes_CUDA<reconstruction::Kind::pcm, 0>),
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Exact_Fluxes_CUDA<reconstruction::Kind::pcm, 1>),
                      exact_pcm_launch_params.get_numBlocks(), exact_pcm_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved,
                      Q_Ly, Q_Ry, F_y, nx, ny, nz, n_cells, gama, n_fields);
-  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Exact_Fluxes_CUDA<reconstruction::Kind::pcm, 0>),
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Exact_Fluxes_CUDA<reconstruction::Kind::pcm, 2>),
                      exact_pcm_launch_params.get_numBlocks(), exact_pcm_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved,
                      Q_Lz, Q_Rz, F_z, nx, ny, nz, n_cells, gama, n_fields);
   #endif  // EXACT
@@ -159,11 +159,11 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
                      roe_pcm_launch_params.get_numBlocks(),
                      roe_pcm_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama,
                      n_fields);
-  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::pcm, 0>),
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::pcm, 1>),
                      roe_pcm_launch_params.get_numBlocks(),
                      roe_pcm_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_cells, gama,
                      n_fields);
-  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::pcm, 0>),
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::pcm, 2>),
                      roe_pcm_launch_params.get_numBlocks(),
                      roe_pcm_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_cells, gama,
                      n_fields);
@@ -174,10 +174,10 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLLC_Fluxes_CUDA<reconstruction::Kind::pcm, 0>),
                      hllc_pcm_launch_params.numBlocks(), hllc_pcm_launch_params.threadsPerBlock(), 0, 0, dev_conserved,
                      Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, n_fields);
-  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLLC_Fluxes_CUDA<reconstruction::Kind::pcm, 0>),
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLLC_Fluxes_CUDA<reconstruction::Kind::pcm, 1>),
                      hllc_pcm_launch_params.numBlocks(), hllc_pcm_launch_params.threadsPerBlock(), 0, 0, dev_conserved,
                      Q_Ly, Q_Ry, F_y, nx, ny, nz, n_cells, gama, n_fields);
-  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLLC_Fluxes_CUDA<reconstruction::Kind::pcm, 0>),
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLLC_Fluxes_CUDA<reconstruction::Kind::pcm, 2>),
                      hllc_pcm_launch_params.numBlocks(), hllc_pcm_launch_params.threadsPerBlock(), 0, 0, dev_conserved,
                      Q_Lz, Q_Rz, F_z, nx, ny, nz, n_cells, gama, n_fields);
   #endif  // HLLC
@@ -188,11 +188,11 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
                      hll_pcm_launch_params.get_numBlocks(),
                      hll_pcm_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama,
                      n_fields);
-  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLL_Fluxes_CUDA<reconstruction::Kind::pcm, 0>),
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLL_Fluxes_CUDA<reconstruction::Kind::pcm, 1>),
                      hll_pcm_launch_params.get_numBlocks(),
                      hll_pcm_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_cells, gama,
                      n_fields);
-  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLL_Fluxes_CUDA<reconstruction::Kind::pcm, 0>),
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLL_Fluxes_CUDA<reconstruction::Kind::pcm, 2>),
                      hll_pcm_launch_params.get_numBlocks(),
                      hll_pcm_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_cells, gama,
                      n_fields);
