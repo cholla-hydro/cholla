@@ -149,6 +149,9 @@ struct InterfaceState {
     magnetic       = in_magnetic;
     total_pressure = in_total_pressure;
 #endif  // MHD
+#ifdef DE
+    gas_energy_specific = 0.0;
+#endif  // DE
   };
 };
 }  // namespace reconstruction
