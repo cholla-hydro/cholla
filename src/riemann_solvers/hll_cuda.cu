@@ -99,18 +99,18 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
 #endif
 
     // calculate primitive variables
-    left_state.velocity.z = left_state.momentum.x / left_state.density;
+    left_state.velocity.x = left_state.momentum.x / left_state.density;
     left_state.velocity.y = left_state.momentum.y / left_state.density;
     left_state.velocity.z = left_state.momentum.z / left_state.density;
 #ifdef DE  // PRESSURE_DE
     E_kin = 0.5 * left_state.density *
-            (left_state.velocity.z * left_state.velocity.z + left_state.velocity.y * left_state.velocity.y +
+            (left_state.velocity.x * left_state.velocity.x + left_state.velocity.y * left_state.velocity.y +
              left_state.velocity.z * left_state.velocity.z);
     left_state.pressure = hydro_utilities::Get_Pressure_From_DE(left_state.energy, left_state.energy - E_kin,
                                                                 left_state.gas_energy_specific, gamma);
 #else
     left_state.pressure = (left_state.energy - 0.5 * left_state.density *
-                                                   (left_state.velocity.z * left_state.velocity.z +
+                                                   (left_state.velocity.x * left_state.velocity.x +
                                                     left_state.velocity.y * left_state.velocity.y +
                                                     left_state.velocity.z * left_state.velocity.z)) *
                           (gamma - 1.0);
@@ -158,7 +158,7 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     // (see Stone et al., 2008, Eqn 65, or Toro 2009, 11.118)
     // sqrtdl = sqrt(dl);
     // sqrtdr = sqrt(right_state.density);
-    // vx = (sqrtdl*left_state.velocity.z + sqrtdr*right_state.velocity.x) / (sqrtdl + sqrtdr);
+    // vx = (sqrtdl*left_state.velocity.x + sqrtdr*right_state.velocity.x) / (sqrtdl + sqrtdr);
     // vy = (sqrtdl*left_state.velocity.y + sqrtdr*right_state.velocity.y) / (sqrtdl + sqrtdr);
     // vz = (sqrtdl*left_state.velocity.z + sqrtdr*right_state.velocity.z) / (sqrtdl + sqrtdr);
     // H  = (sqrtdl*Hl  + sqrtdr*Hr)  / (sqrtdl + sqrtdr);
@@ -176,27 +176,27 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     cfr = sqrt(gamma * right_state.pressure / right_state.density);  // sound speed in right state
 
     // for signal speeds, take max/min of Roe eigenvalues and left and right
-    // sound speeds Batten eqn. 48 Sl = fmin(lambda_m, left_state.velocity.z - cfl); Sr =
+    // sound speeds Batten eqn. 48 Sl = fmin(lambda_m, left_state.velocity.x - cfl); Sr =
     // fmax(lambda_p, right_state.velocity.x + cfr);
 
     // if the H-correction is turned on, add cross-flux dissipation
     // Sl = sgn_CUDA(Sl)*fmax(fabs(Sl), etah);
     // Sr = sgn_CUDA(Sr)*fmax(fabs(Sr), etah);
-    Sl = fmin(right_state.velocity.x - cfr, left_state.velocity.z - cfl);
-    Sr = fmax(left_state.velocity.z + cfl, right_state.velocity.x + cfr);
+    Sl = fmin(right_state.velocity.x - cfr, left_state.velocity.x - cfl);
+    Sr = fmax(left_state.velocity.x + cfl, right_state.velocity.x + cfr);
 
     // left and right fluxes
     f_d_l  = left_state.momentum.x;
-    f_mx_l = left_state.momentum.x * left_state.velocity.z + left_state.pressure;
-    f_my_l = left_state.momentum.y * left_state.velocity.z;
-    f_mz_l = left_state.momentum.z * left_state.velocity.z;
-    f_E_l  = (left_state.energy + left_state.pressure) * left_state.velocity.z;
+    f_mx_l = left_state.momentum.x * left_state.velocity.x + left_state.pressure;
+    f_my_l = left_state.momentum.y * left_state.velocity.x;
+    f_mz_l = left_state.momentum.z * left_state.velocity.x;
+    f_E_l  = (left_state.energy + left_state.pressure) * left_state.velocity.x;
 #ifdef DE
-    f_ge_l = left_state.gas_energy_specific * left_state.velocity.z;
+    f_ge_l = left_state.gas_energy_specific * left_state.velocity.x;
 #endif
 #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
-      f_sc_l[i] = left_state.scalar_specific[i] * left_state.velocity.z;
+      f_sc_l[i] = left_state.scalar_specific[i] * left_state.velocity.x;
     }
 #endif
 
