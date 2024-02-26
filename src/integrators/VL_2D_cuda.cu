@@ -10,7 +10,6 @@
   #include "../global/global_cuda.h"
   #include "../hydro/hydro_cuda.h"
   #include "../integrators/VL_2D_cuda.h"
-  #include "../reconstruction/pcm_cuda.h"
   #include "../reconstruction/plmc_cuda.h"
   #include "../reconstruction/plmp_cuda.h"
   #include "../reconstruction/ppmc_cuda.h"
@@ -62,11 +61,8 @@ void VL_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int y_of
     memory_allocated = true;
   }
 
-  // Step 1: Use PCM reconstruction to put conserved variables into interface
-  // arrays
-  hipLaunchKernelGGL(PCM_Reconstruction_2D, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, nx, ny,
-                     n_ghost, gama, n_fields);
-  GPU_Error_Check();
+  // Step 1: Use PCM reconstruction to put conserved variables into interface arrays
+  // This step has been fused into the Riemann solver kernels
 
   // Step 2: Calculate first-order upwind fluxes
   #ifdef EXACT

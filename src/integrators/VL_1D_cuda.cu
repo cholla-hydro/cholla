@@ -12,7 +12,6 @@
   #include "../hydro/hydro_cuda.h"
   #include "../integrators/VL_1D_cuda.h"
   #include "../io/io.h"
-  #include "../reconstruction/pcm_cuda.h"
   #include "../reconstruction/plmc_cuda.h"
   #include "../reconstruction/plmp_cuda.h"
   #include "../reconstruction/ppmc_cuda.h"
@@ -60,11 +59,8 @@ void VL_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Rea
     memory_allocated = true;
   }
 
-  // Step 1: Use PCM reconstruction to put conserved variables into interface
-  // arrays
-  hipLaunchKernelGGL(PCM_Reconstruction_1D, dimGrid, dimBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, n_ghost, gama,
-                     n_fields);
-  GPU_Error_Check();
+  // Step 1: Use PCM reconstruction to put conserved variables into interface arrays
+  // This step has been fused into the Riemann solver kernels
 
   // Step 2: Calculate first-order upwind fluxes
   #ifdef EXACT
@@ -86,12 +82,7 @@ void VL_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Rea
                      F_x, n_cells, n_ghost, dx, 0.5 * dt, gama, n_fields);
   GPU_Error_Check();
 
-  // Step 4: Construct left and right interface values using updated conserved
-  // variables
-  #ifdef PCM
-  hipLaunchKernelGGL(PCM_Reconstruction_1D, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, n_ghost, gama,
-                     n_fields);
-  #endif
+  // Step 4: Construct left and right interface values using updated conserved variables
   #ifdef PLMC
   hipLaunchKernelGGL(PLMC_cuda<0>, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, dx, dt, gama,
                      n_fields);

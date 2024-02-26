@@ -17,7 +17,6 @@
   #include "../io/io.h"
   #include "../mhd/ct_electric_fields.h"
   #include "../mhd/magnetic_update.h"
-  #include "../reconstruction/pcm_cuda.h"
   #include "../reconstruction/plmc_cuda.h"
   #include "../reconstruction/plmp_cuda.h"
   #include "../reconstruction/ppmc_cuda.h"
@@ -136,12 +135,8 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   GPU_Error_Check(cudaMemcpy(dev_grav_potential, temp_potential, n_cells * sizeof(Real), cudaMemcpyHostToDevice));
   #endif  // GRAVITY and GRAVITY_GPU
 
-  // Step 1: Use PCM reconstruction to put primitive variables into interface
-  // arrays
-  cuda_utilities::AutomaticLaunchParams static const pcm_launch_params(PCM_Reconstruction_3D, n_cells);
-  hipLaunchKernelGGL(PCM_Reconstruction_3D, pcm_launch_params.get_numBlocks(), pcm_launch_params.get_threadsPerBlock(),
-                     0, 0, dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, gama, n_fields);
-  GPU_Error_Check();
+  // Step 1: Use PCM reconstruction to put primitive variables into interface arrays
+  // This step has been fused into the Riemann solver kernels
 
   // Step 2: Calculate first-order upwind fluxes
   #ifdef EXACT
@@ -247,12 +242,7 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   GPU_Error_Check();
   #endif  // MHD
 
-  // Step 4: Construct left and right interface values using updated conserved
-  // variables
-  #ifdef PCM
-  hipLaunchKernelGGL(PCM_Reconstruction_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, Q_Ly, Q_Ry,
-                     Q_Lz, Q_Rz, nx, ny, nz, n_ghost, gama, n_fields);
-  #endif  // PCM
+  // Step 4: Construct left and right interface values using updated conserved variables
   #ifdef PLMP
   cuda_utilities::AutomaticLaunchParams static const plmp_launch_params(PLMP_cuda, n_cells);
   hipLaunchKernelGGL(PLMP_cuda, plmp_launch_params.get_numBlocks(), plmp_launch_params.get_threadsPerBlock(), 0, 0,

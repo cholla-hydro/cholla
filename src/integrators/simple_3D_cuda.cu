@@ -12,7 +12,6 @@
   #include "../hydro/hydro_cuda.h"
   #include "../integrators/simple_3D_cuda.h"
   #include "../io/io.h"
-  #include "../reconstruction/pcm_cuda.h"
   #include "../reconstruction/plmc_cuda.h"
   #include "../reconstruction/plmp_cuda.h"
   #include "../reconstruction/ppmc_cuda.h"
@@ -85,12 +84,7 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx,
   GPU_Error_Check(cudaMemcpy(dev_grav_potential, temp_potential, n_cells * sizeof(Real), cudaMemcpyHostToDevice));
   #endif
 
-  // Step 1: Construct left and right interface values using updated conserved
-  // variables
-  #ifdef PCM
-  hipLaunchKernelGGL(PCM_Reconstruction_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz,
-                     Q_Rz, nx, ny, nz, n_ghost, gama, n_fields);
-  #endif
+  // Step 1: Construct left and right interface values using updated conserved variables
   #ifdef PLMP
   hipLaunchKernelGGL(PLMP_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt,
                      gama, 0, n_fields);

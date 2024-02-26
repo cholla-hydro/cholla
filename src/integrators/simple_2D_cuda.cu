@@ -8,7 +8,6 @@
 #include "../global/global_cuda.h"
 #include "../hydro/hydro_cuda.h"
 #include "../integrators/simple_2D_cuda.h"
-#include "../reconstruction/pcm_cuda.h"
 #include "../reconstruction/plmc_cuda.h"
 #include "../reconstruction/plmp_cuda.h"
 #include "../reconstruction/ppmc_cuda.h"
@@ -55,10 +54,6 @@ void Simple_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int 
   }
 
 // Step 1: Do the reconstruction
-#ifdef PCM
-  hipLaunchKernelGGL(PCM_Reconstruction_2D, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, nx, ny,
-                     n_ghost, gama, n_fields);
-#endif
 #ifdef PLMP
   hipLaunchKernelGGL(PLMP_cuda, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt,
                      gama, 0, n_fields);
