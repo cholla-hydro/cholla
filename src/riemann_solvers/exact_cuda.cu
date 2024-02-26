@@ -11,33 +11,29 @@
 #include "../utils/gpu.hpp"
 #include "../utils/hydro_utilities.h"
 
-/*! \fn Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real
- * *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int
- * n_fields) \brief Exact Riemann solver based on the Fortran code given in
- * Sec. 4.9 of Toro (1999). */
-__global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny,
-                                            int nz, int n_ghost, Real gamma, int dir, int n_fields)
+template <int reconstruction, uint direction>
+__global__ void Calculate_Exact_Fluxes_CUDA(Real const *dev_conserved, Real const *dev_bounds_L,
+                                            Real const *dev_bounds_R, Real *dev_flux, int const nx, int const ny,
+                                            int const nz, int const n_cells, Real const gamma, int const n_fields)
 {
   // get a thread index
   int blockId = blockIdx.x + blockIdx.y * gridDim.x;
   int tid     = threadIdx.x + blockId * blockDim.x;
-  int zid     = tid / (nx * ny);
-  int yid     = (tid - zid * nx * ny) / nx;
-  int xid     = tid - zid * nx * ny - yid * nx;
+  int xid, yid, zid;
+  cuda_utilities::compute3DIndices(tid, nx, ny, xid, yid, zid);
 
-  int n_cells = nx * ny * nz;
   int o1, o2, o3;
-  if (dir == 0) {
+  if constexpr (direction == 0) {
     o1 = 1;
     o2 = 2;
     o3 = 3;
   }
-  if (dir == 1) {
+  if constexpr (direction == 1) {
     o1 = 2;
     o2 = 3;
     o3 = 1;
   }
-  if (dir == 2) {
+  if constexpr (direction == 2) {
     o1 = 3;
     o2 = 1;
     o3 = 2;
@@ -53,65 +49,73 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
   Real E_kin, E, dge;
 #endif
 
-  // Each thread executes the solver independently
-  // if (xid > n_ghost-3 && xid < nx-n_ghost+1 && yid < ny && zid < nz)
-  if (xid < nx && yid < ny && zid < nz) {
-    // retrieve primitive variables
-    left_state.density    = dev_bounds_L[tid];
-    left_state.velocity.x = dev_bounds_L[o1 * n_cells + tid] / left_state.density;
-    left_state.velocity.y = dev_bounds_L[o2 * n_cells + tid] / left_state.density;
-    left_state.velocity.z = dev_bounds_L[o3 * n_cells + tid] / left_state.density;
-#ifdef DE  // PRESSURE_DE
-    E     = dev_bounds_L[4 * n_cells + tid];
-    E_kin = 0.5 * left_state.density *
-            (left_state.velocity.x * left_state.velocity.x + left_state.velocity.y * left_state.velocity.y +
-             left_state.velocity.z * left_state.velocity.z);
-    dge                 = dev_bounds_L[(n_fields - 1) * n_cells + tid];
-    left_state.pressure = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
-#else
-    left_state.pressure = (dev_bounds_L[4 * n_cells + tid] - 0.5 * left_state.density *
-                                                                 (left_state.velocity.x * left_state.velocity.x +
-                                                                  left_state.velocity.y * left_state.velocity.y +
-                                                                  left_state.velocity.z * left_state.velocity.z)) *
-                          (gamma - 1.0);
-#endif  // PRESSURE_DE
-    left_state.pressure = fmax(left_state.pressure, (Real)TINY_NUMBER);
-#ifdef SCALAR
-    for (int i = 0; i < NSCALARS; i++) {
-      left_state.scalar_specific[i] = dev_bounds_L[(5 + i) * n_cells + tid] / left_state.density;
-    }
-#endif
-#ifdef DE
-    left_state.gas_energy_specific = dge / left_state.density;
-#endif
-    right_state.density    = dev_bounds_R[tid];
-    right_state.velocity.x = dev_bounds_R[o1 * n_cells + tid] / right_state.density;
-    right_state.velocity.y = dev_bounds_R[o2 * n_cells + tid] / right_state.density;
-    right_state.velocity.z = dev_bounds_R[o3 * n_cells + tid] / right_state.density;
-#ifdef DE  // PRESSURE_DE
-    E     = dev_bounds_R[4 * n_cells + tid];
-    E_kin = 0.5 * right_state.density *
-            (right_state.velocity.x * right_state.velocity.x + right_state.velocity.y * right_state.velocity.y +
-             right_state.velocity.z * right_state.velocity.z);
-    dge                  = dev_bounds_R[(n_fields - 1) * n_cells + tid];
-    right_state.pressure = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
-#else
-    right_state.pressure = (dev_bounds_R[4 * n_cells + tid] - 0.5 * right_state.density *
-                                                                  (right_state.velocity.x * right_state.velocity.x +
-                                                                   right_state.velocity.y * right_state.velocity.y +
-                                                                   right_state.velocity.z * right_state.velocity.z)) *
-                           (gamma - 1.0);
-#endif  // PRESSURE_DE
-    right_state.pressure = fmax(right_state.pressure, (Real)TINY_NUMBER);
-#ifdef SCALAR
-    for (int i = 0; i < NSCALARS; i++) {
-      right_state.scalar_specific[i] = dev_bounds_R[(5 + i) * n_cells + tid] / right_state.density;
-    }
-#endif
-#ifdef DE
-    right_state.gas_energy_specific = dge / right_state.density;
-#endif
+  // Thread guard to avoid overrun
+  if (not reconstruction::Riemann_Thread_Guard<reconstruction>(nx, ny, nz, xid, yid, zid)) {
+    // =========================
+    // Load the interface states
+    // =========================
 
+    // Check if the reconstruction chosen is implemented as a device function yet
+    if constexpr (reconstruction == reconstruction::Kind::pcm) {
+      reconstruction::Reconstruct_Interface_States<reconstruction, direction>(dev_conserved, xid, yid, zid, nx, ny,
+                                                                              n_cells, gamma, left_state, right_state);
+    } else {
+      // retrieve primitive variables
+      left_state.density    = dev_bounds_L[tid];
+      left_state.velocity.x = dev_bounds_L[o1 * n_cells + tid] / left_state.density;
+      left_state.velocity.y = dev_bounds_L[o2 * n_cells + tid] / left_state.density;
+      left_state.velocity.z = dev_bounds_L[o3 * n_cells + tid] / left_state.density;
+#ifdef DE  // PRESSURE_DE
+      E     = dev_bounds_L[4 * n_cells + tid];
+      E_kin = 0.5 * left_state.density *
+              (left_state.velocity.x * left_state.velocity.x + left_state.velocity.y * left_state.velocity.y +
+               left_state.velocity.z * left_state.velocity.z);
+      dge                 = dev_bounds_L[(n_fields - 1) * n_cells + tid];
+      left_state.pressure = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
+#else
+      left_state.pressure = (dev_bounds_L[4 * n_cells + tid] - 0.5 * left_state.density *
+                                                                   (left_state.velocity.x * left_state.velocity.x +
+                                                                    left_state.velocity.y * left_state.velocity.y +
+                                                                    left_state.velocity.z * left_state.velocity.z)) *
+                            (gamma - 1.0);
+#endif  // PRESSURE_DE
+      left_state.pressure = fmax(left_state.pressure, (Real)TINY_NUMBER);
+#ifdef SCALAR
+      for (int i = 0; i < NSCALARS; i++) {
+        left_state.scalar_specific[i] = dev_bounds_L[(5 + i) * n_cells + tid] / left_state.density;
+      }
+#endif
+#ifdef DE
+      left_state.gas_energy_specific = dge / left_state.density;
+#endif
+      right_state.density    = dev_bounds_R[tid];
+      right_state.velocity.x = dev_bounds_R[o1 * n_cells + tid] / right_state.density;
+      right_state.velocity.y = dev_bounds_R[o2 * n_cells + tid] / right_state.density;
+      right_state.velocity.z = dev_bounds_R[o3 * n_cells + tid] / right_state.density;
+#ifdef DE  // PRESSURE_DE
+      E     = dev_bounds_R[4 * n_cells + tid];
+      E_kin = 0.5 * right_state.density *
+              (right_state.velocity.x * right_state.velocity.x + right_state.velocity.y * right_state.velocity.y +
+               right_state.velocity.z * right_state.velocity.z);
+      dge                  = dev_bounds_R[(n_fields - 1) * n_cells + tid];
+      right_state.pressure = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
+#else
+      right_state.pressure = (dev_bounds_R[4 * n_cells + tid] - 0.5 * right_state.density *
+                                                                    (right_state.velocity.x * right_state.velocity.x +
+                                                                     right_state.velocity.y * right_state.velocity.y +
+                                                                     right_state.velocity.z * right_state.velocity.z)) *
+                             (gamma - 1.0);
+#endif  // PRESSURE_DE
+      right_state.pressure = fmax(right_state.pressure, (Real)TINY_NUMBER);
+#ifdef SCALAR
+      for (int i = 0; i < NSCALARS; i++) {
+        right_state.scalar_specific[i] = dev_bounds_R[(5 + i) * n_cells + tid] / right_state.density;
+      }
+#endif
+#ifdef DE
+      right_state.gas_energy_specific = dge / right_state.density;
+#endif
+    }
     // compute sounds speeds in left and right regions
     cl = sqrt(gamma * left_state.pressure / left_state.density);
     cr = sqrt(gamma * right_state.pressure / right_state.density);
@@ -343,3 +347,26 @@ __device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v, Real
     }
   }
 }
+
+// Instantiate the templates we need
+template __global__ void Calculate_Exact_Fluxes_CUDA<reconstruction::Kind::pcm, 0>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
+    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+template __global__ void Calculate_Exact_Fluxes_CUDA<reconstruction::Kind::pcm, 1>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
+    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+template __global__ void Calculate_Exact_Fluxes_CUDA<reconstruction::Kind::pcm, 2>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
+    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+
+#ifndef PCM
+template __global__ void Calculate_Exact_Fluxes_CUDA<reconstruction::Kind::chosen, 0>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
+    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+template __global__ void Calculate_Exact_Fluxes_CUDA<reconstruction::Kind::chosen, 1>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
+    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+template __global__ void Calculate_Exact_Fluxes_CUDA<reconstruction::Kind::chosen, 2>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
+    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+#endif  // PCM

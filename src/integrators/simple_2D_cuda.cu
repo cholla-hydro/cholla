@@ -85,10 +85,10 @@ void Simple_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int 
 
 // Step 2: Calculate the fluxes
 #ifdef EXACT
-  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost,
-                     gama, 0, n_fields);
-  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dim2dGrid, dim1dBlock, 0, 0, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost,
-                     gama, 1, n_fields);
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Exact_Fluxes_CUDA<reconstruction::Kind::chosen, 0>), dim2dGrid,
+                     dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, n_fields);
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Exact_Fluxes_CUDA<reconstruction::Kind::chosen, 1>), dim2dGrid,
+                     dim1dBlock, 0, 0, dev_conserved, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_cells, gama, n_fields);
 #endif
 #ifdef ROE
   hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::chosen, 0>), dim2dGrid, dim1dBlock,
