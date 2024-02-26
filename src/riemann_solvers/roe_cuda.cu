@@ -38,9 +38,7 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const 
   sum_0 = sum_1 = sum_2 = sum_3 = sum_4 = 0.0;
   Real test0, test1, test2, test3, test4;
   int hlle_flag = 0;
-#ifdef DE
-  Real dgel, dger, f_ge_l, f_ge_r, E_kin;
-#endif
+
 #ifdef SCALAR
   Real dscalarl[NSCALARS], dscalarr[NSCALARS], f_scalar_l[NSCALARS], f_scalar_r[NSCALARS];
 #endif
@@ -85,7 +83,7 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const 
       }
 #endif
 #ifdef DE
-      dgel = dev_bounds_L[(n_fields - 1) * n_cells + tid];
+      Real gas_energy_left = dev_bounds_L[(n_fields - 1) * n_cells + tid];
 #endif
 
       right_state.density    = dev_bounds_R[tid];
@@ -99,7 +97,7 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const 
       }
 #endif
 #ifdef DE
-      dger = dev_bounds_R[(n_fields - 1) * n_cells + tid];
+      Real gas_energy_right = dev_bounds_R[(n_fields - 1) * n_cells + tid];
 #endif
 
       // calculate primitive variables
@@ -107,11 +105,11 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const 
       left_state.velocity.y = left_state.momentum.y / left_state.density;
       left_state.velocity.z = left_state.momentum.z / left_state.density;
 #ifdef DE  // PRESSURE_DE
-      E_kin = 0.5 * left_state.density *
-              (left_state.velocity.x * left_state.velocity.x + left_state.velocity.y * left_state.velocity.y +
-               left_state.velocity.z * left_state.velocity.z);
+      Real E_kin = 0.5 * left_state.density *
+                   (left_state.velocity.x * left_state.velocity.x + left_state.velocity.y * left_state.velocity.y +
+                    left_state.velocity.z * left_state.velocity.z);
       left_state.pressure =
-          hydro_utilities::Get_Pressure_From_DE(left_state.energy, left_state.energy - E_kin, dgel, gamma);
+          hydro_utilities::Get_Pressure_From_DE(left_state.energy, left_state.energy - E_kin, gas_energy_left, gamma);
 #else
       left_state.pressure = (left_state.energy - 0.5 * left_state.density *
                                                      (left_state.velocity.x * left_state.velocity.x +
@@ -126,7 +124,7 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const 
       }
 #endif
 #ifdef DE
-      left_state.gas_energy_specific = dgel / left_state.density;
+      left_state.gas_energy_specific = gas_energy_left / left_state.density;
 #endif
       right_state.velocity.x = right_state.momentum.x / right_state.density;
       right_state.velocity.y = right_state.momentum.y / right_state.density;
@@ -135,8 +133,8 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const 
       E_kin = 0.5 * right_state.density *
               (right_state.velocity.x * right_state.velocity.x + right_state.velocity.y * right_state.velocity.y +
                right_state.velocity.z * right_state.velocity.z);
-      right_state.pressure =
-          hydro_utilities::Get_Pressure_From_DE(right_state.energy, right_state.energy - E_kin, dger, gamma);
+      right_state.pressure = hydro_utilities::Get_Pressure_From_DE(right_state.energy, right_state.energy - E_kin,
+                                                                   gas_energy_right, gamma);
 #else
       right_state.pressure = (right_state.energy - 0.5 * right_state.density *
                                                        (right_state.velocity.x * right_state.velocity.x +
@@ -151,7 +149,7 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const 
       }
 #endif
 #ifdef DE
-      right_state.gas_energy_specific = dger / right_state.density;
+      right_state.gas_energy_specific = gas_energy_right / right_state.density;
 #endif
     }
     // calculate the enthalpy in each cell
@@ -186,7 +184,7 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const 
     f_mz_l = left_state.momentum.x * left_state.velocity.z;
     f_E_l  = (left_state.energy + left_state.pressure) * left_state.velocity.x;
 #ifdef DE
-    f_ge_l = left_state.momentum.x * left_state.gas_energy_specific;
+    Real f_ge_l = left_state.momentum.x * left_state.gas_energy_specific;
 #endif
 #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
@@ -200,7 +198,7 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const 
     f_mz_r = right_state.momentum.x * right_state.velocity.z;
     f_E_r  = (right_state.energy + right_state.pressure) * right_state.velocity.x;
 #ifdef DE
-    f_ge_r = right_state.momentum.x * right_state.gas_energy_specific;
+    Real f_ge_r = right_state.momentum.x * right_state.gas_energy_specific;
 #endif
 #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
@@ -355,8 +353,8 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const 
         f_E_r = right_state.energy * (right_state.velocity.x - bp) + right_state.pressure * right_state.velocity.x;
 
 #ifdef DE
-        f_ge_l = dgel * (left_state.velocity.x - bm);
-        f_ge_r = dger * (right_state.velocity.x - bp);
+        f_ge_l = left_state.gas_energy_specific * left_state.density * (left_state.velocity.x - bm);
+        f_ge_r = right_state.gas_energy_specific * right_state.density * (right_state.velocity.x - bp);
 #endif
 
 #ifdef SCALAR
