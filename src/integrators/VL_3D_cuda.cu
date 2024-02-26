@@ -182,15 +182,19 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
                      Q_Lz, Q_Rz, F_z, nx, ny, nz, n_cells, gama, n_fields);
   #endif  // HLLC
   #ifdef HLL
-  cuda_utilities::AutomaticLaunchParams static const hll_launch_params(Calculate_HLL_Fluxes_CUDA, n_cells);
-  hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, hll_launch_params.get_numBlocks(),
-                     hll_launch_params.get_threadsPerBlock(), 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0,
+  cuda_utilities::AutomaticLaunchParams static const hll_pcm_launch_params(
+      Calculate_HLL_Fluxes_CUDA<reconstruction::Kind::pcm, 0>, n_cells);
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLL_Fluxes_CUDA<reconstruction::Kind::pcm, 0>),
+                     hll_pcm_launch_params.get_numBlocks(),
+                     hll_pcm_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama,
                      n_fields);
-  hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, hll_launch_params.get_numBlocks(),
-                     hll_launch_params.get_threadsPerBlock(), 0, 0, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, 1,
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLL_Fluxes_CUDA<reconstruction::Kind::pcm, 0>),
+                     hll_pcm_launch_params.get_numBlocks(),
+                     hll_pcm_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_cells, gama,
                      n_fields);
-  hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, hll_launch_params.get_numBlocks(),
-                     hll_launch_params.get_threadsPerBlock(), 0, 0, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, 2,
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLL_Fluxes_CUDA<reconstruction::Kind::pcm, 0>),
+                     hll_pcm_launch_params.get_numBlocks(),
+                     hll_pcm_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_cells, gama,
                      n_fields);
   #endif  // HLL
   #ifdef HLLD
@@ -319,13 +323,18 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
                      dev_conserved_half, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_cells, gama, n_fields);
   #endif  // HLLC
   #ifdef HLL
-  hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, hll_launch_params.numBlocks, hll_launch_params.threadsPerBlock, 0, 0,
-                     Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0, n_fields);
-  hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, hll_launch_params.numBlocks, hll_launch_params.threadsPerBlock, 0, 0,
-                     Q_Ly, Q_Ry, F_y, nx, ny, nz, n_ghost, gama, 1, n_fields);
-  hipLaunchKernelGGL(Calculate_HLL_Fluxes_CUDA, hll_launch_params.numBlocks, hll_launch_params.threadsPerBlock, 0, 0,
-                     Q_Lz, Q_Rz, F_z, nx, ny, nz, n_ghost, gama, 2, n_fields);
-  #endif  // HLLC
+  cuda_utilities::AutomaticLaunchParams static const hll_higher_order_launch_params(
+      Calculate_HLL_Fluxes_CUDA<reconstruction::Kind::chosen, 1>, n_cells);
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLL_Fluxes_CUDA<reconstruction::Kind::chosen, 0>),
+                     hll_higher_order_launch_params.numBlocks, hll_higher_order_launch_params.threadsPerBlock, 0, 0,
+                     dev_conserved_half, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, n_fields);
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLL_Fluxes_CUDA<reconstruction::Kind::chosen, 1>),
+                     hll_higher_order_launch_params.numBlocks, hll_higher_order_launch_params.threadsPerBlock, 0, 0,
+                     dev_conserved_half, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_cells, gama, n_fields);
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLL_Fluxes_CUDA<reconstruction::Kind::chosen, 2>),
+                     hll_higher_order_launch_params.numBlocks, hll_higher_order_launch_params.threadsPerBlock, 0, 0,
+                     dev_conserved_half, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_cells, gama, n_fields);
+  #endif  // HLL
   #ifdef HLLD
   cuda_utilities::AutomaticLaunchParams static const hlld_higher_order_launch_params(
       mhd::Calculate_HLLD_Fluxes_CUDA<reconstruction::Kind::chosen, 1>, n_cells);

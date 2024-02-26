@@ -10,21 +10,16 @@
 #include "../utils/gpu.hpp"
 #include "../utils/hydro_utilities.h"
 
-/*! \fn Calculate_HLLC_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real
- * *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int
- * n_fields) \brief HLLC Riemann solver based on the version described in Toro
- * (2006), Sec. 10.4. */
-__global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny,
-                                          int nz, int n_ghost, Real gamma, int dir, int n_fields)
+template <int reconstruction, uint direction>
+__global__ void Calculate_HLL_Fluxes_CUDA(Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R,
+                                          Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells,
+                                          Real const gamma, int const n_fields)
 {
   // get a thread index
   int blockId = blockIdx.x + blockIdx.y * gridDim.x;
   int tid     = threadIdx.x + blockId * blockDim.x;
-  int zid     = tid / (nx * ny);
-  int yid     = (tid - zid * nx * ny) / nx;
-  int xid     = tid - zid * nx * ny - yid * nx;
-
-  int n_cells = nx * ny * nz;
+  int xid, yid, zid;
+  cuda_utilities::compute3DIndices(tid, nx, ny, xid, yid, zid);
 
   // Note that in only this riemann solver neither the scalar nor the dual energy that are carried through are NOT the
   // specific versions despite the name in the struct
@@ -50,97 +45,106 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
   // Real etah = 0;
 
   int o1, o2, o3;
-  if (dir == 0) {
+  if constexpr (direction == 0) {
     o1 = 1;
     o2 = 2;
     o3 = 3;
   }
-  if (dir == 1) {
+  if constexpr (direction == 1) {
     o1 = 2;
     o2 = 3;
     o3 = 1;
   }
-  if (dir == 2) {
+  if constexpr (direction == 2) {
     o1 = 3;
     o2 = 1;
     o3 = 2;
   }
 
-  // Each thread executes the solver independently
-  // if (xid > n_ghost-3 && xid < nx-n_ghost+1 && yid < ny && zid < nz)
-  if (xid < nx && yid < ny && zid < nz) {
-    // retrieve conserved variables
-    left_state.density    = dev_bounds_L[tid];
-    left_state.momentum.x = dev_bounds_L[o1 * n_cells + tid];
-    left_state.momentum.y = dev_bounds_L[o2 * n_cells + tid];
-    left_state.momentum.z = dev_bounds_L[o3 * n_cells + tid];
-    left_state.energy     = dev_bounds_L[4 * n_cells + tid];
+  // Thread guard to avoid overrun
+  if (not reconstruction::Riemann_Thread_Guard<reconstruction>(nx, ny, nz, xid, yid, zid)) {
+    // =========================
+    // Load the interface states
+    // =========================
+
+    // Check if the reconstruction chosen is implemented as a device function yet
+    if constexpr (reconstruction == reconstruction::Kind::pcm) {
+      reconstruction::Reconstruct_Interface_States<reconstruction, direction>(dev_conserved, xid, yid, zid, nx, ny,
+                                                                              n_cells, gamma, left_state, right_state);
+    } else {
+      // retrieve conserved variables
+      left_state.density    = dev_bounds_L[tid];
+      left_state.momentum.x = dev_bounds_L[o1 * n_cells + tid];
+      left_state.momentum.y = dev_bounds_L[o2 * n_cells + tid];
+      left_state.momentum.z = dev_bounds_L[o3 * n_cells + tid];
+      left_state.energy     = dev_bounds_L[4 * n_cells + tid];
 #ifdef SCALAR
-    for (int i = 0; i < NSCALARS; i++) {
-      left_state.scalar_specific[i] = dev_bounds_L[(5 + i) * n_cells + tid];
-    }
+      for (int i = 0; i < NSCALARS; i++) {
+        left_state.scalar_specific[i] = dev_bounds_L[(5 + i) * n_cells + tid];
+      }
 #endif
 #ifdef DE
-    left_state.gas_energy_specific = dev_bounds_L[(n_fields - 1) * n_cells + tid];
+      left_state.gas_energy_specific = dev_bounds_L[(n_fields - 1) * n_cells + tid];
 #endif
 
-    right_state.density    = dev_bounds_R[tid];
-    right_state.momentum.x = dev_bounds_R[o1 * n_cells + tid];
-    right_state.momentum.y = dev_bounds_R[o2 * n_cells + tid];
-    right_state.momentum.z = dev_bounds_R[o3 * n_cells + tid];
-    right_state.energy     = dev_bounds_R[4 * n_cells + tid];
+      right_state.density    = dev_bounds_R[tid];
+      right_state.momentum.x = dev_bounds_R[o1 * n_cells + tid];
+      right_state.momentum.y = dev_bounds_R[o2 * n_cells + tid];
+      right_state.momentum.z = dev_bounds_R[o3 * n_cells + tid];
+      right_state.energy     = dev_bounds_R[4 * n_cells + tid];
 #ifdef SCALAR
-    for (int i = 0; i < NSCALARS; i++) {
-      right_state.scalar_specific[i] = dev_bounds_R[(5 + i) * n_cells + tid];
-    }
+      for (int i = 0; i < NSCALARS; i++) {
+        right_state.scalar_specific[i] = dev_bounds_R[(5 + i) * n_cells + tid];
+      }
 #endif
 #ifdef DE
-    right_state.gas_energy_specific = dev_bounds_R[(n_fields - 1) * n_cells + tid];
+      right_state.gas_energy_specific = dev_bounds_R[(n_fields - 1) * n_cells + tid];
 #endif
 
-    // calculate primitive variables
-    left_state.velocity.x = left_state.momentum.x / left_state.density;
-    left_state.velocity.y = left_state.momentum.y / left_state.density;
-    left_state.velocity.z = left_state.momentum.z / left_state.density;
+      // calculate primitive variables
+      left_state.velocity.x = left_state.momentum.x / left_state.density;
+      left_state.velocity.y = left_state.momentum.y / left_state.density;
+      left_state.velocity.z = left_state.momentum.z / left_state.density;
 #ifdef DE  // PRESSURE_DE
-    E_kin = 0.5 * left_state.density *
-            (left_state.velocity.x * left_state.velocity.x + left_state.velocity.y * left_state.velocity.y +
-             left_state.velocity.z * left_state.velocity.z);
-    left_state.pressure = hydro_utilities::Get_Pressure_From_DE(left_state.energy, left_state.energy - E_kin,
-                                                                left_state.gas_energy_specific, gamma);
+      E_kin = 0.5 * left_state.density *
+              (left_state.velocity.x * left_state.velocity.x + left_state.velocity.y * left_state.velocity.y +
+               left_state.velocity.z * left_state.velocity.z);
+      left_state.pressure = hydro_utilities::Get_Pressure_From_DE(left_state.energy, left_state.energy - E_kin,
+                                                                  left_state.gas_energy_specific, gamma);
 #else
-    left_state.pressure = (left_state.energy - 0.5 * left_state.density *
-                                                   (left_state.velocity.x * left_state.velocity.x +
-                                                    left_state.velocity.y * left_state.velocity.y +
-                                                    left_state.velocity.z * left_state.velocity.z)) *
-                          (gamma - 1.0);
+      left_state.pressure = (left_state.energy - 0.5 * left_state.density *
+                                                     (left_state.velocity.x * left_state.velocity.x +
+                                                      left_state.velocity.y * left_state.velocity.y +
+                                                      left_state.velocity.z * left_state.velocity.z)) *
+                            (gamma - 1.0);
 #endif  // DE
-    left_state.pressure = fmax(left_state.pressure, (Real)TINY_NUMBER);
-    // #ifdef SCALAR
-    // for (int i=0; i<NSCALARS; i++) {
-    //   scl[i] = left_state.scalar_specific[i] / left_state.density;
-    // }
-    // #endif
-    // #ifdef DE
-    // gel = left_state.gas_energy_specific / left_state.density;
-    // #endif
-    right_state.velocity.x = right_state.momentum.x / right_state.density;
-    right_state.velocity.y = right_state.momentum.y / right_state.density;
-    right_state.velocity.z = right_state.momentum.z / right_state.density;
+      left_state.pressure = fmax(left_state.pressure, (Real)TINY_NUMBER);
+      // #ifdef SCALAR
+      // for (int i=0; i<NSCALARS; i++) {
+      //   scl[i] = left_state.scalar_specific[i] / left_state.density;
+      // }
+      // #endif
+      // #ifdef DE
+      // gel = left_state.gas_energy_specific / left_state.density;
+      // #endif
+      right_state.velocity.x = right_state.momentum.x / right_state.density;
+      right_state.velocity.y = right_state.momentum.y / right_state.density;
+      right_state.velocity.z = right_state.momentum.z / right_state.density;
 #ifdef DE  // PRESSURE_DE
-    E_kin = 0.5 * right_state.density *
-            (right_state.velocity.x * right_state.velocity.x + right_state.velocity.y * right_state.velocity.y +
-             right_state.velocity.z * right_state.velocity.z);
-    right_state.pressure = hydro_utilities::Get_Pressure_From_DE(right_state.energy, right_state.energy - E_kin,
-                                                                 right_state.gas_energy_specific, gamma);
+      E_kin = 0.5 * right_state.density *
+              (right_state.velocity.x * right_state.velocity.x + right_state.velocity.y * right_state.velocity.y +
+               right_state.velocity.z * right_state.velocity.z);
+      right_state.pressure = hydro_utilities::Get_Pressure_From_DE(right_state.energy, right_state.energy - E_kin,
+                                                                   right_state.gas_energy_specific, gamma);
 #else
-    right_state.pressure = (right_state.energy - 0.5 * right_state.density *
-                                                     (right_state.velocity.x * right_state.velocity.x +
-                                                      right_state.velocity.y * right_state.velocity.y +
-                                                      right_state.velocity.z * right_state.velocity.z)) *
-                           (gamma - 1.0);
+      right_state.pressure = (right_state.energy - 0.5 * right_state.density *
+                                                       (right_state.velocity.x * right_state.velocity.x +
+                                                        right_state.velocity.y * right_state.velocity.y +
+                                                        right_state.velocity.z * right_state.velocity.z)) *
+                             (gamma - 1.0);
 #endif  // DE
-    right_state.pressure = fmax(right_state.pressure, (Real)TINY_NUMBER);
+      right_state.pressure = fmax(right_state.pressure, (Real)TINY_NUMBER);
+    }
     // #ifdef SCALAR
     // for (int i=0; i<NSCALARS; i++) {
     //   scr[i] = right_state.scalar_specific[i] / right_state.density;
@@ -283,3 +287,26 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     }
   }
 }
+
+// Instantiate the templates we need
+template __global__ void Calculate_HLL_Fluxes_CUDA<reconstruction::Kind::pcm, 0>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
+    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+template __global__ void Calculate_HLL_Fluxes_CUDA<reconstruction::Kind::pcm, 1>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
+    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+template __global__ void Calculate_HLL_Fluxes_CUDA<reconstruction::Kind::pcm, 2>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
+    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+
+#ifndef PCM
+template __global__ void Calculate_HLL_Fluxes_CUDA<reconstruction::Kind::chosen, 0>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
+    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+template __global__ void Calculate_HLL_Fluxes_CUDA<reconstruction::Kind::chosen, 1>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
+    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+template __global__ void Calculate_HLL_Fluxes_CUDA<reconstruction::Kind::chosen, 2>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
+    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+#endif  // PCM
