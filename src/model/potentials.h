@@ -210,4 +210,43 @@ struct AprroxExponentialDisk3MN{
 };
 
 
+// It probably makes more sense for the following class to live in disk_ICs.h.
+// - we currently put the definition here (rather than the in disk_ICs.h) since it holds
+//   AprroxExponentialDisk3MN as an attribute
+// - thus if we put this class in the disk_galaxy.h, we would also need to add an include
+//   this header file to disk_galaxy.h. That produces issues for any regular .cpp file 
+//   that (directly or transitively includes) disk_galaxy.h 
+
+/* Aggregates properties related to a gas disk
+ *
+ * The radial surface-density distribution satisfies
+ *   `Sigma(r) = Sigma_0 * exp(-r_cyl/R_d)
+ */
+struct GasDiskProps{
+  Real M_d;  /*!< total mass (in Msolar) */
+  Real R_d;  /*!< scale-length (in kpc) */
+  Real H_d;  /*!< initial guess at the scale-height (in kpc) */
+  Real T_d;  /*!< gas temperature */
+  bool isothermal; /*!< Indicates whether to initialize an isothermal or adiabatic disk
+                    *!< (it's unclear whether the adiabatic configuration still works)
+                    */
+  AprroxExponentialDisk3MN approx_selfgrav_for_vcirc; /*!< facilitates rough estimate of the self-gravity
+                                                       *!< (to help with setting up circular-velocity in ICs).
+                                                       *!< While this is always initialized, it's not always used
+                                                       */
+
+  GasDiskProps(Real M_d, Real R_d, Real H_d, Real T_d, bool isothermal, Real selfgrav_scale_height_estimate)
+    : M_d(M_d), R_d(R_d), H_d(H_d), T_d(T_d), isothermal(isothermal),
+      approx_selfgrav_for_vcirc(AprroxExponentialDisk3MN::create(M_d, R_d, selfgrav_scale_height_estimate, true))
+  {}
+
+  /* Returns Sigma_0. This is just
+   * \f$\Sigma_0 = \frac{M_d}{\int Sigma(r)\ dA} =  \frac{M_d}{2\pi \int_0^\infty r\ \Sigma\ dr} \f$
+   */
+  Real CentralSurfaceDensity() const noexcept {return M_d / (2 * M_PI * R_d * R_d);}
+
+  /* Compute the surface density at cylindrical radius*/
+  Real surface_density(Real R) const noexcept {return CentralSurfaceDensity() * exp(-R / R_d);};
+};
+
 #endif /* POTENTIALS */

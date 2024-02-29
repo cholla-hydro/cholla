@@ -3,43 +3,32 @@
 
 #include <cmath>
 #include <iostream>
+#include <memory>
 #include <random>
 
 #include "../global/global.h"
 #include "../utils/error_handling.h"
 #include "potentials.h"
 
-/* Aggregates properties related to a gas disk
- *
- * The radial surface-density distribution satisfies
- *   `Sigma(r) = Sigma_0 * exp(-r_cyl/R_d)
- */
-struct GasDiskProps{
-  Real M_d;  /*!< total mass (in Msolar) */
-  Real R_d;  /*!< scale-length (in kpc) */
-  Real H_d;  /*!< initial guess at the scale-height (in kpc) */
-  Real T_d;  /*!< gas temperature */
-  bool isothermal; /*!< Indicates whether to initialize an isothermal or adiabatic disk
-                    *!< (it's unclear whether the adiabatic configuration still works)
-                    */
-  AprroxExponentialDisk3MN approx_selfgrav_for_vcirc; /*!< facilitates rough estimate of the self-gravity
-                                                       *!< (to help with setting up circular-velocity in ICs).
-                                                       *!< While this is always initialized, it's not always used
-                                                       */
-
-  GasDiskProps(Real M_d, Real R_d, Real H_d, Real T_d, bool isothermal, Real selfgrav_scale_height_estimate)
-    : M_d(M_d), R_d(R_d), H_d(H_d), T_d(T_d), isothermal(isothermal),
-      approx_selfgrav_for_vcirc(AprroxExponentialDisk3MN::create(M_d, R_d, selfgrav_scale_height_estimate, true))
-  {}
-
-  /* Returns Sigma_0. This is just
-   * \f$\Sigma_0 = \frac{M_d}{\int Sigma(r)\ dA} =  \frac{M_d}{2\pi \int_0^\infty r\ \Sigma\ dr} \f$
-   */
-  Real CentralSurfaceDensity() const noexcept {return M_d / (2 * M_PI * R_d * R_d);}
-
-  /* Compute the surface density at cylindrical radius*/
-  Real surface_density(Real R) const noexcept {return CentralSurfaceDensity() * exp(-R / R_d);};
-};
+// we are bending over backwards to ensure that the functionality defined in
+// "potentials.h" can be used on CPUs and on GPUs
+// -> previously, this functionality was simply duplicated in a number of places
+//    and this created some headaches
+// -> we can't simply include the "potentials.h" header here since that would
+//    produce problems for any source file that includes this header and makes
+//    use of a regular c++ compiler
+// -> we instead forward declare the relevant classes/structs from "potentials.h"
+//    and store pointers to these classes within DiskGalaxy (without including
+//    the full definitions of these classes in this header, we can't directly
+//    include them in this file)
+// -> this means that DiskGalaxy's methods that forward onto the methods of these
+//    other classes will be a little slower. In files compiled with a CUDA/HIP
+//    compiler, this slowdown can be avoided by including the "potentials.h" 
+//    header and using DiskGalaxy's accessor methods to directly access the
+//    underlying objects.
+struct NFWHaloPotential;
+struct MiyamotoNagaiDiskProps;
+struct GasDiskProps;
 
 /* Intended to serve as a centralized location where all properties of the underlying galaxy-model
  * are agregated.
@@ -49,35 +38,42 @@ struct GasDiskProps{
  */
 class DiskGalaxy
 {
- private:
-  MiyamotoNagaiDiskProps stellar_disk;
-  GasDiskProps gas_disk;
-  NFWHaloPotential halo_potential;
+private:
+  // we store pointers to stellar_disk, gas_disk, and halo_potential purely to
+  // sidestep some compilation issues with non-CUDA/HIP source files including 
+  // this file (this is described in greater depth up above)
+  std::shared_ptr<MiyamotoNagaiDiskProps> stellar_disk;
+  std::shared_ptr<GasDiskProps> gas_disk;
+  std::shared_ptr<NFWHaloPotential> halo_potential;
   Real M_vir, R_vir, r_cool;
 
- public:
-  DiskGalaxy(MiyamotoNagaiDiskProps stellar_disk, GasDiskProps gas_disk,
-             Real mvir, Real rvir, Real cvir, Real rcool)
-    : stellar_disk(stellar_disk), gas_disk(gas_disk),
-      halo_potential{/* halo mass: */ mvir - stellar_disk.M_d,
-                     /* scale length:*/ (rvir / cvir), cvir}
-  {
-    M_vir  = mvir;
-    R_vir  = rvir;
-    r_cool = rcool;
-  };
+public:
+
+  /* To properly deallocate the internally tracked shared pointers we need to define a
+   * destructor in a source file where the full definitions of the referenced classes
+   * are visible.
+   *
+   * \note
+   * We declare this as protected so that the compiler will reject code like `delete ptr;`, 
+   * where `ptr` has type `DiskGalaxy*` (since we currently don't need any code like this).
+   * - If we later decide that we want to support code like this we can make this public.
+   * - But, if we still support subclassing, we NEED to declare that the destructor is
+   *   `virtual`. If we don't declare it virtual, then the compiler will allow cases us
+   *   to write code like `delete ptr`, where `ptr` has type `DiskGalaxy*` and it
+   *   references a subclass. Cases like this produce undefined behavior.
+   */
+  ~DiskGalaxy();
+
+public:
+  DiskGalaxy(const MiyamotoNagaiDiskProps& stellar_disk,
+             const GasDiskProps& gas_disk,
+             Real mvir, Real rvir, Real cvir, Real rcool);
 
   /* Radial acceleration in miyamoto nagai */
-  Real gr_disk_D3D(Real R, Real z) const noexcept
-  {
-    return stellar_disk.gr_disk_D3D(R, z);
-  };
+  Real gr_disk_D3D(Real R, Real z) const noexcept;
 
   /* Radial acceleration in NFW halo */
-  Real gr_halo_D3D(Real R, Real z) const noexcept
-  {
-    return halo_potential.gr_halo_D3D(R, z);
-  };
+  Real gr_halo_D3D(Real R, Real z) const noexcept;
 
   /**
    * Convenience method that returns the combined radial acceleration
@@ -89,10 +85,7 @@ class DiskGalaxy
    */
   Real gr_total_D3D(Real R, Real z) const noexcept { return gr_disk_D3D(R, z) + gr_halo_D3D(R, z); };
 
-  Real gr_total_with_GasSelfGravEstimate(Real R, Real z) const noexcept
-  {
-    return gas_disk.approx_selfgrav_for_vcirc.gr_disk_D3D(R,z) + gr_total_D3D(R,z);
-  };
+  Real gr_total_with_GasSelfGravEstimate(Real R, Real z) const noexcept;
 
   /* returns the circular velocity of a massless test particle in the static gravitational
    * potential at the specified (cylindrical radius, z) pair. */
@@ -110,16 +103,10 @@ class DiskGalaxy
   }
 
   /* Potential of NFW halo */
-  Real phi_halo_D3D(Real R, Real z) const noexcept
-  {
-    return halo_potential.phi_halo_D3D(R, z);
-  };
+  Real phi_halo_D3D(Real R, Real z) const noexcept;
 
   /* Miyamoto-Nagai potential */
-  Real phi_disk_D3D(Real R, Real z) const noexcept
-  {
-    return stellar_disk.phi_disk_D3D(R, z);
-  };
+  Real phi_disk_D3D(Real R, Real z) const noexcept;
 
   /**
    *  Convenience method that returns the combined gravitational potential
@@ -127,49 +114,22 @@ class DiskGalaxy
    */
   Real phi_total_D3D(Real R, Real z) const noexcept { return phi_halo_D3D(R, z) + phi_disk_D3D(R, z); };
 
-  Real phi_total_with_GasSelfGravEstimate(Real R, Real z) const noexcept
-  {
-    return gas_disk.approx_selfgrav_for_vcirc.phi_disk_D3D(R,z) + gr_total_D3D(R,z);
-  };
-
   /**
    * epicyclic frequency
    */
-  Real kappa2(Real R, Real z)
-  {
-    const Real R_d = stellar_disk.R_d;
-    const Real M_d = stellar_disk.M_d;
-    const Real Z_d = stellar_disk.Z_d;
-    const Real M_h = halo_potential.M_h;
-    const Real R_h = halo_potential.R_h;
-
-    Real r = sqrt(R * R + z * z);
-    Real x = r / R_h;
-    Real C = GN * M_h / (R_h * NFWHaloPotential::log_func(halo_potential.c_vir));
-    Real A = R_d + sqrt(z * z + Z_d * Z_d);
-    Real B = sqrt(R * R + A * A);
-
-    Real phiH_prime = -C * R / (r * r) / (1 + x) + C * log(1 + x) * R_h * R / (r * r * r) + GN * M_d * R / (B * B * B);
-    Real phiH_prime_prime = -C / (r * r) / (1 + x) + 2 * C * R * R / (r * r * r * r) / (1 + x) +
-                            C / ((1 + x) * (1 + x)) * R * R / R_h / (r * r * r) +
-                            C * R * R / (1 + x) / (r * r * r * r) +
-                            C * log(1 + x) * R_h / (r * r * r) * (1 - 3 * R * R / (r * r)) +
-                            GN * M_d / (B * B * B) * (1 - 3 * R * R / (B * B));
-
-    return 3 / R * phiH_prime + phiH_prime_prime;
-  };
+  Real kappa2(Real R, Real z) const;
 
   //Real sigma_crit(Real R)
   //{
   //  return 3.36 * GN * stellar_disk.surface_density(R) / sqrt(kappa2(R, 0.0));
   //};
 
-  Real getM_d() const { return stellar_disk.M_d; };
-  Real getR_d() const { return stellar_disk.R_d; };
-  Real getZ_d() const { return stellar_disk.Z_d; };
-  MiyamotoNagaiDiskProps getStellarDisk() const { return stellar_disk; };
-  GasDiskProps getGasDisk() const { return gas_disk; };
-  NFWHaloPotential getHaloPotential() const { return halo_potential; }
+  Real getM_d() const;
+  Real getR_d() const;
+  Real getZ_d() const;
+  const MiyamotoNagaiDiskProps& getStellarDisk() const;
+  const GasDiskProps& getGasDisk() const;
+  const NFWHaloPotential& getHaloPotential() const;
   Real getM_vir() const { return M_vir; };
   Real getR_vir() const { return R_vir; };
   Real getR_cool() const { return r_cool; };
@@ -250,7 +210,8 @@ class ClusteredDiskGalaxy : public DiskGalaxy
   }
 };
 
-// in the future, it may be better to make the following 2 choices more configurable
+// in the future, it may be better to make the following 2 choices more configurable (and maybe
+// store them inside the Galaxy object)
 inline Real Get_StarCluster_Truncation_Radius(const Parameters& p)
 {
   if ((20.4 < p.xlen) and (p.xlen < 20.5)) return 9.5;
@@ -264,21 +225,11 @@ inline Real Get_Gas_Truncation_Radius(const Parameters& p)
 }
 
 
+// Forward declare galaxy instances. These are defined in disk_galaxy.cu
 namespace galaxies
 {
-// all masses in M_sun and all distances in kpc
-
-// For the MilkyWay model, we adopt radial scale lengths of 2.5 kpc and 3.5 kpc for
-// the stellar and gas disks, respectively. If the newly formed stars follow the
-// Kennicut-Schmidt law with a power of 1.4, the newly formed stars will organize
-// into a disk with scale-length of 2.5 kpc
-static ClusteredDiskGalaxy MW(ClusterMassDistribution{1e2, 5e5, 2.0},
-                              MiyamotoNagaiDiskProps{6.5e10, 2.5, 0.7}, // stellar_disk
-                              GasDiskProps{0.15 * 6.5e10, 3.5, 0.7, 1e4, true, 0.02}, // gas_disk
-                              1.077e12, 261, 18, 157.0);
-static DiskGalaxy M82(MiyamotoNagaiDiskProps{1.0e10, 0.8, 0.15}, // stellar_disk
-                      GasDiskProps{0.25 * 1.0e10, 2*0.8, 0.15, 1e4, true, 2*0.8}, // gas_disk
-                      5.0e10, 0.8 / 0.015, 10, 100.0);
-};  // namespace galaxies
+ extern const ClusteredDiskGalaxy MW;
+ extern const DiskGalaxy M82;
+};   // namespace Galaxies
 
 #endif  // DISK_GALAXY

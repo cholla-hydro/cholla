@@ -662,7 +662,7 @@ void Grid3D::Copy_Hydro_Density_to_Gravity()
 }
 
   #ifdef GRAVITY_ANALYTIC_COMP
-void Grid3D::Setup_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy &gal)
+void Grid3D::Setup_Analytic_Galaxy_Potential(int g_start, int g_end, const DiskGalaxy &gal)
 {
   int nx = Grav.nx_local + 2 * N_GHOST_POTENTIAL;
   int ny = Grav.ny_local + 2 * N_GHOST_POTENTIAL;

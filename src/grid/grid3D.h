@@ -770,7 +770,7 @@ class Grid3D
   void Add_Analytic_Potential();
   void Add_Analytic_Potential(int g_start, int g_end);
   void Setup_Analytic_Potential(struct Parameters *P);
-  void Setup_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy &gal);
+  void Setup_Analytic_Galaxy_Potential(int g_start, int g_end, const DiskGalaxy &gal);
   #ifdef GRAVITY_GPU
   void Add_Analytic_Potential_GPU();
   #endif
