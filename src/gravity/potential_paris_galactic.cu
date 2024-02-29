@@ -2,9 +2,11 @@
 
   #include <cassert>
 
+  #include "../global/global.h"
   #include "../gravity/potential_paris_galactic.h"
   #include "../io/io.h"
   #include "../utils/gpu.hpp"
+  #include "../utils/error_handling.h"
 
 PotentialParisGalactic::PotentialParisGalactic()
     : dn_{0, 0, 0},
@@ -27,12 +29,15 @@ PotentialParisGalactic::PotentialParisGalactic()
 
 PotentialParisGalactic::~PotentialParisGalactic() { Reset(); }
 
-void PotentialParisGalactic::Get_Potential(const Real *const density, Real *const potential, const Real g,
-                                           const DiskGalaxy &galaxy)
+void PotentialParisGalactic::Get_Potential(const Real *const density, Real *const potential,
+                                           const Real grav_const, const DiskGalaxy &galaxy)
 {
-  const Real scale = Real(4) * M_PI * g;
+  const Real scale = Real(4) * M_PI * grav_const;
+  if (grav_const == GN)  CHOLLA_ERROR("For consistency, grav_const must be equal to the GN macro");
 
   assert(da_);
+  // we are (presumably) defining aliases for this->da_ and this->db_ since the aliases
+  // can be more easily captured by the lambdas.
   Real *const da = da_;
   Real *const db = db_;
   assert(density);
@@ -62,6 +67,21 @@ void PotentialParisGalactic::Get_Potential(const Real *const density, Real *cons
   const Real dy = dr_[1];
   const Real dz = dr_[0];
 
+  // We begin the actual calculation
+
+  // STEP 1: store the RHS of Poisson's equation, 4 * pi * G * density, evaluated
+  // at every location inside the `da` variable
+  //
+  // for reasons related to the fact that we using FFTs to solve Poisson's
+  // equation with isolated boundaries, it is convenient to compute the
+  // gravitational for `(rho_real - rho_analytic)`
+  // - `rho_real` is the mass density field of self-gravitating gas and particles
+  //   (it corresponds to the contents of the `rho` variable)
+  // - `rho_analytic` is the mass density field that to corresponds to the
+  //   static analytic background potential (we never explicitly model this
+  //   mass in the simulation)
+  // - it would be nice if we could link to a source explaining these "reasons"
+
   const Real md = galaxy.getM_d();
   const Real rd = galaxy.getR_d();
   const Real zd = galaxy.getZ_d();
@@ -84,9 +104,24 @@ void PotentialParisGalactic::Get_Potential(const Real *const density, Real *cons
         da[ia] = scale * (rho[ia] - dRho);
       });
 
+  // STEP 2: actually solve poisson's equation (the function's implementation
+  // has been configured based on global configuration macros to properly handle the
+  // isolated boundaries). The resulting gravitational potential is stored in db
   pp_->solve(minBytes_, da, db);
 
-  const Real phi0 = -g * md;
+  // STEP 3: Compute the gravitational potential corresponding to rho_real and store
+  // it inside the phi pointer at each spatial location
+  // - `db` currently holds gravitational potential, Phi, for the density field of
+  //   `(rho_real - rho_analytic)`
+  // - This step exploits 2 simple properties for pairs of rho-Phi pairs.
+  //   1. If a gravitational potential, Phi, corresponds to density field rho, then
+  //      -1* Phi corresponds to -1*rho.
+  //   2. They are additive. (If Phi_1 corresponds to rho_1 and Phi_2 corresponds to
+  //      rho_2, then Phi_1 + Phi_2 corresponds to rho_1 + rho_2)
+  //
+  // Putting this together: db holds `(Phi_real - Phi_analytic)`. To get `Phi_real`,
+  // we simply compute `Phi_analytic + (Phi_real - Phi_analytic)`.
+  const Real phi0 = -grav_const * md;
   gpuFor(
       nk, nj, ni, GPU_LAMBDA(const int k, const int j, const int i) {
         const int ia = i + ni * (j + nj * k);
@@ -105,7 +140,10 @@ void PotentialParisGalactic::Get_Potential(const Real *const density, Real *cons
         phi[ib] = db[ia] + dPhi;
       });
 
-  #ifndef GRAVITY_GPU
+  #ifdef GRAVITY_GPU
+  // in this case, potential is a device pointer and it directly aliases the phi pointer
+  // (so we don't have to do anything)
+  #else
   GPU_Error_Check(cudaMemcpy(potential, dc_, potentialBytes_, cudaMemcpyDeviceToHost));
   #endif
 }
