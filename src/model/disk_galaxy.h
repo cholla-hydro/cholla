@@ -8,7 +8,6 @@
 
 #include "../global/global.h"
 #include "../utils/error_handling.h"
-#include "potentials.h"
 
 // we are bending over backwards to ensure that the functionality defined in
 // "potentials.h" can be used on CPUs and on GPUs
@@ -54,17 +53,12 @@ public:
    * are visible.
    *
    * \note
-   * We declare this as protected so that the compiler will reject code like `delete ptr;`, 
-   * where `ptr` has type `DiskGalaxy*` (since we currently don't need any code like this).
-   * - If we later decide that we want to support code like this we can make this public.
-   * - But, if we still support subclassing, we NEED to declare that the destructor is
-   *   `virtual`. If we don't declare it virtual, then the compiler will allow cases us
-   *   to write code like `delete ptr`, where `ptr` has type `DiskGalaxy*` and it
-   *   references a subclass. Cases like this produce undefined behavior.
+   * we need to declare this as virtual so code like `delete ptr;`, where `ptr` has
+   * type `DiskGalaxy*`, but references a subclass is executed properly (if the virtual
+   * specifier were missing the code snippet would invoke undefined behavior.
    */
-  ~DiskGalaxy();
+  virtual ~DiskGalaxy();
 
-public:
   DiskGalaxy(const MiyamotoNagaiDiskProps& stellar_disk,
              const GasDiskProps& gas_disk,
              Real mvir, Real rvir, Real cvir, Real rcool);
@@ -127,6 +121,7 @@ public:
   Real getM_d() const;
   Real getR_d() const;
   Real getZ_d() const;
+  Real getGasDiskR_d() const;
   const MiyamotoNagaiDiskProps& getStellarDisk() const;
   const GasDiskProps& getGasDisk() const;
   const NFWHaloPotential& getHaloPotential() const;
@@ -198,7 +193,8 @@ class ClusteredDiskGalaxy : public DiskGalaxy
 
  public:
   ClusteredDiskGalaxy(ClusterMassDistribution cluster_mass_distribution,
-                      MiyamotoNagaiDiskProps stellar_disk, GasDiskProps gas_disk,
+                      const MiyamotoNagaiDiskProps& stellar_disk,
+                      const GasDiskProps& gas_disk,
                       Real mvir, Real rvir, Real cvir, Real rcool)
       : DiskGalaxy{stellar_disk, gas_disk, mvir, rvir, cvir, rcool},
         cluster_mass_distribution_(cluster_mass_distribution)

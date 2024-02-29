@@ -92,6 +92,7 @@ Real DiskGalaxy::kappa2(Real R, Real z) const
 Real DiskGalaxy::getM_d() const { return stellar_disk->M_d; };
 Real DiskGalaxy::getR_d() const { return stellar_disk->R_d; };
 Real DiskGalaxy::getZ_d() const { return stellar_disk->Z_d; };
+Real DiskGalaxy::getGasDiskR_d() const { return gas_disk->R_d; };
 const MiyamotoNagaiDiskProps& DiskGalaxy::getStellarDisk() const { return *stellar_disk; };
 const GasDiskProps& DiskGalaxy::getGasDisk() const { return *gas_disk; };
 const NFWHaloPotential& DiskGalaxy::getHaloPotential() const { return *halo_potential; }

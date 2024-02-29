@@ -930,8 +930,8 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
 
   // fetch governing physical parameters:
   // todo: store the following directly within the Galaxy object
-  const Real SFR               = 2e3;                            // global MW SFR: 2 SM / yr
-  const Real Rgas_scale_length = galaxies::MW.getGasDisk().R_d;  // gas-disk scale length
+  const Real SFR               = 2e3;                           // global MW SFR: 2 SM / yr
+  const Real Rgas_scale_length = galaxies::MW.getGasDiskR_d();  // gas-disk scale length
   // the following are theoretically tunable
   const Real k_s_power            = 1.4;     // the power in the Kennicut-Schmidt law
                                              // (at the moment, this isn't tunable)
