@@ -22,6 +22,7 @@ init=Disk_3D_particles
 snr_filename=./src/feedback/starburst99_snr.txt
 sw_filename=./src/feedback/starburst99_sw.txt
 feedback_sn_model=legacy
+feedback_boundary_strategy=snap
 bc_potential_type=1
 # domain properties
 xmin=-2
