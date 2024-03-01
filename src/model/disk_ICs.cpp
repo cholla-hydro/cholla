@@ -72,17 +72,46 @@ Real Sigma_disk_D3D(Real r, const DataPack& hdp)
 
   // taper the edge of the disk to 0
   Real R_c     = hdp.Rgas_truncation_radius;
-  Real alpha   = 0.005;
-  //Real alpha   = 0.1;
-  Real taper_factor = 1.0 - standard_logistic_function((r - R_c) / 0.1);
+  Real alpha   = 0.02; // chosen to roughly match our coarsest considered 
+                       // resolution
 
-  // force surface density to 0 when taper_factor drops below 1e-6
-  // -> this is a crude hack to limit how far we are setting the circular velocity
-  //    outside of R_c (at the time of writing this, we set the circular velocity
-  //    everywhere that the density from the disk exceeds 0)
-  // -> we explain down below (where we initialize azimuthal velocity) why this is
-  //    necessary
-  if (taper_factor < 1e-6) taper_factor = 0.0;
+  Real taper_factor = 1.0 - standard_logistic_function((r - R_c) / alpha);
+
+  // think of alpha like a sharpness scale.
+  // -> at Rgas_truncation_radius - 7*alpha, the taper-factor = ~(1 - 1e-3)
+  // -> at Rgas_truncation_radius + 7*alpha, the taper_factor = ~1e-3
+  //
+  // We don't want to adopt an alpha that is too small for 3 reasons related to
+  // computing radial hydrostatic velocity while initializing circular velocity.
+  // Keep in mind that within an isothermal disk, circular velocity only depends
+  // on cylindrical radius (z-position has not impact). This is shown
+  // in Wang+ (2010), https://ui.adsabs.harvard.edu/abs/2010MNRAS.407..705W
+  //
+  // Our reasons include:
+  // 1. Much less importantly: the smaller alpha is the sharper, the perturbation in
+  //    the gravitational force near the truncation radius 
+  //    - this is because unlike a spherical mass distribution, the gravity at a
+  //      point in the disk at cylindrical radius R', is affected by mass distributions
+  //      inside and outside R'.
+  //    - Because the gravitational potential of the stellar disk and halo dominate
+  //      the circular velocities, this is generally of minimal importance.
+  // 2. More importantly it can cause weirdness in the pressure gradient, which affects
+  //    circular velocities. We're effectively adopting
+  //        Sigma(r) = Sigma_exp(r) * (1 - f(r)),
+  //    where f(r) is standard_logistic_function and Sigma_exp(r) is the radial profile
+  //    of an untruncated exponential disk. The derivative with respect to r is
+  //        dSigma/dr = Sigma(r) * ( (1/R_g) + (f(r)/alpha) )
+  //    Now if we assume the midplane density is a constant fraction of Sigma(r), and
+  //    that pressure is a constant multiple of rho (e.g. the disk is isobaric),
+  //    then the pressure gradient in the midplane is
+  //        dP/dr propto Sigma(r) * ( (1/R_g) + (f(r)/alpha) ).
+  //    Thus, the derivative spikes quite a lot around the location of Rgas_truncation_radius
+  //    with a magnitude inversely propotional to alpha.
+  //    - when we were picking a really tiny alpha (alpha = 0.005), the pressure gradient
+  //      sharply cuts the circular velocity of that gas almost in half around the truncation
+  //      point.
+  // 3. Perhaps most importantly is that a tiny alpha that is much smaller than
+  //    than the gridsize makes it hard to robustly estimate pressure derivatives.
 
   return Sigma*taper_factor;
 }
