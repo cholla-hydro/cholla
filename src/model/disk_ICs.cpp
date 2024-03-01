@@ -893,130 +893,58 @@ void Grid3D::Disk_3D(parameters p)
 
 }
 
-template<typename Vrot2FromPotential>
-void assign_vcirc_from_midplane_isothermal_disk(const parameters& p, const Header& H,
-                                                const Grid3D& grid, const Grid3D::Conserved& C,
-                                                const DataPack hdp,
-                                                const Vrot2FromPotential& vrot2_from_phi_fn,
-                                                const std::vector<Real>& rho_midplane_2Dbuffer)
-{
-  // we are adopting the strategy for initializing the circular velocity in an isothermal disk 
-  // outlined in Wang+ (2010), https://ui.adsabs.harvard.edu/abs/2010MNRAS.407..705W
-  // -> in that paper, they show for an isothermal disk that circular velocity has no z-dependence
-
-  // At each (x,y) pair (with non-zero midplane density), we adopt the following stratgey:
-  // -> we use the midplane density values to compute the local gradient in the pressure field
-  // -> we compute the contributions from the gravitational potential (with the specified function)
-  // -> from both of these quantities, we can determine the circular velocity. 
-  //    -> there are some places where the radial acceleration may have an unexpected sign. In these
-  //       cases, we consider circular velocity to be 0 (this is important after we start tapering the velocity)
-  // -> we use the circular velocity to initialize the momentum of all cells in the column with non-zero density
-  //    (any cell with zero density isn't considered to be a part of the disk)
-
-  const Real dx = p.xlen / ((Real)p.nx);  // cell-width x
-  const Real dy = p.xlen / ((Real)p.nx);  // cell-width y
-  bool any_error = false;
-  for (int j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
-    for (int i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
-
-      // fetch the associated midplane density
-      Real rho_midplane = rho_midplane_2Dbuffer[i + j * H.nx];
-
-      // if the midplane density is zero, skip this location (this happens after the disk completely tapers off)
-      if (rho_midplane == 0.0)  continue;
-
-      // get the centered x & y positions (the way the function is written, we also get a z position)
-      const int dummy_k = H.n_ghost + H.ny;
-      Real x_pos, y_pos, dummy_z_pos;
-      grid.Get_Position(i, j, dummy_k, &x_pos, &y_pos, &dummy_z_pos);
-
-      // calculate radial position and phi, we're assuming the disk is centered at (x,y) = (0,0)
-      Real r   = sqrt(x_pos * x_pos + y_pos * y_pos);
-      Real phi = atan2(y_pos, x_pos);  // azimuthal angle (in x-y plane)
-
-      // calculate the squared circular velocity in the midplane of a collisionless particle due the specified
-      // gravitational potential
-      // -> this is equal to the `-1 * accel_radial * r` (it should be a positive number)
-      // -> this may or may not include an estimate for the gas disk's own gravitational potential
-      //    (that decision is made by the caller of this function)
-      Real vrot2_contrib_from_phi = vrot2_from_phi_fn(r, 0.0);
-
-      // calculate the radial pressure gradient in the midplane (gradient calc is first order at boundaries)
-
-      //  pressure gradient along x direction
-      int i_left   = std::max<int>((i-1), H.n_ghost);
-      int i_right  = std::min<int>((i+1), H.nx - H.n_ghost - 1);
-      Real P_xL = rho_midplane_2Dbuffer[i_left + j * H.nx] * (hdp.cs * hdp.cs);
-      Real P_xR = rho_midplane_2Dbuffer[i_right + j * H.nx] * (hdp.cs * hdp.cs);
-      Real dPdx = (P_xR - P_xL) / (dx*(i_right - i_left));
-
-      // pressure gradient along y direction
-      int j_left   = std::max<int>((j-1), H.n_ghost);
-      int j_right  = std::min<int>((j+1), H.ny - H.n_ghost - 1);
-      // Currently, C.Energy just stores internal energy density
-      Real P_yL = rho_midplane_2Dbuffer[i + j_left * H.nx] * (hdp.cs * hdp.cs);
-      Real P_yR = rho_midplane_2Dbuffer[i + j_right * H.nx] * (hdp.cs * hdp.cs);
-      Real dPdy = (P_yR - P_yL) / (dy * (j_right - j_left));
-
-      // the cylindrical radius multiplied by the radial pressure gradient is:
-      Real r_times_dPdr = x_pos * dPdx + y_pos * dPdy;
-
-      // compute the circular velocity (in the midplane)
-      //  vcirc^2 / r = -a_radial = (rhat * grad Phi) - dPdr / rho_midplane
-      //  vcirc^2   = r * (radial_grav_accel - dPdr / rho_midplane)
-      //            = (r * radial_grav_accel ) - (r * dPdr) / rho_midplaned
-      Real vcirc_sq = (vrot2_contrib_from_phi) - r_times_dPdr / rho_midplane;
-      if (vcirc_sq <= 0){
-        continue;
-      } else if (not std::isfinite(vcirc_sq)) {
-        any_error = true;
-        continue;
-      }
-
-      Real v  = std::sqrt(vcirc_sq); // circular velocity
-      Real vx = -std::sin(phi) * v;
-      Real vy = std::cos(phi) * v;
-      Real vz = 0;
-
-      // initialize the momentum for all cells in the column
-      for (int k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
-        int id = i + j * H.nx + k * H.nx * H.ny;
-
-        Real d = C.density[id];
-        if (d > 0.0) {
-          C.momentum_x[id] = d * vx;
-          C.momentum_y[id] = d * vy;
-          C.momentum_z[id] = d * vz;
-        }
-      }
-
-    }
-  }
-  CHOLLA_ASSERT(not any_error, "There was a problem when initializing the circular velocity");
-}
-
-
-/* Assign the velocities. As we do this, we go out of our way to ensure that the centrifugal-force
+/*!
+ * \brief Assign the velocities. As we do this, we go out of our way to ensure that the centrifugal-force
  * balances the radial pressure gradient from the disk AND from the halo.
  *
- * This assumes that `C.Energy` just tracks thermal energy.
- *
- * `rho_disk` has the same layout as `C.d`. While `C.d` records the total_density, `rho_disk`
+ * \param[in]     p The global parameter struct
+ * \param[in]     H The global header struct
+ * \param[in]     grid The global grid object
+ * \param[in,out] C The arrays tracked by the `d` and `Energy` members are used to determine the
+ * local velocity. The function assumes that `C.Energy` just tracks thermal energy. The arrays held
+ * by `C.momentum_x`, `C.momentum_y`, and `C.momentum_z` are updated.
+ * \param[in]     vrot2_from_phi_fn A callable function, based on the assumed gravitational potential,
+ * that returns the squared rotational velocity of a massless test-particle on a circular orbit, at a 
+ * specified cylindrical radius and z position.
+ * \param[in]     rho_disk has the same layout as `C.d`. While `C.d` records the total_density, `rho_disk`
  * only records the contributions from the disk. Essentially we use `rho_disk` as a mask. We
  * initialize velocity everywhere it's non-zero.
  *
- * @note
+ * \note
  * This only initializes values in the active zone. However, it assumes that the pressure values
  * were already initialized in the ghost zone
+ *
+ * \par History/Alternatives
+ * This has been the strategy used for a long time.
+ * - originally we used this strategy after initializing gas in the disk but before initializing gas
+ *   from the halo in an earlier commit (and we totally omitted any estimate of self-gravity)
+ * - then, we went down a rabbit hole of trying alternative strategies. This was prompted by the fact
+ *   that we were seeing radial instabilities in the disk (it was collapsing radially). We think the
+ *   the radial perturbation was real & it was caused by the fact that we didn't account for 
+ *   self-gravity during setup. But, the instability was made a lot worse by the fact that there were
+ *   artifacts in the self-gravity solver significantly magnified by our test-setup (i.e. the domain
+ *   wasn't a cube)
+ * - we tried the strategy outlined in Wang+ (2010), https://ui.adsabs.harvard.edu/abs/2010MNRAS.407..705W .
+ *   In that paper, they show for an isothermal disk that circular velocity has no z-dependence.
+ *   - given the above highlighted issues, it's now not totally clear how exactly this compares to other
+ *     approaches.
+ *   - As long as we modify that gas density/pressure properties in the disk based on the halo properties
+ *     this approach is questionable (since the disk isn't really isothermal)
+ *   - to see the code for this method go back to just before the commit where this section of
+ *     documentation was written
+ * - then we shifted to assigning circular velocities after we initialized the galaxy and halo gas
+ *   - since we are modifying the disk gas's density and pressure based on the halo gas, this provides
+ *     the best initial stability (before accounting for cooling)
+ *   - plus, it improves radial stability at the disk-halo interface.
  */
 template<typename Vrot2FromPotential>
-void older_assign_vels(const parameters& p, const Header& H,
-                       const Grid3D& grid, const Grid3D::Conserved& C,
-                       const Vrot2FromPotential& vrot2_from_phi_fn,
-                       const std::vector<Real>& rho_disk)
+void assign_vels(const parameters& p, const Header& H,
+                 const Grid3D& grid, const Grid3D::Conserved& C,
+                 const Vrot2FromPotential& vrot2_from_phi_fn,
+                 const std::vector<Real>& rho_disk)
 {
   // Assign the circular velocities
-  // -> everywhere that density >= 0, we compute the radial acceleration and use
+  // -> everywhere that rho_disk >= 0, we compute the radial acceleration and use
   //    it to initialize the circular velocity
   // -> radial acceleration = -(rhat * grad Phi) + (dP/dr) / density
   //     -> of course "radial" is along the cylindrical radius
@@ -1026,15 +954,7 @@ void older_assign_vels(const parameters& p, const Header& H,
   //     -> within the loop we actually flip the sign
   // -> when radial acceleration has an unexpected sign, we set circular velocity to 0
   //     -> This is important after we start tapering the velocity
-  //
-  // We currently rely upon the gas-density getting truncated to 0 outside the gas-disk.
-  // When we didn't do that, some issues cropped up
-  // -> we previously were seeing an issue in a MW galaxy were the velocity would go to
-  //    zero relatively close to a taper-radius of 1.9 and then a brief spike of velocity
-  //    at r_cyl ~2.25
-  // -> this effect was most pronounced at cylindrical-phi = 0.25*pi, 0.75*pi, 1.25*pi, 1.75*pi
-  //    (the effect is cut off at cylindrical-phi = 0, 0.5*pi, pi, 1.5*pi)
-  // -> at these locations, Pressure gradient seems to change signs
+
   const Real dx = p.xlen / ((Real)p.nx);  // cell-width x
   const Real dy = p.xlen / ((Real)p.nx);  // cell-width y
   bool any_accel_error = false;
@@ -1183,12 +1103,7 @@ void partial_initialize_isothermal_disk(const parameters& p, const Header& H,
   // todo: consider writing another function to write a error message with problematic denisty
   CHOLLA_ASSERT(not any_density_error, "There was a problem initializing disk density");
 
-  if (false){
-    assign_vcirc_from_midplane_isothermal_disk(p, H, grid, C, hdp, vrot2_from_phi_fn,
-                                               rho_midplane_2Dbuffer);
-  } else {
-    older_assign_vels(p, H, grid, C, vrot2_from_phi_fn, rho_disk);
-  }
+  assign_vels(p, H, grid, C, vrot2_from_phi_fn, rho_disk);
 
 }
 
