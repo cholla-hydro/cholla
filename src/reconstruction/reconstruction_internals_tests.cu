@@ -22,32 +22,29 @@
 #include "../utils/gpu.hpp"
 #include "../utils/testing_utilities.h"
 
-#ifdef MHD
 __global__ void Test_Prim_2_Char(hydro_utilities::Primitive const primitive,
                                  hydro_utilities::Primitive const primitive_slope,
-                                 reconstruction::EigenVecs const eigenvectors, Real const gamma, Real const sound_speed,
-                                 Real const sound_speed_squared, reconstruction::Characteristic *characteristic_slope)
+                                 reconstruction::EigenVecs const eigenvectors, Real const gamma,
+                                 reconstruction::Characteristic *characteristic_slope)
 {
-  *characteristic_slope = reconstruction::Primitive_To_Characteristic(primitive, primitive_slope, eigenvectors,
-                                                                      sound_speed, sound_speed_squared, gamma);
+  *characteristic_slope = reconstruction::Primitive_To_Characteristic(primitive, primitive_slope, eigenvectors, gamma);
 }
 
 __global__ void Test_Char_2_Prim(hydro_utilities::Primitive const primitive,
                                  reconstruction::Characteristic const characteristic_slope,
-                                 reconstruction::EigenVecs const eigenvectors, Real const gamma, Real const sound_speed,
-                                 Real const sound_speed_squared, hydro_utilities::Primitive *primitive_slope)
+                                 reconstruction::EigenVecs const eigenvectors, Real const gamma,
+                                 hydro_utilities::Primitive *primitive_slope)
 {
-  *primitive_slope = reconstruction::Characteristic_To_Primitive(primitive, characteristic_slope, eigenvectors,
-                                                                 sound_speed, sound_speed_squared, gamma);
+  *primitive_slope = reconstruction::Characteristic_To_Primitive(primitive, characteristic_slope, eigenvectors, gamma);
 }
 
-__global__ void Test_Compute_Eigenvectors(hydro_utilities::Primitive const primitive, Real const sound_speed,
-                                          Real const sound_speed_squared, Real const gamma,
+__global__ void Test_Compute_Eigenvectors(hydro_utilities::Primitive const primitive, Real const gamma,
                                           reconstruction::EigenVecs *eigenvectors)
 {
-  *eigenvectors = reconstruction::Compute_Eigenvectors(primitive, sound_speed, sound_speed_squared, gamma);
+  *eigenvectors = reconstruction::Compute_Eigenvectors(primitive, gamma);
 }
 
+#ifdef MHD
 TEST(tMHDReconstructionPrimitive2Characteristic, CorrectInputExpectCorrectOutput)
 {
   // Test parameters
@@ -55,15 +52,12 @@ TEST(tMHDReconstructionPrimitive2Characteristic, CorrectInputExpectCorrectOutput
   hydro_utilities::Primitive const primitive{1, {2, 3, 4}, 5, {6, 7, 8}};
   hydro_utilities::Primitive const primitive_slope{9, {10, 11, 12}, 13, {14, 15, 16}};
   reconstruction::EigenVecs const eigenvectors{
-      17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
+      2.886751345948129, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
   };
-  Real const sound_speed         = hydro_utilities::Calc_Sound_Speed(primitive.pressure, primitive.density, gamma);
-  Real const sound_speed_squared = sound_speed * sound_speed;
 
   // Run test
   cuda_utilities::DeviceVector<reconstruction::Characteristic> dev_results(1);
-  hipLaunchKernelGGL(Test_Prim_2_Char, 1, 1, 0, 0, primitive, primitive_slope, eigenvectors, gamma, sound_speed,
-                     sound_speed_squared, dev_results.data());
+  hipLaunchKernelGGL(Test_Prim_2_Char, 1, 1, 0, 0, primitive, primitive_slope, eigenvectors, gamma, dev_results.data());
   GPU_Error_Check();
   cudaDeviceSynchronize();
   reconstruction::Characteristic const host_results = dev_results.at(0);
@@ -86,15 +80,13 @@ TEST(tMHDReconstructionCharacteristic2Primitive, CorrectInputExpectCorrectOutput
   hydro_utilities::Primitive const primitive{1, {2, 3, 4}, 5, {6, 7, 8}};
   reconstruction::Characteristic const characteristic_slope{17, 18, 19, 20, 21, 22, 23};
   reconstruction::EigenVecs const eigenvectors{
-      17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
+      2.886751345948129, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
   };
-  Real const sound_speed         = hydro_utilities::Calc_Sound_Speed(primitive.pressure, primitive.density, gamma);
-  Real const sound_speed_squared = sound_speed * sound_speed;
 
   // Run test
   cuda_utilities::DeviceVector<hydro_utilities::Primitive> dev_results(1);
-  hipLaunchKernelGGL(Test_Char_2_Prim, 1, 1, 0, 0, primitive, characteristic_slope, eigenvectors, gamma, sound_speed,
-                     sound_speed_squared, dev_results.data());
+  hipLaunchKernelGGL(Test_Char_2_Prim, 1, 1, 0, 0, primitive, characteristic_slope, eigenvectors, gamma,
+                     dev_results.data());
   GPU_Error_Check();
   cudaDeviceSynchronize();
   hydro_utilities::Primitive const host_results = dev_results.at(0);
@@ -116,40 +108,35 @@ TEST(tMHDReconstructionComputeEigenvectors, CorrectInputExpectCorrectOutput)
   // Test parameters
   Real const &gamma = 5. / 3.;
   hydro_utilities::Primitive const primitive{1, {2, 3, 4}, 5, {6, 7, 8}};
-  Real const sound_speed         = hydro_utilities::Calc_Sound_Speed(primitive.pressure, primitive.density, gamma);
-  Real const sound_speed_squared = sound_speed * sound_speed;
 
   // Run test
   cuda_utilities::DeviceVector<reconstruction::EigenVecs> dev_results(1);
-  hipLaunchKernelGGL(Test_Compute_Eigenvectors, 1, 1, 0, 0, primitive, sound_speed, sound_speed_squared, gamma,
-                     dev_results.data());
+  hipLaunchKernelGGL(Test_Compute_Eigenvectors, 1, 1, 0, 0, primitive, gamma, dev_results.data());
   GPU_Error_Check();
   cudaDeviceSynchronize();
   reconstruction::EigenVecs const host_results = dev_results.at(0);
-  // std::cout << to_string_exact(host_results.magnetosonic_speed_fast) << ",";
-  // std::cout << to_string_exact(host_results.magnetosonic_speed_slow) << ",";
-  // std::cout << to_string_exact(host_results.magnetosonic_speed_fast_squared) << ",";
-  // std::cout << to_string_exact(host_results.magnetosonic_speed_slow_squared) << ",";
-  // std::cout << to_string_exact(host_results.alpha_fast) << ",";
-  // std::cout << to_string_exact(host_results.alpha_slow) << ",";
-  // std::cout << to_string_exact(host_results.beta_y) << ",";
-  // std::cout << to_string_exact(host_results.beta_z) << ",";
-  // std::cout << to_string_exact(host_results.n_fs) << ",";
-  // std::cout << to_string_exact(host_results.sign) << ",";
-  // std::cout << to_string_exact(host_results.q_fast) << ",";
-  // std::cout << to_string_exact(host_results.q_slow) << ",";
-  // std::cout << to_string_exact(host_results.a_fast) << ",";
-  // std::cout << to_string_exact(host_results.a_slow) << ",";
-  // std::cout << to_string_exact(host_results.q_prime_fast) << ",";
-  // std::cout << to_string_exact(host_results.q_prime_slow) << ",";
-  // std::cout << to_string_exact(host_results.a_prime_fast) << ",";
-  // std::cout << to_string_exact(host_results.a_prime_slow) << "," << std::endl;
+
   // Check results
-  reconstruction::EigenVecs const fiducial_results{
-      12.466068627219666,   1.3894122191714398,  155.40286701855041,  1.9304663147829049,   0.20425471836256681,
-      0.97891777490585408,  0.65850460786851805, 0.75257669470687782, 0.059999999999999984, 1,
-      2.546253336541183,    1.3601203180183106,  0.58963258314939582, 2.825892204282022,    0.15277520019247093,
-      0.081607219081098623, 0.03537795498896374, 0.1695535322569213};
+  reconstruction::EigenVecs const fiducial_results{2.886751345948129,
+                                                   12.466068627219666,
+                                                   1.3894122191714398,
+                                                   155.40286701855041,
+                                                   1.9304663147829049,
+                                                   0.20425471836256681,
+                                                   0.97891777490585408,
+                                                   0.65850460786851805,
+                                                   0.75257669470687782,
+                                                   0.059999999999999984,
+                                                   1,
+                                                   2.546253336541183,
+                                                   1.3601203180183106,
+                                                   0.58963258314939582,
+                                                   2.825892204282022,
+                                                   0.15277520019247093,
+                                                   0.081607219081098623,
+                                                   0.03537795498896374,
+                                                   0.1695535322569213};
+  testing_utilities::Check_Results(fiducial_results.sound_speed, host_results.sound_speed, "sound_speed");
   testing_utilities::Check_Results(fiducial_results.magnetosonic_speed_fast, host_results.magnetosonic_speed_fast,
                                    "magnetosonic_speed_fast");
   testing_utilities::Check_Results(fiducial_results.magnetosonic_speed_slow, host_results.magnetosonic_speed_slow,
@@ -172,6 +159,74 @@ TEST(tMHDReconstructionComputeEigenvectors, CorrectInputExpectCorrectOutput)
   testing_utilities::Check_Results(fiducial_results.q_prime_slow, host_results.q_prime_slow, "q_prime_slow");
   testing_utilities::Check_Results(fiducial_results.a_prime_fast, host_results.a_prime_fast, "a_prime_fast");
   testing_utilities::Check_Results(fiducial_results.a_prime_slow, host_results.a_prime_slow, "a_prime_slow");
+}
+#else   // i.e. not MHD
+TEST(tHYDROReconstructionPrimitive2Characteristic, CorrectInputExpectCorrectOutput)
+{
+  // Test parameters
+  Real const &gamma = 5. / 3.;
+  hydro_utilities::Primitive const primitive{1, {2, 3, 4}, 5};
+  hydro_utilities::Primitive const primitive_slope{9, {10, 11, 12}, 13};
+  reconstruction::EigenVecs const eigenvectors{2.886751345948129};
+
+  // Run test
+  cuda_utilities::DeviceVector<reconstruction::Characteristic> dev_results(1);
+  hipLaunchKernelGGL(Test_Prim_2_Char, 1, 1, 0, 0, primitive, primitive_slope, eigenvectors, gamma, dev_results.data());
+  GPU_Error_Check();
+  cudaDeviceSynchronize();
+  reconstruction::Characteristic const host_results = dev_results.at(0);
+
+  // Check results
+  reconstruction::Characteristic const fiducial_results{-0.95205080756887739, 7.4400000000000004, 11, 12,
+                                                        2.512050807568877};
+  testing_utilities::Check_Results(fiducial_results.a0, host_results.a0, "a0");
+  testing_utilities::Check_Results(fiducial_results.a1, host_results.a1, "a1");
+  testing_utilities::Check_Results(fiducial_results.a2, host_results.a2, "a2");
+  testing_utilities::Check_Results(fiducial_results.a3, host_results.a3, "a3");
+  testing_utilities::Check_Results(fiducial_results.a4, host_results.a4, "a4");
+}
+
+TEST(tHYDROReconstructionCharacteristic2Primitive, CorrectInputExpectCorrectOutput)
+{
+  // Test parameters
+  Real const &gamma = 5. / 3.;
+  hydro_utilities::Primitive const primitive{1, {2, 3, 4}, 5};
+  reconstruction::Characteristic const characteristic_slope{17, 18, 19, 20, 21};
+  reconstruction::EigenVecs const eigenvectors{2.886751345948129};
+
+  // Run test
+  cuda_utilities::DeviceVector<hydro_utilities::Primitive> dev_results(1);
+  hipLaunchKernelGGL(Test_Char_2_Prim, 1, 1, 0, 0, primitive, characteristic_slope, eigenvectors, gamma,
+                     dev_results.data());
+  GPU_Error_Check();
+  cudaDeviceSynchronize();
+  hydro_utilities::Primitive const host_results = dev_results.at(0);
+
+  // Check results
+  hydro_utilities::Primitive const fiducial_results{56, {11.547005383792516, 19, 20}, 316.66666666666674};
+  testing_utilities::Check_Results(fiducial_results.density, host_results.density, "density");
+  testing_utilities::Check_Results(fiducial_results.velocity.x, host_results.velocity.x, "velocity.x");
+  testing_utilities::Check_Results(fiducial_results.velocity.y, host_results.velocity.y, "velocity.y");
+  testing_utilities::Check_Results(fiducial_results.velocity.z, host_results.velocity.z, "velocity.z");
+  testing_utilities::Check_Results(fiducial_results.pressure, host_results.pressure, "pressure");
+}
+
+TEST(tHYDROReconstructionComputeEigenvectors, CorrectInputExpectCorrectOutput)
+{
+  // Test parameters
+  Real const &gamma = 5. / 3.;
+  hydro_utilities::Primitive const primitive{1, {2, 3, 4}, 5};
+
+  // Run test
+  cuda_utilities::DeviceVector<reconstruction::EigenVecs> dev_results(1);
+  hipLaunchKernelGGL(Test_Compute_Eigenvectors, 1, 1, 0, 0, primitive, gamma, dev_results.data());
+  GPU_Error_Check();
+  cudaDeviceSynchronize();
+  reconstruction::EigenVecs const host_results = dev_results.at(0);
+
+  // Check results
+  reconstruction::EigenVecs const fiducial_results{2.886751345948129};
+  testing_utilities::Check_Results(fiducial_results.sound_speed, host_results.sound_speed, "sound_speed");
 }
 #endif  // MHD
 

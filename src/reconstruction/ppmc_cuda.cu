@@ -37,22 +37,18 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 
   // Set the field indices for the various directions
   int o1, o2, o3;
-  switch (dir) {
-    case 0:
-      o1 = grid_enum::momentum_x;
-      o2 = grid_enum::momentum_y;
-      o3 = grid_enum::momentum_z;
-      break;
-    case 1:
-      o1 = grid_enum::momentum_y;
-      o2 = grid_enum::momentum_z;
-      o3 = grid_enum::momentum_x;
-      break;
-    case 2:
-      o1 = grid_enum::momentum_z;
-      o2 = grid_enum::momentum_x;
-      o3 = grid_enum::momentum_y;
-      break;
+  if constexpr (dir == 0) {
+    o1 = grid_enum::momentum_x;
+    o2 = grid_enum::momentum_y;
+    o3 = grid_enum::momentum_z;
+  } else if constexpr (dir == 1) {
+    o1 = grid_enum::momentum_y;
+    o2 = grid_enum::momentum_z;
+    o3 = grid_enum::momentum_x;
+  } else if constexpr (dir == 2) {
+    o1 = grid_enum::momentum_z;
+    o2 = grid_enum::momentum_x;
+    o3 = grid_enum::momentum_y;
   }
 
   // load the 5-cell stencil into registers
@@ -86,11 +82,8 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   // Cell i-1 slopes
   // ===============
 
-  // calculate the adiabatic sound speed in cell im1
-  Real sound_speed = hydro_utilities::Calc_Sound_Speed(cell_im1.pressure, cell_im1.density, gamma);
-  // this isn't actually used and the compiler should optimize it away but since this is the only reconstruction
-  // function that won't use it it was easier to add it here as an unused variable
-  reconstruction::EigenVecs eigenvector;
+  // Compute the eigenvectors for this cell
+  reconstruction::EigenVecs eigenvectors = reconstruction::Compute_Eigenvectors(cell_im1, gamma);
 
   // Step 2 - Compute the left, right, centered, and van Leer differences of the primitive variables. Note that here L
   // and R refer to locations relative to the cell center Stone Eqn 36
@@ -111,17 +104,17 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   // characteristic variables Stone Eqn 37 (del_a are differences in
   // characteristic variables, see Stone for notation) Use the eigenvectors
   // given in Stone 2008, Appendix A
-  reconstruction::Characteristic del_a_L = reconstruction::Primitive_To_Characteristic(
-      cell_im1, del_L, eigenvector, sound_speed, sound_speed * sound_speed, gamma);
+  reconstruction::Characteristic del_a_L =
+      reconstruction::Primitive_To_Characteristic(cell_im1, del_L, eigenvectors, gamma);
 
-  reconstruction::Characteristic del_a_R = reconstruction::Primitive_To_Characteristic(
-      cell_im1, del_R, eigenvector, sound_speed, sound_speed * sound_speed, gamma);
+  reconstruction::Characteristic del_a_R =
+      reconstruction::Primitive_To_Characteristic(cell_im1, del_R, eigenvectors, gamma);
 
-  reconstruction::Characteristic del_a_C = reconstruction::Primitive_To_Characteristic(
-      cell_im1, del_C, eigenvector, sound_speed, sound_speed * sound_speed, gamma);
+  reconstruction::Characteristic del_a_C =
+      reconstruction::Primitive_To_Characteristic(cell_im1, del_C, eigenvectors, gamma);
 
-  reconstruction::Characteristic del_a_G = reconstruction::Primitive_To_Characteristic(
-      cell_im1, del_G, eigenvector, sound_speed, sound_speed * sound_speed, gamma);
+  reconstruction::Characteristic del_a_G =
+      reconstruction::Primitive_To_Characteristic(cell_im1, del_G, eigenvectors, gamma);
 
   // Step 4 - Apply monotonicity constraints to the differences in the characteristic variables
   reconstruction::Characteristic const del_a_m_im1 =
@@ -129,8 +122,7 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 
   // Step 5 - and project the monotonized difference in the characteristic variables back onto the primitive variables
   // Stone Eqn 39
-  hydro_utilities::Primitive del_m_im1 =
-      Characteristic_To_Primitive(cell_im1, del_a_m_im1, eigenvector, sound_speed, sound_speed * sound_speed, gamma);
+  hydro_utilities::Primitive del_m_im1 = Characteristic_To_Primitive(cell_im1, del_a_m_im1, eigenvectors, gamma);
 
   // Limit the variables that aren't transformed by the characteristic projection
 #ifdef DE
@@ -148,8 +140,8 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   // Cell i slopes
   // =============
 
-  // calculate the adiabatic sound speed in cell i
-  sound_speed = hydro_utilities::Calc_Sound_Speed(cell_i.pressure, cell_i.density, gamma);
+  // Compute the eigenvectors for this cell
+  eigenvectors = reconstruction::Compute_Eigenvectors(cell_i, gamma);
 
   // Step 2 - Compute the left, right, centered, and van Leer differences of the primitive variables. Note that here L
   // and R refer to locations relative to the cell center Stone Eqn 36
@@ -170,25 +162,20 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   // characteristic variables Stone Eqn 37 (del_a are differences in
   // characteristic variables, see Stone for notation) Use the eigenvectors
   // given in Stone 2008, Appendix A
-  del_a_L = reconstruction::Primitive_To_Characteristic(cell_i, del_L, eigenvector, sound_speed,
-                                                        sound_speed * sound_speed, gamma);
+  del_a_L = reconstruction::Primitive_To_Characteristic(cell_i, del_L, eigenvectors, gamma);
 
-  del_a_R = reconstruction::Primitive_To_Characteristic(cell_i, del_R, eigenvector, sound_speed,
-                                                        sound_speed * sound_speed, gamma);
+  del_a_R = reconstruction::Primitive_To_Characteristic(cell_i, del_R, eigenvectors, gamma);
 
-  del_a_C = reconstruction::Primitive_To_Characteristic(cell_i, del_C, eigenvector, sound_speed,
-                                                        sound_speed * sound_speed, gamma);
+  del_a_C = reconstruction::Primitive_To_Characteristic(cell_i, del_C, eigenvectors, gamma);
 
-  del_a_G = reconstruction::Primitive_To_Characteristic(cell_i, del_G, eigenvector, sound_speed,
-                                                        sound_speed * sound_speed, gamma);
+  del_a_G = reconstruction::Primitive_To_Characteristic(cell_i, del_G, eigenvectors, gamma);
 
   // Step 4 - Apply monotonicity constraints to the differences in the characteristic variables
   reconstruction::Characteristic const del_a_m_i = reconstruction::Van_Leer_Limiter(del_a_L, del_a_R, del_a_C, del_a_G);
 
   // Step 5 - and project the monotonized difference in the characteristic variables back onto the primitive variables
   // Stone Eqn 39
-  hydro_utilities::Primitive del_m_i =
-      Characteristic_To_Primitive(cell_ip1, del_a_m_i, eigenvector, sound_speed, sound_speed * sound_speed, gamma);
+  hydro_utilities::Primitive del_m_i = Characteristic_To_Primitive(cell_ip1, del_a_m_i, eigenvectors, gamma);
 
   // Limit the variables that aren't transformed by the characteristic projection
 #ifdef DE
@@ -206,8 +193,8 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   // Cell i+1 slopes
   // ===============
 
-  // calculate the adiabatic sound speed in cell ipo
-  sound_speed = hydro_utilities::Calc_Sound_Speed(cell_ip1.pressure, cell_ip1.density, gamma);
+  // Compute the eigenvectors for this cell
+  eigenvectors = reconstruction::Compute_Eigenvectors(cell_ip1, gamma);
 
   // Step 2 - Compute the left, right, centered, and van Leer differences of the primitive variables. Note that here L
   // and R refer to locations relative to the cell center Stone Eqn 36
@@ -228,17 +215,13 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   // characteristic variables Stone Eqn 37 (del_a are differences in
   // characteristic variables, see Stone for notation) Use the eigenvectors
   // given in Stone 2008, Appendix A
-  del_a_L = reconstruction::Primitive_To_Characteristic(cell_ip1, del_L, eigenvector, sound_speed,
-                                                        sound_speed * sound_speed, gamma);
+  del_a_L = reconstruction::Primitive_To_Characteristic(cell_ip1, del_L, eigenvectors, gamma);
 
-  del_a_R = reconstruction::Primitive_To_Characteristic(cell_ip1, del_R, eigenvector, sound_speed,
-                                                        sound_speed * sound_speed, gamma);
+  del_a_R = reconstruction::Primitive_To_Characteristic(cell_ip1, del_R, eigenvectors, gamma);
 
-  del_a_C = reconstruction::Primitive_To_Characteristic(cell_ip1, del_C, eigenvector, sound_speed,
-                                                        sound_speed * sound_speed, gamma);
+  del_a_C = reconstruction::Primitive_To_Characteristic(cell_ip1, del_C, eigenvectors, gamma);
 
-  del_a_G = reconstruction::Primitive_To_Characteristic(cell_ip1, del_G, eigenvector, sound_speed,
-                                                        sound_speed * sound_speed, gamma);
+  del_a_G = reconstruction::Primitive_To_Characteristic(cell_ip1, del_G, eigenvectors, gamma);
 
   // Step 4 - Apply monotonicity constraints to the differences in the characteristic variables
   reconstruction::Characteristic const del_a_m_ip1 =
@@ -246,8 +229,7 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 
   // Step 5 - and project the monotonized difference in the characteristic variables back onto the primitive variables
   // Stone Eqn 39
-  hydro_utilities::Primitive del_m_ip1 =
-      Characteristic_To_Primitive(cell_ip1, del_a_m_ip1, eigenvector, sound_speed, sound_speed * sound_speed, gamma);
+  hydro_utilities::Primitive del_m_ip1 = Characteristic_To_Primitive(cell_ip1, del_a_m_ip1, eigenvectors, gamma);
 
   // Limit the variables that aren't transformed by the characteristic projection
 #ifdef DE
@@ -309,7 +291,7 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   // primitive variables using the cell-centered primitive variables
 
   // recalculate the adiabatic sound speed in cell i
-  sound_speed = hydro_utilities::Calc_Sound_Speed(cell_i.pressure, cell_i.density, gamma);
+  Real const sound_speed = hydro_utilities::Calc_Sound_Speed(cell_i.pressure, cell_i.density, gamma);
 
   Real const lambda_m = cell_i.velocity.x - sound_speed;
   Real const lambda_0 = cell_i.velocity.x;
@@ -600,22 +582,18 @@ __global__ __launch_bounds__(TPB) void PPMC_VL(Real *dev_conserved, Real *dev_bo
 
   // Set the field indices for the various directions
   int o1, o2, o3;
-  switch (dir) {
-    case 0:
-      o1 = grid_enum::momentum_x;
-      o2 = grid_enum::momentum_y;
-      o3 = grid_enum::momentum_z;
-      break;
-    case 1:
-      o1 = grid_enum::momentum_y;
-      o2 = grid_enum::momentum_z;
-      o3 = grid_enum::momentum_x;
-      break;
-    case 2:
-      o1 = grid_enum::momentum_z;
-      o2 = grid_enum::momentum_x;
-      o3 = grid_enum::momentum_y;
-      break;
+  if constexpr (dir == 0) {
+    o1 = grid_enum::momentum_x;
+    o2 = grid_enum::momentum_y;
+    o3 = grid_enum::momentum_z;
+  } else if constexpr (dir == 1) {
+    o1 = grid_enum::momentum_y;
+    o2 = grid_enum::momentum_z;
+    o3 = grid_enum::momentum_x;
+  } else if constexpr (dir == 2) {
+    o1 = grid_enum::momentum_z;
+    o2 = grid_enum::momentum_x;
+    o3 = grid_enum::momentum_y;
   }
 
   // load the 5-cell stencil into registers
@@ -643,36 +621,28 @@ __global__ __launch_bounds__(TPB) void PPMC_VL(Real *dev_conserved, Real *dev_bo
   hydro_utilities::Primitive const cell_ip2 = hydro_utilities::Load_Cell_Primitive<dir>(
       dev_conserved, xid + 2 * int(dir == 0), yid + 2 * int(dir == 1), zid + 2 * int(dir == 2), nx, ny, n_cells, gamma);
 
-  // Convert to the characteristic variables
-  Real const sound_speed         = hydro_utilities::Calc_Sound_Speed(cell_i.pressure, cell_i.density, gamma);
-  Real const sound_speed_squared = sound_speed * sound_speed;
-
-#ifdef MHD
-  reconstruction::EigenVecs eigenvectors =
-      reconstruction::Compute_Eigenvectors(cell_i, sound_speed, sound_speed_squared, gamma);
-#else
-  reconstruction::EigenVecs eigenvectors;
-#endif  // MHD
+  // Compute the eigenvectors
+  reconstruction::EigenVecs const eigenvectors = reconstruction::Compute_Eigenvectors(cell_i, gamma);
 
   // Cell i
-  reconstruction::Characteristic const cell_i_characteristic = reconstruction::Primitive_To_Characteristic(
-      cell_i, cell_i, eigenvectors, sound_speed, sound_speed_squared, gamma);
+  reconstruction::Characteristic const cell_i_characteristic =
+      reconstruction::Primitive_To_Characteristic(cell_i, cell_i, eigenvectors, gamma);
 
   // Cell i-1
-  reconstruction::Characteristic const cell_im1_characteristic = reconstruction::Primitive_To_Characteristic(
-      cell_i, cell_im1, eigenvectors, sound_speed, sound_speed_squared, gamma);
+  reconstruction::Characteristic const cell_im1_characteristic =
+      reconstruction::Primitive_To_Characteristic(cell_i, cell_im1, eigenvectors, gamma);
 
   // Cell i-2
-  reconstruction::Characteristic const cell_im2_characteristic = reconstruction::Primitive_To_Characteristic(
-      cell_i, cell_im2, eigenvectors, sound_speed, sound_speed_squared, gamma);
+  reconstruction::Characteristic const cell_im2_characteristic =
+      reconstruction::Primitive_To_Characteristic(cell_i, cell_im2, eigenvectors, gamma);
 
   // Cell i+1
-  reconstruction::Characteristic const cell_ip1_characteristic = reconstruction::Primitive_To_Characteristic(
-      cell_i, cell_ip1, eigenvectors, sound_speed, sound_speed_squared, gamma);
+  reconstruction::Characteristic const cell_ip1_characteristic =
+      reconstruction::Primitive_To_Characteristic(cell_i, cell_ip1, eigenvectors, gamma);
 
   // Cell i+2
-  reconstruction::Characteristic const cell_ip2_characteristic = reconstruction::Primitive_To_Characteristic(
-      cell_i, cell_ip2, eigenvectors, sound_speed, sound_speed_squared, gamma);
+  reconstruction::Characteristic const cell_ip2_characteristic =
+      reconstruction::Primitive_To_Characteristic(cell_i, cell_ip2, eigenvectors, gamma);
 
   // Compute the interface states for each field
   reconstruction::Characteristic interface_R_imh_characteristic, interface_L_iph_characteristic;
@@ -703,10 +673,10 @@ __global__ __launch_bounds__(TPB) void PPMC_VL(Real *dev_conserved, Real *dev_bo
 #endif  // MHD
 
   // Convert back to primitive variables
-  hydro_utilities::Primitive interface_L_iph = reconstruction::Characteristic_To_Primitive(
-      cell_i, interface_L_iph_characteristic, eigenvectors, sound_speed, sound_speed_squared, gamma);
-  hydro_utilities::Primitive interface_R_imh = reconstruction::Characteristic_To_Primitive(
-      cell_i, interface_R_imh_characteristic, eigenvectors, sound_speed, sound_speed_squared, gamma);
+  hydro_utilities::Primitive interface_L_iph =
+      reconstruction::Characteristic_To_Primitive(cell_i, interface_L_iph_characteristic, eigenvectors, gamma);
+  hydro_utilities::Primitive interface_R_imh =
+      reconstruction::Characteristic_To_Primitive(cell_i, interface_R_imh_characteristic, eigenvectors, gamma);
 
   // Compute the interfaces for the variables that don't have characteristics
 #ifdef DE

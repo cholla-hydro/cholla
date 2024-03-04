@@ -58,6 +58,8 @@ enum Kind {
 
 // =====================================================================================================================
 struct EigenVecs {
+  Real sound_speed;
+#ifdef MHD
   Real magnetosonic_speed_fast, magnetosonic_speed_slow, magnetosonic_speed_fast_squared,
       magnetosonic_speed_slow_squared;
   Real alpha_fast, alpha_slow;
@@ -69,6 +71,7 @@ struct EigenVecs {
   /// The primed values are used in the conversion from primitive to characteristic variables
   Real q_prime_fast, q_prime_slow;
   Real a_prime_fast, a_prime_slow;
+#endif  // MHD
 };
 // =====================================================================================================================
 
@@ -267,17 +270,16 @@ hydro_utilities::Primitive __device__ __host__ __inline__ Van_Leer_Slope(hydro_u
  * \brief Compute the eigenvectors in the given cell
  *
  * \param[in] primitive The primitive variables in a particular cell
- * \param[in] sound_speed The sound speed
- * \param[in] sound_speed_squared The sound speed squared
  * \param[in] gamma The adiabatic index
  * \return EigenVecs
  */
-#ifdef MHD
-EigenVecs __device__ __inline__ Compute_Eigenvectors(hydro_utilities::Primitive const &primitive,
-                                                     Real const &sound_speed, Real const &sound_speed_squared,
-                                                     Real const &gamma)
+EigenVecs __device__ __inline__ Compute_Eigenvectors(hydro_utilities::Primitive const &primitive, Real const &gamma)
 {
   EigenVecs output;
+
+  output.sound_speed = hydro_utilities::Calc_Sound_Speed(primitive.pressure, primitive.density, gamma);
+
+#ifdef MHD
   // This is taken from Stone et al. 2008, appendix A. Equation numbers will be quoted as relevant
 
   // Compute wave speeds and their squares
@@ -288,6 +290,8 @@ EigenVecs __device__ __inline__ Compute_Eigenvectors(hydro_utilities::Primitive 
 
   output.magnetosonic_speed_fast_squared = output.magnetosonic_speed_fast * output.magnetosonic_speed_fast;
   output.magnetosonic_speed_slow_squared = output.magnetosonic_speed_slow * output.magnetosonic_speed_slow;
+
+  Real const sound_speed_squared = output.sound_speed * output.sound_speed;
 
   // Compute Alphas (equation A16)
   if (Real const denom = (output.magnetosonic_speed_fast_squared - output.magnetosonic_speed_slow_squared),
@@ -319,14 +323,14 @@ EigenVecs __device__ __inline__ Compute_Eigenvectors(hydro_utilities::Primitive 
   output.q_slow       = output.sign * output.alpha_slow * output.magnetosonic_speed_slow;
 
   // Compute A(s) (equation A15)
-  output.a_fast       = output.alpha_fast * sound_speed * sqrt(primitive.density);
-  output.a_slow       = output.alpha_slow * sound_speed * sqrt(primitive.density);
-  output.a_prime_fast = 0.5 * output.alpha_fast / (sound_speed * sqrt(primitive.density));
-  output.a_prime_slow = 0.5 * output.alpha_slow / (sound_speed * sqrt(primitive.density));
+  output.a_fast       = output.alpha_fast * output.sound_speed * sqrt(primitive.density);
+  output.a_slow       = output.alpha_slow * output.sound_speed * sqrt(primitive.density);
+  output.a_prime_fast = 0.5 * output.alpha_fast / (output.sound_speed * sqrt(primitive.density));
+  output.a_prime_slow = 0.5 * output.alpha_slow / (output.sound_speed * sqrt(primitive.density));
+#endif  // MHD
 
   return output;
 }
-#endif  // MHD
 // =====================================================================================================================
 
 // =====================================================================================================================
@@ -337,15 +341,12 @@ EigenVecs __device__ __inline__ Compute_Eigenvectors(hydro_utilities::Primitive 
  * \param[in] primitive The primitive variables
  * \param[in] primitive_slope The primitive variables slopes
  * \param[in] EigenVecs The eigenvectors
- * \param[in] sound_speed The speed of sound
- * \param[in] sound_speed_squared The speed of sound squared
  * \param[in] gamma The adiabatic index
  * \return Characteristic
  */
 Characteristic __device__ __inline__ Primitive_To_Characteristic(hydro_utilities::Primitive const &primitive,
                                                                  hydro_utilities::Primitive const &primitive_slope,
-                                                                 EigenVecs const &eigen, Real const &sound_speed,
-                                                                 Real const &sound_speed_squared, Real const &gamma)
+                                                                 EigenVecs const &eigen, Real const &gamma)
 {
   Characteristic output;
 
@@ -369,7 +370,7 @@ Characteristic __device__ __inline__ Primitive_To_Characteristic(hydro_utilities
       eigen.q_prime_fast * (eigen.beta_y * primitive_slope.velocity.y + eigen.beta_z * primitive_slope.velocity.z) -
       eigen.a_prime_fast * (eigen.beta_y * primitive_slope.magnetic.y + eigen.beta_z * primitive_slope.magnetic.z);
 
-  output.a3 = primitive_slope.density - primitive_slope.pressure / sound_speed_squared;
+  output.a3 = primitive_slope.density - primitive_slope.pressure / (eigen.sound_speed * eigen.sound_speed);
 
   output.a4 =
       eigen.n_fs * eigen.alpha_slow *
@@ -388,13 +389,13 @@ Characteristic __device__ __inline__ Primitive_To_Characteristic(hydro_utilities
       eigen.a_prime_slow * (eigen.beta_y * primitive_slope.magnetic.y + eigen.beta_z * primitive_slope.magnetic.z);
 
 #else   // not MHD
-  output.a0 = -primitive.density * primitive_slope.velocity.x / (2.0 * sound_speed) +
-              primitive_slope.pressure / (2.0 * sound_speed_squared);
-  output.a1 = primitive_slope.density - primitive_slope.pressure / (sound_speed_squared);
+  output.a0 = -primitive.density * primitive_slope.velocity.x / (2.0 * eigen.sound_speed) +
+              primitive_slope.pressure / (2.0 * (eigen.sound_speed * eigen.sound_speed));
+  output.a1 = primitive_slope.density - primitive_slope.pressure / ((eigen.sound_speed * eigen.sound_speed));
   output.a2 = primitive_slope.velocity.y;
   output.a3 = primitive_slope.velocity.z;
-  output.a4 = primitive.density * primitive_slope.velocity.x / (2.0 * sound_speed) +
-              primitive_slope.pressure / (2.0 * sound_speed_squared);
+  output.a4 = primitive.density * primitive_slope.velocity.x / (2.0 * eigen.sound_speed) +
+              primitive_slope.pressure / (2.0 * (eigen.sound_speed * eigen.sound_speed));
 #endif  // MHD
 
   return output;
@@ -409,14 +410,12 @@ Characteristic __device__ __inline__ Primitive_To_Characteristic(hydro_utilities
  * \param[in] primitive The primitive variables
  * \param[in] characteristic_slope The characteristic slopes
  * \param[in] eigen The eigenvectors
- * \param[in] sound_speed The sound speed
- * \param[in] sound_speed_squared The sound speed squared
  * \param[in] gamma The adiabatic index
  * \return hydro_utilities::Primitive The state in primitive variables
  */
 hydro_utilities::Primitive __device__ __host__ __inline__ Characteristic_To_Primitive(
     hydro_utilities::Primitive const &primitive, Characteristic const &characteristic_slope, EigenVecs const &eigen,
-    Real const &sound_speed, Real const &sound_speed_squared, Real const &gamma)
+    Real const &gamma)
 {
   hydro_utilities::Primitive output;
 #ifdef MHD
@@ -433,7 +432,7 @@ hydro_utilities::Primitive __device__ __host__ __inline__ Characteristic_To_Prim
   output.velocity.z = eigen.beta_z * (eigen.q_slow * (characteristic_slope.a0 - characteristic_slope.a6) +
                                       eigen.q_fast * (characteristic_slope.a4 - characteristic_slope.a2)) +
                       eigen.beta_y * (characteristic_slope.a1 - characteristic_slope.a5);
-  output.pressure = primitive.density * sound_speed_squared *
+  output.pressure = primitive.density * (eigen.sound_speed * eigen.sound_speed) *
                     (eigen.alpha_fast * (characteristic_slope.a0 + characteristic_slope.a6) +
                      eigen.alpha_slow * (characteristic_slope.a2 + characteristic_slope.a4));
   output.magnetic.y =
@@ -447,10 +446,10 @@ hydro_utilities::Primitive __device__ __host__ __inline__ Characteristic_To_Prim
 
 #else   // not MHD
   output.density    = characteristic_slope.a0 + characteristic_slope.a1 + characteristic_slope.a4;
-  output.velocity.x = sound_speed / primitive.density * (characteristic_slope.a4 - characteristic_slope.a0);
+  output.velocity.x = eigen.sound_speed / primitive.density * (characteristic_slope.a4 - characteristic_slope.a0);
   output.velocity.y = characteristic_slope.a2;
   output.velocity.z = characteristic_slope.a3;
-  output.pressure   = sound_speed_squared * (characteristic_slope.a0 + characteristic_slope.a4);
+  output.pressure   = (eigen.sound_speed * eigen.sound_speed) * (characteristic_slope.a0 + characteristic_slope.a4);
 #endif  // MHD
 
   return output;
