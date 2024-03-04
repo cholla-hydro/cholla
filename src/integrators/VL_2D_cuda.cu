@@ -100,9 +100,9 @@ void VL_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int y_of
   #endif
   #ifdef PLMC
   hipLaunchKernelGGL(PLMC_cuda<0>, dim2dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, dx, dt,
-                     gama, n_fields);
+                     gama);
   hipLaunchKernelGGL(PLMC_cuda<1>, dim2dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, dy, dt,
-                     gama, n_fields);
+                     gama);
   #endif
   #ifdef PPMP
   hipLaunchKernelGGL(PPMP_cuda, dim2dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx,

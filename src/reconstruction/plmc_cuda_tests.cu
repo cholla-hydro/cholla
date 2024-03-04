@@ -151,15 +151,15 @@ TEST(tHYDROPlmcReconstructor, CorrectInputExpectCorrectOutput)
     switch (direction) {
       case 0:
         hipLaunchKernelGGL(PLMC_cuda<0>, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
-                           dev_interface_right.data(), nx_rot, ny_rot, nz_rot, dx, dt, gamma, n_fields);
+                           dev_interface_right.data(), nx_rot, ny_rot, nz_rot, dx, dt, gamma);
         break;
       case 1:
         hipLaunchKernelGGL(PLMC_cuda<1>, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
-                           dev_interface_right.data(), nx_rot, ny_rot, nz_rot, dx, dt, gamma, n_fields);
+                           dev_interface_right.data(), nx_rot, ny_rot, nz_rot, dx, dt, gamma);
         break;
       case 2:
         hipLaunchKernelGGL(PLMC_cuda<2>, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
-                           dev_interface_right.data(), nx_rot, ny_rot, nz_rot, dx, dt, gamma, n_fields);
+                           dev_interface_right.data(), nx_rot, ny_rot, nz_rot, dx, dt, gamma);
         break;
     }
     GPU_Error_Check();
@@ -276,15 +276,15 @@ TEST(tMHDPlmcReconstructor, CorrectInputExpectCorrectOutput)
     switch (direction) {
       case 0:
         hipLaunchKernelGGL(PLMC_cuda<0>, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
-                           dev_interface_right.data(), nx, ny, nz, dx, dt, gamma, n_fields);
+                           dev_interface_right.data(), nx, ny, nz, dx, dt, gamma);
         break;
       case 1:
         hipLaunchKernelGGL(PLMC_cuda<1>, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
-                           dev_interface_right.data(), nx, ny, nz, dx, dt, gamma, n_fields);
+                           dev_interface_right.data(), nx, ny, nz, dx, dt, gamma);
         break;
       case 2:
         hipLaunchKernelGGL(PLMC_cuda<2>, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
-                           dev_interface_right.data(), nx, ny, nz, dx, dt, gamma, n_fields);
+                           dev_interface_right.data(), nx, ny, nz, dx, dt, gamma);
         break;
     }
     GPU_Error_Check();
