@@ -124,11 +124,25 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
       cell_im1, del_G, eigenvector, sound_speed, sound_speed * sound_speed, gamma);
 
   // Step 4 - Apply monotonicity constraints to the differences in the characteristic variables
+  reconstruction::Characteristic const del_a_m_im1 =
+      reconstruction::Van_Leer_Limiter(del_a_L, del_a_R, del_a_C, del_a_G);
+
   // Step 5 - and project the monotonized difference in the characteristic variables back onto the primitive variables
   // Stone Eqn 39
-  hydro_utilities::Primitive const del_m_im1 = reconstruction::Monotonize_Characteristic_Return_Primitive(
-      cell_im1, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, eigenvector, sound_speed,
-      sound_speed * sound_speed, gamma);
+  hydro_utilities::Primitive del_m_im1 =
+      Characteristic_To_Primitive(cell_im1, del_a_m_im1, eigenvector, sound_speed, sound_speed * sound_speed, gamma);
+
+  // Limit the variables that aren't transformed by the characteristic projection
+#ifdef DE
+  del_m_im1.gas_energy_specific = Van_Leer_Limiter(del_L.gas_energy_specific, del_R.gas_energy_specific,
+                                                   del_C.gas_energy_specific, del_G.gas_energy_specific);
+#endif  // DE
+#ifdef SCALAR
+  for (int i = 0; i < NSCALARS; i++) {
+    del_m_im1.scalar_specific[i] = Van_Leer_Limiter(del_L.scalar_specific[i], del_R.scalar_specific[i],
+                                                    del_C.scalar_specific[i], del_G.scalar_specific[i]);
+  }
+#endif  // SCALAR
 
   // =============
   // Cell i slopes
@@ -169,11 +183,24 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
                                                         sound_speed * sound_speed, gamma);
 
   // Step 4 - Apply monotonicity constraints to the differences in the characteristic variables
+  reconstruction::Characteristic const del_a_m_i = reconstruction::Van_Leer_Limiter(del_a_L, del_a_R, del_a_C, del_a_G);
+
   // Step 5 - and project the monotonized difference in the characteristic variables back onto the primitive variables
   // Stone Eqn 39
-  hydro_utilities::Primitive del_m_i = reconstruction::Monotonize_Characteristic_Return_Primitive(
-      cell_i, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, eigenvector, sound_speed,
-      sound_speed * sound_speed, gamma);
+  hydro_utilities::Primitive del_m_i =
+      Characteristic_To_Primitive(cell_ip1, del_a_m_i, eigenvector, sound_speed, sound_speed * sound_speed, gamma);
+
+  // Limit the variables that aren't transformed by the characteristic projection
+#ifdef DE
+  del_m_i.gas_energy_specific = Van_Leer_Limiter(del_L.gas_energy_specific, del_R.gas_energy_specific,
+                                                 del_C.gas_energy_specific, del_G.gas_energy_specific);
+#endif  // DE
+#ifdef SCALAR
+  for (int i = 0; i < NSCALARS; i++) {
+    del_m_i.scalar_specific[i] = Van_Leer_Limiter(del_L.scalar_specific[i], del_R.scalar_specific[i],
+                                                  del_C.scalar_specific[i], del_G.scalar_specific[i]);
+  }
+#endif  // SCALAR
 
   // ===============
   // Cell i+1 slopes
@@ -214,11 +241,25 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
                                                         sound_speed * sound_speed, gamma);
 
   // Step 4 - Apply monotonicity constraints to the differences in the characteristic variables
+  reconstruction::Characteristic const del_a_m_ip1 =
+      reconstruction::Van_Leer_Limiter(del_a_L, del_a_R, del_a_C, del_a_G);
+
   // Step 5 - and project the monotonized difference in the characteristic variables back onto the primitive variables
   // Stone Eqn 39
-  hydro_utilities::Primitive const del_m_ip1 = reconstruction::Monotonize_Characteristic_Return_Primitive(
-      cell_ip1, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, eigenvector, sound_speed,
-      sound_speed * sound_speed, gamma);
+  hydro_utilities::Primitive del_m_ip1 =
+      Characteristic_To_Primitive(cell_ip1, del_a_m_ip1, eigenvector, sound_speed, sound_speed * sound_speed, gamma);
+
+  // Limit the variables that aren't transformed by the characteristic projection
+#ifdef DE
+  del_m_ip1.gas_energy_specific = Van_Leer_Limiter(del_L.gas_energy_specific, del_R.gas_energy_specific,
+                                                   del_C.gas_energy_specific, del_G.gas_energy_specific);
+#endif  // DE
+#ifdef SCALAR
+  for (int i = 0; i < NSCALARS; i++) {
+    del_m_ip1.scalar_specific[i] = Van_Leer_Limiter(del_L.scalar_specific[i], del_R.scalar_specific[i],
+                                                    del_C.scalar_specific[i], del_G.scalar_specific[i]);
+  }
+#endif  // SCALAR
 
   // Step 6 - Use parabolic interpolation to compute values at the left and right of each cell center Here, the
   // subscripts L and R refer to the left and right side of the ith cell center Stone Eqn 46

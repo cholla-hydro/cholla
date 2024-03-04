@@ -148,7 +148,6 @@ TEST(tHYDROPlmcReconstructor, CorrectInputExpectCorrectOutput)
     cuda_utilities::DeviceVector<double> dev_interface_right(host_grid.size(), true);
 
     // Launch kernel
-    std::cout << "direction = " << direction << std::endl;
     switch (direction) {
       case 0:
         hipLaunchKernelGGL(PLMC_cuda<0>, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),

@@ -304,74 +304,51 @@ TEST(tALLReconstructionVanLeerSlope, CorrectInputExpectCorrectOutput)
 #endif  // MHD
 }
 
-__global__ void Test_Monotize_Characteristic_Return_Primitive(
-    hydro_utilities::Primitive const primitive, hydro_utilities::Primitive const del_L,
-    hydro_utilities::Primitive const del_R, hydro_utilities::Primitive const del_C,
-    hydro_utilities::Primitive const del_G, reconstruction::Characteristic const del_a_L,
-    reconstruction::Characteristic const del_a_R, reconstruction::Characteristic const del_a_C,
-    reconstruction::Characteristic const del_a_G, reconstruction::EigenVecs const eigenvectors, Real const sound_speed,
-    Real const sound_speed_squared, Real const gamma, hydro_utilities::Primitive *monotonized_slope)
+TEST(tALLReconstructionVanLeerSlopeReal, CorrectInputExpectCorrectOutput)
 {
-  *monotonized_slope = reconstruction::Monotonize_Characteristic_Return_Primitive(
-      primitive, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, eigenvectors, sound_speed,
-      sound_speed_squared, gamma);
+  // Note that this check is performed without any margin for error since the function should return the hard coded zero
+  EXPECT_EQ(0, reconstruction::Van_Leer_Limiter(8, -12, 32, 128)) << "Test failed in the case of mixed sign slopes.";
+
+  // These checks also have no margin of error since they should return bit exact values
+  EXPECT_EQ(-24, reconstruction::Van_Leer_Limiter(12, 17, -38, 128))
+      << "Test failed in the case of selecting the left slope";
+  EXPECT_EQ(-24, reconstruction::Van_Leer_Limiter(17, 12, -38, 128))
+      << "Test failed in the case of selecting the right slope";
+  EXPECT_EQ(-12, reconstruction::Van_Leer_Limiter(128, 38, -12, 17))
+      << "Test failed in the case of selecting the centered slope";
+  EXPECT_EQ(-12, reconstruction::Van_Leer_Limiter(128, 38, -17, 12))
+      << "Test failed in the case of selecting the van leer slope";
 }
 
-TEST(tALLReconstructionMonotonizeCharacteristicReturnPrimitive, CorrectInputExpectCorrectOutput)
+TEST(tALLReconstructionVanLeerSlopeCharacteristic, CorrectInputExpectCorrectOutput)
 {
 #ifdef MHD
-  hydro_utilities::Primitive const primitive{1, {2, 3, 4}, 5, {6, 7, 8}};
-  hydro_utilities::Primitive const del_L{9, {10, 11, 12}, 13, {14, 15, 16}};
-  hydro_utilities::Primitive const del_R{17, {18, 19, 20}, 21, {22, 23, 24}};
-  hydro_utilities::Primitive const del_C{25, {26, 27, 28}, 29, {30, 31, 32}};
-  hydro_utilities::Primitive const del_G{33, {34, 35, 36}, 37, {38, 39, 40}};
   reconstruction::Characteristic const del_a_L{41, 42, 43, 44, 45, 46, 47};
   reconstruction::Characteristic const del_a_R{48, 49, 50, 51, 52, 53, 54};
   reconstruction::Characteristic const del_a_C{55, 56, 57, 58, 59, 60, 61};
   reconstruction::Characteristic const del_a_G{62, 64, 65, 66, 67, 68, 69};
 #else   // MHD
-  hydro_utilities::Primitive const primitive{1, {2, 3, 4}, 5};
-  hydro_utilities::Primitive const del_L{9, {10, 11, 12}, 13};
-  hydro_utilities::Primitive const del_R{17, {18, 19, 20}, 21};
-  hydro_utilities::Primitive const del_C{25, {26, 27, 28}, 29};
-  hydro_utilities::Primitive const del_G{33, {34, 35, 36}, 37};
   reconstruction::Characteristic const del_a_L{41, 42, 43, 44, 45};
   reconstruction::Characteristic const del_a_R{48, 49, 50, 51, 52};
   reconstruction::Characteristic const del_a_C{55, 56, 57, 58, 59};
   reconstruction::Characteristic const del_a_G{62, 64, 65, 66, 67};
 #endif  // MHD
-  Real const sound_speed = 17.0, sound_speed_squared = sound_speed * sound_speed;
-  Real const gamma = 5. / 3.;
-  reconstruction::EigenVecs const eigenvectors{
-      17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
-  };
 
   // Get test data
-  cuda_utilities::DeviceVector<hydro_utilities::Primitive> dev_results(1);
-  hipLaunchKernelGGL(Test_Monotize_Characteristic_Return_Primitive, 1, 1, 0, 0, primitive, del_L, del_R, del_C, del_G,
-                     del_a_L, del_a_R, del_a_C, del_a_G, eigenvectors, sound_speed, sound_speed_squared, gamma,
-                     dev_results.data());
-  GPU_Error_Check();
-  cudaDeviceSynchronize();
-  hydro_utilities::Primitive const host_results = dev_results.at(0);
+  reconstruction::Characteristic test_data = reconstruction::Van_Leer_Limiter(del_a_L, del_a_R, del_a_C, del_a_G);
 
   // Check results
+  reconstruction::Characteristic fiducial_data{55, 56, 57, 58, 59};
+  testing_utilities::Check_Results(fiducial_data.a0, test_data.a0, "a0");
+  testing_utilities::Check_Results(fiducial_data.a1, test_data.a1, "a1");
+  testing_utilities::Check_Results(fiducial_data.a2, test_data.a2, "a2");
+  testing_utilities::Check_Results(fiducial_data.a3, test_data.a3, "a3");
+  testing_utilities::Check_Results(fiducial_data.a4, test_data.a4, "a4");
 #ifdef MHD
-  hydro_utilities::Primitive const fiducial_data{5046, {2934, -2526, -2828}, 1441532, {0.0, -69716, 72152}};
-  testing_utilities::Check_Results(fiducial_data.density, host_results.density, "density");
-  testing_utilities::Check_Results(fiducial_data.velocity.x, host_results.velocity.x, "velocity.x");
-  testing_utilities::Check_Results(fiducial_data.velocity.y, host_results.velocity.y, "velocity.y");
-  testing_utilities::Check_Results(fiducial_data.velocity.z, host_results.velocity.z, "velocity.z");
-  testing_utilities::Check_Results(fiducial_data.pressure, host_results.pressure, "pressure");
-  testing_utilities::Check_Results(fiducial_data.magnetic.y, host_results.magnetic.y, "magnetic.y");
-  testing_utilities::Check_Results(fiducial_data.magnetic.z, host_results.magnetic.z, "magnetic.z");
-#else   // MHD
-  hydro_utilities::Primitive const fiducial_data{170, {68, 57, 58}, 32946};
-  testing_utilities::Check_Results(fiducial_data.density, host_results.density, "density");
-  testing_utilities::Check_Results(fiducial_data.velocity.x, host_results.velocity.x, "velocity.x");
-  testing_utilities::Check_Results(fiducial_data.velocity.y, host_results.velocity.y, "velocity.y");
-  testing_utilities::Check_Results(fiducial_data.velocity.z, host_results.velocity.z, "velocity.z");
-  testing_utilities::Check_Results(fiducial_data.pressure, host_results.pressure, "pressure");
+  fiducial_data.a5 = 60;
+  fiducial_data.a6 = 61;
+  testing_utilities::Check_Results(fiducial_data.a5, test_data.a5, "a5");
+  testing_utilities::Check_Results(fiducial_data.a6, test_data.a6, "a6");
 #endif  // MHD
 }
 

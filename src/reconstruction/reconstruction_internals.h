@@ -459,72 +459,59 @@ hydro_utilities::Primitive __device__ __host__ __inline__ Characteristic_To_Prim
 
 // =====================================================================================================================
 /*!
- * \brief Monotonize the characteristic slopes and project back into the primitive slopes
+ * \brief Compute the limited slope using the Van Leer limiter
  *
- * \param[in] primitive The primitive variables
- * \param[in] del_L The left primitive slopes
- * \param[in] del_R The right primitive slopes
- * \param[in] del_C The centered primitive slopes
- * \param[in] del_G The Van Leer primitive slopes
+ * \param[in] left The left slope
+ * \param[in] right The right slope
+ * \param[in] centered The centered slope
+ * \param[in] van_leer The Van Leer slope
+ * \return Real The limited slope
+ */
+Real __device__ __host__ __inline__ Van_Leer_Limiter(Real const &left, Real const &right, Real const &centered,
+                                                     Real const &van_leer)
+{
+  if (left * right > 0.0) {
+    Real const lim_slope_a = 2.0 * fmin(fabs(left), fabs(right));
+    Real const lim_slope_b = fmin(fabs(centered), fabs(van_leer));
+    return copysign(fmin(lim_slope_a, lim_slope_b), centered);
+  } else {
+    return 0.0;
+  }
+};
+// =====================================================================================================================
+
+// =====================================================================================================================
+/*!
+ * \brief Limit the charactistic slopes. This is an overload that take reconstruction::Characteristic variables instead
+ * of Reals as arguments. Note that it does not limit the gas energy or scalars
+ *
  * \param[in] del_a_L The left characteristic slopes
  * \param[in] del_a_R The right characteristic slopes
  * \param[in] del_a_C The centered characteristic slopes
  * \param[in] del_a_G The Van Leer characteristic slopes
- * \param[in] sound_speed The sound speed
- * \param[in] sound_speed_squared The sound speed squared
- * \param[in] gamma The adiabatic index
- * \return hydro_utilities::Primitive The Monotonized primitive slopes
+ * \return Characteristic The limited characteristic slopes
  */
-hydro_utilities::Primitive __device__ __inline__ Monotonize_Characteristic_Return_Primitive(
-    hydro_utilities::Primitive const &primitive, hydro_utilities::Primitive const &del_L,
-    hydro_utilities::Primitive const &del_R, hydro_utilities::Primitive const &del_C,
-    hydro_utilities::Primitive const &del_G, Characteristic const &del_a_L, Characteristic const &del_a_R,
-    Characteristic const &del_a_C, Characteristic const &del_a_G, EigenVecs const &eigenvectors,
-    Real const &sound_speed, Real const &sound_speed_squared, Real const &gamma)
+Characteristic __device__ __host__ __inline__ Van_Leer_Limiter(Characteristic const &del_a_L,
+                                                               Characteristic const &del_a_R,
+                                                               Characteristic const &del_a_C,
+                                                               Characteristic const &del_a_G)
 {
-  // The function that will actually do the monotozation
-  auto Monotonize = [](Real const &left, Real const &right, Real const &centered, Real const &van_leer) -> Real {
-    if (left * right > 0.0) {
-      Real const lim_slope_a = 2.0 * fmin(fabs(left), fabs(right));
-      Real const lim_slope_b = fmin(fabs(centered), fabs(van_leer));
-      return copysign(fmin(lim_slope_a, lim_slope_b), centered);
-    } else {
-      return 0.0;
-    }
-  };
-
   // the monotonized difference in the characteristic variables
   Characteristic del_a_m;
 
   // Monotonize the slopes
-  del_a_m.a0 = Monotonize(del_a_L.a0, del_a_R.a0, del_a_C.a0, del_a_G.a0);
-  del_a_m.a1 = Monotonize(del_a_L.a1, del_a_R.a1, del_a_C.a1, del_a_G.a1);
-  del_a_m.a2 = Monotonize(del_a_L.a2, del_a_R.a2, del_a_C.a2, del_a_G.a2);
-  del_a_m.a3 = Monotonize(del_a_L.a3, del_a_R.a3, del_a_C.a3, del_a_G.a3);
-  del_a_m.a4 = Monotonize(del_a_L.a4, del_a_R.a4, del_a_C.a4, del_a_G.a4);
+  del_a_m.a0 = Van_Leer_Limiter(del_a_L.a0, del_a_R.a0, del_a_C.a0, del_a_G.a0);
+  del_a_m.a1 = Van_Leer_Limiter(del_a_L.a1, del_a_R.a1, del_a_C.a1, del_a_G.a1);
+  del_a_m.a2 = Van_Leer_Limiter(del_a_L.a2, del_a_R.a2, del_a_C.a2, del_a_G.a2);
+  del_a_m.a3 = Van_Leer_Limiter(del_a_L.a3, del_a_R.a3, del_a_C.a3, del_a_G.a3);
+  del_a_m.a4 = Van_Leer_Limiter(del_a_L.a4, del_a_R.a4, del_a_C.a4, del_a_G.a4);
 
 #ifdef MHD
-  del_a_m.a5 = Monotonize(del_a_L.a5, del_a_R.a5, del_a_C.a5, del_a_G.a5);
-  del_a_m.a6 = Monotonize(del_a_L.a6, del_a_R.a6, del_a_C.a6, del_a_G.a6);
+  del_a_m.a5 = Van_Leer_Limiter(del_a_L.a5, del_a_R.a5, del_a_C.a5, del_a_G.a5);
+  del_a_m.a6 = Van_Leer_Limiter(del_a_L.a6, del_a_R.a6, del_a_C.a6, del_a_G.a6);
 #endif  // MHD
 
-  // Project into the primitive variables. Note the return by reference to preserve the values in the gas_energy and
-  // scalars
-  hydro_utilities::Primitive output =
-      Characteristic_To_Primitive(primitive, del_a_m, eigenvectors, sound_speed, sound_speed_squared, gamma);
-
-#ifdef DE
-  output.gas_energy_specific = Monotonize(del_L.gas_energy_specific, del_R.gas_energy_specific,
-                                          del_C.gas_energy_specific, del_G.gas_energy_specific);
-#endif  // DE
-#ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    output.scalar_specific[i] = Monotonize(del_L.scalar_specific[i], del_R.scalar_specific[i], del_C.scalar_specific[i],
-                                           del_G.scalar_specific[i]);
-  }
-#endif  // SCALAR
-
-  return output;
+  return del_a_m;
 }
 // =====================================================================================================================
 
