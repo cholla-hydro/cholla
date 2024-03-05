@@ -22,6 +22,167 @@ __global__ __launch_bounds__(TPB) void PLMC_cuda(Real *dev_conserved, Real *dev_
 
 namespace reconstruction
 {
+void __device__ __host__ __inline__ PLMC_Characteristic_Evolution(hydro_utilities::Primitive const &cell_i,
+                                                                  hydro_utilities::Primitive const &del_m,
+                                                                  Real const dt, Real const dx, Real const sound_speed,
+                                                                  hydro_utilities::Primitive &interface_R_imh,
+                                                                  hydro_utilities::Primitive &interface_L_iph)
+{
+  Real const dtodx = dt / dx;
+
+  // Compute the eigenvalues of the linearized equations in the
+  // primitive variables using the cell-centered primitive variables
+  Real const lambda_m = cell_i.velocity.x - sound_speed;
+  Real const lambda_0 = cell_i.velocity.x;
+  Real const lambda_p = cell_i.velocity.x + sound_speed;
+
+  // Integrate linear interpolation function over domain of dependence
+  // defined by max(min) eigenvalue
+  Real qx                    = -0.5 * fmin(lambda_m, 0.0) * dtodx;
+  interface_R_imh.density    = interface_R_imh.density + qx * del_m.density;
+  interface_R_imh.velocity.x = interface_R_imh.velocity.x + qx * del_m.velocity.x;
+  interface_R_imh.velocity.y = interface_R_imh.velocity.y + qx * del_m.velocity.y;
+  interface_R_imh.velocity.z = interface_R_imh.velocity.z + qx * del_m.velocity.z;
+  interface_R_imh.pressure   = interface_R_imh.pressure + qx * del_m.pressure;
+
+  qx                         = 0.5 * fmax(lambda_p, 0.0) * dtodx;
+  interface_L_iph.density    = interface_L_iph.density - qx * del_m.density;
+  interface_L_iph.velocity.x = interface_L_iph.velocity.x - qx * del_m.velocity.x;
+  interface_L_iph.velocity.y = interface_L_iph.velocity.y - qx * del_m.velocity.y;
+  interface_L_iph.velocity.z = interface_L_iph.velocity.z - qx * del_m.velocity.z;
+  interface_L_iph.pressure   = interface_L_iph.pressure - qx * del_m.pressure;
+
+#ifdef DE
+  interface_R_imh.gas_energy_specific = interface_R_imh.gas_energy_specific + qx * del_m.gas_energy_specific;
+  interface_L_iph.gas_energy_specific = interface_L_iph.gas_energy_specific - qx * del_m.gas_energy_specific;
+#endif  // DE
+
+#ifdef SCALAR
+  for (int i = 0; i < NSCALARS; i++) {
+    interface_R_imh.scalar_specific[i] = interface_R_imh.scalar_specific[i] + qx * del_m.scalar_specific[i];
+    interface_L_iph.scalar_specific[i] = interface_L_iph.scalar_specific[i] - qx * del_m.scalar_specific[i];
+  }
+#endif  // SCALAR
+
+  // Perform the characteristic tracing
+  // Stone Eqns 42 & 43
+
+  // left-hand interface value, i+1/2
+  Real sum_0 = 0.0, sum_1 = 0.0, sum_2 = 0.0, sum_3 = 0.0, sum_4 = 0.0;
+#ifdef DE
+  Real sum_ge = 0;
+#endif  // DE
+#ifdef SCALAR
+  Real sum_scalar[NSCALARS];
+  for (int i = 0; i < NSCALARS; i++) {
+    sum_scalar[i] = 0.0;
+  }
+#endif  // SCALAR
+  if (lambda_m >= 0) {
+    Real lamdiff = lambda_p - lambda_m;
+
+    sum_0 += lamdiff * (-cell_i.density * del_m.velocity.x / (2 * sound_speed) +
+                        del_m.pressure / (2 * sound_speed * sound_speed));
+    sum_1 += lamdiff * (del_m.velocity.x / 2.0 - del_m.pressure / (2 * sound_speed * cell_i.density));
+    sum_4 += lamdiff * (-cell_i.density * del_m.velocity.x * sound_speed / 2.0 + del_m.pressure / 2.0);
+  }
+  if (lambda_0 >= 0) {
+    Real lamdiff = lambda_p - lambda_0;
+
+    sum_0 += lamdiff * (del_m.density - del_m.pressure / (sound_speed * sound_speed));
+    sum_2 += lamdiff * del_m.velocity.y;
+    sum_3 += lamdiff * del_m.velocity.z;
+#ifdef DE
+    sum_ge += lamdiff * del_m.gas_energy_specific;
+#endif  // DE
+#ifdef SCALAR
+    for (int i = 0; i < NSCALARS; i++) {
+      sum_scalar[i] += lamdiff * del_m.scalar_specific[i];
+    }
+#endif  // SCALAR
+  }
+  if (lambda_p >= 0) {
+    Real lamdiff = lambda_p - lambda_p;
+
+    sum_0 += lamdiff *
+             (cell_i.density * del_m.velocity.x / (2 * sound_speed) + del_m.pressure / (2 * sound_speed * sound_speed));
+    sum_1 += lamdiff * (del_m.velocity.x / 2.0 + del_m.pressure / (2 * sound_speed * cell_i.density));
+    sum_4 += lamdiff * (cell_i.density * del_m.velocity.x * sound_speed / 2.0 + del_m.pressure / 2.0);
+  }
+
+  // add the corrections to the initial guesses for the interface values
+  interface_L_iph.density += 0.5 * dtodx * sum_0;
+  interface_L_iph.velocity.x += 0.5 * dtodx * sum_1;
+  interface_L_iph.velocity.y += 0.5 * dtodx * sum_2;
+  interface_L_iph.velocity.z += 0.5 * dtodx * sum_3;
+  interface_L_iph.pressure += 0.5 * dtodx * sum_4;
+#ifdef DE
+  interface_L_iph.gas_energy_specific += 0.5 * dtodx * sum_ge;
+#endif  // DE
+#ifdef SCALAR
+  for (int i = 0; i < NSCALARS; i++) {
+    interface_L_iph.scalar_specific[i] += 0.5 * dtodx * sum_scalar[i];
+  }
+#endif  // SCALAR
+
+  // right-hand interface value, i-1/2
+  sum_0 = sum_1 = sum_2 = sum_3 = sum_4 = 0;
+#ifdef DE
+  sum_ge = 0;
+#endif  // DE
+#ifdef SCALAR
+  for (int i = 0; i < NSCALARS; i++) {
+    sum_scalar[i] = 0;
+  }
+#endif  // SCALAR
+  if (lambda_m <= 0) {
+    Real lamdiff = lambda_m - lambda_m;
+
+    sum_0 += lamdiff * (-cell_i.density * del_m.velocity.x / (2 * sound_speed) +
+                        del_m.pressure / (2 * sound_speed * sound_speed));
+    sum_1 += lamdiff * (del_m.velocity.x / 2.0 - del_m.pressure / (2 * sound_speed * cell_i.density));
+    sum_4 += lamdiff * (-cell_i.density * del_m.velocity.x * sound_speed / 2.0 + del_m.pressure / 2.0);
+  }
+  if (lambda_0 <= 0) {
+    Real lamdiff = lambda_m - lambda_0;
+
+    sum_0 += lamdiff * (del_m.density - del_m.pressure / (sound_speed * sound_speed));
+    sum_2 += lamdiff * del_m.velocity.y;
+    sum_3 += lamdiff * del_m.velocity.z;
+#ifdef DE
+    sum_ge += lamdiff * del_m.gas_energy_specific;
+#endif  // DE
+#ifdef SCALAR
+    for (int i = 0; i < NSCALARS; i++) {
+      sum_scalar[i] += lamdiff * del_m.scalar_specific[i];
+    }
+#endif  // SCALAR
+  }
+  if (lambda_p <= 0) {
+    Real lamdiff = lambda_m - lambda_p;
+
+    sum_0 += lamdiff *
+             (cell_i.density * del_m.velocity.x / (2 * sound_speed) + del_m.pressure / (2 * sound_speed * sound_speed));
+    sum_1 += lamdiff * (del_m.velocity.x / 2.0 + del_m.pressure / (2 * sound_speed * cell_i.density));
+    sum_4 += lamdiff * (cell_i.density * del_m.velocity.x * sound_speed / 2.0 + del_m.pressure / 2.0);
+  }
+
+  // add the corrections
+  interface_R_imh.density += 0.5 * dtodx * sum_0;
+  interface_R_imh.velocity.x += 0.5 * dtodx * sum_1;
+  interface_R_imh.velocity.y += 0.5 * dtodx * sum_2;
+  interface_R_imh.velocity.z += 0.5 * dtodx * sum_3;
+  interface_R_imh.pressure += 0.5 * dtodx * sum_4;
+#ifdef DE
+  interface_R_imh.gas_energy_specific += 0.5 * dtodx * sum_ge;
+#endif  // DE
+#ifdef SCALAR
+  for (int i = 0; i < NSCALARS; i++) {
+    interface_R_imh.scalar_specific[i] += 0.5 * dtodx * sum_scalar[i];
+  }
+#endif  // SCALAR
+}
+
 template <uint direction>
 auto __device__ __inline__ PLMC_Reconstruction(Real *dev_conserved, int const xid, int const yid, int const zid,
                                                int const nx, int const ny, int const nz, Real const dx, Real const dt,
@@ -102,165 +263,13 @@ auto __device__ __inline__ PLMC_Reconstruction(Real *dev_conserved, int const xi
   hydro_utilities::Primitive interface_L_iph = reconstruction::Calc_Interface_Linear(cell_i, del_m, 1.0);
   hydro_utilities::Primitive interface_R_imh = reconstruction::Calc_Interface_Linear(cell_i, del_m, -1.0);
 
+// Do the characteristic tracing
+#ifndef VL
+  PLMC_Characteristic_Evolution(cell_i, del_m, dt, dx, eigenvectors.sound_speed, interface_R_imh, interface_L_iph);
+#endif  // VL
+
   // Limit the interfaces
   reconstruction::Plm_Limit_Interfaces(interface_L_iph, interface_R_imh, cell_imo, cell_i, cell_ipo);
-
-#ifndef VL
-
-  Real const dtodx = dt / dx;
-
-  // Compute the eigenvalues of the linearized equations in the
-  // primitive variables using the cell-centered primitive variables
-  Real const lambda_m = cell_i.velocity.x - eigenvectors.sound_speed;
-  Real const lambda_0 = cell_i.velocity.x;
-  Real const lambda_p = cell_i.velocity.x + eigenvectors.sound_speed;
-
-  // Integrate linear interpolation function over domain of dependence
-  // defined by max(min) eigenvalue
-  Real qx                    = -0.5 * fmin(lambda_m, 0.0) * dtodx;
-  interface_R_imh.density    = interface_R_imh.density + qx * del_m.density;
-  interface_R_imh.velocity.x = interface_R_imh.velocity.x + qx * del_m.velocity.x;
-  interface_R_imh.velocity.y = interface_R_imh.velocity.y + qx * del_m.velocity.y;
-  interface_R_imh.velocity.z = interface_R_imh.velocity.z + qx * del_m.velocity.z;
-  interface_R_imh.pressure   = interface_R_imh.pressure + qx * del_m.pressure;
-
-  qx                         = 0.5 * fmax(lambda_p, 0.0) * dtodx;
-  interface_L_iph.density    = interface_L_iph.density - qx * del_m.density;
-  interface_L_iph.velocity.x = interface_L_iph.velocity.x - qx * del_m.velocity.x;
-  interface_L_iph.velocity.y = interface_L_iph.velocity.y - qx * del_m.velocity.y;
-  interface_L_iph.velocity.z = interface_L_iph.velocity.z - qx * del_m.velocity.z;
-  interface_L_iph.pressure   = interface_L_iph.pressure - qx * del_m.pressure;
-
-  #ifdef DE
-  interface_R_imh.gas_energy_specific = interface_R_imh.gas_energy_specific + qx * del_m.gas_energy_specific;
-  interface_L_iph.gas_energy_specific = interface_L_iph.gas_energy_specific - qx * del_m.gas_energy_specific;
-  #endif  // DE
-
-  #ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    interface_R_imh.scalar[i] = interface_R_imh.scalar[i] + qx * del_m.scalar[i];
-    interface_L_iph.scalar[i] = interface_L_iph.scalar[i] - qx * del_m.scalar[i];
-  }
-  #endif  // SCALAR
-
-  // Perform the characteristic tracing
-  // Stone Eqns 42 & 43
-
-  // left-hand interface value, i+1/2
-  Real sum_0 = 0.0, sum_1 = 0.0, sum_2 = 0.0, sum_3 = 0.0, sum_4 = 0.0;
-  #ifdef DE
-  Real sum_ge = 0;
-  #endif  // DE
-  #ifdef SCALAR
-  Real sum_scalar[NSCALARS];
-  for (int i = 0; i < NSCALARS; i++) {
-    sum_scalar[i] = 0.0;
-  }
-  #endif  // SCALAR
-  if (lambda_m >= 0) {
-    Real lamdiff = lambda_p - lambda_m;
-
-    sum_0 += lamdiff * (-cell_i.density * del_m.velocity.x / (2 * eigenvectors.sound_speed) +
-                        del_m.pressure / (2 * eigenvectors.sound_speed * eigenvectors.sound_speed));
-    sum_1 += lamdiff * (del_m.velocity.x / 2.0 - del_m.pressure / (2 * eigenvectors.sound_speed * cell_i.density));
-    sum_4 += lamdiff * (-cell_i.density * del_m.velocity.x * eigenvectors.sound_speed / 2.0 + del_m.pressure / 2.0);
-  }
-  if (lambda_0 >= 0) {
-    Real lamdiff = lambda_p - lambda_0;
-
-    sum_0 += lamdiff * (del_m.density - del_m.pressure / (eigenvectors.sound_speed * eigenvectors.sound_speed));
-    sum_2 += lamdiff * del_m.velocity.y;
-    sum_3 += lamdiff * del_m.velocity.z;
-  #ifdef DE
-    sum_ge += lamdiff * del_m.gas_energy_specific;
-  #endif  // DE
-  #ifdef SCALAR
-    for (int i = 0; i < NSCALARS; i++) {
-      sum_scalar[i] += lamdiff * del_m.scalar[i];
-    }
-  #endif  // SCALAR
-  }
-  if (lambda_p >= 0) {
-    Real lamdiff = lambda_p - lambda_p;
-
-    sum_0 += lamdiff * (cell_i.density * del_m.velocity.x / (2 * eigenvectors.sound_speed) +
-                        del_m.pressure / (2 * eigenvectors.sound_speed * eigenvectors.sound_speed));
-    sum_1 += lamdiff * (del_m.velocity.x / 2.0 + del_m.pressure / (2 * eigenvectors.sound_speed * cell_i.density));
-    sum_4 += lamdiff * (cell_i.density * del_m.velocity.x * eigenvectors.sound_speed / 2.0 + del_m.pressure / 2.0);
-  }
-
-  // add the corrections to the initial guesses for the interface values
-  interface_L_iph.density += 0.5 * dtodx * sum_0;
-  interface_L_iph.velocity.x += 0.5 * dtodx * sum_1;
-  interface_L_iph.velocity.y += 0.5 * dtodx * sum_2;
-  interface_L_iph.velocity.z += 0.5 * dtodx * sum_3;
-  interface_L_iph.pressure += 0.5 * dtodx * sum_4;
-  #ifdef DE
-  interface_L_iph.gas_energy_specific += 0.5 * dtodx * sum_ge;
-  #endif  // DE
-  #ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    interface_L_iph.scalar[i] += 0.5 * dtodx * sum_scalar[i];
-  }
-  #endif  // SCALAR
-
-  // right-hand interface value, i-1/2
-  sum_0 = sum_1 = sum_2 = sum_3 = sum_4 = 0;
-  #ifdef DE
-  sum_ge = 0;
-  #endif  // DE
-  #ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    sum_scalar[i] = 0;
-  }
-  #endif  // SCALAR
-  if (lambda_m <= 0) {
-    Real lamdiff = lambda_m - lambda_m;
-
-    sum_0 += lamdiff * (-cell_i.density * del_m.velocity.x / (2 * eigenvectors.sound_speed) +
-                        del_m.pressure / (2 * eigenvectors.sound_speed * eigenvectors.sound_speed));
-    sum_1 += lamdiff * (del_m.velocity.x / 2.0 - del_m.pressure / (2 * eigenvectors.sound_speed * cell_i.density));
-    sum_4 += lamdiff * (-cell_i.density * del_m.velocity.x * eigenvectors.sound_speed / 2.0 + del_m.pressure / 2.0);
-  }
-  if (lambda_0 <= 0) {
-    Real lamdiff = lambda_m - lambda_0;
-
-    sum_0 += lamdiff * (del_m.density - del_m.pressure / (eigenvectors.sound_speed * eigenvectors.sound_speed));
-    sum_2 += lamdiff * del_m.velocity.y;
-    sum_3 += lamdiff * del_m.velocity.z;
-  #ifdef DE
-    sum_ge += lamdiff * del_m.gas_energy_specific;
-  #endif  // DE
-  #ifdef SCALAR
-    for (int i = 0; i < NSCALARS; i++) {
-      sum_scalar[i] += lamdiff * del_m.scalar[i];
-    }
-  #endif  // SCALAR
-  }
-  if (lambda_p <= 0) {
-    Real lamdiff = lambda_m - lambda_p;
-
-    sum_0 += lamdiff * (cell_i.density * del_m.velocity.x / (2 * eigenvectors.sound_speed) +
-                        del_m.pressure / (2 * eigenvectors.sound_speed * eigenvectors.sound_speed));
-    sum_1 += lamdiff * (del_m.velocity.x / 2.0 + del_m.pressure / (2 * eigenvectors.sound_speed * cell_i.density));
-    sum_4 += lamdiff * (cell_i.density * del_m.velocity.x * eigenvectors.sound_speed / 2.0 + del_m.pressure / 2.0);
-  }
-
-  // add the corrections
-  interface_R_imh.density += 0.5 * dtodx * sum_0;
-  interface_R_imh.velocity.x += 0.5 * dtodx * sum_1;
-  interface_R_imh.velocity.y += 0.5 * dtodx * sum_2;
-  interface_R_imh.velocity.z += 0.5 * dtodx * sum_3;
-  interface_R_imh.pressure += 0.5 * dtodx * sum_4;
-  #ifdef DE
-  interface_R_imh.gas_energy_specific += 0.5 * dtodx * sum_ge;
-  #endif  // DE
-  #ifdef SCALAR
-  for (int i = 0; i < NSCALARS; i++) {
-    interface_R_imh.scalar[i] += 0.5 * dtodx * sum_scalar[i];
-  }
-  #endif  // SCALAR
-#endif    // CTU
 
   struct LocalReturnStruct {
     hydro_utilities::Primitive left, right;
