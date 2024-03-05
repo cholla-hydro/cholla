@@ -22,7 +22,7 @@ __global__ __launch_bounds__(TPB) void PLMC_cuda(Real *dev_conserved, Real *dev_
 
 namespace reconstruction
 {
-template <size_t direction>
+template <uint direction>
 auto __device__ __inline__ PLMC_Reconstruction(Real *dev_conserved, int const xid, int const yid, int const zid,
                                                int const nx, int const ny, int const nz, Real const dx, Real const dt,
                                                Real const gamma)

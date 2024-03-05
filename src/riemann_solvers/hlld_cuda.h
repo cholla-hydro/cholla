@@ -29,17 +29,18 @@ namespace mhd
  * \tparam reconstruction What kind of reconstruction to use, PCM, PLMC, etc. This argument should always be a
  * member of the reconstruction::Kind enum, behaviour is undefined otherwise.
  * \tparam direction The direction that the solve is taking place in. 0=X, 1=Y, 2=Z
- * \param[in]  dev_bounds_L The interface states on the left side of the
- * interface
- * \param[in]  dev_bounds_R The interface states on the right side of
- * the interface
- * \param[in]  dev_magnetic_face A pointer to the begining of the
- * conserved magnetic field array that is stored at the interface. I.e. for the
- * X-direction solve this would be the begining of the X-direction fields
- * \param[out] dev_flux The output flux
- * \param[in]  n_cells Total number of cells
- * \param[in]  n_ghost Number of ghost cells on each side
- * \param[in]  n_fields The total number of fields
+ * \param[in] dev_conserved The conserved variables array
+ * \param[in] dev_bounds_L The interface states on the left side of the interface
+ * \param[in] dev_bounds_R The interface states on the right side of the interface
+ * \param[in] dev_magnetic_face A pointer to the begining of the conserved magnetic field array that is stored at the
+ * interface. I.e. for the X-direction solve this would be the begining of the X-direction fields
+ * \param[in] dev_flux The output flux
+ * \param[in] nx The number of cells in the x-direction
+ * \param[in] ny The number of cells in the y-direction
+ * \param[in] nz The number of cells in the z-direction
+ * \param[in] n_cells The total number of cells
+ * \param[in] gamma The adiabatic index
+ * \param[in] n_fields The number of fields
  */
 template <int reconstruction, uint direction>
 __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_conserved, Real const *dev_bounds_L,

@@ -229,7 +229,7 @@ inline __host__ __device__ Real Calc_Sound_Speed(Real const &P, Real const &d, R
  * \param[in] n_cells The total number of cells
  * \return Conserved The cell centered conserved variables in the cell at location xid, yid, zid.
  */
-template <size_t dir = 0>
+template <uint dir = 0>
 inline __host__ __device__ Conserved Load_Cell_Conserved(Real const *dev_conserved, size_t const xid, size_t const yid,
                                                          size_t const zid, size_t const nx, size_t const ny,
                                                          size_t const n_cells)
@@ -411,7 +411,7 @@ __inline__ __host__ __device__ Conserved Primitive_2_Conserved(Primitive const &
  * \param[in] gamma The adiabatic index
  * \return Primitive The cell centered conserved variables in the cell at location xid, yid, zid.
  */
-template <size_t dir = 0>
+template <uint dir = 0>
 inline __host__ __device__ Primitive Load_Cell_Primitive(Real const *dev_conserved, size_t const xid, size_t const yid,
                                                          size_t const zid, size_t const nx, size_t const ny,
                                                          size_t const n_cells, Real const gamma)
