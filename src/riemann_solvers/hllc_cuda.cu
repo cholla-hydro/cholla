@@ -65,7 +65,9 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real const *dev_conserved, Real const
     // =========================
 
     // Check if the reconstruction chosen is implemented as a device function yet
-    if constexpr (reconstruction == reconstruction::Kind::pcm) {
+    if constexpr (reconstruction == reconstruction::Kind::pcm or reconstruction == reconstruction::Kind::plmc
+
+    ) {
       reconstruction::Reconstruct_Interface_States<reconstruction, direction>(dev_conserved, xid, yid, zid, nx, ny,
                                                                               n_cells, gamma, left_state, right_state);
     } else {

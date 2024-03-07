@@ -184,13 +184,10 @@ void __device__ __host__ __inline__ PLMC_Characteristic_Evolution(hydro_utilitie
 }
 
 template <uint direction>
-auto __device__ __inline__ PLMC_Reconstruction(Real *dev_conserved, int const xid, int const yid, int const zid,
-                                               int const nx, int const ny, int const nz, Real const dx, Real const dt,
-                                               Real const gamma)
+auto __device__ __inline__ PLMC_Reconstruction(Real const *dev_conserved, size_t const xid, size_t const yid,
+                                               size_t const zid, size_t const nx, size_t const ny, size_t const n_cells,
+                                               Real const dx, Real const dt, Real const gamma)
 {
-  // Compute the total number of cells
-  int const n_cells = nx * ny * nz;
-
   // load the 3-cell stencil into registers
   // cell i
   hydro_utilities::Primitive const cell_i =
@@ -270,6 +267,12 @@ auto __device__ __inline__ PLMC_Reconstruction(Real *dev_conserved, int const xi
 
   // Limit the interfaces
   reconstruction::Plm_Limit_Interfaces(interface_L_iph, interface_R_imh, cell_imo, cell_i, cell_ipo);
+
+  // apply minimum constraints
+  interface_R_imh.density  = fmax(interface_R_imh.density, (Real)TINY_NUMBER);
+  interface_L_iph.density  = fmax(interface_L_iph.density, (Real)TINY_NUMBER);
+  interface_R_imh.pressure = fmax(interface_R_imh.pressure, (Real)TINY_NUMBER);
+  interface_L_iph.pressure = fmax(interface_L_iph.pressure, (Real)TINY_NUMBER);
 
   struct LocalReturnStruct {
     hydro_utilities::Primitive left, right;

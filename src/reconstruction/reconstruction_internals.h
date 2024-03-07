@@ -876,4 +876,43 @@ void __device__ __host__ __inline__ Write_Data(hydro_utilities::Primitive const 
 #endif  // SCALAR
 }
 // =====================================================================================================================
+
+// =====================================================================================================================
+
+reconstruction::InterfaceState __device__
+    __host__ __inline__ Primitive_2_InterfaceState(hydro_utilities::Primitive const &primitive, Real const gamma)
+{
+  InterfaceState output;
+  output.density    = primitive.density;
+  output.velocity   = primitive.velocity;
+  output.momentum.x = primitive.velocity.x * primitive.density;
+  output.momentum.y = primitive.velocity.y * primitive.density;
+  output.momentum.z = primitive.velocity.z * primitive.density;
+  output.pressure   = primitive.pressure;
+
+#ifdef MHD
+  output.total_pressure = mhd::utils::computeTotalPressure(primitive.pressure, primitive.magnetic);
+  output.magnetic       = primitive.magnetic;
+
+  output.energy = hydro_utilities::Calc_Energy_Primitive(
+      primitive.pressure, primitive.density, primitive.velocity.x, primitive.velocity.y, primitive.velocity.z, gamma,
+      primitive.magnetic.x, primitive.magnetic.y, primitive.magnetic.z);
+#else   // not MHD
+  output.energy = hydro_utilities::Calc_Energy_Primitive(primitive.pressure, primitive.density, primitive.velocity.x,
+                                                         primitive.velocity.y, primitive.velocity.z, gamma);
+#endif  // MHD
+
+#ifdef DE
+  output.gas_energy_specific = primitive.gas_energy_specific;
+#endif  // DE
+
+#ifdef SCALAR
+  for (size_t i = 0; i < grid_enum::nscalars; i++) {
+    output.scalar_specific[i] = primitive.scalar_specific[i];
+  }
+#endif  // SCALAR
+
+  return output;
+}
+// =====================================================================================================================
 }  // namespace reconstruction

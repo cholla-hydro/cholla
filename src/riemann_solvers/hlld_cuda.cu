@@ -68,9 +68,9 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_conserved, Real const
 
   reconstruction::InterfaceState stateL, stateR;
   // Check if the reconstruction chosen is implemented as a device function yet
-  if constexpr (reconstruction == reconstruction::Kind::pcm) {
+  if constexpr (reconstruction == reconstruction::Kind::pcm or reconstruction == reconstruction::Kind::plmc) {
     reconstruction::Reconstruct_Interface_States<reconstruction, direction>(dev_conserved, xid, yid, zid, nx, ny,
-                                                                            n_cells, gamma, stateL, stateR);
+                                                                            n_cells, gamma, stateL, stateR, magneticX);
   } else {
     stateL = mhd::internal::loadState(dev_bounds_L, magneticX, gamma, threadId, n_cells, o1, o2, o3);
     stateR = mhd::internal::loadState(dev_bounds_R, magneticX, gamma, threadId, n_cells, o1, o2, o3);

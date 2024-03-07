@@ -35,13 +35,7 @@ __global__ __launch_bounds__(TPB) void PLMC_cuda(Real *dev_conserved, Real *dev_
   }
 
   auto [interface_L_iph, interface_R_imh] =
-      reconstruction::PLMC_Reconstruction<dir>(dev_conserved, xid, yid, zid, nx, ny, nz, dx, dt, gamma);
-
-  // apply minimum constraints
-  interface_R_imh.density  = fmax(interface_R_imh.density, (Real)TINY_NUMBER);
-  interface_L_iph.density  = fmax(interface_L_iph.density, (Real)TINY_NUMBER);
-  interface_R_imh.pressure = fmax(interface_R_imh.pressure, (Real)TINY_NUMBER);
-  interface_L_iph.pressure = fmax(interface_L_iph.pressure, (Real)TINY_NUMBER);
+      reconstruction::PLMC_Reconstruction<dir>(dev_conserved, xid, yid, zid, nx, ny, nx * ny * nz, dx, dt, gamma);
 
   // Set the field indices for the various directions
   int o1, o2, o3;
