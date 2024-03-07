@@ -91,24 +91,33 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   #else   // not MHD
     size_t const arraySize = n_fields * n_cells * sizeof(Real);
   #endif  // MHD
+
+  #if defined(PCM) or defined(PLCM)
+    // These reconstructors don't need interface state arrays since they're fused into the Riemann solvers so we're
+    // setting those array sizes to be a single double
+    size_t const interface_arr_size = sizeof(Real);
+  #else
+    size_t const interface_arr_size = arraySize;
+  #endif  // Fused reconstructors
+
     GPU_Error_Check(cudaMalloc((void **)&dev_conserved_half, n_fields * n_cells * sizeof(Real)));
-    GPU_Error_Check(cudaMalloc((void **)&Q_Lx, arraySize));
-    GPU_Error_Check(cudaMalloc((void **)&Q_Rx, arraySize));
-    GPU_Error_Check(cudaMalloc((void **)&Q_Ly, arraySize));
-    GPU_Error_Check(cudaMalloc((void **)&Q_Ry, arraySize));
-    GPU_Error_Check(cudaMalloc((void **)&Q_Lz, arraySize));
-    GPU_Error_Check(cudaMalloc((void **)&Q_Rz, arraySize));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Lx, interface_arr_size));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Rx, interface_arr_size));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Ly, interface_arr_size));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Ry, interface_arr_size));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Lz, interface_arr_size));
+    GPU_Error_Check(cudaMalloc((void **)&Q_Rz, interface_arr_size));
     GPU_Error_Check(cudaMalloc((void **)&F_x, arraySize));
     GPU_Error_Check(cudaMalloc((void **)&F_y, arraySize));
     GPU_Error_Check(cudaMalloc((void **)&F_z, arraySize));
 
     cuda_utilities::initGpuMemory(dev_conserved_half, n_fields * n_cells * sizeof(Real));
-    cuda_utilities::initGpuMemory(Q_Lx, arraySize);
-    cuda_utilities::initGpuMemory(Q_Rx, arraySize);
-    cuda_utilities::initGpuMemory(Q_Ly, arraySize);
-    cuda_utilities::initGpuMemory(Q_Ry, arraySize);
-    cuda_utilities::initGpuMemory(Q_Lz, arraySize);
-    cuda_utilities::initGpuMemory(Q_Rz, arraySize);
+    cuda_utilities::initGpuMemory(Q_Lx, interface_arr_size);
+    cuda_utilities::initGpuMemory(Q_Rx, interface_arr_size);
+    cuda_utilities::initGpuMemory(Q_Ly, interface_arr_size);
+    cuda_utilities::initGpuMemory(Q_Ry, interface_arr_size);
+    cuda_utilities::initGpuMemory(Q_Lz, interface_arr_size);
+    cuda_utilities::initGpuMemory(Q_Rz, interface_arr_size);
     cuda_utilities::initGpuMemory(F_x, arraySize);
     cuda_utilities::initGpuMemory(F_y, arraySize);
     cuda_utilities::initGpuMemory(F_z, arraySize);
