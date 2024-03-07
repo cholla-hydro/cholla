@@ -25,7 +25,8 @@
 template <int reconstruction, uint direction>
 __global__ void Calculate_Exact_Fluxes_CUDA(Real const *dev_conserved, Real const *dev_bounds_L,
                                             Real const *dev_bounds_R, Real *dev_flux, int const nx, int const ny,
-                                            int const nz, int const n_cells, Real const gamma, int const n_fields);
+                                            int const nz, int const n_cells, Real const gamma, Real const dx,
+                                            Real const dt, int const n_fields);
 
 __device__ Real guessp_CUDA(Real dl, Real vxl, Real pl, Real cl, Real dr, Real vxr, Real pr, Real cr, Real gamma);
 

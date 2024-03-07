@@ -24,8 +24,8 @@ __global__ void Reconstruction_Runner(Real const *dev_grid, size_t const xid, si
                                       reconstruction::InterfaceState *left_interface,
                                       reconstruction::InterfaceState *right_interface)
 {
-  reconstruction::Reconstruct_Interface_States<reconstruction, direction>(dev_grid, xid, yid, zid, nx, ny, n_cells,
-                                                                          gamma, *left_interface, *right_interface);
+  reconstruction::Reconstruct_Interface_States<reconstruction, direction>(
+      dev_grid, xid, yid, zid, nx, ny, n_cells, gamma, 0.0, 0.0, *left_interface, *right_interface);
 }
 
 TEST(tAllReconstructInterfaceStates, PcmCorrectInputExpectCorrectOutput)

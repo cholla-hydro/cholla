@@ -24,6 +24,7 @@
 template <int reconstruction, uint direction>
 __global__ void Calculate_HLLC_Fluxes_CUDA(Real const *dev_conserved, Real const *dev_bounds_L,
                                            Real const *dev_bounds_R, Real *dev_flux, int const nx, int const ny,
-                                           int const nz, int const n_cells, Real const gamma, int const n_fields);
+                                           int const nz, int const n_cells, Real const gamma, Real const dx,
+                                           Real const dt, int const n_fields);
 
 #endif  // HLLC_CUDA_H

@@ -80,6 +80,8 @@ class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
     int nz            = 1;                 // Number of cells in the z-direction
     int const n_cells = nx * ny * nz * 2;  // The extra *2 is for the incrementing that happens in the switch statement
     int nFields       = 8;                 // Total number of conserved fields
+    double const dx   = 0.0;
+    double const dt   = 0.0;
   #ifdef SCALAR
     nFields += NSCALARS;
   #endif  // SCALAR
@@ -117,21 +119,21 @@ class tMHDCalculateHLLDFluxesCUDA : public ::testing::Test
         hipLaunchKernelGGL(HIP_KERNEL_NAME(mhd::Calculate_HLLD_Fluxes_CUDA<reconstruction::Kind::pcm, 0>), dimGrid,
                            dimBlock, 0, 0, dev_conserved.data(), nullptr, nullptr,
                            dev_conserved.data() + (grid_enum::magnetic_x * n_cells), dev_test_flux.data(), nx, ny, nz,
-                           n_cells, gamma, nFields);
+                           n_cells, gamma, dx, dt, nFields);
         break;
       case 1:
         ny++;
         hipLaunchKernelGGL(HIP_KERNEL_NAME(mhd::Calculate_HLLD_Fluxes_CUDA<reconstruction::Kind::pcm, 1>), dimGrid,
                            dimBlock, 0, 0, dev_conserved.data(), nullptr, nullptr,
                            dev_conserved.data() + (grid_enum::magnetic_y * n_cells), dev_test_flux.data(), nx, ny, nz,
-                           n_cells, gamma, nFields);
+                           n_cells, gamma, dx, dt, nFields);
         break;
       case 2:
         nz++;
         hipLaunchKernelGGL(HIP_KERNEL_NAME(mhd::Calculate_HLLD_Fluxes_CUDA<reconstruction::Kind::pcm, 2>), dimGrid,
                            dimBlock, 0, 0, dev_conserved.data(), nullptr, nullptr,
                            dev_conserved.data() + (grid_enum::magnetic_z * n_cells), dev_test_flux.data(), nx, ny, nz,
-                           n_cells, gamma, nFields);
+                           n_cells, gamma, dx, dt, nFields);
         break;
     }
     // Make sure to sync with the device so we have the results

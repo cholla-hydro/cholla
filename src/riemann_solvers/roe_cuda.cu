@@ -13,7 +13,7 @@
 template <int reconstruction, uint direction>
 __global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R,
                                           Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells,
-                                          Real const gamma, int const n_fields)
+                                          Real const gamma, Real const dx, Real const dt, int const n_fields)
 {
   // get a thread index
   int blockId = blockIdx.x + blockIdx.y * gridDim.x;
@@ -68,8 +68,8 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const 
 
     // Check if the reconstruction chosen is implemented as a device function yet
     if constexpr (reconstruction == reconstruction::Kind::pcm) {
-      reconstruction::Reconstruct_Interface_States<reconstruction, direction>(dev_conserved, xid, yid, zid, nx, ny,
-                                                                              n_cells, gamma, left_state, right_state);
+      reconstruction::Reconstruct_Interface_States<reconstruction, direction>(
+          dev_conserved, xid, yid, zid, nx, ny, n_cells, gamma, dx, dt, left_state, right_state);
     } else {
       // retrieve conserved variables
       left_state.density    = dev_bounds_L[tid];
@@ -414,22 +414,22 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const 
 // Instantiate the templates we need
 template __global__ void Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::pcm, 0>(
     Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
-    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+    int const ny, int const nz, int const n_cells, Real const gamma, Real const dx, Real const dt, int const n_fields);
 template __global__ void Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::pcm, 1>(
     Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
-    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+    int const ny, int const nz, int const n_cells, Real const gamma, Real const dx, Real const dt, int const n_fields);
 template __global__ void Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::pcm, 2>(
     Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
-    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+    int const ny, int const nz, int const n_cells, Real const gamma, Real const dx, Real const dt, int const n_fields);
 
 #ifndef PCM
 template __global__ void Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::chosen, 0>(
     Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
-    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+    int const ny, int const nz, int const n_cells, Real const gamma, Real const dx, Real const dt, int const n_fields);
 template __global__ void Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::chosen, 1>(
     Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
-    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+    int const ny, int const nz, int const n_cells, Real const gamma, Real const dx, Real const dt, int const n_fields);
 template __global__ void Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::chosen, 2>(
     Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
-    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+    int const ny, int const nz, int const n_cells, Real const gamma, Real const dx, Real const dt, int const n_fields);
 #endif  // PCM

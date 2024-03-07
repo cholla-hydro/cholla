@@ -65,15 +65,15 @@ void VL_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Rea
   // Step 2: Calculate first-order upwind fluxes
   #ifdef EXACT
   hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Exact_Fluxes_CUDA<reconstruction::Kind::pcm, 0>), dimGrid, dimBlock, 0,
-                     0, dev_conserved, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, n_fields);
+                     0, dev_conserved, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, dx, dt, n_fields);
   #endif
   #ifdef ROE
   hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::pcm, 0>), dimGrid, dimBlock, 0, 0,
-                     dev_conserved, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, n_fields);
+                     dev_conserved, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, dx, dt, n_fields);
   #endif
   #ifdef HLLC
   hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLLC_Fluxes_CUDA<reconstruction::Kind::pcm, 0>), dimGrid, dimBlock, 0, 0,
-                     dev_conserved, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, n_fields);
+                     dev_conserved, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, dx, dt, n_fields);
   #endif
   GPU_Error_Check();
 
@@ -102,15 +102,15 @@ void VL_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Rea
   // Step 5: Calculate the fluxes again
   #ifdef EXACT
   hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Exact_Fluxes_CUDA<reconstruction::Kind::chosen, 0>), dimGrid, dimBlock,
-                     0, 0, dev_conserved_half, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, n_fields);
+                     0, 0, dev_conserved_half, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, dx, dt, n_fields);
   #endif
   #ifdef ROE
   hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::chosen, 0>), dimGrid, dimBlock, 0,
-                     0, dev_conserved_half, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, n_fields);
+                     0, dev_conserved_half, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, dx, dt, n_fields);
   #endif
   #ifdef HLLC
   hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLLC_Fluxes_CUDA<reconstruction::Kind::chosen, 0>), dimGrid, dimBlock, 0,
-                     0, dev_conserved_half, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, n_fields);
+                     0, dev_conserved_half, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, dx, dt, n_fields);
   #endif
   GPU_Error_Check();
 

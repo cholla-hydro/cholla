@@ -32,7 +32,7 @@ template <int reconstruction, uint direction>
 __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_conserved, Real const *dev_bounds_L,
                                            Real const *dev_bounds_R, Real const *dev_magnetic_face, Real *dev_flux,
                                            int const nx, int const ny, int const nz, int const n_cells,
-                                           Real const gamma, int const n_fields)
+                                           Real const gamma, Real const dx, Real const dt, int const n_fields)
 {
   // get a thread index
   int const threadId = threadIdx.x + blockIdx.x * blockDim.x;
@@ -69,8 +69,8 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_conserved, Real const
   reconstruction::InterfaceState stateL, stateR;
   // Check if the reconstruction chosen is implemented as a device function yet
   if constexpr (reconstruction == reconstruction::Kind::pcm or reconstruction == reconstruction::Kind::plmc) {
-    reconstruction::Reconstruct_Interface_States<reconstruction, direction>(dev_conserved, xid, yid, zid, nx, ny,
-                                                                            n_cells, gamma, stateL, stateR, magneticX);
+    reconstruction::Reconstruct_Interface_States<reconstruction, direction>(
+        dev_conserved, xid, yid, zid, nx, ny, n_cells, gamma, dx, dt, stateL, stateR, magneticX);
   } else {
     stateL = mhd::internal::loadState(dev_bounds_L, magneticX, gamma, threadId, n_cells, o1, o2, o3);
     stateR = mhd::internal::loadState(dev_bounds_R, magneticX, gamma, threadId, n_cells, o1, o2, o3);
@@ -525,23 +525,29 @@ __device__ __host__ mhd::internal::Flux computeDoubleStarFluxes(mhd::internal::D
 // Instantiate the templates we need
 template __global__ void mhd::Calculate_HLLD_Fluxes_CUDA<reconstruction::Kind::pcm, 0>(
     Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real const *dev_magnetic_face,
-    Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+    Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells, Real const gamma, Real const dx,
+    Real const dt, int const n_fields);
 template __global__ void mhd::Calculate_HLLD_Fluxes_CUDA<reconstruction::Kind::pcm, 1>(
     Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real const *dev_magnetic_face,
-    Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+    Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells, Real const gamma, Real const dx,
+    Real const dt, int const n_fields);
 template __global__ void mhd::Calculate_HLLD_Fluxes_CUDA<reconstruction::Kind::pcm, 2>(
     Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real const *dev_magnetic_face,
-    Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+    Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells, Real const gamma, Real const dx,
+    Real const dt, int const n_fields);
 
   #ifndef PCM
 template __global__ void mhd::Calculate_HLLD_Fluxes_CUDA<reconstruction::Kind::chosen, 0>(
     Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real const *dev_magnetic_face,
-    Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+    Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells, Real const gamma, Real const dx,
+    Real const dt, int const n_fields);
 template __global__ void mhd::Calculate_HLLD_Fluxes_CUDA<reconstruction::Kind::chosen, 1>(
     Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real const *dev_magnetic_face,
-    Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+    Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells, Real const gamma, Real const dx,
+    Real const dt, int const n_fields);
 template __global__ void mhd::Calculate_HLLD_Fluxes_CUDA<reconstruction::Kind::chosen, 2>(
     Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real const *dev_magnetic_face,
-    Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+    Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells, Real const gamma, Real const dx,
+    Real const dt, int const n_fields);
   #endif  // PCM
 #endif    // MHD

@@ -34,11 +34,10 @@ namespace reconstruction
 template <int reconstruction_order, uint direction>
 void __device__ inline Reconstruct_Interface_States(Real const *dev_conserved, size_t const xid, size_t const yid,
                                                     size_t const zid, size_t const nx, size_t const ny,
-                                                    size_t const n_cells, Real const gamma,
-                                                    reconstruction::InterfaceState &left_interface,
+                                                    size_t const n_cells, Real const gamma, Real const dx,
+                                                    Real const dt, reconstruction::InterfaceState &left_interface,
                                                     reconstruction::InterfaceState &right_interface,
-                                                    Real const magnetic_x = 0.0, Real const dx = 0.0,
-                                                    Real const dt = 0.0)
+                                                    Real const magnetic_x = 0.0)
 {
   // First, check that our reconstruction order is correct
   static_assert(

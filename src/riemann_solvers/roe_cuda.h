@@ -24,6 +24,6 @@
 template <int reconstruction, uint direction>
 __global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R,
                                           Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells,
-                                          Real const gamma, int const n_fields);
+                                          Real const gamma, Real const dx, Real const dt, int const n_fields);
 
 #endif  // ROE_CUDA_H
