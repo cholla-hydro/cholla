@@ -88,8 +88,9 @@ Real checkMagneticDivergence(Grid3D const &G)
   dev_maxDivergence.assign(std::numeric_limits<Real>::lowest());
 
   // Now lets get the local maximum divergence
-  hipLaunchKernelGGL(mhd::calculateMagneticDivergence, launchParams.numBlocks, launchParams.threadsPerBlock, 0, 0,
-                     G.C.device, dev_maxDivergence.data(), G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny, G.H.nz, G.H.n_cells);
+  hipLaunchKernelGGL(mhd::calculateMagneticDivergence, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(),
+                     0, 0, G.C.device, dev_maxDivergence.data(), G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny, G.H.nz,
+                     G.H.n_cells);
   GPU_Error_Check();
   Real max_magnetic_divergence = dev_maxDivergence[0];
 
