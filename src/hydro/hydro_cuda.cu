@@ -574,20 +574,20 @@ Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
   {
     // set launch parameters for GPU kernels.
     cuda_utilities::AutomaticLaunchParams static const launchParams(Calc_dt_1D);
-    hipLaunchKernelGGL(Calc_dt_1D, launchParams.numBlocks, launchParams.threadsPerBlock, 0, 0, dev_conserved,
-                       dev_dti.data(), gamma, n_ghost, nx, dx);
+    hipLaunchKernelGGL(Calc_dt_1D, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
+                       dev_conserved, dev_dti.data(), gamma, n_ghost, nx, dx);
   } else if (nx > 1 && ny > 1 && nz == 1)  // 2D
   {
     // set launch parameters for GPU kernels.
     cuda_utilities::AutomaticLaunchParams static const launchParams(Calc_dt_2D);
-    hipLaunchKernelGGL(Calc_dt_2D, launchParams.numBlocks, launchParams.threadsPerBlock, 0, 0, dev_conserved,
-                       dev_dti.data(), gamma, n_ghost, nx, ny, dx, dy);
+    hipLaunchKernelGGL(Calc_dt_2D, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
+                       dev_conserved, dev_dti.data(), gamma, n_ghost, nx, ny, dx, dy);
   } else if (nx > 1 && ny > 1 && nz > 1)  // 3D
   {
     // set launch parameters for GPU kernels.
     cuda_utilities::AutomaticLaunchParams static const launchParams(Calc_dt_3D);
-    hipLaunchKernelGGL(Calc_dt_3D, launchParams.numBlocks, launchParams.threadsPerBlock, 0, 0, dev_conserved,
-                       dev_dti.data(), gamma, n_ghost, n_fields, nx, ny, nz, dx, dy, dz);
+    hipLaunchKernelGGL(Calc_dt_3D, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
+                       dev_conserved, dev_dti.data(), gamma, n_ghost, n_fields, nx, ny, nz, dx, dy, dz);
   }
   GPU_Error_Check();
 

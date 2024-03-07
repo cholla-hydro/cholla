@@ -58,8 +58,8 @@ TEST(tALLKernelReduceMax, CorrectInputExpectCorrectOutput)
 
   // Do the reduction
   // ================
-  hipLaunchKernelGGL(reduction_utilities::kernelReduceMax, launchParams.numBlocks, launchParams.threadsPerBlock, 0, 0,
-                     dev_grid.data(), dev_max.data(), host_grid.size());
+  hipLaunchKernelGGL(reduction_utilities::kernelReduceMax, launchParams.get_numBlocks(),
+                     launchParams.get_threadsPerBlock(), 0, 0, dev_grid.data(), dev_max.data(), host_grid.size());
   GPU_Error_Check();
 
   // Perform comparison
