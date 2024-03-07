@@ -577,7 +577,7 @@ Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D&)>& feedback_callback)
 #ifdef TEMPERATURE_CEILING
   // 1e51 ergs / (m_p * (pc/cm)^3) = 45000 km/s
   // sqrt(1e10 K * kB/ m_mp) = 9000 km/s
-  const Real T_ceiling_kelvin = 5e9;  // 1e10;
+  const Real T_ceiling_kelvin = 1e9;  // match CGOLS (roughly where cooling function cuts off);
   Temperature_Ceiling(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, gama, T_ceiling_kelvin);
 #endif  // TEMPERATURE_CEILING
 
