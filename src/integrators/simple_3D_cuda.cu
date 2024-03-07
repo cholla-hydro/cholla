@@ -12,7 +12,6 @@
   #include "../hydro/hydro_cuda.h"
   #include "../integrators/simple_3D_cuda.h"
   #include "../io/io.h"
-  #include "../reconstruction/plmc_cuda.h"
   #include "../reconstruction/plmp_cuda.h"
   #include "../reconstruction/ppmc_cuda.h"
   #include "../reconstruction/ppmp_cuda.h"
@@ -85,6 +84,7 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx,
   #endif
 
   // Step 1: Construct left and right interface values using updated conserved variables
+  //         note that some of the reconstructors have been fused with the Riemann solvers, this is a work in progress
   #ifdef PLMP
   hipLaunchKernelGGL(PLMP_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt,
                      gama, 0, n_fields);
@@ -93,11 +93,6 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx,
   hipLaunchKernelGGL(PLMP_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, dz, dt,
                      gama, 2, n_fields);
   #endif  // PLMP
-  #ifdef PLMC
-  hipLaunchKernelGGL(PLMC_cuda<0>, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, ny, nz, dx, dt, gama);
-  hipLaunchKernelGGL(PLMC_cuda<1>, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Ly, Q_Ry, nx, ny, nz, dy, dt, gama);
-  hipLaunchKernelGGL(PLMC_cuda<2>, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lz, Q_Rz, nx, ny, nz, dz, dt, gama);
-  #endif
   #ifdef PPMP
   hipLaunchKernelGGL(PPMP_cuda, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt,
                      gama, 0, n_fields);

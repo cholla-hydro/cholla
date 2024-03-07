@@ -17,7 +17,6 @@
   #include "../io/io.h"
   #include "../mhd/ct_electric_fields.h"
   #include "../mhd/magnetic_update.h"
-  #include "../reconstruction/plmc_cuda.h"
   #include "../reconstruction/plmp_cuda.h"
   #include "../reconstruction/ppmc_cuda.h"
   #include "../reconstruction/ppmp_cuda.h"
@@ -237,6 +236,7 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   #endif  // MHD
 
   // Step 4: Construct left and right interface values using updated conserved variables
+  //         note that some of the reconstructors have been fused with the Riemann solvers, this is a work in progress
   #ifdef PLMP
   cuda_utilities::AutomaticLaunchParams static const plmp_launch_params(PLMP_cuda, n_cells);
   hipLaunchKernelGGL(PLMP_cuda, plmp_launch_params.get_numBlocks(), plmp_launch_params.get_threadsPerBlock(), 0, 0,
@@ -246,15 +246,6 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   hipLaunchKernelGGL(PLMP_cuda, plmp_launch_params.get_numBlocks(), plmp_launch_params.get_threadsPerBlock(), 0, 0,
                      dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, n_ghost, dz, dt, gama, 2, n_fields);
   #endif  // PLMP
-  #ifdef PLMC
-  cuda_utilities::AutomaticLaunchParams static const plmc_vl_launch_params(PLMC_cuda<0>, n_cells);
-  hipLaunchKernelGGL(PLMC_cuda<0>, plmc_vl_launch_params.get_numBlocks(), plmc_vl_launch_params.get_threadsPerBlock(),
-                     0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, dx, dt, gama, n_fields);
-  hipLaunchKernelGGL(PLMC_cuda<1>, plmc_vl_launch_params.get_numBlocks(), plmc_vl_launch_params.get_threadsPerBlock(),
-                     0, 0, dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, dy, dt, gama, n_fields);
-  hipLaunchKernelGGL(PLMC_cuda<2>, plmc_vl_launch_params.get_numBlocks(), plmc_vl_launch_params.get_threadsPerBlock(),
-                     0, 0, dev_conserved_half, Q_Lz, Q_Rz, nx, ny, nz, dz, dt, gama, n_fields);
-  #endif  // PLMC
   #ifdef PPMP
   cuda_utilities::AutomaticLaunchParams static const ppmp_launch_params(PPMP_cuda, n_cells);
   hipLaunchKernelGGL(PPMP_cuda, ppmp_launch_params.get_numBlocks(), ppmp_launch_params.get_threadsPerBlock(), 0, 0,

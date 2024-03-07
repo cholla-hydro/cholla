@@ -12,7 +12,6 @@
   #include "../hydro/hydro_cuda.h"
   #include "../integrators/VL_1D_cuda.h"
   #include "../io/io.h"
-  #include "../reconstruction/plmc_cuda.h"
   #include "../reconstruction/plmp_cuda.h"
   #include "../reconstruction/ppmc_cuda.h"
   #include "../reconstruction/ppmp_cuda.h"
@@ -83,9 +82,7 @@ void VL_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Rea
   GPU_Error_Check();
 
   // Step 4: Construct left and right interface values using updated conserved variables
-  #ifdef PLMC
-  hipLaunchKernelGGL(PLMC_cuda<0>, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, dx, dt, gama);
-  #endif
+  //         note that some of the reconstructors have been fused with the Riemann solvers, this is a work in progress
   #ifdef PLMP
   hipLaunchKernelGGL(PLMP_cuda, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt,
                      gama, 0, n_fields);

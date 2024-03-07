@@ -11,15 +11,6 @@
 #include "../utils/hydro_utilities.h"
 #include "../utils/mhd_utilities.h"
 
-/*! \fn __global__ void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real
- *dev_bounds_R, int nx, int ny, int nz, int n_ghost, Real dx, Real dt, Real
- gamma, int dir)
- *  \brief When passed a stencil of conserved variables, returns the left and
- right boundary values for the interface calculated using plm. */
-template <int dir>
-__global__ __launch_bounds__(TPB) void PLMC_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bounds_R, int nx,
-                                                 int ny, int nz, Real dx, Real dt, Real gamma);
-
 namespace reconstruction
 {
 void __device__ __host__ __inline__ PLMC_Characteristic_Evolution(hydro_utilities::Primitive const &cell_i,
