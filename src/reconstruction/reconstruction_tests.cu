@@ -98,3 +98,94 @@ TEST(tAllReconstructInterfaceStates, PcmCorrectInputExpectCorrectOutput)
   testing_utilities::Check_Interface(test_interface_pcm_l_2.at(0), fiducial_interface_pcm_l_2, 0);
   testing_utilities::Check_Interface(test_interface_pcm_r_2.at(0), fiducial_interface_pcm_r_2, 0);
 }
+
+TEST(tAllReconstructInterfaceStates, PlmcCorrectInputExpectCorrectOutput)
+{
+  // Set up PRNG to use
+  std::mt19937_64 prng(42);
+  std::uniform_real_distribution<double> doubleRand(0.1, 5);
+
+  // Mock up needed information
+  size_t const nx      = 7;
+  size_t const ny      = 7;
+  size_t const nz      = 7;
+  size_t const xid     = 3;
+  size_t const yid     = 3;
+  size_t const zid     = 3;
+  size_t const n_cells = nx * ny * nz;
+  double const dx      = doubleRand(prng);
+  double const dt      = doubleRand(prng);
+  double const gamma   = 5.0 / 3.0;
+
+  // Setup host grid. Fill host grid with random values and randomly assign values
+  std::vector<double> host_grid(n_cells * grid_enum::num_fields);
+  for (Real &val : host_grid) {
+    val = doubleRand(prng);
+  }
+
+  // Copy data to GPU
+  cuda_utilities::DeviceVector<double> dev_grid(host_grid.size());
+  dev_grid.cpyHostToDevice(host_grid);
+
+  // Test each direction
+  cuda_utilities::DeviceVector<reconstruction::InterfaceState> test_interface_pcm_l_0{1}, test_interface_pcm_r_0{1},
+      test_interface_pcm_l_1{1}, test_interface_pcm_r_1{1}, test_interface_pcm_l_2{1}, test_interface_pcm_r_2{1};
+
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Reconstruction_Runner<reconstruction::Kind::plmc, 0>), 1, 1, 0, 0, dev_grid.data(),
+                     xid, yid, zid, nx, ny, n_cells, gamma, test_interface_pcm_l_0.data(),
+                     test_interface_pcm_r_0.data());
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Reconstruction_Runner<reconstruction::Kind::plmc, 1>), 1, 1, 0, 0, dev_grid.data(),
+                     xid, yid, zid, nx, ny, n_cells, gamma, test_interface_pcm_l_1.data(),
+                     test_interface_pcm_r_1.data());
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Reconstruction_Runner<reconstruction::Kind::plmc, 2>), 1, 1, 0, 0, dev_grid.data(),
+                     xid, yid, zid, nx, ny, n_cells, gamma, test_interface_pcm_l_2.data(),
+                     test_interface_pcm_r_2.data());
+
+  // Fiducial values
+  reconstruction::InterfaceState
+
+      fiducial_interface_pcm_l_0{1.5298689023089278,
+                                 {1.9275471960012214, 2.0380692774425846, 1.9771827902007457},
+                                 16.528284433518245,
+                                 9.9999999999999995e-21,
+                                 {0, 2.1906071705977261, 3.1997462690190144},
+                                 7.5185679809876387},
+      fiducial_interface_pcm_r_0{1.5162490166443841,
+                                 {0.76563553460272882, 1.4295471037207337, 0.64944643555588033},
+                                 8.9024945527419099,
+                                 9.9999999999999995e-21,
+                                 {0, 2.4592281743421247, 2.6702482307282183},
+                                 6.5890144135926398},
+      fiducial_interface_pcm_l_1{1.64438973366853,
+                                 {1.9727493343641314, 1.9771827902007457, 1.9108297140717538},
+                                 23.703295056609775,
+                                 9.9999999999999995e-21,
+                                 {0, 3.5385062482728076, 4.0066921167531317},
+                                 14.287304093758696},
+      fiducial_interface_pcm_r_1{3.5062733063981497,
+                                 {1.2716820435726639, 0.37985902941387084, 0.31356489904284668},
+                                 19.327079853814666,
+                                 9.9999999999999995e-21,
+                                 {0, 4.5077114382460621, 3.43711530062046},
+                                 16.066612000126828},
+      fiducial_interface_pcm_l_2{1.6206985712721595,
+                                 {1.9771827902007457, 1.2463253265840999, 2.2261940114076708},
+                                 19.318566303601784,
+                                 9.9999999999999995e-21,
+                                 {0, 4.1622274705137627, 2.1042141607876181},
+                                 10.875927375379268},
+      fiducial_interface_pcm_r_2{1.0495762526649557,
+                                 {2.7223874400155843, 0.80996750866511347, 2.5883656102600812},
+                                 18.185136420763868,
+                                 9.9999999999999995e-21,
+                                 {0, 4.0550440172866837, 2.1042141607876181},
+                                 10.435549608295833};
+
+  // Check correctness
+  testing_utilities::Check_Interface(test_interface_pcm_l_0.at(0), fiducial_interface_pcm_l_0, 0);
+  testing_utilities::Check_Interface(test_interface_pcm_r_0.at(0), fiducial_interface_pcm_r_0, 0);
+  testing_utilities::Check_Interface(test_interface_pcm_l_1.at(0), fiducial_interface_pcm_l_1, 0);
+  testing_utilities::Check_Interface(test_interface_pcm_r_1.at(0), fiducial_interface_pcm_r_1, 0);
+  testing_utilities::Check_Interface(test_interface_pcm_l_2.at(0), fiducial_interface_pcm_l_2, 0);
+  testing_utilities::Check_Interface(test_interface_pcm_r_2.at(0), fiducial_interface_pcm_r_2, 0);
+}
