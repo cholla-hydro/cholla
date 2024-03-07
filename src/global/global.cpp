@@ -281,6 +281,8 @@ void Parse_Param(char *name, char *value, struct Parameters *parms)
     int tmp = atoi(value);
     CHOLLA_ASSERT((tmp == 0) or (tmp == 1), "legacy_flat_outdir must be 1 or 0.");
     parms->legacy_flat_outdir = tmp;
+  } else if (strcmp(name, "n_steps_limit") == 0) {
+    parms->n_steps_limit = atof(value);
   } else if (strcmp(name, "xmin") == 0) {
     parms->xmin = atof(value);
   } else if (strcmp(name, "ymin") == 0) {

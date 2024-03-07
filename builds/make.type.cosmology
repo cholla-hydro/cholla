@@ -10,7 +10,7 @@ DFLAGS += -DCOSMOLOGY
 
 
 # Solve the Primordial Chemical Network (H+He) on the GPU (Includes Radiative Cooling, Photoheating and Photoionization)
-#DFLAGS += -DCHEMISTRY_GPU -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY 
+#DFLAGS += -DCHEMISTRY_GPU -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY
 
 
 # Perform In-The-Fly analysis of Cosmological Simulations
@@ -27,7 +27,3 @@ DFLAGS += -DPRINT_INITIAL_STATS
 
 # Output all data every N_OUTPUT_COMPLETE snapshots ( These are Restart Files )
 DFLAGS += -DN_OUTPUT_COMPLETE=1
-
-
-# Limit the number of steps to evolve
-#DFLAGS += -DN_STEPS_LIMIT=284

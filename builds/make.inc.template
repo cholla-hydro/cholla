@@ -7,9 +7,6 @@ DFLAGS += -DMPI_CHOLLA
 #Set the MPI Processes grid [nproc_x, nproc_y, nproc_z]
 #DFLAGS += -DSET_MPI_GRID
 
-#Limit the number of steps
-#DFLAGS += -DN_STEPS_LIMIT=26
-
 # Single or double precision
 #DFLAGS += -DPRECISION=1
 DFLAGS += -DPRECISION=2
