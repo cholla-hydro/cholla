@@ -659,9 +659,7 @@ void Velocity_Ceiling(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, 
 
   #endif
 
-  #ifdef TEMPERATURE_CEILING
-
-__global__ void Temperature_Ceiling_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields,
+__global__ void Temperature_Ceiling_Kernel(Real *conserved, int nx, int ny, int nz, int n_ghost, int n_fields,
                                            Real gamma, Real T_ceiling, int *counter)
 {
   const int id      = threadIdx.x + blockIdx.x * blockDim.x;
@@ -672,24 +670,34 @@ __global__ void Temperature_Ceiling_Kernel(Real *dev_conserved, int nx, int ny, 
                           zid > n_ghost - 1 && zid < nz - n_ghost);
   if (!real_cell) return;
 
-  const Real d     = dev_conserved[id];
-  const Real d_inv = 1.0 / d;
-  const Real vx    = dev_conserved[1 * n_cells + id] * d_inv;
-  const Real vy    = dev_conserved[2 * n_cells + id] * d_inv;
-  const Real vz    = dev_conserved[3 * n_cells + id] * d_inv;
-  const Real E     = dev_conserved[4 * n_cells + id];
+  const Real d  = conserved[grid_enum::density * n_cells + id];
+  const Real mx = conserved[grid_enum::momentum_x * n_cells + id];
+  const Real my = conserved[grid_enum::momentum_y * n_cells + id];
+  const Real mz = conserved[grid_enum::momentum_z * n_cells + id];
+  const Real E  = conserved[grid_enum::Energy * n_cells + id];
 
-  const Real temperature_Kelvin =
-      (gamma - 1) * (E - 0.5 * (vx * vx + vy * vy + vz * vz) * d) * ENERGY_UNIT / (d * DENSITY_UNIT / 0.6 / MP) / KB;
+  // compute 1/density (we take some care to avoid a source of NANs)
+  const Real d_inv = 1.0 / (d + TINY_NUMBER * (d == 0.0));
 
-  if (temperature_Kelvin <= T_ceiling) return;
+  // calculate local kinetic energy
+  const Real KE    = 0.5 * d_inv * ((mx*mx) + ((my*my) + (mz*mz)));
 
-  const Real factor = T_ceiling / temperature_Kelvin;
+  // convert T_ceiling to specific_eint_ceiling
+  // -> keep in mind, that specific internal energy has units of velocity^2
+  const Real particle_mass = 0.6 * MP;
+  const Real specific_eint_ceil_CGS = KB * T_ceiling / (particle_mass * (gamma - 1));
+  const Real specific_eint_ceil = specific_eint_ceil_CGS * (VELOCITY_UNIT * VELOCITY_UNIT);
 
-  dev_conserved[4 * n_cells + id] *= factor;
-    #ifdef DE
-  dev_conserved[(n_fields - 1) * n_cells + id] *= factor;
-    #endif  // DE
+  const Real local_eint_ceil = d * specific_eint_ceil;
+  const Real local_etot_ceil = local_eint_ceil + KE;
+
+  if (E > local_etot_ceil)  conserved[grid_enum::Energy * n_cells + id] = local_etot_ceil;
+
+  #ifdef DE
+  if (conserved[grid_enum::GasEnergy * n_cells + id] > local_eint_ceil) {
+    conserved[grid_enum::GasEnergy * n_cells + id] = local_eint_ceil;
+  }
+  #endif  // DE
   atomicAdd(counter, 1);
 }
 
@@ -713,8 +721,6 @@ void Temperature_Ceiling(Real *dev_conserved, int nx, int ny, int nz, int n_ghos
     printf("HYDRO WARNING: Temperature Ceiling applied to num_cells: %d \n", host_counter);
   }
 }
-
-  #endif  // TEMPERATURE_CEILING
 
   #ifdef AVERAGE_SLOW_CELLS
 
