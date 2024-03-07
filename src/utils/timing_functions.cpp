@@ -51,7 +51,6 @@ void OneTime::End(bool const print_high_values)
   if (n_steps > 0) {
     t_all += t_max;
   }
-  n_steps++;
 
   #ifdef MPI_CHOLLA
   // Print out information if the process is unusually slow
@@ -78,6 +77,9 @@ void OneTime::End(bool const print_high_values)
               << "         GPU PCI Bus ID: " << gpu_id << std::endl;
   }
   #endif  // MPI_CHOLLA
+
+  // Increment n_steps
+  n_steps++;
 }
 
 void OneTime::RecordTime(Real time)

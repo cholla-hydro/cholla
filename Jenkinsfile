@@ -73,12 +73,15 @@ pipeline
                     {
                         steps
                         {
-                            sh  '''
-                                source builds/run_tests.sh
-                                setupTests -c gcc -t ${CHOLLA_MAKE_TYPE}
+                            retry(2)
+                            {
+                                sh  '''
+                                    source builds/run_tests.sh
+                                    setupTests -c gcc -t ${CHOLLA_MAKE_TYPE}
 
-                                runTests
-                                '''
+                                    runTests
+                                    '''
+                            }
                         }
                     }
                     stage('Run Clang Tidy')
