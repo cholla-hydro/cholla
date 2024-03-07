@@ -126,13 +126,13 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 
   // Limit the variables that aren't transformed by the characteristic projection
 #ifdef DE
-  del_m_im1.gas_energy_specific = Van_Leer_Limiter(del_L.gas_energy_specific, del_R.gas_energy_specific,
-                                                   del_C.gas_energy_specific, del_G.gas_energy_specific);
+  del_m_im1.gas_energy_specific = reconstruction::Van_Leer_Limiter(
+      del_L.gas_energy_specific, del_R.gas_energy_specific, del_C.gas_energy_specific, del_G.gas_energy_specific);
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    del_m_im1.scalar_specific[i] = Van_Leer_Limiter(del_L.scalar_specific[i], del_R.scalar_specific[i],
-                                                    del_C.scalar_specific[i], del_G.scalar_specific[i]);
+    del_m_im1.scalar_specific[i] = reconstruction::Van_Leer_Limiter(del_L.scalar_specific[i], del_R.scalar_specific[i],
+                                                                    del_C.scalar_specific[i], del_G.scalar_specific[i]);
   }
 #endif  // SCALAR
 
@@ -179,13 +179,13 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 
   // Limit the variables that aren't transformed by the characteristic projection
 #ifdef DE
-  del_m_i.gas_energy_specific = Van_Leer_Limiter(del_L.gas_energy_specific, del_R.gas_energy_specific,
-                                                 del_C.gas_energy_specific, del_G.gas_energy_specific);
+  del_m_i.gas_energy_specific = reconstruction::Van_Leer_Limiter(del_L.gas_energy_specific, del_R.gas_energy_specific,
+                                                                 del_C.gas_energy_specific, del_G.gas_energy_specific);
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    del_m_i.scalar_specific[i] = Van_Leer_Limiter(del_L.scalar_specific[i], del_R.scalar_specific[i],
-                                                  del_C.scalar_specific[i], del_G.scalar_specific[i]);
+    del_m_i.scalar_specific[i] = reconstruction::Van_Leer_Limiter(del_L.scalar_specific[i], del_R.scalar_specific[i],
+                                                                  del_C.scalar_specific[i], del_G.scalar_specific[i]);
   }
 #endif  // SCALAR
 
@@ -233,13 +233,13 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 
   // Limit the variables that aren't transformed by the characteristic projection
 #ifdef DE
-  del_m_ip1.gas_energy_specific = Van_Leer_Limiter(del_L.gas_energy_specific, del_R.gas_energy_specific,
-                                                   del_C.gas_energy_specific, del_G.gas_energy_specific);
+  del_m_ip1.gas_energy_specific = reconstruction::Van_Leer_Limiter(
+      del_L.gas_energy_specific, del_R.gas_energy_specific, del_C.gas_energy_specific, del_G.gas_energy_specific);
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    del_m_ip1.scalar_specific[i] = Van_Leer_Limiter(del_L.scalar_specific[i], del_R.scalar_specific[i],
-                                                    del_C.scalar_specific[i], del_G.scalar_specific[i]);
+    del_m_ip1.scalar_specific[i] = reconstruction::Van_Leer_Limiter(del_L.scalar_specific[i], del_R.scalar_specific[i],
+                                                                    del_C.scalar_specific[i], del_G.scalar_specific[i]);
   }
 #endif  // SCALAR
 
