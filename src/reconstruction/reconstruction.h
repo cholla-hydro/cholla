@@ -46,32 +46,53 @@ void __device__ inline Reconstruct_Interface_States(Real const *dev_conserved, s
           (reconstruction_order == reconstruction::Kind::ppmc) or (reconstruction_order == reconstruction::Kind::ppmp),
       "The reconstruction chosen does not exist. You must use a member of reconstruction::Kind to choose the order.");
 
-  // Compute the indices at direction+1 for the direction of the solve
-  size_t const xid_p1 = xid + size_t(direction == 0);
-  size_t const yid_p1 = yid + size_t(direction == 1);
-  size_t const zid_p1 = zid + size_t(direction == 2);
-
   // Choose the correct reconstruction method and compute the interface states
   if constexpr (reconstruction_order == reconstruction::Kind::pcm) {
     // Load the PCM interfaces
     left_interface =
         reconstruction::PCM_Reconstruction<direction>(dev_conserved, xid, yid, zid, nx, ny, n_cells, gamma);
-    right_interface =
-        reconstruction::PCM_Reconstruction<direction>(dev_conserved, xid_p1, yid_p1, zid_p1, nx, ny, n_cells, gamma);
+    right_interface = reconstruction::PCM_Reconstruction<direction>(
+        dev_conserved, xid + size_t(direction == 0), yid + size_t(direction == 1), zid + size_t(direction == 2), nx, ny,
+        n_cells, gamma);
   } else if constexpr (reconstruction_order == reconstruction::Kind::plmc) {
-    // Calculate the PLMC interfaces, note that we have to do this twice to get the "right" interface
-    auto [l_iph_i, r_imh_i] =
-        reconstruction::PLMC_Reconstruction<direction>(dev_conserved, xid, yid, zid, nx, ny, n_cells, dx, dt, gamma);
-    auto [l_iph_ip1, r_imh_ip1] = reconstruction::PLMC_Reconstruction<direction>(dev_conserved, xid_p1, yid_p1, zid_p1,
-                                                                                 nx, ny, n_cells, dx, dt, gamma);
+    // load the 3-cell stencil into registers
 
-// Convert to an InterfaceState object and assign
+    // cell i-1. The equality checks the direction and will subtract one from the correct direction
+    hydro_utilities::Primitive cell_im1 = hydro_utilities::Load_Cell_Primitive<direction>(
+        dev_conserved, xid - int(direction == 0), yid - int(direction == 1), zid - int(direction == 2), nx, ny, n_cells,
+        gamma);
+
+    // cell i
+    hydro_utilities::Primitive cell_i =
+        hydro_utilities::Load_Cell_Primitive<direction>(dev_conserved, xid, yid, zid, nx, ny, n_cells, gamma);
+
+    // cell i+1. The equality checks the direction and add one to the correct direction
+    hydro_utilities::Primitive cell_ip1 = hydro_utilities::Load_Cell_Primitive<direction>(
+        dev_conserved, xid + int(direction == 0), yid + int(direction == 1), zid + int(direction == 2), nx, ny, n_cells,
+        gamma);
+
+    // Calculate the left PLMC interface
+    hydro_utilities::Primitive left_interface_primitive =
+        reconstruction::PLMC_Reconstruction<direction>(cell_im1, cell_i, cell_ip1, dx, dt, gamma, 1.0);
+
+    // Move all the data down one and load the next cell
+    cell_im1 = cell_i;
+    cell_i   = cell_ip1;
+    cell_ip1 = hydro_utilities::Load_Cell_Primitive<direction>(dev_conserved, xid + 2 * int(direction == 0),
+                                                               yid + 2 * int(direction == 1),
+                                                               zid + 2 * int(direction == 2), nx, ny, n_cells, gamma);
+
+    // Calculate the right PLMC interface
+    hydro_utilities::Primitive right_interface_primitive =
+        reconstruction::PLMC_Reconstruction<direction>(cell_im1, cell_i, cell_ip1, dx, dt, gamma, -1.0);
+
+// Convert to an InterfaceState object
 #ifdef MHD
-    l_iph_i.magnetic.x   = magnetic_x;
-    r_imh_ip1.magnetic.x = magnetic_x;
+    left_interface_primitive.magnetic.x  = magnetic_x;
+    right_interface_primitive.magnetic.x = magnetic_x;
 #endif  // MHD
-    left_interface  = reconstruction::Primitive_2_InterfaceState(l_iph_i, gamma);
-    right_interface = reconstruction::Primitive_2_InterfaceState(r_imh_ip1, gamma);
+    left_interface  = reconstruction::Primitive_2_InterfaceState(left_interface_primitive, gamma);
+    right_interface = reconstruction::Primitive_2_InterfaceState(right_interface_primitive, gamma);
   }
   // else if constexpr(reconstruction_order == reconstruction::Kind::plmp)
   // {
