@@ -113,33 +113,33 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx,
   hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Exact_Fluxes_CUDA<reconstruction::Kind::chosen, 0>), dim1dGrid,
                      dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, dx, dt, n_fields);
   hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Exact_Fluxes_CUDA<reconstruction::Kind::chosen, 1>), dim1dGrid,
-                     dim1dBlock, 0, 0, dev_conserved, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_cells, gama, dx, dt, n_fields);
+                     dim1dBlock, 0, 0, dev_conserved, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_cells, gama, dy, dt, n_fields);
   hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Exact_Fluxes_CUDA<reconstruction::Kind::chosen, 2>), dim1dGrid,
-                     dim1dBlock, 0, 0, dev_conserved, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_cells, gama, dx, dt, n_fields);
+                     dim1dBlock, 0, 0, dev_conserved, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_cells, gama, dz, dt, n_fields);
   #endif  // EXACT
   #ifdef ROE
   hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::chosen, 0>), dim1dGrid, dim1dBlock,
                      0, 0, dev_conserved, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, dx, dt, n_fields);
   hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::chosen, 1>), dim1dGrid, dim1dBlock,
-                     0, 0, dev_conserved, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_cells, gama, dx, dt, n_fields);
+                     0, 0, dev_conserved, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_cells, gama, dy, dt, n_fields);
   hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::chosen, 2>), dim1dGrid, dim1dBlock,
-                     0, 0, dev_conserved, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_cells, gama, dx, dt, n_fields);
+                     0, 0, dev_conserved, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_cells, gama, dz, dt, n_fields);
   #endif  // ROE
   #ifdef HLLC
   hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLLC_Fluxes_CUDA<reconstruction::Kind::chosen, 0>), dim1dGrid,
                      dim1dBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, dx, dt, n_fields);
   hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLLC_Fluxes_CUDA<reconstruction::Kind::chosen, 1>), dim1dGrid,
-                     dim1dBlock, 0, 0, dev_conserved, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_cells, gama, dx, dt, n_fields);
+                     dim1dBlock, 0, 0, dev_conserved, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_cells, gama, dy, dt, n_fields);
   hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLLC_Fluxes_CUDA<reconstruction::Kind::chosen, 2>), dim1dGrid,
-                     dim1dBlock, 0, 0, dev_conserved, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_cells, gama, dx, dt, n_fields);
+                     dim1dBlock, 0, 0, dev_conserved, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_cells, gama, dz, dt, n_fields);
   #endif  // HLLC
   #ifdef HLL
   hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLL_Fluxes_CUDA<reconstruction::Kind::chosen, 0>), dim1dGrid, dim1dBlock,
                      0, 0, dev_conserved, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, dx, dt, n_fields);
   hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLL_Fluxes_CUDA<reconstruction::Kind::chosen, 1>), dim1dGrid, dim1dBlock,
-                     0, 0, dev_conserved, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_cells, gama, dx, dt, n_fields);
+                     0, 0, dev_conserved, Q_Ly, Q_Ry, F_y, nx, ny, nz, n_cells, gama, dy, dt, n_fields);
   hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLL_Fluxes_CUDA<reconstruction::Kind::chosen, 2>), dim1dGrid, dim1dBlock,
-                     0, 0, dev_conserved, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_cells, gama, dx, dt, n_fields);
+                     0, 0, dev_conserved, Q_Lz, Q_Rz, F_z, nx, ny, nz, n_cells, gama, dz, dt, n_fields);
   #endif  // HLL
   GPU_Error_Check();
 
