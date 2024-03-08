@@ -33,6 +33,10 @@ yl_bcnd=1
 yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
+# density floor
+density_floor=1.0e-5
+# temperature floor
+temperature_floor=1.0e-3
 # path to output directory
 indir=data/
 outdir=output_files/
