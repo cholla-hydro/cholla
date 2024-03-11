@@ -15,6 +15,19 @@ namespace reconstruction
 {
 
 // sign = -1 for r_imh, +1 for l_iph
+
+/*!
+ * \brief Perform characteristic tracing/evolution on an interface
+ *
+ * \param[in] cell_i The cell state at cell i
+ * \param[in] del_m The limited slopes
+ * \param[in] dt The time step
+ * \param[in] dx The cell size in the direction of solve
+ * \param[in] sound_speed The sound speed in cell i
+ * \param[in] sign Which interface is being evolved. +1 for the left interface at i+1/2, -1 for the right interface at
+ * i-1/2
+ * \param[in,out] interface The interface to evolve
+ */
 void __device__ __host__ __inline__ PLMC_Characteristic_Evolution(hydro_utilities::Primitive const &cell_i,
                                                                   hydro_utilities::Primitive const &del_m,
                                                                   Real const dt, Real const dx, Real const sound_speed,
@@ -170,11 +183,24 @@ void __device__ __host__ __inline__ PLMC_Characteristic_Evolution(hydro_utilitie
   }
 }
 
-template <uint direction>
-auto __device__ __inline__ PLMC_Reconstruction(hydro_utilities::Primitive const &cell_im1,
-                                               hydro_utilities::Primitive const &cell_i,
-                                               hydro_utilities::Primitive const &cell_ip1, Real const dx, Real const dt,
-                                               Real const gamma, Real const sign)
+/*!
+ * \brief Compute the PLMC interface
+ *
+ * \param[in] cell_im1 The cell state at i-1
+ * \param[in] cell_i The cell state at i
+ * \param[in] cell_ip1 The cell state at i+1
+ * \param[in] dt The time step
+ * \param[in] dx The cell size in the direction of solve
+ * \param[in] gamma The adiabatic index
+ * \param[in] sign Which interface is being calculated. +1 for the left interface at i+1/2, -1 for the right interface
+ * at i-1/2
+ * \return hydro_utilities::Primitive The interface state computed
+ */
+hydro_utilities::Primitive __device__ __inline__ PLMC_Reconstruction(hydro_utilities::Primitive const &cell_im1,
+                                                                     hydro_utilities::Primitive const &cell_i,
+                                                                     hydro_utilities::Primitive const &cell_ip1,
+                                                                     Real const dx, Real const dt, Real const gamma,
+                                                                     Real const sign)
 {
   // Compute the eigenvectors
   reconstruction::EigenVecs const eigenvectors = reconstruction::Compute_Eigenvectors(cell_i, gamma);

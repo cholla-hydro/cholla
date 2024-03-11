@@ -73,7 +73,7 @@ void __device__ inline Reconstruct_Interface_States(Real const *dev_conserved, s
 
     // Calculate the left PLMC interface
     hydro_utilities::Primitive left_interface_primitive =
-        reconstruction::PLMC_Reconstruction<direction>(cell_im1, cell_i, cell_ip1, dx, dt, gamma, 1.0);
+        reconstruction::PLMC_Reconstruction(cell_im1, cell_i, cell_ip1, dx, dt, gamma, 1.0);
 
     // Move all the data down one and load the next cell
     cell_im1 = cell_i;
@@ -84,7 +84,7 @@ void __device__ inline Reconstruct_Interface_States(Real const *dev_conserved, s
 
     // Calculate the right PLMC interface
     hydro_utilities::Primitive right_interface_primitive =
-        reconstruction::PLMC_Reconstruction<direction>(cell_im1, cell_i, cell_ip1, dx, dt, gamma, -1.0);
+        reconstruction::PLMC_Reconstruction(cell_im1, cell_i, cell_ip1, dx, dt, gamma, -1.0);
 
 // Convert to an InterfaceState object
 #ifdef MHD
