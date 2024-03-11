@@ -203,21 +203,43 @@ void inline Check_Interface(reconstruction::InterfaceState const &test_data,
 {
   std::string const message = "Direction " + std::to_string(direction);
 
-  testing_utilities::Check_Results(test_data.density, fiducial_data.density, "density " + message);
-  testing_utilities::Check_Results(test_data.energy, fiducial_data.energy, "energy " + message);
-  testing_utilities::Check_Results(test_data.pressure, fiducial_data.pressure, "pressure " + message);
-  testing_utilities::Check_Results(test_data.velocity.x, fiducial_data.velocity.x, "velocity.x " + message);
-  testing_utilities::Check_Results(test_data.velocity.y, fiducial_data.velocity.y, "velocity.y " + message);
-  testing_utilities::Check_Results(test_data.velocity.z, fiducial_data.velocity.z, "velocity.z " + message);
-  testing_utilities::Check_Results(test_data.momentum.x, fiducial_data.momentum.x, "momentum.x " + message);
-  testing_utilities::Check_Results(test_data.momentum.y, fiducial_data.momentum.y, "momentum.y " + message);
-  testing_utilities::Check_Results(test_data.momentum.z, fiducial_data.momentum.z, "momentum.z " + message);
+  testing_utilities::Check_Results(fiducial_data.density, test_data.density, "density " + message);
+  testing_utilities::Check_Results(fiducial_data.energy, test_data.energy, "energy " + message);
+  testing_utilities::Check_Results(fiducial_data.pressure, test_data.pressure, "pressure " + message);
+  testing_utilities::Check_Results(fiducial_data.velocity.x, test_data.velocity.x, "velocity.x " + message);
+  testing_utilities::Check_Results(fiducial_data.velocity.y, test_data.velocity.y, "velocity.y " + message);
+  testing_utilities::Check_Results(fiducial_data.velocity.z, test_data.velocity.z, "velocity.z " + message);
+  testing_utilities::Check_Results(fiducial_data.momentum.x, test_data.momentum.x, "momentum.x " + message);
+  testing_utilities::Check_Results(fiducial_data.momentum.y, test_data.momentum.y, "momentum.y " + message);
+  testing_utilities::Check_Results(fiducial_data.momentum.z, test_data.momentum.z, "momentum.z " + message);
 
 #ifdef MHD
-  testing_utilities::Check_Results(test_data.total_pressure, fiducial_data.total_pressure, "total_pressure" + message);
-  testing_utilities::Check_Results(test_data.magnetic.x, fiducial_data.magnetic.x, "magnetic.x " + message);
-  testing_utilities::Check_Results(test_data.magnetic.y, fiducial_data.magnetic.y, "magnetic.y " + message);
-  testing_utilities::Check_Results(test_data.magnetic.z, fiducial_data.magnetic.z, "magnetic.z " + message);
+  testing_utilities::Check_Results(fiducial_data.total_pressure, test_data.total_pressure, "total_pressure" + message);
+  testing_utilities::Check_Results(fiducial_data.magnetic.x, test_data.magnetic.x, "magnetic.x " + message);
+  testing_utilities::Check_Results(fiducial_data.magnetic.y, test_data.magnetic.y, "magnetic.y " + message);
+  testing_utilities::Check_Results(fiducial_data.magnetic.z, test_data.magnetic.z, "magnetic.z " + message);
+#endif  // MHD
+}
+
+/*!
+ * \brief Function for checking if every member in a hydro_utilities::Primitive struct matches the fiducial values
+ *
+ * \param[in] test_data The data to test
+ * \param[in] fiducial_data The fiducial data
+ */
+void inline Check_Primitive(hydro_utilities::Primitive const &test_data,
+                            hydro_utilities::Primitive const &fiducial_data)
+{
+  testing_utilities::Check_Results(fiducial_data.density, test_data.density, "density");
+  testing_utilities::Check_Results(fiducial_data.pressure, test_data.pressure, "pressure");
+  testing_utilities::Check_Results(fiducial_data.velocity.x, test_data.velocity.x, "velocity.x");
+  testing_utilities::Check_Results(fiducial_data.velocity.y, test_data.velocity.y, "velocity.y");
+  testing_utilities::Check_Results(fiducial_data.velocity.z, test_data.velocity.z, "velocity.z");
+
+#ifdef MHD
+  testing_utilities::Check_Results(fiducial_data.magnetic.x, test_data.magnetic.x, "magnetic.x");
+  testing_utilities::Check_Results(fiducial_data.magnetic.y, test_data.magnetic.y, "magnetic.y");
+  testing_utilities::Check_Results(fiducial_data.magnetic.z, test_data.magnetic.z, "magnetic.z");
 #endif  // MHD
 }
 }  // namespace testing_utilities
