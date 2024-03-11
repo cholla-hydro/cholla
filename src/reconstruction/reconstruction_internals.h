@@ -153,9 +153,9 @@ bool __device__ __host__ __inline__ Riemann_Thread_Guard(size_t const nx, size_t
   if constexpr (reconstruction == reconstruction::Kind::pcm) {
     order = 1;
   } else if constexpr (reconstruction == reconstruction::Kind::plmc or reconstruction == reconstruction::Kind::plmp) {
-    order = 2;
-  } else if constexpr (reconstruction == reconstruction::Kind::ppmc or reconstruction == reconstruction::Kind::ppmp) {
     order = 3;
+  } else if constexpr (reconstruction == reconstruction::Kind::ppmc or reconstruction == reconstruction::Kind::ppmp) {
+    order = 4;
   }
 
   // X check

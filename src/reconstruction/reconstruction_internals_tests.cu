@@ -262,13 +262,13 @@ TEST(tALLReconstructionRiemannThreadGuard, CorrectInputExpectCorrectOutput)
 {
   // Test parameters
   int const order = 3;
-  int const nx    = 5;
-  int const ny    = 5;
-  int const nz    = 5;
+  int const nx    = 7;
+  int const ny    = 7;
+  int const nz    = 7;
 
   // fiducial data
   std::vector<int> fiducial_vals(nx * ny * nz, 1);
-  fiducial_vals.at(62) = 0;
+  fiducial_vals.at(171) = 0;
 
   // loop through all values of the indices and check them
   for (int xid = 0; xid < nx; xid++) {
