@@ -92,7 +92,7 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
     size_t const arraySize = n_fields * n_cells * sizeof(Real);
   #endif  // MHD
 
-  #if defined(PCM) or defined(PLCM)
+  #if defined(PCM) or defined(PLMC)
     // These reconstructors don't need interface state arrays since they're fused into the Riemann solvers so we're
     // setting those array sizes to be a single double
     size_t const interface_arr_size = sizeof(Real);
