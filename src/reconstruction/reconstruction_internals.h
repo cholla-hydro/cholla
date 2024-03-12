@@ -157,18 +157,19 @@ bool __device__ __host__ __inline__ Riemann_Thread_Guard(size_t const nx, size_t
   } else if constexpr (reconstruction == reconstruction::Kind::ppmc or reconstruction == reconstruction::Kind::ppmp) {
     order = 4;
   }
-
+  bool out_of_bounds_thread = false;
   // X check
-  bool out_of_bounds_thread = xid < order - 1 or xid >= nx - order + 1;
-
+  if (nx > 1) {
+    out_of_bounds_thread = xid < order - 1 or xid >= nx - order or out_of_bounds_thread;
+  }
   // Y check, only used for 2D and 3D
   if (ny > 1) {
-    out_of_bounds_thread = yid < order - 1 or yid >= ny - order + 1 or out_of_bounds_thread;
+    out_of_bounds_thread = yid < order - 1 or yid >= ny - order or out_of_bounds_thread;
   }
 
   // z check, only used for 3D
   if (nz > 1) {
-    out_of_bounds_thread = zid < order - 1 or zid >= nz - order + 1 or out_of_bounds_thread;
+    out_of_bounds_thread = zid < order - 1 or zid >= nz - order or out_of_bounds_thread;
   }
   // This is needed in the case that nz == 1 to avoid overrun
   else {
