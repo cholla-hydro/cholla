@@ -9,6 +9,20 @@
 
 namespace reconstruction
 {
+  /*!
+ * \brief Perform PCM reconstruction for a given cell
+ *
+ * \tparam direction The direction that the solve is taking place in. 0=X, 1=Y, 2=Z
+ * \param[in] dev_conserved The converved variable array
+ * \param[in] xid The x-direction cell id
+ * \param[in] yid The y-direction cell id
+ * \param[in] zid The z-direction cell id
+ * \param[in] nx The number of cells in the x-direction
+ * \param[in] ny The number of cells in the y-direction
+ * \param[in] n_cells The total number of cells
+ * \param[in] gamma The adiabatic index
+ * \return reconstruction::InterfaceState The interface state at xid, yid, zid
+ */
 template <size_t direction>
 reconstruction::InterfaceState __device__ __host__ inline PCM_Reconstruction(Real const *dev_conserved,
                                                                              size_t const xid, size_t const yid,
