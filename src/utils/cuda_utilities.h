@@ -103,7 +103,12 @@ struct AutomaticLaunchParams {
    */
   AutomaticLaunchParams(T &kernel, size_t numElements = 0)
   {
-    cudaOccupancyMaxPotentialBlockSize(&numBlocks, &threadsPerBlock, kernel, 0, 0);
+    // Get the max number of threads per block allowed by this kernel
+    cudaFuncAttributes kernel_attrs{};
+    GPU_Error_Check(cudaFuncGetAttributes(&kernel_attrs, reinterpret_cast<const void *>(&kernel)));
+
+    // Determine the launch parameters
+    cudaOccupancyMaxPotentialBlockSize(&numBlocks, &threadsPerBlock, kernel, 0, kernel_attrs.maxThreadsPerBlock);
 
     if (numElements > 0) {
       // This line is needed to check that threadsPerBlock isn't zero. Somewhere inside
