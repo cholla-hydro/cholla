@@ -9,7 +9,7 @@
 
 namespace reconstruction
 {
-  /*!
+/*!
  * \brief Perform PCM reconstruction for a given cell
  *
  * \tparam direction The direction that the solve is taking place in. 0=X, 1=Y, 2=Z
