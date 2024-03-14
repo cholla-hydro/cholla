@@ -31,7 +31,7 @@ void Particles3D::Load_Particles_Data(struct Parameters *P)
 
   // construct the filename to read from
   #ifdef MPI_CHOLLA
-  const int nfile              = P->nfile;  // output step you want to read from
+  const int nfile = P->nfile;  // output step you want to read from
     #ifdef TILED_INITIAL_CONDITIONS
   // Every process reads the same file
   const std::string base_fname =
