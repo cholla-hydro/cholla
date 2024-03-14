@@ -13,6 +13,7 @@
 
 // Local Includes
 #include "../global/global.h"
+#include "../utils/basic_structs.h"
 #include "../utils/math_utilities.h"
 #include "../utils/testing_utilities.h"
 
@@ -73,5 +74,41 @@ TEST(tALLSquareMagnitude, CorrectInputExpectCorrectOutput)
 
   // Now check results
   testing_utilities::Check_Results(fiducial_square_magnitude, test_square_magnitude, "dot product");
+}
+// =========================================================================
+
+// =========================================================================
+/*!
+ * \brief Test the math_utils::Cyclic_Permute_Once function
+ *
+ */
+TEST(tALLCyclicPermuteOnce, CorrectInputExpectCorrectOutput)
+{
+  hydro_utilities::Vector test_vec{1, 2, 3};
+
+  math_utils::Cyclic_Permute_Once(test_vec);
+
+  // Now check results
+  testing_utilities::Check_Results(2, test_vec.x, "Failure in x term");
+  testing_utilities::Check_Results(3, test_vec.y, "Failure in y term");
+  testing_utilities::Check_Results(1, test_vec.z, "Failure in z term");
+}
+// =========================================================================
+
+// =========================================================================
+/*!
+ * \brief Test the math_utils::Cyclic_Permute_Twice function
+ *
+ */
+TEST(tALLCyclicPermuteTwice, CorrectInputExpectCorrectOutput)
+{
+  hydro_utilities::Vector test_vec{1, 2, 3};
+
+  math_utils::Cyclic_Permute_Twice(test_vec);
+
+  // Now check results
+  testing_utilities::Check_Results(3, test_vec.x, "Failure in x term");
+  testing_utilities::Check_Results(1, test_vec.y, "Failure in y term");
+  testing_utilities::Check_Results(2, test_vec.z, "Failure in z term");
 }
 // =========================================================================

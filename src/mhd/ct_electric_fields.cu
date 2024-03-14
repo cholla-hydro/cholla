@@ -17,9 +17,10 @@
 namespace mhd
 {
 // =========================================================================
-__global__ void Calculate_CT_Electric_Fields(Real const *fluxX, Real const *fluxY, Real const *fluxZ,
-                                             Real const *dev_conserved, Real *ctElectricFields, int const nx,
-                                             int const ny, int const nz, int const n_cells)
+__global__ __launch_bounds__(256) void Calculate_CT_Electric_Fields(Real const *fluxX, Real const *fluxY,
+                                                                    Real const *fluxZ, Real const *dev_conserved,
+                                                                    Real *ctElectricFields, int const nx, int const ny,
+                                                                    int const nz, int const n_cells)
 {
   // get a thread index
   int const threadId = threadIdx.x + blockIdx.x * blockDim.x;

@@ -37,8 +37,6 @@ DFLAGS    += -DPROJECTION
 
 DFLAGS    += $(OUTPUT)
 
-DFLAGS    += -DOUTPUT_ALWAYS
-
 #Select if the Hydro Conserved data will reside in the GPU
 #and the MPI transfers are done from the GPU
 #If not specified, MPI_GPU is off by default
