@@ -8,12 +8,19 @@
 // example: C.device[id + H.n_cells*grid_enum::basic_scalar]
 
 // enum notes:
-// For advanced devs: must be "unscoped" to be implicitly treated as int: this
-// means cannot use "enum class" or "enum struct" Wrapped in namespace to give
-// it an effective scope to prevent collisions enum values (i.e. density) belong
+// For advanced devs: to be implicitly treated as int,
+// The enum cannot use "enum class" or "enum struct."
+// This is referred to as an "unscoped enum:" grid_enum is "unscoped"
+// Though we give it an effective scope by wrapping it in a namespace.
+
+// Enum is wrapped in namespace to give
+// it an effective scope to prevent collisions.
+
+// Enum values (i.e. density) belong
 // to their enclosing scope, which necessitates the namespace wrapping
-// --otherwise "density" would be available in global scope
-// ": int" forces underlying type to be int
+// --otherwise "density" would be available in global scope.
+
+// The ": int" forces underlying type to be int.
 
 namespace grid_enum
 {
