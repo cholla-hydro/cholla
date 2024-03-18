@@ -55,7 +55,7 @@ for field in fields:
   else:
     pass_text = 'FAILED'
     validation_passed = False  
-  print( f'{field:<10} diff.  min: {diff_min:.2e}  max: {diff_max:.2e}  avg: {diff_avg:.2e}  {pass_text}'      )
+  print( f'{field:<10} difference.  min: {diff_min:.2e}  max: {diff_max:.2e}  avg: {diff_avg:.2e}  {pass_text}'      )
   
 if validation_passed: 
   print('VALIDATION PASSED')

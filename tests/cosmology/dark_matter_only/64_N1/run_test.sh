@@ -19,7 +19,8 @@ fi
 MACHINE=$(sh $cholla_root/builds/machine.sh)
 echo "Machine: $MACHINE"
 
-# Build Cholla cosmology dark-matter only 
+# Build Cholla cosmology dark-matter only
+make clean 
 BUILD_CMD="DFLAGS=-DONLY_PARTICLES make TYPE=cosmology -j"
 echo "Building Cholla Cosmology DM-Only: $BUILD_CMD"
 eval $BUILD_CMD
@@ -46,6 +47,7 @@ else
     echo "Found initial conditions file: $ics_file"
   else
     echo "ERROR: Initial conditions file wans't dowloaded succesfully."
+    exit 1
   fi
 fi
 
@@ -65,7 +67,7 @@ RUN_CMD="./cholla.cosmology.${MACHINE} parameter_file.txt > simulation_output.tx
 echo "Running test: $RUN_CMD"
 eval $RUN_CMD
 
-# # Download the reference snapshot
+# Download the reference snapshot
 reference_dir=$test_dir/reference_64_50Mpc_dmo/N1_z0
 reference_file=$reference_dir/1_particles.h5.0
 if [[ -f $reference_file ]]; then
@@ -78,6 +80,7 @@ else
     echo "Found reference snapshot file: $reference_file"
   else
     echo "ERROR: Reference snapshot file wans't dowloaded succesfully."
+    exit 1
   fi
 fi
 
@@ -85,7 +88,7 @@ fi
 VALIDATION_CMD="python $cholla_root/python_scripts/compare_snapshots.py --type particles --snap_id 1  --fields density --dir_0 $reference_dir --dir_1 $test_dir/snapshot_files --tolerance 1e-8"
 echo "Validating: $VALIDATION_CMD"
 eval $VALIDATION_CMD
-# Collace the output of the python script and evaluate if test passed
+# Collect the output of the python script and evaluate if test passed
 validation_result=$?                                                           
 if [[ $validation_result == 0 ]]; then
   echo "TEST PASSED"
