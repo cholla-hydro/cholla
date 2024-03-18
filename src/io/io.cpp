@@ -1512,6 +1512,10 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
   #endif
 
   Real mu = 0.6;
+  Real pwidth = 0.1; // fraction of the domain to project
+  int cwidth = int(pwidth*H.ydglobal / H.dy); // number of cells in the projection
+  int pstart = (ny_global - cwidth)/2;
+  int pend = (ny_global + cwidth)/2;
 
   // 3D
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) {
@@ -1589,6 +1593,7 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
       }
     }
 
+
     // Copy the xz density and temperature projections to the memory buffer
     for (int k = 0; k < H.nz_real; k++) {
       for (int i = 0; i < H.nx_real; i++) {
@@ -1597,38 +1602,47 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
   #ifdef DUST
         dust_xz = 0;
   #endif
-        // for each xz element, sum over the y column
-        for (int j = 0; j < H.ny_real; j++) {
-          int const xid = i + H.n_ghost;
-          int const yid = j + H.n_ghost;
-          int const zid = k + H.n_ghost;
-          int const id  = cuda_utilities::compute1DIndex(xid, yid, zid, H.nx, H.ny);
-          // sum density
-          Real const d = C.density[id];
-          dxz += d * H.dy;
+        // only contribute to the projection if your domain is in the slice
+        if (ny_local_start < pend && ny_local_start + ny_local > pstart) {
+          // for each xz element, sum over the y column
+          // figure out where the thin slice starts
+          int jstart, jend;
+          jstart = fmax(ny_local_start, pstart) - ny_local_start;
+          jend = fmin(ny_local_start+ny_local, pend) - ny_local_start;
+          
+          //for (int j = 0; j < H.ny_real; j++) {
+          for (int j = jstart; j < jend; j++) {
+            int const xid = i + H.n_ghost;
+            int const yid = j + H.n_ghost;
+            int const zid = k + H.n_ghost;
+            int const id  = cuda_utilities::compute1DIndex(xid, yid, zid, H.nx, H.ny);
+            // sum density
+            Real const d = C.density[id];
+            dxz += d * H.dy;
   #ifdef DUST
-          dust_xz += C.dust_density[id] * H.dy;
+            dust_xz += C.dust_density[id] * H.dy;
   #endif
-          // calculate number density
-          Real const n = d * DENSITY_UNIT / (mu * MP);
+            // calculate number density
+            Real const n = d * DENSITY_UNIT / (mu * MP);
   #ifdef DE
-          Real const T = hydro_utilities::Calc_Temp_DE(C.GasEnergy[id], gama, n);
+            Real const T = hydro_utilities::Calc_Temp_DE(C.GasEnergy[id], gama, n);
   #else  // DE is not defined
-          Real const mx = C.momentum_x[id];
-          Real const my = C.momentum_y[id];
-          Real const mz = C.momentum_z[id];
-          Real const E  = C.Energy[id];
+            Real const mx = C.momentum_x[id];
+            Real const my = C.momentum_y[id];
+            Real const mz = C.momentum_z[id];
+            Real const E  = C.Energy[id];
 
-    #ifdef MHD
-          auto const [magnetic_x, magnetic_y, magnetic_z] =
-              mhd::utils::cellCenteredMagneticFields(C.host, id, xid, yid, zid, H.n_cells, H.nx, H.ny);
-          Real const T =
-              hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n, magnetic_x, magnetic_y, magnetic_z);
-    #else   // MHD is not defined
-          Real const T = hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n);
-    #endif  // MHD
-  #endif    // DE
-          Txz += T * d * H.dy;
+      #ifdef MHD
+            auto const [magnetic_x, magnetic_y, magnetic_z] =
+                mhd::utils::cellCenteredMagneticFields(C.host, id, xid, yid, zid, H.n_cells, H.nx, H.ny);
+            Real const T =
+                hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n, magnetic_x, magnetic_y, magnetic_z);
+      #else   // MHD is not defined
+            Real const T = hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n);
+      #endif  // MHD
+    #endif    // DE
+            Txz += T * d * H.dy;
+          }
         }
         int const buf_id           = k + i * H.nz_real;
         dataset_buffer_dxz[buf_id] = dxz;

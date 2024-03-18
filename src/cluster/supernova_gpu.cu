@@ -318,7 +318,8 @@ __global__ void Calc_Flag_Kernel(Real *cluster_array, Real *omega_array, bool *f
     return;
   }
   // SB99 table goes up to 9e7 yr = 9e4 kyr (code time)
-  if (time > total_SF/SFR + 4e4){
+  // but we'll cut off at 80 Myr
+  if (time > total_SF/SFR + 8e4){
     flag_array[tid] = false;
     return;
   }

@@ -747,6 +747,7 @@ void Grid3D::Disk_3D(Parameters p)
   Real Sigma_0, R_g, H_g;
   Real rho_floor;
   Real r_cool;
+  Real c;
 
   // MW model
   #ifdef MW_MODEL
@@ -775,14 +776,16 @@ void Grid3D::Disk_3D(Parameters p)
   rho_eos_h = 3.0e3;  // gas eos normalized at 3e3 Msun/kpc^3 (about n_h = 10^-3.5)
   mu        = 0.6;
 
-  R_g     = 2.0 * R_d;                            // gas scale length in kpc
-  Sigma_0 = 0.25 * M_d / (2 * M_PI * R_g * R_g);  // central surface density in Msun/kpc^2
+  //R_g     = 2.0 * R_d;                            // gas scale length in kpc M82 model
+  R_g     = 3.5;                            // gas scale length in kpc MW model
+  //Sigma_0 = 0.25 * M_d / (2 * M_PI * R_g * R_g);  // central surface density in Msun/kpc^2
+  Sigma_0 = 0.15 * M_d / (2 * M_PI * R_g * R_g);  // central surface density in Msun/kpc^2 MW model
   H_g     = z_d;                                  // initial guess for gas scale height
   // rho_floor = 1.0e3; //ICs minimum density in Msun/kpc^3
 
   // EOS info
   cs   = sqrt(KB * T_d / (mu * MP)) * TIME_UNIT / LENGTH_UNIT;  // sound speed in kpc/kyr
-  cs_h = sqrt(KB * T_h / (mu * MP)) * TIME_UNIT / LENGTH_UNIT;  // sound speed in kpc/kyr
+  cs_h = sqrt(p.gamma * KB * T_h / (mu * MP)) * TIME_UNIT / LENGTH_UNIT;  // sound speed in kpc/kyr
 
   // set some initial parameters
   int nhdp  = 21;                                  // number of parameters to pass hydrostatic column
@@ -1046,9 +1049,8 @@ void Grid3D::Disk_3D(Parameters p)
 
 	      // add a passive scalar
 	#ifdef BASIC_SCALAR
-        if (C.scalar[id] == 0.0) {
-	        C.scalar[id] = 0.1*C.density[id];
-        }
+        c = fmax(C.scalar[id]/C.density[id], 0.1);
+        C.scalar[id] = c*C.density[id];
 	#endif
 	
       }
