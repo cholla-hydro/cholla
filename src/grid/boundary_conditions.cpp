@@ -172,11 +172,10 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   int gidx;                 // index of a ghost cell
 
   int nPB, nBoundaries;
-  int *iaBoundary, *iaCell; 
+  int *iaBoundary, *iaCell;
 
   /*if the cell face is an custom boundary, exit */
-  if(flags[dir]==4)
-    return;
+  if (flags[dir] == 4) return;
 
   /*if the cell face is an custom boundary, exit */
   if (flags[dir] == 4) {

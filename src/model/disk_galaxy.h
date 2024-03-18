@@ -180,11 +180,12 @@ class ClusteredDiskGalaxy : public DiskGalaxy
   }
 };
 
-namespace galaxies {
-    // all masses in M_sun and all distances in kpc
-    static DiskGalaxy MW(6.5e10, 3.5, (3.5/5.0), 1.0e12, 261, 20, 157.0);
-    //static ClusteredDiskGalaxy MW(1e4, 5e5, 6.5e10, 2.7, 0.7, 1.077e12, 261, 18, 157.0);
-    static DiskGalaxy M82(1.0e10, 0.8, 0.15, 5.0e10, 0.8/0.015, 10, 100.0);
-};
+namespace galaxies
+{
+// all masses in M_sun and all distances in kpc
+static DiskGalaxy MW(6.5e10, 3.5, (3.5 / 5.0), 1.0e12, 261, 20, 157.0);
+// static ClusteredDiskGalaxy MW(1e4, 5e5, 6.5e10, 2.7, 0.7, 1.077e12, 261, 18, 157.0);
+static DiskGalaxy M82(1.0e10, 0.8, 0.15, 5.0e10, 0.8 / 0.015, 10, 100.0);
+};  // namespace galaxies
 
 #endif  // DISK_GALAXY

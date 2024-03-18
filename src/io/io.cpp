@@ -1375,12 +1375,12 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     #ifdef OUTPUT_METALS
   output_metals = true;
     #else   // not OUTPUT_METALS
-  output_metals = false;
+  output_metals          = false;
     #endif  // OUTPUT_METALS
     #ifdef OUTPUT_ELECTRONS
   output_electrons = true;
     #else   // not OUTPUT_ELECTRONS
-  output_electrons = false;
+  output_electrons       = false;
     #endif  // OUTPUT_ELECTRONS
     #ifdef OUTPUT_FULL_IONIZATION
   output_full_ionization = true;
@@ -1511,11 +1511,11 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
   Real *dataset_buffer_dust_xy, *dataset_buffer_dust_xz;
   #endif
 
-  Real mu = 0.6;
-  Real pwidth = 0.1; // fraction of the domain to project
-  int cwidth = int(pwidth*H.ydglobal / H.dy); // number of cells in the projection
-  int pstart = (ny_global - cwidth)/2;
-  int pend = (ny_global + cwidth)/2;
+  Real mu     = 0.6;
+  Real pwidth = 0.1;                              // fraction of the domain to project
+  int cwidth  = int(pwidth * H.ydglobal / H.dy);  // number of cells in the projection
+  int pstart  = (ny_global - cwidth) / 2;
+  int pend    = (ny_global + cwidth) / 2;
 
   // 3D
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) {
@@ -1570,7 +1570,7 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
           Real const mx = C.momentum_x[id];
           Real const my = C.momentum_y[id];
           Real const mz = C.momentum_z[id];
-          Real const E  = C.Energy[id];
+          Real const E = C.Energy[id];
 
     #ifdef MHD
           auto const [magnetic_x, magnetic_y, magnetic_z] =
@@ -1593,7 +1593,6 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
       }
     }
 
-
     // Copy the xz density and temperature projections to the memory buffer
     for (int k = 0; k < H.nz_real; k++) {
       for (int i = 0; i < H.nx_real; i++) {
@@ -1608,9 +1607,9 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
           // figure out where the thin slice starts
           int jstart, jend;
           jstart = fmax(ny_local_start, pstart) - ny_local_start;
-          jend = fmin(ny_local_start+ny_local, pend) - ny_local_start;
-          
-          //for (int j = 0; j < H.ny_real; j++) {
+          jend   = fmin(ny_local_start + ny_local, pend) - ny_local_start;
+
+          // for (int j = 0; j < H.ny_real; j++) {
           for (int j = jstart; j < jend; j++) {
             int const xid = i + H.n_ghost;
             int const yid = j + H.n_ghost;
@@ -1630,17 +1629,17 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
             Real const mx = C.momentum_x[id];
             Real const my = C.momentum_y[id];
             Real const mz = C.momentum_z[id];
-            Real const E  = C.Energy[id];
+            Real const E = C.Energy[id];
 
-      #ifdef MHD
+    #ifdef MHD
             auto const [magnetic_x, magnetic_y, magnetic_z] =
                 mhd::utils::cellCenteredMagneticFields(C.host, id, xid, yid, zid, H.n_cells, H.nx, H.ny);
             Real const T =
                 hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n, magnetic_x, magnetic_y, magnetic_z);
-      #else   // MHD is not defined
+    #else   // MHD is not defined
             Real const T = hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n);
-      #endif  // MHD
-    #endif    // DE
+    #endif  // MHD
+  #endif    // DE
             Txz += T * d * H.dy;
           }
         }
@@ -1795,7 +1794,7 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
             Real const mx = C.momentum_x[id];
             Real const my = C.momentum_y[id];
             Real const mz = C.momentum_z[id];
-            Real const E  = C.Energy[id];
+            Real const E = C.Energy[id];
 
     #ifdef MHD
             auto const [magnetic_x, magnetic_y, magnetic_z] =
@@ -2323,7 +2322,7 @@ void Grid3D::Read_Grid(struct Parameters P)
   Read_Grid_HDF5(file_id, P);
 
   // close the file
-  status = H5Fclose(file_id);
+  status                = H5Fclose(file_id);
 #endif  // BINARY or HDF5
 }
 
@@ -2813,7 +2812,7 @@ std::string FnameTemplate::format_fname(int nfile, const std::string &pre_extens
 #ifdef MPI_CHOLLA
   int file_proc_id = procID;
 #else
-  int file_proc_id = 0;
+  int file_proc_id      = 0;
 #endif
   return format_fname(nfile, file_proc_id, pre_extension_suffix);
 }

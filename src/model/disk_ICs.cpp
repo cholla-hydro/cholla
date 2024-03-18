@@ -65,17 +65,16 @@ Real Sigma_Disk_D3D(Real r, Real *hdp)
   // return the exponential surface density
   Real Sigma_0 = hdp[9];
   Real R_g     = hdp[10];
-  Real R_c = 9.9;
+  Real R_c     = 9.9;
   Real Sigma;
   Real delta = 0.1;
   Real norm  = log(1.0 / 3.0);
   Sigma      = Sigma_0 * exp(-r / R_g);
   // taper the edge of the disk to 0
   if (r < R_c) {
-    Sigma *= 2.0 - 1.0 / (1.0 - exp((r - (R_c - delta*norm))/delta));
-  }
-  else {
-    Sigma *= 1.0 / (1.0 - exp(((R_c + delta*norm) - r)/delta)) - 1.0;
+    Sigma *= 2.0 - 1.0 / (1.0 - exp((r - (R_c - delta * norm)) / delta));
+  } else {
+    Sigma *= 1.0 / (1.0 - exp(((R_c + delta * norm) - r) / delta)) - 1.0;
   }
   return Sigma;
 }
@@ -751,10 +750,10 @@ void Grid3D::Disk_3D(Parameters p)
 
   // MW model
   #ifdef MW_MODEL
-  DiskGalaxy galaxy = galaxies::MW; // NOLINT(cppcoreguidelines-slicing)
+  DiskGalaxy galaxy = galaxies::MW;  // NOLINT(cppcoreguidelines-slicing)
   #else
   // M82 model
-  DiskGalaxy galaxy = galaxies::M82; // NOLINT(cppcoreguidelines-slicing)
+  DiskGalaxy galaxy = galaxies::M82;  // NOLINT(cppcoreguidelines-slicing)
   #endif
 
   M_vir = galaxy.getM_vir();    // viral mass in M_sun
@@ -776,15 +775,15 @@ void Grid3D::Disk_3D(Parameters p)
   rho_eos_h = 3.0e3;  // gas eos normalized at 3e3 Msun/kpc^3 (about n_h = 10^-3.5)
   mu        = 0.6;
 
-  //R_g     = 2.0 * R_d;                            // gas scale length in kpc M82 model
-  R_g     = 3.5;                            // gas scale length in kpc MW model
-  //Sigma_0 = 0.25 * M_d / (2 * M_PI * R_g * R_g);  // central surface density in Msun/kpc^2
+  // R_g     = 2.0 * R_d;                            // gas scale length in kpc M82 model
+  R_g = 3.5;  // gas scale length in kpc MW model
+  // Sigma_0 = 0.25 * M_d / (2 * M_PI * R_g * R_g);  // central surface density in Msun/kpc^2
   Sigma_0 = 0.15 * M_d / (2 * M_PI * R_g * R_g);  // central surface density in Msun/kpc^2 MW model
   H_g     = z_d;                                  // initial guess for gas scale height
   // rho_floor = 1.0e3; //ICs minimum density in Msun/kpc^3
 
   // EOS info
-  cs   = sqrt(KB * T_d / (mu * MP)) * TIME_UNIT / LENGTH_UNIT;  // sound speed in kpc/kyr
+  cs   = sqrt(KB * T_d / (mu * MP)) * TIME_UNIT / LENGTH_UNIT;            // sound speed in kpc/kyr
   cs_h = sqrt(p.gamma * KB * T_h / (mu * MP)) * TIME_UNIT / LENGTH_UNIT;  // sound speed in kpc/kyr
 
   // set some initial parameters
@@ -892,9 +891,9 @@ void Grid3D::Disk_3D(Parameters p)
 
         // store internal energy in Energy array
         C.Energy[id] = P / (gama - 1.0);
-        #ifdef BASIC_SCALAR
-          C.scalar[id] = 1.0*C.density[id];
-        #endif
+  #ifdef BASIC_SCALAR
+        C.scalar[id] = 1.0 * C.density[id];
+  #endif
       }
     }
   }
@@ -1047,12 +1046,11 @@ void Grid3D::Disk_3D(Parameters p)
         // store internal energy in Energy array
         C.Energy[id] += P / (gama - 1.0);
 
-	      // add a passive scalar
-	#ifdef BASIC_SCALAR
-        c = fmax(C.scalar[id]/C.density[id], 0.1);
-        C.scalar[id] = c*C.density[id];
-	#endif
-	
+        // add a passive scalar
+  #ifdef BASIC_SCALAR
+        c            = fmax(C.scalar[id] / C.density[id], 0.1);
+        C.scalar[id] = c * C.density[id];
+  #endif
       }
     }
   }

@@ -334,7 +334,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *Q_Lx, R
     pot_rr = dev_potential[id_rr];
     gx     = -1 * (-pot_rr + 8 * pot_r - 8 * pot_l + pot_ll) / (12 * dx);
   #else
-    gx = -0.5 * (pot_r - pot_l) / dx;
+    gx      = -0.5 * (pot_r - pot_l) / dx;
   #endif
 
     // Get Y componet of gravity field
@@ -349,7 +349,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *Q_Lx, R
     pot_rr = dev_potential[id_rr];
     gy     = -1 * (-pot_rr + 8 * pot_r - 8 * pot_l + pot_ll) / (12 * dx);
   #else
-    gy = -0.5 * (pot_r - pot_l) / dy;
+    gy      = -0.5 * (pot_r - pot_l) / dy;
   #endif
     // Get Z componet of gravity field
     id_l  = (xid) + (yid)*nx + (zid - 1) * nx * ny;
@@ -363,7 +363,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *Q_Lx, R
     pot_rr = dev_potential[id_rr];
     gz     = -1 * (-pot_rr + 8 * pot_r - 8 * pot_l + pot_ll) / (12 * dx);
   #else
-    gz = -0.5 * (pot_r - pot_l) / dz;
+    gz      = -0.5 * (pot_r - pot_l) / dz;
   #endif
 
     // Add gravity term to Momentum
@@ -381,9 +381,10 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *Q_Lx, R
 #if !(defined(DENSITY_FLOOR) && defined(TEMPERATURE_FLOOR))
     if (dev_conserved[id] < 0.0 || dev_conserved[id] != dev_conserved[id] || dev_conserved[4 * n_cells + id] < 0.0 ||
         dev_conserved[4 * n_cells + id] != dev_conserved[4 * n_cells + id]) {
-      kernel_printf("%3d %3d %3d Thread crashed in final update. %e %e %e %e %e\n", xid + x_off, yid + y_off, zid + z_off,
-             dev_conserved[id], dtodx * (dev_F_x[imo] - dev_F_x[id]), dtody * (dev_F_y[jmo] - dev_F_y[id]),
-             dtodz * (dev_F_z[kmo] - dev_F_z[id]), dev_conserved[4 * n_cells + id]);
+      kernel_printf("%3d %3d %3d Thread crashed in final update. %e %e %e %e %e\n", xid + x_off, yid + y_off,
+                    zid + z_off, dev_conserved[id], dtodx * (dev_F_x[imo] - dev_F_x[id]),
+                    dtody * (dev_F_y[jmo] - dev_F_y[id]), dtodz * (dev_F_z[kmo] - dev_F_z[id]),
+                    dev_conserved[4 * n_cells + id]);
       Average_Cell_All_Fields(xid, yid, zid, nx, ny, nz, n_cells, n_fields, gamma, dev_conserved);
     }
 #endif  // DENSITY_FLOOR
@@ -621,9 +622,9 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
   int id, xid, yid, zid, n_cells;
   Real d, d_inv, vx, vy, vz, E, max_dti;
   Real speed, temp, P, cs;
-  #ifdef  MHD
-    Real avgBx, avgBy, avgBz;
-  #endif  //MHD
+  #ifdef MHD
+  Real avgBx, avgBy, avgBz;
+  #endif  // MHD
 
   // get a global thread ID
   id      = threadIdx.x + blockIdx.x * blockDim.x;
@@ -641,17 +642,17 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
     vz    = dev_conserved[3 * n_cells + id] * d_inv;
     E     = dev_conserved[4 * n_cells + id];
 
-    #ifdef  MHD
-      // Compute the cell centered magnetic field using a straight average of the faces
-      mhdUtils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny, avgBx, avgBy, avgBz);
-    #endif  //MHD
+  #ifdef MHD
+    // Compute the cell centered magnetic field using a straight average of the faces
+    mhdUtils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny, avgBx, avgBy, avgBz);
+  #endif  // MHD
 
-    // Compute the maximum inverse crossing time in the cell
-    #ifdef  MHD
-      max_dti = mhdInverseCrossingTime(E, d, d_inv, vx, vy, vz, avgBx, avgBy, avgBz, dx, dy, dz, gamma);
-    #else  // not MHD
-      max_dti = hydroInverseCrossingTime(E, d, d_inv, vx, vy, vz, dx, dy, dz, gamma);
-    #endif  //MHD
+  // Compute the maximum inverse crossing time in the cell
+  #ifdef MHD
+    max_dti = mhdInverseCrossingTime(E, d, d_inv, vx, vy, vz, avgBx, avgBy, avgBz, dx, dy, dz, gamma);
+  #else   // not MHD
+    max_dti = hydroInverseCrossingTime(E, d, d_inv, vx, vy, vz, dx, dy, dz, gamma);
+  #endif  // MHD
 
     if (max_dti > max_dti_slow) {
       speed = sqrt(vx * vx + vy * vy + vz * vz);

@@ -10,7 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "cluster/supernova.h" // move this stuff into grid3D eventually
+
+#include "cluster/supernova.h"  // move this stuff into grid3D eventually
 #include "global/global.h"
 #include "grid/grid3D.h"
 #include "io/io.h"
@@ -201,9 +202,9 @@ int main(int argc, char *argv[])
   G.Get_Particles_Acceleration();
 #endif
 
-  #ifdef SUPERNOVA
+#ifdef SUPERNOVA
   Supernova::Initialize(G, &P);
-  #endif
+#endif
 
   chprintf("Dimensions of each cell: dx = %f dy = %f dz = %f\n", G.H.dx, G.H.dy, G.H.dz);
   chprintf("Ratio of specific heats gamma = %f\n", gama);
@@ -265,9 +266,8 @@ int main(int argc, char *argv[])
     }
 
 #if defined(SUPERNOVA)
-Supernova::Update_Grid(G, dti);
+    Supernova::Update_Grid(G, dti);
 #endif
-
 
 #if defined(SUPERNOVA) && defined(PARTICLE_AGE)
     supernova::Cluster_Feedback(G, sn_analysis);

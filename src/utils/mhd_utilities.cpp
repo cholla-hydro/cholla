@@ -15,4 +15,4 @@
 namespace mhdUtils
 {
 
-} // end  namespace mhdUtils
+}  // end  namespace mhdUtils
