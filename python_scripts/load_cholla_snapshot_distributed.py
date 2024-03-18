@@ -34,7 +34,7 @@ subgrid = None # The entire domain will be loaded
 # subgrid = [[0,64], [64,128], [64,128]]
 
 # Load slice of dimensions of one cell width along the x axis full size over the y and z axis: 
-subgrid = [[0,1], [0,-1], [0,-1]]
+# subgrid = [[0,1], [0,-1], [0,-1]]
 
 
 # Load the data in a specified precision. for example when plotting an image, the data doesn't nit to be
