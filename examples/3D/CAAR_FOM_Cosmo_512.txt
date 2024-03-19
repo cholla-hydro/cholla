@@ -1,0 +1,42 @@
+nx=2048
+ny=2048
+nz=2048
+n_proc_x=8
+n_proc_y=8
+n_proc_z=8
+xlen=200000
+ylen=200000
+zlen=200000
+# output time
+tout=1000
+# how often to output
+outstep=1000
+# value of gamma
+gamma=1.66666667
+# name of initial conditions
+init=Read_Grid
+nfile=0
+#Cosmological Parameters
+H0=67.74
+Omega_M=0.3089
+Omega_L=0.6911
+tile_length=25000.0
+scale_outputs_file=scale_output_files/outputs_single_output.txt
+# domain properties
+xmin=0.0
+ymin=0.0
+zmin=0.0
+# type of boundary conditions
+xl_bcnd=1
+xu_bcnd=1
+yl_bcnd=1
+yu_bcnd=1
+zl_bcnd=1
+zu_bcnd=1
+# density floor
+density_floor=1.0e-5
+# temperature floor
+temperature_floor=1.0e-3
+# path to output directory
+indir=data/
+outdir=output_files/
