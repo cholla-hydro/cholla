@@ -1375,12 +1375,12 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
     #ifdef OUTPUT_METALS
   output_metals = true;
     #else   // not OUTPUT_METALS
-  output_metals          = false;
+  output_metals = false;
     #endif  // OUTPUT_METALS
     #ifdef OUTPUT_ELECTRONS
   output_electrons = true;
     #else   // not OUTPUT_ELECTRONS
-  output_electrons       = false;
+  output_electrons = false;
     #endif  // OUTPUT_ELECTRONS
     #ifdef OUTPUT_FULL_IONIZATION
   output_full_ionization = true;
@@ -1570,7 +1570,7 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
           Real const mx = C.momentum_x[id];
           Real const my = C.momentum_y[id];
           Real const mz = C.momentum_z[id];
-          Real const E = C.Energy[id];
+          Real const E  = C.Energy[id];
 
     #ifdef MHD
           auto const [magnetic_x, magnetic_y, magnetic_z] =
@@ -1629,7 +1629,7 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
             Real const mx = C.momentum_x[id];
             Real const my = C.momentum_y[id];
             Real const mz = C.momentum_z[id];
-            Real const E = C.Energy[id];
+            Real const E  = C.Energy[id];
 
     #ifdef MHD
             auto const [magnetic_x, magnetic_y, magnetic_z] =
@@ -1794,7 +1794,7 @@ void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
             Real const mx = C.momentum_x[id];
             Real const my = C.momentum_y[id];
             Real const mz = C.momentum_z[id];
-            Real const E = C.Energy[id];
+            Real const E  = C.Energy[id];
 
     #ifdef MHD
             auto const [magnetic_x, magnetic_y, magnetic_z] =
@@ -2322,7 +2322,7 @@ void Grid3D::Read_Grid(struct Parameters P)
   Read_Grid_HDF5(file_id, P);
 
   // close the file
-  status                = H5Fclose(file_id);
+  status = H5Fclose(file_id);
 #endif  // BINARY or HDF5
 }
 
@@ -2812,7 +2812,7 @@ std::string FnameTemplate::format_fname(int nfile, const std::string &pre_extens
 #ifdef MPI_CHOLLA
   int file_proc_id = procID;
 #else
-  int file_proc_id      = 0;
+  int file_proc_id = 0;
 #endif
   return format_fname(nfile, file_proc_id, pre_extension_suffix);
 }

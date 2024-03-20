@@ -334,7 +334,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *Q_Lx, R
     pot_rr = dev_potential[id_rr];
     gx     = -1 * (-pot_rr + 8 * pot_r - 8 * pot_l + pot_ll) / (12 * dx);
   #else
-    gx      = -0.5 * (pot_r - pot_l) / dx;
+    gx = -0.5 * (pot_r - pot_l) / dx;
   #endif
 
     // Get Y componet of gravity field
@@ -349,7 +349,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *Q_Lx, R
     pot_rr = dev_potential[id_rr];
     gy     = -1 * (-pot_rr + 8 * pot_r - 8 * pot_l + pot_ll) / (12 * dx);
   #else
-    gy      = -0.5 * (pot_r - pot_l) / dy;
+    gy = -0.5 * (pot_r - pot_l) / dy;
   #endif
     // Get Z componet of gravity field
     id_l  = (xid) + (yid)*nx + (zid - 1) * nx * ny;
@@ -363,7 +363,7 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *Q_Lx, R
     pot_rr = dev_potential[id_rr];
     gz     = -1 * (-pot_rr + 8 * pot_r - 8 * pot_l + pot_ll) / (12 * dx);
   #else
-    gz      = -0.5 * (pot_r - pot_l) / dz;
+    gz = -0.5 * (pot_r - pot_l) / dz;
   #endif
 
     // Add gravity term to Momentum

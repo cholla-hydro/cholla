@@ -228,7 +228,7 @@ void Grid3D::Update_Chemistry()
   #ifdef COSMOLOGY
   Chem.H.current_z = Cosmo.current_z;
   #else
-  Chem.H.current_z          = 0;
+  Chem.H.current_z = 0;
   #endif
 
   Do_Chemistry_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, Chem.H);
