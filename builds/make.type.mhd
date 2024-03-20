@@ -47,6 +47,3 @@ DFLAGS    += $(MPI_GPU)
 
 # NOTE: The following macros are to help facilitate debugging and should not be
 # used on scientific runs
-
-# Limit the number of steps to evolve.
-# DFLAGS += -DN_STEPS_LIMIT=1000

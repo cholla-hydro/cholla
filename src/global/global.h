@@ -212,6 +212,7 @@ struct Parameters {
 #endif
   bool output_always      = false;
   bool legacy_flat_outdir = false;
+  int n_steps_limit       = -1;  // Note that negative values indicate that there is no limit
 #ifdef STATIC_GRAV
   int custom_grav = 0;  // flag to set specific static gravity field
 #endif

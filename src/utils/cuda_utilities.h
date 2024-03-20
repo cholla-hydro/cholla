@@ -119,6 +119,12 @@ struct AutomaticLaunchParams {
   /// Defaulted Destructor
   ~AutomaticLaunchParams() = default;
 
+  /// Getter for threadsPerBlock
+  int get_threadsPerBlock() const { return threadsPerBlock; }
+  /// Getter for numBlocks
+  int get_numBlocks() const { return numBlocks; }
+
+ private:
   /// The maximum number of threads per block that the device supports
   int threadsPerBlock;
   /// The maximum number of scheduleable blocks on the device

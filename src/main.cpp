@@ -363,15 +363,13 @@ int main(int argc, char *argv[])
     G.Timer.n_steps += 1;
 #endif
 
-#ifdef N_STEPS_LIMIT
     // Exit the loop when reached the limit number of steps (optional)
-    if (G.H.n_step == N_STEPS_LIMIT) {
-  #ifdef OUTPUT
+    if (G.H.n_step >= P.n_steps_limit and P.n_steps_limit > 0) {
+#ifdef OUTPUT
       Write_Data(G, P, nfile);
-  #endif  // OUTPUT
+#endif  // OUTPUT
       break;
     }
-#endif
 
 #ifdef COSMOLOGY
     // Exit the loop when reached the last scale_factor output
