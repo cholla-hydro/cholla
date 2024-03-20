@@ -7,12 +7,25 @@
 
 #include "../global/global.h"
 
-/*! \fn Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real
- * *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int
- * n_fields) \brief Exact Riemann solver based on the Fortran code given in
- * Sec. 4.9 of Toro (1999). */
-__global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny,
-                                            int nz, int n_ghost, Real gamma, int dir, int n_fields);
+/*!
+ * \brief Exact Riemann solver based on the Fortran code given in Sec. 4.9 of Toro (1999).
+ *
+ * \tparam reconstruction What kind of reconstruction to use, PCM, PLMC, etc. This argument should always be a
+ * member of the reconstruction::Kind enum, behaviour is undefined otherwise.
+ * \tparam direction The direction that the solve is taking place in. 0=X, 1=Y, 2=Z
+ * \param[in]  dev_bounds_L The interface states on the left side of the
+ * interface
+ * \param[in]  dev_bounds_R The interface states on the right side of
+ * the interface
+ * \param[out] dev_flux The output flux
+ * \param[in]  n_cells Total number of cells
+ * \param[in]  n_ghost Number of ghost cells on each side
+ * \param[in]  n_fields The total number of fields
+ */
+template <int reconstruction, uint direction>
+__global__ void Calculate_Exact_Fluxes_CUDA(Real const *dev_conserved, Real const *dev_bounds_L,
+                                            Real const *dev_bounds_R, Real *dev_flux, int const nx, int const ny,
+                                            int const nz, int const n_cells, Real const gamma, int const n_fields);
 
 __device__ Real guessp_CUDA(Real dl, Real vxl, Real pl, Real cl, Real dr, Real vxr, Real pr, Real cr, Real gamma);
 

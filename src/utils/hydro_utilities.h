@@ -13,6 +13,7 @@
 // Local Includes
 #include "../global/global.h"
 #include "../global/global_cuda.h"
+#include "../utils/basic_structs.h"
 #include "../utils/gpu.hpp"
 #include "../utils/math_utilities.h"
 #include "../utils/mhd_utilities.h"
@@ -30,7 +31,6 @@
 
 namespace hydro_utilities
 {
-
 inline __host__ __device__ Real Calc_Pressure_Primitive(Real const &E, Real const &d, Real const &vx, Real const &vy,
                                                         Real const &vz, Real const &gamma, Real const &magnetic_x = 0.0,
                                                         Real const &magnetic_y = 0.0, Real const &magnetic_z = 0.0)
@@ -210,5 +210,215 @@ inline __host__ __device__ Real Calc_Sound_Speed(Real const &P, Real const &d, R
 {
   return sqrt(gamma * P / d);
 }
+
+// =====================================================================================================================
+/*!
+ * \brief Load the conserved variables from a single cell. Note that with MHD this returns cell-centered magnetic
+ * fields, not face centered fields.
+ *
+ * \tparam dir The direction to load the data in. i.e. which direction is the cell x, y, and z. If dir = 0 then local
+ * xyz is the same as the true xyz. If dir = 1 then local xyz is true yzx, for dir = 2 then local xyz is true zxy. This
+ * option is so that the reconstructors, and any other split kernels, can load data that is in the appropriated
+ * direction for that kernel.
+ * \param[in] dev_conserved The pointer to the conserved variable array
+ * \param[in] xid The index for the x location
+ * \param[in] yid The index for the y location
+ * \param[in] zid The index for the z location
+ * \param[in] nx The total number of cells in the x direction
+ * \param[in] ny The total number of cells in the y direction
+ * \param[in] n_cells The total number of cells
+ * \return Conserved The cell centered conserved variables in the cell at location xid, yid, zid.
+ */
+template <size_t dir = 0>
+inline __host__ __device__ Conserved Load_Cell_Conserved(Real const *dev_conserved, size_t const xid, size_t const yid,
+                                                         size_t const zid, size_t const nx, size_t const ny,
+                                                         size_t const n_cells)
+{
+  // First, check that our direction is correct
+  static_assert((0 <= dir) and (dir <= 2), "dir is not in the proper range");
+
+  // Compute index
+  size_t const cell_id = cuda_utilities::compute1DIndex(xid, yid, zid, nx, ny);
+
+  // Load all the data
+  Conserved loaded_data;
+
+  // Hydro variables
+  loaded_data.density    = dev_conserved[cell_id + n_cells * grid_enum::density];
+  loaded_data.momentum.x = dev_conserved[cell_id + n_cells * grid_enum::momentum_x];
+  loaded_data.momentum.y = dev_conserved[cell_id + n_cells * grid_enum::momentum_y];
+  loaded_data.momentum.z = dev_conserved[cell_id + n_cells * grid_enum::momentum_z];
+  loaded_data.energy     = dev_conserved[cell_id + n_cells * grid_enum::Energy];
+
+#ifdef MHD
+  // These are all cell centered values
+  loaded_data.magnetic = mhd::utils::cellCenteredMagneticFields(dev_conserved, cell_id, xid, yid, zid, n_cells, nx, ny);
+#endif  // MHD
+
+#ifdef DE
+  loaded_data.gas_energy = dev_conserved[cell_id + n_cells * grid_enum::GasEnergy];
+#endif  // DE
+
+#ifdef SCALAR
+  for (size_t i = 0; i < grid_enum::nscalars; i++) {
+    loaded_data.scalar[i] = dev_conserved[cell_id + n_cells * (grid_enum::scalar + i)];
+  }
+#endif  // SCALAR
+
+  // Now that all the data is loaded, let's sort out the direction
+  // if constexpr(dir == 0) in this case everything is already set so we'll skip this case
+  if constexpr (dir == 1) {
+    math_utils::Cyclic_Permute_Once(loaded_data.momentum);
+#ifdef MHD
+    math_utils::Cyclic_Permute_Once(loaded_data.magnetic);
+#endif  // MHD
+  } else if constexpr (dir == 2) {
+    math_utils::Cyclic_Permute_Twice(loaded_data.momentum);
+#ifdef MHD
+    math_utils::Cyclic_Permute_Twice(loaded_data.magnetic);
+#endif  // MHD
+  }
+
+  return loaded_data;
+}
+// =====================================================================================================================
+
+// =====================================================================================================================
+/*!
+ * \brief Convert Conserved cell centered variables to primitive variables
+ *
+ * \param conserved_in The conserved variables to convert
+ * \param gamma The adiabatic index
+ * \return Primitive The cell centered primitive variables
+ */
+__inline__ __host__ __device__ Primitive Conserved_2_Primitive(Conserved const &conserved_in, Real const gamma)
+{
+  Primitive output;
+
+  // First the easy ones
+  output.density    = conserved_in.density;
+  output.velocity.x = conserved_in.momentum.x / conserved_in.density;
+  output.velocity.y = conserved_in.momentum.y / conserved_in.density;
+  output.velocity.z = conserved_in.momentum.z / conserved_in.density;
+
+#ifdef MHD
+  output.magnetic.x = conserved_in.magnetic.x;
+  output.magnetic.y = conserved_in.magnetic.y;
+  output.magnetic.z = conserved_in.magnetic.z;
+#endif  // MHD
+
+#ifdef DE
+  output.gas_energy_specific = conserved_in.gas_energy / conserved_in.density;
+#endif  // DE
+
+#ifdef SCALAR
+  for (size_t i = 0; i < grid_enum::nscalars; i++) {
+    output.scalar_specific[i] = conserved_in.scalar[i] / conserved_in.density;
+  }
+#endif  // SCALAR
+
+// Now that the easy ones are done let's figure out the pressure
+#ifdef DE  // DE
+  Real E_non_thermal = hydro_utilities::Calc_Kinetic_Energy_From_Velocity(output.density, output.velocity.x,
+                                                                          output.velocity.y, output.velocity.z);
+
+  #ifdef MHD
+  E_non_thermal += mhd::utils::computeMagneticEnergy(output.magnetic.x, output.magnetic.y, output.magnetic.z);
+  #endif  // MHD
+
+  output.pressure = hydro_utilities::Get_Pressure_From_DE(conserved_in.energy, conserved_in.energy - E_non_thermal,
+                                                          conserved_in.gas_energy, gamma);
+#else  // not DE
+  #ifdef MHD
+  output.pressure = hydro_utilities::Calc_Pressure_Primitive(
+      conserved_in.energy, conserved_in.density, output.velocity.x, output.velocity.y, output.velocity.z, gamma,
+      output.magnetic.x, output.magnetic.y, output.magnetic.z);
+  #else   // not MHD
+  output.pressure = hydro_utilities::Calc_Pressure_Primitive(
+      conserved_in.energy, conserved_in.density, output.velocity.x, output.velocity.y, output.velocity.z, gamma);
+  #endif  // MHD
+#endif    // DE
+
+  return output;
+}
+// =====================================================================================================================
+
+// =====================================================================================================================
+/*!
+ * \brief Convert primitive cell centered variables to conserved variables
+ *
+ * \param primitive_in The primitive variables to convert
+ * \param gamma The adiabatic index
+ * \return Conserved The cell centered conserved variables
+ */
+__inline__ __host__ __device__ Conserved Primitive_2_Conserved(Primitive const &primitive_in, Real const gamma)
+{
+  Conserved output;
+
+  // First the easy ones
+  output.density    = primitive_in.density;
+  output.momentum.x = primitive_in.velocity.x * primitive_in.density;
+  output.momentum.y = primitive_in.velocity.y * primitive_in.density;
+  output.momentum.z = primitive_in.velocity.z * primitive_in.density;
+
+#ifdef MHD
+  output.magnetic.x = primitive_in.magnetic.x;
+  output.magnetic.y = primitive_in.magnetic.y;
+  output.magnetic.z = primitive_in.magnetic.z;
+#endif  // MHD
+
+#ifdef DE
+  output.gas_energy = primitive_in.gas_energy_specific * primitive_in.density;
+#endif  // DE
+
+#ifdef SCALAR
+  for (size_t i = 0; i < grid_enum::nscalars; i++) {
+    output.scalar[i] = primitive_in.scalar_specific[i] * primitive_in.density;
+  }
+#endif  // SCALAR
+
+// Now that the easy ones are done let's figure out the energy
+#ifdef MHD
+  output.energy = hydro_utilities::Calc_Energy_Primitive(
+      primitive_in.pressure, primitive_in.density, primitive_in.velocity.x, primitive_in.velocity.y,
+      primitive_in.velocity.z, gamma, primitive_in.magnetic.x, primitive_in.magnetic.y, primitive_in.magnetic.z);
+#else   // not MHD
+  output.energy =
+      hydro_utilities::Calc_Energy_Primitive(primitive_in.pressure, primitive_in.density, primitive_in.velocity.x,
+                                             primitive_in.velocity.y, primitive_in.velocity.z, gamma);
+#endif  // MHD
+
+  return output;
+}
+// =====================================================================================================================
+
+// =====================================================================================================================
+/*!
+ * \brief Load the primitive variables from a single cell. Note that with MHD this returns cell-centered magnetic
+ * fields, not face centered fields.
+ *
+ * \tparam dir The direction to load the data in. i.e. which direction is the cell x, y, and z. If dir = 0 then local
+ * xyz is the same as the true xyz. If dir = 1 then local xyz is true yzx, for dir = 2 then local xyz is true zxy. This
+ * option is so that the reconstructors, and any other split kernels, can load data that is in the appropriated
+ * direction for that kernel.
+ * \param[in] dev_conserved The pointer to the conserved variable array
+ * \param[in] xid The index for the x location
+ * \param[in] yid The index for the y location
+ * \param[in] zid The index for the z location
+ * \param[in] nx The total number of cells in the x direction
+ * \param[in] ny The total number of cells in the y direction
+ * \param[in] n_cells The total number of cells
+ * \param[in] gamma The adiabatic index
+ * \return Primitive The cell centered conserved variables in the cell at location xid, yid, zid.
+ */
+template <size_t dir = 0>
+inline __host__ __device__ Primitive Load_Cell_Primitive(Real const *dev_conserved, size_t const xid, size_t const yid,
+                                                         size_t const zid, size_t const nx, size_t const ny,
+                                                         size_t const n_cells, Real const gamma)
+{
+  Conserved const conserved_cell = Load_Cell_Conserved<dir>(dev_conserved, xid, yid, zid, nx, ny, n_cells);
+  return Conserved_2_Primitive(conserved_cell, gamma);
+}
+// =====================================================================================================================
 
 }  // namespace hydro_utilities

@@ -5,31 +5,23 @@
 
 #include "../global/global.h"
 #include "../global/global_cuda.h"
+#include "../reconstruction/reconstruction.h"
 #include "../riemann_solvers/roe_cuda.h"
 #include "../utils/gpu.hpp"
+#include "../utils/hydro_utilities.h"
 
-#ifdef DE  // PRESSURE_DE
-  #include "../utils/hydro_utilities.h"
-#endif
-
-/*! \fn Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real
- * *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, Real *dev_etah,
- * int dir, int n_fields) \brief Roe Riemann solver based on the version
- * described in Stone et al, 2008. */
-__global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real *dev_flux, int nx, int ny,
-                                          int nz, int n_ghost, Real gamma, int dir, int n_fields)
+template <int reconstruction, uint direction>
+__global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R,
+                                          Real *dev_flux, int const nx, int const ny, int const nz, int const n_cells,
+                                          Real const gamma, int const n_fields)
 {
   // get a thread index
   int blockId = blockIdx.x + blockIdx.y * gridDim.x;
   int tid     = threadIdx.x + blockId * blockDim.x;
-  int zid     = tid / (nx * ny);
-  int yid     = (tid - zid * nx * ny) / nx;
-  int xid     = tid - zid * nx * ny - yid * nx;
+  int xid, yid, zid;
+  cuda_utilities::compute3DIndices(tid, nx, ny, xid, yid, zid);
 
-  int n_cells = nx * ny * nz;
-
-  Real dl, vxl, mxl, vyl, myl, vzl, mzl, pl, El;
-  Real dr, vxr, mxr, vyr, myr, vzr, mzr, pr, Er;
+  reconstruction::InterfaceState left_state, right_state;
 
   Real etah = 0.0;
   Real g1   = gamma - 1.0;
@@ -46,111 +38,131 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
   sum_0 = sum_1 = sum_2 = sum_3 = sum_4 = 0.0;
   Real test0, test1, test2, test3, test4;
   int hlle_flag = 0;
-#ifdef DE
-  Real dgel, gel, dger, ger, f_ge_l, f_ge_r, E_kin;
-#endif
+
 #ifdef SCALAR
-  Real dscalarl[NSCALARS], scalarl[NSCALARS], dscalarr[NSCALARS], scalarr[NSCALARS], f_scalar_l[NSCALARS],
-      f_scalar_r[NSCALARS];
+  Real dscalarl[NSCALARS], dscalarr[NSCALARS], f_scalar_l[NSCALARS], f_scalar_r[NSCALARS];
 #endif
 
   int o1, o2, o3;
-  if (dir == 0) {
+  if constexpr (direction == 0) {
     o1 = 1;
     o2 = 2;
     o3 = 3;
   }
-  if (dir == 1) {
+  if constexpr (direction == 1) {
     o1 = 2;
     o2 = 3;
     o3 = 1;
   }
-  if (dir == 2) {
+  if constexpr (direction == 2) {
     o1 = 3;
     o2 = 1;
     o3 = 2;
   }
 
-  // Each thread executes the solver independently
-  if (xid < nx && yid < ny && zid < nz) {
-    // retrieve conserved variables
-    dl  = dev_bounds_L[tid];
-    mxl = dev_bounds_L[o1 * n_cells + tid];
-    myl = dev_bounds_L[o2 * n_cells + tid];
-    mzl = dev_bounds_L[o3 * n_cells + tid];
-    El  = dev_bounds_L[4 * n_cells + tid];
+  // Thread guard to avoid overrun
+  if (not reconstruction::Riemann_Thread_Guard<reconstruction>(nx, ny, nz, xid, yid, zid)) {
+    // =========================
+    // Load the interface states
+    // =========================
+
+    // Check if the reconstruction chosen is implemented as a device function yet
+    if constexpr (reconstruction == reconstruction::Kind::pcm) {
+      reconstruction::Reconstruct_Interface_States<reconstruction, direction>(dev_conserved, xid, yid, zid, nx, ny,
+                                                                              n_cells, gamma, left_state, right_state);
+    } else {
+      // retrieve conserved variables
+      left_state.density    = dev_bounds_L[tid];
+      left_state.momentum.x = dev_bounds_L[o1 * n_cells + tid];
+      left_state.momentum.y = dev_bounds_L[o2 * n_cells + tid];
+      left_state.momentum.z = dev_bounds_L[o3 * n_cells + tid];
+      left_state.energy     = dev_bounds_L[4 * n_cells + tid];
 #ifdef SCALAR
-    for (int i = 0; i < NSCALARS; i++) {
-      dscalarl[i] = dev_bounds_L[(5 + i) * n_cells + tid];
-    }
+      for (int i = 0; i < NSCALARS; i++) {
+        dscalarl[i] = dev_bounds_L[(5 + i) * n_cells + tid];
+      }
 #endif
 #ifdef DE
-    dgel = dev_bounds_L[(n_fields - 1) * n_cells + tid];
+      Real gas_energy_left = dev_bounds_L[(n_fields - 1) * n_cells + tid];
 #endif
 
-    dr  = dev_bounds_R[tid];
-    mxr = dev_bounds_R[o1 * n_cells + tid];
-    myr = dev_bounds_R[o2 * n_cells + tid];
-    mzr = dev_bounds_R[o3 * n_cells + tid];
-    Er  = dev_bounds_R[4 * n_cells + tid];
+      right_state.density    = dev_bounds_R[tid];
+      right_state.momentum.x = dev_bounds_R[o1 * n_cells + tid];
+      right_state.momentum.y = dev_bounds_R[o2 * n_cells + tid];
+      right_state.momentum.z = dev_bounds_R[o3 * n_cells + tid];
+      right_state.energy     = dev_bounds_R[4 * n_cells + tid];
 #ifdef SCALAR
-    for (int i = 0; i < NSCALARS; i++) {
-      dscalarr[i] = dev_bounds_R[(5 + i) * n_cells + tid];
-    }
+      for (int i = 0; i < NSCALARS; i++) {
+        dscalarr[i] = dev_bounds_R[(5 + i) * n_cells + tid];
+      }
 #endif
 #ifdef DE
-    dger = dev_bounds_R[(n_fields - 1) * n_cells + tid];
+      Real gas_energy_right = dev_bounds_R[(n_fields - 1) * n_cells + tid];
 #endif
 
-    // calculate primitive variables
-    vxl = mxl / dl;
-    vyl = myl / dl;
-    vzl = mzl / dl;
+      // calculate primitive variables
+      left_state.velocity.x = left_state.momentum.x / left_state.density;
+      left_state.velocity.y = left_state.momentum.y / left_state.density;
+      left_state.velocity.z = left_state.momentum.z / left_state.density;
 #ifdef DE  // PRESSURE_DE
-    E_kin = 0.5 * dl * (vxl * vxl + vyl * vyl + vzl * vzl);
-    pl    = hydro_utilities::Get_Pressure_From_DE(El, El - E_kin, dgel, gamma);
+      Real E_kin = 0.5 * left_state.density *
+                   (left_state.velocity.x * left_state.velocity.x + left_state.velocity.y * left_state.velocity.y +
+                    left_state.velocity.z * left_state.velocity.z);
+      left_state.pressure =
+          hydro_utilities::Get_Pressure_From_DE(left_state.energy, left_state.energy - E_kin, gas_energy_left, gamma);
 #else
-    pl = (El - 0.5 * dl * (vxl * vxl + vyl * vyl + vzl * vzl)) * (gamma - 1.0);
+      left_state.pressure = (left_state.energy - 0.5 * left_state.density *
+                                                     (left_state.velocity.x * left_state.velocity.x +
+                                                      left_state.velocity.y * left_state.velocity.y +
+                                                      left_state.velocity.z * left_state.velocity.z)) *
+                            (gamma - 1.0);
 #endif  // PRESSURE_DE
-    pl = fmax(pl, (Real)TINY_NUMBER);
+      left_state.pressure = fmax(left_state.pressure, (Real)TINY_NUMBER);
 #ifdef SCALAR
-    for (int i = 0; i < NSCALARS; i++) {
-      scalarl[i] = dscalarl[i] / dl;
-    }
+      for (int i = 0; i < NSCALARS; i++) {
+        left_state.scalar_specific[i] = dscalarl[i] / left_state.density;
+      }
 #endif
 #ifdef DE
-    gel = dgel / dl;
+      left_state.gas_energy_specific = gas_energy_left / left_state.density;
 #endif
-    vxr = mxr / dr;
-    vyr = myr / dr;
-    vzr = mzr / dr;
+      right_state.velocity.x = right_state.momentum.x / right_state.density;
+      right_state.velocity.y = right_state.momentum.y / right_state.density;
+      right_state.velocity.z = right_state.momentum.z / right_state.density;
 #ifdef DE  // PRESSURE_DE
-    E_kin = 0.5 * dr * (vxr * vxr + vyr * vyr + vzr * vzr);
-    pr    = hydro_utilities::Get_Pressure_From_DE(Er, Er - E_kin, dger, gamma);
+      E_kin = 0.5 * right_state.density *
+              (right_state.velocity.x * right_state.velocity.x + right_state.velocity.y * right_state.velocity.y +
+               right_state.velocity.z * right_state.velocity.z);
+      right_state.pressure = hydro_utilities::Get_Pressure_From_DE(right_state.energy, right_state.energy - E_kin,
+                                                                   gas_energy_right, gamma);
 #else
-    pr = (Er - 0.5 * dr * (vxr * vxr + vyr * vyr + vzr * vzr)) * (gamma - 1.0);
+      right_state.pressure = (right_state.energy - 0.5 * right_state.density *
+                                                       (right_state.velocity.x * right_state.velocity.x +
+                                                        right_state.velocity.y * right_state.velocity.y +
+                                                        right_state.velocity.z * right_state.velocity.z)) *
+                             (gamma - 1.0);
 #endif  // PRESSURE_DE
-    pr = fmax(pr, (Real)TINY_NUMBER);
+      right_state.pressure = fmax(right_state.pressure, (Real)TINY_NUMBER);
 #ifdef SCALAR
-    for (int i = 0; i < NSCALARS; i++) {
-      scalarr[i] = dscalarr[i] / dr;
-    }
+      for (int i = 0; i < NSCALARS; i++) {
+        right_state.scalar_specific[i] = dscalarr[i] / right_state.density;
+      }
 #endif
 #ifdef DE
-    ger = dger / dr;
+      right_state.gas_energy_specific = gas_energy_right / right_state.density;
 #endif
-
+    }
     // calculate the enthalpy in each cell
-    Hl = (El + pl) / dl;
-    Hr = (Er + pr) / dr;
+    Hl = (left_state.energy + left_state.pressure) / left_state.density;
+    Hr = (right_state.energy + right_state.pressure) / right_state.density;
 
     // calculate averages of the variables needed for the Roe Jacobian
     // (see Stone et al., 2008, Eqn 65, or Toro 2009, 11.118)
-    sqrtdl = sqrt(dl);
-    sqrtdr = sqrt(dr);
-    vx     = (sqrtdl * vxl + sqrtdr * vxr) / (sqrtdl + sqrtdr);
-    vy     = (sqrtdl * vyl + sqrtdr * vyr) / (sqrtdl + sqrtdr);
-    vz     = (sqrtdl * vzl + sqrtdr * vzr) / (sqrtdl + sqrtdr);
+    sqrtdl = sqrt(left_state.density);
+    sqrtdr = sqrt(right_state.density);
+    vx     = (sqrtdl * left_state.velocity.x + sqrtdr * right_state.velocity.x) / (sqrtdl + sqrtdr);
+    vy     = (sqrtdl * left_state.velocity.y + sqrtdr * right_state.velocity.y) / (sqrtdl + sqrtdr);
+    vz     = (sqrtdl * left_state.velocity.z + sqrtdr * right_state.velocity.z) / (sqrtdl + sqrtdr);
     H      = (sqrtdl * Hl + sqrtdr * Hr) / (sqrtdl + sqrtdr);
 
     // calculate the sound speed squared (Stone B2)
@@ -166,31 +178,31 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
 
     // calculate the fluxes for the left and right input states,
     // based on the average values in either cell
-    f_d_l  = mxl;
-    f_mx_l = mxl * vxl + pl;
-    f_my_l = mxl * vyl;
-    f_mz_l = mxl * vzl;
-    f_E_l  = (El + pl) * vxl;
+    f_d_l  = left_state.momentum.x;
+    f_mx_l = left_state.momentum.x * left_state.velocity.x + left_state.pressure;
+    f_my_l = left_state.momentum.x * left_state.velocity.y;
+    f_mz_l = left_state.momentum.x * left_state.velocity.z;
+    f_E_l  = (left_state.energy + left_state.pressure) * left_state.velocity.x;
 #ifdef DE
-    f_ge_l = mxl * gel;
+    Real f_ge_l = left_state.momentum.x * left_state.gas_energy_specific;
 #endif
 #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
-      f_scalar_l[i] = mxl * scalarl[i];
+      f_scalar_l[i] = left_state.momentum.x * left_state.scalar_specific[i];
     }
 #endif
 
-    f_d_r  = mxr;
-    f_mx_r = mxr * vxr + pr;
-    f_my_r = mxr * vyr;
-    f_mz_r = mxr * vzr;
-    f_E_r  = (Er + pr) * vxr;
+    f_d_r  = right_state.momentum.x;
+    f_mx_r = right_state.momentum.x * right_state.velocity.x + right_state.pressure;
+    f_my_r = right_state.momentum.x * right_state.velocity.y;
+    f_mz_r = right_state.momentum.x * right_state.velocity.z;
+    f_E_r  = (right_state.energy + right_state.pressure) * right_state.velocity.x;
 #ifdef DE
-    f_ge_r = mxr * ger;
+    Real f_ge_r = right_state.momentum.x * right_state.gas_energy_specific;
 #endif
 #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
-      f_scalar_r[i] = mxr * scalarr[i];
+      f_scalar_r[i] = right_state.momentum.x * right_state.scalar_specific[i];
     }
 #endif
 
@@ -230,11 +242,11 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
     else {
       // calculate the difference in conserved variables across the cell
       // interface Stone Eqn 68
-      del_d  = dr - dl;
-      del_mx = mxr - mxl;
-      del_my = myr - myl;
-      del_mz = mzr - mzl;
-      del_E  = Er - El;
+      del_d  = right_state.density - left_state.density;
+      del_mx = right_state.momentum.x - left_state.momentum.x;
+      del_my = right_state.momentum.y - left_state.momentum.y;
+      del_mz = right_state.momentum.z - left_state.momentum.z;
+      del_E  = right_state.energy - left_state.energy;
 
       // evaluate the flux function (Stone Eqn 66 & 67, Toro Eqn 11.29)
 
@@ -281,11 +293,11 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
 
       // if density or pressure is negative, compute the HLLE fluxes
       // test intermediate states
-      test0 = dl + a0;
-      test1 = mxl + a0 * (vx - a);
-      test2 = myl + a0 * vy;
-      test3 = mzl + a0 * vz;
-      test4 = El + a0 * (H - vx * a);
+      test0 = left_state.density + a0;
+      test1 = left_state.momentum.x + a0 * (vx - a);
+      test2 = left_state.momentum.y + a0 * vy;
+      test3 = left_state.momentum.z + a0 * vz;
+      test4 = left_state.energy + a0 * (H - vx * a);
 
       if (lambda_0 > lambda_m) {
         if (test0 <= 0.0) {
@@ -317,38 +329,38 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
         Real cfl, cfr, bm, bp, tmp;
 
         // compute max and fmin wave speeds
-        cfl = sqrt(gamma * pl / dl);  // sound speed in left state
-        cfr = sqrt(gamma * pr / dr);  // sound speed in right state
+        cfl = sqrt(gamma * left_state.pressure / left_state.density);    // sound speed in left state
+        cfr = sqrt(gamma * right_state.pressure / right_state.density);  // sound speed in right state
 
         // take max/fmin of Roe eigenvalues and left and right sound speeds
-        bm = fmin(fmin(lambda_m, vxl - cfl), (Real)0.0);
-        bp = fmax(fmax(lambda_p, vxr + cfr), (Real)0.0);
+        bm = fmin(fmin(lambda_m, left_state.velocity.x - cfl), (Real)0.0);
+        bp = fmax(fmax(lambda_p, right_state.velocity.x + cfr), (Real)0.0);
 
         // compute left and right fluxes
-        f_d_l = mxl - bm * dl;
-        f_d_r = mxr - bp * dr;
+        f_d_l = left_state.momentum.x - bm * left_state.density;
+        f_d_r = right_state.momentum.x - bp * right_state.density;
 
-        f_mx_l = mxl * (vxl - bm) + pl;
-        f_mx_r = mxr * (vxr - bp) + pr;
+        f_mx_l = left_state.momentum.x * (left_state.velocity.x - bm) + left_state.pressure;
+        f_mx_r = right_state.momentum.x * (right_state.velocity.x - bp) + right_state.pressure;
 
-        f_my_l = myl * (vxl - bm);
-        f_my_r = myr * (vxr - bp);
+        f_my_l = left_state.momentum.y * (left_state.velocity.x - bm);
+        f_my_r = right_state.momentum.y * (right_state.velocity.x - bp);
 
-        f_mz_l = mzl * (vxl - bm);
-        f_mz_r = mzr * (vxr - bp);
+        f_mz_l = left_state.momentum.z * (left_state.velocity.x - bm);
+        f_mz_r = right_state.momentum.z * (right_state.velocity.x - bp);
 
-        f_E_l = El * (vxl - bm) + pl * vxl;
-        f_E_r = Er * (vxr - bp) + pr * vxr;
+        f_E_l = left_state.energy * (left_state.velocity.x - bm) + left_state.pressure * left_state.velocity.x;
+        f_E_r = right_state.energy * (right_state.velocity.x - bp) + right_state.pressure * right_state.velocity.x;
 
 #ifdef DE
-        f_ge_l = dgel * (vxl - bm);
-        f_ge_r = dger * (vxr - bp);
+        f_ge_l = left_state.gas_energy_specific * left_state.density * (left_state.velocity.x - bm);
+        f_ge_r = right_state.gas_energy_specific * right_state.density * (right_state.velocity.x - bp);
 #endif
 
 #ifdef SCALAR
         for (int i = 0; i < NSCALARS; i++) {
-          f_scalar_l[i] = dscalarl[i] * (vxl - bm);
-          f_scalar_r[i] = dscalarr[i] * (vxr - bp);
+          f_scalar_l[i] = dscalarl[i] * (left_state.velocity.x - bm);
+          f_scalar_r[i] = dscalarr[i] * (right_state.velocity.x - bp);
         }
 #endif
 
@@ -381,20 +393,43 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
 #ifdef SCALAR
         for (int i = 0; i < NSCALARS; i++) {
           if (dev_flux[tid] >= 0.0) {
-            dev_flux[(5 + i) * n_cells + tid] = dev_flux[tid] * scalarl[i];
+            dev_flux[(5 + i) * n_cells + tid] = dev_flux[tid] * left_state.scalar_specific[i];
           } else {
-            dev_flux[(5 + i) * n_cells + tid] = dev_flux[tid] * scalarr[i];
+            dev_flux[(5 + i) * n_cells + tid] = dev_flux[tid] * right_state.scalar_specific[i];
           }
         }
 #endif
 #ifdef DE
         if (dev_flux[tid] >= 0.0) {
-          dev_flux[(n_fields - 1) * n_cells + tid] = dev_flux[tid] * gel;
+          dev_flux[(n_fields - 1) * n_cells + tid] = dev_flux[tid] * left_state.gas_energy_specific;
         } else {
-          dev_flux[(n_fields - 1) * n_cells + tid] = dev_flux[tid] * ger;
+          dev_flux[(n_fields - 1) * n_cells + tid] = dev_flux[tid] * right_state.gas_energy_specific;
         }
 #endif
       }
     }
   }
 }
+
+// Instantiate the templates we need
+template __global__ void Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::pcm, 0>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
+    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+template __global__ void Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::pcm, 1>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
+    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+template __global__ void Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::pcm, 2>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
+    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+
+#ifndef PCM
+template __global__ void Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::chosen, 0>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
+    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+template __global__ void Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::chosen, 1>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
+    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+template __global__ void Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::chosen, 2>(
+    Real const *dev_conserved, Real const *dev_bounds_L, Real const *dev_bounds_R, Real *dev_flux, int const nx,
+    int const ny, int const nz, int const n_cells, Real const gamma, int const n_fields);
+#endif  // PCM

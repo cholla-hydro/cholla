@@ -12,11 +12,11 @@
   #include "../hydro/hydro_cuda.h"
   #include "../integrators/VL_1D_cuda.h"
   #include "../io/io.h"
-  #include "../reconstruction/pcm_cuda.h"
   #include "../reconstruction/plmc_cuda.h"
   #include "../reconstruction/plmp_cuda.h"
   #include "../reconstruction/ppmc_cuda.h"
   #include "../reconstruction/ppmp_cuda.h"
+  #include "../reconstruction/reconstruction.h"
   #include "../riemann_solvers/exact_cuda.h"
   #include "../riemann_solvers/hllc_cuda.h"
   #include "../riemann_solvers/roe_cuda.h"
@@ -59,24 +59,21 @@ void VL_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Rea
     memory_allocated = true;
   }
 
-  // Step 1: Use PCM reconstruction to put conserved variables into interface
-  // arrays
-  hipLaunchKernelGGL(PCM_Reconstruction_1D, dimGrid, dimBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, n_ghost, gama,
-                     n_fields);
-  GPU_Error_Check();
+  // Step 1: Use PCM reconstruction to put conserved variables into interface arrays
+  // This step has been fused into the Riemann solver kernels
 
   // Step 2: Calculate first-order upwind fluxes
   #ifdef EXACT
-  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama,
-                     0, n_fields);
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Exact_Fluxes_CUDA<reconstruction::Kind::pcm, 0>), dimGrid, dimBlock, 0,
+                     0, dev_conserved, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, n_fields);
   #endif
   #ifdef ROE
-  hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0,
-                     n_fields);
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::pcm, 0>), dimGrid, dimBlock, 0, 0,
+                     dev_conserved, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, n_fields);
   #endif
   #ifdef HLLC
-  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0,
-                     n_fields);
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLLC_Fluxes_CUDA<reconstruction::Kind::pcm, 0>), dimGrid, dimBlock, 0, 0,
+                     dev_conserved, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, n_fields);
   #endif
   GPU_Error_Check();
 
@@ -85,14 +82,9 @@ void VL_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Rea
                      F_x, n_cells, n_ghost, dx, 0.5 * dt, gama, n_fields);
   GPU_Error_Check();
 
-  // Step 4: Construct left and right interface values using updated conserved
-  // variables
-  #ifdef PCM
-  hipLaunchKernelGGL(PCM_Reconstruction_1D, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, n_ghost, gama,
-                     n_fields);
-  #endif
+  // Step 4: Construct left and right interface values using updated conserved variables
   #ifdef PLMC
-  hipLaunchKernelGGL(PLMC_cuda, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, dx, dt, gama, 0,
+  hipLaunchKernelGGL(PLMC_cuda<0>, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, dx, dt, gama,
                      n_fields);
   #endif
   #ifdef PLMP
@@ -104,22 +96,22 @@ void VL_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Rea
                      gama, 0, n_fields);
   #endif
   #ifdef PPMC
-  hipLaunchKernelGGL(PPMC_VL, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, gama, 0);
+  hipLaunchKernelGGL(PPMC_VL<0>, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, gama);
   #endif
   GPU_Error_Check();
 
   // Step 5: Calculate the fluxes again
   #ifdef EXACT
-  hipLaunchKernelGGL(Calculate_Exact_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama,
-                     0, n_fields);
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Exact_Fluxes_CUDA<reconstruction::Kind::chosen, 0>), dimGrid, dimBlock,
+                     0, 0, dev_conserved_half, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, n_fields);
   #endif
   #ifdef ROE
-  hipLaunchKernelGGL(Calculate_Roe_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0,
-                     n_fields);
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_Roe_Fluxes_CUDA<reconstruction::Kind::chosen, 0>), dimGrid, dimBlock, 0,
+                     0, dev_conserved_half, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, n_fields);
   #endif
   #ifdef HLLC
-  hipLaunchKernelGGL(Calculate_HLLC_Fluxes_CUDA, dimGrid, dimBlock, 0, 0, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_ghost, gama, 0,
-                     n_fields);
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(Calculate_HLLC_Fluxes_CUDA<reconstruction::Kind::chosen, 0>), dimGrid, dimBlock, 0,
+                     0, dev_conserved_half, Q_Lx, Q_Rx, F_x, nx, ny, nz, n_cells, gama, n_fields);
   #endif
   GPU_Error_Check();
 

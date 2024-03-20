@@ -69,7 +69,7 @@ void Check_Configuration(Parameters const& P)
   Check_Boundary(P.zu_bcnd, "zu_bcnd");
 
   // warn if error checking is disabled
-#ifndef DISABLE_GPU_ERROR_CHECKING
+#ifdef DISABLE_GPU_ERROR_CHECKING
   // NOLINTNEXTLINE(clang-diagnostic-#warnings)
   #warning "CUDA error checking is disabled. Enable it by compiling without the DISABLE_GPU_ERROR_CHECKING macro."
 #endif  //! DISABLE_GPU_ERROR_CHECKING
