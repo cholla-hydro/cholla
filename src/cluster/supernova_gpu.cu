@@ -28,20 +28,16 @@ int n_cluster;
 
 }  // namespace Supernova
 
-
-__device__ double atomicMax(double* address, double val)
+__device__ double atomicMax(double *address, double val)
 {
-  unsigned long long int* address_as_ull = (unsigned long long int*)address;
-  unsigned long long int old = *address_as_ull, assumed;
+  unsigned long long int *address_as_ull = (unsigned long long int *)address;
+  unsigned long long int old             = *address_as_ull, assumed;
   do {
     assumed = old;
-    old = atomicCAS(address_as_ull, assumed,
-                    __double_as_longlong(fmax(val, __longlong_as_double(assumed)))
-                    );
+    old     = atomicCAS(address_as_ull, assumed, __double_as_longlong(fmax(val, __longlong_as_double(assumed))));
   } while (assumed != old);
   return __longlong_as_double(old);
 }
-
 
 __device__ Real Calc_Timestep(Real *hydro_dev, int gidx, int n_cells, Real gamma, Real dx, Real dy, Real dz)
 {
