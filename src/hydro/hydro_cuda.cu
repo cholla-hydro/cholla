@@ -639,7 +639,7 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
     vz    = dev_conserved[3 * n_cells + id] * d_inv;
     E     = dev_conserved[4 * n_cells + id];
 
-  // Compute the maximum inverse crossing time in the cell
+    // Compute the maximum inverse crossing time in the cell
     max_dti = hydroInverseCrossingTime(E, d, d_inv, vx, vy, vz, dx, dy, dz, gamma);
 
     if (max_dti > max_dti_slow) {
