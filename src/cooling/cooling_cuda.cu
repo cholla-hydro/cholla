@@ -103,10 +103,10 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   #endif
   #ifdef BASIC_SCALAR
     c = dev_conserved[grid_enum::basic_scalar * n_cells + id] / d;
-  #endif
 
     // don't apply cooling to pure halo gas (to prevent initial collapse)
     if (c > 0.1000001) {
+  #endif
       // calculate the number density of the gas (in cgs)
       n = d * DENSITY_UNIT / (mu * MP);
 
@@ -173,7 +173,9 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   #ifdef DE
       dev_conserved[(n_fields - 1) * n_cells + id] = d * ge;
   #endif
+  #ifdef BASIC_SCALAR
     }
+  #endif
   }
 }
 
