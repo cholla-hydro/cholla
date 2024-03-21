@@ -622,9 +622,6 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
   int id, xid, yid, zid, n_cells;
   Real d, d_inv, vx, vy, vz, E, max_dti;
   Real speed, temp, P, cs;
-  #ifdef MHD
-  Real avgBx, avgBy, avgBz;
-  #endif  // MHD
 
   // get a global thread ID
   id      = threadIdx.x + blockIdx.x * blockDim.x;
@@ -642,17 +639,8 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
     vz    = dev_conserved[3 * n_cells + id] * d_inv;
     E     = dev_conserved[4 * n_cells + id];
 
-  #ifdef MHD
-    // Compute the cell centered magnetic field using a straight average of the faces
-    mhdUtils::cellCenteredMagneticFields(dev_conserved, id, xid, yid, zid, n_cells, nx, ny, avgBx, avgBy, avgBz);
-  #endif  // MHD
-
   // Compute the maximum inverse crossing time in the cell
-  #ifdef MHD
-    max_dti = mhdInverseCrossingTime(E, d, d_inv, vx, vy, vz, avgBx, avgBy, avgBz, dx, dy, dz, gamma);
-  #else   // not MHD
     max_dti = hydroInverseCrossingTime(E, d, d_inv, vx, vy, vz, dx, dy, dz, gamma);
-  #endif  // MHD
 
     if (max_dti > max_dti_slow) {
       speed = sqrt(vx * vx + vy * vy + vz * vz);

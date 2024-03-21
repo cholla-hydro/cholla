@@ -82,12 +82,6 @@ typedef double Real;
   #define N_MHD_FIELDS 0
 #endif  // MHD
 
-#ifdef MHD
-  #define N_MHD_FIELDS 3
-#else
-  #define N_MHD_FIELDS 0
-#endif  // MHD
-
 // Inital Chemistry fractions
 #define INITIAL_FRACTION_HI       0.75984603480
 #define INITIAL_FRACTION_HII      1.53965115054e-4

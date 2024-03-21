@@ -175,9 +175,6 @@ void Grid3D::Set_Boundaries(int dir, int flags[])
   int *iaBoundary, *iaCell;
 
   /*if the cell face is an custom boundary, exit */
-  if (flags[dir] == 4) return;
-
-  /*if the cell face is an custom boundary, exit */
   if (flags[dir] == 4) {
     return;
   }
