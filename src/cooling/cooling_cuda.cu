@@ -122,7 +122,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   #ifdef CLOUDY_COOL
       cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
   #else
-      cool = CIE_cool(n, T);
+    cool = CIE_cool(n, T);
   #endif
 
       // calculate change in temperature given dt
@@ -140,7 +140,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   #ifdef CLOUDY_COOL
         cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
   #else
-        cool = CIE_cool(n, T);
+      cool = CIE_cool(n, T);
   #endif
         // calculate new change in temperature
         del_T = cool * dt * TIME_UNIT * (gamma - 1.0) / (n * KB);
@@ -164,7 +164,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   #ifdef CLOUDY_COOL
       cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
   #else
-      cool = CIE_cool(n, T);
+    cool = CIE_cool(n, T);
   // printf("%d %d %d %e %e %e\n", xid, yid, zid, n, T, cool);
   #endif
 
