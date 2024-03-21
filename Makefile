@@ -1,7 +1,7 @@
 SHELL = /usr/bin/env bash
 #-- Set default include makefile
 MACHINE ?= $(shell builds/machine.sh)
-TYPE    ?= m82
+TYPE    ?= hydro
 
 include builds/make.host.$(MACHINE)
 include builds/make.type.$(TYPE)

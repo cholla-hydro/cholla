@@ -526,22 +526,6 @@ void Grid3D::Riemann(Parameters const &P)
     kend   = H.nz;
   }
 
-#ifdef MHD
-  auto setMagnetFields = [&]() {
-    Real x_pos_face = x_pos + 0.5 * H.dx;
-
-    if (x_pos_face < diaph) {
-      C.magnetic_x[id] = Bx_l;
-      C.magnetic_y[id] = By_l;
-      C.magnetic_z[id] = Bz_l;
-    } else {
-      C.magnetic_x[id] = Bx_r;
-      C.magnetic_y[id] = By_r;
-      C.magnetic_z[id] = Bz_r;
-    }
-  };
-#endif  // MHD
-
   // set initial values of conserved variables
   for (size_t k = kstart; k < kend; k++) {
     for (size_t j = jstart; j < jend; j++) {
