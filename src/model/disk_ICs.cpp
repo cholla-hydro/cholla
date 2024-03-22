@@ -749,14 +749,14 @@ void Grid3D::Disk_3D(Parameters p)
   Real c;
 
   #ifdef PARTICLES
-    ClusteredDiskGalaxy galaxy = galaxies::MW;  // NOLINT(cppcoreguidelines-slicing)
+  ClusteredDiskGalaxy galaxy = galaxies::MW;  // NOLINT(cppcoreguidelines-slicing)
   #else
     #ifdef MW_MODEL
-    // MW model
-    DiskGalaxy galaxy = galaxies::MW;  // NOLINT(cppcoreguidelines-slicing)
+  // MW model
+  DiskGalaxy galaxy = galaxies::MW;  // NOLINT(cppcoreguidelines-slicing)
     #else
-    // M82 model
-    DiskGalaxy galaxy = galaxies::M82;  // NOLINT(cppcoreguidelines-slicing)
+  // M82 model
+  DiskGalaxy galaxy = galaxies::M82;  // NOLINT(cppcoreguidelines-slicing)
     #endif
   #endif
 
@@ -779,10 +779,10 @@ void Grid3D::Disk_3D(Parameters p)
   rho_eos_h = 3.0e3;  // gas eos normalized at 3e3 Msun/kpc^3 (about n_h = 10^-3.5)
   mu        = 0.6;
 
-  R_g = galaxy.getR_g();  // gas scale length in kpc
-  G_f = galaxy.getG_f();  // gas fraction (relative to stellar disk mass)
+  R_g     = galaxy.getR_g();                     // gas scale length in kpc
+  G_f     = galaxy.getG_f();                     // gas fraction (relative to stellar disk mass)
   Sigma_0 = G_f * M_d / (2 * M_PI * R_g * R_g);  // central surface density in Msun/kpc^2
-  H_g     = z_d;                                  // initial guess for gas scale height
+  H_g     = z_d;                                 // initial guess for gas scale height
   // rho_floor = 1.0e3; //ICs minimum density in Msun/kpc^3
 
   // EOS info

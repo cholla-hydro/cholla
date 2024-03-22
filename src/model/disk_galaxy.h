@@ -21,8 +21,8 @@ class DiskGalaxy
     M_d    = md;
     R_d    = rd;
     Z_d    = zd;
-    R_g    = rg; // gas disk scale length
-    G_f    = gf; // gas fraction (relative to stellar disk mass)
+    R_g    = rg;  // gas disk scale length
+    G_f    = gf;  // gas fraction (relative to stellar disk mass)
     M_vir  = mvir;
     R_vir  = rvir;
     c_vir  = cvir;
@@ -157,7 +157,8 @@ class ClusteredDiskGalaxy : public DiskGalaxy
   Real normalization;
 
  public:
-  ClusteredDiskGalaxy(Real lm, Real hm, Real md, Real rd, Real zd, Real rg, Real gf, Real mvir, Real rvir, Real cvir, Real rcool)
+  ClusteredDiskGalaxy(Real lm, Real hm, Real md, Real rd, Real zd, Real rg, Real gf, Real mvir, Real rvir, Real cvir,
+                      Real rcool)
       : DiskGalaxy{md, rd, zd, rg, gf, mvir, rvir, cvir, rcool}, lower_cluster_mass{lm}, higher_cluster_mass{hm}
   {
     // if (lower_cluster_mass >= higher_cluster_mass)
@@ -188,10 +189,10 @@ namespace galaxies
 {
 // all masses in M_sun and all distances in kpc
 #if defined(PARTICLES)
-  static ClusteredDiskGalaxy MW(1e4, 5e5, 6.5e10, 2.7, 0.7, 3.5, 0.15, 1.077e12, 261, 18, 157.0);
+static ClusteredDiskGalaxy MW(1e4, 5e5, 6.5e10, 2.7, 0.7, 3.5, 0.15, 1.077e12, 261, 18, 157.0);
 #else
-  static DiskGalaxy MW(6.5e10, 3.5, (3.5 / 5.0), 3.5, 0.15, 1.0e12, 261, 20, 157.0);
-  static DiskGalaxy M82(1.0e10, 0.8, 0.15, 1.6, 0.25, 5.0e10, 0.8 / 0.015, 10, 100.0);
+static DiskGalaxy MW(6.5e10, 3.5, (3.5 / 5.0), 3.5, 0.15, 1.0e12, 261, 20, 157.0);
+static DiskGalaxy M82(1.0e10, 0.8, 0.15, 1.6, 0.25, 5.0e10, 0.8 / 0.015, 10, 100.0);
 #endif
 };  // namespace galaxies
 
