@@ -262,3 +262,188 @@ TEST(tHYDROtMHDCalcKineticEnergyFromMomentum, CorrectInputExpectCorrectOutput)
     testing_utilities::Check_Results(fiducialEnergies.at(i), testEnergy, parameters.names.at(i));
   }
 }
+
+TEST(tALLLoadCellPrimitive, CorrectInputExpectCorrectOutput)
+{
+  // Set up test and mock up grid
+  size_t const nx = 3, ny = 3, nz = 3;
+  size_t const n_cells = nx * ny * nz;
+  size_t const xid = 1, yid = 1, zid = 1;
+  size_t const o1 = grid_enum::momentum_x, o2 = grid_enum::momentum_y, o3 = grid_enum::momentum_z;
+  Real const gamma = 5. / 3.;
+
+  std::vector<Real> conserved(n_cells * grid_enum::num_fields);
+  std::iota(conserved.begin(), conserved.end(), 0.0);
+
+  // Up the energy part of the grid to avoid negative pressure
+  for (size_t i = grid_enum::Energy * n_cells; i < (grid_enum::Energy + 1) * n_cells; i++) {
+    conserved.at(i) *= 5.0E2;
+  }
+
+  for (int direction = 0; direction < 3; direction++) {
+    // Get test data
+    hydro_utilities::Primitive test_data;
+
+    // Get the test data and permute the vector quantities back to the original order
+    switch (direction) {
+      case 0:
+        test_data = hydro_utilities::Load_Cell_Primitive<0>(conserved.data(), xid, yid, zid, nx, ny, n_cells, gamma);
+        break;
+      case 1:
+        test_data = hydro_utilities::Load_Cell_Primitive<1>(conserved.data(), xid, yid, zid, nx, ny, n_cells, gamma);
+        math_utils::Cyclic_Permute_Twice(test_data.velocity);
+#ifdef MHD
+        math_utils::Cyclic_Permute_Twice(test_data.magnetic);
+#endif  // MHD
+        break;
+      case 2:
+        test_data = hydro_utilities::Load_Cell_Primitive<2>(conserved.data(), xid, yid, zid, nx, ny, n_cells, gamma);
+        math_utils::Cyclic_Permute_Once(test_data.velocity);
+#ifdef MHD
+        math_utils::Cyclic_Permute_Once(test_data.magnetic);
+#endif  // MHD
+        break;
+    }
+
+// Check results
+#ifdef MHD
+    hydro_utilities::Primitive const fiducial_data{
+        13, {3.0769230769230771, 5.1538461538461542, 7.2307692307692308}, 9662.3910256410272, {147.5, 173.5, 197.5}};
+    testing_utilities::Check_Results(fiducial_data.density, test_data.density, "density");
+    testing_utilities::Check_Results(fiducial_data.velocity.x, test_data.velocity.x, "velocity.x");
+    testing_utilities::Check_Results(fiducial_data.velocity.y, test_data.velocity.y, "velocity.y");
+    testing_utilities::Check_Results(fiducial_data.velocity.z, test_data.velocity.z, "velocity.z");
+    testing_utilities::Check_Results(fiducial_data.pressure, test_data.pressure, "pressure");
+    testing_utilities::Check_Results(fiducial_data.magnetic.x, test_data.magnetic.x, "magnetic.x");
+    testing_utilities::Check_Results(fiducial_data.magnetic.y, test_data.magnetic.y, "magnetic.y");
+    testing_utilities::Check_Results(fiducial_data.magnetic.z, test_data.magnetic.z, "magnetic.z");
+#else  // MHD
+    hydro_utilities::Primitive fiducial_data{
+        13, {3.0769230769230771, 5.1538461538461542, 7.2307692307692308}, 39950.641025641031};
+  #ifdef DE
+    fiducial_data.pressure = 39950.641025641031;
+  #endif  // DE
+    testing_utilities::Check_Results(fiducial_data.density, test_data.density, "density");
+    testing_utilities::Check_Results(fiducial_data.velocity.x, test_data.velocity.x, "velocity.x");
+    testing_utilities::Check_Results(fiducial_data.velocity.y, test_data.velocity.y, "velocity.y");
+    testing_utilities::Check_Results(fiducial_data.velocity.z, test_data.velocity.z, "velocity.z");
+    testing_utilities::Check_Results(fiducial_data.pressure, test_data.pressure, "pressure");
+#endif    // MHD
+  }
+}
+
+TEST(tALLLoadCellConserved, CorrectInputExpectCorrectOutput)
+{
+  // Set up test and mock up grid
+  size_t const nx = 3, ny = 3, nz = 3;
+  size_t const n_cells = nx * ny * nz;
+  size_t const xid = 1, yid = 1, zid = 1;
+  size_t const o1 = grid_enum::momentum_x, o2 = grid_enum::momentum_y, o3 = grid_enum::momentum_z;
+  Real const gamma = 5. / 3.;
+
+  std::vector<Real> conserved(n_cells * grid_enum::num_fields);
+  std::iota(conserved.begin(), conserved.end(), 0.0);
+
+  // Up the energy part of the grid to avoid negative pressure
+  for (size_t i = grid_enum::Energy * n_cells; i < (grid_enum::Energy + 1) * n_cells; i++) {
+    conserved.at(i) *= 5.0E2;
+  }
+
+  for (int direction = 0; direction < 3; direction++) {
+    // Get test data
+    hydro_utilities::Conserved test_data;
+
+    // Get the test data and permute the vector quantities back to the original order
+    switch (direction) {
+      case 0:
+        test_data = hydro_utilities::Load_Cell_Conserved<0>(conserved.data(), xid, yid, zid, nx, ny, n_cells);
+        break;
+      case 1:
+        test_data = hydro_utilities::Load_Cell_Conserved<1>(conserved.data(), xid, yid, zid, nx, ny, n_cells);
+        math_utils::Cyclic_Permute_Twice(test_data.momentum);
+#ifdef MHD
+        math_utils::Cyclic_Permute_Twice(test_data.magnetic);
+#endif  // MHD
+        break;
+      case 2:
+        test_data = hydro_utilities::Load_Cell_Conserved<2>(conserved.data(), xid, yid, zid, nx, ny, n_cells);
+        math_utils::Cyclic_Permute_Once(test_data.momentum);
+#ifdef MHD
+        math_utils::Cyclic_Permute_Once(test_data.magnetic);
+#endif  // MHD
+        break;
+    }
+
+    // Check results
+    hydro_utilities::Conserved fiducial_data{13, {40, 67, 94}, 60500, {147.5, 173.5, 197.5}};
+#ifdef MHD
+    testing_utilities::Check_Results(fiducial_data.density, test_data.density, "density");
+    testing_utilities::Check_Results(fiducial_data.momentum.x, test_data.momentum.x, "momentum.x");
+    testing_utilities::Check_Results(fiducial_data.momentum.y, test_data.momentum.y, "momentum.y");
+    testing_utilities::Check_Results(fiducial_data.momentum.z, test_data.momentum.z, "momentum.z");
+    testing_utilities::Check_Results(fiducial_data.energy, test_data.energy, "energy");
+    testing_utilities::Check_Results(fiducial_data.magnetic.x, test_data.magnetic.x, "magnetic.x");
+    testing_utilities::Check_Results(fiducial_data.magnetic.y, test_data.magnetic.y, "magnetic.y");
+    testing_utilities::Check_Results(fiducial_data.magnetic.z, test_data.magnetic.z, "magnetic.z");
+#else   // MHD
+    testing_utilities::Check_Results(fiducial_data.density, test_data.density, "density");
+    testing_utilities::Check_Results(fiducial_data.momentum.x, test_data.momentum.x, "momentum.x");
+    testing_utilities::Check_Results(fiducial_data.momentum.y, test_data.momentum.y, "momentum.y");
+    testing_utilities::Check_Results(fiducial_data.momentum.z, test_data.momentum.z, "momentum.z");
+    testing_utilities::Check_Results(fiducial_data.energy, test_data.energy, "energy");
+#endif  // MHD
+  }
+}
+
+TEST(tALLConserved2Primitive, CorrectInputExpectCorrectOutput)
+{
+  Real const gamma = 5. / 3.;
+  hydro_utilities::Conserved input_data{2, {2, 3, 4}, 90, {6, 7, 8}, 9};
+  hydro_utilities::Primitive test_data = hydro_utilities::Conserved_2_Primitive(input_data, gamma);
+
+  hydro_utilities::Primitive fiducial_data{2, {1, 1.5, 2}, 55.166666666666671, {6, 7, 8}, 4.5};
+#ifdef MHD
+  fiducial_data.pressure = 5.5000000000000009;
+#endif  // MHD
+
+  testing_utilities::Check_Results(fiducial_data.density, test_data.density, "density");
+  testing_utilities::Check_Results(fiducial_data.velocity.x, test_data.velocity.x, "velocity.x");
+  testing_utilities::Check_Results(fiducial_data.velocity.y, test_data.velocity.y, "velocity.y");
+  testing_utilities::Check_Results(fiducial_data.velocity.z, test_data.velocity.z, "velocity.z");
+  testing_utilities::Check_Results(fiducial_data.pressure, test_data.pressure, "pressure");
+#ifdef MHD
+  testing_utilities::Check_Results(fiducial_data.magnetic.x, test_data.magnetic.x, "magnetic.x");
+  testing_utilities::Check_Results(fiducial_data.magnetic.y, test_data.magnetic.y, "magnetic.y");
+  testing_utilities::Check_Results(fiducial_data.magnetic.z, test_data.magnetic.z, "magnetic.z");
+#endif  // MHD
+#ifdef DE
+  testing_utilities::Check_Results(fiducial_data.gas_energy_specific, test_data.gas_energy_specific,
+                                   "gas_energy_specific");
+#endif  // DE
+}
+
+TEST(tALLPrimitive2Conserved, CorrectInputExpectCorrectOutput)
+{
+  Real const gamma = 5. / 3.;
+  hydro_utilities::Primitive input_data{2, {2, 3, 4}, 90, {6, 7, 8}, 9};
+  hydro_utilities::Conserved test_data = hydro_utilities::Primitive_2_Conserved(input_data, gamma);
+
+  hydro_utilities::Conserved fiducial_data{2, {4, 6, 8}, 163.99999999999997, {6, 7, 8}, 18};
+#ifdef MHD
+  fiducial_data.energy = 238.49999999999997;
+#endif  // MHD
+
+  testing_utilities::Check_Results(fiducial_data.density, test_data.density, "density");
+  testing_utilities::Check_Results(fiducial_data.momentum.x, test_data.momentum.x, "momentum.x");
+  testing_utilities::Check_Results(fiducial_data.momentum.y, test_data.momentum.y, "momentum.y");
+  testing_utilities::Check_Results(fiducial_data.momentum.z, test_data.momentum.z, "momentum.z");
+  testing_utilities::Check_Results(fiducial_data.energy, test_data.energy, "energy");
+#ifdef MHD
+  testing_utilities::Check_Results(fiducial_data.magnetic.x, test_data.magnetic.x, "magnetic.x");
+  testing_utilities::Check_Results(fiducial_data.magnetic.y, test_data.magnetic.y, "magnetic.y");
+  testing_utilities::Check_Results(fiducial_data.magnetic.z, test_data.magnetic.z, "magnetic.z");
+#endif  // MHD
+#ifdef DE
+  testing_utilities::Check_Results(fiducial_data.gas_energy, test_data.gas_energy, "gas_energy");
+#endif  // DE
+}

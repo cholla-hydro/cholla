@@ -92,7 +92,7 @@ void VL_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Rea
                      n_fields);
   #endif
   #ifdef PLMC
-  hipLaunchKernelGGL(PLMC_cuda, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, dx, dt, gama, 0,
+  hipLaunchKernelGGL(PLMC_cuda<0>, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, dx, dt, gama,
                      n_fields);
   #endif
   #ifdef PLMP
@@ -104,7 +104,7 @@ void VL_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost, Rea
                      gama, 0, n_fields);
   #endif
   #ifdef PPMC
-  hipLaunchKernelGGL(PPMC_VL, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, gama, 0);
+  hipLaunchKernelGGL(PPMC_VL<0>, dimGrid, dimBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, gama);
   #endif
   GPU_Error_Check();
 

@@ -17,6 +17,7 @@
 // Local Includes
 #include "../global/global_cuda.h"
 #include "../grid/grid_enum.h"
+#include "../reconstruction/reconstruction.h"
 #include "../riemann_solvers/hlld_cuda.h"  // Include code to test
 #include "../utils/gpu.hpp"
 #include "../utils/hydro_utilities.h"
@@ -1822,15 +1823,30 @@ struct TestParams {
 
   std::vector<double> const magneticX{92.75101068883114, 31.588767769990532};
 
-  std::vector<mhd::internal::State> stateLVec{
-      {21.50306776645775, 1.7906564444824999, 0.33040135813215948, 1.500111692877206, 65.751208381099417,
-       12.297499156516622, 46.224045698787776, 9.9999999999999995e-21, 5445.3204350339083},
-      {48.316634031589935, 0.39291118391272883, 0.69876195899931859, 1.8528943583250035, 38.461354599479826,
-       63.744719695704063, 37.703264551707541, 9.9999999999999995e-21, 3241.38784808316}},
-      stateRVec{{81.121773176226498, 0.10110493143718589, 0.17103629446142521, 0.41731155351794952, 18.88982523270516,
-                 84.991914178754897, 34.852095153095384, 9.9999999999999995e-21, 8605.4286125143772},
-                {91.029557388536347, 0.93649399297774782, 0.36277769000180521, 0.095181318599791204, 83.656397841788944,
-                 35.910258841630984, 24.052685003977757, 9.9999999999999995e-21, 4491.7524579462979}};
+  std::vector<reconstruction::InterfaceState> stateLVec{{21.50306776645775,
+                                                         {1.7906564444824999, 0.33040135813215948, 1.500111692877206},
+                                                         65.751208381099417,
+                                                         9.9999999999999995e-21,
+                                                         {0.0, 12.297499156516622, 46.224045698787776},
+                                                         5445.3204350339083},
+                                                        {48.316634031589935,
+                                                         {0.39291118391272883, 0.69876195899931859, 1.8528943583250035},
+                                                         38.461354599479826,
+                                                         9.9999999999999995e-21,
+                                                         {0.0, 63.744719695704063, 37.703264551707541},
+                                                         3241.38784808316}},
+      stateRVec{{81.121773176226498,
+                 {0.10110493143718589, 0.17103629446142521, 0.41731155351794952},
+                 18.88982523270516,
+                 9.9999999999999995e-21,
+                 {0.0, 84.991914178754897, 34.852095153095384},
+                 8605.4286125143772},
+                {91.029557388536347,
+                 {0.93649399297774782, 0.36277769000180521, 0.095181318599791204},
+                 83.656397841788944,
+                 9.9999999999999995e-21,
+                 {0.0, 35.910258841630984, 24.052685003977757},
+                 4491.7524579462979}};
 
   std::vector<mhd::internal::StarState> const starStateLVec{
       {28.520995251761526, 1.5746306813243216, 1.3948193325212686, 6.579867455284738, 62.093488291430653,
@@ -2071,7 +2087,7 @@ TEST(tMHDHlldInternalComputeStarState, CorrectInputDegenerateExpectCorrectOutput
 
   // Used to get us into the degenerate case
   double const totalPressureStarMultiplier = 1E15;
-  parameters.stateLVec.at(0).totalPressure *= totalPressureStarMultiplier;
+  parameters.stateLVec.at(0).total_pressure *= totalPressureStarMultiplier;
 
   for (size_t i = 0; i < parameters.names.size(); i++) {
     mhd::internal::StarState testStarState =
@@ -2253,7 +2269,7 @@ TEST(tMHDHlldInternalReturnFluxes, CorrectInputExpectCorrectOutput)
 {
   double const dummyValue = 999;
   mhd::internal::Flux inputFlux{1, 2, 3, 4, 5, 6, 7};
-  mhd::internal::State inputState{8, 9, 10, 11, 12, 13, 14, 15, 16};
+  reconstruction::InterfaceState inputState{8, {9, 10, 11}, 12, 16, {13, 14, 15}};
 
   int threadId = 0;
   int n_cells  = 10;
@@ -2365,10 +2381,10 @@ TEST(tMHDHlldInternalLoadState, CorrectInputExpectCorrectOutput)
   std::vector<double> interfaceArray(n_cells * grid_enum::num_fields);
   std::iota(std::begin(interfaceArray), std::end(interfaceArray), 1.);
 
-  std::vector<mhd::internal::State> const fiducialState{
-      {1, 11, 21, 31, 41, 51, 61, 9.9999999999999995e-21, 7462.3749918998346},
-      {1, 21, 31, 11, 41, 51, 61, 9.9999999999999995e-21, 7462.3749918998346},
-      {1, 31, 11, 21, 41, 51, 61, 9.9999999999999995e-21, 7462.3749918998346},
+  std::vector<reconstruction::InterfaceState> const fiducialState{
+      {1, {11, 21, 31}, 41, 9.9999999999999995e-21, {0.0, 51, 61}, 7462.3749918998346},
+      {1, {21, 31, 11}, 41, 9.9999999999999995e-21, {0.0, 51, 61}, 7462.3749918998346},
+      {1, {31, 11, 21}, 41, 9.9999999999999995e-21, {0.0, 51, 61}, 7462.3749918998346},
   };
 
   for (size_t direction = 0; direction < 3; direction++) {
@@ -2391,19 +2407,19 @@ TEST(tMHDHlldInternalLoadState, CorrectInputExpectCorrectOutput)
         break;
     }
 
-    mhd::internal::State const testState = mhd::internal::loadState(interfaceArray.data(), parameters.magneticX.at(0),
-                                                                    parameters.gamma, threadId, n_cells, o1, o2, o3);
+    reconstruction::InterfaceState const testState = mhd::internal::loadState(
+        interfaceArray.data(), parameters.magneticX.at(0), parameters.gamma, threadId, n_cells, o1, o2, o3);
 
     // Now check results
     testing_utilities::Check_Results(fiducialState.at(direction).density, testState.density, ", Density");
-    testing_utilities::Check_Results(fiducialState.at(direction).velocityX, testState.velocityX, ", velocityX");
-    testing_utilities::Check_Results(fiducialState.at(direction).velocityY, testState.velocityY, ", velocityY");
-    testing_utilities::Check_Results(fiducialState.at(direction).velocityZ, testState.velocityZ, ", velocityZ");
+    testing_utilities::Check_Results(fiducialState.at(direction).velocity.x, testState.velocity.x, ", velocityX");
+    testing_utilities::Check_Results(fiducialState.at(direction).velocity.y, testState.velocity.y, ", velocityY");
+    testing_utilities::Check_Results(fiducialState.at(direction).velocity.z, testState.velocity.z, ", velocityZ");
     testing_utilities::Check_Results(fiducialState.at(direction).energy, testState.energy, ", energy");
-    testing_utilities::Check_Results(fiducialState.at(direction).magneticY, testState.magneticY, ", magneticY");
-    testing_utilities::Check_Results(fiducialState.at(direction).magneticZ, testState.magneticZ, ", magneticZ");
-    testing_utilities::Check_Results(fiducialState.at(direction).gasPressure, testState.gasPressure, ", gasPressure");
-    testing_utilities::Check_Results(fiducialState.at(direction).totalPressure, testState.totalPressure,
+    testing_utilities::Check_Results(fiducialState.at(direction).magnetic.y, testState.magnetic.y, ", magneticY");
+    testing_utilities::Check_Results(fiducialState.at(direction).magnetic.z, testState.magnetic.z, ", magneticZ");
+    testing_utilities::Check_Results(fiducialState.at(direction).pressure, testState.pressure, ", gasPressure");
+    testing_utilities::Check_Results(fiducialState.at(direction).total_pressure, testState.total_pressure,
                                      ", totalPressure");
   }
 }

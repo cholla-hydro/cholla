@@ -148,8 +148,21 @@ TEST(tHYDROPlmcReconstructor, CorrectInputExpectCorrectOutput)
     cuda_utilities::DeviceVector<double> dev_interface_right(host_grid.size(), true);
 
     // Launch kernel
-    hipLaunchKernelGGL(PLMC_cuda, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
-                       dev_interface_right.data(), nx_rot, ny_rot, nz_rot, dx, dt, gamma, direction, n_fields);
+    std::cout << "direction = " << direction << std::endl;
+    switch (direction) {
+      case 0:
+        hipLaunchKernelGGL(PLMC_cuda<0>, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
+                           dev_interface_right.data(), nx_rot, ny_rot, nz_rot, dx, dt, gamma, n_fields);
+        break;
+      case 1:
+        hipLaunchKernelGGL(PLMC_cuda<1>, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
+                           dev_interface_right.data(), nx_rot, ny_rot, nz_rot, dx, dt, gamma, n_fields);
+        break;
+      case 2:
+        hipLaunchKernelGGL(PLMC_cuda<2>, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
+                           dev_interface_right.data(), nx_rot, ny_rot, nz_rot, dx, dt, gamma, n_fields);
+        break;
+    }
     GPU_Error_Check();
     GPU_Error_Check(cudaDeviceSynchronize());
 
@@ -261,8 +274,20 @@ TEST(tMHDPlmcReconstructor, CorrectInputExpectCorrectOutput)
     cuda_utilities::DeviceVector<double> dev_interface_right(n_cells_interface, true);
 
     // Launch kernel
-    hipLaunchKernelGGL(PLMC_cuda, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
-                       dev_interface_right.data(), nx, ny, nz, dx, dt, gamma, direction, n_fields);
+    switch (direction) {
+      case 0:
+        hipLaunchKernelGGL(PLMC_cuda<0>, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
+                           dev_interface_right.data(), nx, ny, nz, dx, dt, gamma, n_fields);
+        break;
+      case 1:
+        hipLaunchKernelGGL(PLMC_cuda<1>, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
+                           dev_interface_right.data(), nx, ny, nz, dx, dt, gamma, n_fields);
+        break;
+      case 2:
+        hipLaunchKernelGGL(PLMC_cuda<2>, dev_grid.size(), 1, 0, 0, dev_grid.data(), dev_interface_left.data(),
+                           dev_interface_right.data(), nx, ny, nz, dx, dt, gamma, n_fields);
+        break;
+    }
     GPU_Error_Check();
     GPU_Error_Check(cudaDeviceSynchronize());
 

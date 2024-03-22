@@ -16,15 +16,15 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../io/io.h"
-#include "../reconstruction/reconstruction.h"
+#include "../reconstruction/reconstruction_internals.h"
 #include "../utils/DeviceVector.h"
 #include "../utils/cuda_utilities.h"
 #include "../utils/gpu.hpp"
 #include "../utils/testing_utilities.h"
 
 #ifdef MHD
-__global__ void Test_Prim_2_Char(reconstruction::Primitive const primitive,
-                                 reconstruction::Primitive const primitive_slope,
+__global__ void Test_Prim_2_Char(hydro_utilities::Primitive const primitive,
+                                 hydro_utilities::Primitive const primitive_slope,
                                  reconstruction::EigenVecs const eigenvectors, Real const gamma, Real const sound_speed,
                                  Real const sound_speed_squared, reconstruction::Characteristic *characteristic_slope)
 {
@@ -32,16 +32,16 @@ __global__ void Test_Prim_2_Char(reconstruction::Primitive const primitive,
                                                                       sound_speed, sound_speed_squared, gamma);
 }
 
-__global__ void Test_Char_2_Prim(reconstruction::Primitive const primitive,
+__global__ void Test_Char_2_Prim(hydro_utilities::Primitive const primitive,
                                  reconstruction::Characteristic const characteristic_slope,
                                  reconstruction::EigenVecs const eigenvectors, Real const gamma, Real const sound_speed,
-                                 Real const sound_speed_squared, reconstruction::Primitive *primitive_slope)
+                                 Real const sound_speed_squared, hydro_utilities::Primitive *primitive_slope)
 {
   *primitive_slope = reconstruction::Characteristic_To_Primitive(primitive, characteristic_slope, eigenvectors,
                                                                  sound_speed, sound_speed_squared, gamma);
 }
 
-__global__ void Test_Compute_Eigenvectors(reconstruction::Primitive const primitive, Real const sound_speed,
+__global__ void Test_Compute_Eigenvectors(hydro_utilities::Primitive const primitive, Real const sound_speed,
                                           Real const sound_speed_squared, Real const gamma,
                                           reconstruction::EigenVecs *eigenvectors)
 {
@@ -52,8 +52,8 @@ TEST(tMHDReconstructionPrimitive2Characteristic, CorrectInputExpectCorrectOutput
 {
   // Test parameters
   Real const &gamma = 5. / 3.;
-  reconstruction::Primitive const primitive{1, 2, 3, 4, 5, 6, 7, 8};
-  reconstruction::Primitive const primitive_slope{9, 10, 11, 12, 13, 14, 15, 16};
+  hydro_utilities::Primitive const primitive{1, {2, 3, 4}, 5, {6, 7, 8}};
+  hydro_utilities::Primitive const primitive_slope{9, {10, 11, 12}, 13, {14, 15, 16}};
   reconstruction::EigenVecs const eigenvectors{
       17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
   };
@@ -83,7 +83,7 @@ TEST(tMHDReconstructionCharacteristic2Primitive, CorrectInputExpectCorrectOutput
 {
   // Test parameters
   Real const &gamma = 5. / 3.;
-  reconstruction::Primitive const primitive{1, 2, 3, 4, 5, 6, 7, 8};
+  hydro_utilities::Primitive const primitive{1, {2, 3, 4}, 5, {6, 7, 8}};
   reconstruction::Characteristic const characteristic_slope{17, 18, 19, 20, 21, 22, 23};
   reconstruction::EigenVecs const eigenvectors{
       17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34,
@@ -92,29 +92,30 @@ TEST(tMHDReconstructionCharacteristic2Primitive, CorrectInputExpectCorrectOutput
   Real const sound_speed_squared = sound_speed * sound_speed;
 
   // Run test
-  cuda_utilities::DeviceVector<reconstruction::Primitive> dev_results(1);
+  cuda_utilities::DeviceVector<hydro_utilities::Primitive> dev_results(1);
   hipLaunchKernelGGL(Test_Char_2_Prim, 1, 1, 0, 0, primitive, characteristic_slope, eigenvectors, gamma, sound_speed,
                      sound_speed_squared, dev_results.data());
   GPU_Error_Check();
   cudaDeviceSynchronize();
-  reconstruction::Primitive const host_results = dev_results.at(0);
+  hydro_utilities::Primitive const host_results = dev_results.at(0);
 
   // Check results
-  reconstruction::Primitive const fiducial_results{1740, 2934, -2526, -2828, 14333.333333333338, 0.0, -24040, 24880};
+  hydro_utilities::Primitive const fiducial_results{
+      1740, {2934, -2526, -2828}, 14333.333333333338, {0.0, -24040, 24880}};
   testing_utilities::Check_Results(fiducial_results.density, host_results.density, "density");
-  testing_utilities::Check_Results(fiducial_results.velocity_x, host_results.velocity_x, "velocity_x");
-  testing_utilities::Check_Results(fiducial_results.velocity_y, host_results.velocity_y, "velocity_y", 1.34E-14);
-  testing_utilities::Check_Results(fiducial_results.velocity_z, host_results.velocity_z, "velocity_z", 1.6E-14);
+  testing_utilities::Check_Results(fiducial_results.velocity.x, host_results.velocity.x, "velocity.x");
+  testing_utilities::Check_Results(fiducial_results.velocity.y, host_results.velocity.y, "velocity.y", 1.34E-14);
+  testing_utilities::Check_Results(fiducial_results.velocity.z, host_results.velocity.z, "velocity.z", 1.6E-14);
   testing_utilities::Check_Results(fiducial_results.pressure, host_results.pressure, "pressure");
-  testing_utilities::Check_Results(fiducial_results.magnetic_y, host_results.magnetic_y, "magnetic_y");
-  testing_utilities::Check_Results(fiducial_results.magnetic_z, host_results.magnetic_z, "magnetic_z");
+  testing_utilities::Check_Results(fiducial_results.magnetic.y, host_results.magnetic.y, "magnetic.y");
+  testing_utilities::Check_Results(fiducial_results.magnetic.z, host_results.magnetic.z, "magnetic.z");
 }
 
 TEST(tMHDReconstructionComputeEigenvectors, CorrectInputExpectCorrectOutput)
 {
   // Test parameters
   Real const &gamma = 5. / 3.;
-  reconstruction::Primitive const primitive{1, 2, 3, 4, 5, 6, 7, 8};
+  hydro_utilities::Primitive const primitive{1, {2, 3, 4}, 5, {6, 7, 8}};
   Real const sound_speed         = hydro_utilities::Calc_Sound_Speed(primitive.pressure, primitive.density, gamma);
   Real const sound_speed_squared = sound_speed * sound_speed;
 
@@ -202,61 +203,15 @@ TEST(tALLReconstructionThreadGuard, CorrectInputExpectCorrectOutput)
   }
 }
 
-TEST(tALLReconstructionLoadData, CorrectInputExpectCorrectOutput)
-{
-  // Set up test and mock up grid
-  size_t const nx = 3, ny = 3, nz = 3;
-  size_t const n_cells = nx * ny * nz;
-  size_t const xid = 1, yid = 1, zid = 1;
-  size_t const o1 = grid_enum::momentum_x, o2 = grid_enum::momentum_y, o3 = grid_enum::momentum_z;
-  Real const gamma = 5. / 3.;
-
-  std::vector<Real> conserved(n_cells * grid_enum::num_fields);
-  std::iota(conserved.begin(), conserved.end(), 0.0);
-
-  // Up the energy part of the grid to avoid negative pressure
-  for (size_t i = grid_enum::Energy * n_cells; i < (grid_enum::Energy + 1) * n_cells; i++) {
-    conserved.at(i) *= 5.0E2;
-  }
-
-  // Get test data
-  auto const test_data = reconstruction::Load_Data(conserved.data(), xid, yid, zid, nx, ny, n_cells, o1, o2, o3, gamma);
-
-// Check results
-#ifdef MHD
-  reconstruction::Primitive const fiducial_data{
-      13, 3.0769230769230771, 5.1538461538461542, 7.2307692307692308, 9662.3910256410272, 147.5, 173.5, 197.5};
-  testing_utilities::Check_Results(fiducial_data.density, test_data.density, "density");
-  testing_utilities::Check_Results(fiducial_data.velocity_x, test_data.velocity_x, "velocity_x");
-  testing_utilities::Check_Results(fiducial_data.velocity_y, test_data.velocity_y, "velocity_y");
-  testing_utilities::Check_Results(fiducial_data.velocity_z, test_data.velocity_z, "velocity_z");
-  testing_utilities::Check_Results(fiducial_data.pressure, test_data.pressure, "pressure");
-  testing_utilities::Check_Results(fiducial_data.magnetic_x, test_data.magnetic_x, "magnetic_x");
-  testing_utilities::Check_Results(fiducial_data.magnetic_y, test_data.magnetic_y, "magnetic_y");
-  testing_utilities::Check_Results(fiducial_data.magnetic_z, test_data.magnetic_z, "magnetic_z");
-#else  // MHD
-  reconstruction::Primitive fiducial_data{13, 3.0769230769230771, 5.1538461538461542, 7.2307692307692308,
-                                          39950.641025641031};
-  #ifdef DE
-  fiducial_data.pressure = 39950.641025641031;
-  #endif  // DE
-  testing_utilities::Check_Results(fiducial_data.density, test_data.density, "density");
-  testing_utilities::Check_Results(fiducial_data.velocity_x, test_data.velocity_x, "velocity_x");
-  testing_utilities::Check_Results(fiducial_data.velocity_y, test_data.velocity_y, "velocity_y");
-  testing_utilities::Check_Results(fiducial_data.velocity_z, test_data.velocity_z, "velocity_z");
-  testing_utilities::Check_Results(fiducial_data.pressure, test_data.pressure, "pressure");
-#endif    // MHD
-}
-
 TEST(tALLReconstructionComputeSlope, CorrectInputExpectCorrectOutput)
 {
 // Setup input data
 #ifdef MHD
-  reconstruction::Primitive left{6, 7, 8, 9, 10, 11, 12, 13};
-  reconstruction::Primitive right{1, 2, 3, 4, 5, 6, 7, 8};
+  hydro_utilities::Primitive left{6, {7, 8, 9}, 10, {11, 12, 13}};
+  hydro_utilities::Primitive right{1, {2, 3, 4}, 5, {6, 7, 8}};
 #else   // MHD
-  reconstruction::Primitive left{6, 7, 8, 9, 10};
-  reconstruction::Primitive right{1, 2, 3, 4, 5};
+  hydro_utilities::Primitive left{6, {7, 8, 9}, 10};
+  hydro_utilities::Primitive right{1, {2, 3, 4}, 5};
 #endif  // MHD
   Real const coef = 0.5;
 
@@ -267,18 +222,18 @@ TEST(tALLReconstructionComputeSlope, CorrectInputExpectCorrectOutput)
 #ifdef MHD
   Real const fiducial_data = -2.5;
   testing_utilities::Check_Results(fiducial_data, test_data.density, "density");
-  testing_utilities::Check_Results(fiducial_data, test_data.velocity_x, "velocity_x");
-  testing_utilities::Check_Results(fiducial_data, test_data.velocity_y, "velocity_y");
-  testing_utilities::Check_Results(fiducial_data, test_data.velocity_z, "velocity_z");
+  testing_utilities::Check_Results(fiducial_data, test_data.velocity.x, "velocity.x");
+  testing_utilities::Check_Results(fiducial_data, test_data.velocity.y, "velocity.y");
+  testing_utilities::Check_Results(fiducial_data, test_data.velocity.z, "velocity.z");
   testing_utilities::Check_Results(fiducial_data, test_data.pressure, "pressure");
-  testing_utilities::Check_Results(fiducial_data, test_data.magnetic_y, "magnetic_y");
-  testing_utilities::Check_Results(fiducial_data, test_data.magnetic_z, "magnetic_z");
+  testing_utilities::Check_Results(fiducial_data, test_data.magnetic.y, "magnetic.y");
+  testing_utilities::Check_Results(fiducial_data, test_data.magnetic.z, "magnetic.z");
 #else   // MHD
   Real const fiducial_data = -2.5;
   testing_utilities::Check_Results(fiducial_data, test_data.density, "density");
-  testing_utilities::Check_Results(fiducial_data, test_data.velocity_x, "velocity_x");
-  testing_utilities::Check_Results(fiducial_data, test_data.velocity_y, "velocity_y");
-  testing_utilities::Check_Results(fiducial_data, test_data.velocity_z, "velocity_z");
+  testing_utilities::Check_Results(fiducial_data, test_data.velocity.x, "velocity.x");
+  testing_utilities::Check_Results(fiducial_data, test_data.velocity.y, "velocity.y");
+  testing_utilities::Check_Results(fiducial_data, test_data.velocity.z, "velocity.z");
   testing_utilities::Check_Results(fiducial_data, test_data.pressure, "pressure");
 #endif  // MHD
 }
@@ -287,11 +242,11 @@ TEST(tALLReconstructionVanLeerSlope, CorrectInputExpectCorrectOutput)
 {
 // Setup input data
 #ifdef MHD
-  reconstruction::Primitive left{1, 2, 3, 4, 5, 6, 7, 8};
-  reconstruction::Primitive right{6, 7, 8, 9, 10, 11, 12, 13};
+  hydro_utilities::Primitive left{1, {2, 3, 4}, 5, {6, 7, 8}};
+  hydro_utilities::Primitive right{6, {7, 8, 9}, 10, {11, 12, 13}};
 #else   // MHD
-  reconstruction::Primitive left{1, 2, 3, 4, 5};
-  reconstruction::Primitive right{6, 7, 8, 9, 10};
+  hydro_utilities::Primitive left{1, {2, 3, 4}, 5};
+  hydro_utilities::Primitive right{6, {7, 8, 9}, 10};
 #endif  // MHD
 
   // Get test data
@@ -299,34 +254,35 @@ TEST(tALLReconstructionVanLeerSlope, CorrectInputExpectCorrectOutput)
 
   // Check results
 #ifdef MHD
-  reconstruction::Primitive const fiducial_data{1.7142857142857142, 3.1111111111111112, 4.3636363636363633,
-                                                5.5384615384615383, 6.666666666666667,  0,
-                                                8.8421052631578956, 9.9047619047619051};
+  hydro_utilities::Primitive const fiducial_data{1.7142857142857142,
+                                                 {3.1111111111111112, 4.3636363636363633, 5.5384615384615383},
+                                                 6.666666666666667,
+                                                 {0, 8.8421052631578956, 9.9047619047619051}};
   testing_utilities::Check_Results(fiducial_data.density, test_data.density, "density");
-  testing_utilities::Check_Results(fiducial_data.velocity_x, test_data.velocity_x, "velocity_x");
-  testing_utilities::Check_Results(fiducial_data.velocity_y, test_data.velocity_y, "velocity_y");
-  testing_utilities::Check_Results(fiducial_data.velocity_z, test_data.velocity_z, "velocity_z");
+  testing_utilities::Check_Results(fiducial_data.velocity.x, test_data.velocity.x, "velocity.x");
+  testing_utilities::Check_Results(fiducial_data.velocity.y, test_data.velocity.y, "velocity.y");
+  testing_utilities::Check_Results(fiducial_data.velocity.z, test_data.velocity.z, "velocity.z");
   testing_utilities::Check_Results(fiducial_data.pressure, test_data.pressure, "pressure");
-  testing_utilities::Check_Results(fiducial_data.magnetic_y, test_data.magnetic_y, "magnetic_y");
-  testing_utilities::Check_Results(fiducial_data.magnetic_z, test_data.magnetic_z, "magnetic_z");
+  testing_utilities::Check_Results(fiducial_data.magnetic.y, test_data.magnetic.y, "magnetic.y");
+  testing_utilities::Check_Results(fiducial_data.magnetic.z, test_data.magnetic.z, "magnetic.z");
 #else   // MHD
-  reconstruction::Primitive const fiducial_data{1.7142857142857142, 3.1111111111111112, 4.3636363636363633,
-                                                5.5384615384615383, 6.666666666666667};
+  hydro_utilities::Primitive const fiducial_data{
+      1.7142857142857142, {3.1111111111111112, 4.3636363636363633, 5.5384615384615383}, 6.666666666666667};
   testing_utilities::Check_Results(fiducial_data.density, test_data.density, "density");
-  testing_utilities::Check_Results(fiducial_data.velocity_x, test_data.velocity_x, "velocity_x");
-  testing_utilities::Check_Results(fiducial_data.velocity_y, test_data.velocity_y, "velocity_y");
-  testing_utilities::Check_Results(fiducial_data.velocity_z, test_data.velocity_z, "velocity_z");
+  testing_utilities::Check_Results(fiducial_data.velocity.x, test_data.velocity.x, "velocity.x");
+  testing_utilities::Check_Results(fiducial_data.velocity.y, test_data.velocity.y, "velocity.y");
+  testing_utilities::Check_Results(fiducial_data.velocity.z, test_data.velocity.z, "velocity.z");
   testing_utilities::Check_Results(fiducial_data.pressure, test_data.pressure, "pressure");
 #endif  // MHD
 }
 
 __global__ void Test_Monotize_Characteristic_Return_Primitive(
-    reconstruction::Primitive const primitive, reconstruction::Primitive const del_L,
-    reconstruction::Primitive const del_R, reconstruction::Primitive const del_C, reconstruction::Primitive const del_G,
-    reconstruction::Characteristic const del_a_L, reconstruction::Characteristic const del_a_R,
-    reconstruction::Characteristic const del_a_C, reconstruction::Characteristic const del_a_G,
-    reconstruction::EigenVecs const eigenvectors, Real const sound_speed, Real const sound_speed_squared,
-    Real const gamma, reconstruction::Primitive *monotonized_slope)
+    hydro_utilities::Primitive const primitive, hydro_utilities::Primitive const del_L,
+    hydro_utilities::Primitive const del_R, hydro_utilities::Primitive const del_C,
+    hydro_utilities::Primitive const del_G, reconstruction::Characteristic const del_a_L,
+    reconstruction::Characteristic const del_a_R, reconstruction::Characteristic const del_a_C,
+    reconstruction::Characteristic const del_a_G, reconstruction::EigenVecs const eigenvectors, Real const sound_speed,
+    Real const sound_speed_squared, Real const gamma, hydro_utilities::Primitive *monotonized_slope)
 {
   *monotonized_slope = reconstruction::Monotonize_Characteristic_Return_Primitive(
       primitive, del_L, del_R, del_C, del_G, del_a_L, del_a_R, del_a_C, del_a_G, eigenvectors, sound_speed,
@@ -336,21 +292,21 @@ __global__ void Test_Monotize_Characteristic_Return_Primitive(
 TEST(tALLReconstructionMonotonizeCharacteristicReturnPrimitive, CorrectInputExpectCorrectOutput)
 {
 #ifdef MHD
-  reconstruction::Primitive const primitive{1, 2, 3, 4, 5, 6, 7, 8};
-  reconstruction::Primitive const del_L{9, 10, 11, 12, 13, 14, 15, 16};
-  reconstruction::Primitive const del_R{17, 18, 19, 20, 21, 22, 23, 24};
-  reconstruction::Primitive const del_C{25, 26, 27, 28, 29, 30, 31, 32};
-  reconstruction::Primitive const del_G{33, 34, 35, 36, 37, 38, 39, 40};
+  hydro_utilities::Primitive const primitive{1, {2, 3, 4}, 5, {6, 7, 8}};
+  hydro_utilities::Primitive const del_L{9, {10, 11, 12}, 13, {14, 15, 16}};
+  hydro_utilities::Primitive const del_R{17, {18, 19, 20}, 21, {22, 23, 24}};
+  hydro_utilities::Primitive const del_C{25, {26, 27, 28}, 29, {30, 31, 32}};
+  hydro_utilities::Primitive const del_G{33, {34, 35, 36}, 37, {38, 39, 40}};
   reconstruction::Characteristic const del_a_L{41, 42, 43, 44, 45, 46, 47};
   reconstruction::Characteristic const del_a_R{48, 49, 50, 51, 52, 53, 54};
   reconstruction::Characteristic const del_a_C{55, 56, 57, 58, 59, 60, 61};
   reconstruction::Characteristic const del_a_G{62, 64, 65, 66, 67, 68, 69};
 #else   // MHD
-  reconstruction::Primitive const primitive{1, 2, 3, 4, 5};
-  reconstruction::Primitive const del_L{9, 10, 11, 12, 13};
-  reconstruction::Primitive const del_R{17, 18, 19, 20, 21};
-  reconstruction::Primitive const del_C{25, 26, 27, 28, 29};
-  reconstruction::Primitive const del_G{33, 34, 35, 36, 37};
+  hydro_utilities::Primitive const primitive{1, {2, 3, 4}, 5};
+  hydro_utilities::Primitive const del_L{9, {10, 11, 12}, 13};
+  hydro_utilities::Primitive const del_R{17, {18, 19, 20}, 21};
+  hydro_utilities::Primitive const del_C{25, {26, 27, 28}, 29};
+  hydro_utilities::Primitive const del_G{33, {34, 35, 36}, 37};
   reconstruction::Characteristic const del_a_L{41, 42, 43, 44, 45};
   reconstruction::Characteristic const del_a_R{48, 49, 50, 51, 52};
   reconstruction::Characteristic const del_a_C{55, 56, 57, 58, 59};
@@ -363,30 +319,30 @@ TEST(tALLReconstructionMonotonizeCharacteristicReturnPrimitive, CorrectInputExpe
   };
 
   // Get test data
-  cuda_utilities::DeviceVector<reconstruction::Primitive> dev_results(1);
+  cuda_utilities::DeviceVector<hydro_utilities::Primitive> dev_results(1);
   hipLaunchKernelGGL(Test_Monotize_Characteristic_Return_Primitive, 1, 1, 0, 0, primitive, del_L, del_R, del_C, del_G,
                      del_a_L, del_a_R, del_a_C, del_a_G, eigenvectors, sound_speed, sound_speed_squared, gamma,
                      dev_results.data());
   GPU_Error_Check();
   cudaDeviceSynchronize();
-  reconstruction::Primitive const host_results = dev_results.at(0);
+  hydro_utilities::Primitive const host_results = dev_results.at(0);
 
   // Check results
 #ifdef MHD
-  reconstruction::Primitive const fiducial_data{5046, 2934, -2526, -2828, 1441532, 0.0, -69716, 72152};
+  hydro_utilities::Primitive const fiducial_data{5046, {2934, -2526, -2828}, 1441532, {0.0, -69716, 72152}};
   testing_utilities::Check_Results(fiducial_data.density, host_results.density, "density");
-  testing_utilities::Check_Results(fiducial_data.velocity_x, host_results.velocity_x, "velocity_x");
-  testing_utilities::Check_Results(fiducial_data.velocity_y, host_results.velocity_y, "velocity_y");
-  testing_utilities::Check_Results(fiducial_data.velocity_z, host_results.velocity_z, "velocity_z");
+  testing_utilities::Check_Results(fiducial_data.velocity.x, host_results.velocity.x, "velocity.x");
+  testing_utilities::Check_Results(fiducial_data.velocity.y, host_results.velocity.y, "velocity.y");
+  testing_utilities::Check_Results(fiducial_data.velocity.z, host_results.velocity.z, "velocity.z");
   testing_utilities::Check_Results(fiducial_data.pressure, host_results.pressure, "pressure");
-  testing_utilities::Check_Results(fiducial_data.magnetic_y, host_results.magnetic_y, "magnetic_y");
-  testing_utilities::Check_Results(fiducial_data.magnetic_z, host_results.magnetic_z, "magnetic_z");
+  testing_utilities::Check_Results(fiducial_data.magnetic.y, host_results.magnetic.y, "magnetic.y");
+  testing_utilities::Check_Results(fiducial_data.magnetic.z, host_results.magnetic.z, "magnetic.z");
 #else   // MHD
-  reconstruction::Primitive const fiducial_data{170, 68, 57, 58, 32946};
+  hydro_utilities::Primitive const fiducial_data{170, {68, 57, 58}, 32946};
   testing_utilities::Check_Results(fiducial_data.density, host_results.density, "density");
-  testing_utilities::Check_Results(fiducial_data.velocity_x, host_results.velocity_x, "velocity_x");
-  testing_utilities::Check_Results(fiducial_data.velocity_y, host_results.velocity_y, "velocity_y");
-  testing_utilities::Check_Results(fiducial_data.velocity_z, host_results.velocity_z, "velocity_z");
+  testing_utilities::Check_Results(fiducial_data.velocity.x, host_results.velocity.x, "velocity.x");
+  testing_utilities::Check_Results(fiducial_data.velocity.y, host_results.velocity.y, "velocity.y");
+  testing_utilities::Check_Results(fiducial_data.velocity.z, host_results.velocity.z, "velocity.z");
   testing_utilities::Check_Results(fiducial_data.pressure, host_results.pressure, "pressure");
 #endif  // MHD
 }
@@ -395,30 +351,30 @@ TEST(tHYDROReconstructionMonotizeParabolicInterface, CorrectInputExpectCorrectOu
 {
   // Input Data
 
-  reconstruction::Primitive const cell_i{1.4708046701, 9.5021020181, 3.7123503442, 4.6476103466, 3.7096802847};
-  reconstruction::Primitive const cell_im1{3.9547588941, 3.1552319951, 3.0209247624, 9.5841013261, 2.2945188332};
-  reconstruction::Primitive const cell_ip1{5.1973323534, 6.9132613767, 1.8397298636, 5.341960387, 9.093498542};
-  reconstruction::Primitive interface_L_iph{6.7787324804, 9.5389820358, 9.8522754567, 7.8305142852, 2.450533435};
-  reconstruction::Primitive interface_R_imh{4.8015193892, 5.9124263972, 8.7513040382, 8.3659359773, 1.339777121};
+  hydro_utilities::Primitive const cell_i{1.4708046701, {9.5021020181, 3.7123503442, 4.6476103466}, 3.7096802847};
+  hydro_utilities::Primitive const cell_im1{3.9547588941, {3.1552319951, 3.0209247624, 9.5841013261}, 2.2945188332};
+  hydro_utilities::Primitive const cell_ip1{5.1973323534, {6.9132613767, 1.8397298636, 5.341960387}, 9.093498542};
+  hydro_utilities::Primitive interface_L_iph{6.7787324804, {9.5389820358, 9.8522754567, 7.8305142852}, 2.450533435};
+  hydro_utilities::Primitive interface_R_imh{4.8015193892, {5.9124263972, 8.7513040382, 8.3659359773}, 1.339777121};
 
   // Get test data
   reconstruction::Monotonize_Parabolic_Interface(cell_i, cell_im1, cell_ip1, interface_L_iph, interface_R_imh);
 
   // Check results
-  reconstruction::Primitive const fiducial_interface_L{1.4708046700999999, 9.5021020181000004, 3.7123503441999999,
-                                                       4.6476103465999996, 3.7096802847000001};
-  reconstruction::Primitive const fiducial_interface_R{1.4708046700999999, 9.428341982700001, 3.7123503441999999,
-                                                       4.6476103465999996, 3.7096802847000001};
+  hydro_utilities::Primitive const fiducial_interface_L{
+      1.4708046700999999, {9.5021020181000004, 3.7123503441999999, 4.6476103465999996}, 3.7096802847000001};
+  hydro_utilities::Primitive const fiducial_interface_R{
+      1.4708046700999999, {9.428341982700001, 3.7123503441999999, 4.6476103465999996}, 3.7096802847000001};
   testing_utilities::Check_Results(fiducial_interface_L.density, interface_L_iph.density, "density");
-  testing_utilities::Check_Results(fiducial_interface_L.velocity_x, interface_L_iph.velocity_x, "velocity_x");
-  testing_utilities::Check_Results(fiducial_interface_L.velocity_y, interface_L_iph.velocity_y, "velocity_y");
-  testing_utilities::Check_Results(fiducial_interface_L.velocity_z, interface_L_iph.velocity_z, "velocity_z");
+  testing_utilities::Check_Results(fiducial_interface_L.velocity.x, interface_L_iph.velocity.x, "velocity.x");
+  testing_utilities::Check_Results(fiducial_interface_L.velocity.y, interface_L_iph.velocity.y, "velocity.y");
+  testing_utilities::Check_Results(fiducial_interface_L.velocity.z, interface_L_iph.velocity.z, "velocity.z");
   testing_utilities::Check_Results(fiducial_interface_L.pressure, interface_L_iph.pressure, "pressure");
 
   testing_utilities::Check_Results(fiducial_interface_R.density, interface_R_imh.density, "density");
-  testing_utilities::Check_Results(fiducial_interface_R.velocity_x, interface_R_imh.velocity_x, "velocity_x");
-  testing_utilities::Check_Results(fiducial_interface_R.velocity_y, interface_R_imh.velocity_y, "velocity_y");
-  testing_utilities::Check_Results(fiducial_interface_R.velocity_z, interface_R_imh.velocity_z, "velocity_z");
+  testing_utilities::Check_Results(fiducial_interface_R.velocity.x, interface_R_imh.velocity.x, "velocity.x");
+  testing_utilities::Check_Results(fiducial_interface_R.velocity.y, interface_R_imh.velocity.y, "velocity.y");
+  testing_utilities::Check_Results(fiducial_interface_R.velocity.z, interface_R_imh.velocity.z, "velocity.z");
   testing_utilities::Check_Results(fiducial_interface_R.pressure, interface_R_imh.pressure, "pressure");
 }
 
@@ -426,11 +382,11 @@ TEST(tALLReconstructionCalcInterfaceLinear, CorrectInputExpectCorrectOutput)
 {
   // Setup input data
 #ifdef MHD
-  reconstruction::Primitive left{1, 2, 3, 4, 5, 6, 7, 8};
-  reconstruction::Primitive right{6, 7, 8, 9, 10, 11, 12, 13};
+  hydro_utilities::Primitive left{1, {2, 3, 4}, 5, {6, 7, 8}};
+  hydro_utilities::Primitive right{6, {7, 8, 9}, 10, {11, 12, 13}};
 #else   // MHD
-  reconstruction::Primitive left{1, 2, 3, 4, 5};
-  reconstruction::Primitive right{6, 7, 8, 9, 10};
+  hydro_utilities::Primitive left{1, {2, 3, 4}, 5};
+  hydro_utilities::Primitive right{6, {7, 8, 9}, 10};
 #endif  // MHD
   Real const coef = 0.5;
 
@@ -439,20 +395,20 @@ TEST(tALLReconstructionCalcInterfaceLinear, CorrectInputExpectCorrectOutput)
 
   // Check results
 #ifdef MHD
-  reconstruction::Primitive const fiducial_data{2.5, 3.75, 5, 6.25, 7.5, 0, 10, 11.25};
+  hydro_utilities::Primitive const fiducial_data{2.5, {3.75, 5, 6.25}, 7.5, {0, 10, 11.25}};
   testing_utilities::Check_Results(fiducial_data.density, test_data.density, "density");
-  testing_utilities::Check_Results(fiducial_data.velocity_x, test_data.velocity_x, "velocity_x");
-  testing_utilities::Check_Results(fiducial_data.velocity_y, test_data.velocity_y, "velocity_y");
-  testing_utilities::Check_Results(fiducial_data.velocity_z, test_data.velocity_z, "velocity_z");
+  testing_utilities::Check_Results(fiducial_data.velocity.x, test_data.velocity.x, "velocity.x");
+  testing_utilities::Check_Results(fiducial_data.velocity.y, test_data.velocity.y, "velocity.y");
+  testing_utilities::Check_Results(fiducial_data.velocity.z, test_data.velocity.z, "velocity.z");
   testing_utilities::Check_Results(fiducial_data.pressure, test_data.pressure, "pressure");
-  testing_utilities::Check_Results(fiducial_data.magnetic_y, test_data.magnetic_y, "magnetic_y");
-  testing_utilities::Check_Results(fiducial_data.magnetic_z, test_data.magnetic_z, "magnetic_z");
+  testing_utilities::Check_Results(fiducial_data.magnetic.y, test_data.magnetic.y, "magnetic.y");
+  testing_utilities::Check_Results(fiducial_data.magnetic.z, test_data.magnetic.z, "magnetic.z");
 #else   // MHD
-  reconstruction::Primitive const fiducial_data{2.5, 3.75, 5, 6.25, 7.5};
+  hydro_utilities::Primitive const fiducial_data{2.5, {3.75, 5, 6.25}, 7.5};
   testing_utilities::Check_Results(fiducial_data.density, test_data.density, "density");
-  testing_utilities::Check_Results(fiducial_data.velocity_x, test_data.velocity_x, "velocity_x");
-  testing_utilities::Check_Results(fiducial_data.velocity_y, test_data.velocity_y, "velocity_y");
-  testing_utilities::Check_Results(fiducial_data.velocity_z, test_data.velocity_z, "velocity_z");
+  testing_utilities::Check_Results(fiducial_data.velocity.x, test_data.velocity.x, "velocity.x");
+  testing_utilities::Check_Results(fiducial_data.velocity.y, test_data.velocity.y, "velocity.y");
+  testing_utilities::Check_Results(fiducial_data.velocity.z, test_data.velocity.z, "velocity.z");
   testing_utilities::Check_Results(fiducial_data.pressure, test_data.pressure, "pressure");
 #endif  // MHD
 }
@@ -461,15 +417,15 @@ TEST(tALLReconstructionCalcInterfaceParabolic, CorrectInputExpectCorrectOutput)
 {
   // Setup input data
 #ifdef MHD
-  reconstruction::Primitive cell_i{1, 2, 3, 4, 5, 6, 7, 8};
-  reconstruction::Primitive cell_im1{6, 7, 8, 9, 10, 11, 12, 13};
-  reconstruction::Primitive slopes_i{14, 15, 16, 17, 18, 19, 20, 21};
-  reconstruction::Primitive slopes_im1{22, 23, 24, 25, 26, 27, 28, 29};
+  hydro_utilities::Primitive cell_i{1, {2, 3, 4}, 5, {6, 7, 8}};
+  hydro_utilities::Primitive cell_im1{6, {7, 8, 9}, 10, {11, 12, 13}};
+  hydro_utilities::Primitive slopes_i{14, {15, 16, 17}, 18, {19, 20, 21}};
+  hydro_utilities::Primitive slopes_im1{22, {23, 24, 25}, 26, {27, 28, 29}};
 #else   // MHD
-  reconstruction::Primitive cell_i{1, 2, 3, 4, 5};
-  reconstruction::Primitive cell_im1{6, 7, 8, 9, 10};
-  reconstruction::Primitive slopes_i{14, 15, 16, 17, 18};
-  reconstruction::Primitive slopes_im1{22, 23, 24, 25, 26};
+  hydro_utilities::Primitive cell_i{1, {2, 3, 4}, 5};
+  hydro_utilities::Primitive cell_im1{6, {7, 8, 9}, 10};
+  hydro_utilities::Primitive slopes_i{14, {15, 16, 17}, 18};
+  hydro_utilities::Primitive slopes_im1{22, {23, 24, 25}, 26};
 #endif  // MHD
 
   // Get test data
@@ -477,23 +433,24 @@ TEST(tALLReconstructionCalcInterfaceParabolic, CorrectInputExpectCorrectOutput)
 
   // Check results
 #ifdef MHD
-  reconstruction::Primitive const fiducial_data{4.833333333333333,  5.833333333333333,  6.833333333333333,
-                                                7.833333333333333,  8.8333333333333339, 0.0,
-                                                10.833333333333334, 11.833333333333334};
+  hydro_utilities::Primitive const fiducial_data{4.833333333333333,
+                                                 {5.833333333333333, 6.833333333333333, 7.833333333333333},
+                                                 8.8333333333333339,
+                                                 {0.0, 10.833333333333334, 11.833333333333334}};
   testing_utilities::Check_Results(fiducial_data.density, test_data.density, "density");
-  testing_utilities::Check_Results(fiducial_data.velocity_x, test_data.velocity_x, "velocity_x");
-  testing_utilities::Check_Results(fiducial_data.velocity_y, test_data.velocity_y, "velocity_y");
-  testing_utilities::Check_Results(fiducial_data.velocity_z, test_data.velocity_z, "velocity_z");
+  testing_utilities::Check_Results(fiducial_data.velocity.x, test_data.velocity.x, "velocity.x");
+  testing_utilities::Check_Results(fiducial_data.velocity.y, test_data.velocity.y, "velocity.y");
+  testing_utilities::Check_Results(fiducial_data.velocity.z, test_data.velocity.z, "velocity.z");
   testing_utilities::Check_Results(fiducial_data.pressure, test_data.pressure, "pressure");
-  testing_utilities::Check_Results(fiducial_data.magnetic_y, test_data.magnetic_y, "magnetic_y");
-  testing_utilities::Check_Results(fiducial_data.magnetic_z, test_data.magnetic_z, "magnetic_z");
+  testing_utilities::Check_Results(fiducial_data.magnetic.y, test_data.magnetic.y, "magnetic.y");
+  testing_utilities::Check_Results(fiducial_data.magnetic.z, test_data.magnetic.z, "magnetic.z");
 #else   // MHD
-  reconstruction::Primitive const fiducial_data{4.833333333333333, 5.833333333333333, 6.833333333333333,
-                                                7.833333333333333, 8.8333333333333339};
+  hydro_utilities::Primitive const fiducial_data{
+      4.833333333333333, {5.833333333333333, 6.833333333333333, 7.833333333333333}, 8.8333333333333339};
   testing_utilities::Check_Results(fiducial_data.density, test_data.density, "density");
-  testing_utilities::Check_Results(fiducial_data.velocity_x, test_data.velocity_x, "velocity_x");
-  testing_utilities::Check_Results(fiducial_data.velocity_y, test_data.velocity_y, "velocity_y");
-  testing_utilities::Check_Results(fiducial_data.velocity_z, test_data.velocity_z, "velocity_z");
+  testing_utilities::Check_Results(fiducial_data.velocity.x, test_data.velocity.x, "velocity.x");
+  testing_utilities::Check_Results(fiducial_data.velocity.y, test_data.velocity.y, "velocity.y");
+  testing_utilities::Check_Results(fiducial_data.velocity.z, test_data.velocity.z, "velocity.z");
   testing_utilities::Check_Results(fiducial_data.pressure, test_data.pressure, "pressure");
 #endif  // MHD
 }
@@ -575,9 +532,22 @@ TEST(tALLReconstructionWriteData, CorrectInputExpectCorrectOutput)
 {
   // Set up test and mock up grid
 #ifdef MHD
-  reconstruction::Primitive interface{1, 2, 3, 4, 5, 6, 7, 8};
+  hydro_utilities::Primitive interface;
+  interface.density    = 1;
+  interface.velocity.x = 2;
+  interface.velocity.y = 3;
+  interface.velocity.z = 4;
+  interface.pressure   = 5;
+  interface.magnetic.x = 6;
+  interface.magnetic.y = 7;
+  interface.magnetic.z = 8;
 #else   // MHD
-  reconstruction::Primitive interface{6, 7, 8, 9, 10};
+  hydro_utilities::Primitive interface;
+  interface.density    = 6;
+  interface.velocity.x = 7;
+  interface.velocity.y = 8;
+  interface.velocity.z = 9;
+  interface.pressure   = 10;
 #endif  // MHD
   size_t const nx = 3, ny = 3, nz = 3;
   size_t const n_cells = nx * ny * nz;
