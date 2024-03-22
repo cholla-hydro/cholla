@@ -2276,10 +2276,10 @@ void Grid3D::Read_Grid(struct Parameters P)
   sprintf(sbuffer, "%sics_%dMpc_%d.h5", P.indir, (int)P.tile_length / 1000,
           H.nx_real);  // Everyone reads the same file
   filename = sbuffer;
-  #else                // TILED_INITIAL_CONDITIONS is not defined
+  #else   // TILED_INITIAL_CONDITIONS is not defined
   filename += "." + std::to_string(procID);
-  #endif               // TILED_INITIAL_CONDITIONS
-#endif                 // MPI_CHOLLA
+  #endif  // TILED_INITIAL_CONDITIONS
+#endif    // MPI_CHOLLA
 
 #if defined BINARY
   FILE *fp;
