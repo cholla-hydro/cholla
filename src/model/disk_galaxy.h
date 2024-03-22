@@ -191,7 +191,7 @@ namespace galaxies
 #if defined(PARTICLES)
 static ClusteredDiskGalaxy MW(1e4, 5e5, 6.5e10, 2.7, 0.7, 3.5, 0.15, 1.077e12, 261, 18, 157.0);
 #else
-static DiskGalaxy MW(6.5e10, 3.5, (3.5 / 5.0), 3.5, 0.15, 1.0e12, 261, 20, 157.0);
+static DiskGalaxy MW(6.5e10, 2.5, 0.7, 3.5, 0.15, 1.0e12, 261, 20, 157.0);
 static DiskGalaxy M82(1.0e10, 0.8, 0.15, 1.6, 0.25, 5.0e10, 0.8 / 0.015, 10, 100.0);
 #endif
 };  // namespace galaxies
