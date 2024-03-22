@@ -28,6 +28,7 @@ int n_cluster;
 
 }  // namespace Supernova
 
+#ifndef O_HIP
 __device__ double atomicMax(double *address, double val)
 {
   unsigned long long int *address_as_ull = (unsigned long long int *)address;
@@ -38,6 +39,7 @@ __device__ double atomicMax(double *address, double val)
   } while (assumed != old);
   return __longlong_as_double(old);
 }
+#endif
 
 __device__ Real Calc_Timestep(Real *hydro_dev, int gidx, int n_cells, Real gamma, Real dx, Real dy, Real dz)
 {

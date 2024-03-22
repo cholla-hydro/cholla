@@ -743,17 +743,21 @@ void Grid3D::Disk_3D(Parameters p)
   Real d, a, a_d, a_h, v, vx, vy, vz, P, T_d, T_h, mu;
   Real M_vir, M_h, M_d, c_vir, R_vir, R_s, R_d, z_d;
   Real K_eos, rho_eos, cs, K_eos_h, rho_eos_h, cs_h;
-  Real Sigma_0, R_g, H_g;
+  Real Sigma_0, R_g, H_g, G_f;
   Real rho_floor;
   Real r_cool;
   Real c;
 
-  // MW model
-  #ifdef MW_MODEL
-  DiskGalaxy galaxy = galaxies::MW;  // NOLINT(cppcoreguidelines-slicing)
+  #ifdef PARTICLES
+    ClusteredDiskGalaxy galaxy = galaxies::MW;  // NOLINT(cppcoreguidelines-slicing)
   #else
-  // M82 model
-  DiskGalaxy galaxy = galaxies::M82;  // NOLINT(cppcoreguidelines-slicing)
+    #ifdef MW_MODEL
+    // MW model
+    DiskGalaxy galaxy = galaxies::MW;  // NOLINT(cppcoreguidelines-slicing)
+    #else
+    // M82 model
+    DiskGalaxy galaxy = galaxies::M82;  // NOLINT(cppcoreguidelines-slicing)
+    #endif
   #endif
 
   M_vir = galaxy.getM_vir();    // viral mass in M_sun
@@ -775,10 +779,9 @@ void Grid3D::Disk_3D(Parameters p)
   rho_eos_h = 3.0e3;  // gas eos normalized at 3e3 Msun/kpc^3 (about n_h = 10^-3.5)
   mu        = 0.6;
 
-  // R_g     = 2.0 * R_d;                            // gas scale length in kpc M82 model
-  R_g = 3.5;  // gas scale length in kpc MW model
-  // Sigma_0 = 0.25 * M_d / (2 * M_PI * R_g * R_g);  // central surface density in Msun/kpc^2
-  Sigma_0 = 0.15 * M_d / (2 * M_PI * R_g * R_g);  // central surface density in Msun/kpc^2 MW model
+  R_g = galaxy.getR_g();  // gas scale length in kpc
+  G_f = galaxy.getG_f();  // gas fraction (relative to stellar disk mass)
+  Sigma_0 = G_f * M_d / (2 * M_PI * R_g * R_g);  // central surface density in Msun/kpc^2
   H_g     = z_d;                                  // initial guess for gas scale height
   // rho_floor = 1.0e3; //ICs minimum density in Msun/kpc^3
 
