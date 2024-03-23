@@ -566,11 +566,6 @@ Real Grid3D::Update_Hydro_Grid()
   #endif  // CPU_TIME
 #endif    // COOLING_GRACKLE
 
-#ifdef VELOCITY_CEILING
-  const Real V_ceiling_cholla = 0.005;  // roughly 10000 km/s
-  Velocity_Ceiling(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, gama, V_ceiling_cholla);
-#endif  // VELOCITY_CEILING
-
   // Temperature Ceiling
 #ifdef TEMPERATURE_CEILING
   // 1e51 ergs / (m_p * (pc/cm)^3) = 45000 km/s
