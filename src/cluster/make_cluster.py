@@ -1,4 +1,4 @@
-with open('cluster_list_MW_low.txt','r') as ofile:
+with open('cluster_list_MW_mid.txt','r') as ofile:
     data = ofile.read()
 
 data = data.replace('\t',',')

@@ -37,8 +37,8 @@ inline __device__ void calc_g_1D(int xid, int x_off, int n_ghost, int custom_gra
       R_vir   = 261;            // viral radius in kpc
       c_vir   = 20.0;           // halo concentration
       R_h     = R_vir / c_vir;  // halo scale length in kpc
-      R_d     = 3.5;            // disk scale length in kpc
-      z_d     = 3.5 / 5.0;      // disk scale height in kpc
+      R_d     = 2.5;            // disk scale length in kpc
+      z_d     = 0.7;      // disk scale height in kpc
       phi_0_h = GN * M_h / (log(1.0 + c_vir) - c_vir / (1.0 + c_vir));
       x       = r_halo / R_h;
 
@@ -104,7 +104,7 @@ inline __device__ void calc_g_2D(int xid, int yid, int x_off, int y_off, int n_g
       R_vir = 261;            // viral radius in kpc
       c_vir = 20;             // halo concentration
       R_s   = R_vir / c_vir;  // halo scale length in kpc
-      R_d   = 3.5;            // disk scale length in kpc
+      R_d   = 2.5;            // disk scale length in kpc
 
       // calculate acceleration
       x   = r / R_s;
@@ -147,8 +147,8 @@ inline __device__ void calc_g_3D(int xid, int yid, int zid, int x_off, int y_off
 
       M_vir = 1.0e12;     // viral mass of in M_sun
       M_d   = 6.5e10;     // viral mass of in M_sun
-      R_d   = 3.5;        // disk scale length in kpc
-      z_d   = 3.5 / 5.0;  // disk scale height in kpc
+      R_d   = 2.5;        // disk scale length in kpc
+      z_d   = 0.7;  // disk scale height in kpc
       R_vir = 261.;       // virial radius in kpc
       c_vir = 20.0;       // halo concentration
 
