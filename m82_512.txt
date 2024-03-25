@@ -1,8 +1,8 @@
 #
-# Parameter File for 3D box filled with gas
+# Parameter File for a 3D disk
 #
 
-################################################
+######################################
 # number of grid cells in the x dimension
 nx=512
 # number of grid cells in the y dimension
@@ -10,12 +10,16 @@ ny=512
 # number of grid cells in the z dimension
 nz=1024
 # final output time
-tout=40000.0
+tout=40000
 # time interval for output
-outstep=500.0
-outstep_hydro=2
+outstep=50
+n_hydro=20
+# value of gamma
+gamma=1.6666667
 # name of initial conditions
 init=Disk_3D
+#init=Read_Grid
+#nfile=200
 # domain properties
 xmin=-5
 ymin=-5
@@ -30,31 +34,21 @@ yl_bcnd=3
 yu_bcnd=3
 zl_bcnd=3
 zu_bcnd=3
-# path to output directory
-outdir=out/512_rotate/
-
-# supernova params 
+# static grav parameter
+custom_grav=2
+# supernova cluster properties
 supernova_rcl=0.03
 supernova_e=1
-gamma=1.666666667
-
-# rotated projection params
-# z-axis angle
+# rotated projection properties
+nxr=432
+nzr=540
 delta=0.0
-# y-axis angle
 theta=20.0
-# x-axis angle
 phi=20.0
-# horizontal size of output
 Lx=20.0
-# vertical size of output
 Lz=25.0
-# pixels
-nxr=512
-nzr=1024
-# made as simulation runs (2) (1) reads in output
 flag_delta=2
 ddelta_dt=-0.001
-
-#################################################
-
+# path to output directory
+#indir=./hdf5/raw/
+outdir=./hdf5_512/raw/
