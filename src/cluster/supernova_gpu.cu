@@ -252,12 +252,12 @@ __global__ void Calc_Omega_Kernel(Real *cluster_array, Real *omega_array, int n_
 
   #ifdef MW_MODEL
   // MW model
-  M_d   = 6.5e10;     // virial mass in M_sun
-  M_vir = 1.0e12;     // virial mass in M_sun
-  R_d   = 2.5;        // disk scale length in kpc
-  R_vir = 261.;       // virial radius in kpc
-  z_d   = 0.7;  // disk scale height in kpc
-  c_vir = 20.0;       // halo concentration
+  M_d   = 6.5e10;  // virial mass in M_sun
+  M_vir = 1.0e12;  // virial mass in M_sun
+  R_d   = 2.5;     // disk scale length in kpc
+  R_vir = 261.;    // virial radius in kpc
+  z_d   = 0.7;     // disk scale height in kpc
+  c_vir = 20.0;    // halo concentration
 
   #else
   // M82 model
