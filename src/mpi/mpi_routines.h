@@ -166,6 +166,9 @@ Real ReduceRealMin(Real x);
 /* MPI reduction wrapper for avg(Real)*/
 Real ReduceRealAvg(Real x);
 
+/* MPI reduction wrapper for sum(Real)*/
+Real ReduceRealSum(Real x);
+
 /*!
  * \brief MPI reduction wrapper to find the maximum of a size_t variable
  *

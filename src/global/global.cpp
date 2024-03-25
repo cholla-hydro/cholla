@@ -489,6 +489,12 @@ void Parse_Param(char *name, char *value, struct Parameters *parms)
     strncpy(parms->skewersdir, value, MAXLEN);
   #endif
 #endif
+#ifdef SUPERNOVA
+  } else if (strcmp(name, "supernova_e") == 0) {
+    parms->supernova_e = atoi(value);
+  } else if (strcmp(name, "supernova_rcl") == 0) {
+    parms->supernova_rcl = atof(value);
+#endif
 #ifdef SCALAR
   #ifdef DUST
   } else if (strcmp(name, "grain_radius") == 0) {

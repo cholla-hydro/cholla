@@ -67,6 +67,9 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   #ifdef DE
   Real ge;
   #endif
+  #ifdef BASIC_SCALAR
+  Real c;
+  #endif
 
   mu = 0.6;
   // mu = 1.27;
@@ -98,68 +101,80 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     ge = dev_conserved[(n_fields - 1) * n_cells + id] / d;
     ge = fmax(ge, (Real)TINY_NUMBER);
   #endif
+  #ifdef BASIC_SCALAR
+    c = dev_conserved[grid_enum::basic_scalar * n_cells + id] / d;
 
-    // calculate the number density of the gas (in cgs)
-    n = d * DENSITY_UNIT / (mu * MP);
+    // don't apply cooling to pure halo gas (to prevent initial collapse)
+    if (c > 0.1000001) {
+  #endif
+      // calculate the number density of the gas (in cgs)
+      n = d * DENSITY_UNIT / (mu * MP);
 
-    // calculate the temperature of the gas
-    T_init = p * PRESSURE_UNIT / (n * KB);
+      // calculate the temperature of the gas
+      T_init = p * PRESSURE_UNIT / (n * KB);
   #ifdef DE
-    T_init = d * ge * (gamma - 1.0) * PRESSURE_UNIT / (n * KB);
+      T_init = d * ge * (gamma - 1.0) * PRESSURE_UNIT / (n * KB);
   #endif
 
-    // calculate cooling rate per volume
-    T = T_init;
+      // calculate cooling rate per volume
+      T = T_init;
   // call the cooling function
   #ifdef CLOUDY_COOL
-    cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
+      cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
   #else
     cool = CIE_cool(n, T);
   #endif
 
-    // calculate change in temperature given dt
-    del_T = cool * dt * TIME_UNIT * (gamma - 1.0) / (n * KB);
+      // calculate change in temperature given dt
+      del_T = cool * dt * TIME_UNIT * (gamma - 1.0) / (n * KB);
 
-    // limit change in temperature to 1%
-    while (del_T / T > 0.01) {
-      // what dt gives del_T = 0.01*T?
-      dt_sub = 0.01 * T * n * KB / (cool * TIME_UNIT * (gamma - 1.0));
-      // apply that dt
-      T -= cool * dt_sub * TIME_UNIT * (gamma - 1.0) / (n * KB);
-      // how much time is left from the original timestep?
-      dt -= dt_sub;
+      // limit change in temperature to 1%
+      while (del_T / T > 0.01) {
+        // what dt gives del_T = 0.01*T?
+        dt_sub = 0.01 * T * n * KB / (cool * TIME_UNIT * (gamma - 1.0));
+        // apply that dt
+        T -= cool * dt_sub * TIME_UNIT * (gamma - 1.0) / (n * KB);
+        // how much time is left from the original timestep?
+        dt -= dt_sub;
   // calculate cooling again
   #ifdef CLOUDY_COOL
-      cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
+        cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
   #else
       cool = CIE_cool(n, T);
   #endif
-      // calculate new change in temperature
-      del_T = cool * dt * TIME_UNIT * (gamma - 1.0) / (n * KB);
-    }
+        // calculate new change in temperature
+        del_T = cool * dt * TIME_UNIT * (gamma - 1.0) / (n * KB);
+      }
 
-    // calculate final temperature
-    T -= del_T;
+      // calculate final temperature
+      T -= del_T;
+      if (T > 1e9) {
+        T = 1e9;  // add a temperature ceiling
+        // printf("Temperature ceiling applied: %d %d %d\n", xid, yid, zid);
+      }
 
-    // adjust value of energy based on total change in temperature
-    del_T = T_init - T;  // total change in T
-    E -= n * KB * del_T / ((gamma - 1.0) * ENERGY_UNIT);
+      // adjust value of energy based on total change in temperature
+      del_T = T_init - T;  // total change in T
+      E -= n * KB * del_T / ((gamma - 1.0) * ENERGY_UNIT);
   #ifdef DE
-    ge -= KB * del_T / (mu * MP * (gamma - 1.0) * SP_ENERGY_UNIT);
+      ge -= KB * del_T / (mu * MP * (gamma - 1.0) * SP_ENERGY_UNIT);
   #endif
 
   // calculate cooling rate for new T
   #ifdef CLOUDY_COOL
-    cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
+      cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
   #else
     cool = CIE_cool(n, T);
   // printf("%d %d %d %e %e %e\n", xid, yid, zid, n, T, cool);
   #endif
 
-    // and send back from kernel
-    dev_conserved[4 * n_cells + id] = E;
+      // and send back from kernel
+      dev_conserved[4 * n_cells + id] = E;
   #ifdef DE
-    dev_conserved[(n_fields - 1) * n_cells + id] = d * ge;
+      dev_conserved[(n_fields - 1) * n_cells + id] = d * ge;
+  #endif
+  #ifdef BASIC_SCALAR
+    }
   #endif
   }
 }

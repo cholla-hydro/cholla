@@ -4,15 +4,15 @@
 
 ################################################
 # number of grid cells in the x dimension
-nx=10
+nx=32
 # number of grid cells in the y dimension
-ny=10
+ny=32
 # number of grid cells in the z dimension
-nz=10
+nz=32
 # final output time
-tout=100000.0
+tout=100
 # time interval for output
-outstep=100000.0
+outstep=100
 # name of initial conditions
 init=Constant
 # domain properties
@@ -33,8 +33,7 @@ zu_bcnd=1
 outdir=./
 
 #################################################
-# density
-rho=1e4
+rho=1.0
 # velocity
 vx=0
 vy=0
@@ -47,4 +46,3 @@ By=2.0e-5
 Bz=3.0e-5
 # value of gamma
 gamma=1.666666667
-
