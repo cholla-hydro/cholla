@@ -43,8 +43,8 @@ TEST(tALLKernelReduceMax, CorrectInputExpectCorrectOutput)
   std::mt19937 prng(1);
   std::uniform_real_distribution<double> doubleRand(-std::abs(maxValue) - 1, std::abs(maxValue) - 1);
   std::uniform_int_distribution<int> intRand(0, host_grid.size() - 1);
-  for (size_t i = 0; i < host_grid.size(); i++) {
-    host_grid.at(i) = doubleRand(prng);
+  for (Real& host_data : host_grid) {
+    host_data = doubleRand(prng);
   }
   host_grid.at(intRand(prng)) = maxValue;
 
@@ -60,10 +60,10 @@ TEST(tALLKernelReduceMax, CorrectInputExpectCorrectOutput)
   // ================
   hipLaunchKernelGGL(reduction_utilities::kernelReduceMax, launchParams.numBlocks, launchParams.threadsPerBlock, 0, 0,
                      dev_grid.data(), dev_max.data(), host_grid.size());
-  CudaCheckError();
+  GPU_Error_Check();
 
   // Perform comparison
-  testingUtilities::checkResults(maxValue, dev_max.at(0), "maximum value found");
+  testing_utilities::Check_Results(maxValue, dev_max.at(0), "maximum value found");
 }
 // =============================================================================
 // Tests for divergence max reduction

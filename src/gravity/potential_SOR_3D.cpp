@@ -136,7 +136,8 @@ void Potential_SOR_3D::Copy_Input_And_Initialize(Real *input_density, const Real
 
   if (!potential_initialized) {
     chprintf("SOR: Initializing  Potential \n");
-    CHECK(cudaMemcpy(F.potential_d, input_potential, n_cells_potential * sizeof(Real), cudaMemcpyHostToDevice));
+    GPU_Error_Check(
+        cudaMemcpy(F.potential_d, input_potential, n_cells_potential * sizeof(Real), cudaMemcpyHostToDevice));
     // Initialize_Potential( nx_local, ny_local, nz_local, n_ghost,
     // F.potential_d, F.density_d );
     potential_initialized = true;
@@ -153,11 +154,11 @@ void Potential_SOR_3D::Poisson_Partial_Iteration(int n_step, Real omega, Real ep
                                F.density_d, F.potential_d, F.converged_h, F.converged_d);
 }
 
-void Grid3D::Get_Potential_SOR(Real Grav_Constant, Real dens_avrg, Real current_a, struct parameters *P)
+void Grid3D::Get_Potential_SOR(Real Grav_Constant, Real dens_avrg, Real current_a, struct Parameters *P)
 {
   #ifdef TIME_SOR
   Real time_start, time_end, time;
-  time_start = get_time();
+  time_start = Get_Time();
   #endif
 
   Grav.Poisson_solver.Copy_Input_And_Initialize(Grav.F.density_h, Grav.F.potential_h, Grav_Constant, dens_avrg,
@@ -233,13 +234,13 @@ void Grid3D::Get_Potential_SOR(Real Grav_Constant, Real dens_avrg, Real current_
     #ifdef MPI_CHOLLA
   MPI_Barrier(world);
     #endif
-  time_end = get_time();
+  time_end = Get_Time();
   time     = (time_end - time_start);
   chprintf(" SOR: Time = %f  seg\n", time);
   #endif
 }
 
-void Grav3D::Copy_Isolated_Boundaries_To_GPU(struct parameters *P)
+void Grav3D::Copy_Isolated_Boundaries_To_GPU(struct Parameters *P)
 {
   if (P->xl_bcnd != 3 && P->xu_bcnd != 3 && P->yl_bcnd != 3 && P->yu_bcnd != 3 && P->zl_bcnd != 3 && P->zu_bcnd != 3)
     return;
@@ -265,7 +266,7 @@ void Grav3D::Copy_Isolated_Boundaries_To_GPU(struct parameters *P)
                                          Poisson_solver.n_ghost * nx_local * ny_local);
 }
 
-void Potential_SOR_3D::Set_Isolated_Boundary_Conditions(int *boundary_flags, struct parameters *P)
+void Potential_SOR_3D::Set_Isolated_Boundary_Conditions(int *boundary_flags, struct Parameters *P)
 {
   if (P->xl_bcnd != 3 && P->xu_bcnd != 3 && P->yl_bcnd != 3 && P->yu_bcnd != 3 && P->zl_bcnd != 3 && P->zu_bcnd != 3)
     return;

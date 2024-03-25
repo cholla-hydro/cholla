@@ -1,11 +1,13 @@
 #include "../utils/timing_functions.h"
 #ifdef CPU_TIME
 
+  #include <algorithm>
   #include <fstream>
   #include <iostream>
   #include <string>
 
   #include "../global/global.h"
+  #include "../global/global_cuda.h"
   #include "../io/io.h"
 
   #ifdef MPI_CHOLLA
@@ -18,7 +20,7 @@ void OneTime::Start()
   if (inactive) {
     return;
   }
-  time_start = get_time();
+  time_start = Get_Time();
 }
 
 void OneTime::Subtract(Real time_to_subtract)
@@ -28,13 +30,13 @@ void OneTime::Subtract(Real time_to_subtract)
   time_start += time_to_subtract;
 }
 
-void OneTime::End()
+void OneTime::End(bool const print_high_values)
 {
   cudaDeviceSynchronize();
   if (inactive) {
     return;
   }
-  Real time_end = get_time();
+  Real time_end = Get_Time();
   Real time     = (time_end - time_start) * 1000;
 
   #ifdef MPI_CHOLLA
@@ -50,6 +52,32 @@ void OneTime::End()
     t_all += t_max;
   }
   n_steps++;
+
+  #ifdef MPI_CHOLLA
+  // Print out information if the process is unusually slow
+  if ((time >= 1.1 * t_avg) and (n_steps > 0) and print_high_values) {
+    // Get node ID
+    std::string node_id(MPI_MAX_PROCESSOR_NAME, ' ');
+    int length;
+    MPI_Get_processor_name(node_id.data(), &length);
+    node_id.resize(length);
+
+    // Get GPU ID
+    std::string gpu_id(MPI_MAX_PROCESSOR_NAME, ' ');
+    int device;
+    GPU_Error_Check(cudaGetDevice(&device));
+    GPU_Error_Check(cudaDeviceGetPCIBusId(gpu_id.data(), gpu_id.size(), device));
+    gpu_id.erase(
+        std::find_if(gpu_id.rbegin(), gpu_id.rend(), [](unsigned char ch) { return !std::isspace(ch); }).base(),
+        gpu_id.end());
+
+    std::cerr << "WARNING: Rank took longer than expected to execute." << std::endl
+              << "         Node Time: " << time << std::endl
+              << "         Avg Time: " << t_avg << std::endl
+              << "         Node ID: " << node_id << std::endl
+              << "         GPU PCI Bus ID: " << gpu_id << std::endl;
+  }
+  #endif  // MPI_CHOLLA
 }
 
 void OneTime::RecordTime(Real time)
@@ -141,7 +169,7 @@ void Time::Print_Times()
 }
 
 // once at end of run in main.cpp
-void Time::Print_Average_Times(struct parameters P)
+void Time::Print_Average_Times(struct Parameters P)
 {
   chprintf("\nAverage Times      n_steps:%d\n", n_steps);
 
@@ -150,14 +178,15 @@ void Time::Print_Average_Times(struct parameters P)
   }
 
   std::string file_name("run_timing.log");
-  std::string header;
 
   chprintf("Writing timing values to file: %s  \n", file_name.c_str());
 
-  std::string gitHash    = "Git Commit Hash = " + std::string(GIT_HASH) + std::string("\n");
-  std::string macroFlags = "Macro Flags     = " + std::string(MACRO_FLAGS) + std::string("\n\n");
+  std::string header = "Git Commit Hash = " + std::string(GIT_HASH) + std::string("\n");
+  header += "Macro Flags     = " + std::string(MACRO_FLAGS) + std::string("\n");
+  header += "Note that the timers all skip the first time step since it always takes longer." + std::string("\n") +
+            "To find the average time divide the time shown by n_steps-1" + std::string("\n");
 
-  header = "#n_proc  nx  ny  nz  n_omp  n_steps  ";
+  header += std::string("\n") + "#n_proc  nx  ny  nz  n_omp  n_steps  ";
 
   for (OneTime* x : onetimes) {
     header += x->name;
@@ -186,8 +215,6 @@ void Time::Print_Average_Times(struct parameters P)
   // Output timing values
   out_file.open(file_name.c_str(), std::ios::app);
   if (!file_exists) {
-    out_file << gitHash;
-    out_file << macroFlags;
     out_file << header;
   }
   #ifdef MPI_CHOLLA
@@ -219,14 +246,14 @@ ScopedTimer::ScopedTimer(const char* input_name)
 {
 #ifdef CPU_TIME
   name       = input_name;
-  time_start = get_time();
+  time_start = Get_Time();
 #endif
 }
 
 ScopedTimer::~ScopedTimer(void)
 {
 #ifdef CPU_TIME
-  double time_elapsed_ms = (get_time() - time_start) * 1000;
+  double time_elapsed_ms = (Get_Time() - time_start) * 1000;
 
   #ifdef MPI_CHOLLA
   double t_min = ReduceRealMin(time_elapsed_ms);

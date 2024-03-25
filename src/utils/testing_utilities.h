@@ -26,7 +26,7 @@
  * considered compatible with CUDA/HIP.
  *
  */
-namespace testingUtilities
+namespace testing_utilities
 {
 // =========================================================================
 /*!
@@ -95,13 +95,13 @@ bool nearlyEqualDbl(double const &a, double const &b, double &absoluteDiff, int6
                     double const &fixedEpsilon = 1E-14, int64_t const &ulpsEpsilon = 4);
 // =========================================================================
 
-void wrapperEqual(int i, int j, int k, std::string dataSetName, double test_value, double fid_value,
+void wrapperEqual(int i, int j, int k, std::string const &dataSetName, double test_value, double fid_value,
                   double fixedEpsilon);
 
-void analyticConstant(systemTest::SystemTestRunner testObject, std::string dataSetName, double value);
+void analyticConstant(system_test::SystemTestRunner testObject, std::string const &dataSetName, double value);
 
-void analyticSine(systemTest::SystemTestRunner testObject, std::string dataSetName, double constant, double amplitude,
-                  double kx, double ky, double kz, double phase, double tolerance);
+void analyticSine(system_test::SystemTestRunner testObject, std::string const &dataSetName, double constant,
+                  double amplitude, double kx, double ky, double kz, double phase, double tolerance);
 
 // =========================================================================
 /*!
@@ -120,8 +120,8 @@ void analyticSine(systemTest::SystemTestRunner testObject, std::string dataSetNa
  * values are ignored and default behaviour is used
  */
 template <int checkType = 0>
-void checkResults(double fiducialNumber, double testNumber, std::string outString, double fixedEpsilon = -999,
-                  int64_t ulpsEpsilon = -999)
+void Check_Results(double fiducialNumber, double testNumber, std::string const &outString, double fixedEpsilon = -999,
+                   int64_t ulpsEpsilon = -999)
 {
   // Check for equality and if not equal return difference
   double absoluteDiff;
@@ -129,12 +129,12 @@ void checkResults(double fiducialNumber, double testNumber, std::string outStrin
   bool areEqual;
 
   if ((fixedEpsilon < 0) and (ulpsEpsilon < 0)) {
-    areEqual = testingUtilities::nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff);
+    areEqual = testing_utilities::nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff);
   } else if ((fixedEpsilon > 0) and (ulpsEpsilon < 0)) {
-    areEqual = testingUtilities::nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff, fixedEpsilon);
+    areEqual = testing_utilities::nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff, fixedEpsilon);
   } else {
-    areEqual =
-        testingUtilities::nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff, fixedEpsilon, ulpsEpsilon);
+    areEqual = testing_utilities::nearlyEqualDbl(fiducialNumber, testNumber, absoluteDiff, ulpsDiff, fixedEpsilon,
+                                                 ulpsEpsilon);
   }
 
   std::stringstream outputMessage;
@@ -152,7 +152,7 @@ void checkResults(double fiducialNumber, double testNumber, std::string outStrin
   } else {
     throw std::runtime_error(
         "Incorrect template argument passed to "
-        "checkResults. Options are 0 and 1 but " +
+        "Check_Results. Options are 0 and 1 but " +
         std::to_string(checkType) + " was passed");
   }
 }
@@ -189,13 +189,13 @@ class GlobalString
   ~GlobalString() = default;
 };
 // =========================================================================
-}  // namespace testingUtilities
+}  // namespace testing_utilities
 
 // Declare the global string variables so everything that imports this file
 // has access to them
-extern testingUtilities::GlobalString globalChollaRoot;
-extern testingUtilities::GlobalString globalChollaBuild;
-extern testingUtilities::GlobalString globalChollaMachine;
-extern testingUtilities::GlobalString globalMpiLauncher;
+extern testing_utilities::GlobalString globalChollaRoot;
+extern testing_utilities::GlobalString globalChollaBuild;
+extern testing_utilities::GlobalString globalChollaMachine;
+extern testing_utilities::GlobalString globalMpiLauncher;
 extern bool globalRunCholla;
 extern bool globalCompareSystemTestResults;

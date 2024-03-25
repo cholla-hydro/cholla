@@ -31,9 +31,9 @@ TEST(tALLRotateCoords, CorrectInputExpectCorrectOutput)
 
   auto [x_1_rot, x_2_rot, x_3_rot] = math_utils::rotateCoords<double>(x_1, x_2, x_3, pitch, yaw);
 
-  testingUtilities::checkResults<0>(x_1_rot_fid, x_1_rot, "x_1 rotated values");
-  testingUtilities::checkResults<0>(x_2_rot_fid, x_2_rot, "x_2 rotated values");
-  testingUtilities::checkResults<0>(x_3_rot_fid, x_3_rot, "x_3 rotated values");
+  testing_utilities::Check_Results<0>(x_1_rot_fid, x_1_rot, "x_1 rotated values");
+  testing_utilities::Check_Results<0>(x_2_rot_fid, x_2_rot, "x_2 rotated values");
+  testing_utilities::Check_Results<0>(x_3_rot_fid, x_3_rot, "x_3 rotated values");
 }
 // =============================================================================
 
@@ -54,6 +54,24 @@ TEST(tALLDotProduct, CorrectInputExpectCorrectOutput)
   testDotProduct = math_utils::dotProduct(a.at(0), a.at(1), a.at(2), b.at(0), b.at(1), b.at(2));
 
   // Now check results
-  testingUtilities::checkResults(fiducialDotProduct, testDotProduct, "dot product");
+  testing_utilities::Check_Results(fiducialDotProduct, testDotProduct, "dot product");
+}
+// =========================================================================
+
+// =========================================================================
+/*!
+ * \brief Test the math_utils::dotProduct function
+ *
+ */
+TEST(tALLSquareMagnitude, CorrectInputExpectCorrectOutput)
+{
+  std::vector<double> a = {11.503067766457753, 98.316634031589935, 41.12177317622657};
+
+  double const fiducial_square_magnitude = 11489.481324498336;
+
+  double test_square_magnitude = math_utils::SquareMagnitude(a.at(0), a.at(1), a.at(2));
+
+  // Now check results
+  testing_utilities::Check_Results(fiducial_square_magnitude, test_square_magnitude, "dot product");
 }
 // =========================================================================

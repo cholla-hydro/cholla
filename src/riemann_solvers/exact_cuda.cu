@@ -1,19 +1,17 @@
 /*! \file exact_cuda.cu
  *  \brief Function definitions for the cuda exact Riemann solver.*/
 
-#ifdef CUDA
+#include <math.h>
+#include <stdio.h>
 
-  #include <math.h>
-  #include <stdio.h>
+#include "../global/global.h"
+#include "../global/global_cuda.h"
+#include "../riemann_solvers/exact_cuda.h"
+#include "../utils/gpu.hpp"
 
-  #include "../global/global.h"
-  #include "../global/global_cuda.h"
-  #include "../riemann_solvers/exact_cuda.h"
-  #include "../utils/gpu.hpp"
-
-  #ifdef DE  // PRESSURE_DE
-    #include "../utils/hydro_utilities.h"
-  #endif
+#ifdef DE  // PRESSURE_DE
+  #include "../utils/hydro_utilities.h"
+#endif
 
 /*! \fn Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R, Real
  * *dev_flux, int nx, int ny, int nz, int n_ghost, Real gamma, int dir, int
@@ -55,13 +53,13 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
                         // energy
   Real vm, pm;          // velocity and pressure in the star region
 
-  #ifdef DE
+#ifdef DE
   Real gel, ger, E_kin, E, dge;
-  #endif
+#endif
 
-  #ifdef SCALAR
+#ifdef SCALAR
   Real scalarl[NSCALARS], scalarr[NSCALARS];
-  #endif
+#endif
 
   // Each thread executes the solver independently
   // if (xid > n_ghost-3 && xid < nx-n_ghost+1 && yid < ny && zid < nz)
@@ -71,44 +69,44 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
     vxl = dev_bounds_L[o1 * n_cells + tid] / dl;
     vyl = dev_bounds_L[o2 * n_cells + tid] / dl;
     vzl = dev_bounds_L[o3 * n_cells + tid] / dl;
-  #ifdef DE  // PRESSURE_DE
+#ifdef DE  // PRESSURE_DE
     E     = dev_bounds_L[4 * n_cells + tid];
     E_kin = 0.5 * dl * (vxl * vxl + vyl * vyl + vzl * vzl);
     dge   = dev_bounds_L[(n_fields - 1) * n_cells + tid];
     pl    = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
-  #else
+#else
     pl = (dev_bounds_L[4 * n_cells + tid] - 0.5 * dl * (vxl * vxl + vyl * vyl + vzl * vzl)) * (gamma - 1.0);
-  #endif  // PRESSURE_DE
+#endif  // PRESSURE_DE
     pl = fmax(pl, (Real)TINY_NUMBER);
-  #ifdef SCALAR
+#ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       scalarl[i] = dev_bounds_L[(5 + i) * n_cells + tid] / dl;
     }
-  #endif
-  #ifdef DE
+#endif
+#ifdef DE
     gel = dge / dl;
-  #endif
+#endif
     dr  = dev_bounds_R[tid];
     vxr = dev_bounds_R[o1 * n_cells + tid] / dr;
     vyr = dev_bounds_R[o2 * n_cells + tid] / dr;
     vzr = dev_bounds_R[o3 * n_cells + tid] / dr;
-  #ifdef DE  // PRESSURE_DE
+#ifdef DE  // PRESSURE_DE
     E     = dev_bounds_R[4 * n_cells + tid];
     E_kin = 0.5 * dr * (vxr * vxr + vyr * vyr + vzr * vzr);
     dge   = dev_bounds_R[(n_fields - 1) * n_cells + tid];
     pr    = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
-  #else
+#else
     pr = (dev_bounds_R[4 * n_cells + tid] - 0.5 * dr * (vxr * vxr + vyr * vyr + vzr * vzr)) * (gamma - 1.0);
-  #endif  // PRESSURE_DE
+#endif  // PRESSURE_DE
     pr = fmax(pr, (Real)TINY_NUMBER);
-  #ifdef SCALAR
+#ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       scalarr[i] = dev_bounds_R[(5 + i) * n_cells + tid] / dr;
     }
-  #endif
-  #ifdef DE
+#endif
+#ifdef DE
     ger = dge / dr;
-  #endif
+#endif
 
     // compute sounds speeds in left and right regions
     cl = sqrt(gamma * pl / dl);
@@ -133,26 +131,26 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds
     if (vs >= 0) {
       dev_flux[o2 * n_cells + tid] = ds * vs * vyl;
       dev_flux[o3 * n_cells + tid] = ds * vs * vzl;
-  #ifdef SCALAR
+#ifdef SCALAR
       for (int i = 0; i < NSCALARS; i++) {
         dev_flux[(5 + i) * n_cells + tid] = ds * vs * scalarl[i];
       }
-  #endif
-  #ifdef DE
+#endif
+#ifdef DE
       dev_flux[(n_fields - 1) * n_cells + tid] = ds * vs * gel;
-  #endif
+#endif
       Es = (ps / (gamma - 1.0)) + 0.5 * ds * (vs * vs + vyl * vyl + vzl * vzl);
     } else {
       dev_flux[o2 * n_cells + tid] = ds * vs * vyr;
       dev_flux[o3 * n_cells + tid] = ds * vs * vzr;
-  #ifdef SCALAR
+#ifdef SCALAR
       for (int i = 0; i < NSCALARS; i++) {
         dev_flux[(5 + i) * n_cells + tid] = ds * vs * scalarr[i];
       }
-  #endif
-  #ifdef DE
+#endif
+#ifdef DE
       dev_flux[(n_fields - 1) * n_cells + tid] = ds * vs * ger;
-  #endif
+#endif
       Es = (ps / (gamma - 1.0)) + 0.5 * ds * (vs * vs + vyr * vyr + vzr * vzr);
     }
     dev_flux[4 * n_cells + tid] = (Es + ps) * vs;
@@ -334,5 +332,3 @@ __device__ void sample_CUDA(const Real pm, const Real vm, Real *d, Real *v, Real
     }
   }
 }
-
-#endif  // CUDA

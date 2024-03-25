@@ -31,8 +31,8 @@
 // =============================================================================
 
 // =============================================================================
-void systemTest::SystemTestRunner::runTest(bool const &compute_L2_norm_only, double const &maxAllowedL1Error,
-                                           double const &maxAllowedError)
+void system_test::SystemTestRunner::runTest(bool const &compute_L2_norm_only, double const &maxAllowedL1Error,
+                                            double const &maxAllowedError)
 {
   /// Only run if this variable is set to `true`. Generally this and
   /// globalCompareSystemTestResults should only be used for large MPI / tests
@@ -55,15 +55,16 @@ void systemTest::SystemTestRunner::runTest(bool const &compute_L2_norm_only, dou
   // Make sure we have all the required data files and open the test data file
   _testHydroFieldsFileVec.resize(numMpiRanks);
   _testParticlesFileVec.resize(numMpiRanks);
+  FnameTemplate fname_template(true, _outputDirectory);
   for (size_t fileIndex = 0; fileIndex < numMpiRanks; fileIndex++) {
     // Load the hydro data
-    std::string filePath = _outputDirectory + "/1.h5." + std::to_string(fileIndex);
+    std::string filePath = fname_template.format_fname(1, fileIndex, "");
     if (_hydroDataExists and std::filesystem::exists(filePath)) {
       _testHydroFieldsFileVec[fileIndex].openFile(filePath, H5F_ACC_RDONLY);
     }
 
     // Load the particles data
-    filePath = _outputDirectory + "/1_particles.h5." + std::to_string(fileIndex);
+    filePath = fname_template.format_fname(1, fileIndex, "_particles");
     if (_particleDataExists and std::filesystem::exists(filePath)) {
       _testParticlesFileVec[fileIndex].openFile(filePath, H5F_ACC_RDONLY);
     }
@@ -108,10 +109,10 @@ void systemTest::SystemTestRunner::runTest(bool const &compute_L2_norm_only, dou
       << std::endl;
 
   // Compute the L1 Error.
-  double L2Norm   = 0;
+  L2Norm_         = 0;
   double maxError = 0;
   // Loop over the datasets to be tested
-  for (auto dataSetName : _fiducialDataSetNames) {
+  for (auto const &dataSetName : _fiducialDataSetNames) {
     // check that the test data has the dataset in it
     ASSERT_EQ(std::count(_testDataSetNames.begin(), _testDataSetNames.end(), dataSetName), 1)
         << "The test data does not contain the dataset '" + dataSetName + "' or contains it more than once.";
@@ -171,8 +172,8 @@ void systemTest::SystemTestRunner::runTest(bool const &compute_L2_norm_only, dou
             // Check for equality and iff not equal return difference
             double absoluteDiff;
             int64_t ulpsDiff;
-            bool areEqual = testingUtilities::nearlyEqualDbl(fiducialData.at(index), testData.at(index), absoluteDiff,
-                                                             ulpsDiff, _fixedEpsilon);
+            bool areEqual = testing_utilities::nearlyEqualDbl(fiducialData.at(index), testData.at(index), absoluteDiff,
+                                                              ulpsDiff, _fixedEpsilon);
             ASSERT_TRUE(areEqual) << std::endl
                                   << "Difference in " << dataSetName << " dataset at [" << i << "," << j << "," << k
                                   << "]" << std::endl
@@ -187,14 +188,14 @@ void systemTest::SystemTestRunner::runTest(bool const &compute_L2_norm_only, dou
 
     if (compute_L2_norm_only) {
       L1_error /= static_cast<double>(testDims[0] * testDims[1] * testDims[2]);
-      L2Norm += L1_error * L1_error;
+      L2Norm_ += L1_error * L1_error;
     }
   }
 
   if (compute_L2_norm_only) {
     // Check the L2 Norm
-    L2Norm = std::sqrt(L2Norm);
-    EXPECT_LT(L2Norm, maxAllowedL1Error) << "the norm of the L1 error vector has exceeded the allowed value";
+    L2Norm_ = std::sqrt(L2Norm_);
+    EXPECT_LT(L2Norm_, maxAllowedL1Error) << "the norm of the L1 error vector has exceeded the allowed value";
 
     // Check the Max Error
     EXPECT_LT(maxError, maxAllowedError) << "The maximum error has exceeded the allowed value";
@@ -203,7 +204,7 @@ void systemTest::SystemTestRunner::runTest(bool const &compute_L2_norm_only, dou
 // =============================================================================
 
 // =============================================================================
-void systemTest::SystemTestRunner::runL1ErrorTest(double const &maxAllowedL1Error, double const &maxAllowedError)
+void system_test::SystemTestRunner::runL1ErrorTest(double const &maxAllowedL1Error, double const &maxAllowedError)
 {
   /// Only run if this variable is set to `true`. Generally this and
   /// globalCompareSystemTestResults should only be used for large MPI / tests
@@ -236,15 +237,16 @@ void systemTest::SystemTestRunner::runL1ErrorTest(double const &maxAllowedL1Erro
   // Make sure we have all the required data files and open the data files
   _testHydroFieldsFileVec.resize(numMpiRanks);
   std::vector<H5::H5File> initialHydroFieldsFileVec(numMpiRanks);
+  FnameTemplate fname_template(true, _outputDirectory);
   for (size_t fileIndex = 0; fileIndex < numMpiRanks; fileIndex++) {
     // Initial time data
-    std::string filePath = _outputDirectory + "/0.h5." + std::to_string(fileIndex);
+    std::string filePath = fname_template.format_fname(0, fileIndex, "");
     if (std::filesystem::exists(filePath)) {
       initialHydroFieldsFileVec[fileIndex].openFile(filePath, H5F_ACC_RDONLY);
     }
 
     // Final time data
-    filePath = _outputDirectory + "/1.h5." + std::to_string(fileIndex);
+    filePath = fname_template.format_fname(1, fileIndex, "");
     if (std::filesystem::exists(filePath)) {
       _testHydroFieldsFileVec[fileIndex].openFile(filePath, H5F_ACC_RDONLY);
     }
@@ -270,9 +272,9 @@ void systemTest::SystemTestRunner::runL1ErrorTest(double const &maxAllowedL1Erro
       << std::endl;
 
   // Loop over the datasets to be tested
-  double L2Norm   = 0;
+  L2Norm_         = 0;
   double maxError = 0;
-  for (auto dataSetName : _fiducialDataSetNames) {
+  for (auto const &dataSetName : _fiducialDataSetNames) {
     if (dataSetName == "GasEnergy") {
       continue;
     }
@@ -312,7 +314,7 @@ void systemTest::SystemTestRunner::runL1ErrorTest(double const &maxAllowedL1Erro
     }
 
     L1_error /= static_cast<double>(initialDims[0] * initialDims[1] * initialDims[2]);
-    L2Norm += L1_error * L1_error;
+    L2Norm_ += L1_error * L1_error;
 
     // Perform the correctness check
     EXPECT_LT(L1_error, maxAllowedL1Error)
@@ -320,8 +322,8 @@ void systemTest::SystemTestRunner::runL1ErrorTest(double const &maxAllowedL1Erro
   }
 
   // Check the L2 Norm
-  L2Norm = std::sqrt(L2Norm);
-  EXPECT_LT(L2Norm, maxAllowedL1Error) << "the norm of the L1 error vector has exceeded the allowed value";
+  L2Norm_ = std::sqrt(L2Norm_);
+  EXPECT_LT(L2Norm_, maxAllowedL1Error) << "the norm of the L1 error vector has exceeded the allowed value";
 
   // Check the Max Error
   EXPECT_LT(maxError, maxAllowedError) << "The maximum error has exceeded the allowed value";
@@ -329,7 +331,7 @@ void systemTest::SystemTestRunner::runL1ErrorTest(double const &maxAllowedL1Erro
 // =============================================================================
 
 // =============================================================================
-void systemTest::SystemTestRunner::launchCholla()
+void system_test::SystemTestRunner::launchCholla()
 {
   // Launch Cholla. Note that this dumps all console output to the console
   // log file as requested by the user.
@@ -355,11 +357,11 @@ void systemTest::SystemTestRunner::launchCholla()
 // =============================================================================
 
 // =============================================================================
-void systemTest::SystemTestRunner::openHydroTestData()
+void system_test::SystemTestRunner::openHydroTestData()
 {
   _testHydroFieldsFileVec.resize(numMpiRanks);
   for (size_t fileIndex = 0; fileIndex < numMpiRanks; fileIndex++) {
-    std::string filePath = _outputDirectory + "/1.h5." + std::to_string(fileIndex);
+    std::string filePath = FnameTemplate(true, _outputDirectory).format_fname(1, fileIndex, "");
     if (std::filesystem::exists(filePath)) {
       _testHydroFieldsFileVec[fileIndex].openFile(filePath, H5F_ACC_RDONLY);
     }
@@ -368,7 +370,7 @@ void systemTest::SystemTestRunner::openHydroTestData()
 // =============================================================================
 
 // =============================================================================
-void systemTest::SystemTestRunner::setFiducialData(std::string const &fieldName, std::vector<double> const &dataVec)
+void system_test::SystemTestRunner::setFiducialData(std::string const &fieldName, std::vector<double> const &dataVec)
 {
   // First check if there's a fiducial data file
   if (_fiducialDataSets.count(fieldName) > 0) {
@@ -383,8 +385,8 @@ void systemTest::SystemTestRunner::setFiducialData(std::string const &fieldName,
 // =============================================================================
 
 // =============================================================================
-std::vector<double> systemTest::SystemTestRunner::generateConstantData(double const &value, size_t const &nx,
-                                                                       size_t const &ny, size_t const &nz)
+std::vector<double> system_test::SystemTestRunner::generateConstantData(double const &value, size_t const &nx,
+                                                                        size_t const &ny, size_t const &nz)
 {
   size_t const length = nx * ny * nz;
   std::vector<double> outVec(length);
@@ -396,10 +398,11 @@ std::vector<double> systemTest::SystemTestRunner::generateConstantData(double co
 // =============================================================================
 
 // =============================================================================
-std::vector<double> systemTest::SystemTestRunner::generateSineData(double const &offset, double const &amplitude,
-                                                                   double const &kx, double const &ky, double const &kz,
-                                                                   double const &phase, size_t const &nx,
-                                                                   size_t const &ny, size_t const &nz)
+std::vector<double> system_test::SystemTestRunner::generateSineData(double const &offset, double const &amplitude,
+                                                                    double const &kx, double const &ky,
+                                                                    double const &kz, double const &phase,
+                                                                    size_t const &nx, size_t const &ny,
+                                                                    size_t const &nz)
 {
   size_t const length = nx * ny * nz;
   std::vector<double> outVec(length);
@@ -419,8 +422,8 @@ std::vector<double> systemTest::SystemTestRunner::generateSineData(double const 
 
 // =============================================================================
 // Constructor
-systemTest::SystemTestRunner::SystemTestRunner(bool const &particleData, bool const &hydroData,
-                                               bool const &useFiducialFile, bool const &useSettingsFile)
+system_test::SystemTestRunner::SystemTestRunner(bool const &particleData, bool const &hydroData,
+                                                bool const &useFiducialFile, bool const &useSettingsFile)
     : _particleDataExists(particleData), _hydroDataExists(hydroData)
 {
   // Get the test name, with and underscore instead of a "." since
@@ -428,10 +431,10 @@ systemTest::SystemTestRunner::SystemTestRunner(bool const &particleData, bool co
   const ::testing::TestInfo *const test_info = ::testing::UnitTest::GetInstance()->current_test_info();
   std::stringstream nameStream;
   std::string suiteName = test_info->test_suite_name();
-  suiteName             = suiteName.substr(suiteName.find("/") + 1, suiteName.length());
+  suiteName             = suiteName.substr(suiteName.find('/') + 1, suiteName.length());
   nameStream << suiteName << "_" << test_info->name();
   std::string fullTestName = nameStream.str();
-  _fullTestFileName        = fullTestName.substr(0, fullTestName.find("/"));
+  _fullTestFileName        = fullTestName.substr(0, fullTestName.find('/'));
 
   // Generate the input paths. Strip out everything after a "/" since that
   // probably indicates a parameterized test.
@@ -484,7 +487,7 @@ systemTest::SystemTestRunner::SystemTestRunner(bool const &particleData, bool co
 
 // =============================================================================
 // Destructor
-systemTest::SystemTestRunner::~SystemTestRunner()
+system_test::SystemTestRunner::~SystemTestRunner()
 {
   _fiducialFile.close();
   for (size_t i = 0; i < _testHydroFieldsFileVec.size(); i++) {
@@ -503,7 +506,7 @@ systemTest::SystemTestRunner::~SystemTestRunner()
 // =============================================================================
 
 // =============================================================================
-void systemTest::SystemTestRunner::_checkNumTimeSteps()
+void system_test::SystemTestRunner::_checkNumTimeSteps()
 {
   int fiducialNSteps, testNSteps;
 
@@ -531,9 +534,9 @@ void systemTest::SystemTestRunner::_checkNumTimeSteps()
 // =============================================================================
 
 // =============================================================================
-std::vector<double> systemTest::SystemTestRunner::loadTestFieldData(std::string dataSetName,
-                                                                    std::vector<size_t> &testDims,
-                                                                    std::vector<H5::H5File> file)
+std::vector<double> system_test::SystemTestRunner::loadTestFieldData(std::string dataSetName,
+                                                                     std::vector<size_t> &testDims,
+                                                                     std::vector<H5::H5File> file)
 {
   // Switch which fileset we're using if it's a particle dataset
   if (dataSetName == "particle_density") {
@@ -619,11 +622,11 @@ std::vector<double> systemTest::SystemTestRunner::loadTestFieldData(std::string 
 // =============================================================================
 
 // =============================================================================
-std::vector<double> systemTest::SystemTestRunner::_loadTestParticleData(std::string const &dataSetName)
+std::vector<double> system_test::SystemTestRunner::_loadTestParticleData(std::string const &dataSetName)
 {
   // Determine the total number of particles
   if (_testTotalNumParticles == 0) {
-    for (auto file : _testParticlesFileVec) {
+    for (auto const &file : _testParticlesFileVec) {
       // Open the dataset
       H5::DataSet const dataSet = file.openDataSet(dataSetName);
 
@@ -677,9 +680,9 @@ std::vector<double> systemTest::SystemTestRunner::_loadTestParticleData(std::str
 // =============================================================================
 
 // =============================================================================
-std::vector<double> systemTest::SystemTestRunner::_loadFiducialFieldData(std::string const &dataSetName)
+std::vector<double> system_test::SystemTestRunner::_loadFiducialFieldData(std::string const &dataSetName)
 {
-  if (_fiducialFileExists) {
+  if (_fiducialFileExists and (_fiducialDataSets.find(dataSetName) == _fiducialDataSets.end())) {
     // Open the dataset
     H5::DataSet const fiducialDataSet = _fiducialFile.openDataSet(dataSetName);
 
@@ -704,7 +707,7 @@ std::vector<double> systemTest::SystemTestRunner::_loadFiducialFieldData(std::st
 // =============================================================================
 
 // =============================================================================
-std::vector<double> systemTest::SystemTestRunner::_loadFiducialParticleData(std::string const &dataSetName)
+std::vector<double> system_test::SystemTestRunner::_loadFiducialParticleData(std::string const &dataSetName)
 {
   if (_fiducialFileExists) {
     // Determine the total number of particles
@@ -760,7 +763,7 @@ std::vector<double> systemTest::SystemTestRunner::_loadFiducialParticleData(std:
 // =============================================================================
 
 // =============================================================================
-std::vector<std::string> systemTest::SystemTestRunner::_findDataSetNames(H5::H5File const &inputFile)
+std::vector<std::string> system_test::SystemTestRunner::_findDataSetNames(H5::H5File const &inputFile)
 {
   std::vector<std::string> outputVector;
 

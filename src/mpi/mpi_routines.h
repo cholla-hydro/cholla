@@ -15,9 +15,9 @@
     #endif /*FFTW*/
 
 /*Global MPI Variables*/
-extern int procID;      /*process rank*/
-extern int nproc;       /*number of processes in global comm*/
-extern int root;        /*rank of root process*/
+// NOTE: some variable heavily used by mpi are declared in global.h so that they are defined even
+//       when compiled without mpi
+
 extern int procID_node; /*process rank on node*/
 extern int nproc_node;  /*number of MPI processes on node*/
 
@@ -150,9 +150,9 @@ extern int nproc_z;
 void InitializeChollaMPI(int *pargc, char **pargv[]);
 
 /* Perform domain decomposition */
-void DomainDecomposition(struct parameters *P, struct Header *H, int nx_global, int ny_global, int nz_global);
+void DomainDecomposition(struct Parameters *P, struct Header *H, int nx_global, int ny_global, int nz_global);
 
-void DomainDecompositionBLOCK(struct parameters *P, struct Header *H, int nx_global, int ny_global, int nz_global);
+void DomainDecompositionBLOCK(struct Parameters *P, struct Header *H, int nx_global, int ny_global, int nz_global);
 
 /*tile MPI processes in a block decomposition*/
 void TileBlockDecomposition(void);
@@ -165,6 +165,14 @@ Real ReduceRealMin(Real x);
 
 /* MPI reduction wrapper for avg(Real)*/
 Real ReduceRealAvg(Real x);
+
+/*!
+ * \brief MPI reduction wrapper to find the maximum of a size_t variable
+ *
+ * \param in The rank-local value to be reduced
+ * \return size_t The global reduced value
+ */
+size_t Reduce_size_t_Max(size_t in);
 
     #ifdef PARTICLES
 /* MPI reduction wrapper for sum(part_int)*/

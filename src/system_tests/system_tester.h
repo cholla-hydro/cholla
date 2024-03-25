@@ -21,7 +21,7 @@
  * \brief This namespace contains one class, SystemTestRunner, whose
  * purpose is to (as you might expect) run system tests.
  */
-namespace systemTest
+namespace system_test
 {
 /*!
  * \brief Runs a system test using the full test name to determine all
@@ -49,9 +49,9 @@ namespace systemTest
  *
  */
 class SystemTestRunner;
-}  // namespace systemTest
+}  // namespace system_test
 
-class systemTest::SystemTestRunner
+class system_test::SystemTestRunner
 {
  public:
   /// The number of MPI ranks, defaults to 1
@@ -62,7 +62,7 @@ class systemTest::SystemTestRunner
    * replacing the need for a settings file. A string of the launch parameters
    * that will override the values in the settings file (if given). Any of
    * Cholla's standard launch paramters work except `outdir` as that is
-   * reserved for usage in the systemTest::SystemTestRunner.runTest() method
+   * reserved for usage in the system_test::SystemTestRunner.runTest() method
    */
   std::string chollaLaunchParams;
 
@@ -105,6 +105,13 @@ class systemTest::SystemTestRunner
    * initialize Cholla
    */
   std::string getChollaSettingsFilePath() { return _chollaSettingsPath; };
+
+  /*!
+   * \brief Get the L2Norm
+   *
+   * \return double The L2Norm of the last run test
+   */
+  double getL2Norm() { return L2Norm_; };
 
   /*!
    * \brief Get the Output Directory object
@@ -304,6 +311,9 @@ class systemTest::SystemTestRunner
   /// appear to differ from NVIDIA/GCC/XL by roughly 1E-12
   double _fixedEpsilon = 5.0E-12;
 
+  /// The L2 norm of the error vector
+  double L2Norm_;
+
   /// Flag to indicate if a fiducial HDF5 data file is being used or a
   /// programmatically generated H5File object. `true` = use a file, `false` =
   /// use generated H5File object
@@ -365,4 +375,4 @@ class systemTest::SystemTestRunner
    * \return std::vector<std::string>
    */
   std::vector<std::string> _findDataSetNames(H5::H5File const &inputFile);
-};  // End of class systemTest::SystemTestRunner
+};  // End of class system_test::SystemTestRunner

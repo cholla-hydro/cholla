@@ -132,7 +132,7 @@ inline __device__ Real Get_Average_Number_Density_CGS(Real* density, int xi, int
  * @param P pointer to parameters struct. Passes in starburst 99 filename and
  * random number gen seed.
  */
-void feedback::Init_State(struct parameters* P)
+void feedback::Init_State(struct Parameters* P)
 {
   chprintf("feedback::Init_State start\n");
   std::string snr_filename(P->snr_filename);
@@ -201,7 +201,7 @@ void feedback::Init_State(struct parameters* P)
  *
  * @param P pointer to parameters struct. Passes in starburst 99 filepath
  */
-void feedback::Init_Wind_State(struct parameters* P)
+void feedback::Init_Wind_State(struct Parameters* P)
 {
   chprintf("Init_Wind_State start\n");
   std::string sw_filename(P->sw_filename);

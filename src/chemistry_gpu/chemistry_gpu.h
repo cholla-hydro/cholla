@@ -10,7 +10,7 @@ typedef Real (*Rate_Function_T)(Real, Real);
 
 // #define TEXTURES_UVB_INTERPOLATION
 
-struct Chemistry_Header {
+struct ChemistryHeader {
   Real gamma;
   Real density_conversion;
   Real energy_conversion;
@@ -48,8 +48,8 @@ struct Chemistry_Header {
   Real *cool_ciHeIS_d;
 
   Real *cool_reHII_d;
-  Real *cool_reHeII1_d;
-  Real *cool_reHeII2_d;
+  Real *cool_reHeII_1_d;
+  Real *cool_reHeII_2_d;
   Real *cool_reHeIII_d;
 
   Real *cool_brem_d;
@@ -124,7 +124,7 @@ class Chem_GPU
   void Copy_Float_Array_to_Device(int size, float *array_h, float *array_d);
   void Free_Array_GPU_float(float *array_dev);
 
-  void Initialize(struct parameters *P);
+  void Initialize(struct Parameters *P);
 
   void Generate_Reaction_Rate_Table(Real **rate_table_array_d, Rate_Function_T rate_function, Real units);
 
@@ -132,9 +132,9 @@ class Chem_GPU
 
   void Initialize_Reaction_Rates();
 
-  void Initialize_UVB_Ionization_and_Heating_Rates(struct parameters *P);
+  void Initialize_UVB_Ionization_and_Heating_Rates(struct Parameters *P);
 
-  void Load_UVB_Ionization_and_Heating_Rates(struct parameters *P);
+  void Load_UVB_Ionization_and_Heating_Rates(struct Parameters *P);
 
   void Copy_UVB_Rates_to_GPU();
 

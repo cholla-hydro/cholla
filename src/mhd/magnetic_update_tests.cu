@@ -25,6 +25,7 @@
  * \brief Test fixture for tMHDUpdateMagneticField3D test suite
  *
  */
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tMHDUpdateMagneticField3D : public ::testing::Test
 {
  public:
@@ -34,14 +35,7 @@ class tMHDUpdateMagneticField3D : public ::testing::Test
    *
    */
   tMHDUpdateMagneticField3D()
-      : nx(3),
-        ny(nx),
-        nz(nx),
-        n_cells(nx * ny * nz),
-        dt(3.2),
-        dx(2.5),
-        dy(2.5),
-        dz(2.5),
+      : n_cells(nx * ny * nz),
         sourceGrid(n_cells * (grid_enum::num_fields)),
         destinationGrid(n_cells * (grid_enum::num_fields), -999.),
         ctElectricFields(n_cells * 3),
@@ -50,9 +44,9 @@ class tMHDUpdateMagneticField3D : public ::testing::Test
         dimBlock(TPB, 1, 1)
   {
     // Allocate device arrays
-    CudaSafeCall(cudaMalloc(&dev_sourceGrid, sourceGrid.size() * sizeof(double)));
-    CudaSafeCall(cudaMalloc(&dev_destinationGrid, destinationGrid.size() * sizeof(double)));
-    CudaSafeCall(cudaMalloc(&dev_ctElectricFields, ctElectricFields.size() * sizeof(double)));
+    GPU_Error_Check(cudaMalloc(&dev_sourceGrid, sourceGrid.size() * sizeof(double)));
+    GPU_Error_Check(cudaMalloc(&dev_destinationGrid, destinationGrid.size() * sizeof(double)));
+    GPU_Error_Check(cudaMalloc(&dev_ctElectricFields, ctElectricFields.size() * sizeof(double)));
 
     // Populate the grids with values where vector.at(i) = double(i). The
     // values chosen aren't that important, just that every cell has a unique
@@ -64,9 +58,9 @@ class tMHDUpdateMagneticField3D : public ::testing::Test
 
  protected:
   // Initialize the test grid and other state variables
-  size_t const nx, ny, nz;
+  size_t const nx = 3, ny = nx, nz = nx;
   size_t const n_cells;
-  Real const dt, dx, dy, dz;
+  Real const dt = 3.2, dx = 2.5, dy = dx, dz = dx;
 
   // Launch Parameters
   dim3 const dimGrid;   // How many blocks in the grid
@@ -86,33 +80,33 @@ class tMHDUpdateMagneticField3D : public ::testing::Test
    * \brief Launch the kernel and check results
    *
    */
-  void runTest()
+  void Run_Test()
   {
     // Copy values to GPU
-    CudaSafeCall(
+    GPU_Error_Check(
         cudaMemcpy(dev_sourceGrid, sourceGrid.data(), sourceGrid.size() * sizeof(Real), cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(dev_destinationGrid, destinationGrid.data(), destinationGrid.size() * sizeof(Real),
-                            cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(dev_ctElectricFields, ctElectricFields.data(), ctElectricFields.size() * sizeof(Real),
-                            cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMemcpy(dev_destinationGrid, destinationGrid.data(), destinationGrid.size() * sizeof(Real),
+                               cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMemcpy(dev_ctElectricFields, ctElectricFields.data(), ctElectricFields.size() * sizeof(Real),
+                               cudaMemcpyHostToDevice));
 
     // Call the kernel to test
     hipLaunchKernelGGL(mhd::Update_Magnetic_Field_3D, dimGrid, dimBlock, 0, 0, dev_sourceGrid, dev_destinationGrid,
                        dev_ctElectricFields, nx, ny, nz, n_cells, dt, dx, dy, dz);
-    CudaCheckError();
+    GPU_Error_Check();
 
     // Copy test data back
-    CudaSafeCall(cudaMemcpy(destinationGrid.data(), dev_destinationGrid, destinationGrid.size() * sizeof(Real),
-                            cudaMemcpyDeviceToHost));
+    GPU_Error_Check(cudaMemcpy(destinationGrid.data(), dev_destinationGrid, destinationGrid.size() * sizeof(Real),
+                               cudaMemcpyDeviceToHost));
     cudaDeviceSynchronize();
 
     // Check the results
     for (size_t i = 0; i < fiducialData.size(); i++) {
       int xid, yid, zid;
       cuda_utilities::compute3DIndices(i, nx, ny, xid, yid, zid);
-      testingUtilities::checkResults(fiducialData.at(i), destinationGrid.at(i),
-                                     "value at i = " + std::to_string(i) + ", xid  = " + std::to_string(xid) +
-                                         ", yid  = " + std::to_string(yid) + ", zid  = " + std::to_string(zid));
+      testing_utilities::Check_Results(fiducialData.at(i), destinationGrid.at(i),
+                                       "value at i = " + std::to_string(i) + ", xid  = " + std::to_string(xid) +
+                                           ", yid  = " + std::to_string(yid) + ", zid  = " + std::to_string(zid));
     }
   }
 };
@@ -127,7 +121,7 @@ TEST_F(tMHDUpdateMagneticField3D, CorrectInputExpectCorrectOutput)
   fiducialData.at(202) = 204.56;
 
   // Launch kernel and check results
-  runTest();
+  Run_Test();
 }
 // =============================================================================
 #endif  // MHD

@@ -29,7 +29,7 @@
 }
 #endif /*MPI_CHOLLA*/
 
-void Check_Configuration(parameters const& P)
+void Check_Configuration(Parameters const& P)
 {
 // General Checks
 // ==============
@@ -47,10 +47,26 @@ void Check_Configuration(parameters const& P)
   // Check that MACRO_FLAGS has contents
   static_assert(sizeof(MACRO_FLAGS) > 1);
 
-  // Must have CUDA
-#ifndef CUDA
-  #error "The CUDA macro is required"
-#endif  //! CUDA
+// Can only have one integrator enabled
+#if ((defined(VL) + defined(CTU) + defined(SIMPLE)) != 1)
+  #error "Only one integrator can be enabled at a time."
+#endif  // Only one integrator check
+
+  // Check the boundary conditions
+  auto Check_Boundary = [](int const& boundary, std::string const& direction) {
+    bool is_allowed_bc = boundary >= 0 and boundary <= 4;
+    CHOLLA_ASSERT(is_allowed_bc,
+                  "WARNING: Possibly invalid boundary conditions for direction: %s flag: %d. Must "
+                  "select between 0 (no boundary), 1 (periodic), 2 (reflective), 3 (transmissive), "
+                  "4 (custom), 5 (mpi).",
+                  direction.c_str(), boundary);
+  };
+  Check_Boundary(P.xl_bcnd, "xl_bcnd");
+  Check_Boundary(P.xu_bcnd, "xu_bcnd");
+  Check_Boundary(P.yl_bcnd, "yl_bcnd");
+  Check_Boundary(P.yu_bcnd, "yu_bcnd");
+  Check_Boundary(P.zl_bcnd, "zl_bcnd");
+  Check_Boundary(P.zu_bcnd, "zu_bcnd");
 
 // Can only have one integrator enabled
 #if ((defined(VL) + defined(CTU) + defined(SIMPLE)) != 1)
@@ -74,9 +90,10 @@ void Check_Configuration(parameters const& P)
   Check_Boundary(P.zu_bcnd, "zu_bcnd");
 
   // warn if error checking is disabled
-#ifndef CUDA_ERROR_CHECK
-  #warning "CUDA error checking is disabled. Enable it with the CUDA_ERROR_CHECK macro"
-#endif  //! CUDA_ERROR_CHECK
+#ifndef DISABLE_GPU_ERROR_CHECKING
+  // NOLINTNEXTLINE(clang-diagnostic-#warnings)
+  #warning "CUDA error checking is disabled. Enable it by compiling without the DISABLE_GPU_ERROR_CHECKING macro."
+#endif  //! DISABLE_GPU_ERROR_CHECKING
 
   // Check that PRECISION is 2
 #ifndef PRECISION

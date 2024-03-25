@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "../global/global.h"  // Provides Real, get_time
+#include "../global/global.h"  // Provides Real, Get_Time
 
 // #ifdef CPU_TIME
 //  Each instance of this class represents a single timer, timing a single
@@ -28,7 +28,7 @@ class OneTime
   }
   void Start();
   void Subtract(Real time_to_subtract);
-  void End();
+  void End(bool const print_high_values = false);
   void PrintStep();
   void PrintAverage();
   void PrintAll();
@@ -66,7 +66,7 @@ class Time
   Time();
   void Initialize();
   void Print_Times();
-  void Print_Average_Times(struct parameters P);
+  void Print_Average_Times(struct Parameters P);
 };
 // #endif  // CPU_TIME
 

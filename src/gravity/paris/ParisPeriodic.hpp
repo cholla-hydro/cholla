@@ -15,7 +15,7 @@ class ParisPeriodic
    * dimension. }
    * @param[in] hi[3] { Physical location of the global upper bound of each
    * dimension, minus one grid cell. The one-cell difference is because of the
-   * periodic domain. See @ref Potential_Paris_3D::Initialize for an example
+   * periodic domain. See @ref PotentialParis3D::Initialize for an example
    * computation of these arguments. }
    * @param[in] m[3] { Number of MPI tasks in each dimension. }
    * @param[in] id[3] { Coordinates of this MPI task, starting at `{0,0,0}`. }

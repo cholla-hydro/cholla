@@ -17,38 +17,33 @@
 
 void Chem_GPU::Allocate_Array_GPU_float(float **array_dev, int size)
 {
-  cudaMalloc((void **)array_dev, size * sizeof(float));
-  CudaCheckError();
+  GPU_Error_Check(cudaMalloc((void **)array_dev, size * sizeof(float)));
 }
 
 void Chem_GPU::Copy_Float_Array_to_Device(int size, float *array_h, float *array_d)
 {
-  CudaSafeCall(cudaMemcpy(array_d, array_h, size * sizeof(float), cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(array_d, array_h, size * sizeof(float), cudaMemcpyHostToDevice));
   cudaDeviceSynchronize();
 }
 
-void Chem_GPU::Free_Array_GPU_float(float *array_dev)
-{
-  cudaFree(array_dev);
-  CudaCheckError();
-}
+void Chem_GPU::Free_Array_GPU_float(float *array_dev) { GPU_Error_Check(cudaFree(array_dev)); }
 
 void Chem_GPU::Allocate_Array_GPU_Real(Real **array_dev, int size)
 {
-  cudaMalloc((void **)array_dev, size * sizeof(Real));
-  CudaCheckError();
+  GPU_Error_Check(cudaMalloc((void **)array_dev, size * sizeof(Real)));
+  GPU_Error_Check();
 }
 
 void Chem_GPU::Copy_Real_Array_to_Device(int size, Real *array_h, Real *array_d)
 {
-  CudaSafeCall(cudaMemcpy(array_d, array_h, size * sizeof(Real), cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(array_d, array_h, size * sizeof(Real), cudaMemcpyHostToDevice));
   cudaDeviceSynchronize();
 }
 
 void Chem_GPU::Free_Array_GPU_Real(Real *array_dev)
 {
-  cudaFree(array_dev);
-  CudaCheckError();
+  GPU_Error_Check(cudaFree(array_dev));
+  GPU_Error_Check();
 }
 
 class Thermal_State
@@ -153,8 +148,8 @@ __device__ Real Get_Cooling_Rates(Thermal_State &TS, Chemistry_Header &Chem_H, R
   // Recombination cooling
   Real cool_reHII, cool_reHeII1, cool_reHeII2, cool_reHeIII;
   cool_reHII   = interpolate_rate(Chem_H.cool_reHII_d, temp_indx, delta_T) * TS.d_HII * TS.d_e;
-  cool_reHeII1 = interpolate_rate(Chem_H.cool_reHeII1_d, temp_indx, delta_T) * TS.d_HeII * TS.d_e / 4.0;
-  cool_reHeII2 = interpolate_rate(Chem_H.cool_reHeII2_d, temp_indx, delta_T) * TS.d_HeII * TS.d_e / 4.0;
+  cool_reHeII1 = interpolate_rate(Chem_H.cool_reHeII_1_d, temp_indx, delta_T) * TS.d_HeII * TS.d_e / 4.0;
+  cool_reHeII2 = interpolate_rate(Chem_H.cool_reHeII_2_d, temp_indx, delta_T) * TS.d_HeII * TS.d_e / 4.0;
   cool_reHeIII = interpolate_rate(Chem_H.cool_reHeIII_d, temp_indx, delta_T) * TS.d_HeIII * TS.d_e / 4.0;
   U_dot -= cool_reHII + cool_reHeII1 + cool_reHeII2 + cool_reHeIII;
 
@@ -622,7 +617,7 @@ void Do_Chemistry_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghos
   hipLaunchKernelGGL(Update_Chemistry_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields,
                      dt, Chem_H);
 
-  CudaCheckError();
+  GPU_Error_Check();
   cudaEventRecord(stop, 0);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&time, start, stop);

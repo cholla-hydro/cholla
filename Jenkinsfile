@@ -29,7 +29,7 @@ pipeline
                     axis
                     {
                         name 'CHOLLA_MAKE_TYPE'
-                        values 'hydro', 'gravity', 'disk', 'particles', 'cosmology', 'mhd', 'dust'
+                        values 'hydro', 'gravity', 'disk', 'particles', 'cosmology', 'mhd', 'dust', 'cooling'
                     }
                 }
 
@@ -90,7 +90,7 @@ pipeline
                                     source builds/run_tests.sh
                                     setupTests -c gcc -t ${CHOLLA_MAKE_TYPE}
 
-                                    module load clang/15.0.2
+                                    module load clang/17.0.1
                                     make tidy CLANG_TIDY_ARGS="--warnings-as-errors=*" TYPE=${CHOLLA_MAKE_TYPE}
                                     '''
                             }
@@ -105,10 +105,10 @@ pipeline
                             sh  '''
                                 printf '=%.0s' {1..100}
                                 printf "\n"
-                                cat tidy_results_cpp.log
+                                cat tidy_results_cpp_${CHOLLA_MAKE_TYPE}.log
                                 printf '=%.0s' {1..100}
                                 printf "\n"
-                                cat tidy_results_gpu.log
+                                cat tidy_results_gpu_${CHOLLA_MAKE_TYPE}.log
                                 printf '=%.0s' {1..100}
                                 printf "\n"
                                 '''

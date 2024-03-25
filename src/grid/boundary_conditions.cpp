@@ -13,10 +13,10 @@
 #include "../mpi/mpi_routines.h"
 #include "../utils/error_handling.h"
 
-/*! \fn void Set_Boundary_Conditions_Grid(parameters P)
+/*! \fn void Set_Boundary_Conditions_Grid(Parameters P )
  *  \brief Set the boundary conditions for all components based on info in the
  * parameters structure. */
-void Grid3D::Set_Boundary_Conditions_Grid(parameters P)
+void Grid3D::Set_Boundary_Conditions_Grid(Parameters P)
 {
 #ifndef ONLY_PARTICLES
   // Dont transfer Hydro boundaries when only doing particles
@@ -48,10 +48,10 @@ void Grid3D::Set_Boundary_Conditions_Grid(parameters P)
 #endif    // GRAVITY
 }
 
-/*! \fn void Set_Boundary_Conditions(parameters P)
+/*! \fn void Set_Boundary_Conditions(Parameters P )
  *  \brief Set the boundary conditions based on info in the parameters
  * structure. */
-void Grid3D::Set_Boundary_Conditions(parameters P)
+void Grid3D::Set_Boundary_Conditions(Parameters P)
 {
   // Check Only one boundary type id being transferred
   int n_bounds = 0;
@@ -128,9 +128,9 @@ void Grid3D::Set_Boundary_Conditions(parameters P)
 #endif /*MPI_CHOLLA*/
 }
 
-/*! \fn int Check_Custom_Boundary(int *flags, struct parameters P)
+/*! \fn int Check_Custom_Boundary(int *flags, struct Parameters P)
  *  \brief Check for custom boundary conditions and set boundary flags. */
-int Grid3D::Check_Custom_Boundary(int *flags, struct parameters P)
+int Grid3D::Check_Custom_Boundary(int *flags, struct Parameters P)
 {
   /*check if any boundary is a custom boundary*/
   /*if yes, then return 1*/
@@ -151,12 +151,6 @@ int Grid3D::Check_Custom_Boundary(int *flags, struct parameters P)
   }
 
   for (int i = 0; i < 6; i++) {
-    if (!((flags[i] >= 0) && (flags[i] <= 5))) {
-      chprintf(
-          "Invalid boundary conditions. Must select between 1 (periodic), 2 "
-          "(reflective), 3 (transmissive), 4 (custom), 5 (mpi).\n");
-      chexit(-1);
-    }
     if (flags[i] == 4) {
       /*custom boundaries*/
       return 1;
@@ -517,8 +511,7 @@ void Grid3D::Custom_Boundary(char bcnd[MAXLEN])
   if (strcmp(bcnd, "noh") == 0) {
     // from grid/cuda_boundaries.cu
     Noh_Boundary();
-  }
-  if (strcmp(bcnd, "wind") == 0) {
+  } else if (strcmp(bcnd, "wind") == 0) {
     // from grid/cuda_boundaries.cu
     Wind_Boundary();
   } else {

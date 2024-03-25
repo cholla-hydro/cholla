@@ -11,12 +11,12 @@
   #include "../utils/gpu.hpp"
   #include "particles_3D.h"
 
-void Particles_3D::Free_GPU_Array_Real(Real *array) { cudaFree(array); }
+void Particles3D::Free_GPU_Array_Real(Real *array) { cudaFree(array); }
 
-void Particles_3D::Allocate_Particles_Grid_Field_Real(Real **array_dev, int size)
+void Particles3D::Allocate_Particles_Grid_Field_Real(Real **array_dev, int size)
 {
   size_t global_free, global_total;
-  CudaSafeCall(cudaMemGetInfo(&global_free, &global_total));
+  GPU_Error_Check(cudaMemGetInfo(&global_free, &global_total));
   #ifdef PRINT_GPU_MEMORY
   chprintf("Allocating GPU Memory:  %ld  MB free \n", global_free / 1000000);
   #endif
@@ -26,7 +26,7 @@ void Particles_3D::Allocate_Particles_Grid_Field_Real(Real **array_dev, int size
     printf(" Requested Memory: %ld  MB \n", size * sizeof(Real) / 1000000);
     exit(-1);
   }
-  CudaSafeCall(cudaMalloc((void **)array_dev, size * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void **)array_dev, size * sizeof(Real)));
   cudaDeviceSynchronize();
 }
 
@@ -35,10 +35,10 @@ void Particles_3D::Allocate_Particles_Grid_Field_Real(Real **array_dev, int size
     #ifdef PRINT_MAX_MEMORY_USAGE
       #include "../mpi/mpi_routines.h"
 
-void Particles_3D::Print_Max_Memory_Usage()
+void Particles3D::Print_Max_Memory_Usage()
 {
   size_t global_free, global_total;
-  CudaSafeCall(cudaMemGetInfo(&global_free, &global_total));
+  GPU_Error_Check(cudaMemGetInfo(&global_free, &global_total));
   cudaDeviceSynchronize();
 
   part_int_t n_local_max, n_total, mem_usage;
@@ -59,8 +59,8 @@ void Particles_3D::Print_Max_Memory_Usage()
 
     #endif
 
-void Particles_3D::Free_GPU_Array_int(int *array) { cudaFree(array); }
-void Particles_3D::Free_GPU_Array_bool(bool *array) { cudaFree(array); }
+void Particles3D::Free_GPU_Array_int(int *array) { cudaFree(array); }
+void Particles3D::Free_GPU_Array_bool(bool *array) { cudaFree(array); }
 
 template <typename T>
 void __global__ Copy_Device_to_Device_Kernel(T *src_array_dev, T *dst_array_dev, part_int_t size)
@@ -78,13 +78,13 @@ void Copy_Device_to_Device(T *src_array_dev, T *dst_array_dev, part_int_t size)
   dim3 dim1dGrid(ngrid, 1, 1);
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
   hipLaunchKernelGGL(Copy_Device_to_Device_Kernel, dim1dGrid, dim1dBlock, 0, 0, src_array_dev, dst_array_dev, size);
-  CudaCheckError();
+  GPU_Error_Check();
 }
 
-void Particles_3D::Allocate_Particles_GPU_Array_Real(Real **array_dev, part_int_t size)
+void Particles3D::Allocate_Particles_GPU_Array_Real(Real **array_dev, part_int_t size)
 {
   size_t global_free, global_total;
-  CudaSafeCall(cudaMemGetInfo(&global_free, &global_total));
+  GPU_Error_Check(cudaMemGetInfo(&global_free, &global_total));
     #ifdef PRINT_GPU_MEMORY
   chprintf("Allocating GPU Memory:  %ld  MB free \n", global_free / 1000000);
     #endif
@@ -94,14 +94,14 @@ void Particles_3D::Allocate_Particles_GPU_Array_Real(Real **array_dev, part_int_
     printf(" Requested Memory: %ld  MB \n", size * sizeof(Real) / 1000000);
     exit(-1);
   }
-  CudaSafeCall(cudaMalloc((void **)array_dev, size * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void **)array_dev, size * sizeof(Real)));
   cudaDeviceSynchronize();
 }
 
-void Particles_3D::Allocate_Particles_GPU_Array_int(int **array_dev, part_int_t size)
+void Particles3D::Allocate_Particles_GPU_Array_int(int **array_dev, part_int_t size)
 {
   size_t global_free, global_total;
-  CudaSafeCall(cudaMemGetInfo(&global_free, &global_total));
+  GPU_Error_Check(cudaMemGetInfo(&global_free, &global_total));
     #ifdef PRINT_GPU_MEMORY
   chprintf("Allocating GPU Memory:  %ld  MB free \n", global_free / 1000000);
     #endif
@@ -111,14 +111,14 @@ void Particles_3D::Allocate_Particles_GPU_Array_int(int **array_dev, part_int_t 
     printf(" Requested Memory: %ld  MB \n", size * sizeof(int) / 1000000);
     exit(-1);
   }
-  CudaSafeCall(cudaMalloc((void **)array_dev, size * sizeof(int)));
+  GPU_Error_Check(cudaMalloc((void **)array_dev, size * sizeof(int)));
   cudaDeviceSynchronize();
 }
 
-void Particles_3D::Allocate_Particles_GPU_Array_Part_Int(part_int_t **array_dev, part_int_t size)
+void Particles3D::Allocate_Particles_GPU_Array_Part_Int(part_int_t **array_dev, part_int_t size)
 {
   size_t global_free, global_total;
-  CudaSafeCall(cudaMemGetInfo(&global_free, &global_total));
+  GPU_Error_Check(cudaMemGetInfo(&global_free, &global_total));
     #ifdef PRINT_GPU_MEMORY
   chprintf("Allocating GPU Memory:  %ld  MB free \n", global_free / 1000000);
     #endif
@@ -128,14 +128,14 @@ void Particles_3D::Allocate_Particles_GPU_Array_Part_Int(part_int_t **array_dev,
     printf(" Requested Memory: %ld  MB \n", size * sizeof(part_int_t) / 1000000);
     exit(-1);
   }
-  CudaSafeCall(cudaMalloc((void **)array_dev, size * sizeof(part_int_t)));
+  GPU_Error_Check(cudaMalloc((void **)array_dev, size * sizeof(part_int_t)));
   cudaDeviceSynchronize();
 }
 
-void Particles_3D::Allocate_Particles_GPU_Array_bool(bool **array_dev, part_int_t size)
+void Particles3D::Allocate_Particles_GPU_Array_bool(bool **array_dev, part_int_t size)
 {
   size_t global_free, global_total;
-  CudaSafeCall(cudaMemGetInfo(&global_free, &global_total));
+  GPU_Error_Check(cudaMemGetInfo(&global_free, &global_total));
     #ifdef PRINT_GPU_MEMORY
   chprintf("Allocating GPU Memory:  %ld  MB free \n", global_free / 1000000);
     #endif
@@ -145,33 +145,33 @@ void Particles_3D::Allocate_Particles_GPU_Array_bool(bool **array_dev, part_int_
     printf(" Requested Memory: %ld  MB \n", size * sizeof(bool) / 1000000);
     exit(-1);
   }
-  CudaSafeCall(cudaMalloc((void **)array_dev, size * sizeof(bool)));
+  GPU_Error_Check(cudaMalloc((void **)array_dev, size * sizeof(bool)));
   cudaDeviceSynchronize();
 }
 
-void Particles_3D::Copy_Particles_Array_Real_Host_to_Device(Real *array_host, Real *array_dev, part_int_t size)
+void Particles3D::Copy_Particles_Array_Real_Host_to_Device(Real *array_host, Real *array_dev, part_int_t size)
 {
-  CudaSafeCall(cudaMemcpy(array_dev, array_host, size * sizeof(Real), cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(array_dev, array_host, size * sizeof(Real), cudaMemcpyHostToDevice));
   cudaDeviceSynchronize();
 }
 
-void Particles_3D::Copy_Particles_Array_Real_Device_to_Host(Real *array_dev, Real *array_host, part_int_t size)
+void Particles3D::Copy_Particles_Array_Real_Device_to_Host(Real *array_dev, Real *array_host, part_int_t size)
 {
-  CudaSafeCall(cudaMemcpy(array_host, array_dev, size * sizeof(Real), cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(array_host, array_dev, size * sizeof(Real), cudaMemcpyDeviceToHost));
   cudaDeviceSynchronize();
 }
 
-void Particles_3D::Copy_Particles_Array_Int_Host_to_Device(part_int_t *array_host, part_int_t *array_dev,
-                                                           part_int_t size)
+void Particles3D::Copy_Particles_Array_Int_Host_to_Device(part_int_t *array_host, part_int_t *array_dev,
+                                                          part_int_t size)
 {
-  CudaSafeCall(cudaMemcpy(array_dev, array_host, size * sizeof(part_int_t), cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(array_dev, array_host, size * sizeof(part_int_t), cudaMemcpyHostToDevice));
   cudaDeviceSynchronize();
 }
 
-void Particles_3D::Copy_Particles_Array_Int_Device_to_Host(part_int_t *array_dev, part_int_t *array_host,
-                                                           part_int_t size)
+void Particles3D::Copy_Particles_Array_Int_Device_to_Host(part_int_t *array_dev, part_int_t *array_host,
+                                                          part_int_t size)
 {
-  CudaSafeCall(cudaMemcpy(array_host, array_dev, size * sizeof(part_int_t), cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(array_host, array_dev, size * sizeof(part_int_t), cudaMemcpyDeviceToHost));
   cudaDeviceSynchronize();
 }
 
@@ -183,7 +183,7 @@ __global__ void Set_Particles_Array_Real_Kernel(Real value, Real *array_dev, par
   }
 }
 
-void Particles_3D::Set_Particles_Array_Real(Real value, Real *array_dev, part_int_t size)
+void Particles3D::Set_Particles_Array_Real(Real value, Real *array_dev, part_int_t size)
 {
   // set values for GPU kernels
   int ngrid = (size - 1) / TPB_PARTICLES + 1;
@@ -192,7 +192,7 @@ void Particles_3D::Set_Particles_Array_Real(Real value, Real *array_dev, part_in
   //  number of threads per 1D block
   dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
   hipLaunchKernelGGL(Set_Particles_Array_Real_Kernel, dim1dGrid, dim1dBlock, 0, 0, value, array_dev, size);
-  CudaCheckError();
+  GPU_Error_Check();
 }
 
   #endif  // PARTICLES_GPU

@@ -17,6 +17,7 @@
 
 // Local Includes
 #include "../global/global.h"
+#include "../io/io.h"
 #include "../mhd/ct_electric_fields.h"
 #include "../utils/testing_utilities.h"
 
@@ -30,6 +31,7 @@
  * \brief Test fixture for tMHDCalculateCTElectricFields test suite
  *
  */
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tMHDCalculateCTElectricFields : public ::testing::Test
 {
  public:
@@ -39,10 +41,7 @@ class tMHDCalculateCTElectricFields : public ::testing::Test
    *
    */
   tMHDCalculateCTElectricFields()
-      : nx(2),
-        ny(nx),
-        nz(nx),
-        n_cells(nx * ny * nz),
+      : n_cells(nx * ny * nz),
         fluxX(n_cells * (grid_enum::num_flux_fields)),
         fluxY(n_cells * (grid_enum::num_flux_fields)),
         fluxZ(n_cells * (grid_enum::num_flux_fields)),
@@ -53,11 +52,11 @@ class tMHDCalculateCTElectricFields : public ::testing::Test
         dimBlock(TPB, 1, 1)
   {
     // Allocate device arrays
-    CudaSafeCall(cudaMalloc(&dev_fluxX, fluxX.size() * sizeof(double)));
-    CudaSafeCall(cudaMalloc(&dev_fluxY, fluxY.size() * sizeof(double)));
-    CudaSafeCall(cudaMalloc(&dev_fluxZ, fluxZ.size() * sizeof(double)));
-    CudaSafeCall(cudaMalloc(&dev_grid, grid.size() * sizeof(double)));
-    CudaSafeCall(cudaMalloc(&dev_testCTElectricFields, testCTElectricFields.size() * sizeof(double)));
+    GPU_Error_Check(cudaMalloc(&dev_fluxX, fluxX.size() * sizeof(double)));
+    GPU_Error_Check(cudaMalloc(&dev_fluxY, fluxY.size() * sizeof(double)));
+    GPU_Error_Check(cudaMalloc(&dev_fluxZ, fluxZ.size() * sizeof(double)));
+    GPU_Error_Check(cudaMalloc(&dev_grid, grid.size() * sizeof(double)));
+    GPU_Error_Check(cudaMalloc(&dev_testCTElectricFields, testCTElectricFields.size() * sizeof(double)));
 
     // Populate the grids with values where vector.at(i) = double(i). The
     // values chosen aren't that important, just that every cell has a unique
@@ -71,7 +70,7 @@ class tMHDCalculateCTElectricFields : public ::testing::Test
 
  protected:
   // Initialize the test grid and other state variables
-  size_t const nx, ny, nz;
+  size_t const nx = 2, ny = nx, nz = nx;
   size_t const n_cells;
 
   // Launch Parameters
@@ -94,33 +93,32 @@ class tMHDCalculateCTElectricFields : public ::testing::Test
    * \brief Launch the kernel and check results
    *
    */
-  void runTest()
+  void Run_Test()
   {
     // Copy values to GPU
-    CudaSafeCall(cudaMemcpy(dev_fluxX, fluxX.data(), fluxX.size() * sizeof(Real), cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(dev_fluxY, fluxY.data(), fluxY.size() * sizeof(Real), cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(dev_fluxZ, fluxZ.data(), fluxZ.size() * sizeof(Real), cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(dev_grid, grid.data(), grid.size() * sizeof(Real), cudaMemcpyHostToDevice));
-    CudaSafeCall(cudaMemcpy(dev_testCTElectricFields, testCTElectricFields.data(),
-                            testCTElectricFields.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMemcpy(dev_fluxX, fluxX.data(), fluxX.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMemcpy(dev_fluxY, fluxY.data(), fluxY.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMemcpy(dev_fluxZ, fluxZ.data(), fluxZ.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMemcpy(dev_grid, grid.data(), grid.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMemcpy(dev_testCTElectricFields, testCTElectricFields.data(),
+                               testCTElectricFields.size() * sizeof(Real), cudaMemcpyHostToDevice));
 
     // Call the kernel to test
     hipLaunchKernelGGL(mhd::Calculate_CT_Electric_Fields, dimGrid, dimBlock, 0, 0, dev_fluxX, dev_fluxY, dev_fluxZ,
                        dev_grid, dev_testCTElectricFields, nx, ny, nz, n_cells);
-    CudaCheckError();
+    GPU_Error_Check();
 
     // Copy test data back
-    CudaSafeCall(cudaMemcpy(testCTElectricFields.data(), dev_testCTElectricFields,
-                            testCTElectricFields.size() * sizeof(Real), cudaMemcpyDeviceToHost));
+    GPU_Error_Check(cudaMemcpy(testCTElectricFields.data(), dev_testCTElectricFields,
+                               testCTElectricFields.size() * sizeof(Real), cudaMemcpyDeviceToHost));
     cudaDeviceSynchronize();
 
     // Check the results
     for (size_t i = 0; i < fiducialData.size(); i++) {
       int xid, yid, zid;
-      cuda_utilities::compute3DIndices(i, nx, ny, xid, yid, zid);
-      testingUtilities::checkResults(fiducialData.at(i), testCTElectricFields.at(i),
-                                     "value at i = " + std::to_string(i) + ", xid  = " + std::to_string(xid) +
-                                         ", yid  = " + std::to_string(yid) + ", zid  = " + std::to_string(zid));
+      testing_utilities::Check_Results(fiducialData.at(i), testCTElectricFields.at(i),
+                                       "value at i = " + std::to_string(i) + ", xid  = " + std::to_string(xid) +
+                                           ", yid  = " + std::to_string(yid) + ", zid  = " + std::to_string(zid));
     }
   }
 };
@@ -135,7 +133,7 @@ TEST_F(tMHDCalculateCTElectricFields, PositiveVelocityExpectCorrectOutput)
   fiducialData.at(23) = 61.768055665002557;
 
   // Launch kernel and check results
-  runTest();
+  Run_Test();
 }
 // =============================================================================
 
@@ -156,7 +154,7 @@ TEST_F(tMHDCalculateCTElectricFields, NegativeVelocityExpectCorrectOutput)
   }
 
   // Launch kernel and check results
-  runTest();
+  Run_Test();
 }
 // =============================================================================
 
@@ -177,7 +175,100 @@ TEST_F(tMHDCalculateCTElectricFields, ZeroVelocityExpectCorrectOutput)
   }
 
   // Launch kernel and check results
-  runTest();
+  Run_Test();
+}
+// =============================================================================
+
+// =============================================================================
+TEST(tMHDCTSlope, CorrectInputExpectCorrectOutput)
+{
+  // Set up the basic parameters
+  size_t const nx      = 5;
+  size_t const ny      = nx;
+  size_t const nz      = nx;
+  int const xid        = nx / 2;
+  int const yid        = ny / 2;
+  int const zid        = nz / 2;
+  size_t const n_cells = nx * ny * nz;
+
+  // Set up the grid
+  std::vector<double> flux(grid_enum::num_fields * n_cells), conserved(grid_enum::num_fields * n_cells);
+
+  std::mt19937 prng(1);
+  std::uniform_real_distribution<double> doubleRand(-5, 5);
+
+  for (double& conserved_data : conserved) {
+    conserved_data = doubleRand(prng);
+  }
+  for (double& flux_data : flux) {
+    flux_data = doubleRand(prng);
+  }
+
+  // Fiducial data
+  std::vector<double> fiducial_data = {
+      -6.8725060451062561, -77.056763568617669, 1.4564238051915397,  5.4541656143291437,  -0.83503550003671911,
+      -78.091781647940934, -2.6187125848387525, -5.6934594000939542, -16.243259069749971, -59.321631150095314,
+      0.99291378610068892, 4.4004574252725384,  -1.6902722376320516, -63.074645759822637, -4.5776373499662899,
+      -19.476095152639683, -2.0173881091784471, -74.484407919605786, -7.8184484634991724, -0.23206265131850434,
+      0.41622472388590037, -74.479121547383727, -6.9903417764222358, -1.832282425083853};
+
+  // Get test data. Only test the options that will be used
+  std::vector<double> test_data;
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 0, 2, -1, 1, 2, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 0, -1, -1, 1, -1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 0, 1, 2, 1, 2, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 0, 1, -1, 1, -1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 0, 1, -1, 1, 2, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 0, -1, -1, 2, -1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 0, 1, 2, 1, 2, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 0, 2, -1, -1, 2, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 1, 2, -1, 0, 2, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 1, -1, -1, 0, -1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 1, 0, 2, 0, 2, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 1, 0, -1, 0, -1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 1, 0, -1, 0, 2, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 1, -1, -1, 2, -1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 1, 0, 2, 0, 2, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 1, 2, -1, 2, -1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 2, 0, -1, 0, 1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 2, -1, -1, 1, -1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 2, 0, 1, 0, 1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), 1, 2, 1, -1, 1, -1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 2, 1, -1, 0, 1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 2, -1, -1, 0, -1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 2, 0, 1, 0, 1, xid, yid, zid, nx, ny, n_cells));
+  test_data.emplace_back(
+      mhd::internal::_ctSlope(flux.data(), conserved.data(), -1, 2, 0, -1, 0, -1, xid, yid, zid, nx, ny, n_cells));
+
+  // Check the results
+  ASSERT_EQ(test_data.size(), fiducial_data.size());
+
+  for (size_t i = 0; i < test_data.size(); i++) {
+    testing_utilities::Check_Results(fiducial_data.at(i), test_data.at(i), "");
+  }
 }
 // =============================================================================
 #endif  // MHD

@@ -22,11 +22,11 @@
 namespace  // Anonymous namespace
 {
 template <typename T>
-void checkPointerAttributes(cuda_utilities::DeviceVector<T> &devVector)
+void Check_Pointer_Attributes(cuda_utilities::DeviceVector<T> &devVector)
 {
   // Get the pointer information
   cudaPointerAttributes ptrAttributes;
-  CudaSafeCall(cudaPointerGetAttributes(&ptrAttributes, devVector.data()));
+  GPU_Error_Check(cudaPointerGetAttributes(&ptrAttributes, devVector.data()));
 
   // Warning strings
   std::string typeMessage =
@@ -67,7 +67,7 @@ TEST(tALLDeviceVectorConstructor, CheckConstructorDataAndSizeExpectProperAllocat
   EXPECT_EQ(vectorSize, devVector.size());
 
   // Check the pointer information
-  checkPointerAttributes<double>(devVector);
+  Check_Pointer_Attributes<double>(devVector);
 }
 
 TEST(tALLDeviceVectorDestructor, CheckDestructorExpectProperDeallocation)
@@ -229,7 +229,7 @@ TEST(tALLDeviceVectorReset, SetNewSizeExpectCorrectSize)
   EXPECT_EQ(newSize, devVector.size());
 
   // Check the pointer
-  checkPointerAttributes(devVector);
+  Check_Pointer_Attributes(devVector);
 
   // Copy the new values into device memory
   devVector.cpyHostToDevice(newVec);
@@ -259,7 +259,7 @@ TEST(tALLDeviceVectorResize, SetLargerSizeExpectCorrectSize)
   EXPECT_EQ(newSize, devVector.size());
 
   // Check the pointer
-  checkPointerAttributes(devVector);
+  Check_Pointer_Attributes(devVector);
 
   // Check the values
   for (size_t i = 0; i < originalSize; i++) {
@@ -287,7 +287,7 @@ TEST(tALLDeviceVectorResize, SetSmallerSizeExpectCorrectSize)
   EXPECT_EQ(newSize, devVector.size());
 
   // Check the pointer
-  checkPointerAttributes(devVector);
+  Check_Pointer_Attributes(devVector);
 
   // Check the values
   for (size_t i = 0; i < newSize; i++) {

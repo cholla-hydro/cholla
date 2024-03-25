@@ -46,8 +46,8 @@ TEST(tMHDGrid3DcheckMagneticDivergence, CorrectInputExpectCorrectOutput)
   std::vector<Real> host_grid(G.H.n_cells * G.H.n_fields);
   std::mt19937 prng(1);
   std::uniform_real_distribution<double> doubleRand(1, 5);
-  for (size_t i = 0; i < host_grid.size(); i++) {
-    host_grid.at(i) = doubleRand(prng) / 1E15;
+  for (double& host_data : host_grid) {
+    host_data = doubleRand(prng) / 1E15;
   }
 
   // Allocating and copying to device
@@ -61,7 +61,7 @@ TEST(tMHDGrid3DcheckMagneticDivergence, CorrectInputExpectCorrectOutput)
   MPI_Finalize();
   // Perform Comparison
   Real const fiducialDivergence = 3.6318132783263106 / 1E15;
-  testingUtilities::checkResults(fiducialDivergence, max_magnetic_divergence, "maximum divergence");
+  testing_utilities::Check_Results(fiducialDivergence, max_magnetic_divergence, "maximum divergence");
 }
 // =============================================================================
 // End of tests for the magnetic field divergence functions

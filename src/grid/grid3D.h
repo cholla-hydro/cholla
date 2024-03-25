@@ -226,9 +226,14 @@ struct Header {
    *  \brief Number of fields (conserved variables, scalars, etc.) */
   int n_fields;
 
+  /*! \var custom_grav
+   *  \brief Flag to set specific static gravity field */
+  int custom_grav;
+
   // Values for lower limit for density and temperature
-  Real density_floor;
   Real temperature_floor;
+  Real density_floor;
+  Real scalar_floor;
 
   Real Ekin_avrg;
 
@@ -263,6 +268,12 @@ struct Header {
    *  \brief Flag set to true when all the data will  be written to file
    * (Restart File ) */
   bool Output_Complete_Data;
+
+#ifdef SCALAR
+  #ifdef DUST
+  Real grain_radius;
+  #endif
+#endif
 };
 
 /*! \class Grid3D
@@ -289,7 +300,7 @@ class Grid3D
 
 #ifdef PARTICLES
   // Object that contains data for particles
-  Particles_3D Particles;
+  Particles3D Particles;
 #endif
 
 #ifdef COSMOLOGY
@@ -312,7 +323,7 @@ class Grid3D
 #endif
 
 #ifdef ANALYSIS
-  Analysis_Module Analysis;
+  AnalysisModule Analysis;
 #endif
 
   struct Conserved {
@@ -416,16 +427,16 @@ class Grid3D
 
   /*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
    *  \brief Initialize the grid. */
-  void Initialize(struct parameters *P);
+  void Initialize(struct Parameters *P);
 
   /*! \fn void AllocateMemory(void)
    *  \brief Allocate memory for the d, m, E arrays. */
   void AllocateMemory(void);
 
-  /*! \fn void Set_Initial_Conditions(parameters P)
+  /*! \fn void Set_Initial_Conditions(Parameters P )
    *  \brief Set the initial conditions based on info in the parameters
    * structure. */
-  void Set_Initial_Conditions(parameters P);
+  void Set_Initial_Conditions(Parameters P);
 
   /*! \fn void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real
    * *zpos) \brief Get the cell-centered position based on cell index */
@@ -433,9 +444,9 @@ class Grid3D
 
   Real Calc_Inverse_Timestep();
 
-  /*! \fn void Set_Domain_Properties(struct parameters P)
+  /*! \fn void Set_Domain_Properties(struct Parameters P)
    *  \brief Set local domain properties */
-  void Set_Domain_Properties(struct parameters P);
+  void Set_Domain_Properties(struct Parameters P);
 
   /*! \fn void set_dt(Real dti)
    *  \brief Calculate the timestep. */
@@ -501,13 +512,13 @@ class Grid3D
 
 #endif
 
-  /*! \fn void Read_Grid(struct parameters P)
+  /*! \fn void Read_Grid(struct Parameters P)
    *  \brief Read in grid data from 1-per-process output files. */
-  void Read_Grid(struct parameters P);
+  void Read_Grid(struct Parameters P);
 
-  /*! \fn void Read_Grid_Cat(struct parameters P)
+  /*! \fn void Read_Grid_Cat(struct Parameters P)
    *  \brief Read in grid data from a single concatenated output file. */
-  void Read_Grid_Cat(struct parameters P);
+  void Read_Grid_Cat(struct Parameters P);
 
   /*! \fn Read_Grid_Binary(FILE *fp)
    *  \brief Read in grid data from a binary file. */
@@ -516,7 +527,7 @@ class Grid3D
 #ifdef HDF5
   /*! \fn void Read_Grid_HDF5(hid_t file_id)
    *  \brief Read in grid data from an hdf5 file. */
-  void Read_Grid_HDF5(hid_t file_id, struct parameters P);
+  void Read_Grid_HDF5(hid_t file_id, struct Parameters P);
 #endif
 
   /*! \fn void Reset(void)
@@ -527,54 +538,41 @@ class Grid3D
    *  \brief Free the memory for the density array. */
   void FreeMemory(void);
 
-  /*! \fn void Constant(Real rho, Real vx, Real vy, Real vz, Real P)
-   *  \brief Constant gas properties. */
-  void Constant(Real rho, Real vx, Real vy, Real vz, Real P, Real Bx, Real By, Real Bz);
+  /*!
+   * \brief Constant gas properties.
+   *
+   * \param[in] P the parameters struct.
+   */
+  void Constant(Parameters const &P);
 
-  /*! \fn void Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
-   *  \brief Sine wave perturbation. */
-  void Sound_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A);
+  /*!
+   * \brief Sine wave perturbation.
+   *
+   * \param[in] P the parameters struct.
+   */
+  void Sound_Wave(Parameters const &P);
 
   /*!
    * \brief Initialize the grid with a simple linear wave.
    *
-   * \param[in] rho The background density
-   * \param[in] vx The background velocity in the X-direction
-   * \param[in] vy The background velocity in the Y-direction
-   * \param[in] vz The background velocity in the Z-direction
-   * \param[in] P The background pressure
-   * \param[in] A The amplitude of the wave
-   * \param[in] Bx The background magnetic field in the X-direction
-   * \param[in] By The background magnetic field in the Y-direction
-   * \param[in] Bz The background magnetic field in the Z-direction
-   * \param[in] rEigenVec_rho The right eigenvector component for the density
-   * \param[in] rEigenVec_MomentumX The right eigenvector component for the
-   * velocity in the X-direction \param[in] rEigenVec_MomentumY The right
-   * eigenvector component for the velocity in the Y-direction \param[in]
-   * rEigenVec_MomentumZ The right eigenvector component for the velocity in the
-   * Z-direction \param[in] rEigenVec_E The right eigenvector component for the
-   * energy \param[in] rEigenVec_Bx The right eigenvector component for the
-   * magnetic field in the X-direction \param[in] rEigenVec_By The right
-   * eigenvector component for the magnetic field in the Y-direction \param[in]
-   * rEigenVec_Bz The right eigenvector component for the magnetic field in the
-   * Z-direction \param[in] pitch The pitch angle of the linear wave \param[in]
-   * yaw The yaw angle of the linear wave
+   * \param[in] P the parameters struct.
    */
-  void Linear_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A, Real Bx, Real By, Real Bz, Real rEigenVec_rho,
-                   Real rEigenVec_MomentumX, Real rEigenVec_MomentumY, Real rEigenVec_MomentumZ, Real rEigenVec_E,
-                   Real rEigenVec_Bx, Real rEigenVec_By, Real rEigenVec_Bz, Real pitch, Real yaw);
+  void Linear_Wave(Parameters const &P);
 
-  /*! \fn void Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A)
-   *  \brief Square wave density perturbation with amplitude A*rho in pressure
-   * equilibrium. */
-  void Square_Wave(Real rho, Real vx, Real vy, Real vz, Real P, Real A);
+  /*!
+   * \brief Square wave density perturbation with amplitude A*rho in pressure
+   * equilibrium.
+   *
+   * \param[in] P the parameters struct.
+   */
+  void Square_Wave(Parameters const &P);
 
-  /*! \fn void Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l,
-   Real Bx_l, Real By_l, Real Bz_l, Real rho_r, Real vx_r, Real vy_r, Real vz_r,
-   Real P_r, Real Bx_r, Real By_r, Real Bz_r, Real diaph)
-   *  \brief Initialize the grid with a Riemann problem. */
-  void Riemann(Real rho_l, Real vx_l, Real vy_l, Real vz_l, Real P_l, Real Bx_l, Real By_l, Real Bz_l, Real rho_r,
-               Real vx_r, Real vy_r, Real vz_r, Real P_r, Real Bx_r, Real By_r, Real Bz_r, Real diaph);
+  /*!
+   * \brief Initialize the grid with a Riemann problem.
+   *
+   * \param[in] P the parameters struct.
+   */
+  void Riemann(Parameters const &P);
 
   /*! \fn void Shu_Osher()
    *  \brief Initialize the grid with the Shu-Osher shock tube problem. See
@@ -625,24 +623,24 @@ class Grid3D
    *  \brief Initialize the grid with a 2D disk following a Kuzmin profile. */
   void Disk_2D();
 
-  /*! \fn void Disk_3D(parameters P)
+  /*! \fn void Disk_3D(Parameters P )
    *  \brief Initialize the grid with a 3D disk following a Miyamoto-Nagai
    * profile. */
-  void Disk_3D(parameters P);
+  void Disk_3D(Parameters P);
 
-  /*! \fn void Set_Boundary_Conditions(parameters P)
+  /*! \fn void Set_Boundary_Conditions(Parameters P )
    *  \brief Set the boundary conditions based on info in the parameters
    * structure. */
-  void Set_Boundary_Conditions(parameters P);
+  void Set_Boundary_Conditions(Parameters P);
 
-  /*! \fn void Set_Boundary_Conditions_Grid(parameters P)
+  /*! \fn void Set_Boundary_Conditions_Grid(Parameters P )
    *  \brief Set the boundary conditions for all components based on info in the
    * parameters structure. */
-  void Set_Boundary_Conditions_Grid(parameters P);
+  void Set_Boundary_Conditions_Grid(Parameters P);
 
-  /*! \fn int Check_Custom_Boundary(int *flags, struct parameters P)
+  /*! \fn int Check_Custom_Boundary(int *flags, struct Parameters P)
    *  \brief Check for custom boundary conditions */
-  int Check_Custom_Boundary(int *flags, struct parameters P);
+  int Check_Custom_Boundary(int *flags, struct Parameters P);
 
   /*! \fn void Set_Boundaries(int dir, int flags[])
    *  \brief Apply boundary conditions to the grid. */
@@ -679,9 +677,9 @@ class Grid3D
 
   void Uniform_Grid();
 
-  void Zeldovich_Pancake(struct parameters P);
+  void Zeldovich_Pancake(struct Parameters P);
 
-  void Chemistry_Test(struct parameters P);
+  void Chemistry_Test(struct Parameters P);
 
 #ifdef MHD
   /*!
@@ -690,7 +688,7 @@ class Grid3D
    *
    * \param P The parameters. Only uses Vx, pitch, and yaw
    */
-  void Circularly_Polarized_Alfven_Wave(struct parameters const P);
+  void Circularly_Polarized_Alfven_Wave(struct Parameters const P);
 
   /*!
    * \brief Initialize the grid with a advecting field loop. See [Gardiner &
@@ -698,7 +696,7 @@ class Grid3D
    *
    * \param P The parameters object
    */
-  void Advecting_Field_Loop(struct parameters const P);
+  void Advecting_Field_Loop(struct Parameters const P);
 
   /*!
    * \brief Initialize the grid with a spherical MHD blast wave. See [Gardiner &
@@ -706,7 +704,7 @@ class Grid3D
    *
    * \param P The parameters struct
    */
-  void MHD_Spherical_Blast(struct parameters const P);
+  void MHD_Spherical_Blast(struct Parameters const P);
 
   /*!
    * \brief Initialize the grid with the Orszag-Tang Vortex. See [Gardiner & Stone
@@ -718,8 +716,8 @@ class Grid3D
 #endif  // MHD
 
 #ifdef MPI_CHOLLA
-  void Set_Boundaries_MPI(struct parameters P);
-  void Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P);
+  void Set_Boundaries_MPI(struct Parameters P);
+  void Set_Boundaries_MPI_BLOCK(int *flags, struct Parameters P);
   void Load_and_Send_MPI_Comm_Buffers(int dir, int *flags);
   void Wait_and_Unload_MPI_Comm_Buffers(int dir, int *flags);
   void Unload_MPI_Comm_Buffers(int index);
@@ -740,8 +738,8 @@ class Grid3D
 #endif /*MPI_CHOLLA*/
 
 #ifdef GRAVITY
-  void Initialize_Gravity(struct parameters *P);
-  void Compute_Gravitational_Potential(struct parameters *P);
+  void Initialize_Gravity(struct Parameters *P);
+  void Compute_Gravitational_Potential(struct Parameters *P);
   void Copy_Hydro_Density_to_Gravity_Function(int g_start, int g_end);
   void Copy_Hydro_Density_to_Gravity();
   void Extrapolate_Grav_Potential_Function(int g_start, int g_end);
@@ -750,10 +748,10 @@ class Grid3D
   int Load_Gravity_Potential_To_Buffer(int direction, int side, Real *buffer, int buffer_start);
   void Unload_Gravity_Potential_from_Buffer(int direction, int side, Real *buffer, int buffer_start);
   void Set_Potential_Boundaries_Isolated(int direction, int side, int *flags);
-  void Compute_Potential_Boundaries_Isolated(int dir, struct parameters *P);
+  void Compute_Potential_Boundaries_Isolated(int dir, struct Parameters *P);
   void Compute_Potential_Isolated_Boundary(int direction, int side, int bc_potential_type);
   #ifdef SOR
-  void Get_Potential_SOR(Real Grav_Constant, Real dens_avrg, Real current_a, struct parameters *P);
+  void Get_Potential_SOR(Real Grav_Constant, Real dens_avrg, Real current_a, struct Parameters *P);
   int Load_Poisson_Boundary_To_Buffer(int direction, int side, Real *buffer);
   void Unload_Poisson_Boundary_From_Buffer(int direction, int side, Real *buffer_host);
   #endif
@@ -771,7 +769,7 @@ class Grid3D
 #ifdef GRAVITY_ANALYTIC_COMP
   void Add_Analytic_Potential();
   void Add_Analytic_Potential(int g_start, int g_end);
-  void Setup_Analytic_Potential(struct parameters *P);
+  void Setup_Analytic_Potential(struct Parameters *P);
   void Setup_Analytic_Galaxy_Potential(int g_start, int g_end, DiskGalaxy &gal);
   #ifdef GRAVITY_GPU
   void Add_Analytic_Potential_GPU();
@@ -779,14 +777,14 @@ class Grid3D
 #endif  // GRAVITY_ANALYTIC_COMP
 
 #ifdef PARTICLES
-  void Initialize_Particles(struct parameters *P);
+  void Initialize_Particles(struct Parameters *P);
   void Initialize_Uniform_Particles();
   void Copy_Particles_Density_function(int g_start, int g_end);
   void Copy_Particles_Density();
-  void Copy_Particles_Density_to_Gravity(struct parameters P);
+  void Copy_Particles_Density_to_Gravity(struct Parameters P);
   void Set_Particles_Density_Boundaries_Periodic(int direction, int side);
-  void Transfer_Particles_Boundaries(struct parameters P);
-  Real Update_Grid_and_Particles_KDK(struct parameters P);
+  void Transfer_Particles_Boundaries(struct Parameters P);
+  Real Update_Grid_and_Particles_KDK(struct Parameters P);
   void Set_Particles_Boundary(int dir, int side);
   #ifdef PARTICLES_CPU
   void Set_Particles_Open_Boundary_CPU(int dir, int side);
@@ -812,12 +810,12 @@ class Grid3D
   void Unload_Particles_From_Buffers_BLOCK(int index, int *flags);
   void Finish_Particles_Transfer();
   #endif  // MPI_CHOLLA
-  void Transfer_Particles_Density_Boundaries(struct parameters P);
+  void Transfer_Particles_Density_Boundaries(struct Parameters P);
   void Copy_Particles_Density_Buffer_Device_to_Host(int direction, int side, Real *buffer_d, Real *buffer_h);
-  // void Transfer_Particles_Boundaries( struct parameters P );
-  void WriteData_Particles(struct parameters P, int nfile);
-  void OutputData_Particles(struct parameters P, int nfile);
-  void Load_Particles_Data(struct parameters P);
+  // void Transfer_Particles_Boundaries( struct Parameters P );
+  void WriteData_Particles(struct Parameters P, int nfile);
+  void OutputData_Particles(struct Parameters P, int nfile);
+  void Load_Particles_Data(struct Parameters P);
   #ifdef HDF5
   void Write_Particles_Header_HDF5(hid_t file_id);
   void Write_Particles_Data_HDF5(hid_t file_id);
@@ -852,7 +850,7 @@ class Grid3D
 #endif    // PARTICLES
 
 #ifdef COSMOLOGY
-  void Initialize_Cosmology(struct parameters *P);
+  void Initialize_Cosmology(struct Parameters *P);
   void Change_DM_Frame_System(bool forward);
   void Change_GAS_Frame_System(bool forward);
   void Change_GAS_Frame_System_GPU(bool forward);
@@ -868,7 +866,7 @@ class Grid3D
 #endif    // COSMOLOGY
 
 #ifdef COOLING_GRACKLE
-  void Initialize_Grackle(struct parameters *P);
+  void Initialize_Grackle(struct Parameters *P);
   void Allocate_Memory_Grackle();
   void Initialize_Fields_Grackle();
   void Copy_Fields_To_Grackle_function(int g_start, int g_end);
@@ -879,15 +877,15 @@ class Grid3D
 #endif
 
 #ifdef CHEMISTRY_GPU
-  void Initialize_Chemistry(struct parameters *P);
+  void Initialize_Chemistry(struct Parameters *P);
   void Compute_Gas_Temperature(Real *temperature, bool convert_cosmo_units);
   void Update_Chemistry();
 #endif
 
 #ifdef ANALYSIS
-  void Initialize_Analysis_Module(struct parameters *P);
-  void Compute_and_Output_Analysis(struct parameters *P);
-  void Output_Analysis(struct parameters *P);
+  void Initialize_AnalysisModule(struct Parameters *P);
+  void Compute_and_Output_Analysis(struct Parameters *P);
+  void Output_Analysis(struct Parameters *P);
   void Write_Analysis_Header_HDF5(hid_t file_id);
   void Write_Analysis_Data_HDF5(hid_t file_id);
 
@@ -902,7 +900,7 @@ class Grid3D
   void Compute_Flux_Power_Spectrum_Skewer(int skewer_id, int axis);
   void Initialize_Power_Spectrum_Measurements(int axis);
     #ifdef OUTPUT_SKEWERS
-  void Output_Skewers_File(struct parameters *P);
+  void Output_Skewers_File(struct Parameters *P);
   void Write_Skewers_Header_HDF5(hid_t file_id);
   void Write_Skewers_Data_HDF5(hid_t file_id);
     #endif

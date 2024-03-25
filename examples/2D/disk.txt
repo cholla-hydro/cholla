@@ -17,6 +17,8 @@ outstep=2185.9
 gamma=1.001
 # name of initial conditions
 init=Disk_2D
+# static gravity flag
+custom_grav=3
 # domain properties
 xmin=-20
 ymin=-20

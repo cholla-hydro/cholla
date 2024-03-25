@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 // External Includes
@@ -35,12 +36,16 @@ namespace cuda_utilities
  * `data()` method. This class works for any device side pointer, scalar or
  * array valued.
  *
- * \tparam T Any serialized type where `sizeof(T)` returns correct results
- * should work but non-primitive types have not been tested.
+ * \tparam T Any trivially copyable type where `sizeof(T)` returns correct
+ * results should work, but non-primitive types have not been tested.
  */
 template <typename T>
 class DeviceVector
 {
+  static_assert(std::is_trivially_copyable_v<T>,
+                "DeviceVector can only be used with trivially_copyable types due to the internal "
+                "usage of functions like cudaMemcpy, cudaMemcpyPeer, cudaMemset");
+
  public:
   /*!
    * \brief Construct a new Device Vector object by calling the
@@ -59,6 +64,15 @@ class DeviceVector
    *
    */
   ~DeviceVector() { _deAllocate(); }
+
+  /* The following are deleted because they currently lead to invalid state.
+   * (But they can all easily be implemented in the future).
+   */
+  DeviceVector()                                           = delete;
+  DeviceVector(const DeviceVector<T> &)                    = delete;
+  DeviceVector(DeviceVector<T> &&)                         = delete;
+  DeviceVector<T> &operator=(const DeviceVector<T> &other) = delete;
+  DeviceVector<T> &operator=(DeviceVector<T> &&other)      = delete;
 
   /*!
    * \brief Get the raw device pointer
@@ -93,7 +107,7 @@ class DeviceVector
    * \param[in] index The index of the desired value
    * \return T The value at dev_ptr[index]
    */
-  T const at(size_t const index);
+  T at(size_t const index);
 
   /*!
    * \brief Assign a single value in the array. Should generally only be
@@ -178,14 +192,14 @@ class DeviceVector
   void _allocate(size_t const size)
   {
     _size = size;
-    CudaSafeCall(cudaMalloc(&_ptr, _size * sizeof(T)));
+    GPU_Error_Check(cudaMalloc(&_ptr, _size * sizeof(T)));
   }
 
   /*!
    * \brief Free the device side array
    *
    */
-  void _deAllocate() { CudaSafeCall(cudaFree(_ptr)); }
+  void _deAllocate() { GPU_Error_Check(cudaFree(_ptr)); }
 };
 }  // namespace cuda_utilities
 // =============================================================================
@@ -208,7 +222,7 @@ DeviceVector<T>::DeviceVector(size_t const size, bool const initialize)
   _allocate(size);
 
   if (initialize) {
-    CudaSafeCall(cudaMemset(_ptr, 0, _size * sizeof(T)));
+    GPU_Error_Check(cudaMemset(_ptr, 0, _size * sizeof(T)));
   }
 }
 // =========================================================================
@@ -227,10 +241,10 @@ void DeviceVector<T>::resize(size_t const newSize)
   _allocate(newSize);
 
   // Copy the values from the old array to the new array
-  CudaSafeCall(cudaMemcpyPeer(_ptr, 0, oldDevPtr, 0, count));
+  GPU_Error_Check(cudaMemcpyPeer(_ptr, 0, oldDevPtr, 0, count));
 
   // Free the old array
-  CudaSafeCall(cudaFree(oldDevPtr));
+  GPU_Error_Check(cudaFree(oldDevPtr));
 }
 // =========================================================================
 
@@ -248,14 +262,14 @@ template <typename T>
 T DeviceVector<T>::operator[](size_t const &index)
 {
   T hostValue;
-  CudaSafeCall(cudaMemcpy(&hostValue, &(_ptr[index]), sizeof(T), cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(&hostValue, &(_ptr[index]), sizeof(T), cudaMemcpyDeviceToHost));
   return hostValue;
 }
 // =========================================================================
 
 // =========================================================================
 template <typename T>
-T const DeviceVector<T>::at(size_t const index)
+T DeviceVector<T>::at(size_t const index)
 {
   if (index < _size) {
     // Use the overloaded [] operator to grab the value from GPU memory
@@ -275,9 +289,9 @@ T const DeviceVector<T>::at(size_t const index)
 template <typename T>
 void DeviceVector<T>::assign(T const &hostValue, size_t const &index)
 {
-  CudaSafeCall(cudaMemcpy(&(_ptr[index]),  // destination
-                          &hostValue,      // source
-                          sizeof(T), cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(&(_ptr[index]),  // destination
+                             &hostValue,      // source
+                             sizeof(T), cudaMemcpyHostToDevice));
 }
 // =========================================================================
 
@@ -286,7 +300,7 @@ template <typename T>
 void DeviceVector<T>::cpyHostToDevice(const T *arrIn, size_t const &arrSize)
 {
   if (arrSize <= _size) {
-    CudaSafeCall(cudaMemcpy(_ptr, arrIn, arrSize * sizeof(T), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMemcpy(_ptr, arrIn, arrSize * sizeof(T), cudaMemcpyHostToDevice));
   } else {
     throw std::out_of_range(
         "Warning: Couldn't copy array to device,"
@@ -302,7 +316,7 @@ template <typename T>
 void DeviceVector<T>::cpyDeviceToHost(T *arrOut, size_t const &arrSize)
 {
   if (_size <= arrSize) {
-    CudaSafeCall(cudaMemcpy(arrOut, _ptr, _size * sizeof(T), cudaMemcpyDeviceToHost));
+    GPU_Error_Check(cudaMemcpy(arrOut, _ptr, _size * sizeof(T), cudaMemcpyDeviceToHost));
   } else {
     throw std::out_of_range(
         "Warning: Couldn't copy array to host, "
