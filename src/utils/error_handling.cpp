@@ -68,27 +68,6 @@ void Check_Configuration(Parameters const& P)
   Check_Boundary(P.zl_bcnd, "zl_bcnd");
   Check_Boundary(P.zu_bcnd, "zu_bcnd");
 
-// Can only have one integrator enabled
-#if ((defined(VL) + defined(CTU) + defined(SIMPLE)) != 1)
-  #error "Only one integrator can be enabled at a time."
-#endif  // Only one integrator check
-
-  // Check the boundary conditions
-  auto Check_Boundary = [](int const& boundary, std::string const& direction) {
-    bool is_allowed_bc = boundary >= 0 and boundary <= 4;
-    CHOLLA_ASSERT(is_allowed_bc,
-                  "WARNING: Possibly invalid boundary conditions for direction: %s flag: %d. Must "
-                  "select between 0 (no boundary), 1 (periodic), 2 (reflective), 3 (transmissive), "
-                  "4 (custom), 5 (mpi).",
-                  direction.c_str(), boundary);
-  };
-  Check_Boundary(P.xl_bcnd, "xl_bcnd");
-  Check_Boundary(P.xu_bcnd, "xu_bcnd");
-  Check_Boundary(P.yl_bcnd, "yl_bcnd");
-  Check_Boundary(P.yu_bcnd, "yu_bcnd");
-  Check_Boundary(P.zl_bcnd, "zl_bcnd");
-  Check_Boundary(P.zu_bcnd, "zu_bcnd");
-
   // warn if error checking is disabled
 #ifndef DISABLE_GPU_ERROR_CHECKING
   // NOLINTNEXTLINE(clang-diagnostic-#warnings)
