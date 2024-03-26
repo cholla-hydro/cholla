@@ -13,6 +13,7 @@
 // Local Includes
 #include "../global/global.h"
 #include "../global/global_cuda.h"
+#include "../utils/basic_structs.h"
 #include "../utils/gpu.hpp"
 #include "../utils/math_utilities.h"
 #include "../utils/mhd_utilities.h"
@@ -30,7 +31,6 @@
 
 namespace hydro_utilities
 {
-
 inline __host__ __device__ Real Calc_Pressure_Primitive(Real const &E, Real const &d, Real const &vx, Real const &vy,
                                                         Real const &vz, Real const &gamma, Real const &magnetic_x = 0.0,
                                                         Real const &magnetic_y = 0.0, Real const &magnetic_z = 0.0)

@@ -16,6 +16,7 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../grid/grid3D.h"
+#include "../utils/basic_structs.h"
 #include "../utils/cuda_utilities.h"
 #include "../utils/gpu.hpp"
 #include "../utils/math_utilities.h"
@@ -198,13 +199,15 @@ inline __host__ __device__ Real alfvenSpeed(Real const &magneticX, Real const &d
  * \param[out] avgBy The cell centered average magnetic field in the y-direction
  * \param[out] avgBz The cell centered average magnetic field in the z-direction
  *
- * \return Real local struct with the X, Y, and Z cell centered magnetic
- * fields. Intended to be called with structured binding like `auto [x, y,
+ * \return hydro_utilities::Vector with the X, Y, and Z cell centered magnetic
+ * fields. Can be called with structured binding like `auto [x, y,
  * z] = mhd::utils::cellCenteredMagneticFields(*args*)
  */
-inline __host__ __device__ auto cellCenteredMagneticFields(Real const *dev_conserved, size_t const &id,
-                                                           size_t const &xid, size_t const &yid, size_t const &zid,
-                                                           size_t const &n_cells, size_t const &nx, size_t const &ny)
+inline __host__ __device__ hydro_utilities::Vector cellCenteredMagneticFields(Real const *dev_conserved,
+                                                                              size_t const &id, size_t const &xid,
+                                                                              size_t const &yid, size_t const &zid,
+                                                                              size_t const &n_cells, size_t const &nx,
+                                                                              size_t const &ny)
 {
   // Ternary operator to check that no values outside of the magnetic field
   // arrays are loaded. If the cell is on the edge that doesn't have magnetic
@@ -229,10 +232,7 @@ inline __host__ __device__ auto cellCenteredMagneticFields(Real const *dev_conse
                          :
                          /*if false*/ dev_conserved[(grid_enum::magnetic_z)*n_cells + id];
 
-  struct ReturnStruct {
-    Real x, y, z;
-  };
-  return ReturnStruct{avgBx, avgBy, avgBz};
+  return {avgBx, avgBy, avgBz};
 }
 // =========================================================================
 
