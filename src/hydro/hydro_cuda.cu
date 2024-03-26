@@ -617,24 +617,24 @@ __global__ void Temperature_Ceiling_Kernel(Real *conserved, int nx, int ny, int 
   const Real d_inv = 1.0 / (d + TINY_NUMBER * (d == 0.0));
 
   // calculate local kinetic energy
-  const Real KE    = 0.5 * d_inv * ((mx*mx) + ((my*my) + (mz*mz)));
+  const Real KE = 0.5 * d_inv * ((mx * mx) + ((my * my) + (mz * mz)));
 
   // convert T_ceiling to specific_eint_ceiling
   // -> keep in mind, that specific internal energy has units of velocity^2
-  const Real particle_mass = 0.6 * MP;
+  const Real particle_mass          = 0.6 * MP;
   const Real specific_eint_ceil_CGS = KB * T_ceiling / (particle_mass * (gamma - 1));
-  const Real specific_eint_ceil = specific_eint_ceil_CGS * (VELOCITY_UNIT * VELOCITY_UNIT);
+  const Real specific_eint_ceil     = specific_eint_ceil_CGS * (VELOCITY_UNIT * VELOCITY_UNIT);
 
   const Real local_eint_ceil = d * specific_eint_ceil;
   const Real local_etot_ceil = local_eint_ceil + KE;
 
-  if (E > local_etot_ceil)  conserved[grid_enum::Energy * n_cells + id] = local_etot_ceil;
+  if (E > local_etot_ceil) conserved[grid_enum::Energy * n_cells + id] = local_etot_ceil;
 
-  #ifdef DE
+#ifdef DE
   if (conserved[grid_enum::GasEnergy * n_cells + id] > local_eint_ceil) {
     conserved[grid_enum::GasEnergy * n_cells + id] = local_eint_ceil;
   }
-  #endif  // DE
+#endif  // DE
   atomicAdd(counter, 1);
 }
 

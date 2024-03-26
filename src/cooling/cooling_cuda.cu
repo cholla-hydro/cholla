@@ -139,15 +139,15 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   #endif
       // calculate new change in temperature
 
-    // at one point, the logic for the above ifdef was called the
-    // Photoelectric_Heating function in the CLOUDY_COOL branch, and had an
-    // additional branch TI_COOL that assigned cool the value of TI_cool(n,T)
-    // -> there were a number of other differences in this function. Because that change
-    //    was made in git-branch that signficantly diverged from dev, we decided to
-    //    simply reverted the logic in order to simplify the merge,
-    // -> to find that alternative logic, use git-blame to identify the commit where
-    //    this text was added (it's the same commit where the logic was reverted)
-    //    was reverted in the same) with lots of merge-conflicts.
+      // at one point, the logic for the above ifdef was called the
+      // Photoelectric_Heating function in the CLOUDY_COOL branch, and had an
+      // additional branch TI_COOL that assigned cool the value of TI_cool(n,T)
+      // -> there were a number of other differences in this function. Because that change
+      //    was made in git-branch that signficantly diverged from dev, we decided to
+      //    simply reverted the logic in order to simplify the merge,
+      // -> to find that alternative logic, use git-blame to identify the commit where
+      //    this text was added (it's the same commit where the logic was reverted)
+      //    was reverted in the same) with lots of merge-conflicts.
 
       del_T = cool * dt * TIME_UNIT * (gamma - 1.0) / (n * KB);
     }

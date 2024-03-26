@@ -5,11 +5,10 @@
   #include "../global/global.h"
   #include "../gravity/potential_paris_galactic.h"
   #include "../io/io.h"
-  #include "../utils/gpu.hpp"
-  #include "../utils/error_handling.h"
-
   #include "../model/disk_galaxy.h"
   #include "../model/potentials.h"
+  #include "../utils/error_handling.h"
+  #include "../utils/gpu.hpp"
 
 PotentialParisGalactic::PotentialParisGalactic()
     : dn_{0, 0, 0},
@@ -32,11 +31,11 @@ PotentialParisGalactic::PotentialParisGalactic()
 
 PotentialParisGalactic::~PotentialParisGalactic() { Reset(); }
 
-void PotentialParisGalactic::Get_Potential(const Real *const density, Real *const potential,
-                                           const Real grav_const, const DiskGalaxy &galaxy)
+void PotentialParisGalactic::Get_Potential(const Real *const density, Real *const potential, const Real grav_const,
+                                           const DiskGalaxy &galaxy)
 {
   const Real scale = Real(4) * M_PI * grav_const;
-  if (grav_const == GN)  CHOLLA_ERROR("For consistency, grav_const must be equal to the GN macro");
+  if (grav_const == GN) CHOLLA_ERROR("For consistency, grav_const must be equal to the GN macro");
 
   assert(da_);
   // we are (presumably) defining aliases for this->da_ and this->db_ since the aliases
@@ -100,7 +99,6 @@ void PotentialParisGalactic::Get_Potential(const Real *const density, Real *cons
   //     are all 0 at the boundaries.
   //   - Consequently, the invariants of the underlying solver are all satisfied.
 
-
   // Load in the object to approximate the gravitation potential
   // -> we are implicitly assuming that the gas disk is the only source of dynamical density
   //    (i.e. the `rho_real` array is dominated by gas density)
@@ -144,7 +142,7 @@ void PotentialParisGalactic::Get_Potential(const Real *const density, Real *cons
         const Real z = zMin + k * dz;
         const Real R = sqrt((x * x) + (y * y));
 
-        phi[ib] = db[ia] + approx_potential.phi_disk_D3D(R,z);
+        phi[ib] = db[ia] + approx_potential.phi_disk_D3D(R, z);
       });
 
   #ifdef GRAVITY_GPU

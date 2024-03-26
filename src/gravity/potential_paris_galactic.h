@@ -46,14 +46,14 @@ class PotentialParisGalactic
    * NOT include phi contributions from dens_bkg) */
   Real *db_;  // a better name might be phi_from_poisson_
 
-#ifndef GRAVITY_GPU
+  #ifndef GRAVITY_GPU
   /* length of the temporary buffer represented by dc_ (in bytes) */
   long potentialBytes_;
   /* when the GRAVITY_GPU macro is undefined, this is a gpu-allocated temporary buffer used
    * to temporarily hold the combined gravitational potential from self-gravity and the
    * static potential */
   Real *dc_;  // a better name might be total_phi_
-#endif
+  #endif
 };
 
 #endif

@@ -1,7 +1,6 @@
 #ifndef POTENTIALS
 #define POTENTIALS
 
-
 // this file contains objects representing (semi-)analytic gravitational potentials
 
 #include <cmath>
@@ -9,10 +8,10 @@
 #include "../global/global.h"
 #include "../utils/error_handling.h"
 
-struct NFWHaloPotential{
+struct NFWHaloPotential {
   Real M_h;   /*!< total halo mass in Msolar */
   Real R_h;   /*!< halo scale length (NOT the virial radius) */
-  Real c_vir;  /*!< halo concentration parameter (to account for adiabatic contraction) */
+  Real c_vir; /*!< halo concentration parameter (to account for adiabatic contraction) */
 
   /* function with logarithms used in NFW definitions */
   __host__ __device__ static Real log_func(Real y) { return log(1 + y) - y / (1 + y); };
@@ -53,7 +52,7 @@ struct NFWHaloPotential{
     // I find that the rho0 normalization is:
     Real rho0 = M_h / (4 * M_PI * (R_h * R_h * R_h) * log_func(c_vir));
 
-    Real rdivRh = sqrt(R * R + z * z)/R_h;  // spherical radius divided by R_h
+    Real rdivRh = sqrt(R * R + z * z) / R_h;  // spherical radius divided by R_h
 
     Real rdivRh_p_1 = rdivRh + 1;
 
@@ -81,10 +80,10 @@ struct NFWHaloPotential{
  *
  * Take note that this is NOT an exponential disk!
  */
-struct MiyamotoNagaiDiskProps{
-  Real M_d;  /*!< total mass (in Msolar) */
-  Real R_d;  /*!< scale-length (in kpc) */
-  Real Z_d;  /*!< scale-height (in kpc). */
+struct MiyamotoNagaiDiskProps {
+  Real M_d; /*!< total mass (in Msolar) */
+  Real R_d; /*!< scale-length (in kpc) */
+  Real Z_d; /*!< scale-height (in kpc). */
 
   /* Radial acceleration in miyamoto nagai */
   Real gr_disk_D3D(Real R, Real z) const noexcept
@@ -98,17 +97,17 @@ struct MiyamotoNagaiDiskProps{
   // vertical acceleration in miyamoto nagai
   Real gz_disk_D3D(Real R, Real z) const noexcept
   {
-    Real a   = R_d;
-    Real b   = Z_d;
-    Real A   = sqrt(b * b + z * z);
-    Real B   = a + A;
-    Real C   = pow(B * B + R * R, 1.5);
+    Real a = R_d;
+    Real b = Z_d;
+    Real A = sqrt(b * b + z * z);
+    Real B = a + A;
+    Real C = pow(B * B + R * R, 1.5);
 
     // checked with wolfram alpha
     return -GN * M_d * z * B / (A * C);
   }
 
-   /* Miyamoto-Nagai potential */
+  /* Miyamoto-Nagai potential */
   __host__ __device__ Real phi_disk_D3D(Real R, Real z) const noexcept
   {
     Real A = sqrt(z * z + Z_d * Z_d);
@@ -140,7 +139,6 @@ struct MiyamotoNagaiDiskProps{
   }
 };
 
-
 /* Approximates the potential of a Exponential Disk as the sum of 3 MiyamotoNagaiDiskProps
  * disks.
  *
@@ -148,11 +146,11 @@ struct MiyamotoNagaiDiskProps{
  *   https://ui.adsabs.harvard.edu/abs/2015MNRAS.448.2934S/abstract
  * to determine the properties of each component
  */
-struct AprroxExponentialDisk3MN{
+struct AprroxExponentialDisk3MN {
   MiyamotoNagaiDiskProps comps[3];
 
   /* Returns a properly configured disk with
-   * 
+   *
    * The arguments determine what kind of disk we model:
    * - when `scale_height` is 0.0, we always model an infinitely thin disk
    * - when `scale_height>0` and `exponential_scaleheight` is `true`, the vertical
@@ -165,10 +163,9 @@ struct AprroxExponentialDisk3MN{
    * \param[in] scale_height The desired scale_height of the disk (in code units)
    * \param[in] exponential_scaleheight Controls interpretation of scale-height
    */
-  static AprroxExponentialDisk3MN create(Real mass, Real scale_length, Real scale_height, 
-                                         bool exponential_scaleheight)
+  static AprroxExponentialDisk3MN create(Real mass, Real scale_length, Real scale_height, bool exponential_scaleheight)
   {
-    if ((mass <= 0) or (scale_length <= 0))  CHOLLA_ERROR("invalid args");
+    if ((mass <= 0) or (scale_length <= 0)) CHOLLA_ERROR("invalid args");
 
     // step 1: determine the disk thickness parameter b (it's shared by all components)
     Real b_div_scale_length;
@@ -176,36 +173,34 @@ struct AprroxExponentialDisk3MN{
       CHOLLA_ERROR("scale_height must be positive");
     } else if (scale_height == 0.0) {
       b_div_scale_length = 0.0;
-    } else if (exponential_scaleheight){
-      Real x = scale_height / scale_length;
-      b_div_scale_length = (-0.269*x + 1.080) * x + 1.092 * x;
+    } else if (exponential_scaleheight) {
+      Real x             = scale_height / scale_length;
+      b_div_scale_length = (-0.269 * x + 1.080) * x + 1.092 * x;
     } else {
-      Real x = scale_height / scale_length;
-      b_div_scale_length = (-0.033*x + 0.262) * x + 0.659 * x;
+      Real x             = scale_height / scale_length;
+      b_div_scale_length = (-0.033 * x + 0.262) * x + 0.659 * x;
     }
     Real b = b_div_scale_length * scale_length;
-
 
     if (b_div_scale_length > 3.0) CHOLLA_ERROR("The disk is too thick for this approx");
 
     // step 2 determine other parameters.
     // -> we use values from table 1 (although this potential technically
-    //    corresponds to negative densities in the outer disk, that's probably 
+    //    corresponds to negative densities in the outer disk, that's probably
     //    fine for our purposes)
-    const Real k[6][5] = {{-0.0090,  0.0640, -0.1653,  0.1164,  1.9487},   // M_MN0 / mass
-                          { 0.0173, -0.0903,  0.0877,  0.2029, -1.3077},   // M_MN1 / mass
-                          {-0.0051,  0.0287, -0.0361, -0.0544,  0.2242},   // M_MN2 / mass
-                          {-0.0358,  0.2610, -0.6987, -0.1193,  2.0074},   // a0 / scale_length
-                          {-0.0830,  0.4992, -0.7967, -1.2966,  4.4441},   // a1 / scale_length
-                          {-0.0247,  0.1718, -0.4124, -0.5944,  0.7333}};  // a2 / scale_length
-    auto param = [&k, b_div_scale_length](int i)
-    {
-        Real x = b_div_scale_length;
-        return ((((k[i][0] * x + k[i][1]) * x + k[i][2]) * x) + k[i][3]) * x + k[i][4];
+    const Real k[6][5] = {{-0.0090, 0.0640, -0.1653, 0.1164, 1.9487},    // M_MN0 / mass
+                          {0.0173, -0.0903, 0.0877, 0.2029, -1.3077},    // M_MN1 / mass
+                          {-0.0051, 0.0287, -0.0361, -0.0544, 0.2242},   // M_MN2 / mass
+                          {-0.0358, 0.2610, -0.6987, -0.1193, 2.0074},   // a0 / scale_length
+                          {-0.0830, 0.4992, -0.7967, -1.2966, 4.4441},   // a1 / scale_length
+                          {-0.0247, 0.1718, -0.4124, -0.5944, 0.7333}};  // a2 / scale_length
+    auto param         = [&k, b_div_scale_length](int i) {
+      Real x = b_div_scale_length;
+      return ((((k[i][0] * x + k[i][1]) * x + k[i][2]) * x) + k[i][3]) * x + k[i][4];
     };
 
     AprroxExponentialDisk3MN out;
-    for (int j = 0; j < 3; j++){
+    for (int j = 0; j < 3; j++) {
       out.comps[j] = MiyamotoNagaiDiskProps{param(j) * mass, param(j + 3) * scale_length, b};
     }
     return out;
@@ -214,81 +209,80 @@ struct AprroxExponentialDisk3MN{
   /* Radial acceleration */
   Real gr_disk_D3D(Real R, Real z) const noexcept
   {
-    return (comps[0].gr_disk_D3D(R,z) + comps[1].gr_disk_D3D(R,z) +
-            comps[2].gr_disk_D3D(R,z));
+    return (comps[0].gr_disk_D3D(R, z) + comps[1].gr_disk_D3D(R, z) + comps[2].gr_disk_D3D(R, z));
   }
 
   /* vertical acceleration */
   Real gz_disk_D3D(Real R, Real z) const noexcept
   {
-    return (comps[0].gz_disk_D3D(R,z) + comps[1].gz_disk_D3D(R,z) +
-            comps[2].gz_disk_D3D(R,z));
+    return (comps[0].gz_disk_D3D(R, z) + comps[1].gz_disk_D3D(R, z) + comps[2].gz_disk_D3D(R, z));
   }
 
   /* computes the potential */
   __host__ __device__ Real phi_disk_D3D(Real R, Real z) const noexcept
   {
-    return (comps[0].phi_disk_D3D(R,z) + comps[1].phi_disk_D3D(R,z) +
-            comps[2].phi_disk_D3D(R,z));
+    return (comps[0].phi_disk_D3D(R, z) + comps[1].phi_disk_D3D(R, z) + comps[2].phi_disk_D3D(R, z));
   }
 
   /* computes the mass profile that corresponds to the potential
    *
-   * \note 
+   * \note
    * Technically, this may contain negative values. But, that's long as we are not using the results
    * to directly initialize a gas density profile. This is mostly useful in certain kinds of gravity
    * solvers.
    */
   __host__ __device__ Real rho_disk_D3D(Real R, Real z) const noexcept
   {
-    return (comps[0].rho_disk_D3D(R,z) + comps[1].rho_disk_D3D(R,z) +
-            comps[2].rho_disk_D3D(R,z));
+    return (comps[0].rho_disk_D3D(R, z) + comps[1].rho_disk_D3D(R, z) + comps[2].rho_disk_D3D(R, z));
   }
-
 };
-
 
 // It probably makes more sense for the following class to live in disk_ICs.h.
 // - we currently put the definition here (rather than the in disk_ICs.h) since it holds
 //   AprroxExponentialDisk3MN as an attribute
 // - thus if we put this class in the disk_galaxy.h, we would also need to add an include
-//   this header file to disk_galaxy.h. That produces issues for any regular .cpp file 
-//   that (directly or transitively includes) disk_galaxy.h 
+//   this header file to disk_galaxy.h. That produces issues for any regular .cpp file
+//   that (directly or transitively includes) disk_galaxy.h
 
 /* Aggregates properties related to a gas disk
  *
  * The radial surface-density distribution satisfies
  *   `Sigma(r) = Sigma_0 * exp(-r_cyl/R_d)
  */
-struct GasDiskProps{
-  Real M_d;  /*!< total mass (in Msolar) */
-  Real R_d;  /*!< scale-length (in kpc) */
-  Real H_d;  /*!< initial guess at the scale-height (in kpc) */
-  Real T_d;  /*!< gas temperature */
+struct GasDiskProps {
+  Real M_d;        /*!< total mass (in Msolar) */
+  Real R_d;        /*!< scale-length (in kpc) */
+  Real H_d;        /*!< initial guess at the scale-height (in kpc) */
+  Real T_d;        /*!< gas temperature */
   bool isothermal; /*!< Indicates whether to initialize an isothermal or adiabatic disk
                     *!< (it's unclear whether the adiabatic configuration still works)
                     */
 
   /* A rough approximation for the gravitational potential produced by self-gravity.
    * - It is generally used to help initialize the circular-velocity in the ICs.
-   * - It is also employed while using the Paris-Galactic gravity solver. In this latter case, it's 
+   * - It is also employed while using the Paris-Galactic gravity solver. In this latter case, it's
    *   critical that this approximation is accurate at the domain boundaries (elsewhere, accuracy
    *   is entirely unimportant).
    */
   AprroxExponentialDisk3MN selfgrav_approx_potential;
 
   GasDiskProps(Real M_d, Real R_d, Real H_d, Real T_d, bool isothermal, Real selfgrav_scale_height_estimate)
-    : M_d(M_d), R_d(R_d), H_d(H_d), T_d(T_d), isothermal(isothermal),
-      selfgrav_approx_potential(AprroxExponentialDisk3MN::create(M_d, R_d, selfgrav_scale_height_estimate, true))
-  {}
+      : M_d(M_d),
+        R_d(R_d),
+        H_d(H_d),
+        T_d(T_d),
+        isothermal(isothermal),
+        selfgrav_approx_potential(AprroxExponentialDisk3MN::create(M_d, R_d, selfgrav_scale_height_estimate, true))
+  {
+  }
 
   /* Returns Sigma_0. This is just
    * \f$\Sigma_0 = \frac{M_d}{\int Sigma(r)\ dA} =  \frac{M_d}{2\pi \int_0^\infty r\ \Sigma\ dr} \f$
    */
-  Real CentralSurfaceDensity() const noexcept {return M_d / (2 * M_PI * R_d * R_d);}
+  Real CentralSurfaceDensity() const noexcept { return M_d / (2 * M_PI * R_d * R_d); }
 
   /* Compute the surface density at cylindrical radius*/
-  Real surface_density(Real R) const noexcept {return CentralSurfaceDensity() * exp(-R / R_d);};
+  Real surface_density(Real R) const noexcept { return CentralSurfaceDensity() * exp(-R / R_d); };
 };
 
 #endif /* POTENTIALS */

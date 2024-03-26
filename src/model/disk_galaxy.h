@@ -22,7 +22,7 @@
 //    include them in this file)
 // -> this means that DiskGalaxy's methods that forward onto the methods of these
 //    other classes will be a little slower. In files compiled with a CUDA/HIP
-//    compiler, this slowdown can be avoided by including the "potentials.h" 
+//    compiler, this slowdown can be avoided by including the "potentials.h"
 //    header and using DiskGalaxy's accessor methods to directly access the
 //    underlying objects.
 struct NFWHaloPotential;
@@ -37,17 +37,16 @@ struct GasDiskProps;
  */
 class DiskGalaxy
 {
-private:
+ private:
   // we store pointers to stellar_disk, gas_disk, and halo_potential purely to
-  // sidestep some compilation issues with non-CUDA/HIP source files including 
+  // sidestep some compilation issues with non-CUDA/HIP source files including
   // this file (this is described in greater depth up above)
   std::shared_ptr<MiyamotoNagaiDiskProps> stellar_disk;
   std::shared_ptr<GasDiskProps> gas_disk;
   std::shared_ptr<NFWHaloPotential> halo_potential;
   Real M_vir, R_vir, r_cool;
 
-public:
-
+ public:
   /* To properly deallocate the internally tracked shared pointers we need to define a
    * destructor in a source file where the full definitions of the referenced classes
    * are visible.
@@ -59,9 +58,8 @@ public:
    */
   virtual ~DiskGalaxy();
 
-  DiskGalaxy(const MiyamotoNagaiDiskProps& stellar_disk,
-             const GasDiskProps& gas_disk,
-             Real mvir, Real rvir, Real cvir, Real rcool);
+  DiskGalaxy(const MiyamotoNagaiDiskProps& stellar_disk, const GasDiskProps& gas_disk, Real mvir, Real rvir, Real cvir,
+             Real rcool);
 
   /* Radial acceleration in miyamoto nagai */
   Real gr_disk_D3D(Real R, Real z) const noexcept;
@@ -83,13 +81,10 @@ public:
 
   /* returns the circular velocity of a massless test particle in the static gravitational
    * potential at the specified (cylindrical radius, z) pair. */
-  Real circular_vel2(Real R, Real z) const noexcept
-  {
-    return R * std::fabs(gr_total_D3D(R, z));
-  }
+  Real circular_vel2(Real R, Real z) const noexcept { return R * std::fabs(gr_total_D3D(R, z)); }
 
   /* returns the circular velocity of a massless test particle in the gravitational
-   * potential (including an estimate for self-gravity) at the specified 
+   * potential (including an estimate for self-gravity) at the specified
    * (cylindrical radius, z) pair. */
   Real circular_vel2_with_selfgrav_estimates(Real R, Real z) const noexcept
   {
@@ -113,10 +108,10 @@ public:
    */
   Real kappa2(Real R, Real z) const;
 
-  //Real sigma_crit(Real R)
+  // Real sigma_crit(Real R)
   //{
-  //  return 3.36 * GN * stellar_disk.surface_density(R) / sqrt(kappa2(R, 0.0));
-  //};
+  //   return 3.36 * GN * stellar_disk.surface_density(R) / sqrt(kappa2(R, 0.0));
+  // };
 
   Real getM_d() const;
   Real getR_d() const;
@@ -139,13 +134,13 @@ public:
  * -> when you have N particles and alpha = 2, then the total mass particles in equal sized
  *    logarithmic mass bins is constant
  */
-class ClusterMassDistribution{
-
-public: // interface
+class ClusterMassDistribution
+{
+ public:  // interface
   ClusterMassDistribution() = delete;
 
   ClusterMassDistribution(Real lower_mass, Real higher_mass, Real alpha)
-  : lo_mass_(lower_mass), hi_mass_(higher_mass), alpha_(alpha)
+      : lo_mass_(lower_mass), hi_mass_(higher_mass), alpha_(alpha)
   {
     CHOLLA_ASSERT(lower_mass > 0.0, "The minimum cluster-mass must exceed 0");
     CHOLLA_ASSERT(higher_mass > lower_mass, "The max mass must exceed the min mass");
@@ -155,30 +150,29 @@ public: // interface
   Real getLowerClusterMass() const { return lo_mass_; }
   Real getHigherClusterMass() const { return hi_mass_; }
 
-  Real meanClusterMass() const {
-    Real normalization = (1-alpha_) / (std::pow(hi_mass_, 1-alpha_) - std::pow(lo_mass_, 1-alpha_));
+  Real meanClusterMass() const
+  {
+    Real normalization = (1 - alpha_) / (std::pow(hi_mass_, 1 - alpha_) - std::pow(lo_mass_, 1 - alpha_));
     if (alpha_ == 2.0) {
-      return normalization * std::log(hi_mass_/lo_mass_);
+      return normalization * std::log(hi_mass_ / lo_mass_);
     } else {
       CHOLLA_ERROR("UNTESTED LOGIC");
-      return normalization * (std::pow(hi_mass_, 2-alpha_) - 
-                              std::pow(lo_mass_, 2-alpha_)) / (2-alpha_);
+      return normalization * (std::pow(hi_mass_, 2 - alpha_) - std::pow(lo_mass_, 2 - alpha_)) / (2 - alpha_);
     }
   }
 
   Real singleClusterMass(std::mt19937_64 generator) const
   {
     std::uniform_real_distribution<Real> uniform_distro(0, 1);
-    Real X = uniform_distro(generator);
+    Real X      = uniform_distro(generator);
     Real mclmin = lo_mass_;
     Real mclmax = hi_mass_;
 
-    Real tmp = std::pow(mclmin, -alpha_+1) - (std::pow(mclmin, -alpha_+1) - 
-                                              std::pow(mclmax, -alpha_+1))*X;
-    return std::pow(tmp, 1.0/(-alpha_+1));
+    Real tmp = std::pow(mclmin, -alpha_ + 1) - (std::pow(mclmin, -alpha_ + 1) - std::pow(mclmax, -alpha_ + 1)) * X;
+    return std::pow(tmp, 1.0 / (-alpha_ + 1));
   }
 
-private: // attributes
+ private:  // attributes
   Real lo_mass_;
   Real hi_mass_;
   Real alpha_;
@@ -192,15 +186,15 @@ class ClusteredDiskGalaxy : public DiskGalaxy
   ClusterMassDistribution cluster_mass_distribution_;
 
  public:
-  ClusteredDiskGalaxy(ClusterMassDistribution cluster_mass_distribution,
-                      const MiyamotoNagaiDiskProps& stellar_disk,
-                      const GasDiskProps& gas_disk,
-                      Real mvir, Real rvir, Real cvir, Real rcool)
+  ClusteredDiskGalaxy(ClusterMassDistribution cluster_mass_distribution, const MiyamotoNagaiDiskProps& stellar_disk,
+                      const GasDiskProps& gas_disk, Real mvir, Real rvir, Real cvir, Real rcool)
       : DiskGalaxy{stellar_disk, gas_disk, mvir, rvir, cvir, rcool},
         cluster_mass_distribution_(cluster_mass_distribution)
-  { }
+  {
+  }
 
-  ClusterMassDistribution getClusterMassDistribution() const {
+  ClusterMassDistribution getClusterMassDistribution() const
+  {
     // we should return a CONST reference or a copy (so that the internal object isn't mutated)
     return cluster_mass_distribution_;
   }
@@ -220,12 +214,11 @@ inline Real Get_Gas_Truncation_Radius(const Parameters& p)
   return p.xlen / 2.0 - 0.1;
 }
 
-
 // Forward declare galaxy instances. These are defined in disk_galaxy.cu
 namespace galaxies
 {
- extern const ClusteredDiskGalaxy MW;
- extern const DiskGalaxy M82;
-};   // namespace Galaxies
+extern const ClusteredDiskGalaxy MW;
+extern const DiskGalaxy M82;
+};  // namespace galaxies
 
 #endif  // DISK_GALAXY

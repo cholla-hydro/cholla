@@ -642,7 +642,7 @@ void Particles3D::Initialize_Sphere(struct Parameters *P)
  * Depending on how Cholla is compiled, it may mutate the real_props and int_props arguments.
  */
 void Particles3D::Initialize_Stellar_Clusters_Helper_(std::map<std::string, real_vector_t> &real_props,
-                                                       std::map<std::string, int_vector_t> &int_props)
+                                                      std::map<std::string, int_vector_t> &int_props)
 {
   // come up with a list of expected particle-property names. prop_name_l[i].first indicates the
   // name of a property and prop_name_l[i].second denotes whether it is Real
@@ -703,7 +703,7 @@ void Particles3D::Initialize_Stellar_Clusters_Helper_(std::map<std::string, real
   }
 
   #ifdef PARTICLES_CPU
-  // maybe use std::move in this cases to avoid the heap-allocation
+    // maybe use std::move in this cases to avoid the heap-allocation
     #ifdef(PARTICLE_AGE)
   this->age = real_props.at("age");
     #endif
@@ -763,29 +763,26 @@ void Particles3D::Initialize_Stellar_Clusters_Helper_(std::map<std::string, real
  */
 void Particles3D::Initialize_Isolated_Stellar_Cluster(struct Parameters *P)
 {
-
-  std::map<std::string, int_vector_t> int_props = {{"id", {}}};
+  std::map<std::string, int_vector_t> int_props   = {{"id", {}}};
   std::map<std::string, real_vector_t> real_props = {
-    {"age", {}}, {"mass", {}}, {"pos_x", {}}, {"pos_y", {}}, {"pos_z", {}},
-    {"vel_x", {}}, {"vel_y", {}}, {"vel_z", {}},
-    {"grav_x", {}}, {"grav_y", {}}, {"grav_z", {}},
+      {"age", {}},   {"mass", {}},  {"pos_x", {}},  {"pos_y", {}},  {"pos_z", {}},  {"vel_x", {}},
+      {"vel_y", {}}, {"vel_z", {}}, {"grav_x", {}}, {"grav_y", {}}, {"grav_z", {}},
   };
 
   const double nominal_x = 0.0;
   const double nominal_y = 0.0;
   const double nominal_z = 0.0;
 
-  if (((G.xMin <= nominal_x) and (nominal_x < G.xMax)) and
-      ((G.yMin <= nominal_y) and (nominal_y < G.yMax)) and
+  if (((G.xMin <= nominal_x) and (nominal_x < G.xMax)) and ((G.yMin <= nominal_y) and (nominal_y < G.yMax)) and
       ((G.zMin <= nominal_z) and (nominal_z < G.zMax))) {
     int_props.at("id").push_back(0);
-    real_props.at("age").push_back(-1e4); // 10 Myr (when positive, stars haven't formed yet)
-    real_props.at("mass").push_back(2e4); // in solar masses I think this is reasonable?
+    real_props.at("age").push_back(-1e4);  // 10 Myr (when positive, stars haven't formed yet)
+    real_props.at("mass").push_back(2e4);  // in solar masses I think this is reasonable?
     real_props.at("pos_x").push_back(nominal_x);
     real_props.at("pos_y").push_back(nominal_y);
     real_props.at("pos_z").push_back(nominal_z);
     const std::vector<std::string> axis_l = {"x", "y", "z"};
-    for (const std::string& axis : axis_l) {
+    for (const std::string &axis : axis_l) {
       real_props.at("vel_" + axis).push_back(0.0);
       real_props.at("grav_" + axis).push_back(0.0);
     }
@@ -796,7 +793,8 @@ void Particles3D::Initialize_Isolated_Stellar_Cluster(struct Parameters *P)
 
 // An anonymous namespace to group together a bunch of local-only code used to help
 // with initializing disk particles
-namespace { // stuff inside the anonymous namespace is local-only
+namespace
+{  // stuff inside the anonymous namespace is local-only
 
 /* This class encapsulates the logic for determining the mass and formation times
  * of stellar cluster particles
@@ -829,20 +827,20 @@ namespace { // stuff inside the anonymous namespace is local-only
  * of the galaxy shouldn't really care about the size of the last cluster formed in a
  * different part of the galaxy)
  */
-template<bool UsePoissonPointProcess>
-class ClusterCreator{
-public: // interface
-
+template <bool UsePoissonPointProcess>
+class ClusterCreator
+{
+ public:  // interface
   ClusterCreator() = delete;
 
   /* Primary constructor */
-  ClusterCreator(const ClusterMassDistribution& cluster_mass_distribution,
-                 Real SFR, Real earliest_t_formation)
-    : cluster_mass_distribution_(cluster_mass_distribution),
-      SFR_(SFR),
-      cluster_formation_rate_(SFR / cluster_mass_distribution.meanClusterMass()),
-      cached_formation_time_(earliest_t_formation)
-  { }
+  ClusterCreator(const ClusterMassDistribution &cluster_mass_distribution, Real SFR, Real earliest_t_formation)
+      : cluster_mass_distribution_(cluster_mass_distribution),
+        SFR_(SFR),
+        cluster_formation_rate_(SFR / cluster_mass_distribution.meanClusterMass()),
+        cached_formation_time_(earliest_t_formation)
+  {
+  }
 
   /* fetch the next cluster (and prepare internally for the following cluster)
    *
@@ -850,22 +848,21 @@ public: // interface
    * \param[out] t_formation_time The formation time of the next cluster
    * \param[out] cluster_mass The mass of the next cluster
    */
-  void next_cluster(std::mt19937_64& generator,
-                    Real& t_formation_time, Real& cluster_mass)
+  void next_cluster(std::mt19937_64 &generator, Real &t_formation_time, Real &cluster_mass)
   {
     // first, determine the mass of the next cluster that will be formed
     cluster_mass = cluster_mass_distribution_.singleClusterMass(generator);
 
     // next, determine the formation time of that cluster & make the appropriate
     // updates to the internal state of this.
-    if (UsePoissonPointProcess){
+    if (UsePoissonPointProcess) {
       // In a PoissonPoint Process with rate lambda = cluster_formation_rate_,
       // the holding times between points follows an exponential distribution
       // with lambda = cluster_formation_rate_
       std::exponential_distribution<Real> holding_times_(cluster_formation_rate_);
 
       // in this case, cached_formation_time_ stores the age of the last cluster
-      t_formation_time = holding_times_(generator) + cached_formation_time_;
+      t_formation_time       = holding_times_(generator) + cached_formation_time_;
       cached_formation_time_ = t_formation_time;
     } else {
       // in this case, cached_formation_time_ already stores the age of this next
@@ -878,7 +875,7 @@ public: // interface
   /* returns time represents the earliest possible formation time of the next cluster */
   Real peek_next_min_formation_time() const { return cached_formation_time_; }
 
-private: // attributes
+ private:  // attributes
   // we declare certain attributes as const to make it clear which ones are fixed
   // after initialization. The other ones represent mutable state.
 
@@ -916,11 +913,9 @@ struct StarClusterInitRsltPack {
  *     typically coincides with the final simulation time.
  * \param G specifies the domain properties
  */
-template<bool UsePoissonPointProcess = false>
-StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
-                                                   const Real R_max,
-                                                   const Real t_max,
-                                                   const Particles3D::Grid& G)
+template <bool UsePoissonPointProcess = false>
+StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64 &generator, const Real R_max, const Real t_max,
+                                                   const Particles3D::Grid &G)
 {
   // todo: move away from using the distribution functions defined in the standard library
   //  -> apparently, the results of distribution functions are not portable across different
@@ -933,23 +928,23 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
   const Real SFR               = 2e3;                           // global MW SFR: 2 SM / yr
   const Real Rgas_scale_length = galaxies::MW.getGasDiskR_d();  // gas-disk scale length
   // the following are theoretically tunable
-  const Real k_s_power            = 1.4;     // the power in the Kennicut-Schmidt law
-                                             // (at the moment, this isn't tunable)
-  const Real earliest_t_formation = -4e4;    // earliest cluster time
+  const Real k_s_power = 1.4;              // the power in the Kennicut-Schmidt law
+                                           // (at the moment, this isn't tunable)
+  const Real earliest_t_formation = -4e4;  // earliest cluster time
 
   if (provide_summary) {
     chprintf(
-      "Stellar Disk Particle Initialization:\n"
-      "  SFR: %.3e Msun/kyr\n"
-      "  Gas disk scale-length: %.3e kpc\n"
-      "  Kennicutt–Schmidt power: %.3f\n"
-      "  earliest-cluster-formation time: %.3e kyr\n",
-      SFR, Rgas_scale_length, k_s_power, earliest_t_formation);
+        "Stellar Disk Particle Initialization:\n"
+        "  SFR: %.3e Msun/kyr\n"
+        "  Gas disk scale-length: %.3e kpc\n"
+        "  Kennicutt–Schmidt power: %.3f\n"
+        "  earliest-cluster-formation time: %.3e kyr\n",
+        SFR, Rgas_scale_length, k_s_power, earliest_t_formation);
   }
 
   // define distribution for generating cyclindrical radii
   std::gamma_distribution<Real> radialDistHelper(2, 1);
-  auto radialDist = [&radialDistHelper, Rgas_scale_length, k_s_power](std::mt19937_64& generator) -> Real {
+  auto radialDist = [&radialDistHelper, Rgas_scale_length, k_s_power](std::mt19937_64 &generator) -> Real {
     // we use the Kennicutt–Schmidt law to determine the distribution of particles with respect to r_cyl
     //   Sigma_SFR(r_cyl) = a * Sigma_gas^k_s_power,
     // where `a` is some arbitrary normalization constant and k_s_power is usually 1.4. We can combine
@@ -984,33 +979,39 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
   std::uniform_real_distribution<Real> phiDist(0, 2 * M_PI);  // for generating phi
   std::normal_distribution<Real> speedDist(0, 1);             // for generating random speeds.
 
-  ClusterCreator<UsePoissonPointProcess> cluster_creator(galaxies::MW.getClusterMassDistribution(),
-                                                         SFR, earliest_t_formation);
+  ClusterCreator<UsePoissonPointProcess> cluster_creator(galaxies::MW.getClusterMassDistribution(), SFR,
+                                                         earliest_t_formation);
 
   // initialize the std::map instances of vectors used to hold the output properties
   // part a: Initialize the maps in the output struct
-  StarClusterInitRsltPack pack = {
-    /* initialize int_props: */
-    {{"id", {}}},
-    /* initialize real_props */
-    {{"age", {}}, {"mass", {}}, {"pos_x", {}}, {"pos_y", {}}, {"pos_z", {}},
-     {"vel_x", {}}, {"vel_y", {}}, {"vel_z", {}},
-     {"grav_x", {}}, {"grav_y", {}}, {"grav_z", {}}}
-  };
+  StarClusterInitRsltPack pack = {/* initialize int_props: */
+                                  {{"id", {}}},
+                                  /* initialize real_props */
+                                  {{"age", {}},
+                                   {"mass", {}},
+                                   {"pos_x", {}},
+                                   {"pos_y", {}},
+                                   {"pos_z", {}},
+                                   {"vel_x", {}},
+                                   {"vel_y", {}},
+                                   {"vel_z", {}},
+                                   {"grav_x", {}},
+                                   {"grav_y", {}},
+                                   {"grav_z", {}}}};
 
   // part b: create references to each of vectors stored in the dictionare
-  int_vector_t& temp_ids     = pack.int_props.at("id");
-  real_vector_t& temp_age    = pack.real_props.at("age");
-  real_vector_t& temp_mass   = pack.real_props.at("mass");
-  real_vector_t& temp_pos_x  = pack.real_props.at("pos_x");
-  real_vector_t& temp_pos_y  = pack.real_props.at("pos_y");
-  real_vector_t& temp_pos_z  = pack.real_props.at("pos_z");
-  real_vector_t& temp_vel_x  = pack.real_props.at("vel_x");
-  real_vector_t& temp_vel_y  = pack.real_props.at("vel_y");
-  real_vector_t& temp_vel_z  = pack.real_props.at("vel_z");
-  real_vector_t& temp_grav_x = pack.real_props.at("grav_x");
-  real_vector_t& temp_grav_y = pack.real_props.at("grav_y");
-  real_vector_t& temp_grav_z = pack.real_props.at("grav_z");
+  int_vector_t &temp_ids     = pack.int_props.at("id");
+  real_vector_t &temp_age    = pack.real_props.at("age");
+  real_vector_t &temp_mass   = pack.real_props.at("mass");
+  real_vector_t &temp_pos_x  = pack.real_props.at("pos_x");
+  real_vector_t &temp_pos_y  = pack.real_props.at("pos_y");
+  real_vector_t &temp_pos_z  = pack.real_props.at("pos_z");
+  real_vector_t &temp_vel_x  = pack.real_props.at("vel_x");
+  real_vector_t &temp_vel_y  = pack.real_props.at("vel_y");
+  real_vector_t &temp_vel_z  = pack.real_props.at("vel_z");
+  real_vector_t &temp_grav_x = pack.real_props.at("grav_x");
+  real_vector_t &temp_grav_y = pack.real_props.at("grav_y");
+  real_vector_t &temp_grav_z = pack.real_props.at("grav_z");
 
   // initialize accumulator variables updated throughout the loop
   Real cumulative_mass = 0;
@@ -1062,24 +1063,22 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
       temp_mass.push_back(cluster_mass);
       temp_age.push_back(t_cluster);
       temp_ids.push_back(id);
-    } // end of while-loop
-
+    }  // end of while-loop
   }
 
   // print out summary:
   if (provide_summary) {
     chprintf(
-      "Disk Particle Statistics: \n"
-      "  lost %lu particles\n"
-      "  n_total = %lu, n_local = %zu, total_mass = %.3e s.m.\n",
-      lost_particles, id + 1, temp_ids.size(), cumulative_mass
-    );
+        "Disk Particle Statistics: \n"
+        "  lost %lu particles\n"
+        "  n_total = %lu, n_local = %zu, total_mass = %.3e s.m.\n",
+        lost_particles, id + 1, temp_ids.size(), cumulative_mass);
   }
 
   return pack;
 }
 
-} // anonymous namespace
+}  // anonymous namespace
 
   #if defined(PARTICLE_AGE) && !defined(SINGLE_PARTICLE_MASS) && defined(PARTICLE_IDS)
 
@@ -1101,13 +1100,12 @@ void Particles3D::Initialize_Disk_Stellar_Clusters(struct Parameters *P)
   bool poisson_process_formation_strat = true;
 
   StarClusterInitRsltPack pack = (poisson_process_formation_strat)
-    ? disk_stellar_cluster_init_<true>(generator, R_max, t_max, this->G)
-    : disk_stellar_cluster_init_<false>(generator, R_max, t_max, this->G);
+                                     ? disk_stellar_cluster_init_<true>(generator, R_max, t_max, this->G)
+                                     : disk_stellar_cluster_init_<false>(generator, R_max, t_max, this->G);
 
   this->n_local = pack.int_props.at("id").size();  // may be a little redundant
 
   this->Initialize_Stellar_Clusters_Helper_(pack.real_props, pack.int_props);
-
 }
   #endif
 

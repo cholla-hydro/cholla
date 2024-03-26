@@ -21,11 +21,11 @@
 #include "potentials.h"
 #include "selfgrav_hydrostatic_col.h"
 
-/* Originally, we passed around a 22-element array of parameters. Mapping the 
+/* Originally, we passed around a 22-element array of parameters. Mapping the
  * index to the parameter-name made the code harder to follow. The following
  * is introduced to replace that array
  */
-struct DataPack{
+struct DataPack {
   MiyamotoNagaiDiskProps stellar_disk;
   NFWHaloPotential halo_potential;
   Real T_d;
@@ -33,7 +33,7 @@ struct DataPack{
   Real R_g;
   Real H_g;
   Real K_eos;
-  Real gamma;      // adiabatic index
+  Real gamma;  // adiabatic index
   Real rho_floor;
   Real rho_eos;
   Real cs;
@@ -42,39 +42,36 @@ struct DataPack{
   Real K_eos_h;
   Real rho_eos_h;
   Real cs_h;
-  Real r_cool;    // cooling radius
+  Real r_cool;  // cooling radius
   Real Rgas_truncation_radius;
-
 };
 
 // radial acceleration in NFW halo
-Real gr_halo_D3D(Real R, Real z, const DataPack& hdp)
-{
-  return hdp.halo_potential.gr_halo_D3D(R, z);
-}
+Real gr_halo_D3D(Real R, Real z, const DataPack& hdp) { return hdp.halo_potential.gr_halo_D3D(R, z); }
 
 /* Compute the standard logistic function f(x) = 1.0 / (1.0 + exp(-x))
  *
- * This is sometimes called "the sigmoid" or "expit". 
+ * This is sometimes called "the sigmoid" or "expit".
  */
-static Real standard_logistic_function(Real x) noexcept {
+static Real standard_logistic_function(Real x) noexcept
+{
   // we make use of tanh since it is probably better behaved than directly
   // computing 1.0 /(1.0 + std::exp(-x))
-  return 0.5 + 0.5 * std::tanh(0.5*x);
+  return 0.5 + 0.5 * std::tanh(0.5 * x);
 }
 
 // disk radial surface density profile
 Real Sigma_disk_D3D(Real r, const DataPack& hdp)
 {
   // return the exponential surface density
-  Real Sigma_0 = hdp.Sigma_0; // surface density at the center of the disk
+  Real Sigma_0 = hdp.Sigma_0;  // surface density at the center of the disk
   Real R_g     = hdp.R_g;
-  Real Sigma = Sigma_0 * exp(-r / R_g);
+  Real Sigma   = Sigma_0 * exp(-r / R_g);
 
   // taper the edge of the disk to 0
-  Real R_c     = hdp.Rgas_truncation_radius;
-  Real alpha   = 0.02; // chosen to roughly match our coarsest considered 
-                       // resolution
+  Real R_c   = hdp.Rgas_truncation_radius;
+  Real alpha = 0.02;  // chosen to roughly match our coarsest considered
+                      // resolution
 
   Real taper_factor = 1.0 - standard_logistic_function((r - R_c) / alpha);
 
@@ -90,7 +87,7 @@ Real Sigma_disk_D3D(Real r, const DataPack& hdp)
   //
   // Our reasons include:
   // 1. Much less importantly: the smaller alpha is the sharper, the perturbation in
-  //    the gravitational force near the truncation radius 
+  //    the gravitational force near the truncation radius
   //    - this is because unlike a spherical mass distribution, the gravity at a
   //      point in the disk at cylindrical radius R', is affected by mass distributions
   //      inside and outside R'.
@@ -114,14 +111,11 @@ Real Sigma_disk_D3D(Real r, const DataPack& hdp)
   // 3. Perhaps most importantly is that a tiny alpha that is much smaller than
   //    than the gridsize makes it hard to robustly estimate pressure derivatives.
 
-  return Sigma*taper_factor;
+  return Sigma * taper_factor;
 }
 
 // NFW halo potential
-Real phi_halo_D3D(Real R, Real z, const DataPack& hdp)
-{
-  return hdp.halo_potential.phi_halo_D3D(R, z);
-}
+Real phi_halo_D3D(Real R, Real z, const DataPack& hdp) { return hdp.halo_potential.phi_halo_D3D(R, z); }
 
 // total potential
 Real phi_total_D3D(Real R, Real z, const DataPack& hdp)
@@ -170,16 +164,16 @@ Real r_hc_D3D(int i, Real dr)
  *  \brief Calculate the density at spherical radius r due to a hydrostatic
  halo. Uses an analytic expression normalized by the value of the potential at
  the cooling radius. */
-void hydrostatic_ray_analytical_D3D(Real *rho, Real *r, const DataPack& hdp, Real dr, int nr)
+void hydrostatic_ray_analytical_D3D(Real* rho, Real* r, const DataPack& hdp, Real dr, int nr)
 {
   // Routine to determine the hydrostatic density profile
   // along a ray from the galaxy center
   int i;  // index along r direction
 
-  Real gamma   = hdp.gamma;  // adiabatic index
+  Real gamma   = hdp.gamma;      // adiabatic index
   Real rho_eos = hdp.rho_eos_h;  // density where K_EOS is set
-  Real cs      = hdp.cs_h;  // sound speed at rho_eos
-  Real r_cool  = hdp.r_cool;  // cooling radius
+  Real cs      = hdp.cs_h;       // sound speed at rho_eos
+  Real r_cool  = hdp.r_cool;     // cooling radius
 
   Real Phi_0;  // potential at cooling radius
 
@@ -201,20 +195,20 @@ void hydrostatic_ray_analytical_D3D(Real *rho, Real *r, const DataPack& hdp, Rea
   }
 }
 
-namespace hydrostatic_isothermal_detail{
+namespace hydrostatic_isothermal_detail
+{
 
 /* find the cell above the disk where the density falls by exp(-7) < 1.0e-3. */
-Real find_z1(int ks, int nzt, Real R, const DataPack& hdp, Real dz, int nz, int ng, Real Phi_0,
-             Real cs)
+Real find_z1(int ks, int nzt, Real R, const DataPack& hdp, Real dz, int nz, int ng, Real Phi_0, Real cs)
 {
   // TODO: make sure problems won't arise if/when ks > nzt
 
-  Real D_rho; // ratio of density at mid plane and rho_eos
+  Real D_rho;  // ratio of density at mid plane and rho_eos
 
   // perform a simple check about the fraction of density within
   // a single cell
-  Real z_1   = z_hc_D3D(ks, dz, nz, ng) + 0.5 * dz;  // cell ceiling
-  D_rho = (phi_total_D3D(R, z_1, hdp) - Phi_0) / (cs * cs);
+  Real z_1 = z_hc_D3D(ks, dz, nz, ng) + 0.5 * dz;  // cell ceiling
+  D_rho    = (phi_total_D3D(R, z_1, hdp) - Phi_0) / (cs * cs);
 
   if (exp(-1 * D_rho) < 0.1) {
     printf(
@@ -252,21 +246,21 @@ Real find_z1(int ks, int nzt, Real R, const DataPack& hdp, Real dz, int nz, int 
  * \param hdp, rho_0, Phi_0, cs parameters for the governing the solution to
  *     the vertical hydrostatic density profile.
  */
-Real integrate_density_zax(Real z_int_min, Real z_int_max, int n_int, Real R,
-                           const DataPack& hdp, Real rho_0, Real Phi_0,
-                           Real cs) {
+Real integrate_density_zax(Real z_int_min, Real z_int_max, int n_int, Real R, const DataPack& hdp, Real rho_0,
+                           Real Phi_0, Real cs)
+{
   // compute the size of every integration step
-  const Real dz_int  = (z_int_max - z_int_min) / (Real(n_int));
-  Real phi_int = 0.0;
+  const Real dz_int = (z_int_max - z_int_min) / (Real(n_int));
+  Real phi_int      = 0.0;
   for (int i = 0; i < n_int; i++) {
-    const Real z_0  = 0.5 * dz_int + dz_int * ((Real)i) + z_int_min;
+    const Real z_0       = 0.5 * dz_int + dz_int * ((Real)i) + z_int_min;
     const Real Delta_phi = (phi_total_D3D(R, z_0, hdp) - Phi_0) / (cs * cs);
     phi_int += rho_0 * exp(-1 * Delta_phi) * dz_int;
   }
   return phi_int;
 }
 
-} // hydrostatic_isothermal_detail
+}  // namespace hydrostatic_isothermal_detail
 
 /* Calculate the 1D density distribution in a hydrostatic column, assuming an isothermal gas.
  *
@@ -283,9 +277,8 @@ Real integrate_density_zax(Real z_int_min, Real z_int_max, int n_int, Real R,
  *
  * \returns the midplane mass-density
  */
-Real hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real cur_Sigma, const DataPack& hdp, Real dz, int nz, int ng)
+Real hydrostatic_column_isothermal_D3D(Real* rho, Real R, Real cur_Sigma, const DataPack& hdp, Real dz, int nz, int ng)
 {
-
   Real cs = hdp.cs;
 
   // start of integrals above disk plane
@@ -294,7 +287,7 @@ Real hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real cur_Sigma, const 
   // prologue:
 
   // set the z-column size, including ghost cells
-  const int nzt = nz + 2 * ng; // total number of cells in z-direction
+  const int nzt = nz + 2 * ng;  // total number of cells in z-direction
 
   // compute the mid plane potential (aka the potential at z = 0)
   const Real Phi_0 = phi_total_D3D(R, 0, hdp);
@@ -315,7 +308,7 @@ Real hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real cur_Sigma, const 
   // Step 1: compute z_1. This is height used for "iteration"
   // -> Note while refactoring: I believe this is just the maximum height of the disk
   //    and that "iteration" was a typo for integration
-  Real z_1 = hydrostatic_isothermal_detail::find_z1(ks, nzt, R, hdp, dz, nz, ng, Phi_0, cs);
+  Real z_1              = hydrostatic_isothermal_detail::find_z1(ks, nzt, R, hdp, dz, nz, ng, Phi_0, cs);
   const Real z_disk_max = z_1;
 
   // Step 2: compute the density at the midplane, rho_0
@@ -328,7 +321,7 @@ Real hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real cur_Sigma, const 
   // -> for computational efficiency, we actually just compute half of the integral
   //    (this is okay since the profile is symmetric above & below the midplane)
   Real half_unnormalized_integral = hydrostatic_isothermal_detail::integrate_density_zax(
-    /* integration lims: */ 0.0, z_1, /* n_int: */ 1000, R, hdp, 1.0, Phi_0, cs);
+      /* integration lims: */ 0.0, z_1, /* n_int: */ 1000, R, hdp, 1.0, Phi_0, cs);
 
   // Step2b: actually compute rho_0
   // -> we leverage the fact that unnormalized_integral is equal to the
@@ -346,7 +339,7 @@ Real hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real cur_Sigma, const 
   }
 
   // Step 3: Let's now compute the cell-averaged density in each cell
-  bool flag  = false;
+  bool flag       = false;
   const int n_int = 10;  // integrate over a 1/10 cell
   for (int k = ks; k < nzt; k++) {
     // find cell center, bottom, and top
@@ -357,8 +350,8 @@ Real hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real cur_Sigma, const 
     }
 
     if (not flag) {
-      Real phi_int = hydrostatic_isothermal_detail::integrate_density_zax(
-        z_int_min, z_int_max, n_int, R, hdp, rho_0, Phi_0, cs);
+      Real phi_int =
+          hydrostatic_isothermal_detail::integrate_density_zax(z_int_min, z_int_max, n_int, R, hdp, rho_0, Phi_0, cs);
 
       // set density based on integral
       // of density in this cell
@@ -383,17 +376,17 @@ Real hydrostatic_column_isothermal_D3D(Real *rho, Real R, Real cur_Sigma, const 
   return rho_0;
 }
 
-class IsothermalStaticGravHydroStaticColMaker{
-
-public: // interface
-
+class IsothermalStaticGravHydroStaticColMaker
+{
+ public:  // interface
   IsothermalStaticGravHydroStaticColMaker() = delete;
   IsothermalStaticGravHydroStaticColMaker(Real dz, int nz, int ghost_depth, DataPack hdp)
-    : dz(dz), nz(nz), ghost_depth(ghost_depth), hdp(hdp)
-  {}
+      : dz(dz), nz(nz), ghost_depth(ghost_depth), hdp(hdp)
+  {
+  }
 
   /* global total number of ghost zones along z-axis plus twice the ghost depth */
-  int buffer_len() const noexcept {return nz + 2*ghost_depth; }
+  int buffer_len() const noexcept { return nz + 2 * ghost_depth; }
 
   /* Fill the buffer with the density values of a hydrostatic column
    *
@@ -408,7 +401,7 @@ public: // interface
     return hydrostatic_column_isothermal_D3D(buffer, cur_R, cur_Sigma, hdp, dz, nz, ghost_depth);
   }
 
-private:
+ private:
   /* cell width */
   const Real dz;
   /* global number of active-zone cells along the z-direction */
@@ -417,7 +410,6 @@ private:
   const int ghost_depth;
   /* assorted data parameters */
   const DataPack hdp;
-
 };
 
 /*! \fn void hydrostatic_column_analytical_D3D(Real *rho, Real R, const DataPack& hdp,
@@ -425,7 +417,7 @@ private:
  *  \brief Calculate the 1D density distribution in a hydrostatic column.
      Uses an iterative to scheme to determine the density at (R, z=0) relative
  to (R=0,z=0), then sets the densities according to an analytic expression. */
-void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real cur_Sigma, const DataPack& hdp, Real dz, int nz, int ng)
+void hydrostatic_column_analytical_D3D(Real* rho, Real R, Real cur_Sigma, const DataPack& hdp, Real dz, int nz, int ng)
 {
   // x is cell center in x direction
   // y is cell center in y direction
@@ -434,9 +426,9 @@ void hydrostatic_column_analytical_D3D(Real *rho, Real R, Real cur_Sigma, const 
   // ng is number of ghost cells
   // total number of cells in column is nz * 2*ng
 
-  int i, k;               // index along z axis
-  int nzt;                // total number of cells in z-direction
-  Real Sigma_r;           // surface density expected at r
+  int i, k;                    // index along z axis
+  int nzt;                     // total number of cells in z-direction
+  Real Sigma_r;                // surface density expected at r
   Real Sigma_0 = hdp.Sigma_0;  // central surface density
   Real gamma   = hdp.gamma;
   // Real gamma = 1.001; // CHANGED FOR ISOTHERMAL
@@ -716,7 +708,7 @@ Real determine_rho_eos_D3D(Real cs, Real Sigma_0, const DataPack& hdp)
   return rho_eos;
 }
 
-Real halo_density_D3D(Real r, Real *r_halo, Real *rho_halo, Real dr, int nr)
+Real halo_density_D3D(Real r, Real* r_halo, Real* rho_halo, Real dr, int nr)
 {
   // interpolate the halo density profile
   int i;
@@ -738,16 +730,13 @@ Real halo_density_D3D(Real r, Real *r_halo, Real *rho_halo, Real dr, int nr)
 // we need to forward declare the following functions
 // -> we opt to forward declare them rather than move them because the functions are fairly large
 // -> in both cases, the functions only initialize thermal-energy in the total-energy field
-template<typename HydroStaticColMaker, typename Vrot2FromPotential>
-void partial_initialize_isothermal_disk(const Parameters& p, const Header& H,
-                                        const Grid3D& grid, const Grid3D::Conserved& C,
-                                        const DataPack hdp, const HydroStaticColMaker& col_maker,
+template <typename HydroStaticColMaker, typename Vrot2FromPotential>
+void partial_initialize_isothermal_disk(const Parameters& p, const Header& H, const Grid3D& grid,
+                                        const Grid3D::Conserved& C, const DataPack hdp,
+                                        const HydroStaticColMaker& col_maker,
                                         const Vrot2FromPotential& vrot2_from_phi_fn);
-void partial_initialize_halo(const Parameters& p, const Header& H,
-                             const Grid3D& grid, const Grid3D::Conserved& C,
+void partial_initialize_halo(const Parameters& p, const Header& H, const Grid3D& grid, const Grid3D::Conserved& C,
                              DataPack hdp);
-
-
 
 /*! \fn void Disk_3D(Parameters P)
  *  \brief Initialize the grid with a 3D disk. */
@@ -773,12 +762,12 @@ void Grid3D::Disk_3D(Parameters p)
   Real Sigma_0 = gas_disk.CentralSurfaceDensity();  // (in Msun/kpc^2)
   // changing the following 3 lines directly assign T_d the value stored in gas_disk.T_d slightly
   // changes the result of the simulation (its worrying that I can't explain why!)
-  T_d       = 1.0e4;
+  T_d = 1.0e4;
   if (T_d != gas_disk.T_d) {
     CHOLLA_ERROR("unexpected disk temperature");
   }
 
-  if (true){
+  if (true) {
     chprintf("\nNominal Disk properties:\n");
     chprintf("                                            Stellar            Gas\n");
     chprintf("                                            -------          -------\n");
@@ -789,7 +778,6 @@ void Grid3D::Disk_3D(Parameters p)
 
     chprintf("\n");
   }
-
 
   // EOS info
   cs   = sqrt(KB * T_d / (mu * MP)) * TIME_UNIT / LENGTH_UNIT;  // sound speed in kpc/kyr
@@ -806,7 +794,7 @@ void Grid3D::Disk_3D(Parameters p)
   hdp.H_g            = gas_disk.H_d;  // initial guess for gas scale height (kpc)
   hdp.gamma          = p.gamma;
 
-  if (gas_disk.isothermal){
+  if (gas_disk.isothermal) {
     // determine rho_eos by setting central density of disk based on central temperature
     rho_eos = determine_rho_eos_D3D(cs, Sigma_0, hdp);
     K_eos   = cs * cs * rho_eos;  // CHANGED FOR ISOTHERMAL
@@ -848,7 +836,7 @@ void Grid3D::Disk_3D(Parameters p)
 
   // most of the heavy-lifting happens in the following function-calls below:
   // - they all assume that the fields start out with values that are uniformly zero
-  // - they then update the density and momenta fields. They also store the 
+  // - they then update the density and momenta fields. They also store the
   //   thermal-energy-density field in the total-energy-density field (we need to
   //   add the kinetic energy contribution afterwards)
 
@@ -857,45 +845,41 @@ void Grid3D::Disk_3D(Parameters p)
   self_gravity = true;
 #endif
 
-  // since we are adding contributions from the halo across the entire domain, let's initialize it 
+  // since we are adding contributions from the halo across the entire domain, let's initialize it
   // first (we will need to account for its influence on the radial pressure gradients when
   // initializing the circular velocity of the disk)
   partial_initialize_halo(p, this->H, *this, this->C, hdp);
 
-  if (gas_disk.isothermal){
-    if (self_gravity){
+  if (gas_disk.isothermal) {
+    if (self_gravity) {
       // nongas_phi calculates the gravitational potential contributed by material other than the
       // gas disk at a given (R,z), where R is cylindrical radius
       // -> currently this just includes the static-gravitational potentials (from the stellar-disk
       //    and the dark-matter halo)
-      // -> in principle this is also allowed to include other contributions (e.g. an estimate for 
+      // -> in principle this is also allowed to include other contributions (e.g. an estimate for
       //    potential contributed by a star-particle disk, gas in the halo)
-      auto nongas_phi_fn = [hdp](Real R, Real z) -> Real {return phi_total_D3D(R, z, hdp); };
+      auto nongas_phi_fn = [hdp](Real R, Real z) -> Real { return phi_total_D3D(R, z, hdp); };
 
       // isoth_term is constant value of pressure/rho at the desired isothermal temperature.
       // equivalent to:  `(isothermal_sound_speed)^2` OR `(adiabatic_sound_speed)^2/gamma` OR
       //                 `(gamma - 1) * specific_internal_energy`
-      Real isoth_term = hdp.cs * hdp.cs; // <- square of the isothermal sound speed
+      Real isoth_term                     = hdp.cs * hdp.cs;  // <- square of the isothermal sound speed
       Real initial_gas_scale_height_guess = gas_disk.H_d;
-      SelfGravHydroStaticColMaker col_maker(H.n_ghost, ZGridProps(p.zmin, p.zlen, p.nz),
-                                            isoth_term, nongas_phi_fn, initial_gas_scale_height_guess);
+      SelfGravHydroStaticColMaker col_maker(H.n_ghost, ZGridProps(p.zmin, p.zlen, p.nz), isoth_term, nongas_phi_fn,
+                                            initial_gas_scale_height_guess);
 
       // the following function is used to compute the rotational velocity for a collisionless particle
       // (this includes an estimate for the potential of the gas disk)
       auto vrot2_from_phi_fn = [galaxy](Real R, Real z) -> Real {
         return galaxy.circular_vel2_with_selfgrav_estimates(R, z);
       };
-      partial_initialize_isothermal_disk(p, this->H, *this, this->C, hdp, col_maker,
-                                         vrot2_from_phi_fn);
+      partial_initialize_isothermal_disk(p, this->H, *this, this->C, hdp, col_maker, vrot2_from_phi_fn);
     } else {
       IsothermalStaticGravHydroStaticColMaker col_maker(p.zlen / ((Real)p.nz), p.nz, H.n_ghost, hdp);
       // the following function is used to compute the rotational velocity for a collisionless particle
       // (this includes an estimate for the potential of the gas disk)
-      auto vrot2_from_phi_fn = [galaxy](Real R, Real z) -> Real {
-        return galaxy.circular_vel2(R, z);
-      };
-      partial_initialize_isothermal_disk(p, this->H, *this, this->C, hdp, col_maker,
-                                         vrot2_from_phi_fn);
+      auto vrot2_from_phi_fn = [galaxy](Real R, Real z) -> Real { return galaxy.circular_vel2(R, z); };
+      partial_initialize_isothermal_disk(p, this->H, *this, this->C, hdp, col_maker, vrot2_from_phi_fn);
     }
   } else {
     CHOLLA_ERROR("Currently, there isn't support for a non-isothermal gas disk");
@@ -920,7 +904,6 @@ void Grid3D::Disk_3D(Parameters p)
       }
     }
   }
-
 }
 
 /*!
@@ -934,7 +917,7 @@ void Grid3D::Disk_3D(Parameters p)
  * local velocity. The function assumes that `C.Energy` just tracks thermal energy. The arrays held
  * by `C.momentum_x`, `C.momentum_y`, and `C.momentum_z` are updated.
  * \param[in]     vrot2_from_phi_fn A callable function, based on the assumed gravitational potential,
- * that returns the squared rotational velocity of a massless test-particle on a circular orbit, at a 
+ * that returns the squared rotational velocity of a massless test-particle on a circular orbit, at a
  * specified cylindrical radius and z position.
  * \param[in]     rho_disk has the same layout as `C.d`. While `C.d` records the total_density, `rho_disk`
  * only records the contributions from the disk. Essentially we use `rho_disk` as a mask. We
@@ -950,7 +933,7 @@ void Grid3D::Disk_3D(Parameters p)
  *   from the halo in an earlier commit (and we totally omitted any estimate of self-gravity)
  * - then, we went down a rabbit hole of trying alternative strategies. This was prompted by the fact
  *   that we were seeing radial instabilities in the disk (it was collapsing radially). We think the
- *   the radial perturbation was real & it was caused by the fact that we didn't account for 
+ *   the radial perturbation was real & it was caused by the fact that we didn't account for
  *   self-gravity during setup. But, the instability was made a lot worse by the fact that there were
  *   artifacts in the self-gravity solver significantly magnified by our test-setup (i.e. the domain
  *   wasn't a cube)
@@ -967,11 +950,9 @@ void Grid3D::Disk_3D(Parameters p)
  *     the best initial stability (before accounting for cooling)
  *   - plus, it improves radial stability at the disk-halo interface.
  */
-template<typename Vrot2FromPotential>
-void assign_vels(const Parameters& p, const Header& H,
-                 const Grid3D& grid, const Grid3D::Conserved& C,
-                 const Vrot2FromPotential& vrot2_from_phi_fn,
-                 const std::vector<Real>& rho_disk)
+template <typename Vrot2FromPotential>
+void assign_vels(const Parameters& p, const Header& H, const Grid3D& grid, const Grid3D::Conserved& C,
+                 const Vrot2FromPotential& vrot2_from_phi_fn, const std::vector<Real>& rho_disk)
 {
   // Assign the circular velocities
   // -> everywhere that rho_disk >= 0, we compute the radial acceleration and use
@@ -985,10 +966,10 @@ void assign_vels(const Parameters& p, const Header& H,
   // -> when radial acceleration has an unexpected sign, we set circular velocity to 0
   //     -> This is important after we start tapering the velocity
 
-  const Real dx = p.xlen / ((Real)p.nx);  // cell-width x
-  const Real dy = p.xlen / ((Real)p.nx);  // cell-width y
+  const Real dx        = p.xlen / ((Real)p.nx);  // cell-width x
+  const Real dy        = p.xlen / ((Real)p.nx);  // cell-width y
   bool any_accel_error = false;
-  bool any_vel_error = false;
+  bool any_vel_error   = false;
   for (int k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
     for (int j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
       for (int i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
@@ -1010,19 +991,19 @@ void assign_vels(const Parameters& p, const Header& H,
           Real phi = atan2(y_pos, x_pos);  // azimuthal angle (in x-y plane)
 
           // consider radial acceleration from gravitational potential
-          Real agrav_times_r = vrot2_from_phi_fn(r,z_pos);
+          Real agrav_times_r = vrot2_from_phi_fn(r, z_pos);
 
           //  pressure gradient along x direction
-          int i_left   = (i-1);
-          int i_right  = (i+1);
+          int i_left  = (i - 1);
+          int i_right = (i + 1);
           // Currently, C.Energy just stores internal energy density
           Real P_xL = C.Energy[i_left + j * H.nx + k * H.nx * H.ny] * (gama - 1.0);
           Real P_xR = C.Energy[i_right + j * H.nx + k * H.nx * H.ny] * (gama - 1.0);
-          Real dPdx = (P_xR - P_xL) / (dx*(i_right - i_left));
+          Real dPdx = (P_xR - P_xL) / (dx * (i_right - i_left));
 
           // pressure gradient along y direction
-          int j_left   = j-1;
-          int j_right  = j+1;
+          int j_left  = j - 1;
+          int j_right = j + 1;
           // Currently, C.Energy just stores internal energy density
           Real P_yL = C.Energy[i + j_left * H.nx + k * H.nx * H.ny] * (gama - 1.0);
           Real P_yR = C.Energy[i + j_right * H.nx + k * H.nx * H.ny] * (gama - 1.0);
@@ -1032,43 +1013,40 @@ void assign_vels(const Parameters& p, const Header& H,
           Real dPdr = x_pos * dPdx / r + y_pos * dPdy / r;
 
           // radial acceleration (multiplied by cylindrical radius)
-          Real a_times_r = agrav_times_r + r * (dPdr / d); // = r * (a_grav + dPdr / d)
+          Real a_times_r = agrav_times_r + r * (dPdr / d);  // = r * (a_grav + dPdr / d)
 
-          if (a_times_r < 0){
+          if (a_times_r < 0) {
             continue;
           } else if (not std::isfinite(a_times_r)) {
             any_accel_error = true;
             continue;
           }
 
-          Real v  = sqrt(a_times_r); // circular velocity
+          Real v  = sqrt(a_times_r);  // circular velocity
           Real vx = -sin(phi) * v;
           Real vy = cos(phi) * v;
           Real vz = 0;
-          any_vel_error = ( any_vel_error or (not std::isfinite(vx)) or (not std::isfinite(vy)) or
-                            (not std::isfinite(vz)) );
+          any_vel_error =
+              (any_vel_error or (not std::isfinite(vx)) or (not std::isfinite(vy)) or (not std::isfinite(vz)));
 
           // set the momenta
           C.momentum_x[id] = d * vx;
           C.momentum_y[id] = d * vy;
           C.momentum_z[id] = d * vz;
         }
-
       }
     }
   }
-
 
   // todo: consider writing another function to write a error messages with problematic values
   CHOLLA_ASSERT(not any_accel_error, "There was a problem with a computed acceleration");
   CHOLLA_ASSERT(not any_vel_error, "There was a problem with a computed velocity");
 }
 
-
-template<typename HydroStaticColMaker, typename Vrot2FromPotential>
-void partial_initialize_isothermal_disk(const Parameters& p, const Header& H,
-                                        const Grid3D& grid, const Grid3D::Conserved& C,
-                                        const DataPack hdp, const HydroStaticColMaker& col_maker,
+template <typename HydroStaticColMaker, typename Vrot2FromPotential>
+void partial_initialize_isothermal_disk(const Parameters& p, const Header& H, const Grid3D& grid,
+                                        const Grid3D::Conserved& C, const DataPack hdp,
+                                        const HydroStaticColMaker& col_maker,
                                         const Vrot2FromPotential& vrot2_from_phi_fn)
 {
   // Step 0: allocate buffers
@@ -1134,16 +1112,13 @@ void partial_initialize_isothermal_disk(const Parameters& p, const Header& H,
   CHOLLA_ASSERT(not any_density_error, "There was a problem initializing disk density");
 
   assign_vels(p, H, grid, C, vrot2_from_phi_fn, rho_disk);
-
 }
 
-
 // This is called after initializing the disk
-void partial_initialize_halo(const Parameters& p, const Header& H,
-                             const Grid3D& grid, const Grid3D::Conserved& C,
+void partial_initialize_halo(const Parameters& p, const Header& H, const Grid3D& grid, const Grid3D::Conserved& C,
                              DataPack hdp)
 {
-    // create a look up table for the halo gas profile
+  // create a look up table for the halo gas profile
   const int nr  = 1000;
   const Real dr = sqrt(3) * 0.5 * fmax(p.xlen, p.zlen) / ((Real)nr);
   std::vector<Real> rho_halo(nr, 0.0);
@@ -1192,5 +1167,4 @@ void partial_initialize_halo(const Parameters& p, const Header& H,
       }
     }
   }
-
 }

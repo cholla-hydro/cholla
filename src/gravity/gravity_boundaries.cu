@@ -185,7 +185,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
     cm_pos_z      = H.sphere_center_z;
   }
 
-  Real pot_val  = 0.0;
+  Real pot_val = 0.0;
   int i, j, k, id;
   for (k = 0; k < nGHST; k++) {
     for (i = 0; i < n_i; i++) {
@@ -237,7 +237,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
           // (i.e. gas density and particle density)
           // - we implicitly make use of that potential when solving for the potential
           // - we also make use of it here to overwrite the values of the potential at the boundary
-  
+
           // Currently, we need to make sure this stays synchronized with the approximation used within
           // Paris_Galactic. We should refactor so that we don't need to do that
           // Right now:
@@ -245,6 +245,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
           //    (i.e. the `rho_real` array is dominated by gas density)
           // -> we are currently ignoring contributions from particles
           const AprroxExponentialDisk3MN approx_potential = galaxies::MW.getGasDisk().selfgrav_approx_potential;
+
           r       = sqrt((pos_x * pos_x) + (pos_y * pos_y));
           pot_val = approx_potential.phi_disk_D3D(r, pos_z);
         } else {

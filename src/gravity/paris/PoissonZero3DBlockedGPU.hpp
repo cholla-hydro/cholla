@@ -4,7 +4,6 @@
 
 #include "../../utils/gpu.hpp"
 
-
 /*!
  * \brief Encapsulates core logic for using Discrete Sine Transform (implemented in terms of FFTs)
  * to solve Poisson's equation with isolated boundaries.
