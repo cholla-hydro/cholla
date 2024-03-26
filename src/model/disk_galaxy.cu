@@ -10,10 +10,10 @@
 // Kennicut-Schmidt law with a power of 1.4, the newly formed stars will organize
 // into a disk with scale-length of 2.5 kpc
 const ClusteredDiskGalaxy galaxies::MW(ClusterMassDistribution{1e2, 5e5, 2.0},
-                                       MiyamotoNagaiDiskProps{6.5e10, 2.5, 0.7},                // stellar_disk
+                                       MiyamotoNagaiPotential{6.5e10, 2.5, 0.7},                // stellar_disk
                                        GasDiskProps{0.15 * 6.5e10, 3.5, 0.7, 1e4, true, 0.02},  // gas_disk
                                        1.077e12, 261, 18, 157.0);
-const DiskGalaxy galaxies::M82(MiyamotoNagaiDiskProps{1.0e10, 0.8, 0.15},                       // stellar_disk
+const DiskGalaxy galaxies::M82(MiyamotoNagaiPotential{1.0e10, 0.8, 0.15},                       // stellar_disk
                                GasDiskProps{0.25 * 1.0e10, 2 * 0.8, 0.15, 1e4, true, 2 * 0.8},  // gas_disk
                                5.0e10, 0.8 / 0.015, 10, 100.0);
 
@@ -24,9 +24,9 @@ const DiskGalaxy galaxies::M82(MiyamotoNagaiDiskProps{1.0e10, 0.8, 0.15},       
 //  classes aren't available when define DiskGalaxy)
 DiskGalaxy::~DiskGalaxy() {}
 
-DiskGalaxy::DiskGalaxy(const MiyamotoNagaiDiskProps& stellar_disk, const GasDiskProps& gas_disk, Real mvir, Real rvir,
+DiskGalaxy::DiskGalaxy(const MiyamotoNagaiPotential& stellar_disk, const GasDiskProps& gas_disk, Real mvir, Real rvir,
                        Real cvir, Real rcool)
-    : stellar_disk(new MiyamotoNagaiDiskProps(stellar_disk)),
+    : stellar_disk(new MiyamotoNagaiPotential(stellar_disk)),
       gas_disk(new GasDiskProps(gas_disk)),
       halo_potential(new NFWHaloPotential{/* halo mass: */ mvir - stellar_disk.M_d,
                                           /* scale length:*/ (rvir / cvir), cvir})
@@ -77,6 +77,6 @@ Real DiskGalaxy::getM_d() const { return stellar_disk->M_d; };
 Real DiskGalaxy::getR_d() const { return stellar_disk->R_d; };
 Real DiskGalaxy::getZ_d() const { return stellar_disk->Z_d; };
 Real DiskGalaxy::getGasDiskR_d() const { return gas_disk->R_d; };
-const MiyamotoNagaiDiskProps& DiskGalaxy::getStellarDisk() const { return *stellar_disk; };
+const MiyamotoNagaiPotential& DiskGalaxy::getStaticStellarDiskPotential() const { return *stellar_disk; };
 const GasDiskProps& DiskGalaxy::getGasDisk() const { return *gas_disk; };
 const NFWHaloPotential& DiskGalaxy::getHaloPotential() const { return *halo_potential; }

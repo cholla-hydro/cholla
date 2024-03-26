@@ -26,7 +26,7 @@
  * is introduced to replace that array
  */
 struct DataPack {
-  MiyamotoNagaiDiskProps stellar_disk;
+  MiyamotoNagaiPotential stellar_disk;
   NFWHaloPotential halo_potential;
   Real T_d;
   Real Sigma_0;
@@ -749,7 +749,7 @@ void Grid3D::Disk_3D(Parameters p)
   DiskGalaxy galaxy = galaxies::MW;
   // M82 model galaxies::M82;
 
-  const MiyamotoNagaiDiskProps stellar_disk = galaxy.getStellarDisk();
+  const MiyamotoNagaiPotential stellar_disk = galaxy.getStaticStellarDiskPotential();
   const GasDiskProps gas_disk               = galaxy.getGasDisk();
 
   r_cool = galaxy.getR_cool();  // cooling radius in kpc (MW)

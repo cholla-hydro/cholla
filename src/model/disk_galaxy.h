@@ -26,7 +26,7 @@
 //    header and using DiskGalaxy's accessor methods to directly access the
 //    underlying objects.
 struct NFWHaloPotential;
-struct MiyamotoNagaiDiskProps;
+struct MiyamotoNagaiPotential;
 struct GasDiskProps;
 
 /* Intended to serve as a centralized location where all properties of the underlying galaxy-model
@@ -41,7 +41,7 @@ class DiskGalaxy
   // we store pointers to stellar_disk, gas_disk, and halo_potential purely to
   // sidestep some compilation issues with non-CUDA/HIP source files including
   // this file (this is described in greater depth up above)
-  std::shared_ptr<MiyamotoNagaiDiskProps> stellar_disk;
+  std::shared_ptr<MiyamotoNagaiPotential> stellar_disk;
   std::shared_ptr<GasDiskProps> gas_disk;
   std::shared_ptr<NFWHaloPotential> halo_potential;
   Real M_vir, R_vir, r_cool;
@@ -58,7 +58,7 @@ class DiskGalaxy
    */
   virtual ~DiskGalaxy();
 
-  DiskGalaxy(const MiyamotoNagaiDiskProps& stellar_disk, const GasDiskProps& gas_disk, Real mvir, Real rvir, Real cvir,
+  DiskGalaxy(const MiyamotoNagaiPotential& stellar_disk, const GasDiskProps& gas_disk, Real mvir, Real rvir, Real cvir,
              Real rcool);
 
   /* Radial acceleration in miyamoto nagai */
@@ -117,7 +117,7 @@ class DiskGalaxy
   Real getR_d() const;
   Real getZ_d() const;
   Real getGasDiskR_d() const;
-  const MiyamotoNagaiDiskProps& getStellarDisk() const;
+  const MiyamotoNagaiPotential& getStaticStellarDiskPotential() const;
   const GasDiskProps& getGasDisk() const;
   const NFWHaloPotential& getHaloPotential() const;
   Real getM_vir() const { return M_vir; };
@@ -186,7 +186,7 @@ class ClusteredDiskGalaxy : public DiskGalaxy
   ClusterMassDistribution cluster_mass_distribution_;
 
  public:
-  ClusteredDiskGalaxy(ClusterMassDistribution cluster_mass_distribution, const MiyamotoNagaiDiskProps& stellar_disk,
+  ClusteredDiskGalaxy(ClusterMassDistribution cluster_mass_distribution, const MiyamotoNagaiPotential& stellar_disk,
                       const GasDiskProps& gas_disk, Real mvir, Real rvir, Real cvir, Real rcool)
       : DiskGalaxy{stellar_disk, gas_disk, mvir, rvir, cvir, rcool},
         cluster_mass_distribution_(cluster_mass_distribution)

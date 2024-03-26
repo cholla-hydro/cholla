@@ -76,11 +76,13 @@ struct NFWHaloPotential {
   };
 };
 
-/* Aggregates properties related to a disk
+/*!
+ * Encapsulates properties of an analytic Miyamoto Nagai gravitational potential.
  *
- * Take note that this is NOT an exponential disk!
+ * This is commonly used to model the static potential of a stellar disk. Take
+ * note that this is NOT the same as an exponential disk!
  */
-struct MiyamotoNagaiDiskProps {
+struct MiyamotoNagaiPotential {
   Real M_d; /*!< total mass (in Msolar) */
   Real R_d; /*!< scale-length (in kpc) */
   Real Z_d; /*!< scale-height (in kpc). */
@@ -139,7 +141,7 @@ struct MiyamotoNagaiDiskProps {
   }
 };
 
-/* Approximates the potential of a Exponential Disk as the sum of 3 MiyamotoNagaiDiskProps
+/* Approximates the potential of a Exponential Disk as the sum of 3 MiyamotoNagaiPotential
  * disks.
  *
  * This uses the table from
@@ -147,7 +149,7 @@ struct MiyamotoNagaiDiskProps {
  * to determine the properties of each component
  */
 struct AprroxExponentialDisk3MN {
-  MiyamotoNagaiDiskProps comps[3];
+  MiyamotoNagaiPotential comps[3];
 
   /* Returns a properly configured disk with
    *
@@ -201,7 +203,7 @@ struct AprroxExponentialDisk3MN {
 
     AprroxExponentialDisk3MN out;
     for (int j = 0; j < 3; j++) {
-      out.comps[j] = MiyamotoNagaiDiskProps{param(j) * mass, param(j + 3) * scale_length, b};
+      out.comps[j] = MiyamotoNagaiPotential{param(j) * mass, param(j + 3) * scale_length, b};
     }
     return out;
   }
