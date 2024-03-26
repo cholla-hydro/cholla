@@ -1,9 +1,7 @@
 /*! \file global_cuda.cu
  *  \brief Declarations of the cuda global variables. */
 
-#ifdef CUDA
-
-  #include "../global/global.h"
+#include "../global/global.h"
 
 // Declare global variables
 bool memory_allocated;
@@ -16,5 +14,3 @@ Real *eta_x, *eta_y, *eta_z, *etah_x, *etah_y, *etah_z;
 Real *dev_grav_potential;
 Real *temp_potential;
 Real *buffer_potential;
-
-#endif  // CUDA

@@ -20,19 +20,20 @@
 TEST(tHYDROtMHDReadGridHdf5, RestartSlowWaveExpectCorrectOutput)
 {
   // Set parameters
-  int const num_ranks = 4;
+  int const num_ranks           = 4;
+  std::string restart_nfile_str = "0";
 
   // Generate the data to read from
-  systemTest::SystemTestRunner initializer(false, true, false);
+  system_test::SystemTestRunner initializer(false, true, false);
   initializer.numMpiRanks = num_ranks;
   initializer.chollaLaunchParams.append(" tout=0.0 outstep=0.0");
   initializer.launchCholla();
-  std::string const read_directory = initializer.getOutputDirectory() + "/";
+  std::string const read_directory = initializer.getOutputDirectory() + "/" + restart_nfile_str + "/";
 
   // Reload data and run the test
-  systemTest::SystemTestRunner loadRun(false, true, false);
+  system_test::SystemTestRunner loadRun(false, true, false);
   loadRun.numMpiRanks = num_ranks;
-  loadRun.chollaLaunchParams.append(" init=Read_Grid nfile=0 indir=" + read_directory);
+  loadRun.chollaLaunchParams.append(" init=Read_Grid nfile=" + restart_nfile_str + " indir=" + read_directory);
 
 #ifdef MHD
   loadRun.setFiducialNumTimeSteps(854);

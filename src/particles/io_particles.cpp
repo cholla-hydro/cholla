@@ -22,7 +22,7 @@
 
 // #define OUTPUT_PARTICLES_DATA
 
-void Particles_3D::Load_Particles_Data(struct parameters *P)
+void Particles3D::Load_Particles_Data(struct Parameters *P)
 {
   #ifndef HDF5
   chprintf("\nERROR: Particles only support HDF5 outputs\n");
@@ -61,7 +61,7 @@ void Particles_3D::Load_Particles_Data(struct parameters *P)
   #endif
 }
 
-void Grid3D::WriteData_Particles(struct parameters P, int nfile)
+void Grid3D::WriteData_Particles(struct Parameters P, int nfile)
 {
   // Write the particles data to file
   OutputData_Particles(P, nfile);
@@ -69,7 +69,7 @@ void Grid3D::WriteData_Particles(struct parameters P, int nfile)
 
   #ifdef HDF5
 
-void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct parameters *P)
+void Particles3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct Parameters *P)
 {
   int i, j, k, id, buf_id;
   hid_t attribute_id, dataset_id;
@@ -445,12 +445,12 @@ void Particles_3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct par
   Real vy_max_g = vy_max;
   Real vz_max_g = vz_max;
 
-  Real px_min_g        = px_min;
-  Real py_min_g        = py_min;
-  Real pz_min_g        = pz_min;
-  Real vx_min_g        = vx_min;
-  Real vy_min_g        = vy_min;
-  Real vz_min_g        = vz_min;
+  Real px_min_g = px_min;
+  Real py_min_g = py_min;
+  Real pz_min_g = pz_min;
+  Real vx_min_g = vx_min;
+  Real vy_min_g = vy_min;
+  Real vz_min_g = vz_min;
     #endif  // MPI_CHOLLA
 
     // Print initial Statistics
@@ -550,12 +550,12 @@ void Grid3D::Write_Particles_Data_HDF5(hid_t file_id)
 
     #ifdef PARTICLES_GPU
   // Copy the device arrays from the device to the host
-  CudaSafeCall(cudaMemcpy(Particles.G.density, Particles.G.density_dev, Particles.G.n_cells * sizeof(Real),
-                          cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(Particles.G.density, Particles.G.density_dev, Particles.G.n_cells * sizeof(Real),
+                             cudaMemcpyDeviceToHost));
     #endif  // PARTICLES_GPU
     #if defined(OUTPUT_POTENTIAL) && defined(ONLY_PARTICLES) && defined(GRAVITY_GPU)
-  CudaSafeCall(cudaMemcpy(Grav.F.potential_h, Grav.F.potential_d, Grav.n_cells_potential * sizeof(Real),
-                          cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(Grav.F.potential_h, Grav.F.potential_d, Grav.n_cells_potential * sizeof(Real),
+                             cudaMemcpyDeviceToHost));
     #endif  // OUTPUT_POTENTIAL
 
   // Count Current Total Particles
@@ -563,7 +563,7 @@ void Grid3D::Write_Particles_Data_HDF5(hid_t file_id)
     #ifdef MPI_CHOLLA
   N_particles_total = ReducePartIntSum(Particles.n_local);
     #else
-  N_particles_total    = Particles.n_local;
+  N_particles_total = Particles.n_local;
     #endif
 
   // Print the total particles when saving the particles data
@@ -754,26 +754,14 @@ void Grid3D::Write_Particles_Data_HDF5(hid_t file_id)
 }
   #endif  // HDF5
 
-void Grid3D::OutputData_Particles(struct parameters P, int nfile)
+void Grid3D::OutputData_Particles(struct Parameters P, int nfile)
 {
   FILE *out;
-  char filename[MAXLEN];
-  char timestep[20];
+  std::string filename = FnameTemplate(P).format_fname(nfile, "_particles");
 
-  // create the filename
-  strcpy(filename, P.outdir);
-  sprintf(timestep, "%d", nfile);
-  strcat(filename, timestep);
   // a binary file is created for each process
   #if defined BINARY
   chprintf("\nERROR: Particles only support HDF5 outputs\n") return;
-  // only one HDF5 file is created
-  #elif defined HDF5
-  strcat(filename, "_particles");
-  strcat(filename, ".h5");
-    #ifdef MPI_CHOLLA
-  sprintf(filename, "%s.%d", filename, procID);
-    #endif
   #endif
 
   #if defined HDF5
@@ -781,7 +769,7 @@ void Grid3D::OutputData_Particles(struct parameters P, int nfile)
   herr_t status;
 
   // Create a new file collectively
-  file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  file_id = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   // Write header (file attributes)
   Write_Header_HDF5(file_id);

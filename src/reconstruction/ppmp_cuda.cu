@@ -1,19 +1,19 @@
 /*! \file ppmp_cuda.cu
  *  \brief Definitions of the piecewise parabolic reconstruction (Fryxell 2000)
  functions with limiting in the primitive variables. */
-#ifdef CUDA
-  #ifdef PPMP
 
-    #include <math.h>
+#ifdef PPMP
 
-    #include "../global/global.h"
-    #include "../global/global_cuda.h"
-    #include "../reconstruction/ppmp_cuda.h"
-    #include "../utils/gpu.hpp"
+  #include <math.h>
 
-    #ifdef DE  // PRESSURE_DE
-      #include "../utils/hydro_utilities.h"
-    #endif
+  #include "../global/global.h"
+  #include "../global/global_cuda.h"
+  #include "../reconstruction/ppmp_cuda.h"
+  #include "../utils/gpu.hpp"
+
+  #ifdef DE  // PRESSURE_DE
+    #include "../utils/hydro_utilities.h"
+  #endif
 
 // #define STEEPENING
 // #define FLATTENING
@@ -52,9 +52,9 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real d_ipo, vx_ipo, vy_ipo, vz_ipo, p_ipo;
   Real d_imt, vx_imt, vy_imt, vz_imt, p_imt;
   Real d_ipt, vx_ipt, vy_ipt, vz_ipt, p_ipt;
-    #ifdef FLATTENING
+  #ifdef FLATTENING
   Real p_imth, p_ipth;
-    #endif  // FLATTENING
+  #endif  // FLATTENING
 
   // declare left and right interface values
   Real d_L, vx_L, vy_L, vz_L, p_L;
@@ -63,7 +63,7 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   // declare other variables
   Real del_q_imo, del_q_i, del_q_ipo;
 
-    #ifndef VL
+  #ifndef VL
   //  #ifdef CTU
   Real cs, cl, cr;                            // sound speed in cell i, and at left and right boundaries
   Real del_d, del_vx, del_vy, del_vz, del_p;  // "slope" accross cell i
@@ -79,24 +79,24 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
   Real dR_p, vxR_p, pR_p;
   Real chi_L_m, chi_L_0, chi_L_p;
   Real chi_R_m, chi_R_0, chi_R_p;
-    #endif  // CTU
+  #endif  // CTU
 
-    #ifdef DE
+  #ifdef DE
   Real ge_i, ge_imo, ge_ipo, ge_imt, ge_ipt, ge_L, ge_R, E_kin, E, dge;
-      #ifndef VL
+    #ifndef VL
   //  #ifdef CTU
   Real del_ge, ge_6, geL_0, geR_0;
-      #endif  // CTU
-    #endif    // DE
+    #endif  // CTU
+  #endif    // DE
 
-    #ifdef SCALAR
+  #ifdef SCALAR
   Real scalar_i[NSCALARS], scalar_imo[NSCALARS], scalar_ipo[NSCALARS], scalar_imt[NSCALARS], scalar_ipt[NSCALARS];
   Real scalar_L[NSCALARS], scalar_R[NSCALARS];
-      #ifndef VL
+    #ifndef VL
   //  #ifdef CTU
   Real del_scalar[NSCALARS], scalar_6[NSCALARS], scalarL_0[NSCALARS], scalarR_0[NSCALARS];
-      #endif  // CTU
-    #endif    // SCALAR
+    #endif  // CTU
+  #endif    // SCALAR
 
   // get a thread ID
   int blockId = blockIdx.x + blockIdx.y * gridDim.x;
@@ -160,23 +160,23 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vx_i = dev_conserved[o1 * n_cells + id] / d_i;
     vy_i = dev_conserved[o2 * n_cells + id] / d_i;
     vz_i = dev_conserved[o3 * n_cells + id] / d_i;
-    #ifdef DE  // PRESSURE_DE
+  #ifdef DE  // PRESSURE_DE
     E     = dev_conserved[4 * n_cells + id];
     E_kin = 0.5 * d_i * (vx_i * vx_i + vy_i * vy_i + vz_i * vz_i);
     dge   = dev_conserved[(n_fields - 1) * n_cells + id];
     p_i   = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
-    #else
-    p_i   = (dev_conserved[4 * n_cells + id] - 0.5 * d_i * (vx_i * vx_i + vy_i * vy_i + vz_i * vz_i)) * (gamma - 1.0);
-    #endif  // PRESSURE_DE
+  #else
+    p_i = (dev_conserved[4 * n_cells + id] - 0.5 * d_i * (vx_i * vx_i + vy_i * vy_i + vz_i * vz_i)) * (gamma - 1.0);
+  #endif  // PRESSURE_DE
     p_i = fmax(p_i, (Real)TINY_NUMBER);
-    #ifdef DE
+  #ifdef DE
     ge_i = dge / d_i;
-    #endif  // DE
-    #ifdef SCALAR
+  #endif  // DE
+  #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       scalar_i[i] = dev_conserved[(5 + i) * n_cells + id] / d_i;
     }
-    #endif  // SCALAR
+  #endif  // SCALAR
     // cell i-1
     if (dir == 0) id = xid - 1 + yid * nx + zid * nx * ny;
     if (dir == 1) id = xid + (yid - 1) * nx + zid * nx * ny;
@@ -185,24 +185,24 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vx_imo = dev_conserved[o1 * n_cells + id] / d_imo;
     vy_imo = dev_conserved[o2 * n_cells + id] / d_imo;
     vz_imo = dev_conserved[o3 * n_cells + id] / d_imo;
-    #ifdef DE  // PRESSURE_DE
+  #ifdef DE  // PRESSURE_DE
     E     = dev_conserved[4 * n_cells + id];
     E_kin = 0.5 * d_imo * (vx_imo * vx_imo + vy_imo * vy_imo + vz_imo * vz_imo);
     dge   = dev_conserved[(n_fields - 1) * n_cells + id];
     p_imo = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
-    #else
+  #else
     p_imo = (dev_conserved[4 * n_cells + id] - 0.5 * d_imo * (vx_imo * vx_imo + vy_imo * vy_imo + vz_imo * vz_imo)) *
             (gamma - 1.0);
-    #endif  // PRESSURE_DE
+  #endif  // PRESSURE_DE
     p_imo = fmax(p_imo, (Real)TINY_NUMBER);
-    #ifdef DE
+  #ifdef DE
     ge_imo = dge / d_imo;
-    #endif  // DE
-    #ifdef SCALAR
+  #endif  // DE
+  #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       scalar_imo[i] = dev_conserved[(5 + i) * n_cells + id] / d_imo;
     }
-    #endif  // SCALAR
+  #endif  // SCALAR
     // cell i+1
     if (dir == 0) id = xid + 1 + yid * nx + zid * nx * ny;
     if (dir == 1) id = xid + (yid + 1) * nx + zid * nx * ny;
@@ -211,24 +211,24 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vx_ipo = dev_conserved[o1 * n_cells + id] / d_ipo;
     vy_ipo = dev_conserved[o2 * n_cells + id] / d_ipo;
     vz_ipo = dev_conserved[o3 * n_cells + id] / d_ipo;
-    #ifdef DE  // PRESSURE_DE
+  #ifdef DE  // PRESSURE_DE
     E     = dev_conserved[4 * n_cells + id];
     E_kin = 0.5 * d_ipo * (vx_ipo * vx_ipo + vy_ipo * vy_ipo + vz_ipo * vz_ipo);
     dge   = dev_conserved[(n_fields - 1) * n_cells + id];
     p_ipo = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
-    #else
+  #else
     p_ipo = (dev_conserved[4 * n_cells + id] - 0.5 * d_ipo * (vx_ipo * vx_ipo + vy_ipo * vy_ipo + vz_ipo * vz_ipo)) *
             (gamma - 1.0);
-    #endif  // PRESSURE_DE
+  #endif  // PRESSURE_DE
     p_ipo = fmax(p_ipo, (Real)TINY_NUMBER);
-    #ifdef DE
+  #ifdef DE
     ge_ipo = dge / d_ipo;
-    #endif  // DE
-    #ifdef SCALAR
+  #endif  // DE
+  #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       scalar_ipo[i] = dev_conserved[(5 + i) * n_cells + id] / d_ipo;
     }
-    #endif  // SCALAR
+  #endif  // SCALAR
     // cell i-2
     if (dir == 0) id = xid - 2 + yid * nx + zid * nx * ny;
     if (dir == 1) id = xid + (yid - 2) * nx + zid * nx * ny;
@@ -237,24 +237,24 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vx_imt = dev_conserved[o1 * n_cells + id] / d_imt;
     vy_imt = dev_conserved[o2 * n_cells + id] / d_imt;
     vz_imt = dev_conserved[o3 * n_cells + id] / d_imt;
-    #ifdef DE  // PRESSURE_DE
+  #ifdef DE  // PRESSURE_DE
     E     = dev_conserved[4 * n_cells + id];
     E_kin = 0.5 * d_imt * (vx_imt * vx_imt + vy_imt * vy_imt + vz_imt * vz_imt);
     dge   = dev_conserved[(n_fields - 1) * n_cells + id];
     p_imt = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
-    #else
+  #else
     p_imt = (dev_conserved[4 * n_cells + id] - 0.5 * d_imt * (vx_imt * vx_imt + vy_imt * vy_imt + vz_imt * vz_imt)) *
             (gamma - 1.0);
-    #endif  // PRESSURE_DE
+  #endif  // PRESSURE_DE
     p_imt = fmax(p_imt, (Real)TINY_NUMBER);
-    #ifdef DE
+  #ifdef DE
     ge_imt = dge / d_imt;
-    #endif  // DE
-    #ifdef SCALAR
+  #endif  // DE
+  #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       scalar_imt[i] = dev_conserved[(5 + i) * n_cells + id] / d_imt;
     }
-    #endif  // SCALAR
+  #endif  // SCALAR
     // cell i+2
     if (dir == 0) id = xid + 2 + yid * nx + zid * nx * ny;
     if (dir == 1) id = xid + (yid + 2) * nx + zid * nx * ny;
@@ -263,25 +263,25 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vx_ipt = dev_conserved[o1 * n_cells + id] / d_ipt;
     vy_ipt = dev_conserved[o2 * n_cells + id] / d_ipt;
     vz_ipt = dev_conserved[o3 * n_cells + id] / d_ipt;
-    #ifdef DE  // PRESSURE_DE
+  #ifdef DE  // PRESSURE_DE
     E     = dev_conserved[4 * n_cells + id];
     E_kin = 0.5 * d_ipt * (vx_ipt * vx_ipt + vy_ipt * vy_ipt + vz_ipt * vz_ipt);
     dge   = dev_conserved[(n_fields - 1) * n_cells + id];
     p_ipt = hydro_utilities::Get_Pressure_From_DE(E, E - E_kin, dge, gamma);
-    #else
+  #else
     p_ipt = (dev_conserved[4 * n_cells + id] - 0.5 * d_ipt * (vx_ipt * vx_ipt + vy_ipt * vy_ipt + vz_ipt * vz_ipt)) *
             (gamma - 1.0);
-    #endif  // PRESSURE_DE
+  #endif  // PRESSURE_DE
     p_ipt = fmax(p_ipt, (Real)TINY_NUMBER);
-    #ifdef DE
+  #ifdef DE
     ge_ipt = dge / d_ipt;
-    #endif  // DE
-    #ifdef SCALAR
+  #endif  // DE
+  #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       scalar_ipt[i] = dev_conserved[(5 + i) * n_cells + id] / d_ipt;
     }
-    #endif  // SCALAR
-    #ifdef FLATTENING
+  #endif  // SCALAR
+  #ifdef FLATTENING
     // cell i-3
     if (dir == 0) id = xid - 3 + yid * nx + zid * nx * ny;
     if (dir == 1) id = xid + (yid - 3) * nx + zid * nx * ny;
@@ -306,7 +306,7 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
                                                dev_conserved[id]) *
         (gamma - 1.0);
     p_ipth = fmax(p_imth, (Real)TINY_NUMBER);
-    #endif  // FLATTENING
+  #endif  // FLATTENING
 
     // use ppm routines to set cell boundary values (see Fryxell Sec. 3.1.1)
 
@@ -350,7 +350,7 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     // Calculate the interface values for pressure
     Interface_Values_PPM(p_imo, p_i, p_ipo, del_q_imo, del_q_i, del_q_ipo, &p_L, &p_R);
 
-    #ifdef DE
+  #ifdef DE
     // Calculate the monotonized slopes for cells imo, i, ipo (internal energy)
     del_q_imo = Calculate_Slope(ge_imt, ge_imo, ge_i);
     del_q_i   = Calculate_Slope(ge_imo, ge_i, ge_ipo);
@@ -358,9 +358,9 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
 
     // Calculate the interface values for internal energy
     Interface_Values_PPM(ge_imo, ge_i, ge_ipo, del_q_imo, del_q_i, del_q_ipo, &ge_L, &ge_R);
-    #endif  // DE
+  #endif  // DE
 
-    #ifdef SCALAR
+  #ifdef SCALAR
     // Calculate the monotonized slopes for cells imo, i, ipo (passive scalars)
     for (int i = 0; i < NSCALARS; i++) {
       del_q_imo = Calculate_Slope(scalar_imt[i], scalar_imo[i], scalar_i[i]);
@@ -371,9 +371,9 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
       Interface_Values_PPM(scalar_imo[i], scalar_i[i], scalar_ipo[i], del_q_imo, del_q_i, del_q_ipo, &scalar_L[i],
                            &scalar_R[i]);
     }
-    #endif  // SCALAR
+  #endif  // SCALAR
 
-    #ifdef STEEPENING
+  #ifdef STEEPENING
     Real d2_rho_imo, d2_rho_ipo, eta_i;
     // check for contact discontinuities & steepen if necessary (see Fryxell
     // Sec 3.1.2) if condition 4 (Fryxell Eqn 37) (Colella Eqn 1.16.5) is true,
@@ -407,9 +407,9 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
         }
       }
     }
-    #endif  // STEEPENING
+  #endif  // STEEPENING
 
-    #ifdef FLATTENING
+  #ifdef FLATTENING
     Real F_imo, F_i, F_ipo;
     // flatten shock fronts that are too narrow (see Fryxell Sec 3.1.3)
     // calculate the shock steepness parameters (Fryxell Eqn 43)
@@ -448,30 +448,30 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vy_L = F_i * vy_i + (1 - F_i) * vy_L;
     vz_L = F_i * vz_i + (1 - F_i) * vz_L;
     p_L  = F_i * p_i + (1 - F_i) * p_L;
-      #ifdef DE
+    #ifdef DE
     ge_L = F_i * ge_i + (1 - F_i) * ge_L;
-      #endif  // DE
-      #ifdef SCALAR
+    #endif  // DE
+    #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       scalar_L[i] = F_i * scalar_i[i] + (1 - F_i) * scalar_L[i];
     }
-      #endif  // SCALAR
+    #endif  // SCALAR
     d_R  = F_i * d_i + (1 - F_i) * d_R;
     vx_R = F_i * vx_i + (1 - F_i) * vx_R;
     vy_R = F_i * vy_i + (1 - F_i) * vy_R;
     vz_R = F_i * vz_i + (1 - F_i) * vz_R;
     p_R  = F_i * p_i + (1 - F_i) * p_R;
-      #ifdef DE
+    #ifdef DE
     ge_R = F_i * ge_i + (1 - F_i) * ge_R;
-      #endif  // DE
-      #ifdef SCALAR
+    #endif  // DE
+    #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       scalar_R[i] = F_i * scalar_i[i] + (1 - F_i) * scalar_R[i];
     }
-      #endif  // SCALAR
-    #endif    // FLATTENING
+    #endif  // SCALAR
+  #endif    // FLATTENING
 
-    #ifndef VL
+  #ifndef VL
     // #ifdef CTU
     //  compute sound speed in cell i
     cs = sqrt(gamma * p_i / d_i);
@@ -485,28 +485,28 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     del_vy = vy_R - vy_L;
     del_vz = vz_R - vz_L;
     del_p  = p_R - p_L;
-      #ifdef DE
+    #ifdef DE
     del_ge = ge_R - ge_L;
-      #endif  // DE
-      #ifdef SCALAR
+    #endif  // DE
+    #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       del_scalar[i] = scalar_R[i] - scalar_L[i];
     }
-      #endif  // SCALAR
+    #endif  // SCALAR
 
     d_6  = 6.0 * (d_i - 0.5 * (d_L + d_R));     // Fryxell Eqn 30
     vx_6 = 6.0 * (vx_i - 0.5 * (vx_L + vx_R));  // Fryxell Eqn 30
     vy_6 = 6.0 * (vy_i - 0.5 * (vy_L + vy_R));  // Fryxell Eqn 30
     vz_6 = 6.0 * (vz_i - 0.5 * (vz_L + vz_R));  // Fryxell Eqn 30
     p_6  = 6.0 * (p_i - 0.5 * (p_L + p_R));     // Fryxell Eqn 30
-      #ifdef DE
+    #ifdef DE
     ge_6 = 6.0 * (ge_i - 0.5 * (ge_L + ge_R));  // Fryxell Eqn 30
-      #endif                                    // DE
-      #ifdef SCALAR
+    #endif                                      // DE
+    #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       scalar_6[i] = 6.0 * (scalar_i[i] - 0.5 * (scalar_L[i] + scalar_R[i]));  // Fryxell Eqn 30
     }
-      #endif  // SCALAR
+    #endif  // SCALAR
 
     // set speed of characteristics (v-c, v, v+c) using average values of v and
     // c
@@ -531,14 +531,14 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     dL_0  = d_L + 0.5 * alpha_0 * (del_d + d_6 * (1 - (2. / 3.) * alpha_0));
     vyL_0 = vy_L + 0.5 * alpha_0 * (del_vy + vy_6 * (1 - (2. / 3.) * alpha_0));
     vzL_0 = vz_L + 0.5 * alpha_0 * (del_vz + vz_6 * (1 - (2. / 3.) * alpha_0));
-      #ifdef DE
+    #ifdef DE
     geL_0 = ge_L + 0.5 * alpha_0 * (del_ge + ge_6 * (1 - (2. / 3.) * alpha_0));
-      #endif  // DE
-      #ifdef SCALAR
+    #endif  // DE
+    #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       scalarL_0[i] = scalar_L[i] + 0.5 * alpha_0 * (del_scalar[i] + scalar_6[i] * (1 - (2. / 3.) * alpha_0));
     }
-      #endif  // SCALAR
+    #endif  // SCALAR
     pL_0  = p_L + 0.5 * alpha_0 * (del_p + p_6 * (1 - (2. / 3.) * alpha_0));
     vxL_p = vx_L + 0.5 * alpha_p * (del_vx + vx_6 * (1 - (2. / 3.) * alpha_p));
     pL_p  = p_L + 0.5 * alpha_p * (del_p + p_6 * (1 - (2. / 3.) * alpha_p));
@@ -549,14 +549,14 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     dR_0  = d_R - 0.5 * beta_0 * (del_d - d_6 * (1 - (2. / 3.) * beta_0));
     vyR_0 = vy_R - 0.5 * beta_0 * (del_vy - vy_6 * (1 - (2. / 3.) * beta_0));
     vzR_0 = vz_R - 0.5 * beta_0 * (del_vz - vz_6 * (1 - (2. / 3.) * beta_0));
-      #ifdef DE
+    #ifdef DE
     geR_0 = ge_R - 0.5 * beta_0 * (del_ge - ge_6 * (1 - (2. / 3.) * beta_0));
-      #endif  // DE
-      #ifdef SCALAR
+    #endif  // DE
+    #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       scalarR_0[i] = scalar_R[i] - 0.5 * beta_0 * (del_scalar[i] - scalar_6[i] * (1 - (2. / 3.) * beta_0));
     }
-      #endif  // SCALAR
+    #endif  // SCALAR
     pR_0  = p_R - 0.5 * beta_0 * (del_p - p_6 * (1 - (2. / 3.) * beta_0));
     dR_p  = d_R - 0.5 * beta_p * (del_d - d_6 * (1 - (2. / 3.) * beta_p));
     vxR_p = vx_R - 0.5 * beta_p * (del_vx - vx_6 * (1 - (2. / 3.) * beta_p));
@@ -570,28 +570,28 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     vy_L = vyL_0;
     vz_L = vzL_0;
     p_L  = pL_m;
-      #ifdef DE
+    #ifdef DE
     ge_L = geL_0;
-      #endif  // DE
-      #ifdef SCALAR
+    #endif  // DE
+    #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       scalar_L[i] = scalarL_0[i];
     }
-      #endif  // SCALAR
+    #endif  // SCALAR
     // right
     d_R  = dR_p;
     vx_R = vxR_p;
     vy_R = vyR_0;
     vz_R = vzR_0;
     p_R  = pR_p;
-      #ifdef DE
+    #ifdef DE
     ge_R = geR_0;
-      #endif  // DE
-      #ifdef SCALAR
+    #endif  // DE
+    #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       scalar_R[i] = scalarR_0[i];
     }
-      #endif  // SCALAR
+    #endif  // SCALAR
 
     // correct these initial guesses by taking into account the number of
     // characteristics on each side of the interface
@@ -637,7 +637,7 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     p_R  = p_L + (d_R * d_R * cr * cr) * (chi_R_p + chi_R_m);
     vx_R = vx_R + d_R * cr * (chi_R_p - chi_R_m);
     d_R  = pow(((1.0 / d_R) - (chi_R_m + chi_R_0 + chi_R_p)), -1);
-    #endif  // CTU
+  #endif  // CTU
 
     // Apply mimimum constraints
     d_L = fmax(d_L, (Real)TINY_NUMBER);
@@ -656,14 +656,14 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     dev_bounds_R[o2 * n_cells + id] = d_L * vy_L;
     dev_bounds_R[o3 * n_cells + id] = d_L * vz_L;
     dev_bounds_R[4 * n_cells + id]  = p_L / (gamma - 1.0) + 0.5 * d_L * (vx_L * vx_L + vy_L * vy_L + vz_L * vz_L);
-    #ifdef SCALAR
+  #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       dev_bounds_R[(5 + i) * n_cells + id] = d_L * scalar_L[i];
     }
-    #endif  // SCALAR
-    #ifdef DE
+  #endif  // SCALAR
+  #ifdef DE
     dev_bounds_R[(n_fields - 1) * n_cells + id] = d_L * ge_L;
-    #endif  // DE
+  #endif  // DE
     // bounds_L refers to the left side of the i+1/2 interface
     id                              = xid + yid * nx + zid * nx * ny;
     dev_bounds_L[id]                = d_R;
@@ -671,14 +671,14 @@ __global__ void PPMP_cuda(Real *dev_conserved, Real *dev_bounds_L, Real *dev_bou
     dev_bounds_L[o2 * n_cells + id] = d_R * vy_R;
     dev_bounds_L[o3 * n_cells + id] = d_R * vz_R;
     dev_bounds_L[4 * n_cells + id]  = p_R / (gamma - 1.0) + 0.5 * d_R * (vx_R * vx_R + vy_R * vy_R + vz_R * vz_R);
-    #ifdef SCALAR
+  #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
       dev_bounds_L[(5 + i) * n_cells + id] = d_R * scalar_R[i];
     }
-    #endif  // SCALAR
-    #ifdef DE
+  #endif  // SCALAR
+  #ifdef DE
     dev_bounds_L[(n_fields - 1) * n_cells + id] = d_R * ge_R;
-    #endif  // DE
+  #endif  // DE
   }
 }
 
@@ -738,10 +738,12 @@ __device__ void Interface_Values_PPM(Real q_imo, Real q_i, Real q_ipo, Real del_
   if ((*q_R - q_i) * (q_i - *q_L) <= 0) *q_L = *q_R = q_i;
 
   // steep gradient criterion (Fryxell Eqn 53, Fig 12)
-  if (6.0 * (*q_R - *q_L) * (q_i - 0.5 * (*q_L + *q_R)) > (*q_R - *q_L) * (*q_R - *q_L))
+  if (6.0 * (*q_R - *q_L) * (q_i - 0.5 * (*q_L + *q_R)) > (*q_R - *q_L) * (*q_R - *q_L)) {
     *q_L = 3.0 * q_i - 2.0 * (*q_R);
-  if (6.0 * (*q_R - *q_L) * (q_i - 0.5 * (*q_L + *q_R)) < -(*q_R - *q_L) * (*q_R - *q_L))
+  }
+  if (6.0 * (*q_R - *q_L) * (q_i - 0.5 * (*q_L + *q_R)) < -(*q_R - *q_L) * (*q_R - *q_L)) {
     *q_R = 3.0 * q_i - 2.0 * (*q_L);
+  }
 
   *q_L = fmax(fmin(q_i, q_imo), *q_L);
   *q_L = fmin(fmax(q_i, q_imo), *q_L);
@@ -770,5 +772,4 @@ __device__ Real calc_eta(Real d2rho_imo, Real d2rho_ipo, Real dx, Real rho_imo, 
   return -A * B;
 }
 
-  #endif  // PPMP
-#endif    // CUDA
+#endif  // PPMP

@@ -3,6 +3,10 @@
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
+#include <experimental/source_location>
+#include <iostream>
+
+#include "../utils/error_handling.h"
 
 #ifdef O_HIP
 
@@ -11,14 +15,6 @@
   #if defined(PARIS) || defined(PARIS_GALACTIC)
 
     #include <hipfft.h>
-
-static void __attribute__((unused)) check(const hipfftResult err, const char *const file, const int line)
-{
-  if (err == HIPFFT_SUCCESS) return;
-  fprintf(stderr, "HIPFFT ERROR AT LINE %d OF FILE '%s': %d\n", line, file, err);
-  fflush(stderr);
-  exit(err);
-}
 
   #endif  // CUFFT PARIS PARIS_GALACTIC
 
@@ -30,6 +26,8 @@ static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
   #define CUFFT_INVERSE HIPFFT_BACKWARD
   #define CUFFT_Z2D     HIPFFT_Z2D
   #define CUFFT_Z2Z     HIPFFT_Z2Z
+  #define CUFFT_SUCCESS HIPFFT_SUCCESS
+  #define cufftResult_t hipfftResult_t
 
   #define cudaDeviceSynchronize              hipDeviceSynchronize
   #define cudaError                          hipError_t
@@ -66,6 +64,9 @@ static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
   #define cudaPointerAttributes              hipPointerAttribute_t
   #define cudaPointerGetAttributes           hipPointerGetAttributes
   #define cudaOccupancyMaxPotentialBlockSize hipOccupancyMaxPotentialBlockSize
+  #define cudaMemGetInfo                     hipMemGetInfo
+  #define cudaDeviceGetPCIBusId              hipDeviceGetPCIBusId
+  #define cudaPeekAtLastError                hipPeekAtLastError
 
   // Texture definitions
   #define cudaArray           hipArray
@@ -108,15 +109,6 @@ static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
   #define curand                hiprand
   #define curand_poisson        hiprand_poisson
 
-static void __attribute__((unused)) check(const hipError_t err, const char *const file, const int line)
-{
-  if (err == hipSuccess) return;
-  fprintf(stderr, "HIP ERROR AT LINE %d OF FILE '%s': %s %s\n", line, file, hipGetErrorName(err),
-          hipGetErrorString(err));
-  fflush(stderr);
-  exit(err);
-}
-
 #else  // not O_HIP
 
   #include <cuda_runtime.h>
@@ -125,28 +117,7 @@ static void __attribute__((unused)) check(const hipError_t err, const char *cons
 
     #include <cufft.h>
 
-static void check(const cufftResult err, const char *const file, const int line)
-{
-  if (err == CUFFT_SUCCESS) {
-    return;
-  }
-  fprintf(stderr, "CUFFT ERROR AT LINE %d OF FILE '%s': %d\n", line, file, err);
-  fflush(stderr);
-  exit(err);
-}
-
   #endif  // defined(PARIS) || defined(PARIS_GALACTIC)
-
-static void check(const cudaError_t err, const char *const file, const int line)
-{
-  if (err == cudaSuccess) {
-    return;
-  }
-  fprintf(stderr, "CUDA ERROR AT LINE %d OF FILE '%s': %s %s\n", line, file, cudaGetErrorName(err),
-          cudaGetErrorString(err));
-  fflush(stderr);
-  exit(err);
-}
 
   #define WARPSIZE                               32
 static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
@@ -155,9 +126,58 @@ static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
 
 #endif  // O_HIP
 
-#define CHECK(X) check(X, __FILE__, __LINE__)
-
 #define GPU_MAX_THREADS 256
+
+/*!
+ * \brief Check for CUDA/HIP error codes. Can be called wrapping a GPU function that returns a value or with no
+ * arguments and it will get the latest error code.
+ *
+ * \param[in] code The code to check. Defaults to the last error code
+ * \param[in] abort Whether or not to abort if an error is encountered. Defaults to True
+ * \param[in] location The location of the call. This should be left as the default value.
+ */
+inline void GPU_Error_Check(cudaError_t code = cudaPeekAtLastError(), bool abort = true,
+                            std::experimental::source_location location = std::experimental::source_location::current())
+{
+#ifndef DISABLE_GPU_ERROR_CHECKING
+  code = cudaDeviceSynchronize();
+
+  // Check the code
+  if (code != cudaSuccess) {
+    std::cout << "GPU_Error_Check: Failed at "
+              << "Line: " << location.line() << ", File: " << location.file_name()
+              << ", Function: " << location.function_name() << ", with code: " << cudaGetErrorString(code) << std::endl;
+    if (abort) {
+      chexit(code);
+    }
+  }
+#endif  // DISABLE_GPU_ERROR_CHECKING
+}
+
+#if defined(PARIS) || defined(PARIS_GALACTIC)
+/*!
+ * \brief Check for CUFFT/HIPFFT error codes. Can be called wrapping a FFT function that returns a value
+ *
+ * \param[in] code The code to check
+ * \param[in] abort Whether or not to abort if an error is encountered. Defaults to True
+ * \param[in] location The location of the call. This should be left as the default value.
+ */
+inline void GPU_Error_Check(cufftResult_t code, bool abort = true,
+                            std::experimental::source_location location = std::experimental::source_location::current())
+{
+  #ifndef DISABLE_GPU_ERROR_CHECKING
+  // Check the code
+  if (code != CUFFT_SUCCESS) {
+    std::cout << "GPU_Error_Check: Failed at "
+              << "Line: " << location.line() << ", File: " << location.file_name()
+              << ", Function: " << location.function_name() << ", with FFT code: " << code << std::endl;
+    if (abort) {
+      chexit(code);
+    }
+  }
+  #endif  // DISABLE_GPU_ERROR_CHECKING
+}
+#endif  // defined(PARIS) || defined(PARIS_GALACTIC)
 
 #if defined(__CUDACC__) || defined(__HIPCC__)
 
@@ -179,7 +199,7 @@ void gpuFor(const int n0, const F f)
   const int b0 = (n0 + GPU_MAX_THREADS - 1) / GPU_MAX_THREADS;
   const int t0 = (n0 + b0 - 1) / b0;
   gpuRun0<<<b0, t0>>>(n0, f);
-  CHECK(cudaGetLastError());
+  GPU_Error_Check();
 }
 
 template <typename F>
@@ -221,13 +241,13 @@ void gpuFor(const int n0, const int n1, const F f)
     const int b1 = (n1 + GPU_MAX_THREADS - 1) / GPU_MAX_THREADS;
     const int t1 = (n1 + b1 - 1) / b1;
     gpuRun2x0<<<dim3(b1, n0), dim3(t1)>>>(n1, f);
-    CHECK(cudaGetLastError());
+    GPU_Error_Check();
   } else if (nl01 > GPU_MAX_THREADS) {
     gpuRun1x1<<<n0, n1>>>(f);
-    CHECK(cudaGetLastError());
+    GPU_Error_Check();
   } else {
     gpuRun0x2<<<1, dim3(n1, n0)>>>(f);
-    CHECK(cudaGetLastError());
+    GPU_Error_Check();
   }
 }
 
@@ -283,16 +303,16 @@ void gpuFor(const int n0, const int n1, const int n2, const F f)
     const int b2 = (n2 + GPU_MAX_THREADS - 1) / GPU_MAX_THREADS;
     const int t2 = (n2 + b2 - 1) / b2;
     gpuRun3x0<<<dim3(b2, n1, n0), t2>>>(n2, f);
-    CHECK(cudaGetLastError());
+    GPU_Error_Check();
   } else if (nl12 > GPU_MAX_THREADS) {
     gpuRun2x1<<<dim3(n1, n0), n2>>>(f);
-    CHECK(cudaGetLastError());
+    GPU_Error_Check();
   } else if (nl012 > GPU_MAX_THREADS) {
     gpuRun1x2<<<n0, dim3(n2, n1)>>>(f);
-    CHECK(cudaGetLastError());
+    GPU_Error_Check();
   } else {
     gpuRun0x3<<<1, dim3(n2, n1, n0)>>>(f);
-    CHECK(cudaGetLastError());
+    GPU_Error_Check();
   }
 }
 
@@ -345,26 +365,26 @@ void gpuFor(const int n0, const int n1, const int n2, const int n3, const F f)
   if ((n0 <= 0) || (n1 <= 0) || (n2 <= 0) || (n3 <= 0)) {
     return;
   }
-  const long nl23  = long(n2) * long(n3);
-  const long nl123 = long(n1) * nl23;
-  assert(long(n0) * nl123 < long(INT_MAX));
+  const long n23_long  = long(n2) * long(n3);
+  const long n123_long = long(n1) * n23_long;
+  assert(long(n0) * n123_long < long(INT_MAX));
 
-  const int n23  = int(nl23);
-  const int n123 = int(nl123);
+  const int n23  = int(n23_long);
+  const int n123 = int(n123_long);
   if (n3 > GPU_MAX_THREADS) {
     const int b23 = (n23 + GPU_MAX_THREADS - 1) / GPU_MAX_THREADS;
     const int t23 = (n23 + b23 - 1) / b23;
     gpuRun4x0<<<dim3(b23, n1, n0), t23>>>(n23, n3, f);
-    CHECK(cudaGetLastError());
+    GPU_Error_Check();
   } else if (n23 > GPU_MAX_THREADS) {
     gpuRun3x1<<<dim3(n2, n1, n0), n3>>>(f);
-    CHECK(cudaGetLastError());
+    GPU_Error_Check();
   } else if (n123 > GPU_MAX_THREADS) {
     gpuRun2x2<<<dim3(n1, n0), dim3(n3, n2)>>>(f);
-    CHECK(cudaGetLastError());
+    GPU_Error_Check();
   } else {
     gpuRun1x3<<<n0, dim3(n3, n2, n1)>>>(f);
-    CHECK(cudaGetLastError());
+    GPU_Error_Check();
   }
 }
 
@@ -433,17 +453,17 @@ void gpuFor(const int n0, const int n1, const int n2, const int n3, const int n4
     const int b34 = (n34 + GPU_MAX_THREADS - 1) / GPU_MAX_THREADS;
     const int t34 = (n34 + b34 - 1) / b34;
     gpuRun5x0<<<dim3(b34, n2, n01), t34>>>(n1, n34, n4, f);
-    CHECK(cudaGetLastError());
+    GPU_Error_Check();
   } else if (n34 > GPU_MAX_THREADS) {
     const int n01 = n0 * n1;
     gpuRun4x1<<<dim3(n3, n2, n01), n4>>>(n1, f);
-    CHECK(cudaGetLastError());
+    GPU_Error_Check();
   } else if (n2 * n34 > GPU_MAX_THREADS) {
     gpuRun3x2<<<dim3(n2, n1, n0), dim3(n4, n3)>>>(f);
-    CHECK(cudaGetLastError());
+    GPU_Error_Check();
   } else {
     gpuRun2x3<<<dim3(n1, n0), dim3(n4, n3, n2)>>>(f);
-    CHECK(cudaGetLastError());
+    GPU_Error_Check();
   }
 }
 

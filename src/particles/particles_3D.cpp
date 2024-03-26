@@ -23,9 +23,9 @@
     #include "../utils/parallel_omp.h"
   #endif
 
-Particles_3D::Particles_3D(void) : TRANSFER_DENSITY_BOUNDARIES(false), TRANSFER_PARTICLES_BOUNDARIES(false) {}
+Particles3D::Particles3D(void) : TRANSFER_DENSITY_BOUNDARIES(false), TRANSFER_PARTICLES_BOUNDARIES(false) {}
 
-void Grid3D::Initialize_Particles(struct parameters *P)
+void Grid3D::Initialize_Particles(struct Parameters *P)
 {
   chprintf("\nInitializing Particles...\n");
 
@@ -47,8 +47,8 @@ void Grid3D::Initialize_Particles(struct parameters *P)
   chprintf("Particles Initialized Successfully. \n\n");
 }
 
-void Particles_3D::Initialize(struct parameters *P, Grav3D &Grav, Real xbound, Real ybound, Real zbound, Real xdglobal,
-                              Real ydglobal, Real zdglobal)
+void Particles3D::Initialize(struct Parameters *P, Grav3D &Grav, Real xbound, Real ybound, Real zbound, Real xdglobal,
+                             Real ydglobal, Real zdglobal)
 {
   // Initialize local and total number of particles to 0
   n_local         = 0;
@@ -157,12 +157,12 @@ void Particles_3D::Initialize(struct parameters *P, Grav3D &Grav, Real xbound, R
   G.boundary_type_z0 = P->zlg_bcnd;
   G.boundary_type_z1 = P->zug_bcnd;
   #else
-  G.boundary_type_x0        = P->xl_bcnd;
-  G.boundary_type_x1        = P->xu_bcnd;
-  G.boundary_type_y0        = P->yl_bcnd;
-  G.boundary_type_y1        = P->yu_bcnd;
-  G.boundary_type_z0        = P->zl_bcnd;
-  G.boundary_type_z1        = P->zu_bcnd;
+  G.boundary_type_x0 = P->xl_bcnd;
+  G.boundary_type_x1 = P->xu_bcnd;
+  G.boundary_type_y0 = P->yl_bcnd;
+  G.boundary_type_y1 = P->yu_bcnd;
+  G.boundary_type_z0 = P->zl_bcnd;
+  G.boundary_type_z1 = P->zu_bcnd;
   #endif
 
   #ifdef PARTICLES_GPU
@@ -213,7 +213,7 @@ void Particles_3D::Initialize(struct parameters *P, Grav3D &Grav, Real xbound, R
   #ifdef MPI_CHOLLA
   n_total_initial = ReducePartIntSum(n_local);
   #else
-  n_total_initial           = n_local;
+  n_total_initial = n_local;
   #endif
 
   chprintf("Particles Initialized: \n n_local: %lu \n", n_local);
@@ -271,7 +271,7 @@ void Particles_3D::Initialize(struct parameters *P, Grav3D &Grav, Real xbound, R
   #endif    // MPI_CHOLLA
 }
 
-void Particles_3D::Allocate_Memory(void)
+void Particles3D::Allocate_Memory(void)
 {
   // Allocate arrays for density and gravitational field
 
@@ -294,7 +294,7 @@ void Particles_3D::Allocate_Memory(void)
 }
 
   #ifdef PARTICLES_GPU
-void Particles_3D::Allocate_Memory_GPU()
+void Particles3D::Allocate_Memory_GPU()
 {
   // Allocate arrays for density and gravitational field on the GPU
 
@@ -309,7 +309,7 @@ void Particles_3D::Allocate_Memory_GPU()
   chprintf(" Allocated GPU memory.\n");
 }
 
-part_int_t Particles_3D::Compute_Particles_GPU_Array_Size(part_int_t n)
+part_int_t Particles3D::Compute_Particles_GPU_Array_Size(part_int_t n)
 {
   part_int_t buffer_size = n * G.gpu_allocation_factor;
   return buffer_size;
@@ -317,7 +317,7 @@ part_int_t Particles_3D::Compute_Particles_GPU_Array_Size(part_int_t n)
 
     #ifdef MPI_CHOLLA
 
-void Particles_3D::ReAllocate_Memory_GPU_MPI()
+void Particles3D::ReAllocate_Memory_GPU_MPI()
 {
   // Free the previous arrays
   Free_GPU_Array_bool(G.transfer_particles_flags_d);
@@ -338,7 +338,7 @@ void Particles_3D::ReAllocate_Memory_GPU_MPI()
   printf(" New allocation of arrays for particles transfers   new_size: %d \n", (int)buffer_size);
 }
 
-void Particles_3D::Allocate_Memory_GPU_MPI()
+void Particles3D::Allocate_Memory_GPU_MPI()
 {
   // Allocate memory for the the particles MPI transfers
   part_int_t buffer_size, half_blocks_size;
@@ -387,7 +387,7 @@ void Particles_3D::Allocate_Memory_GPU_MPI()
 }
     #endif  // MPI_CHOLLA
 
-void Particles_3D::Free_Memory_GPU()
+void Particles3D::Free_Memory_GPU()
 {
   Free_GPU_Array_Real(G.density_dev);
   Free_GPU_Array_Real(G.gravity_x_dev);
@@ -446,7 +446,7 @@ void Particles_3D::Free_Memory_GPU()
 
   #endif  // PARTICLES_GPU
 
-void Particles_3D::Initialize_Grid_Values(void)
+void Particles3D::Initialize_Grid_Values(void)
 {
   // Initialize density and gravitational field to 0.
 
@@ -461,7 +461,7 @@ void Particles_3D::Initialize_Grid_Values(void)
   }
 }
 
-void Particles_3D::Initialize_Sphere(struct parameters *P)
+void Particles3D::Initialize_Sphere(struct Parameters *P)
 {
   // Initialize Random positions for sphere of quasi-uniform density
   chprintf(" Initializing Particles Uniform Sphere\n");
@@ -518,7 +518,7 @@ void Particles_3D::Initialize_Sphere(struct parameters *P)
   Real *temp_mass = (Real *)malloc(particles_array_size * sizeof(Real));
     #endif
     #ifdef PARTICLE_IDS
-  part_int_t *temp_id = (part_int_t *)malloc(particles_array_size * sizeof(part_int_t));
+  auto *temp_id = (part_int_t *)malloc(particles_array_size * sizeof(part_int_t));
     #endif
 
   chprintf(" Allocated GPU memory for particle data\n");
@@ -641,7 +641,7 @@ void Particles_3D::Initialize_Sphere(struct parameters *P)
  * \note
  * Depending on how Cholla is compiled, it may mutate the real_props and int_props arguments.
  */
-void Particles_3D::Initialize_Stellar_Clusters_Helper_(std::map<std::string, real_vector_t> &real_props,
+void Particles3D::Initialize_Stellar_Clusters_Helper_(std::map<std::string, real_vector_t> &real_props,
                                                        std::map<std::string, int_vector_t> &int_props)
 {
   // come up with a list of expected particle-property names. prop_name_l[i].first indicates the
@@ -761,7 +761,7 @@ void Particles_3D::Initialize_Stellar_Clusters_Helper_(std::map<std::string, rea
 
 /* Initializes an isolated stellar cluster
  */
-void Particles_3D::Initialize_Isolated_Stellar_Cluster(struct parameters *P)
+void Particles3D::Initialize_Isolated_Stellar_Cluster(struct Parameters *P)
 {
 
   std::map<std::string, int_vector_t> int_props = {{"id", {}}};
@@ -920,7 +920,7 @@ template<bool UsePoissonPointProcess = false>
 StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
                                                    const Real R_max,
                                                    const Real t_max,
-                                                   const Particles_3D::Grid& G)
+                                                   const Particles3D::Grid& G)
 {
   // todo: move away from using the distribution functions defined in the standard library
   //  -> apparently, the results of distribution functions are not portable across different
@@ -931,7 +931,7 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
   // fetch governing physical parameters:
   // todo: store the following directly within the Galaxy object
   const Real SFR               = 2e3;                            // global MW SFR: 2 SM / yr
-  const Real Rgas_scale_length = Galaxies::MW.getGasDisk().R_d;  // gas-disk scale length
+  const Real Rgas_scale_length = galaxies::MW.getGasDisk().R_d;  // gas-disk scale length
   // the following are theoretically tunable
   const Real k_s_power            = 1.4;     // the power in the Kennicut-Schmidt law
                                              // (at the moment, this isn't tunable)
@@ -984,7 +984,7 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
   std::uniform_real_distribution<Real> phiDist(0, 2 * M_PI);  // for generating phi
   std::normal_distribution<Real> speedDist(0, 1);             // for generating random speeds.
 
-  ClusterCreator<UsePoissonPointProcess> cluster_creator(Galaxies::MW.getClusterMassDistribution(),
+  ClusterCreator<UsePoissonPointProcess> cluster_creator(galaxies::MW.getClusterMassDistribution(),
                                                          SFR, earliest_t_formation);
 
   // initialize the std::map instances of vectors used to hold the output properties
@@ -1040,9 +1040,9 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
 
       Real vPhi;
       if (true) {
-        vPhi = std::sqrt(Galaxies::MW.circular_vel2_with_selfgrav_estimates(R, z));
+        vPhi = std::sqrt(galaxies::MW.circular_vel2_with_selfgrav_estimates(R, z));
       } else {
-        vPhi = std::sqrt(Galaxies::MW.circular_vel2(R, z));
+        vPhi = std::sqrt(galaxies::MW.circular_vel2(R, z));
       }
 
       Real vx = -vPhi * sin(phi);
@@ -1086,7 +1086,7 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64& generator,
 /**
  *   Initializes a disk population of stellar clusters
  */
-void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
+void Particles3D::Initialize_Disk_Stellar_Clusters(struct Parameters *P)
 {
   chprintf(" Initializing Particles Stellar Disk\n");
 
@@ -1111,7 +1111,7 @@ void Particles_3D::Initialize_Disk_Stellar_Clusters(struct parameters *P)
 }
   #endif
 
-void Particles_3D::Initialize_Zeldovich_Pancake(struct parameters *P)
+void Particles3D::Initialize_Zeldovich_Pancake(struct Parameters *P)
 {
   // No particles for the Zeldovich Pancake problem. n_local=0
 
@@ -1184,7 +1184,7 @@ void Grid3D::Initialize_Uniform_Particles()
            Particles.n_total_initial);
 }
 
-void Particles_3D::Free_Memory(void)
+void Particles3D::Free_Memory(void)
 {
   // Free the particles arrays
   free(G.density);
@@ -1216,7 +1216,7 @@ void Particles_3D::Free_Memory(void)
   #endif  // PARTICLES_CPU
 }
 
-void Particles_3D::Reset(void)
+void Particles3D::Reset(void)
 {
   Free_Memory();
 

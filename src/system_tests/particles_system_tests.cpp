@@ -22,7 +22,7 @@
 /// @{
 TEST(tPARTICLESSYSTEMSphericalCollapse, DISABLED_CorrectInputExpectCorrectOutput)
 {
-  systemTest::SystemTestRunner collapseTest(true);
+  system_test::SystemTestRunner collapseTest(true);
   collapseTest.runTest();
 }
 /// @}

@@ -1,14 +1,13 @@
 #-- Default hydro build with BASIC_SCALAR
 
-DFLAGS    += -DCUDA
 DFLAGS    += -DMPI_CHOLLA
 DFLAGS    += -DPRECISION=2
-DFLAGS    += -DPPMC
+DFLAGS    += -DPLMC
 DFLAGS    += -DHLLC
 
 # Integrator
-DFLAGS    += -DSIMPLE
-#DFLAGS    += -DVL
+# DFLAGS    += -DSIMPLE
+DFLAGS    += -DVL
 
 # Apply a density and temperature floor
 DFLAGS    += -DDENSITY_FLOOR

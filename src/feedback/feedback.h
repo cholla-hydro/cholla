@@ -35,10 +35,10 @@ extern Real *dev_snr, snr_dt, time_sn_end, time_sn_start;
 extern Real *dev_sw_p, *dev_sw_e, sw_dt, time_sw_start, time_sw_end;
 
   #ifndef NO_SN_FEEDBACK
-void Init_State(struct parameters* P);
+void Init_State(Parameters* P);
   #endif
   #ifndef NO_WIND_FEEDBACK
-void Init_Wind_State(struct parameters* P);
+void Init_Wind_State(Parameters* P);
   #endif
 Real Cluster_Feedback(Grid3D& G, FeedbackAnalysis& sn_analysis);
 }  // namespace feedback

@@ -2,8 +2,8 @@
 # for those checks, etc. It uses as many of the default values as possible and
 # runs all checks with some exclusions by default.
 #
-# The full list of clang-tidy 15 checks and documentation can be found
-# [here](https://releases.llvm.org/15.0.0/tools/clang/tools/extra/docs/clang-tidy/index.html)
+# The full list of clang-tidy 17 checks and documentation can be found
+# [here](https://releases.llvm.org/17.0.1/tools/clang/tools/extra/docs/clang-tidy/index.html)
 #
 # The "Checks" command should have 5 sections seperated by a newline:
 # 1. Turn on all checks by default. Done with "*"
@@ -33,17 +33,23 @@ Checks: "*,
         -readability-static-accessed-through-instance,
         -misc-unused-parameters,
         -hicpp-multiway-paths-covered,
+        -cert-err58-cpp,
+        -cert-dcl37-c,
+        -cert-dcl51-cpp,
+        -cppcoreguidelines-pro-bounds-constant-array-index,
+        -google-readability-braces-around-statements,
+        -hicpp-braces-around-statements,
 
         google-readability-avoid-underscore-in-googletest-name,
         google-upgrade-googletest-case,
 
+        -bugprone-empty-catch,
         -bugprone-implicit-widening-of-multiplication-result,
         -bugprone-narrowing-conversions,
-        -cert-dcl59-cpp,
+        -bugprone-switch-missing-default-case,
         -cert-env33-c,
         -cert-err33-c,
         -cert-err34-c,
-        -cert-err58-cpp,
         -cert-msc32-c,
         -cert-msc51-cpp,
         -clang-analyzer-core.CallAndMessage,
@@ -55,12 +61,15 @@ Checks: "*,
         -clang-analyzer-optin.performance.Padding,
         -clang-analyzer-security.insecureAPI.strcpy,
         -clang-diagnostic-format,
+        -clang-diagnostic-logical-not-parentheses,
         -clang-diagnostic-macro-redefined,
         -clang-diagnostic-unknown-cuda-version,
         -clang-diagnostic-unused-command-line-argument,
         -clang-diagnostic-unused-result,
         -concurrency-mt-unsafe,
         -cppcoreguidelines-avoid-c-arrays,
+        -cppcoreguidelines-avoid-const-or-ref-data-members,
+        -cppcoreguidelines-avoid-do-while,
         -cppcoreguidelines-avoid-magic-numbers,
         -cppcoreguidelines-avoid-non-const-global-variables,
         -cppcoreguidelines-explicit-virtual-functions,
@@ -72,7 +81,6 @@ Checks: "*,
         -cppcoreguidelines-owning-memory,
         -cppcoreguidelines-prefer-member-initializer,
         -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
-        -cppcoreguidelines-pro-bounds-constant-array-index,
         -cppcoreguidelines-pro-bounds-pointer-arithmetic,
         -cppcoreguidelines-pro-type-cstyle-cast,
         -cppcoreguidelines-pro-type-member-init,
@@ -80,8 +88,8 @@ Checks: "*,
 	-cppcoreguidelines-pro-type-union-access,
         -cppcoreguidelines-pro-type-vararg,
         -cppcoreguidelines-special-member-functions,
+        -cppcoreguidelines-use-default-member-init,
         -cppcoreguidelines-virtual-class-destructor,
-        -google-build-namespaces,
         -google-explicit-constructor,
         -google-global-names-in-headers,
         -google-readability-casting,
@@ -94,7 +102,6 @@ Checks: "*,
         -hicpp-member-init,
         -hicpp-no-array-decay,
         -hicpp-no-malloc,
-        -hicpp-signed-bitwise,
         -hicpp-special-member-functions,
         -hicpp-use-auto,
         -hicpp-use-equals-default,
@@ -106,14 +113,17 @@ Checks: "*,
         -llvm-header-guard,
         -llvm-include-order,
         -llvm-namespace-comment,
-        -misc-confusable-identifiers,
         -misc-const-correctness,
+        -misc-header-include-cycle,
+        -misc-include-cleaner,
         -misc-non-private-member-variables-in-classes,
+        -misc-use-anonymous-namespace,
         -modernize-avoid-c-arrays,
         -modernize-deprecated-headers,
-        -modernize-loop-convert,
         -modernize-macro-to-enum,
         -modernize-redundant-void-arg,
+        -modernize-type-traits,
+        -modernize-type-traits,
         -modernize-use-auto,
         -modernize-use-default-member-init,
         -modernize-use-equals-default,
@@ -123,18 +133,15 @@ Checks: "*,
         -modernize-use-override,
         -modernize-use-using,
         -openmp-use-default-none,
-        -performance-faster-string-find,
-        -performance-for-range-copy,
-        -performance-inefficient-vector-operation,
+        -performance-avoid-endl,
         -performance-unnecessary-value-param,
-        -readability-const-return-type,
+        -readability-container-size-empty,
         -readability-convert-member-functions-to-static,
         -readability-delete-null-pointer,
         -readability-duplicate-include,
         -readability-else-after-return,
         -readability-function-cognitive-complexity,
         -readability-identifier-length,
-        -readability-identifier-naming,
         -readability-implicit-bool-conversion,
         -readability-inconsistent-declaration-parameter-name,
         -readability-isolate-declaration,
@@ -143,12 +150,9 @@ Checks: "*,
         -readability-non-const-parameter,
         -readability-redundant-control-flow,
         -readability-redundant-preprocessor,
-        -readability-simplify-boolean-expr,
         -readability-suspicious-call-argument"
 WarningsAsErrors: ''
-# More paths can be ignored by modifying this so that it looks like '^((?!/PATH/ONE/|/PATH/TWO/).)*$'
-HeaderFilterRegex: '^((?!/ihome/crc/install/power9/googletest/1.11.0/include/|/ihome/crc/install/power9/googletest/1.11.0/include/|/usr/lib/x86_64-linux-gnu/hdf5/serial/include/).)*$'
-AnalyzeTemporaryDtors: false
+HeaderFilterRegex: '.*'
 FormatStyle:     'file'
 UseColor: false
 CheckOptions:
@@ -161,25 +165,26 @@ CheckOptions:
   # - camel_Snake_Back
   # - Camel_Snake_Case
   # - aNy_CasE
-  #
-  # Entries that are commented out probably aren't needed but it should be verified
-  readability-identifier-naming.VariableCase: 'lower_case'
-  readability-identifier-naming.FunctionCase: 'Camel_Snake_Case'
-  readability-identifier-naming.NamespaceCase: 'lower_case'
-  readability-identifier-naming.MacroDefinitionCase: 'UPPER_CASE'
-  readability-identifier-naming.TypedefCase: 'CamelCase'
-  readability-identifier-naming.TypeAliasCase: 'CamelCase'
-  readability-identifier-naming.EnumCase: 'CamelCase'
-  readability-identifier-naming.ConstantCase: 'lower_case'
 
-  readability-identifier-naming.ConstantPrefix: 'k_'
-  readability-identifier-naming.GlobalVariablePrefix: 'g_'
+  # readability-identifier-naming.VariableCase: 'lower_case'
+  # readability-identifier-naming.FunctionCase: 'Camel_Snake_Case'
+  readability-identifier-naming.NamespaceCase: 'lower_case'
+  # readability-identifier-naming.MacroDefinitionCase: 'UPPER_CASE'
+  # readability-identifier-naming.TypedefCase: 'CamelCase'
+  # readability-identifier-naming.TypeAliasCase: 'CamelCase'
+  readability-identifier-naming.EnumCase: 'CamelCase'
+  # readability-identifier-naming.ConstantCase: 'lower_case'
+
+  # readability-identifier-naming.ConstantPrefix: 'k_'
+  # readability-identifier-naming.GlobalVariablePrefix: 'g_'
 
   readability-identifier-naming.ClassCase: 'CamelCase'
-  # readability-identifier-naming.MemberCase: 'lower_case'
-  # readability-identifier-naming.MethodCase: 'CamelCase'
-  readability-identifier-naming.PrivateMemberSuffix: '_'
-  readability-identifier-naming.PrivateMethodSuffix: '_'
+  # readability-identifier-naming.MemberCase: 'lower_case' # This entry might not be needed
+  # readability-identifier-naming.MethodCase: 'CamelCase' # This entry might not be needed
+  # readability-identifier-naming.PrivateMemberSuffix: '_'
+  # readability-identifier-naming.PrivateMethodSuffix: '_'
 
-  # readability-identifier-naming.StructCase: 'CamelCase'
+  hicpp-signed-bitwise.IgnorePositiveIntegerLiterals: 'true'
+
+  bugprone-reserved-identifier.AllowedIdentifiers: '__cudaSafeCall;__cudaCheckError;__shfl_down;__CHOLLA_PRETTY_FUNC__'
 ...

@@ -16,9 +16,9 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../grid/grid3D.h"
-#include "../riemann_solvers/hlld_cuda.h"
 #include "../utils/cuda_utilities.h"
 #include "../utils/gpu.hpp"
+#include "../utils/math_utilities.h"
 
 namespace mhd::utils
 {
@@ -28,7 +28,7 @@ namespace mhd::utils
  * but is made accesible for testing
  *
  */
-namespace _internal
+namespace internal
 {
 // =====================================================================
 /*!
@@ -61,7 +61,7 @@ inline __host__ __device__ Real _magnetosonicSpeed(Real const &density, Real con
   return sqrt((term1 + waveChoice * term2) / (2.0 * fmax(density, TINY_NUMBER)));
 }
 // =====================================================================
-}  // namespace _internal
+}  // namespace internal
 
 // =========================================================================
 /*!
@@ -75,82 +75,7 @@ inline __host__ __device__ Real _magnetosonicSpeed(Real const &density, Real con
 inline __host__ __device__ Real computeMagneticEnergy(Real const &magneticX, Real const &magneticY,
                                                       Real const &magneticZ)
 {
-  return 0.5 * (magneticX * magneticX + ((magneticY * magneticY) + (magneticZ * magneticZ)));
-}
-// =========================================================================
-
-// =========================================================================
-/*!
- * \brief Compute the energy in a cell. If MHD is not defined then simply
- * return the hydro only energy
- *
- * \param[in] pressure The gas pressure
- * \param[in] density The density
- * \param[in] velocityX Velocity in the x-direction
- * \param[in] velocityY Velocity in the y-direction
- * \param[in] velocityZ Velocity in the z-direction
- * \param[in] magneticX Magnetic field in the x-direction
- * \param[in] magneticY Magnetic field in the y-direction
- * \param[in] magneticZ Magnetic field in the z-direction
- * \param[in] gamma The adiabatic index
- * \return Real The energy within a cell
- */
-inline __host__ __device__ Real computeEnergy(Real const &pressure, Real const &density, Real const &velocityX,
-                                              Real const &velocityY, Real const &velocityZ, Real const &magneticX,
-                                              Real const &magneticY, Real const &magneticZ, Real const &gamma)
-{
-  // Compute and return energy
-  Real energy = (fmax(pressure, TINY_NUMBER) / (gamma - 1.)) +
-                0.5 * density * (velocityX * velocityX + ((velocityY * velocityY) + (velocityZ * velocityZ)));
-#ifdef MHD
-  energy += computeMagneticEnergy(magneticX, magneticY, magneticZ);
-#endif  // MHD
-
-  return energy;
-}
-// =========================================================================
-
-// =========================================================================
-/*!
- * \brief Compute the MHD gas pressure in a cell
- *
- * \param[in] energy The energy
- * \param[in] density The density
- * \param[in] momentumX Momentum in the x-direction
- * \param[in] momentumY Momentum in the y-direction
- * \param[in] momentumZ Momentum in the z-direction
- * \param[in] magneticX Magnetic field in the x-direction
- * \param[in] magneticY Magnetic field in the y-direction
- * \param[in] magneticZ Magnetic field in the z-direction
- * \param[in] gamma The adiabatic index
- * \return Real The gas pressure in a cell
- */
-inline __host__ __device__ Real computeGasPressure(Real const &energy, Real const &density, Real const &momentumX,
-                                                   Real const &momentumY, Real const &momentumZ, Real const &magneticX,
-                                                   Real const &magneticY, Real const &magneticZ, Real const &gamma)
-{
-  Real pressure =
-      (gamma - 1.) *
-      (energy - 0.5 * (momentumX * momentumX + ((momentumY * momentumY) + (momentumZ * momentumZ))) / density -
-       computeMagneticEnergy(magneticX, magneticY, magneticZ));
-
-  return fmax(pressure, TINY_NUMBER);
-}
-
-/*!
- * \brief Specialization of mhd::utils::computeGasPressure for use in the HLLD solver
- *
- * \param state The State to compute the gas pressure of
- * \param magneticX The X magnetic field
- * \param gamma The adiabatic index
- * \return Real The gas pressure
- */
-inline __host__ __device__ Real computeGasPressure(mhd::_internal::State const &state, Real const &magneticX,
-                                                   Real const &gamma)
-{
-  return mhd::utils::computeGasPressure(state.energy, state.density, state.velocityX * state.density,
-                                        state.velocityY * state.density, state.velocityZ * state.density, magneticX,
-                                        state.magneticY, state.magneticZ, gamma);
+  return 0.5 * math_utils::SquareMagnitude(magneticX, magneticY, magneticZ);
 }
 // =========================================================================
 
@@ -174,9 +99,7 @@ inline __host__ __device__ Real computeThermalEnergy(Real const &energyTot, Real
                                                      Real const &magneticX, Real const &magneticY,
                                                      Real const &magneticZ, Real const &gamma)
 {
-  return energyTot -
-         0.5 * (momentumX * momentumX + ((momentumY * momentumY) + (momentumZ * momentumZ))) /
-             fmax(density, TINY_NUMBER) -
+  return energyTot - 0.5 * math_utils::SquareMagnitude(momentumX, momentumY, momentumZ) / fmax(density, TINY_NUMBER) -
          computeMagneticEnergy(magneticX, magneticY, magneticZ);
 }
 // =========================================================================
@@ -217,7 +140,7 @@ inline __host__ __device__ Real fastMagnetosonicSpeed(Real const &density, Real 
                                                       Real const &magneticY, Real const &magneticZ, Real const &gamma)
 {
   // Compute the sound speed
-  return mhd::utils::_internal::_magnetosonicSpeed(density, pressure, magneticX, magneticY, magneticZ, gamma, 1.0);
+  return mhd::utils::internal::_magnetosonicSpeed(density, pressure, magneticX, magneticY, magneticZ, gamma, 1.0);
 }
 // =========================================================================
 
@@ -237,7 +160,7 @@ inline __host__ __device__ Real slowMagnetosonicSpeed(Real const &density, Real 
                                                       Real const &magneticY, Real const &magneticZ, Real const &gamma)
 {
   // Compute the sound speed
-  return mhd::utils::_internal::_magnetosonicSpeed(density, pressure, magneticX, magneticY, magneticZ, gamma, -1.0);
+  return mhd::utils::internal::_magnetosonicSpeed(density, pressure, magneticX, magneticY, magneticZ, gamma, -1.0);
 }
 // =========================================================================
 
@@ -306,10 +229,10 @@ inline __host__ __device__ auto cellCenteredMagneticFields(Real const *dev_conse
                          :
                          /*if false*/ dev_conserved[(grid_enum::magnetic_z)*n_cells + id];
 
-  struct returnStruct {
+  struct ReturnStruct {
     Real x, y, z;
   };
-  return returnStruct{avgBx, avgBy, avgBz};
+  return ReturnStruct{avgBx, avgBy, avgBz};
 }
 // =========================================================================
 

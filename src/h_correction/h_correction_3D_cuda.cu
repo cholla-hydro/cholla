@@ -1,14 +1,13 @@
 /*! \file h_correction_3D_cuda.cu
  *  \brief Functions definitions for the H correction kernels.
            Written following Sanders et al. 1998. */
-#ifdef CUDA
 
-  #include <math.h>
+#include <math.h>
 
-  #include "../global/global.h"
-  #include "../global/global_cuda.h"
-  #include "../h_correction/h_correction_3D_cuda.h"
-  #include "../utils/gpu.hpp"
+#include "../global/global.h"
+#include "../global/global_cuda.h"
+#include "../h_correction/h_correction_3D_cuda.h"
+#include "../utils/gpu.hpp"
 
 /*! \fn void calc_eta_x_3D(Real *dev_bounds_L, Real *dev_bounds_R, Real *eta_x,
  int nx, int ny, int nz, int n_ghost, Real gamma)
@@ -264,5 +263,3 @@ __global__ void calc_etah_z_3D(Real *eta_x, Real *eta_y, Real *eta_z, Real *etah
     etah_z[id] = etah;
   }
 }
-
-#endif  // CUDA

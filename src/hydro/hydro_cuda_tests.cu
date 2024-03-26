@@ -23,8 +23,6 @@
 #include "../utils/gpu.hpp"
 #include "../utils/testing_utilities.h"
 
-#if defined(CUDA)
-
 // =============================================================================
 // Tests for the Calc_dt_GPU function
 // =============================================================================
@@ -63,7 +61,7 @@ TEST(tHYDROCalcDt3D, CorrectInputExpectCorrectOutput)
   // Run the kernel
   hipLaunchKernelGGL(Calc_dt_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved.data(), dev_dti.data(), gamma, n_ghost,
                      n_fields, nx, ny, nz, dx, dy, dz);
-  CudaCheckError();
+  GPU_Error_Check();
 
   // Compare results
   // Check for equality and if not equal return difference
@@ -72,7 +70,7 @@ TEST(tHYDROCalcDt3D, CorrectInputExpectCorrectOutput)
   double absoluteDiff;
   int64_t ulpsDiff;
   bool areEqual;
-  areEqual = testingUtilities::nearlyEqualDbl(fiducialDt, testData, absoluteDiff, ulpsDiff);
+  areEqual = testing_utilities::nearlyEqualDbl(fiducialDt, testData, absoluteDiff, ulpsDiff);
   EXPECT_TRUE(areEqual) << "The fiducial value is:       " << fiducialDt << std::endl
                         << "The test value is:           " << testData << std::endl
                         << "The absolute difference is:  " << absoluteDiff << std::endl
@@ -106,7 +104,7 @@ TEST(tHYDROHydroInverseCrossingTime, CorrectInputExpectCorrectOutput)
                                                             velocityZ, cellSizeX, cellSizeY, cellSizeZ, gamma);
 
   // Check results
-  testingUtilities::checkResults(fiducialInverseCrossingTime, testInverseCrossingTime, "inverse crossing time");
+  testing_utilities::Check_Results(fiducialInverseCrossingTime, testInverseCrossingTime, "inverse crossing time");
 }
 // =============================================================================
 // End of tests for the hydroInverseCrossingTime function
@@ -140,10 +138,55 @@ TEST(tMHDMhdInverseCrossingTime, CorrectInputExpectCorrectOutput)
                              magneticZ, cellSizeX, cellSizeY, cellSizeZ, gamma);
 
   // Check results
-  testingUtilities::checkResults(fiducialInverseCrossingTime, testInverseCrossingTime, "inverse crossing time");
+  testing_utilities::Check_Results(fiducialInverseCrossingTime, testInverseCrossingTime, "inverse crossing time");
 }
 // =============================================================================
 // End of tests for the mhdInverseCrossingTime function
 // =============================================================================
 
-#endif  // CUDA
+TEST(tHYDROScalarFloor, CorrectInputExpectCorrectOutput)
+{
+  int num_blocks = 1;
+  dim3 dim1dGrid(num_blocks, 1, 1);
+  dim3 dim1dBlock(TPB, 1, 1);
+  int const nx        = 1;
+  int const ny        = 1;
+  int const nz        = 1;
+  int const n_fields  = 6;  // 5 conserved + 1 scalar
+  int const n_ghost   = 0;
+  int const field_num = 5;  // scalar field index
+
+  // initialize host and device conserved arrays
+  std::vector<Real> host_conserved(n_fields);
+  cuda_utilities::DeviceVector<Real> dev_conserved(n_fields);
+
+  // Set values of conserved variables for input (host)
+  host_conserved.at(0) = 0.0;  // density
+  host_conserved.at(1) = 0.0;  // x momentum
+  host_conserved.at(2) = 0.0;  // y momentum
+  host_conserved.at(3) = 0.0;  // z momentum
+  host_conserved.at(4) = 0.0;  // energy
+
+  Real scalar_floor = 1.0;  // minimum allowed value for scalar field
+
+  // Case where scalar is below the floor
+  host_conserved.at(field_num) = 0.0;  // scalar
+  dev_conserved.cpyHostToDevice(host_conserved);
+  hipLaunchKernelGGL(Scalar_Floor_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved.data(), nx, ny, nz, n_ghost,
+                     field_num, scalar_floor);
+  testing_utilities::Check_Results(scalar_floor, dev_conserved.at(field_num), "below floor");
+
+  // Case where scalar is above the floor
+  host_conserved.at(field_num) = 2.0;  // scalar
+  dev_conserved.cpyHostToDevice(host_conserved);
+  hipLaunchKernelGGL(Scalar_Floor_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved.data(), nx, ny, nz, n_ghost,
+                     field_num, scalar_floor);
+  testing_utilities::Check_Results(host_conserved.at(field_num), dev_conserved.at(field_num), "above floor");
+
+  // Case where scalar is at the floor
+  host_conserved.at(field_num) = 1.0;  // scalar
+  dev_conserved.cpyHostToDevice(host_conserved);
+  hipLaunchKernelGGL(Scalar_Floor_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved.data(), nx, ny, nz, n_ghost,
+                     field_num, scalar_floor);
+  testing_utilities::Check_Results(host_conserved.at(field_num), dev_conserved.at(field_num), "at floor");
+}

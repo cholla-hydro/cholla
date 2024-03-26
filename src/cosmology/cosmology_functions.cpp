@@ -5,7 +5,7 @@
   #include "../grid/grid_enum.h"
   #include "../io/io.h"
 
-void Grid3D::Initialize_Cosmology(struct parameters *P)
+void Grid3D::Initialize_Cosmology(struct Parameters *P)
 {
   chprintf("Initializing Cosmology... \n");
   Cosmo.Initialize(P, Grav, Particles);

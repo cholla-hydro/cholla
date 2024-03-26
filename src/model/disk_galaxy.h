@@ -251,20 +251,20 @@ class ClusteredDiskGalaxy : public DiskGalaxy
 };
 
 // in the future, it may be better to make the following 2 choices more configurable
-inline Real Get_StarCluster_Truncation_Radius(const parameters& p)
+inline Real Get_StarCluster_Truncation_Radius(const Parameters& p)
 {
   if ((20.4 < p.xlen) and (p.xlen < 20.5)) return 9.5;
   return p.xlen / 2.0 - 0.2;
 }
 
-inline Real Get_Gas_Truncation_Radius(const parameters& p)
+inline Real Get_Gas_Truncation_Radius(const Parameters& p)
 {
   if ((20.4 < p.xlen) and (p.xlen < 20.5)) return 9.9;
   return p.xlen / 2.0 - 0.1;
 }
 
 
-namespace Galaxies
+namespace galaxies
 {
 // all masses in M_sun and all distances in kpc
 
@@ -279,6 +279,6 @@ static ClusteredDiskGalaxy MW(ClusterMassDistribution{1e2, 5e5, 2.0},
 static DiskGalaxy M82(MiyamotoNagaiDiskProps{1.0e10, 0.8, 0.15}, // stellar_disk
                       GasDiskProps{0.25 * 1.0e10, 2*0.8, 0.15, 1e4, true, 2*0.8}, // gas_disk
                       5.0e10, 0.8 / 0.015, 10, 100.0);
-};  // namespace Galaxies
+};  // namespace galaxies
 
 #endif  // DISK_GALAXY

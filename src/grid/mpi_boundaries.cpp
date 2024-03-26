@@ -10,7 +10,7 @@
 
 #ifdef MPI_CHOLLA
 
-void Grid3D::Set_Boundaries_MPI(struct parameters P)
+void Grid3D::Set_Boundaries_MPI(struct Parameters P)
 {
   int flags[6] = {0, 0, 0, 0, 0, 0};
 
@@ -26,7 +26,7 @@ void Grid3D::Set_Boundaries_MPI(struct parameters P)
   #endif
 }
 
-void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct parameters P)
+void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct Parameters P)
 {
   #ifdef PARTICLES
   // Clear the vectors that contain the particles IDs to be transfred

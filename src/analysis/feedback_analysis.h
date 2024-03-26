@@ -25,7 +25,7 @@ class FeedbackAnalysis
   Real totalWindMomentum{0};
   Real totalWindEnergy{0};
 
-  FeedbackAnalysis(Grid3D& G, struct parameters* P);
+  FeedbackAnalysis(Grid3D& G, struct Parameters* P);
   ~FeedbackAnalysis();
 
   void Compute_Gas_Velocity_Dispersion(Grid3D& G);

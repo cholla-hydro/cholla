@@ -50,6 +50,10 @@ else
   GPUFILES := $(filter-out src/system_tests/% %_tests.cu,$(GPUFILES))
 endif
 
+ifeq ($(COVERAGE), true)
+  CXXFLAGS += --coverage
+endif
+
 OBJS     := $(subst .cpp,.o,$(CPPFILES)) \
             $(subst .cu,.o,$(GPUFILES))
 
@@ -166,10 +170,11 @@ DFLAGS      += $(MACRO_FLAGS)
 
 # Setup variables for clang-tidy
 LIBS_CLANG_TIDY     := $(subst -I/, -isystem /,$(LIBS))
-LIBS_CLANG_TIDY     += -isystem $(MPI_ROOT)/include
+# This tells clang-tidy that the path after each -isystem command is a system library so that it can be easily ignored by the header filter regex
+LIBS_CLANG_TIDY     += -isystem $(MPI_ROOT)/include -isystem $(HDF5_ROOT)/include
 CXXFLAGS_CLANG_TIDY := $(subst -I/, -isystem /,$(LDFLAGS))
 GPUFLAGS_CLANG_TIDY := $(subst -I/, -isystem /,$(GPUFLAGS))
-GPUFLAGS_CLANG_TIDY := $(filter-out -ccbin=mpicxx -fmad=false --expt-extended-lambda,$(GPUFLAGS))
+GPUFLAGS_CLANG_TIDY := $(filter-out -ccbin=mpicxx -fmad=false --expt-extended-lambda,$(GPUFLAGS_CLANG_TIDY))
 GPUFLAGS_CLANG_TIDY += --cuda-host-only --cuda-path=$(CUDA_ROOT) -isystem /clang/includes
 CPPFILES_TIDY := $(CPPFILES)
 GPUFILES_TIDY := $(GPUFILES)
@@ -199,15 +204,17 @@ tidy:
 # - --warnings-as-errors=<string> Upgrade all warnings to error, good for CI
 	clang-tidy --verify-config
 	@echo -e
-	(time clang-tidy $(CLANG_TIDY_ARGS) $(CPPFILES_TIDY) -- $(DFLAGS) $(CXXFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_cpp.log 2>&1 & \
-	(time clang-tidy $(CLANG_TIDY_ARGS) $(GPUFILES_TIDY) -- $(DFLAGS) $(GPUFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_gpu.log 2>&1 & \
+	(time clang-tidy $(CLANG_TIDY_ARGS) $(CPPFILES_TIDY) -- $(DFLAGS) $(CXXFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_cpp_$(TYPE).log 2>&1 & \
+	(time clang-tidy $(CLANG_TIDY_ARGS) $(GPUFILES_TIDY) -- $(DFLAGS) $(GPUFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_gpu_$(TYPE).log 2>&1 & \
 	for i in 1 2; do wait -n; done
-	@echo -e "\nResults from clang-tidy are available in the 'tidy_results_cpp.log' and 'tidy_results_gpu.log' files."
+	@echo -e "\nResults from clang-tidy are available in the 'tidy_results_cpp_$(TYPE).log' and 'tidy_results_gpu_$(TYPE).log' files."
 
 clean:
 	rm -f $(CLEAN_OBJS)
 	rm -rf googletest
 	-find bin/ -type f -executable -name "cholla.*.$(MACHINE)*" -exec rm -f '{}' \;
+	-find src/ -type f -name "*.gcno" -delete
+	-find src/ -type f -name "*.gcda" -delete
 
 clobber: clean
 	-find bin/ -type f -executable -name "cholla*" -exec rm -f '{}' \;

@@ -26,6 +26,10 @@ zlen=3.08567758e18
 # type of boundary conditions
 xl_bcnd=3
 xu_bcnd=3
+yl_bcnd=0
+yu_bcnd=0
+zl_bcnd=0
+zu_bcnd=0
 # path to output directory
 outdir=./
 

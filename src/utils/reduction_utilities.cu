@@ -13,7 +13,6 @@
 // Local Includes
 #include "../utils/reduction_utilities.h"
 
-#ifdef CUDA
 namespace reduction_utilities
 {
 // =====================================================================
@@ -40,4 +39,3 @@ __global__ void kernelReduceMax(Real* in, Real* out, size_t N)
 }
 // =====================================================================
 }  // namespace reduction_utilities
-#endif  // CUDA

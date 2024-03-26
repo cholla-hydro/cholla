@@ -6,7 +6,7 @@
   #include "../io/io.h"
   #include "../utils/gpu.hpp"
 
-Potential_Paris_Galactic::Potential_Paris_Galactic()
+PotentialParisGalactic::PotentialParisGalactic()
     : dn_{0, 0, 0},
       dr_{0, 0, 0},
       lo_{0, 0, 0},
@@ -25,10 +25,10 @@ Potential_Paris_Galactic::Potential_Paris_Galactic()
 {
 }
 
-Potential_Paris_Galactic::~Potential_Paris_Galactic() { Reset(); }
+PotentialParisGalactic::~PotentialParisGalactic() { Reset(); }
 
-void Potential_Paris_Galactic::Get_Potential(const Real *const density, Real *const potential, const Real g,
-                                             const DiskGalaxy &galaxy)
+void PotentialParisGalactic::Get_Potential(const Real *const density, Real *const potential, const Real g,
+                                           const DiskGalaxy &galaxy)
 {
   const Real scale = Real(4) * M_PI * g;
 
@@ -48,8 +48,8 @@ void Potential_Paris_Galactic::Get_Potential(const Real *const density, Real *co
   const Real *const rho = density;
   Real *const phi       = potential;
   #else
-  CHECK(cudaMemcpyAsync(da, density, densityBytes_, cudaMemcpyHostToDevice, 0));
-  CHECK(cudaMemcpyAsync(dc_, potential, potentialBytes_, cudaMemcpyHostToDevice, 0));
+  GPU_Error_Check(cudaMemcpyAsync(da, density, densityBytes_, cudaMemcpyHostToDevice, 0));
+  GPU_Error_Check(cudaMemcpyAsync(dc_, potential, potentialBytes_, cudaMemcpyHostToDevice, 0));
   const Real *const rho = da;
   Real *const phi       = dc_;
   #endif
@@ -106,14 +106,13 @@ void Potential_Paris_Galactic::Get_Potential(const Real *const density, Real *co
       });
 
   #ifndef GRAVITY_GPU
-  CHECK(cudaMemcpy(potential, dc_, potentialBytes_, cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(potential, dc_, potentialBytes_, cudaMemcpyDeviceToHost));
   #endif
 }
 
-void Potential_Paris_Galactic::Initialize(const Real lx, const Real ly, const Real lz, const Real xMin, const Real yMin,
-                                          const Real zMin, const int nx, const int ny, const int nz, const int nxReal,
-                                          const int nyReal, const int nzReal, const Real dx, const Real dy,
-                                          const Real dz)
+void PotentialParisGalactic::Initialize(const Real lx, const Real ly, const Real lz, const Real xMin, const Real yMin,
+                                        const Real zMin, const int nx, const int ny, const int nz, const int nxReal,
+                                        const int nyReal, const int nzReal, const Real dx, const Real dy, const Real dz)
 {
   const long nl012 = long(nxReal) * long(nyReal) * long(nzReal);
   assert(nl012 <= INT_MAX);
@@ -155,33 +154,33 @@ void Potential_Paris_Galactic::Initialize(const Real lx, const Real ly, const Re
   minBytes_     = pp_->bytes();
   densityBytes_ = long(sizeof(Real)) * dn_[0] * dn_[1] * dn_[2];
 
-  CHECK(cudaMalloc(reinterpret_cast<void **>(&da_), std::max(minBytes_, densityBytes_)));
-  CHECK(cudaMalloc(reinterpret_cast<void **>(&db_), std::max(minBytes_, densityBytes_)));
+  GPU_Error_Check(cudaMalloc(reinterpret_cast<void **>(&da_), std::max(minBytes_, densityBytes_)));
+  GPU_Error_Check(cudaMalloc(reinterpret_cast<void **>(&db_), std::max(minBytes_, densityBytes_)));
 
   #ifndef GRAVITY_GPU
   const long gg   = N_GHOST_POTENTIAL + N_GHOST_POTENTIAL;
   potentialBytes_ = long(sizeof(Real)) * (dn_[0] + gg) * (dn_[1] + gg) * (dn_[2] + gg);
-  CHECK(cudaMalloc(reinterpret_cast<void **>(&dc_), potentialBytes_));
+  GPU_Error_Check(cudaMalloc(reinterpret_cast<void **>(&dc_), potentialBytes_));
   #endif
 }
 
-void Potential_Paris_Galactic::Reset()
+void PotentialParisGalactic::Reset()
 {
   #ifndef GRAVITY_GPU
   if (dc_) {
-    CHECK(cudaFree(dc_));
+    GPU_Error_Check(cudaFree(dc_));
   }
   dc_             = nullptr;
   potentialBytes_ = 0;
   #endif
 
   if (db_) {
-    CHECK(cudaFree(db_));
+    GPU_Error_Check(cudaFree(db_));
   }
   db_ = nullptr;
 
   if (da_) {
-    CHECK(cudaFree(da_));
+    GPU_Error_Check(cudaFree(da_));
   }
   da_ = nullptr;
 

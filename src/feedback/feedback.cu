@@ -132,7 +132,7 @@ inline __device__ Real Get_Average_Number_Density_CGS(Real* density, int xi, int
  * @param P pointer to parameters struct. Passes in starburst 99 filename and
  * random number gen seed.
  */
-void feedback::Init_State(struct parameters* P)
+void feedback::Init_State(struct Parameters* P)
 {
   chprintf("feedback::Init_State start\n");
   std::string snr_filename(P->snr_filename);
@@ -181,8 +181,8 @@ void feedback::Init_State(struct parameters* P)
     // (i.e. assumes regular temporal spacing)
     snr_dt = (time_sn_end - time_sn_start) / (snr.size() - 1);
 
-    CHECK(cudaMalloc((void**)&dev_snr, snr.size() * sizeof(Real)));
-    CHECK(cudaMemcpy(dev_snr, snr.data(), snr.size() * sizeof(Real), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMalloc((void**)&dev_snr, snr.size() * sizeof(Real)));
+    GPU_Error_Check(cudaMemcpy(dev_snr, snr.data(), snr.size() * sizeof(Real), cudaMemcpyHostToDevice));
 
   } else {
     chprintf("No SN rate file specified.  Using constant rate\n");
@@ -201,7 +201,7 @@ void feedback::Init_State(struct parameters* P)
  *
  * @param P pointer to parameters struct. Passes in starburst 99 filepath
  */
-void feedback::Init_Wind_State(struct parameters* P)
+void feedback::Init_Wind_State(struct Parameters* P)
 {
   chprintf("Init_Wind_State start\n");
   std::string sw_filename(P->sw_filename);
@@ -259,11 +259,11 @@ void feedback::Init_Wind_State(struct parameters* P)
   sw_dt = (time_sw_end - time_sw_start) / (sw_p.size() - 1);
   chprintf("wind t_s %.5e, t_e %.5e, delta T %0.5e\n", time_sw_start, time_sw_end, sw_dt);
 
-  CHECK(cudaMalloc((void**)&dev_sw_p, sw_p.size() * sizeof(Real)));
-  CHECK(cudaMemcpy(dev_sw_p, sw_p.data(), sw_p.size() * sizeof(Real), cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMalloc((void**)&dev_sw_p, sw_p.size() * sizeof(Real)));
+  GPU_Error_Check(cudaMemcpy(dev_sw_p, sw_p.data(), sw_p.size() * sizeof(Real), cudaMemcpyHostToDevice));
 
-  CHECK(cudaMalloc((void**)&dev_sw_e, sw_e.size() * sizeof(Real)));
-  CHECK(cudaMemcpy(dev_sw_e, sw_e.data(), sw_e.size() * sizeof(Real), cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMalloc((void**)&dev_sw_e, sw_e.size() * sizeof(Real)));
+  GPU_Error_Check(cudaMemcpy(dev_sw_e, sw_e.data(), sw_e.size() * sizeof(Real), cudaMemcpyHostToDevice));
 
   chprintf("first 40 stellar wind momentum values:\n");
   for (int i = 0; i < 40; i++) {
@@ -973,13 +973,13 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
 
   // only apply feedback if we have clusters
   if (G.Particles.n_local > 0) {
-    CHECK(cudaMalloc(&d_dti, sizeof(Real)));
-    CHECK(cudaMemcpy(d_dti, &h_dti, sizeof(Real), cudaMemcpyHostToDevice));
-    CHECK(cudaMalloc(&d_prev_dens, G.Particles.n_local * sizeof(Real)));
-    CHECK(cudaMemset(d_prev_dens, 0, G.Particles.n_local * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc(&d_dti, sizeof(Real)));
+    GPU_Error_Check(cudaMemcpy(d_dti, &h_dti, sizeof(Real), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMalloc(&d_prev_dens, G.Particles.n_local * sizeof(Real)));
+    GPU_Error_Check(cudaMemset(d_prev_dens, 0, G.Particles.n_local * sizeof(Real)));
 
     ngrid = (G.Particles.n_local - 1) / TPB_FEEDBACK + 1;
-    CHECK(cudaMalloc((void**)&d_info, FEED_INFO_N * sizeof(Real)));
+    GPU_Error_Check(cudaMalloc((void**)&d_info, FEED_INFO_N * sizeof(Real)));
 
     // before applying feedback, set gas density around clusters to the
     // average value from the 27 neighboring cells.  We don't want to
@@ -1012,7 +1012,7 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
                          time_direction, dev_snr, snr_dt, time_sn_start, time_sn_end, dev_sw_p, dev_sw_e, sw_dt,
                          time_sw_start, time_sw_end, G.H.n_step, loop_counter);
 
-      CHECK(cudaMemcpy(&h_dti, d_dti, sizeof(Real), cudaMemcpyDeviceToHost));
+      GPU_Error_Check(cudaMemcpy(&h_dti, d_dti, sizeof(Real), cudaMemcpyDeviceToHost));
     }
 
   #ifdef MPI_CHOLLA
@@ -1035,7 +1035,7 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
                            time_direction, dev_snr, snr_dt, time_sn_start, time_sn_end, dev_sw_p, dev_sw_e, sw_dt,
                            time_sw_start, time_sw_end, G.H.n_step, loop_counter);
 
-        CHECK(cudaDeviceSynchronize());
+        GPU_Error_Check(cudaDeviceSynchronize());
       }
 
       G.H.dt = C_cfl / h_dti;
@@ -1067,10 +1067,10 @@ Real feedback::Cluster_Feedback(Grid3D& G, FeedbackAnalysis& analysis)
   chprintf("*******  looped %d time(s)\n", loop_counter);
 
   if (G.Particles.n_local > 0) {
-    CHECK(cudaMemcpy(&h_info, d_info, FEED_INFO_N * sizeof(Real), cudaMemcpyDeviceToHost));
-    CHECK(cudaFree(d_dti));
-    CHECK(cudaFree(d_info));
-    CHECK(cudaFree(d_prev_dens));
+    GPU_Error_Check(cudaMemcpy(&h_info, d_info, FEED_INFO_N * sizeof(Real), cudaMemcpyDeviceToHost));
+    GPU_Error_Check(cudaFree(d_dti));
+    GPU_Error_Check(cudaFree(d_info));
+    GPU_Error_Check(cudaFree(d_prev_dens));
   }
 
   #ifdef MPI_CHOLLA

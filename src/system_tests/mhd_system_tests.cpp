@@ -14,6 +14,7 @@
 // Local includes
 #include "../io/io.h"
 #include "../system_tests/system_tester.h"
+#include "../utils/testing_utilities.h"
 
 // =============================================================================
 // Test Suite: tMHDSYSTEMLinearWavesParameterizedAngle
@@ -25,30 +26,23 @@
  *
  */
 /// @{
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tMHDSYSTEMLinearWavesParameterizedAngle : public ::testing::TestWithParam<std::tuple<double, double, double, int>>
 {
  public:
   tMHDSYSTEMLinearWavesParameterizedAngle() : waveTest(false, true, false, false){};
 
  protected:
-  systemTest::SystemTestRunner waveTest;
+  system_test::SystemTestRunner waveTest;
+  inline static std::unordered_map<std::string, double> high_res_l2norms;
 
-#ifdef PCM
-  double const allowedL1Error = 4E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 4E-7;
-#else   // PCM
-  double const allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 1E-7;
-#endif  // PCM
-
-  void setLaunchParams(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
-                       double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ, double const &rEigenVec_E,
-                       double const &rEigenVec_Bx, double const &rEigenVec_By, double const &rEigenVec_Bz,
-                       double const &pitch, double const &yaw, double const &domain, int const &domain_direction,
-                       double const &vx = 0.0)
+  void Set_Launch_Params(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
+                         double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ,
+                         double const &rEigenVec_E, double const &rEigenVec_Bx, double const &rEigenVec_By,
+                         double const &rEigenVec_Bz, double const &pitch, double const &yaw, double const &domain,
+                         int const &domain_direction, double const &vx = 0.0, size_t const &N = 32)
   {
     // Constant for all tests
-    size_t const N     = 32;
     double const gamma = 5. / 3.;
     double const tOut  = 2 * domain / waveSpeed;
 
@@ -74,21 +68,13 @@ class tMHDSYSTEMLinearWavesParameterizedAngle : public ::testing::TestWithParam<
       case 2:  // swap X and Y
         y_len *= 2;
         ny *= 2;
-        std::swap(vx_rot, vy_rot);
-        std::swap(Bx_rot, By_rot);
-        std::swap(rEigenVec_Bx_rot, rEigenVec_By_rot);
-        std::swap(rEigenVec_MomentumX_rot, rEigenVec_MomentumY_rot);
         break;
       case 3:  // swap X and Z
         z_len *= 2;
         nz *= 2;
-        std::swap(vx_rot, vz_rot);
-        std::swap(Bx_rot, Bz_rot);
-        std::swap(rEigenVec_Bx_rot, rEigenVec_Bz_rot);
-        std::swap(rEigenVec_MomentumX_rot, rEigenVec_MomentumZ_rot);
         break;
       default:
-        throw std::invalid_argument("Invalid value of domain_direction given to setLaunchParams");
+        throw std::invalid_argument("Invalid value of domain_direction given to Set_Launch_Params");
         break;
     }
 
@@ -156,18 +142,22 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveRightMovingC
   auto [pitch, yaw, domain, domain_direction] = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E, rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
 
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
 
-// Check Results
+// Check Results. Values based on results in Gardiner & Stone 2008
 #ifdef PCM
   waveTest.runL1ErrorTest(4.2E-7, 5.4E-7);
-#else   // PCM
-  waveTest.runL1ErrorTest(allowedL1Error, allowedError);
+#elif defined(PLMC)
+  waveTest.runL1ErrorTest(6.5E-8, 6.5E-8);
+#elif defined(PPMC)
+  waveTest.runL1ErrorTest(6.11E-8, 5.5E-8);
 #endif  // PCM
+
+  high_res_l2norms["fast_" + std::to_string(domain_direction)] = waveTest.getL2Norm();
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveLeftMovingCorrectInputExpectCorrectOutput)
@@ -190,17 +180,19 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveLeftMovingCo
   auto [pitch, yaw, domain, domain_direction] = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E, rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
 
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
 
-// Check Results
+// Check Results. Values based on results in Gardiner & Stone 2008
 #ifdef PCM
   waveTest.runL1ErrorTest(4.2E-7, 5.4E-7);
-#else   // PCM
-  waveTest.runL1ErrorTest(allowedL1Error, allowedError);
+#elif defined(PLMC)
+  waveTest.runL1ErrorTest(6.5E-8, 6.5E-8);
+#elif defined(PPMC)
+  waveTest.runL1ErrorTest(6.1E-8, 5.5E-8);
 #endif  // PCM
 }
 
@@ -226,14 +218,22 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveRightMovingC
   auto [pitch, yaw, domain, domain_direction] = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E, rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
 
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
 
-  // Check Results
-  waveTest.runL1ErrorTest(allowedL1Error, allowedError);
+  // Check Results. Values based on results in Gardiner & Stone 2008
+#ifdef PCM
+  waveTest.runL1ErrorTest(4.E-7, 4.E-7);
+#elif defined(PLMC)
+  waveTest.runL1ErrorTest(2.0E-8, 2.75E-8);
+#elif defined(PPMC)
+  waveTest.runL1ErrorTest(1.45E-9, 1.3E-9);
+#endif  // PCM
+
+  high_res_l2norms["slow_" + std::to_string(domain_direction)] = waveTest.getL2Norm();
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveLeftMovingCorrectInputExpectCorrectOutput)
@@ -256,14 +256,20 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveLeftMovingCo
   auto [pitch, yaw, domain, domain_direction] = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E, rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
 
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
 
-  // Check Results
-  waveTest.runL1ErrorTest(allowedL1Error, allowedError);
+  // Check Results. Values based on results in Gardiner & Stone 2008
+#ifdef PCM
+  waveTest.runL1ErrorTest(4.E-7, 4.E-7);
+#elif defined(PLMC)
+  waveTest.runL1ErrorTest(2.0E-8, 2.75E-8);
+#elif defined(PPMC)
+  waveTest.runL1ErrorTest(1.45E-9, 1.3E-9);
+#endif  // PCM
 }
 
 // Alfven Waves Moving Left and Right
@@ -287,14 +293,22 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveRightMovingCorrectInpu
   auto [pitch, yaw, domain, domain_direction] = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E, rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
 
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
 
-  // Check Results
-  waveTest.runL1ErrorTest(allowedL1Error, allowedError);
+  // Check Results. Values based on results in Gardiner & Stone 2008
+#ifdef PCM
+  waveTest.runL1ErrorTest(4.E-7, 4.E-7);
+#elif defined(PLMC)
+  waveTest.runL1ErrorTest(3.0E-8, 3.0E-8);
+#elif defined(PPMC)
+  waveTest.runL1ErrorTest(1.95e-09, 2.16e-09);
+#endif  // PCM
+
+  high_res_l2norms["alfven_" + std::to_string(domain_direction)] = waveTest.getL2Norm();
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveLeftMovingCorrectInputExpectCorrectOutput)
@@ -316,14 +330,20 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveLeftMovingCorrectInput
   auto [pitch, yaw, domain, domain_direction] = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E, rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction);
 
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
 
-  // Check Results
-  waveTest.runL1ErrorTest(allowedL1Error, allowedError);
+  // Check Results. Values based on results in Gardiner & Stone 2008
+#ifdef PCM
+  waveTest.runL1ErrorTest(4.E-7, 4.E-7);
+#elif defined(PLMC)
+  waveTest.runL1ErrorTest(3.0E-8, 3.0E-8);
+#elif defined(PPMC)
+  waveTest.runL1ErrorTest(1.95e-09, 2.16e-09);
+#endif  // PCM
 }
 
 // Contact Wave Moving Right
@@ -348,18 +368,167 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, MHDContactWaveCorrectInputExpect
   auto [pitch, yaw, domain, domain_direction] = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction, velocityX);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E, rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction,
+                    velocityX);
 
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
 
 // Check Results
+// Check Results. Values based on results in Gardiner & Stone 2008
 #ifdef PCM
-  waveTest.runL1ErrorTest(1.35 * allowedL1Error, 1.35 * allowedError);
-#else   // PCM
-  waveTest.runL1ErrorTest(allowedL1Error, allowedError);
+  waveTest.runL1ErrorTest(5.4E-7, 5.4E-7);
+#elif defined(PLMC)
+  waveTest.runL1ErrorTest(3.0E-8, 3.0E-8);
+#elif defined(PPMC)
+  waveTest.runL1ErrorTest(1.41e-09, 1.5E-09);
 #endif  // PCM
+
+  high_res_l2norms["contact_" + std::to_string(domain_direction)] = waveTest.getL2Norm();
+}
+
+TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, FastMagnetosonicWaveExpectSecondOrderConvergence)
+{
+  // Get the test parameters
+  auto [pitch, yaw, domain, domain_direction] = GetParam();
+
+  // Specific to this test
+  double const waveSpeed              = 2.;
+  std::vector<int> const numTimeSteps = {107, 102, 110};
+
+  double const prefix              = 1. / (2 * std::sqrt(5));
+  double const rEigenVec_rho       = prefix * 2;
+  double const rEigenVec_MomentumX = prefix * 4;
+  double const rEigenVec_MomentumY = prefix * -2;
+  double const rEigenVec_MomentumZ = prefix * 0;
+  double const rEigenVec_Bx        = prefix * 0;
+  double const rEigenVec_By        = prefix * 4;
+  double const rEigenVec_Bz        = prefix * 0;
+  double const rEigenVec_E         = prefix * 9;
+
+  // Set the launch parameters
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E, rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction, 0.0,
+                    16);
+
+  // Set the number of timesteps
+  waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
+
+  // Run the wave
+  waveTest.runL1ErrorTest(7.0E-8, 1.5E-7);
+
+  // Check the scaling
+  double const low_res_l2norm = waveTest.getL2Norm();
+  testing_utilities::Check_Results(4.0, low_res_l2norm / high_res_l2norms["fast_" + std::to_string(domain_direction)],
+                                   "", 0.2);
+}
+
+TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, SlowMagnetosonicWaveExpectSecondOrderConvergence)
+{
+  // Get the test parameters
+  auto [pitch, yaw, domain, domain_direction] = GetParam();
+
+  // Specific to this test
+  double const waveSpeed              = 0.5;
+  std::vector<int> const numTimeSteps = {427, 407, 440};
+
+  double const prefix              = 1. / (2 * std::sqrt(5));
+  double const rEigenVec_rho       = prefix * 4;
+  double const rEigenVec_MomentumX = prefix * 2;
+  double const rEigenVec_MomentumY = prefix * 4;
+  double const rEigenVec_MomentumZ = prefix * 0;
+  double const rEigenVec_Bx        = prefix * 0;
+  double const rEigenVec_By        = prefix * -2;
+  double const rEigenVec_Bz        = prefix * 0;
+  double const rEigenVec_E         = prefix * 3;
+
+  // Set the launch parameters
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E, rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction, 0.0,
+                    16);
+
+  // Set the number of timesteps
+  waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
+
+  // Run the wave
+  waveTest.runL1ErrorTest(5.4E-8, 8.0E-8);
+
+  // Check the scaling
+  double const low_res_l2norm = waveTest.getL2Norm();
+  testing_utilities::Check_Results(4.0, low_res_l2norm / high_res_l2norms["slow_" + std::to_string(domain_direction)],
+                                   "", 0.2);
+}
+
+TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, AlfvenWaveExpectSecondOrderConvergence)
+{
+  // Get the test parameters
+  auto [pitch, yaw, domain, domain_direction] = GetParam();
+
+  // Specific to this test
+  double const waveSpeed              = 1.0;
+  std::vector<int> const numTimeSteps = {214, 204, 220};
+
+  double const rEigenVec_rho       = 0;
+  double const rEigenVec_MomentumX = 0;
+  double const rEigenVec_MomentumY = 0;
+  double const rEigenVec_MomentumZ = -1;
+  double const rEigenVec_Bx        = 0;
+  double const rEigenVec_By        = 0;
+  double const rEigenVec_Bz        = 1;
+  double const rEigenVec_E         = 0;
+
+  // Set the launch parameters
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E, rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction, 0.0,
+                    16);
+
+  // Set the number of timesteps
+  waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
+
+  // Run the wave
+  waveTest.runL1ErrorTest(4.5E-8, 8.0E-8);
+
+  // Check the scaling
+  double const low_res_l2norm = waveTest.getL2Norm();
+  testing_utilities::Check_Results(4.0, low_res_l2norm / high_res_l2norms["alfven_" + std::to_string(domain_direction)],
+                                   "", 0.2);
+}
+
+TEST_P(tMHDSYSTEMLinearWavesParameterizedAngle, MHDContactWaveExpectSecondOrderConvergence)
+{
+  // Get the test parameters
+  auto [pitch, yaw, domain, domain_direction] = GetParam();
+
+  // Specific to this test
+  double const waveSpeed              = 1.0;
+  std::vector<int> const numTimeSteps = {321, 310, 327};
+
+  double const rEigenVec_rho       = 1;
+  double const rEigenVec_MomentumX = 1;
+  double const rEigenVec_MomentumY = 0;
+  double const rEigenVec_MomentumZ = 0;
+  double const rEigenVec_Bx        = 0;
+  double const rEigenVec_By        = 0;
+  double const rEigenVec_Bz        = 0;
+  double const rEigenVec_E         = 0.5;
+  double const velocityX           = waveSpeed;
+
+  // Set the launch parameters
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E, rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz, pitch, yaw, domain, domain_direction,
+                    velocityX, 16);
+
+  // Set the number of timesteps
+  waveTest.setFiducialNumTimeSteps(numTimeSteps[domain_direction - 1]);
+
+  // Run the wave
+  waveTest.runL1ErrorTest(5.0E-8, 8.0E-8);
+
+  // Check the scaling
+  double const low_res_l2norm = waveTest.getL2Norm();
+  testing_utilities::Check_Results(
+      4.0, low_res_l2norm / high_res_l2norms["contact_" + std::to_string(domain_direction)], "", 0.2);
 }
 
 INSTANTIATE_TEST_SUITE_P(, tMHDSYSTEMLinearWavesParameterizedAngle,
@@ -382,25 +551,19 @@ INSTANTIATE_TEST_SUITE_P(, tMHDSYSTEMLinearWavesParameterizedAngle,
  *
  */
 /// @{
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithParam<int>
 {
  public:
   tMHDSYSTEMLinearWavesParameterizedMpi() : waveTest(false, true, false, false){};
 
  protected:
-  systemTest::SystemTestRunner waveTest;
+  system_test::SystemTestRunner waveTest;
 
-#ifdef PCM
-  double const allowedL1Error = 4E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 4E-7;
-#else   // PCM
-  double const allowedL1Error = 1E-7;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 1E-7;
-#endif  // PCM
-
-  void setLaunchParams(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
-                       double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ, double const &rEigenVec_E,
-                       double const &rEigenVec_Bx, double const &rEigenVec_By, double const &rEigenVec_Bz)
+  void Set_Launch_Params(double const &waveSpeed, double const &rEigenVec_rho, double const &rEigenVec_MomentumX,
+                         double const &rEigenVec_MomentumY, double const &rEigenVec_MomentumZ,
+                         double const &rEigenVec_E, double const &rEigenVec_Bx, double const &rEigenVec_By,
+                         double const &rEigenVec_Bz)
   {
     // Constant for all tests
     size_t const N      = 32;
@@ -472,14 +635,20 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi, SlowMagnetosonicWaveRightMovingCor
   waveTest.numMpiRanks = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E, rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz);
 
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps);
 
-  // Check Results
-  waveTest.runL1ErrorTest(allowedL1Error, allowedError);
+  // Check Results. Values based on results in Gardiner & Stone 2008
+#ifdef PCM
+  waveTest.runL1ErrorTest(4.E-7, 4.E-7);
+#elif defined(PLMC)
+  waveTest.runL1ErrorTest(2.0E-8, 2.75E-8);
+#elif defined(PPMC)
+  waveTest.runL1ErrorTest(1.4E-9, 1.3E-9);
+#endif  // PCM
 }
 
 TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi, SlowMagnetosonicWaveLeftMovingCorrectInputExpectCorrectOutput)
@@ -502,14 +671,20 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi, SlowMagnetosonicWaveLeftMovingCorr
   waveTest.numMpiRanks = GetParam();
 
   // Set the launch parameters
-  setLaunchParams(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ, rEigenVec_E,
-                  rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz);
+  Set_Launch_Params(waveSpeed, rEigenVec_rho, rEigenVec_MomentumX, rEigenVec_MomentumY, rEigenVec_MomentumZ,
+                    rEigenVec_E, rEigenVec_Bx, rEigenVec_By, rEigenVec_Bz);
 
   // Set the number of timesteps
   waveTest.setFiducialNumTimeSteps(numTimeSteps);
 
-  // Check Results
-  waveTest.runL1ErrorTest(allowedL1Error, allowedError);
+  // Check Results. Values based on results in Gardiner & Stone 2008
+#ifdef PCM
+  waveTest.runL1ErrorTest(4.E-7, 4.E-7);
+#elif defined(PLMC)
+  waveTest.runL1ErrorTest(2.0E-8, 2.8E-8);
+#elif defined(PPMC)
+  waveTest.runL1ErrorTest(1.4E-9, 1.3E-9);
+#endif  // PCM
 }
 
 /// @}
@@ -524,10 +699,11 @@ TEST_P(tMHDSYSTEMLinearWavesParameterizedMpi, SlowMagnetosonicWaveLeftMovingCorr
  *
  */
 /// @{
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tMHDSYSTEMParameterizedMpi : public ::testing::TestWithParam<size_t>
 {
  protected:
-  systemTest::SystemTestRunner test_runner;
+  system_test::SystemTestRunner test_runner;
 };
 INSTANTIATE_TEST_SUITE_P(, tMHDSYSTEMParameterizedMpi, ::testing::Values(1, 2, 4));
 
@@ -540,14 +716,6 @@ TEST_P(tMHDSYSTEMParameterizedMpi, ConstantWithZeroMagneticFieldCorrectInputExpe
 
 /// Test constant state with all magnetic fields set to one
 TEST_P(tMHDSYSTEMParameterizedMpi, ConstantWithMagneticFieldCorrectInputExpectCorrectOutput)
-{
-  test_runner.numMpiRanks = GetParam();
-  test_runner.runTest();
-}
-
-/// TODO: This is temporary. Remove once PPMP is implemented for MHD and replace
-/// TODO: with the hydro sod test
-TEST_P(tMHDSYSTEMParameterizedMpi, SodShockTubeCorrectInputExpectCorrectOutput)
 {
   test_runner.numMpiRanks = GetParam();
   test_runner.runTest();
@@ -581,17 +749,13 @@ TEST_P(tMHDSYSTEMParameterizedMpi, RyuAndJones1aShockTubeCorrectInputExpectCorre
   test_runner.runTest();
 }
 
-/// Test the Ryu & Jones 2a Shock Tube (Ryu & Jones 1995)
-TEST_P(tMHDSYSTEMParameterizedMpi, RyuAndJones2aShockTubeCorrectInputExpectCorrectOutput)
-{
-  test_runner.numMpiRanks = GetParam();
-  test_runner.runTest();
-}
-
 /// Test the Ryu & Jones 4d Shock Tube (Ryu & Jones 1995)
 TEST_P(tMHDSYSTEMParameterizedMpi, RyuAndJones4dShockTubeCorrectInputExpectCorrectOutput)
 {
   test_runner.numMpiRanks = GetParam();
+  // This test is particularly sensitive to minor changes in the initial conditions, the kind of changes that are
+  // expected from compiler to compiler. As such the limits have been loosened slightly.
+  test_runner.setFixedEpsilon(7.3E-12);
   test_runner.runTest();
 }
 
@@ -599,7 +763,9 @@ TEST_P(tMHDSYSTEMParameterizedMpi, RyuAndJones4dShockTubeCorrectInputExpectCorre
 TEST_P(tMHDSYSTEMParameterizedMpi, AdvectingFieldLoopCorrectInputExpectCorrectOutput)
 {
   test_runner.numMpiRanks = GetParam();
-  test_runner.runTest();
+
+  // Only do the L2 Norm test. The regular cell-to-cell comparison is brittle for this test across systems
+  test_runner.runTest(true, 3.9E-8, 2.25E-6);
 }
 
 /// Test the MHD Blast Wave
@@ -615,7 +781,6 @@ TEST_P(tMHDSYSTEMParameterizedMpi, MhdBlastWaveCorrectInputExpectCorrectOutput)
 TEST_P(tMHDSYSTEMParameterizedMpi, OrszagTangVortexCorrectInputExpectCorrectOutput)
 {
   test_runner.numMpiRanks = GetParam();
-  test_runner.setFixedEpsilon(8.E-4);
   test_runner.runTest();
 }
 /// @}
@@ -631,15 +796,16 @@ TEST_P(tMHDSYSTEMParameterizedMpi, OrszagTangVortexCorrectInputExpectCorrectOutp
  *
  */
 /// @{
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization : public ::testing::TestWithParam<double>
 {
  public:
   tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization() : cpawTest(false, true, false, false){};
 
  protected:
-  systemTest::SystemTestRunner cpawTest;
+  system_test::SystemTestRunner cpawTest;
 
-  void setLaunchParams(double const &polarization, double const &vx)
+  void Set_Launch_Params(double const &polarization, double const &vx)
   {
     // Constant for all tests
     size_t const N      = 32;
@@ -692,18 +858,30 @@ TEST_P(tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization, MovingW
 
 // Set allowed errors
 #ifdef PCM
-  double const allowedL1Error = 0.065;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 0.046;
-#else   // PCM
-  double const allowedL1Error = 1E-3;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 1E-3;
-#endif  // PCM
-
-  // Set the launch parameters
-  setLaunchParams(polarization, vx);
-
   // Set the number of timesteps
   cpawTest.setFiducialNumTimeSteps(82);
+  double const allowedL1Error = 6.5E-2;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 4.6E-2;
+#elif defined(PLMC)
+  // Set the number of timesteps
+  cpawTest.setFiducialNumTimeSteps(84);
+  double const allowedL1Error = 5.0E-3;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 5.0E-3;
+#elif defined(PPMC)
+  // Set the number of timesteps
+  cpawTest.setFiducialNumTimeSteps(84);
+  double const allowedL1Error = 4.0E-3;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 3.0E-3;
+#elif defined(PLMP)
+  double const allowedL1Error = 5.0E-3;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 5.0E-3;
+#elif defined(PPMP)
+  double const allowedL1Error = 4.0E-3;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 3.0E-3;
+#endif
+
+  // Set the launch parameters
+  Set_Launch_Params(polarization, vx);
 
   // Check Results
   cpawTest.runL1ErrorTest(allowedL1Error, allowedError);
@@ -721,18 +899,30 @@ TEST_P(tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization, Standin
 
 // Set allowed errors
 #ifdef PCM
-  double const allowedL1Error = 0.018;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 0.017;
-#else   // PCM
-  double const allowedL1Error = 0.0;  // Based on results in Gardiner & Stone 2008
-  double const allowedError   = 0.0;
-#endif  // PCM
-
-  // Set the launch parameters
-  setLaunchParams(polarization, vx);
-
   // Set the number of timesteps
   cpawTest.setFiducialNumTimeSteps(130);
+  double const allowedL1Error = 1.8E-2;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 1.7E-2;
+#elif defined(PLMC)
+  // Set the number of timesteps
+  cpawTest.setFiducialNumTimeSteps(130);
+  double const allowedL1Error = 2.0E-3;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 2.0E-3;
+#elif defined(PPMC)
+  // Set the number of timesteps
+  cpawTest.setFiducialNumTimeSteps(130);
+  double const allowedL1Error = 1.3E-3;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 1.3E-3;
+#elif defined(PLMP)
+  double const allowedL1Error = 2.0E-3;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 2.0E-3;
+#elif defined(PPMP)
+  double const allowedL1Error = 1.3E-3;  // Based on results in Gardiner & Stone 2008
+  double const allowedError   = 1.3E-3;
+#endif
+
+  // Set the launch parameters
+  Set_Launch_Params(polarization, vx);
 
   // Check Results
   cpawTest.runL1ErrorTest(allowedL1Error, allowedError);

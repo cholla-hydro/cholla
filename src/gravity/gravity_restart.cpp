@@ -27,7 +27,7 @@ void Gravity_Restart_Filename(char* filename, char* dirname, int nfile)
 }
 
 #if defined(GRAVITY) && defined(HDF5)
-void Grav3D::Read_Restart_HDF5(struct parameters* P, int nfile)
+void Grav3D::Read_Restart_HDF5(struct Parameters* P, int nfile)
 {
   H5open();
   char filename[MAXLEN];
@@ -42,7 +42,8 @@ void Grav3D::Read_Restart_HDF5(struct parameters* P, int nfile)
   // Read potential and copy to device to be used as potential n-1
   Read_HDF5_Dataset(file_id, F.potential_1_h, "/potential");
   #ifdef GRAVITY_GPU
-  CudaSafeCall(cudaMemcpy(F.potential_1_d, F.potential_1_h, n_cells_potential * sizeof(Real), cudaMemcpyHostToDevice));
+  GPU_Error_Check(
+      cudaMemcpy(F.potential_1_d, F.potential_1_h, n_cells_potential * sizeof(Real), cudaMemcpyHostToDevice));
   #endif
 
   H5Fclose(file_id);
@@ -52,12 +53,11 @@ void Grav3D::Read_Restart_HDF5(struct parameters* P, int nfile)
   INITIAL = false;
 }
 
-void Grav3D::Write_Restart_HDF5(struct parameters* P, int nfile)
+void Grav3D::Write_Restart_HDF5(struct Parameters* P, int nfile)
 {
   H5open();
-  char filename[MAXLEN];
-  Gravity_Restart_Filename(filename, P->outdir, nfile);
-  hid_t file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  std::string filename = FnameTemplate(*P).format_fname(nfile, "_gravity");
+  hid_t file_id        = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   // Write dt_now
   hsize_t attr_dims  = 1;
@@ -71,7 +71,8 @@ void Grav3D::Write_Restart_HDF5(struct parameters* P, int nfile)
 
   // Copy device to host if needed
   #ifdef GRAVITY_GPU
-  CudaSafeCall(cudaMemcpy(F.potential_1_h, F.potential_1_d, n_cells_potential * sizeof(Real), cudaMemcpyDeviceToHost));
+  GPU_Error_Check(
+      cudaMemcpy(F.potential_1_h, F.potential_1_d, n_cells_potential * sizeof(Real), cudaMemcpyDeviceToHost));
   #endif
 
   // Write potential
@@ -89,12 +90,12 @@ void Grav3D::Write_Restart_HDF5(struct parameters* P, int nfile)
 
 #elif defined(GRAVITY)
 // Do nothing
-void Grav3D::Read_Restart_HDF5(struct parameters* P, int nfile)
+void Grav3D::Read_Restart_HDF5(struct Parameters* P, int nfile)
 {
   chprintf("WARNING from file %s line %d: Read_Restart_HDF5 did nothing", __FILE__, __LINE__);
 }
 
-void Grav3D::Write_Restart_HDF5(struct parameters* P, int nfile)
+void Grav3D::Write_Restart_HDF5(struct Parameters* P, int nfile)
 {
   chprintf("WARNING from file %s line %d: Write_Restart_HDF5 did nothing", __FILE__, __LINE__);
 }

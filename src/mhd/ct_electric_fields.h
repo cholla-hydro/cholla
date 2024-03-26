@@ -28,7 +28,7 @@ namespace mhd
  * but is made accesible for testing
  *
  */
-namespace _internal
+namespace internal
 {
 // =====================================================================
 /*!
@@ -118,7 +118,7 @@ inline __host__ __device__ Real _ctSlope(Real const *flux, Real const *dev_conse
   return electric_face - electric_centered;
 }
 // =====================================================================
-}  // namespace _internal
+}  // namespace internal
 
 // =========================================================================
 /*!

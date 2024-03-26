@@ -738,26 +738,26 @@ Real halo_density_D3D(Real r, Real *r_halo, Real *rho_halo, Real dr, int nr)
 // -> we opt to forward declare them rather than move them because the functions are fairly large
 // -> in both cases, the functions only initialize thermal-energy in the total-energy field
 template<typename HydroStaticColMaker, typename Vrot2FromPotential>
-void partial_initialize_isothermal_disk(const parameters& p, const Header& H,
+void partial_initialize_isothermal_disk(const Parameters& p, const Header& H,
                                         const Grid3D& grid, const Grid3D::Conserved& C,
                                         const DataPack hdp, const HydroStaticColMaker& col_maker,
                                         const Vrot2FromPotential& vrot2_from_phi_fn);
-void partial_initialize_halo(const parameters& p, const Header& H,
+void partial_initialize_halo(const Parameters& p, const Header& H,
                              const Grid3D& grid, const Grid3D::Conserved& C,
                              DataPack hdp);
 
 
 
-/*! \fn void Disk_3D(parameters P)
+/*! \fn void Disk_3D(Parameters P)
  *  \brief Initialize the grid with a 3D disk. */
-void Grid3D::Disk_3D(parameters p)
+void Grid3D::Disk_3D(Parameters p)
 {
   Real T_d, T_h, mu;
   Real K_eos, rho_eos, cs, rho_eos_h, cs_h, r_cool;
 
   // MW model
-  DiskGalaxy galaxy = Galaxies::MW;
-  // M82 model Galaxies::M82;
+  DiskGalaxy galaxy = galaxies::MW;
+  // M82 model galaxies::M82;
 
   const MiyamotoNagaiDiskProps stellar_disk = galaxy.getStellarDisk();
   const GasDiskProps gas_disk               = galaxy.getGasDisk();
@@ -794,9 +794,9 @@ void Grid3D::Disk_3D(parameters p)
   cs   = sqrt(KB * T_d / (mu * MP)) * TIME_UNIT / LENGTH_UNIT;  // sound speed in kpc/kyr
   cs_h = sqrt(KB * T_h / (mu * MP)) * TIME_UNIT / LENGTH_UNIT;  // sound speed in kpc/kyr
 
-  // set some initial parameters
-  // these parameters are mostly passed to hydrostatic column
-  DataPack hdp;  // parameters
+  // set some initial Parameters
+  // these Parameters are mostly passed to hydrostatic column
+  DataPack hdp;  // Parameters
   hdp.stellar_disk   = stellar_disk;
   hdp.halo_potential = galaxy.getHaloPotential();
   hdp.T_d            = T_d;
@@ -833,7 +833,7 @@ void Grid3D::Disk_3D(parameters p)
     //   K_eos = cs*cs*pow(rho_eos,1.0-p.gamma)/p.gamma; //P = K\rho^gamma
   }
 
-  // Store remaining parameters
+  // Store remaining Parameters
   hdp.K_eos     = K_eos;
   hdp.rho_floor = 0.0;  // rho_floor, set to 0
   hdp.rho_eos   = rho_eos;
@@ -967,7 +967,7 @@ void Grid3D::Disk_3D(parameters p)
  *   - plus, it improves radial stability at the disk-halo interface.
  */
 template<typename Vrot2FromPotential>
-void assign_vels(const parameters& p, const Header& H,
+void assign_vels(const Parameters& p, const Header& H,
                  const Grid3D& grid, const Grid3D::Conserved& C,
                  const Vrot2FromPotential& vrot2_from_phi_fn,
                  const std::vector<Real>& rho_disk)
@@ -1065,7 +1065,7 @@ void assign_vels(const parameters& p, const Header& H,
 
 
 template<typename HydroStaticColMaker, typename Vrot2FromPotential>
-void partial_initialize_isothermal_disk(const parameters& p, const Header& H,
+void partial_initialize_isothermal_disk(const Parameters& p, const Header& H,
                                         const Grid3D& grid, const Grid3D::Conserved& C,
                                         const DataPack hdp, const HydroStaticColMaker& col_maker,
                                         const Vrot2FromPotential& vrot2_from_phi_fn)
@@ -1138,7 +1138,7 @@ void partial_initialize_isothermal_disk(const parameters& p, const Header& H,
 
 
 // This is called after initializing the disk
-void partial_initialize_halo(const parameters& p, const Header& H,
+void partial_initialize_halo(const Parameters& p, const Header& H,
                              const Grid3D& grid, const Grid3D::Conserved& C,
                              DataPack hdp)
 {

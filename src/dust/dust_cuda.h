@@ -27,7 +27,8 @@
  * \param[in] dt Simulation timestep
  * \param[in] gamma Specific heat ratio
  */
-void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma);
+void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma,
+                 Real grain_radius);
 
 /*!
  * \brief Compute the change in dust density for a cell and update its value in dev_conserved.
@@ -42,28 +43,28 @@ void Dust_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
  * \param[in] dt Simulation timestep
  * \param[in] gamma Specific heat ratio
  */
-__global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
-                            Real gamma);
+__global__ void Dust_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma,
+                            Real grain_radius);
 
 /*!
  * \brief Compute the sputtering timescale based on a cell's density and temperature.
  *
- * \param[in] n Gas number density in cm^-3
- * \param[in] T Gas temperature in K
+ * \param[in] number_density Gas number density in cm^-3
+ * \param[in] temperature Gas temperature in K
  *
  * \return Real Sputtering timescale in seconds (McKinnon et al. 2017)
  */
-__device__ __host__ Real calc_tau_sp(Real n, Real T);
+__device__ __host__ Real Calc_Sputtering_Timescale(Real number_density, Real temperature, Real grain_radius);
 
 /*!
  * \brief Compute the rate of change in dust density based on the current dust density and sputtering timescale.
  *
- * \param[in] d_dust Dust mass density in M_sun/kpc^3
+ * \param[in] density_dust Dust mass density in M_sun/kpc^3
  * \param[in] tau_sp Sputtering timescale in kyr
  *
  * \return Real Dust density rate of change (McKinnon et al. 2017)
  */
-__device__ __host__ Real calc_dd_dt(Real d_dust, Real tau_sp);
+__device__ __host__ Real Calc_dd_dt(Real density_dust, Real tau_sp);
 
   #endif  // DUST_CUDA_H
 #endif    // DUST

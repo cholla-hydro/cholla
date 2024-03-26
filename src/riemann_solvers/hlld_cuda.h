@@ -13,8 +13,8 @@
 
 // Local Includes
 #include "../global/global.h"
+#include "../utils/hydro_utilities.h"
 
-#ifdef CUDA
 /*!
  * \brief Namespace for MHD code
  *
@@ -47,7 +47,7 @@ __global__ void Calculate_HLLD_Fluxes_CUDA(Real const *dev_bounds_L, Real const 
  * solver
  *
  */
-namespace _internal
+namespace internal
 {
 /*!
  * \brief Used for some comparisons. Value was chosen to match what is
@@ -61,12 +61,12 @@ Real static const _hlldSmallNumber = 1.0e-8;
  */
 struct State {
   Real density, velocityX, velocityY, velocityZ, energy, magneticY, magneticZ, gasPressure, totalPressure;
-  #ifdef SCALAR
+#ifdef SCALAR
   Real scalarSpecific[grid_enum::nscalars];
-  #endif  // SCALAR
-  #ifdef DE
+#endif  // SCALAR
+#ifdef DE
   Real thermalEnergySpecific;
-  #endif  // DE
+#endif  // DE
 };
 
 /*!
@@ -124,33 +124,33 @@ struct Speeds {
  * \param o1 Direction parameter
  * \param o2 Direction parameter
  * \param o3 Direction parameter
- * \return mhd::_internal::State The loaded state
+ * \return mhd::internal::State The loaded state
  */
-__device__ __host__ mhd::_internal::State loadState(Real const *interfaceArr, Real const &magneticX, Real const &gamma,
-                                                    int const &threadId, int const &n_cells, int const &o1,
-                                                    int const &o2, int const &o3);
+__device__ __host__ mhd::internal::State loadState(Real const *interfaceArr, Real const &magneticX, Real const &gamma,
+                                                   int const &threadId, int const &n_cells, int const &o1,
+                                                   int const &o2, int const &o3);
 
 /*!
  * \brief Compute the approximate left and right wave speeds. M&K 2005 equation
  * 67
  */
-__device__ __host__ mhd::_internal::Speeds approximateLRWaveSpeeds(mhd::_internal::State const &stateL,
-                                                                   mhd::_internal::State const &stateR,
-                                                                   Real const &magneticX, Real const &gamma);
+__device__ __host__ mhd::internal::Speeds approximateLRWaveSpeeds(mhd::internal::State const &stateL,
+                                                                  mhd::internal::State const &stateR,
+                                                                  Real const &magneticX, Real const &gamma);
 
 /*!
  * \brief Compute the approximate middle wave speed. M&K 2005 equation 38
  */
-__device__ __host__ Real approximateMiddleWaveSpeed(mhd::_internal::State const &stateL,
-                                                    mhd::_internal::State const &stateR,
-                                                    mhd::_internal::Speeds const &speed);
+__device__ __host__ Real approximateMiddleWaveSpeed(mhd::internal::State const &stateL,
+                                                    mhd::internal::State const &stateR,
+                                                    mhd::internal::Speeds const &speed);
 
 /*!
  * \brief Compute the approximate left and right wave speeds. M&K 2005 equation
  * 51
  */
-__device__ __host__ Real approximateStarWaveSpeed(mhd::_internal::StarState const &starState,
-                                                  mhd::_internal::Speeds const &speed, Real const &magneticX,
+__device__ __host__ Real approximateStarWaveSpeed(mhd::internal::StarState const &starState,
+                                                  mhd::internal::Speeds const &speed, Real const &magneticX,
                                                   Real const &side);
 
 /*!
@@ -159,9 +159,9 @@ __device__ __host__ Real approximateStarWaveSpeed(mhd::_internal::StarState cons
  *
  * \param state The state to compute the flux of
  * \param magneticX The X magnetic field
- * \return mhd::_internal::Flux The flux in the state
+ * \return mhd::internal::Flux The flux in the state
  */
-__device__ __host__ mhd::_internal::Flux nonStarFluxes(mhd::_internal::State const &state, Real const &magneticX);
+__device__ __host__ mhd::internal::Flux nonStarFluxes(mhd::internal::State const &state, Real const &magneticX);
 
 /*!
  * \brief Write the given flux values to the dev_flux array
@@ -177,8 +177,8 @@ __device__ __host__ mhd::_internal::Flux nonStarFluxes(mhd::_internal::State con
  * one of the left states or one of the right states
  */
 __device__ __host__ void returnFluxes(int const &threadId, int const &o1, int const &o2, int const &o3,
-                                      int const &n_cells, Real *dev_flux, mhd::_internal::Flux const &flux,
-                                      mhd::_internal::State const &state);
+                                      int const &n_cells, Real *dev_flux, mhd::internal::Flux const &flux,
+                                      mhd::internal::State const &state);
 
 /*!
  * \brief Compute the total pressure in the star states. M&K 2005 equation 41
@@ -188,8 +188,8 @@ __device__ __host__ void returnFluxes(int const &threadId, int const &o1, int co
  * \param speed The wave speeds
  * \return Real The total pressure in the star state
  */
-__device__ __host__ Real starTotalPressure(mhd::_internal::State const &stateL, mhd::_internal::State const &stateR,
-                                           mhd::_internal::Speeds const &speed);
+__device__ __host__ Real starTotalPressure(mhd::internal::State const &stateL, mhd::internal::State const &stateR,
+                                           mhd::internal::Speeds const &speed);
 
 /*!
  * \brief Compute the L* or R* state. M&K 2005 equations 43-48
@@ -198,12 +198,11 @@ __device__ __host__ Real starTotalPressure(mhd::_internal::State const &stateL, 
  * state \param speed The wavespeeds \param speedSide The wave speed on the
  * same side as the desired star state \param magneticX The magnetic field
  * in the x direction \param totalPressureStar The total pressure in the
- * star state \return mhd::_internal::StarState The computed star state
+ * star state \return mhd::internal::StarState The computed star state
  */
-__device__ __host__ mhd::_internal::StarState computeStarState(mhd::_internal::State const &state,
-                                                               mhd::_internal::Speeds const &speed,
-                                                               Real const &speedSide, Real const &magneticX,
-                                                               Real const &totalPressureStar);
+__device__ __host__ mhd::internal::StarState computeStarState(mhd::internal::State const &state,
+                                                              mhd::internal::Speeds const &speed, Real const &speedSide,
+                                                              Real const &magneticX, Real const &totalPressureStar);
 
 /*!
  * \brief Compute the flux in the star state. M&K 2005 equation 64
@@ -213,12 +212,11 @@ __device__ __host__ mhd::_internal::StarState computeStarState(mhd::_internal::S
  * \param flux The non-star flux on the same side as the star state
  * \param speed The wave speeds
  * \param speedSide The non-star wave speed on the same side as the star state
- * \return mhd::_internal::Flux The flux in the star state
+ * \return mhd::internal::Flux The flux in the star state
  */
-__device__ __host__ mhd::_internal::Flux starFluxes(mhd::_internal::StarState const &starState,
-                                                    mhd::_internal::State const &state,
-                                                    mhd::_internal::Flux const &flux,
-                                                    mhd::_internal::Speeds const &speed, Real const &speedSide);
+__device__ __host__ mhd::internal::Flux starFluxes(mhd::internal::StarState const &starState,
+                                                   mhd::internal::State const &state, mhd::internal::Flux const &flux,
+                                                   mhd::internal::Speeds const &speed, Real const &speedSide);
 
 /*!
  * \brief Compute the double star state. M&K 2005 equations 59-63
@@ -228,13 +226,13 @@ __device__ __host__ mhd::_internal::Flux starFluxes(mhd::_internal::StarState co
  * \param magneticX The x magnetic field
  * \param totalPressureStar The total pressure in the star state
  * \param speed The approximate wave speeds
- * \return mhd::_internal::DoubleStarState The double star state
+ * \return mhd::internal::DoubleStarState The double star state
  */
-__device__ __host__ mhd::_internal::DoubleStarState computeDoubleStarState(mhd::_internal::StarState const &starStateL,
-                                                                           mhd::_internal::StarState const &starStateR,
-                                                                           Real const &magneticX,
-                                                                           Real const &totalPressureStar,
-                                                                           mhd::_internal::Speeds const &speed);
+__device__ __host__ mhd::internal::DoubleStarState computeDoubleStarState(mhd::internal::StarState const &starStateL,
+                                                                          mhd::internal::StarState const &starStateR,
+                                                                          Real const &magneticX,
+                                                                          Real const &totalPressureStar,
+                                                                          mhd::internal::Speeds const &speed);
 
 /*!
  * \brief Compute the double star state fluxes. M&K 2005 equation 65
@@ -248,11 +246,24 @@ __device__ __host__ mhd::_internal::DoubleStarState computeDoubleStarState(mhd::
  * \param speedSideStar The star wave speed on the same side
  * \return __device__
  */
-__device__ __host__ mhd::_internal::Flux computeDoubleStarFluxes(
-    mhd::_internal::DoubleStarState const &doubleStarState, Real const &doubleStarStateEnergy,
-    mhd::_internal::StarState const &starState, mhd::_internal::State const &state, mhd::_internal::Flux const &flux,
-    mhd::_internal::Speeds const &speed, Real const &speedSide, Real const &speedSideStar);
+__device__ __host__ mhd::internal::Flux computeDoubleStarFluxes(
+    mhd::internal::DoubleStarState const &doubleStarState, Real const &doubleStarStateEnergy,
+    mhd::internal::StarState const &starState, mhd::internal::State const &state, mhd::internal::Flux const &flux,
+    mhd::internal::Speeds const &speed, Real const &speedSide, Real const &speedSideStar);
 
-}  // namespace _internal
+/*!
+ * \brief Specialization of mhd::utils::computeGasPressure for use in the HLLD solver
+ *
+ * \param state The State to compute the gas pressure of
+ * \param magneticX The X magnetic field
+ * \param gamma The adiabatic index
+ * \return Real The gas pressure
+ */
+inline __host__ __device__ Real Calc_Pressure_Primitive(mhd::internal::State const &state, Real const &magneticX,
+                                                        Real const &gamma)
+{
+  return hydro_utilities::Calc_Pressure_Primitive(state.energy, state.density, state.velocityX, state.velocityY,
+                                                  state.velocityZ, gamma, magneticX, state.magneticY, state.magneticZ);
+}
+}  // namespace internal
 }  // end namespace mhd
-#endif  // CUDA
