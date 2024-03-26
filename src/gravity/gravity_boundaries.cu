@@ -6,6 +6,7 @@
   #include "../grid/grid3D.h"
   #include "../io/io.h"
   #include "../model/disk_galaxy.h"
+  #include "../model/potentials.h"
 
   #if defined(GRAV_ISOLATED_BOUNDARY_X) || defined(GRAV_ISOLATED_BOUNDARY_Y) || defined(GRAV_ISOLATED_BOUNDARY_Z)
 
@@ -230,8 +231,22 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
           pot_val = -Grav.Gconst * M / r;
         } else if (bc_potential_type == 1) {
           // M-W disk potential
-          r       = sqrt(pos_x * pos_x + pos_y * pos_y);
-          pot_val = galaxies::MW.phi_disk_D3D(r, pos_z) + galaxies::MW.phi_halo_D3D(r, pos_z);
+
+          // The underlying assumption of PARIS_GALACTIC is that we have a good analytic
+          // approximation the gravitation potential at the boundaries due to the dynamical density
+          // (i.e. gas density and particle density)
+          // - we implicitly make use of that potential when solving for the potential
+          // - we also make use of it here to overwrite the values of the potential at the boundary
+  
+          // Currently, we need to make sure this stays synchronized with the approximation used within
+          // Paris_Galactic. We should refactor so that we don't need to do that
+          // Right now:
+          // -> we are implicitly assuming that the gas disk is the only source of dynamical density
+          //    (i.e. the `rho_real` array is dominated by gas density)
+          // -> we are currently ignoring contributions from particles
+          const AprroxExponentialDisk3MN approx_potential = galaxies::MW.getGasDisk().selfgrav_approx_potential;
+          r       = sqrt((pos_x * pos_x) + (pos_y * pos_y));
+          pot_val = approx_potential.phi_disk_D3D(r, pos_z);
         } else {
           chprintf(
               "ERROR: Boundary Potential not set, need to set appropriate "
