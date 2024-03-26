@@ -232,6 +232,19 @@ struct AprroxExponentialDisk3MN{
             comps[2].phi_disk_D3D(R,z));
   }
 
+  /* computes the mass profile that corresponds to the potential
+   *
+   * \note 
+   * Technically, this may contain negative values. But, that's long as we are not using the results
+   * to directly initialize a gas density profile. This is mostly useful in certain kinds of gravity
+   * solvers.
+   */
+  __host__ __device__ Real rho_disk_D3D(Real R, Real z) const noexcept
+  {
+    return (comps[0].rho_disk_D3D(R,z) + comps[1].rho_disk_D3D(R,z) +
+            comps[2].rho_disk_D3D(R,z));
+  }
+
 };
 
 
@@ -255,14 +268,18 @@ struct GasDiskProps{
   bool isothermal; /*!< Indicates whether to initialize an isothermal or adiabatic disk
                     *!< (it's unclear whether the adiabatic configuration still works)
                     */
-  AprroxExponentialDisk3MN approx_selfgrav_for_vcirc; /*!< facilitates rough estimate of the self-gravity
-                                                       *!< (to help with setting up circular-velocity in ICs).
-                                                       *!< While this is always initialized, it's not always used
-                                                       */
+
+  /* A rough approximation for the gravitational potential produced by self-gravity.
+   * - It is generally used to help initialize the circular-velocity in the ICs.
+   * - It is also employed while using the Paris-Galactic gravity solver. In this latter case, it's 
+   *   critical that this approximation is accurate at the domain boundaries (elsewhere, accuracy
+   *   is entirely unimportant).
+   */
+  AprroxExponentialDisk3MN selfgrav_approx_potential;
 
   GasDiskProps(Real M_d, Real R_d, Real H_d, Real T_d, bool isothermal, Real selfgrav_scale_height_estimate)
     : M_d(M_d), R_d(R_d), H_d(H_d), T_d(T_d), isothermal(isothermal),
-      approx_selfgrav_for_vcirc(AprroxExponentialDisk3MN::create(M_d, R_d, selfgrav_scale_height_estimate, true))
+      selfgrav_approx_potential(AprroxExponentialDisk3MN::create(M_d, R_d, selfgrav_scale_height_estimate, true))
   {}
 
   /* Returns Sigma_0. This is just

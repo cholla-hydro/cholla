@@ -52,7 +52,7 @@ Real DiskGalaxy::gr_halo_D3D(Real R, Real z) const noexcept
 
 Real DiskGalaxy::gr_total_with_GasSelfGravEstimate(Real R, Real z) const noexcept
 {
-  return gas_disk->approx_selfgrav_for_vcirc.gr_disk_D3D(R,z) + gr_total_D3D(R,z);
+  return gas_disk->selfgrav_approx_potential.gr_disk_D3D(R,z) + gr_total_D3D(R,z);
 }
 
 Real DiskGalaxy::phi_halo_D3D(Real R, Real z) const noexcept

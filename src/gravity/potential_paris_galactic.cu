@@ -8,6 +8,9 @@
   #include "../utils/gpu.hpp"
   #include "../utils/error_handling.h"
 
+  #include "../model/disk_galaxy.h"
+  #include "../model/potentials.h"
+
 PotentialParisGalactic::PotentialParisGalactic()
     : dn_{0, 0, 0},
       dr_{0, 0, 0},
@@ -69,24 +72,47 @@ void PotentialParisGalactic::Get_Potential(const Real *const density, Real *cons
 
   // We begin the actual calculation
 
-  // STEP 1: store the RHS of Poisson's equation, 4 * pi * G * density, evaluated
-  // at every location inside the `da` variable
+  // The underlying solver of Poisson's equation (called by this function) will ONLY work correctly
+  // when solves for a Gravitational potential, Phi, satisfying the following 2 invariants:
+  //   1. The laplacian of Phi is 0 at all the boundaries (i.e. density is zero at the boundaries)
+  //   2. The gradient of Phi is 0 at all the boundaries (i.e. gravity field -- aka gravitational
+  //      acceleration -- is 0 at the boundaries)
   //
-  // for reasons related to the fact that we using FFTs to solve Poisson's
-  // equation with isolated boundaries, it is convenient to compute the
-  // gravitational for `(rho_real - rho_analytic)`
-  // - `rho_real` is the mass density field of self-gravitating gas and particles
-  //   (it corresponds to the contents of the `rho` variable)
-  // - `rho_analytic` is the mass density field that to corresponds to the
-  //   static analytic background potential (we never explicitly model this
-  //   mass in the simulation)
-  // - it would be nice if we could link to a source explaining these "reasons"
+  // Consequently, we must pass the underlying solver a density field that implicitly corresponds to
+  // a potential satisfying these 2 conditions. Let's call this density field `rho_solver`
+  //
+  // In general, the `rho_real` field (includes all "dynamic" density -- particles and gas) corresponds
+  // to a potential (lets call it `Phi_real`) that does NOT satisfies these requirements. Consequently,
+  // we need to do something "clever."
+  //
+  // This function assumes that we have an analytic approximation for what the potential of the
+  // `rho_real` field looks like, called `Phi_approx`. Let's refer to the density field that EXACTLY
+  // matches `Phi_approx` as `rho_approx`.
+  //
+  // The basic idea is:
+  //   1. compute `rho_solver = rho_real - rho_approx`
+  //   2. have the underlying solver compute `Phi_solver` from `rho_solver`
+  //   3. return the value of `Phi_real = Phi_solver + Phi_approx`.
+  //
+  // It's important that `Phi_approx` accurately approximates the potential of `Phi_real` at the boundaries
+  // (it's perfectly fine to be inaccurate inside the domain).
+  //   - When this is true, then this means that the values, gradient, and laplacian of `Phi_solver`
+  //     are all 0 at the boundaries.
+  //   - Consequently, the invariants of the underlying solver are all satisfied.
 
-  const Real md = galaxy.getM_d();
-  const Real rd = galaxy.getR_d();
-  const Real zd = galaxy.getZ_d();
 
-  const Real rho0 = md * zd * zd / (4.0 * M_PI);
+  // Load in the object to approximate the gravitation potential
+  // -> we are implicitly assuming that the gas disk is the only source of dynamical density
+  //    (i.e. the `rho_real` array is dominated by gas density)
+  // -> we are currently ignoring contributions from particles
+  //
+  // NOTE: At the time of writing, we aren't accounting for the fact that the gas-disk is truncated.
+  //       This is almost certainly significant!
+  const AprroxExponentialDisk3MN approx_potential = galaxies::MW.getGasDisk().selfgrav_approx_potential;
+
+  // STEP 1: compute the RHS of Poisson's equation that will be passed to the solver
+  //  -> in more detail we are computing `4 * pi * G * rho_solver`
+  //  -> as noted above, `rho_solver = rho_real - rho_approx`
   gpuFor(
       nk, nj, ni, GPU_LAMBDA(const int k, const int j, const int i) {
         const int ia = i + ni * (j + nj * k);
@@ -94,34 +120,20 @@ void PotentialParisGalactic::Get_Potential(const Real *const density, Real *cons
         const Real x = xMin + i * dx;
         const Real y = yMin + j * dy;
         const Real z = zMin + k * dz;
+        const Real R = sqrt((x * x) + (y * y));
 
-        const Real r    = sqrt(x * x + y * y);
-        const Real a    = sqrt(z * z + zd * zd);
-        const Real b    = rd + a;
-        const Real c    = r * r + b * b;
-        const Real dRho = rho0 * (rd * c + 3.0 * a * b * b) / (a * a * a * pow(c, 2.5));
-
-        da[ia] = scale * (rho[ia] - dRho);
+        da[ia] = scale * (rho[ia] - approx_potential.rho_disk_D3D(R, z));
       });
 
-  // STEP 2: actually solve poisson's equation (the function's implementation
-  // has been configured based on global configuration macros to properly handle the
-  // isolated boundaries). The resulting gravitational potential is stored in db
+  // STEP 2: actually solve poisson's equation for the density field `rho_solver = rho_real - rho_approx`.
+  //         The resulting gravitational potential is stored in `db`
   pp_->solve(minBytes_, da, db);
 
-  // STEP 3: Compute the gravitational potential corresponding to rho_real and store
+  // STEP 3: Compute the gravitational potential corresponding to `rho_rea;` and store
   // it inside the phi pointer at each spatial location
-  // - `db` currently holds gravitational potential, Phi, for the density field of
-  //   `(rho_real - rho_analytic)`
-  // - This step exploits 2 simple properties for pairs of rho-Phi pairs.
-  //   1. If a gravitational potential, Phi, corresponds to density field rho, then
-  //      -1* Phi corresponds to -1*rho.
-  //   2. They are additive. (If Phi_1 corresponds to rho_1 and Phi_2 corresponds to
-  //      rho_2, then Phi_1 + Phi_2 corresponds to rho_1 + rho_2)
-  //
-  // Putting this together: db holds `(Phi_real - Phi_analytic)`. To get `Phi_real`,
-  // we simply compute `Phi_analytic + (Phi_real - Phi_analytic)`.
-  const Real phi0 = -grav_const * md;
+  // - `db` currently holds gravitational potential, `Phi_solver = (Phi_real - Phi_approx)`, for the density
+  //   field of `rho_solver = (rho_real - rho_approx)`
+  // - To get `Phi_real`, we simply compute `Phi_approx + Phi_solver`.
   gpuFor(
       nk, nj, ni, GPU_LAMBDA(const int k, const int j, const int i) {
         const int ia = i + ni * (j + nj * k);
@@ -130,14 +142,9 @@ void PotentialParisGalactic::Get_Potential(const Real *const density, Real *cons
         const Real x = xMin + i * dx;
         const Real y = yMin + j * dy;
         const Real z = zMin + k * dz;
+        const Real R = sqrt((x * x) + (y * y));
 
-        const Real r    = sqrt(x * x + y * y);
-        const Real a    = sqrt(z * z + zd * zd);
-        const Real b    = a + rd;
-        const Real c    = sqrt(r * r + b * b);
-        const Real dPhi = phi0 / c;
-
-        phi[ib] = db[ia] + dPhi;
+        phi[ib] = db[ia] + approx_potential.phi_disk_D3D(R,z);
       });
 
   #ifdef GRAVITY_GPU

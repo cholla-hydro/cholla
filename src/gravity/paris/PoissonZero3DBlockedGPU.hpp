@@ -6,9 +6,22 @@
 
 
 /*!
- * \brief This class contains all of the core logic for actually solving Poisson's
- * equation (using FFTs). An instance of this object lies at the core of various
- * Paris Solvers.
+ * \brief Encapsulates core logic for using Discrete Sine Transform (implemented in terms of FFTs)
+ * to solve Poisson's equation with isolated boundaries.
+ *
+ * \par Restrictions
+ * This solver makes 2 large assumptions about the resulting potential:
+ *   1. the laplacian of the potential is zero at the boundaries.
+ *      - equivalently, the input density field must have a value of 0 at the boundaries.
+ *      - if this is not satisfied, the density field can't be represented by a Discrete Sine
+ *        Transform
+ *   2. The gradient of the potential is 0 at the boundaries
+ *      - equivalently, the gravitation field (aka accelereation due to gravity) is 0 at the
+ *        boundaries
+ * It is the caller's responsiblity to ensure that the density field passed into the solver
+ * corresponds to a gravitational potential that largely satisfies these constraints. If the caller
+ * does not satisfy these requirements, the solver will still execute. It might just provide a highly
+ * inaccurate result
  */
 class PoissonZero3DBlockedGPU
 {
@@ -20,7 +33,13 @@ class PoissonZero3DBlockedGPU
   long bytes() const { return bytes_; }
 
   /*!
-   * \brief Solve Possion's equation. To be memory efficient
+   * \brief Solve Possion's equation. To be memory efficient, this will reuse
+   * the density array as a scratch buffer
+   *
+   * This solver will NOT provide robust solutions for an arbitrary density
+   * field. To get a robust solution, the density field *MUST* correspond to a
+   * potential that satisfies the assumptions outlined in the documentation
+   * for this class as a whole
    *
    * \param[in]  bytes The nominal sizes of the density and potential buffers.
    * This must be at least as large as `this->bytes()`.
