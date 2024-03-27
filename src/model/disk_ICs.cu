@@ -17,6 +17,7 @@
 #include "../io/io.h"
 #include "../mpi/mpi_routines.h"
 #include "../utils/error_handling.h"
+#include "../utils/math_utilities.h"
 #include "disk_galaxy.h"
 #include "potentials.h"
 #include "selfgrav_hydrostatic_col.h"
@@ -44,6 +45,62 @@ struct DataPack {
   Real cs_h;
   Real r_cool;  // cooling radius
   Real Rgas_truncation_radius;
+};
+
+void hydrostatic_ray_analytical_D3D(Real* rho, Real* r, const DataPack& hdp, Real dr, int nr);
+
+struct DensityPressurePair{
+  Real density;
+  Real pressure;
+};
+
+class CGMInitializer
+{
+public:
+  CGMInitializer(const Parameters& p, const DataPack& data_pack)
+    : nr(1000),
+      dr(sqrt(3) * 0.5 * fmax(p.xlen, p.zlen) / ((Real)nr)),
+      rho_halo(),
+      r_halo(),
+      K_eos_h(data_pack.K_eos_h),
+      gamma(data_pack.gamma)
+  {
+    rho_halo.resize(nr, 0.0);
+    r_halo.resize(nr, 0.0);
+
+    chprintf("Generating hot halo lookup table generated ...\n");
+    hydrostatic_ray_analytical_D3D(rho_halo.data(), r_halo.data(), data_pack, dr, nr);
+    chprintf("Generating hot halo lookup table generated -- done\n");
+  }
+
+  // interpolate the halo density profile
+  DensityPressurePair operator()(Real r) const noexcept
+  {
+
+    // find the index of the current
+    // position in r_halo (based on r_hc_D3D)
+    int i = (int)((r - 0.5 * this->dr) / this->dr);
+    if (i < 0 || i >= nr - 1) {
+      if (i < 0) {
+        i = 0;
+      } else {
+        i = nr - 2;
+      }
+    }
+    // compute the interpolated density profile
+    Real rho = (rho_halo[i + 1] - rho_halo[i]) * (r - r_halo[i]) / (r_halo[i + 1] - r_halo[i]) + rho_halo[i];
+    // set pressure adiabatically
+    Real P = this->K_eos_h * pow(rho, this->gamma);
+    return {rho, P};
+  }
+
+private:
+  const int nr;
+  const Real dr;
+  std::vector<Real>rho_halo;
+  std::vector<Real>r_halo;
+  Real K_eos_h;
+  Real gamma;
 };
 
 // radial acceleration in NFW halo
@@ -708,25 +765,6 @@ Real determine_rho_eos_D3D(Real cs, Real Sigma_0, const DataPack& hdp)
   return rho_eos;
 }
 
-Real halo_density_D3D(Real r, Real* r_halo, Real* rho_halo, Real dr, int nr)
-{
-  // interpolate the halo density profile
-  int i;
-
-  // find the index of the current
-  // position in r_halo (based on r_hc_D3D)
-  i = (int)((r - 0.5 * dr) / dr);
-  if (i < 0 || i >= nr - 1) {
-    if (i < 0) {
-      i = 0;
-    } else {
-      i = nr - 2;
-    }
-  }
-  // return the interpolated density profile
-  return (rho_halo[i + 1] - rho_halo[i]) * (r - r_halo[i]) / (r_halo[i + 1] - r_halo[i]) + rho_halo[i];
-}
-
 // we need to forward declare the following functions
 // -> we opt to forward declare them rather than move them because the functions are fairly large
 // -> in both cases, the functions only initialize thermal-energy in the total-energy field
@@ -735,8 +773,8 @@ void partial_initialize_isothermal_disk(const Parameters& p, const Header& H, co
                                         const Grid3D::Conserved& C, const DataPack hdp,
                                         const HydroStaticColMaker& col_maker,
                                         const Vrot2FromPotential& vrot2_from_phi_fn);
-void partial_initialize_halo(const Parameters& p, const Header& H, const Grid3D& grid, const Grid3D::Conserved& C,
-                             DataPack hdp);
+void partial_initialize_halo(const Header& H, const Grid3D& grid, const Grid3D::Conserved& C,
+                             const CGMInitializer& cgm_initializer);
 
 /*! \fn void Disk_3D(Parameters P)
  *  \brief Initialize the grid with a 3D disk. */
@@ -848,7 +886,8 @@ void Grid3D::Disk_3D(Parameters p)
   // since we are adding contributions from the halo across the entire domain, let's initialize it
   // first (we will need to account for its influence on the radial pressure gradients when
   // initializing the circular velocity of the disk)
-  partial_initialize_halo(p, this->H, *this, this->C, hdp);
+  CGMInitializer cgm_initializer(p, hdp);
+  partial_initialize_halo(this->H, *this, this->C, cgm_initializer);
 
   if (gas_disk.isothermal) {
     if (self_gravity) {
@@ -1115,23 +1154,9 @@ void partial_initialize_isothermal_disk(const Parameters& p, const Header& H, co
 }
 
 // This is called after initializing the disk
-void partial_initialize_halo(const Parameters& p, const Header& H, const Grid3D& grid, const Grid3D::Conserved& C,
-                             DataPack hdp)
+void partial_initialize_halo(const Header& H, const Grid3D& grid, const Grid3D::Conserved& C,
+                             const CGMInitializer& cgm_initializer)
 {
-  // create a look up table for the halo gas profile
-  const int nr  = 1000;
-  const Real dr = sqrt(3) * 0.5 * fmax(p.xlen, p.zlen) / ((Real)nr);
-  std::vector<Real> rho_halo(nr, 0.0);
-  std::vector<Real> r_halo(nr, 0.0);
-
-  //////////////////////////////////////////////
-  //////////////////////////////////////////////
-  // Produce a look up table for a hydrostatic hot halo
-  //////////////////////////////////////////////
-  //////////////////////////////////////////////
-  hydrostatic_ray_analytical_D3D(rho_halo.data(), r_halo.data(), hdp, dr, nr);
-  chprintf("Hot halo lookup table generated...\n");
-
   //////////////////////////////////////////////
   //////////////////////////////////////////////
   // Add a hot, hydrostatic halo
@@ -1151,19 +1176,16 @@ void partial_initialize_halo(const Parameters& p, const Header& H, const Grid3D&
 
         // calculate 3D radial position and phi (assumes halo is centered at 0,
         // 0)
-        Real r = sqrt(x_pos * x_pos + y_pos * y_pos + z_pos * z_pos);
+        Real r = sqrt(math_utils::SquareMagnitude(x_pos, y_pos, z_pos));
 
-        // interpolate the density at this position
-        Real d = halo_density_D3D(r, r_halo.data(), rho_halo.data(), dr, nr);
-
-        // set pressure adiabatically
-        Real P = hdp.K_eos_h * pow(d, p.gamma);
+        // compute the density and pressure at this position
+        DensityPressurePair tmp = cgm_initializer(r);
 
         // store density in density
-        C.density[id] += d;
+        C.density[id] += tmp.density;
 
         // store internal energy in Energy array
-        C.Energy[id] += P / (gama - 1.0);
+        C.Energy[id] += tmp.pressure / (gama - 1.0);
       }
     }
   }
