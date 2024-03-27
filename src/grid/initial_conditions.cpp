@@ -63,6 +63,8 @@ void Grid3D::Set_Initial_Conditions(Parameters P)
     Disk_2D();
   } else if (strcmp(P.init, "Disk_3D") == 0 || strcmp(P.init, "Disk_3D_particles") == 0) {
     Disk_3D(P);
+  } else if (strcmp(P.init, "Isolated_Stellar_Cluster") == 0) {
+    Constant(P);
   } else if (strcmp(P.init, "Spherical_Overpressure_3D") == 0) {
     Spherical_Overpressure_3D();
   } else if (strcmp(P.init, "Spherical_Overdensity_3D") == 0) {

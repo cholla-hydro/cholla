@@ -596,10 +596,74 @@ Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n
   return dev_dti[0];
 }
 
+__global__ void Temperature_Ceiling_Kernel(Real *conserved, int nx, int ny, int nz, int n_ghost, int n_fields,
+                                           Real gamma, Real T_ceiling, int *counter)
+{
+  const int id      = threadIdx.x + blockIdx.x * blockDim.x;
+  const int n_cells = nx * ny * nz;
+  int xid, yid, zid;
+  cuda_utilities::compute3DIndices(id, nx, ny, xid, yid, zid);
+  const bool real_cell = (xid > n_ghost - 1 && xid < nx - n_ghost && yid > n_ghost - 1 && yid < ny - n_ghost &&
+                          zid > n_ghost - 1 && zid < nz - n_ghost);
+  if (!real_cell) return;
+
+  const Real d  = conserved[grid_enum::density * n_cells + id];
+  const Real mx = conserved[grid_enum::momentum_x * n_cells + id];
+  const Real my = conserved[grid_enum::momentum_y * n_cells + id];
+  const Real mz = conserved[grid_enum::momentum_z * n_cells + id];
+  const Real E  = conserved[grid_enum::Energy * n_cells + id];
+
+  // compute 1/density (we take some care to avoid a source of NANs)
+  const Real d_inv = 1.0 / (d + TINY_NUMBER * (d == 0.0));
+
+  // calculate local kinetic energy
+  const Real KE = 0.5 * d_inv * ((mx * mx) + ((my * my) + (mz * mz)));
+
+  // convert T_ceiling to specific_eint_ceiling
+  // -> keep in mind, that specific internal energy has units of velocity^2
+  const Real particle_mass          = 0.6 * MP;
+  const Real specific_eint_ceil_CGS = KB * T_ceiling / (particle_mass * (gamma - 1));
+  const Real specific_eint_ceil     = specific_eint_ceil_CGS * (VELOCITY_UNIT * VELOCITY_UNIT);
+
+  const Real local_eint_ceil = d * specific_eint_ceil;
+  const Real local_etot_ceil = local_eint_ceil + KE;
+
+  if (E > local_etot_ceil) conserved[grid_enum::Energy * n_cells + id] = local_etot_ceil;
+
+#ifdef DE
+  if (conserved[grid_enum::GasEnergy * n_cells + id] > local_eint_ceil) {
+    conserved[grid_enum::GasEnergy * n_cells + id] = local_eint_ceil;
+  }
+#endif  // DE
+  atomicAdd(counter, 1);
+}
+
+void Temperature_Ceiling(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real gamma,
+                         Real T_ceiling)
+{
+  int n_cells = nx * ny * nz;
+  int ngrid   = (n_cells + TPB - 1) / TPB;
+  dim3 dim1dGrid(ngrid, 1, 1);
+  dim3 dim1dBlock(TPB, 1, 1);
+
+  cuda_utilities::DeviceVector<int> counter(1, true);
+  int *dev_counter = counter.data();
+
+  if (nx > 1 && ny > 1 && nz > 1) {  // 3D
+    hipLaunchKernelGGL(Temperature_Ceiling_Kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost,
+                       n_fields, gamma, T_ceiling, dev_counter);
+  }
+  int host_counter = counter[0];
+  if (host_counter > 0) {
+    printf("HYDRO WARNING: Temperature Ceiling applied to num_cells: %d \n", host_counter);
+  }
+}
+
 #ifdef AVERAGE_SLOW_CELLS
 
 void Average_Slow_Cells(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy,
-                        Real dz, Real gamma, Real max_dti_slow)
+                        Real dz, Real gamma, Real max_dti_slow, Real xbound, Real ybound, Real zbound, int nx_offset,
+                        int ny_offset, int nz_offset)
 {
   // set values for GPU kernels
   int n_cells = nx * ny * nz;
@@ -611,12 +675,13 @@ void Average_Slow_Cells(Real *dev_conserved, int nx, int ny, int nz, int n_ghost
 
   if (nx > 1 && ny > 1 && nz > 1) {  // 3D
     hipLaunchKernelGGL(Average_Slow_Cells_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields,
-                       dx, dy, dz, gamma, max_dti_slow);
+                       dx, dy, dz, gamma, max_dti_slow, xbound, ybound, zbound, nx_offset, ny_offset, nz_offset);
   }
 }
 
 __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx,
-                                      Real dy, Real dz, Real gamma, Real max_dti_slow)
+                                      Real dy, Real dz, Real gamma, Real max_dti_slow, Real xbound, Real ybound,
+                                      Real zbound, int nx_offset, int ny_offset, int nz_offset)
 {
   int id, xid, yid, zid, n_cells;
   Real d, d_inv, vx, vy, vz, E, max_dti;
@@ -642,15 +707,18 @@ __global__ void Average_Slow_Cells_3D(Real *dev_conserved, int nx, int ny, int n
     max_dti = hydroInverseCrossingTime(E, d, d_inv, vx, vy, vz, dx, dy, dz, gamma);
 
     if (max_dti > max_dti_slow) {
-      speed = sqrt(vx * vx + vy * vy + vz * vz);
-      temp  = (gamma - 1) * (E - 0.5 * (speed * speed) * d) * ENERGY_UNIT / (d * DENSITY_UNIT / 0.6 / MP) / KB;
-      P     = (E - 0.5 * d * (vx * vx + vy * vy + vz * vz)) * (gamma - 1.0);
-      cs    = sqrt(d_inv * gamma * P) * VELOCITY_UNIT * 1e-5;
+      speed  = sqrt(vx * vx + vy * vy + vz * vz);
+      temp   = (gamma - 1) * (E - 0.5 * (speed * speed) * d) * ENERGY_UNIT / (d * DENSITY_UNIT / 0.6 / MP) / KB;
+      P      = (E - 0.5 * d * (vx * vx + vy * vy + vz * vz)) * (gamma - 1.0);
+      cs     = sqrt(d_inv * gamma * P) * VELOCITY_UNIT * 1e-5;
+      Real x = xbound + (nx_offset + xid - n_ghost + 0.5) * dx;
+      Real y = ybound + (ny_offset + yid - n_ghost + 0.5) * dy;
+      Real z = zbound + (nz_offset + zid - n_ghost + 0.5) * dz;
       // Average this cell
       kernel_printf(
-          " Average Slow Cell [ %d %d %d ] -> dt_cell=%f    dt_min=%f, n=%.3e, "
+          " Average Slow Cell [ %.5e %.5e %.5e ] -> dt_cell=%f    dt_min=%f, n=%.3e, "
           "T=%.3e, v=%.3e (%.3e, %.3e, %.3e), cs=%.3e\n",
-          xid, yid, zid, 1. / max_dti, 1. / max_dti_slow, dev_conserved[id] * DENSITY_UNIT / 0.6 / MP, temp,
+          x, y, z, 1. / max_dti, 1. / max_dti_slow, dev_conserved[id] * DENSITY_UNIT / 0.6 / MP, temp,
           speed * VELOCITY_UNIT * 1e-5, vx * VELOCITY_UNIT * 1e-5, vy * VELOCITY_UNIT * 1e-5, vz * VELOCITY_UNIT * 1e-5,
           cs);
       Average_Cell_All_Fields(xid, yid, zid, nx, ny, nz, n_cells, n_fields, gamma, dev_conserved);

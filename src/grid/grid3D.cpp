@@ -78,7 +78,7 @@ Grid3D::Grid3D(void)
 
 /*! \fn void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real
  * *zpos) \brief Get the cell-centered position based on cell index */
-void Grid3D::Get_Position(long i, long j, long k, Real *x_pos, Real *y_pos, Real *z_pos)
+void Grid3D::Get_Position(long i, long j, long k, Real *x_pos, Real *y_pos, Real *z_pos) const
 {
 #ifndef MPI_CHOLLA
 
@@ -565,12 +565,27 @@ Real Grid3D::Update_Hydro_Grid()
   #endif  // CPU_TIME
 #endif    // COOLING_GRACKLE
 
+  // Temperature Ceiling
+#ifdef TEMPERATURE_CEILING
+  // 1e51 ergs / (m_p * (pc/cm)^3) = 45000 km/s
+  // sqrt(1e10 K * kB/ m_mp) = 9000 km/s
+  const Real T_ceiling_kelvin = 1e9;  // match CGOLS (roughly where cooling function cuts off);
+  Temperature_Ceiling(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, gama, T_ceiling_kelvin);
+#endif  // TEMPERATURE_CEILING
+
   // == average slow cells and compute the new timestep ==
 #ifdef AVERAGE_SLOW_CELLS
   // Set the min_delta_t for averaging a slow cell
   Real max_dti_slow;
   max_dti_slow = 1 / H.min_dt_slow;
-  Average_Slow_Cells(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dx, H.dy, H.dz, gama, max_dti_slow);
+  int nx_off = 0, ny_off = 0, nz_off = 0;
+  #ifdef MPI_CHOLLA
+  nx_off = nx_local_start;  // offsets
+  ny_off = ny_local_start;
+  nz_off = nz_local_start;
+  #endif
+  Average_Slow_Cells(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dx, H.dy, H.dz, gama, max_dti_slow, H.xbound,
+                     H.ybound, H.zbound, nx_off, ny_off, nz_off);
 #endif  // AVERAGE_SLOW_CELLS
 
   // ==Calculate the next time step using Calc_dt_GPU from hydro/hydro_cuda.h==

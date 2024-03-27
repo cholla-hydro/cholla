@@ -127,6 +127,9 @@ void Print(const char *const title, const int ni, const int nj, const int nk, co
 
 void PoissonZero3DBlockedGPU::solve(const long bytes, double *const density, double *const potential) const
 {
+  // according to Trey, part of the reasons this is messy is because we are taking a blocked
+  // discrete sine transform (DST) and RocFFT doesn't provide this functionality out of the box
+  // (at least at this time). Consequently, the blocked DST is implemented in terms of FFTs
   assert(bytes >= bytes_);
   assert(density);
   assert(potential);

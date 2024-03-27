@@ -6,7 +6,6 @@
 #include "feedback_analysis.h"
 #ifdef PARTICLES_GPU
 
-  #define MU 0.6
   // in cgs, this is 0.01 cm^{-3}
   #define MIN_DENSITY  (0.01 * MP * MU * LENGTH_UNIT * LENGTH_UNIT * LENGTH_UNIT / MASS_UNIT)  // 148279.7
   #define TPB_ANALYSIS 1024
@@ -33,7 +32,9 @@ __device__ void Warp_Reduce(volatile Real *buff, size_t tid)
   }
 }
 
-void __global__ Reduce_Tubulence_kernel(int nx, int ny, int nz, int n_ghost, Real *density, Real *momentum_x,
+void __global__ Reduce_Tubulence_kernel(int nx, int ny, int nz, int n_ghost, Real xbound, Real ybound, Real zbound,
+                                        Real dx, Real dy, Real dz, Real nx_local_start, Real ny_local_start,
+                                        Real nz_local_start, Real r_max, Real z_max, Real *density, Real *momentum_x,
                                         Real *momentum_y, Real *momentum_z, Real *circ_vel_x, Real *circ_vel_y,
                                         Real *partial_mass, Real *partial_vel)
 {
@@ -50,15 +51,24 @@ void __global__ Reduce_Tubulence_kernel(int nx, int ny, int nz, int n_ghost, Rea
   s_mass[tid] = 0;
   s_vel[tid]  = 0;
   Real vx, vy, vz;
+  Real x, y, z, r;
+
   if (xid > n_ghost - 1 && xid < nx - n_ghost && yid > n_ghost - 1 && yid < ny - n_ghost && zid > n_ghost - 1 &&
       zid < nz - n_ghost && density[id] > MIN_DENSITY) {
-    s_mass[tid] = density[id];
-    vx          = momentum_x[id] / density[id];
-    vy          = momentum_y[id] / density[id];
-    vz          = momentum_z[id] / density[id];
-    s_vel[tid] =
-        ((vx - circ_vel_x[id]) * (vx - circ_vel_x[id]) + (vy - circ_vel_y[id]) * (vy - circ_vel_y[id]) + (vz * vz)) *
-        density[id];
+    x = xbound + (nx_local_start + xid - n_ghost + 0.5) * dx;
+    y = ybound + (ny_local_start + yid - n_ghost + 0.5) * dy;
+    z = zbound + (nz_local_start + zid - n_ghost + 0.5) * dz;
+    r = sqrt(x * x + y * y + z * z);
+
+    if (r <= r_max && abs(z) <= z_max) {
+      s_mass[tid] = density[id];
+      vx          = momentum_x[id] / density[id];
+      vy          = momentum_y[id] / density[id];
+      vz          = momentum_z[id] / density[id];
+      s_vel[tid] =
+          ((vx - circ_vel_x[id]) * (vx - circ_vel_x[id]) + (vy - circ_vel_y[id]) * (vy - circ_vel_y[id]) + (vz * vz)) *
+          density[id];
+    }
   }
   __syncthreads();
 
@@ -153,9 +163,17 @@ void FeedbackAnalysis::Compute_Gas_Velocity_Dispersion_GPU(Grid3D &G)
   Real total_mass = 0;
   Real total_vel  = 0;
 
+  Real nx_loc_strt = 0, ny_loc_strt = 0, nz_loc_strt = 0;
+  #ifdef MPI_CHOLLA
+  nx_loc_strt = nx_local_start;
+  ny_loc_strt = ny_local_start;
+  nz_loc_strt = nz_local_start;
+  #endif
+
   hipLaunchKernelGGL(Reduce_Tubulence_kernel, ngrid, TPB_ANALYSIS, 0, 0, G.H.nx, G.H.ny, G.H.nz, G.H.n_ghost,
-                     G.C.d_density, G.C.d_momentum_x, G.C.d_momentum_y, G.C.d_momentum_z, d_circ_vel_x, d_circ_vel_y,
-                     d_partial_mass, d_partial_vel);
+                     G.H.xbound, G.H.ybound, G.H.zbound, G.H.dx, G.H.dy, G.H.dz, nx_loc_strt, ny_loc_strt, nz_loc_strt,
+                     r_max, z_max, G.C.d_density, G.C.d_momentum_x, G.C.d_momentum_y, G.C.d_momentum_z, d_circ_vel_x,
+                     d_circ_vel_y, d_partial_mass, d_partial_vel);
 
   size_t n         = ngrid;
   Real *mass_input = d_partial_mass;

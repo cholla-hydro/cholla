@@ -1,0 +1,53 @@
+#
+# Parameter File for a 3D disk with 
+# particle (i.e. stellar cluster) feedback.
+#
+
+######################################
+# number of grid cells in the x dimension
+nx=256
+# number of grid cells in the y dimension
+ny=256
+# number of grid cells in the z dimension
+nz=256
+# final output time
+tout=1000
+# time interval for output
+outstep=100
+n_hydro=10
+# value of gamma
+gamma=1.66666667
+# name of initial conditions
+init=Disk_3D_particles
+snr_filename=./src/feedback/starburst99_snr.txt
+sw_filename=./src/feedback/starburst99_sw.txt
+feedback_sn_model=legacy
+feedback_boundary_strategy=snap
+bc_potential_type=1
+# domain properties
+xmin=-2
+ymin=-2
+zmin=-2
+xlen=4
+ylen=4
+zlen=4
+# type of boundary conditions
+xl_bcnd=3
+xu_bcnd=3
+yl_bcnd=3
+yu_bcnd=3
+zl_bcnd=3
+zu_bcnd=3
+# rotated projection properties
+nxr=384
+nzr=384
+delta=0.0
+theta=20.0
+phi=20.0
+Lx=15.0
+Lz=15.0
+flag_delta=2
+ddelta_dt=-0.001
+# path to output directory
+outdir=./
+prng_seed=41

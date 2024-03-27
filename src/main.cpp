@@ -16,13 +16,12 @@
 #include "io/io.h"
 #include "utils/cuda_utilities.h"
 #include "utils/error_handling.h"
-
-#ifdef SUPERNOVA
-  #include "particles/supernova.h"
+#ifdef FEEDBACK
+  #include "feedback/feedback.h"
   #ifdef ANALYSIS
     #include "analysis/feedback_analysis.h"
   #endif
-#endif  // SUPERNOVA
+#endif  // FEEDBACK
 #ifdef STAR_FORMATION
   #include "particles/star_formation.h"
 #endif
@@ -164,14 +163,15 @@ int main(int argc, char *argv[])
   }
 #endif
 
-#if defined(SUPERNOVA) && defined(PARTICLE_AGE)
-  FeedbackAnalysis sn_analysis(G);
-  #ifdef MPI_CHOLLA
-  supernova::initState(&P, G.Particles.n_total_initial);
-  #else
-  supernova::initState(&P, G.Particles.n_local);
-  #endif  // MPI_CHOLLA
-#endif    // SUPERNOVA && PARTICLE_AGE
+#if defined(FEEDBACK) && defined(PARTICLE_AGE)
+  FeedbackAnalysis sn_analysis(G, &P);
+  #ifndef NO_SN_FEEDBACK
+  feedback::Init_State(&P);
+  #endif  // NO_SN_FEEDBACK
+  #ifndef NO_WIND_FEEDBACK
+  feedback::Init_Wind_State(&P);
+  #endif
+#endif  // FEEDBACK && PARTICLE_AGE
 
 #ifdef STAR_FORMATION
   star_formation::Initialize(G);
@@ -260,9 +260,9 @@ int main(int argc, char *argv[])
       G.H.dt = next_scheduled_time - G.H.t;
     }
 
-#if defined(SUPERNOVA) && defined(PARTICLE_AGE)
-    supernova::Cluster_Feedback(G, sn_analysis);
-#endif  // SUPERNOVA && PARTICLE_AGE
+#if defined(FEEDBACK) && defined(PARTICLE_AGE)
+    feedback::Cluster_Feedback(G, sn_analysis);
+#endif  // FEEDBACK && PARTICLE_AGE
 
 #ifdef PARTICLES
     // Advance the particles KDK( first step ): Velocities are updated by 0.5*dt
@@ -327,10 +327,8 @@ int main(int argc, char *argv[])
     if (P.output_always) G.H.Output_Now = true;
 
 #ifdef ANALYSIS
-    if (G.Analysis.Output_Now) {
-      G.Compute_and_Output_Analysis(&P);
-    }
-  #if defined(SUPERNOVA) && defined(PARTICLE_AGE)
+    if (G.Analysis.Output_Now) G.Compute_and_Output_Analysis(&P);
+  #if defined(FEEDBACK) && defined(PARTICLE_AGE)
     sn_analysis.Compute_Gas_Velocity_Dispersion(G);
   #endif
 #endif

@@ -3,8 +3,9 @@
 #-- This script needs to be source-d in the terminal, e.g.
 #   source ./setup.frontier.cce.sh
 
+module load cpe/23.12
 module load cray-python
-module load rocm
+module load rocm/5.7.1
 module load craype-accel-amd-gfx90a
 module load cray-hdf5 cray-fftw
 module load googletest/1.10.0

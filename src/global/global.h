@@ -41,6 +41,7 @@ typedef double Real;
 #define LENGTH_UNIT         3.08567758e21  // 1 kpc in cm
 #define MASS_UNIT           1.98847e33     // 1 solar mass in grams
 #define DENSITY_UNIT        (MASS_UNIT / (LENGTH_UNIT * LENGTH_UNIT * LENGTH_UNIT))
+#define FORCE_UNIT          (MASS_UNIT * LENGTH_UNIT / TIME_UNIT / TIME_UNIT)
 #define VELOCITY_UNIT       (LENGTH_UNIT / TIME_UNIT)
 #define ENERGY_UNIT         (DENSITY_UNIT * VELOCITY_UNIT * VELOCITY_UNIT)
 #define PRESSURE_UNIT       (DENSITY_UNIT * VELOCITY_UNIT * VELOCITY_UNIT)
@@ -49,6 +50,17 @@ typedef double Real;
 
 #define LOG_FILE_NAME "run_output.log"
 
+// Conserved Floor Values
+#if (defined(FEEDBACK) || defined(STAR_FORMATION)) && defined(CLOUDY_COOL)
+  #define TEMP_FLOOR 1e1    // 10K for cloudy cooling
+  #define DENS_FLOOR 14.83  // 1e-6 cm^-3
+#else
+  #define TEMP_FLOOR 1e-3
+  #define DENS_FLOOR 1e-5  // in code units
+#endif
+
+// mean molecular weight
+#define MU 0.6
 // Parameters for Enzo dual Energy Condition
 // - Prior to GH PR #356, DE_ETA_1 nominally had a value of 0.001 in all
 //   simulations (in practice, the value of DE_ETA_1 had minimal significance
@@ -283,8 +295,13 @@ struct Parameters {
   // machine dependent seed will be generated.
   std::uint_fast64_t prng_seed = 0;
 #endif  // PARTICLES
-#ifdef SUPERNOVA
+#ifdef FEEDBACK
+  #ifndef NO_SN_FEEDBACK
   char snr_filename[MAXLEN];
+  #endif
+  #ifndef NO_WIND_FEEDBACK
+  char sw_filename[MAXLEN];
+  #endif
 #endif
 #ifdef ROTATED_PROJECTION
   // initialize rotation parameters to zero
