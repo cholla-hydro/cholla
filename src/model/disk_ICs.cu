@@ -38,48 +38,66 @@ struct DataPack {
   Real rho_floor;
   Real rho_eos;
   Real cs;
-
-  // these were defined somewhat separately
-  Real K_eos_h;
-  Real rho_eos_h;
-  Real cs_h;
-  Real r_cool;  // cooling radius
   Real Rgas_truncation_radius;
 };
 
-void hydrostatic_ray_analytical_D3D(Real* rho, Real* r, const DataPack& hdp, Real dr, int nr,
-                                    Real gamma, Real rho_eos, Real cs, Real r_cool);
+Real Isothermal_Sound_Speed_CodeU(Real T, Real mu)
+{
+  return sqrt(KB * T / (mu * MP)) * TIME_UNIT / LENGTH_UNIT;  // sound speed in kpc/kyr
+}
 
-struct DensityPressurePair{
+void hydrostatic_ray_analytical_D3D(Real* rho, Real* r, const DataPack& hdp, Real dr, int nr, Real gamma, Real rho_eos,
+                                    Real cs, Real r_cool);
+
+struct DensityPressurePair {
   Real density;
   Real pressure;
 };
 
 class CGMInitializer
 {
-public:
-  CGMInitializer(const Parameters& p, const DataPack& data_pack)
-    : nr(1000),
-      dr(sqrt(3) * 0.5 * fmax(p.xlen, p.zlen) / ((Real)nr)),
-      rho_halo(),
-      r_halo(),
-      K_eos_h(data_pack.K_eos_h),
-      gamma(data_pack.gamma)
+ public:
+  /*!
+   * Construct an instance of CGMInitializer
+   * \param p The global parameter struct
+   * \param data_pack A pack of assorted values
+   * \param rho_eos_h The normalization gas density of the halo (at r_cool)
+   * \param T_eos_h The normalization temperature of the halo (at r_cool)
+   * \param r_cool cooling radius
+   */
+  CGMInitializer(const Parameters& p, const DataPack& data_pack, Real mu, Real rho_eos_h, Real T_eos_h, Real r_cool)
+      : nr(1000),
+        dr(sqrt(3) * 0.5 * fmax(p.xlen, p.zlen) / ((Real)nr)),
+        rho_halo(),
+        r_halo(),
+        K_eos_h(),
+        gamma(data_pack.gamma)
   {
+    Real cs_h;
+    if (true) {
+      // we are using an isothermal sound speed even though the rest of this logic
+      // assumes an adiabatic structure. This is currently done for backwards
+      // compatability
+      cs_h = Isothermal_Sound_Speed_CodeU(T_eos_h, mu);  // sound speed in kpc/kyr
+    } else {
+      // we should implement the adiabatic sound speed
+    }
+
+    // this assumes adiabatic structure
+    K_eos_h = cs_h * cs_h * pow(rho_eos_h, 1.0 - p.gamma) / p.gamma;
+
     rho_halo.resize(nr, 0.0);
     r_halo.resize(nr, 0.0);
 
     chprintf("Generating hot halo lookup table generated ...\n");
-    hydrostatic_ray_analytical_D3D(rho_halo.data(), r_halo.data(), data_pack, dr, nr,
-                                   data_pack.gamma, data_pack.rho_eos, data_pack.cs_h,
-                                   data_pack.r_cool);
+    hydrostatic_ray_analytical_D3D(rho_halo.data(), r_halo.data(), data_pack, dr, nr, this->gamma, rho_eos_h, cs_h,
+                                   r_cool);
     chprintf("Generating hot halo lookup table generated -- done\n");
   }
 
   // interpolate the halo density profile
   DensityPressurePair operator()(Real r) const noexcept
   {
-
     // find the index of the current
     // position in r_halo (based on r_hc_D3D)
     int i = (int)((r - 0.5 * this->dr) / this->dr);
@@ -97,11 +115,11 @@ public:
     return {rho, P};
   }
 
-private:
+ private:
   const int nr;
   const Real dr;
-  std::vector<Real>rho_halo;
-  std::vector<Real>r_halo;
+  std::vector<Real> rho_halo;
+  std::vector<Real> r_halo;
   Real K_eos_h;
   Real gamma;
 };
@@ -234,8 +252,8 @@ Real r_hc_D3D(int i, Real dr)
  *  \param[in]  cs sound speed where rho_eos is set
  *  \param[in]  r_cool cooling radius
  */
-void hydrostatic_ray_analytical_D3D(Real* rho, Real* r, const DataPack& hdp, Real dr, int nr,
-                                    Real gamma, Real rho_eos, Real cs, Real r_cool)
+void hydrostatic_ray_analytical_D3D(Real* rho, Real* r, const DataPack& hdp, Real dr, int nr, Real gamma, Real rho_eos,
+                                    Real cs, Real r_cool)
 {
   // Routine to determine the hydrostatic density profile
   // along a ray from the galaxy center
@@ -790,7 +808,7 @@ void partial_initialize_halo(const Header& H, const Grid3D& grid, const Grid3D::
 void Grid3D::Disk_3D(Parameters p)
 {
   Real T_d, T_h, mu;
-  Real K_eos, rho_eos, cs, rho_eos_h, cs_h, r_cool;
+  Real K_eos, rho_eos, cs, rho_eos_h;
 
   // MW model
   DiskGalaxy galaxy = galaxies::MW;
@@ -798,8 +816,6 @@ void Grid3D::Disk_3D(Parameters p)
 
   const MiyamotoNagaiPotential stellar_disk = galaxy.getStaticStellarDiskPotential();
   const GasDiskProps gas_disk               = galaxy.getGasDisk();
-
-  r_cool = galaxy.getR_cool();  // cooling radius in kpc (MW)
 
   T_h       = 1.0e6;  // halo temperature, at density floor
   rho_eos   = 1.0e7;  // gas eos normalized at 1e7 Msun/kpc^3
@@ -827,9 +843,7 @@ void Grid3D::Disk_3D(Parameters p)
   }
 
   // EOS info
-  cs   = sqrt(KB * T_d / (mu * MP)) * TIME_UNIT / LENGTH_UNIT;  // sound speed in kpc/kyr
-  cs_h = sqrt(KB * T_h / (mu * MP)) * TIME_UNIT / LENGTH_UNIT;  // sound speed in kpc/kyr
-
+  cs = Isothermal_Sound_Speed_CodeU(T_d, mu);  // sound speed in kpc/kyr
   // set some initial Parameters
   // these Parameters are mostly passed to hydrostatic column
   DataPack hdp;  // Parameters
@@ -874,10 +888,6 @@ void Grid3D::Disk_3D(Parameters p)
   hdp.rho_floor = 0.0;  // rho_floor, set to 0
   hdp.rho_eos   = rho_eos;
   hdp.cs        = cs;
-  hdp.K_eos_h   = cs_h * cs_h * pow(rho_eos_h, 1.0 - p.gamma) / p.gamma;
-  hdp.rho_eos_h = rho_eos_h;
-  hdp.cs_h      = cs_h;
-  hdp.r_cool    = r_cool;
 
   hdp.Rgas_truncation_radius = Get_Gas_Truncation_Radius(p);
 
@@ -895,7 +905,7 @@ void Grid3D::Disk_3D(Parameters p)
   // since we are adding contributions from the halo across the entire domain, let's initialize it
   // first (we will need to account for its influence on the radial pressure gradients when
   // initializing the circular velocity of the disk)
-  CGMInitializer cgm_initializer(p, hdp);
+  CGMInitializer cgm_initializer(p, hdp, mu, rho_eos_h, T_h, galaxy.getR_cool());
   partial_initialize_halo(this->H, *this, this->C, cgm_initializer);
 
   if (gas_disk.isothermal) {
