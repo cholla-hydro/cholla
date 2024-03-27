@@ -47,7 +47,8 @@ struct DataPack {
   Real Rgas_truncation_radius;
 };
 
-void hydrostatic_ray_analytical_D3D(Real* rho, Real* r, const DataPack& hdp, Real dr, int nr);
+void hydrostatic_ray_analytical_D3D(Real* rho, Real* r, const DataPack& hdp, Real dr, int nr,
+                                    Real gamma, Real rho_eos, Real cs, Real r_cool);
 
 struct DensityPressurePair{
   Real density;
@@ -69,7 +70,9 @@ public:
     r_halo.resize(nr, 0.0);
 
     chprintf("Generating hot halo lookup table generated ...\n");
-    hydrostatic_ray_analytical_D3D(rho_halo.data(), r_halo.data(), data_pack, dr, nr);
+    hydrostatic_ray_analytical_D3D(rho_halo.data(), r_halo.data(), data_pack, dr, nr,
+                                   data_pack.gamma, data_pack.rho_eos, data_pack.cs_h,
+                                   data_pack.r_cool);
     chprintf("Generating hot halo lookup table generated -- done\n");
   }
 
@@ -220,17 +223,23 @@ Real r_hc_D3D(int i, Real dr)
  dr, int nr)
  *  \brief Calculate the density at spherical radius r due to a hydrostatic
  halo. Uses an analytic expression normalized by the value of the potential at
- the cooling radius. */
-void hydrostatic_ray_analytical_D3D(Real* rho, Real* r, const DataPack& hdp, Real dr, int nr)
+ the cooling radius.
+ *
+ *  \param[out] rho array to be filled with denstiy values
+ *  \param[out] r array to be filled with radius values
+ *  \param[in]  hdp holds generic information
+ *  \param[in]  nr The length of rho and the length of r
+ *  \param[in]  gamma adiabatic index
+ *  \param[in]  rho_eos_h density where K_EOS is set
+ *  \param[in]  cs sound speed where rho_eos is set
+ *  \param[in]  r_cool cooling radius
+ */
+void hydrostatic_ray_analytical_D3D(Real* rho, Real* r, const DataPack& hdp, Real dr, int nr,
+                                    Real gamma, Real rho_eos, Real cs, Real r_cool)
 {
   // Routine to determine the hydrostatic density profile
   // along a ray from the galaxy center
   int i;  // index along r direction
-
-  Real gamma   = hdp.gamma;      // adiabatic index
-  Real rho_eos = hdp.rho_eos_h;  // density where K_EOS is set
-  Real cs      = hdp.cs_h;       // sound speed at rho_eos
-  Real r_cool  = hdp.r_cool;     // cooling radius
 
   Real Phi_0;  // potential at cooling radius
 
