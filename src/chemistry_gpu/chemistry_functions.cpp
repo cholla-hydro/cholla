@@ -74,9 +74,10 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   time_base             = Chem.H.time_units;
   Chem.H.cooling_units  = (pow(length_base, 2) * pow(MH, 2)) / (dens_base * pow(time_base, 3));
   Chem.H.reaction_units = MH / (dens_base * time_base);
+  Chem.H.max_iter       = 10000;
+
   // printf(" cooling_units: %e\n", Chem.H.cooling_units );
   // printf(" reaction_units: %e\n", Chem.H.reaction_units );
-  Chem.H.max_iter       = 10000;
 
 
 
