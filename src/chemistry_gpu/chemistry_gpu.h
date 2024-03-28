@@ -77,8 +77,8 @@ struct Chemistry_Header {
   float *photo_heat_HeI_rate_d;
   float *photo_heat_HeII_rate_d;
 
-  //inherit the temperature floor
-  //from Parameters
+  // inherit the temperature floor
+  // from Parameters
   float temperature_floor;
 };
 
