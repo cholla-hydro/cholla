@@ -59,7 +59,7 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   Chem.H.density_units    = Chem.H.density_units / Chem.H.a_value / Chem.H.a_value / Chem.H.a_value;
   Chem.H.length_units     = Chem.H.length_units / Cosmo.cosmo_h * Chem.H.a_value;
   Chem.H.time_units       = Chem.H.time_units / Cosmo.cosmo_h;
-  Chem.H.dens_number_conv = Chem.H.density_number_conv * pow(Chem.H.a_value, 3);
+  Chem.H.dens_number_conv = Chem.H.dens_number_conv * pow(Chem.H.a_value, 3);
   #endif  // COSMOLOGY
   Chem.H.velocity_units = Chem.H.length_units / Chem.H.time_units;
 
@@ -74,10 +74,12 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   time_base             = Chem.H.time_units;
   Chem.H.cooling_units  = (pow(length_base, 2) * pow(MH, 2)) / (dens_base * pow(time_base, 3));
   Chem.H.reaction_units = MH / (dens_base * time_base);
-  // printf(" cooling_units: %e\n", Chem.H.cooling_units );
-  // printf(" reaction_units: %e\n", Chem.H.reaction_units );
+  Chem.H.max_iter       = 10000;
 
-  Chem.H.max_iter = 10000;
+  // The chemistry GPU functions need access to the temperature floor
+  // but they don't have access to P. Use Chem.H as a carrier.
+  // The P->temperature_floor is always defined, so safe to set here.
+  Chem.H.temperature_floor = P->temperature_floor;
 
   // Initialize all the rates
   Chem.Initialize(P);

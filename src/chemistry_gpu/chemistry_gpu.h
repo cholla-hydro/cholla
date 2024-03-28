@@ -10,7 +10,7 @@ typedef Real (*Rate_Function_T)(Real, Real);
 
 // #define TEXTURES_UVB_INTERPOLATION
 
-struct ChemistryHeader {
+struct Chemistry_Header {
   Real gamma;
   Real density_conversion;
   Real energy_conversion;
@@ -76,6 +76,10 @@ struct ChemistryHeader {
   float *photo_heat_HI_rate_d;
   float *photo_heat_HeI_rate_d;
   float *photo_heat_HeII_rate_d;
+
+  // inherit the temperature floor
+  // from Parameters
+  float temperature_floor;
 };
 
 #ifdef CHEMISTRY_GPU

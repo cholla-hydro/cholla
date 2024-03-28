@@ -328,7 +328,9 @@ __device__ Real Get_Chemistry_dt(Thermal_State &TS, Chemistry_Header &Chem_H, Re
   }
 
   #ifdef TEMPERATURE_FLOOR
-  if (TS.get_temperature(Chem_H.gamma) < TEMP_FLOOR) TS.U = TS.compute_U(TEMP_FLOOR, Chem_H.gamma);
+  if (TS.get_temperature(Chem_H.gamma) < Chem_H.temperature_floor) {
+    TS.U = TS.compute_U(Chem_H.temperature_floor, Chem_H.gamma);
+  }
   #endif
 
   energy = fmax(TS.U * TS.d, tiny);
@@ -421,7 +423,9 @@ __device__ void Update_Step(Thermal_State &TS, Chemistry_Header &Chem_H, Real dt
   // Update internal energy
   TS.U += U_dot / TS.d * dt;
   #ifdef TEMPERATURE_FLOOR
-  if (TS.get_temperature(Chem_H.gamma) < TEMP_FLOOR) TS.U = TS.compute_U(TEMP_FLOOR, Chem_H.gamma);
+  if (TS.get_temperature(Chem_H.gamma) < Chem_H.temperature_floor) {
+    TS.U = TS.compute_U(Chem_H.temperature_floor, Chem_H.gamma);
+  }
   #endif
   if (print) printf("Updated U: %e \n", TS.U);
 }
@@ -482,17 +486,16 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, int nx, int ny, int
     dt_hydro = dt_hydro / Chem_H.time_units;
 
   #ifdef COSMOLOGY
-    dt_hydro *= current_a * current_a / Chem_H.H0 * 1000 *
-                KPC
+    dt_hydro *= current_a * current_a / Chem_H.H0 * 1000 * KPC;
   #endif  // COSMOLOGY
-          // dt_hydro = dt_hydro * current_a * current_a / Chem_H.H0 *
-          // 1000 * KPC / Chem_H.time_units;
-          //  delta_a = Chem_H.H0 * sqrt( Chem_H.Omega_M/current_a +
-          //  Chem_H.Omega_L*pow(current_a, 2) ) / ( 1000 * KPC ) *
-          //  dt_hydro * Chem_H.time_units;
+    // dt_hydro = dt_hydro * current_a * current_a / Chem_H.H0 *
+    // 1000 * KPC / Chem_H.time_units;
+    //  delta_a = Chem_H.H0 * sqrt( Chem_H.Omega_M/current_a +
+    //  Chem_H.Omega_L*pow(current_a, 2) ) / ( 1000 * KPC ) *
+    //  dt_hydro * Chem_H.time_units;
 
-                    // Initialize the thermal state
-                    Thermal_State TS;
+    // Initialize the thermal state
+    Thermal_State TS;
     TS.d       = dev_conserved[id] / a3;
     TS.d_HI    = dev_conserved[id + n_cells * grid_enum::HI_density] / a3;
     TS.d_HII   = dev_conserved[id + n_cells * grid_enum::HII_density] / a3;
