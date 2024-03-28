@@ -328,7 +328,9 @@ __device__ Real Get_Chemistry_dt(Thermal_State &TS, Chemistry_Header &Chem_H, Re
   }
 
   #ifdef TEMPERATURE_FLOOR
-  if (TS.get_temperature(Chem_H.gamma) < Chem_H.temperature_floor) TS.U = TS.compute_U(Chem_H.temperature_floor, Chem_H.gamma);
+  if (TS.get_temperature(Chem_H.gamma) < Chem_H.temperature_floor) {
+    TS.U = TS.compute_U(Chem_H.temperature_floor, Chem_H.gamma);
+  }
   #endif
 
   energy = fmax(TS.U * TS.d, tiny);
@@ -421,7 +423,9 @@ __device__ void Update_Step(Thermal_State &TS, Chemistry_Header &Chem_H, Real dt
   // Update internal energy
   TS.U += U_dot / TS.d * dt;
   #ifdef TEMPERATURE_FLOOR
-  if (TS.get_temperature(Chem_H.gamma) < Chem_H.temperature_floor) TS.U = TS.compute_U(Chem_H.temperature_floor, Chem_H.gamma);
+  if (TS.get_temperature(Chem_H.gamma) < Chem_H.temperature_floor) {
+    TS.U = TS.compute_U(Chem_H.temperature_floor, Chem_H.gamma);
+  }
   #endif
   if (print) printf("Updated U: %e \n", TS.U);
 }

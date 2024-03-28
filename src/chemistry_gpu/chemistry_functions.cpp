@@ -80,9 +80,9 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   Chem.H.max_iter = 10000;
 
 
-  //The chemistry GPU functions need access to the temperature floor
-  //but they don't have access to P. Use Chem.H as a carrier.
-  //The P->temperature_floor is always defined, so safe to set here.
+  // The chemistry GPU functions need access to the temperature floor
+  // but they don't have access to P. Use Chem.H as a carrier.
+  // The P->temperature_floor is always defined, so safe to set here.
   Chem.H.temperature_floor = P->temperature_floor;
 
   // Initialize all the rates
