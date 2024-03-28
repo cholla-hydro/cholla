@@ -76,11 +76,6 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   Chem.H.reaction_units = MH / (dens_base * time_base);
   Chem.H.max_iter       = 10000;
 
-  // printf(" cooling_units: %e\n", Chem.H.cooling_units );
-  // printf(" reaction_units: %e\n", Chem.H.reaction_units );
-
-
-
   // The chemistry GPU functions need access to the temperature floor
   // but they don't have access to P. Use Chem.H as a carrier.
   // The P->temperature_floor is always defined, so safe to set here.
