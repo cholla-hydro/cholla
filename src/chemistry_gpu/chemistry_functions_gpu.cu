@@ -488,14 +488,14 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, int nx, int ny, int
   #ifdef COSMOLOGY
     dt_hydro *= current_a * current_a / Chem_H.H0 * 1000 * KPC;
   #endif  // COSMOLOGY
-          // dt_hydro = dt_hydro * current_a * current_a / Chem_H.H0 *
-          // 1000 * KPC / Chem_H.time_units;
-          //  delta_a = Chem_H.H0 * sqrt( Chem_H.Omega_M/current_a +
-          //  Chem_H.Omega_L*pow(current_a, 2) ) / ( 1000 * KPC ) *
-          //  dt_hydro * Chem_H.time_units;
+    // dt_hydro = dt_hydro * current_a * current_a / Chem_H.H0 *
+    // 1000 * KPC / Chem_H.time_units;
+    //  delta_a = Chem_H.H0 * sqrt( Chem_H.Omega_M/current_a +
+    //  Chem_H.Omega_L*pow(current_a, 2) ) / ( 1000 * KPC ) *
+    //  dt_hydro * Chem_H.time_units;
 
-                    // Initialize the thermal state
-                    Thermal_State TS;
+    // Initialize the thermal state
+    Thermal_State TS;
     TS.d       = dev_conserved[id] / a3;
     TS.d_HI    = dev_conserved[id + n_cells * grid_enum::HI_density] / a3;
     TS.d_HII   = dev_conserved[id + n_cells * grid_enum::HII_density] / a3;
