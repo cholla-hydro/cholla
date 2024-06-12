@@ -28,7 +28,7 @@ int n_cluster;
 
 }  // namespace Supernova
 
-  #if not defined(O_HIP) && not defined(PARTICLES_GPU) 
+  #if not defined(O_HIP) && not defined(PARTICLES_GPU)
 __device__ double atomicMax(double *address, double val)
 {
   unsigned long long int *address_as_ull = (unsigned long long int *)address;
@@ -475,7 +475,7 @@ __global__ void Supernova_Feedback_Kernel(Real *hydro_dev, Real *cluster_array, 
   #endif
   if (weight > 0.0 && dt > 0.0) {
     Real dti = Calc_Timestep(hydro_dev, gidx, n_cells, gamma, dx, dy, dz);
-  #ifndef PARTICLES_GPU // total hack to get the disk build type to compile
+  #ifndef PARTICLES_GPU  // total hack to get the disk build type to compile
     atomicMax(d_dti, dti);
   #endif
   }
