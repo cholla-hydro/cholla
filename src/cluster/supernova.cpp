@@ -24,7 +24,7 @@
 // Define Cluster object
 // Initialize by loading cluster_list.h and making cuda array
 // Define Cluster Rotate
-namespace Supernova
+namespace clusters
 {
 // Real cluster_data[];
 
@@ -64,20 +64,20 @@ int supernova_e;
 void Test(Header H);
 void Initialize(Grid3D G);
 Real Update_Grid(Grid3D G, Real old_dti);
-}  // namespace Supernova
+}  // namespace clusters
 
 // H.dx = 1.0;
 // H.dy = 1.0;
 // H.dz = 1.0;
 
-void Supernova::Test(Header H)
+void clusters::Test(Header H)
 {
   chprintf("nx %d ny %d nz %d dx %f dy %f dz %f\n", nx, ny, nz, dx, dy, dz);
   chprintf("pnx %d pny %d pnz %d n_cell %d n_fields %d\n", pnx, pny, pnz, n_cells, n_fields);
   chprintf("Min %f %f %f Max %f %f %f", xMin, yMin, zMin, xMax, yMax, zMax);
 }
 
-void Supernova::Initialize(Grid3D G, struct Parameters *P)
+void clusters::Initialize(Grid3D G, struct Parameters *P)
 {
   // #include "cluster_list.data"
   //  Defines cluster_data in local scope so it is deleted
@@ -130,7 +130,7 @@ void Supernova::Initialize(Grid3D G, struct Parameters *P)
   n_ghost  = H.n_ghost;
 
   #ifdef CUDA
-  chprintf("Initializing Supernova CUDA arrays\n");
+  chprintf("Initializing cluster CUDA arrays\n");
   d_hydro_array = G.C.device;
 
   // CudaSafeCall( cudaMalloc (&d_cluster_array,5*n_cluster*sizeof(Real)));
@@ -146,7 +146,7 @@ void Supernova::Initialize(Grid3D G, struct Parameters *P)
   chprintf("Min %f %f %f Max %f %f %f\n", xMin, yMin, zMin, xMax, yMax, zMax);
 }
 
-Real Supernova::Update_Grid(Grid3D G, Real old_dti_local)
+Real clusters::Update_Grid(Grid3D G, Real old_dti_local)
 {
   // Let G.set_dt synchronize before Update Grid
   double start_time = Get_Time();
@@ -188,7 +188,7 @@ C_cfl/old_dti;
   return G.H.dt;
 }
 
-void Supernova::Print_Tracker(Grid3D G)
+void clusters::Print_Tracker(Grid3D G)
 {
   // h_tracker
   /*

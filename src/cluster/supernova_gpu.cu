@@ -8,7 +8,7 @@
 
 // texture<float, 1, cudaReadModeElementType> mdotTexObj;
 // texture<float, 1, cudaReadModeElementType> edotTexObj;
-namespace Supernova
+namespace clusters
 {
 Real *d_cluster_array;
 Real *d_omega_array;
@@ -26,7 +26,7 @@ int n_tracker    = 5;
 
 int n_cluster;
 
-}  // namespace Supernova
+}  // namespace clusters
 
   #if not defined(O_HIP) && not defined(PARTICLES_GPU)
 __device__ double atomicMax(double *address, double val)
@@ -54,7 +54,7 @@ __device__ Real Calc_Timestep(Real *hydro_dev, int gidx, int n_cells, Real gamma
   return fmax(fmax((fabs(vx) + cs) / dx, (fabs(vy) + cs) / dy), (fabs(vz) + cs) / dz);
 }
 
-void Supernova::Initialize_GPU(void)
+void clusters::Initialize_GPU(void)
 {
   #include "cluster_list_MW.data"
   // Defines cluster_data in local scope so it is deleted
@@ -74,7 +74,7 @@ void Supernova::Initialize_GPU(void)
   InitializeS99();
 }
 
-void Supernova::InitializeS99(void)
+void clusters::InitializeS99(void)
 {
   #include "S99_table.data"
   int n_entries = sizeof(s99_data) / sizeof(s99_data[0]) / 3;
@@ -287,7 +287,7 @@ __global__ void Calc_Omega_Kernel(Real *cluster_array, Real *omega_array, int n_
   omega_array[tid] = v / r_pos;
 }
 
-void Supernova::Calc_Omega(void)
+void clusters::Calc_Omega(void)
 {
   dim3 dim1dGrid((n_cluster + TPB - 1) / TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
@@ -383,7 +383,7 @@ __global__ void Calc_Flag_Kernel(Real *cluster_array, Real *omega_array, bool *f
   return;
 }
 
-void Supernova::Calc_Flags(Real time)
+void clusters::Calc_Flags(Real time)
 {
   GPU_Error_Check(cudaDeviceSynchronize());
   // double start_time = get_time();
@@ -517,7 +517,7 @@ __global__ void Supernova_Feedback_Kernel(Real *hydro_dev, Real *cluster_array, 
   return;
 }
 
-Real Supernova::Feedback(Real density, Real energy, Real time, Real dt)
+Real clusters::Feedback(Real density, Real energy, Real time, Real dt)
 {
   GPU_Error_Check(cudaDeviceSynchronize());
 
@@ -554,7 +554,7 @@ Real Supernova::Feedback(Real density, Real energy, Real time, Real dt)
   return h_dti;
 }
 
-void Supernova::Copy_Tracker()
+void clusters::Copy_Tracker()
 {
   GPU_Error_Check(cudaDeviceSynchronize());
   GPU_Error_Check(cudaMemcpy(h_tracker, d_tracker, n_tracker * sizeof(Real), cudaMemcpyDeviceToHost));

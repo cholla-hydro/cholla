@@ -2,7 +2,7 @@
 #define SUPERNOVA_H
 #include "../global/global.h"  //defines Real
 #include "../grid/grid3D.h"    // defines Header
-namespace Supernova
+namespace clusters
 {
 extern int n_cluster;
 
@@ -54,5 +54,5 @@ void Print_Tracker(Grid3D G);
 Real Feedback(Real density, Real energy, Real time, Real dt);
 Real Update_Grid(Grid3D G, Real old_dti);
 
-}  // namespace Supernova
+}  // namespace clusters
 #endif

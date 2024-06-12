@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef SUPERNOVA
-  Supernova::Initialize(G, &P);
+  clusters::Initialize(G, &P);
 #endif
 
   chprintf("Dimensions of each cell: dx = %f dy = %f dz = %f\n", G.H.dx, G.H.dy, G.H.dz);
@@ -266,7 +266,7 @@ int main(int argc, char *argv[])
     }
 
 #if defined(SUPERNOVA)
-    Supernova::Update_Grid(G, dti);
+    clusters::Update_Grid(G, dti);
 #endif
 
 #if defined(SUPERNOVA) && defined(PARTICLE_AGE)
