@@ -65,16 +65,16 @@ Real Sigma_Disk_D3D(Real r, Real *hdp)
   // return the exponential surface density
   Real Sigma_0 = hdp[9];
   Real R_g     = hdp[10];
-  Real R_c     = 4.5;
+  Real R_c     = 9.9;
   Real Sigma;
   Real delta = 0.1;
   Real norm  = log(1.0 / 3.0);
   Sigma      = Sigma_0 * exp(-r / R_g);
   // taper the edge of the disk to 0
   if (r < R_c) {
-    Sigma *= 2.0 - 1.0 / (1.0 - exp((r - (4.5 - delta * norm)) / delta));
+    Sigma *= 2.0 - 1.0 / (1.0 - exp((r - (R_c - delta * norm)) / delta));
   } else {
-    Sigma *= 1.0 / (1.0 - exp(((4.5 + delta * norm) - r) / delta)) - 1.0;
+    Sigma *= 1.0 / (1.0 - exp(((R_c + delta * norm) - r) / delta)) - 1.0;
   }
   return Sigma;
 }
@@ -743,13 +743,22 @@ void Grid3D::Disk_3D(Parameters p)
   Real d, a, a_d, a_h, v, vx, vy, vz, P, T_d, T_h, mu;
   Real M_vir, M_h, M_d, c_vir, R_vir, R_s, R_d, z_d;
   Real K_eos, rho_eos, cs, K_eos_h, rho_eos_h, cs_h;
-  Real Sigma_0, R_g, H_g;
+  Real Sigma_0, R_g, H_g, G_f;
   Real rho_floor;
   Real r_cool;
+  Real c;
 
+  #ifdef PARTICLES
+  ClusteredDiskGalaxy galaxy = galaxies::MW;  // NOLINT(cppcoreguidelines-slicing)
+  #else
+    #ifdef MW_MODEL
   // MW model
   DiskGalaxy galaxy = galaxies::MW;  // NOLINT(cppcoreguidelines-slicing)
-  // M82 model galaxies::M82;
+    #else
+  // M82 model
+  DiskGalaxy galaxy = galaxies::M82;  // NOLINT(cppcoreguidelines-slicing)
+    #endif
+  #endif
 
   M_vir = galaxy.getM_vir();    // viral mass in M_sun
   M_d   = galaxy.getM_d();      // mass of disk in M_sun (assume all stars)
@@ -770,14 +779,15 @@ void Grid3D::Disk_3D(Parameters p)
   rho_eos_h = 3.0e3;  // gas eos normalized at 3e3 Msun/kpc^3 (about n_h = 10^-3.5)
   mu        = 0.6;
 
-  R_g     = 2.0 * R_d;                            // gas scale length in kpc
-  Sigma_0 = 0.25 * M_d / (2 * M_PI * R_g * R_g);  // central surface density in Msun/kpc^2
-  H_g     = z_d;                                  // initial guess for gas scale height
+  R_g     = galaxy.getR_g();                     // gas scale length in kpc
+  G_f     = galaxy.getG_f();                     // gas fraction (relative to stellar disk mass)
+  Sigma_0 = G_f * M_d / (2 * M_PI * R_g * R_g);  // central surface density in Msun/kpc^2
+  H_g     = z_d;                                 // initial guess for gas scale height
   // rho_floor = 1.0e3; //ICs minimum density in Msun/kpc^3
 
   // EOS info
-  cs   = sqrt(KB * T_d / (mu * MP)) * TIME_UNIT / LENGTH_UNIT;  // sound speed in kpc/kyr
-  cs_h = sqrt(KB * T_h / (mu * MP)) * TIME_UNIT / LENGTH_UNIT;  // sound speed in kpc/kyr
+  cs   = sqrt(KB * T_d / (mu * MP)) * TIME_UNIT / LENGTH_UNIT;            // sound speed in kpc/kyr
+  cs_h = sqrt(p.gamma * KB * T_h / (mu * MP)) * TIME_UNIT / LENGTH_UNIT;  // sound speed in kpc/kyr
 
   // set some initial parameters
   int nhdp  = 21;                                  // number of parameters to pass hydrostatic column
@@ -884,6 +894,9 @@ void Grid3D::Disk_3D(Parameters p)
 
         // store internal energy in Energy array
         C.Energy[id] = P / (gama - 1.0);
+  #ifdef BASIC_SCALAR
+        C.scalar[id] = 1.0 * C.density[id];
+  #endif
       }
     }
   }
@@ -1035,6 +1048,12 @@ void Grid3D::Disk_3D(Parameters p)
 
         // store internal energy in Energy array
         C.Energy[id] += P / (gama - 1.0);
+
+        // add a passive scalar
+  #ifdef BASIC_SCALAR
+        c            = fmax(C.scalar[id] / C.density[id], 0.1);
+        C.scalar[id] = c * C.density[id];
+  #endif
       }
     }
   }

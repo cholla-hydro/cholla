@@ -568,6 +568,7 @@ Real Grid3D::Update_Hydro_Grid()
   // == average slow cells and compute the new timestep ==
 #ifdef AVERAGE_SLOW_CELLS
   // Set the min_delta_t for averaging a slow cell
+  H.min_dt_slow = H.dx / 0.3;  // Set to the cell size / speed of light (roughly)
   Real max_dti_slow;
   max_dti_slow = 1 / H.min_dt_slow;
   Average_Slow_Cells(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dx, H.dy, H.dz, gama, max_dti_slow);
