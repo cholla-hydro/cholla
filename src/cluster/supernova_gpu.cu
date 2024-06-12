@@ -28,7 +28,7 @@ int n_cluster;
 
 }  // namespace Supernova
 
-  #ifndef O_HIP
+  #if not defined(O_HIP) && not defined(PARTICLES_GPU) 
 __device__ double atomicMax(double *address, double val)
 {
   unsigned long long int *address_as_ull = (unsigned long long int *)address;
@@ -254,7 +254,7 @@ __global__ void Calc_Omega_Kernel(Real *cluster_array, Real *omega_array, int n_
   // MW model
   M_d   = 6.5e10;  // virial mass in M_sun
   M_vir = 1.0e12;  // virial mass in M_sun
-  R_d   = 2.5;     // disk scale length in kpc
+  R_d   = 2.7;     // disk scale length in kpc
   R_vir = 261.;    // virial radius in kpc
   z_d   = 0.7;     // disk scale height in kpc
   c_vir = 20.0;    // halo concentration
@@ -400,7 +400,6 @@ void Supernova::Calc_Flags(Real time)
 // Then make a kernel based on this flag kernel thing
 
 // Lastly start doing some cuda timing tests on the flag + supernova step
-
 __global__ void Supernova_Feedback_Kernel(Real *hydro_dev, Real *cluster_array, Real *omega_array, bool *flags_array,
                                           Real *d_mdot_array, Real *d_edot_array, Real *d_dti, Real *d_tracker,
                                           Real *d_cooling_weight, Real xMin, Real yMin, Real zMin, Real dx, Real dy,
@@ -476,7 +475,9 @@ __global__ void Supernova_Feedback_Kernel(Real *hydro_dev, Real *cluster_array, 
   #endif
   if (weight > 0.0 && dt > 0.0) {
     Real dti = Calc_Timestep(hydro_dev, gidx, n_cells, gamma, dx, dy, dz);
+  #ifndef PARTICLES_GPU // total hack to get the disk build type to compile
     atomicMax(d_dti, dti);
+  #endif
   }
 
   // Tracker Code to track quantities
