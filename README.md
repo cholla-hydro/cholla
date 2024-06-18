@@ -1,6 +1,8 @@
 ![Build & Lint](https://github.com/cholla-hydro/cholla/actions/workflows/build_and_lint.yml/badge.svg)
 ![Code Formatting](https://github.com/cholla-hydro/cholla/actions/workflows/code_formatting.yml/badge.svg)
 
+remove this line
+
 CHOLLA
 ============
 A 3D GPU-based hydrodynamics code (Schneider & Robertson, ApJS, 2015).
