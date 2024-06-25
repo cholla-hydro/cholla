@@ -10,10 +10,8 @@
 #include "../hydro/hydro_cuda.h"
 #include "../integrators/simple_1D_cuda.h"
 #include "../io/io.h"
-#include "../reconstruction/plmc_cuda.h"
-#include "../reconstruction/plmp_cuda.h"
-#include "../reconstruction/ppmc_cuda.h"
-#include "../reconstruction/ppmp_cuda.h"
+#include "../reconstruction/plm_cuda.h"
+#include "../reconstruction/ppm_cuda.h"
 #include "../reconstruction/reconstruction.h"
 #include "../riemann_solvers/exact_cuda.h"
 #include "../riemann_solvers/hllc_cuda.h"
@@ -53,23 +51,12 @@ void Simple_Algorithm_1D_CUDA(Real *d_conserved, int nx, int x_off, int n_ghost,
   }
 
 // Step 1: Do the reconstruction
-#ifdef PLMP
-  hipLaunchKernelGGL(PLMP_cuda, dimGrid, dimBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama,
-                     0, n_fields);
+#if defined(PLMP) or defined(PLMC)
+  hipLaunchKernelGGL(PLM_cuda<0>, dimGrid, dimBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, ny, nz, dx, dt, gama);
   GPU_Error_Check();
-#endif
-#ifdef PLMC
-  hipLaunchKernelGGL(PLMC_cuda<0>, dimGrid, dimBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, ny, nz, dx, dt, gama,
-                     n_fields);
-  GPU_Error_Check();
-#endif
-#ifdef PPMP
-  hipLaunchKernelGGL(PPMP_cuda, dimGrid, dimBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx, dt, gama,
-                     0, n_fields);
-  GPU_Error_Check();
-#endif
-#ifdef PPMC
-  hipLaunchKernelGGL(PPMC_CTU<0>, dimGrid, dimBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, ny, nz, dx, dt, gama);
+#endif  // PLMP or PLMC
+#if defined(PPMP) or defined(PPMC)
+  hipLaunchKernelGGL(PPM_cuda<0>, dimGrid, dimBlock, 0, 0, dev_conserved, Q_Lx, Q_Rx, nx, ny, nz, dx, dt, gama);
   GPU_Error_Check();
 #endif
 

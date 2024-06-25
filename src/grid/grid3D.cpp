@@ -53,18 +53,12 @@ Grid3D::Grid3D(void)
 #ifdef PCM
   H.n_ghost = 2;
 #endif  // PCM
-#ifdef PLMP
+#if defined(PLMP) or defined(PLMC)
   H.n_ghost = 3;
-#endif  // PLMP
-#ifdef PLMC
-  H.n_ghost = 3;
-#endif  // PLMC
-#ifdef PPMP
+#endif  // PLMP or PLMC
+#if defined(PPMP) or defined(PPMC)
   H.n_ghost = 4;
-#endif  // PPMP
-#ifdef PPMC
-  H.n_ghost = 4;
-#endif  // PPMC
+#endif  // PPMP or PLMC
 
 #ifdef GRAVITY
   H.n_ghost_potential_offset = H.n_ghost - N_GHOST_POTENTIAL;

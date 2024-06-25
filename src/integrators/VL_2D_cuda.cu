@@ -10,10 +10,8 @@
   #include "../global/global_cuda.h"
   #include "../hydro/hydro_cuda.h"
   #include "../integrators/VL_2D_cuda.h"
-  #include "../reconstruction/plmc_cuda.h"
-  #include "../reconstruction/plmp_cuda.h"
-  #include "../reconstruction/ppmc_cuda.h"
-  #include "../reconstruction/ppmp_cuda.h"
+  #include "../reconstruction/plm_cuda.h"
+  #include "../reconstruction/ppm_cuda.h"
   #include "../reconstruction/reconstruction.h"
   #include "../riemann_solvers/exact_cuda.h"
   #include "../riemann_solvers/hllc_cuda.h"
@@ -92,27 +90,17 @@ void VL_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int y_of
 
   // Step 4: Construct left and right interface values using updated conserved
   // variables
-  #ifdef PLMP
-  hipLaunchKernelGGL(PLMP_cuda, dim2dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx,
-                     dt, gama, 0, n_fields);
-  hipLaunchKernelGGL(PLMP_cuda, dim2dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, n_ghost, dy,
-                     dt, gama, 1, n_fields);
-  #endif
-  #ifdef PLMC
-  hipLaunchKernelGGL(PLMC_cuda<0>, dim2dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, dx, dt,
-                     gama, n_fields);
-  hipLaunchKernelGGL(PLMC_cuda<1>, dim2dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, dy, dt,
-                     gama, n_fields);
-  #endif
-  #ifdef PPMP
-  hipLaunchKernelGGL(PPMP_cuda, dim2dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, n_ghost, dx,
-                     dt, gama, 0, n_fields);
-  hipLaunchKernelGGL(PPMP_cuda, dim2dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, n_ghost, dy,
-                     dt, gama, 1, n_fields);
-  #endif  // PPMP
-  #ifdef PPMC
-  hipLaunchKernelGGL(PPMC_VL<0>, dim2dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, gama);
-  hipLaunchKernelGGL(PPMC_VL<1>, dim2dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, gama);
+  #if defined(PLMP) or defined(PLMC)
+  hipLaunchKernelGGL(PLM_cuda<0>, dim2dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, dx, dt,
+                     gama);
+  hipLaunchKernelGGL(PLM_cuda<1>, dim2dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, dy, dt,
+                     gama);
+  #endif  // PLMP or PLMC
+  #if defined(PPMP) or defined(PPMC)
+  hipLaunchKernelGGL(PPM_cuda<0>, dim2dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Lx, Q_Rx, nx, ny, nz, dx, dt,
+                     gama);
+  hipLaunchKernelGGL(PPM_cuda<1>, dim2dGrid, dim1dBlock, 0, 0, dev_conserved_half, Q_Ly, Q_Ry, nx, ny, nz, dy, dt,
+                     gama);
   #endif  // PPMC
   GPU_Error_Check();
 

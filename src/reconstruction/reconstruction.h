@@ -14,7 +14,7 @@
 namespace reconstruction
 {
 /*!
- * \brief Compute the interface states
+ * \brief
  *
  * \tparam reconstruction_order What kind of reconstruction to use, PCM, PLMC, etc. This argument should always be a
  * member of the reconstruction::Kind enum, behaviour is undefined otherwise.
@@ -30,8 +30,8 @@ namespace reconstruction
  * \param[out] left_interface
  * \param[out] right_interface
  */
-template <int reconstruction_order, size_t direction>
-auto __device__ __host__ inline Reconstruct_Interface_States(Real const *dev_conserved, size_t const xid,
+template <int reconstruction_order, uint direction>
+void __device__ __host__ inline Reconstruct_Interface_States(Real const *dev_conserved, size_t const xid,
                                                              size_t const yid, size_t const zid, size_t const nx,
                                                              size_t const ny, size_t const n_cells, Real const gamma,
                                                              reconstruction::InterfaceState &left_interface,

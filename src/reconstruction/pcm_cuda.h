@@ -23,7 +23,7 @@ namespace reconstruction
  * \param[in] gamma The adiabatic index
  * \return reconstruction::InterfaceState The interface state at xid, yid, zid
  */
-template <size_t direction>
+template <uint direction>
 reconstruction::InterfaceState __device__ __host__ inline PCM_Reconstruction(Real const *dev_conserved,
                                                                              size_t const xid, size_t const yid,
                                                                              size_t const zid, size_t const nx,
