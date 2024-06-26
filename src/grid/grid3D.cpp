@@ -698,9 +698,9 @@ void Grid3D::FreeMemory(void)
 #endif
 }
 
-/*! \fn void Show_Units(struct parameters *P)
+/*! \fn void Show_Units(struct Parameters *P)
  *  \brief Show the unit system used in this simulation. */
-void Grid3D::Show_Units(struct parameters *P)
+void Grid3D::Show_Units(struct Parameters *P)
 {
   chprintf("*********\n");
   chprintf("Complete unit system used by this simulation:\n");
