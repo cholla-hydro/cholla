@@ -708,7 +708,7 @@ void Grid3D::Show_Units(struct parameters *P)
 
 
   chprintf("*** global.h ***\n");
-  chprintf("PI                                   %10.9e.\n",PI);
+  chprintf("M_PI                                 %10.9e.\n",M_PI);
   chprintf("MP                                   %10.9e. [g]\n",MP);
   chprintf("KB                                   %10.9e. [cgs]\n",KB);
   chprintf("GN                                   %10.9e. [kpc^3 / M_sun / kyr^2]\n",GN);
