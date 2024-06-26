@@ -91,7 +91,7 @@ void Chem_GPU::Load_UVB_Ionization_and_Heating_Rates(struct Parameters *P)
 
 /*! \fn void Show_Chemistry_Units(void)
 *  \brief Show the chemsitry unit system. */
-int Chem_GPU::Show_Chemistry_Units( void )
+void Chem_GPU::Show_Chemistry_Units( void )
 {
   chprintf("********\n\n");
   chprintf("Chemistry Header time_units          %10.9e [same as TIME_UNIT].\n",H.time_units);
