@@ -462,6 +462,10 @@ class Grid3D
    *  \brief Updates cells by executing the hydro integrator. */
   void Execute_Hydro_Integrator(void);
 
+  /*! \fn void Show_Units(struct parameters *P)
+   *  \brief Show the unit system used in this simulation. */
+  void Show_Units(struct parameters *P);
+
   /*! \fn void Update_Hydro_Grid(void)
    *  \brief Do all steps to update the hydro. */
   Real Update_Hydro_Grid(void);

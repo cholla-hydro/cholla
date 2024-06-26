@@ -104,4 +104,35 @@ void Cosmology::Initialize(struct Parameters *P, Grav3D &Grav, Particles3D &Part
   Set_Scale_Outputs(P);
 }
 
+
+/* \fn Show_Cosmology_Units(struct Parameters *P)
+* \brief Show the cosmological unit system. */
+void Cosmology::Show_Cosmology_Units(struct Parameters *P)
+{
+  chprintf("Cosmo.cosmo_G                        %10.9e. [same as G_COSMO in kpc km^2/s^2 /Msun]\n",cosmo_G);
+  chprintf("Cosmo.cosmo_h                        %10.9e. [H0/100]\n",cosmo_h);
+  chprintf("Cosmo.H0                             %10.9e. [H0 in km/s/kpc]\n",H0);
+  chprintf("P->nx                                 % 14d. [number of cells in x]\n",P->nx);
+  chprintf("P->xlen                              %10.9e. [length of x domain in kpc/h]\n",P->xlen);
+
+  chprintf("****dm*****\n");
+  chprintf("Cosmo.rho_dm                         %10.9e. [3H0^2/(8 pi G) * Omega_M/cosmo_h^2 in h^2 Msun/kpc^3]\n",rho_0_dm);
+  chprintf("Cosmo.rho_mean_baryon                %10.9e. [3H0^2/(8 pi G) * Omega_b/cosmo_h^2 in h^2 Msun/kpc^3]\n",rho_mean_baryon);
+  chprintf("Cosmo.t_0_dm                         %10.9e. [1.0/H0*cosmo_h in kpc * s/km / h]\n",t_0_dm);
+  chprintf("Cosmo.r_0_dm                         %10.9e. [xlen / nx in kpc/h]\n",r_0_dm);
+  chprintf("Cosmo.v_0_dm                         %10.9e. [r_0_dm / t_0_dm in km/s]\n",v_0_dm);
+  chprintf("****gas*****\n");
+  chprintf("Cosmo.rho_0_gas                      %10.9e. [3H0^2/(8 pi G) * Omega_m/cosmo_h^2 in h^2 Msun/kpc^3]\n",rho_0_gas);
+  chprintf("Cosmo.r_0_gas                        %10.9e. [1.0/h kpc/h]\n",r_0_gas);
+  chprintf("Cosmo.t_0_gas                        %10.9e. [1.0/H0*cosmo_h in kpc * s/km / h]\n",t_0_gas);
+  chprintf("Cosmo.v_0_gas                        %10.9e. [r_0_gas / t_0_gas in km/s]\n",v_0_gas);
+
+  // Set Normalization factors
+  //   //   r_0_dm          = P->xlen / P->nx;
+  //     //     t_0_dm          = 1. / H0;
+  //       //       v_0_dm          = r_0_dm / t_0_dm / cosmo_h;
+  //         //         rho_0_dm        = 3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_M / cosmo_h / cosmo_h;
+  //           //           rho_mean_baryon = 3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_b / cosmo_h / cosmo_h;
+  //             //             // dens_avrg = 0;
+}
 #endif

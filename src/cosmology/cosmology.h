@@ -75,6 +75,10 @@ class Cosmology
   // write expansion history log file
   void Create_Expansion_History_File(struct Parameters *P);
   void Write_Expansion_History_Entry(void);
+
+  /* \fn Show_Cosmology_Units(struct Parameters *P)
+   * \brief Show the cosmological unit system. */
+  void Show_Cosmology_Units(struct Parameters *P);
 };
 
   #endif

@@ -181,6 +181,10 @@ int main(int argc, char *argv[])
   G.Setup_Analytic_Potential(&P);
 #endif
 
+  /* record what unit system was used */
+  G.Show_Units(&P);
+  chexit(0);
+
 #ifdef GRAVITY
   // Get the gravitational potential for the first timestep
   G.Compute_Gravitational_Potential(&P);

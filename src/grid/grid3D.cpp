@@ -697,3 +697,45 @@ void Grid3D::FreeMemory(void)
   Analysis.Reset();
 #endif
 }
+
+/*! \fn void Show_Units(struct parameters *P)
+ *  \brief Show the unit system used in this simulation. */
+void Grid3D::Show_Units(struct parameters *P)
+{
+  chprintf("*********\n");
+  chprintf("Complete unit system used by this simulation:\n");
+  chprintf("*********\n\n");
+
+
+  chprintf("*** global.h ***\n");
+  chprintf("PI                                   %10.9e.\n",PI);
+  chprintf("MP                                   %10.9e. [g]\n",MP);
+  chprintf("KB                                   %10.9e. [cgs]\n",KB);
+  chprintf("GN                                   %10.9e. [kpc^3 / M_sun / kyr^2]\n",GN);
+  //chprintf("C_L                                  %10.9e. [kpc / kyr]\n",C_L);
+  chprintf("MYR                                  %10.9e. [s]\n",MYR);
+  //chprintf("KPC_MKS                              %10.9e. [km]\n",KPC_MKS);
+  chprintf("G_COSMO                              %10.9e. [kpc km^2 s^-2 Msun^-1]\n",G_COSMO);
+  chprintf("MSUN_CGS                             %10.9e. [g]\n",MSUN_CGS);
+  chprintf("KPC_CGS                              %10.9e. [cm]\n",KPC_CGS);
+  //chprintf("KM_CGS                               %10.9e. [cm]\n",KM_CGS);
+  chprintf("MH                                   %10.9e. [g]\n",MH);
+  //chprintf("EV                                   %10.9e. [ergs]\n",EV_CGS);
+  chprintf("TIME_UNIT                            %10.9e. [kyr in s]\n",TIME_UNIT);
+  chprintf("LENGTH_UNIT                          %10.9e. [kpc in cm]\n",LENGTH_UNIT);
+  chprintf("MASS_UNIT                            %10.9e. [msun in g]\n",MASS_UNIT);
+  chprintf("DENSITY_UNIT                         %10.9e. [msun/kpc^3 in g/cm^3]\n",DENSITY_UNIT);
+  chprintf("VELOCITY_UNIT                        %10.9e. [kpc/kyr in cm/s]\n",VELOCITY_UNIT);
+  chprintf("ENERGY_UNIT                          %10.9e. [msun/kpc^3 * (kpc/kyr)^2 in g/cm/s^2]\n",ENERGY_UNIT);
+  chprintf("PRESSURE_UNIT                        %10.9e. [msun/kpc^3 * (kpc/kyr)^2 in g/cm/s^2]\n",PRESSURE_UNIT);
+  chprintf("SP_ENERGY_UNIT                       %10.9e. [(kpc/kyr)^2 in cm^2/s^2]\n",SP_ENERGY_UNIT);
+  chprintf("M_PI                                 %10.9e.\n",M_PI);
+#ifdef COSMOLOGY
+  chprintf("*** cosmology ***\n");
+  Cosmo.Show_Cosmology_Units(P);
+
+#endif //COSMOLOGY
+#ifdef CHEMISTRY_GPU
+  Chem.Show_Chemistry_Units();
+#endif //CHEMISTRY_GPU
+}

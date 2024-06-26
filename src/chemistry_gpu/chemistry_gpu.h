@@ -144,6 +144,10 @@ class Chem_GPU
 
   void Reset();
 
+  /*! \fn void Show_Chemistry_Units(void)
+   *  \brief Show the chemsitry unit system. */
+  void Show_Chemistry_Units();
+
   #ifdef TEXTURES_UVB_INTERPOLATION
   void Bind_GPU_Textures(int size, float *H_HI_h, float *H_HeI_h, float *H_HeII_h, float *I_HI_h, float *I_HeI_h,
                          float *I_HeII_h);

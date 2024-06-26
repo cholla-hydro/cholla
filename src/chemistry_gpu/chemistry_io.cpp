@@ -89,4 +89,30 @@ void Chem_GPU::Load_UVB_Ionization_and_Heating_Rates(struct Parameters *P)
   chprintf("  UVB on:  a=%f \n", scale_factor_UVB_on);
 }
 
+/*! \fn void Show_Chemistry_Units(void)
+*  \brief Show the chemsitry unit system. */
+int Chem_GPU::Show_Chemistry_units( void )
+{
+  chprintf("********\n\n");
+  chprintf("Chemistry Header time_units          %10.9e [same as TIME_UNIT].\n",H.time_units);
+  chprintf("Chemistry Header length_units        %10.9e [same as LENGTH_UNIT].\n",H.length_units);
+  chprintf("Chemistry Header density_units       %10.9e [same as DENSITY_UNIT].\n",H.density_units);
+  chprintf("Chemistry Header energy_units        %10.9e [same as ENERGY_UNIT].\n",H.energy_units);
+  chprintf("Chemistry Header energy_conversion   %10.9e [v_0_gas**2 * 1e10].\n",H.energy_conversion);
+  chprintf("Chemistry Header density_conversion  %10.9e [rho_0_gas h^2 / kpc^3 * Msun_cgs].\n",H.density_conversion);
+  chprintf("Chemistry Header dens_number_conv    %10.9e [density_units/MH].\n",H.dens_number_conv);
+  chprintf("Chemistry Header reaction_units      %10.9e [MH / (DENSITY_UNIT * TIME_UNIT)].\n",H.reaction_units);
+  chprintf("Chemistry Header cooling_units       %10.9e [1e10 * MH * reaction_units].\n",H.cooling_units);
+  chprintf("Chemistry Header heat_units          %10.9e [eV_to_ergs / cooling_units].\n",H.heat_units);
+  chprintf("Chemistry Header ion_units           %10.9e [same as TIME_UNIT].\n",H.ion_units);
+  chprintf("Chemistry Header eV_to_ergs          %10.9e [electron volts in cgs].\n",H.eV_to_ergs);
+#ifdef COSMOLOGY
+  chprintf("Chemistry Header a_value             %10.9e.\n",H.a_value);
+  chprintf("Chemistry Header H0                  %10.9e.\n",H.H0);
+  chprintf("Chemistry Header Omega_M             %10.9e.\n",H.Omega_M);
+  chprintf("Chemistry Header Omega_L             %10.9e.\n",H.Omega_L);
+#endif //COSMOLOGY
+  chprintf("\n********\n");
+}
+
 #endif
