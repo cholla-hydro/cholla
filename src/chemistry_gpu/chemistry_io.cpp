@@ -109,7 +109,7 @@ void Chem_GPU::Show_Chemistry_Units( void )
   chprintf("Chemistry Header time_units          %10.9e [same as TIME_UNIT].\n",H.time_units);
   chprintf("Chemistry Header length_units        %10.9e [same as LENGTH_UNIT].\n",H.length_units);
   chprintf("Chemistry Header density_units       %10.9e [same as DENSITY_UNIT].\n",H.density_units);
-  chprintf("Chemistry Header energy_units        %10.9e [same as ENERGY_UNIT].\n",H.energy_units);
+  // chprintf("Chemistry Header energy_units        %10.9e [same as ENERGY_UNIT].\n",H.energy_units);
   chprintf("Chemistry Header energy_conversion   %10.9e [v_0_gas**2 * 1e10].\n",H.energy_conversion);
   chprintf("Chemistry Header density_conversion  %10.9e [rho_0_gas h^2 / kpc^3 * Msun_cgs].\n",H.density_conversion);
   chprintf("Chemistry Header dens_number_conv    %10.9e [density_units/MH].\n",H.dens_number_conv);
