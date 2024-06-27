@@ -73,8 +73,20 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
 
   time_base             = Chem.H.time_units;
   Chem.H.cooling_units  = (pow(length_base, 2) * pow(MH, 2)) / (dens_base * pow(time_base, 3));
+
+  /* Note that for synching wit the RT branch the following lines
+   * will need to be edited.
+   * heat_units_old = eV_to_ergs / H.cooling_units;  /// NG 221127: this is incorrect
+   * heat_units = eV_to_ergs * 1e-10 * H.time_units * H.density_units / MH / MH;
+   */
+
+  Chem.H.eV_to_ergs = 1.60218e-12;
+  Chem.H.heat_units = H.eV_to_ergs / H.cooling_units;
+  Chem.H.ion_units  = H.time_units;
+
   Chem.H.reaction_units = MH / (dens_base * time_base);
   Chem.H.max_iter       = 10000;
+
 
   // The chemistry GPU functions need access to the temperature floor
   // but they don't have access to P. Use Chem.H as a carrier.

@@ -53,19 +53,31 @@ void Chem_GPU::Load_UVB_Ionization_and_Heating_Rates(struct Parameters *P)
   Ion_rates_HeI_h   = (float *)malloc(sizeof(float) * n_lines);
   Ion_rates_HeII_h  = (float *)malloc(sizeof(float) * n_lines);
 
-  Real eV_to_ergs, heat_units, ion_units;
-  eV_to_ergs = 1.60218e-12;
-  heat_units = eV_to_ergs / H.cooling_units;
-  ion_units  = H.time_units;
+  // Real eV_to_ergs, heat_units, ion_units;
+  // These units should reall be set elsewhere.
+  // moving to chemistry_functions.cpp
+  // eV_to_ergs = 1.60218e-12;
+
+  /* Note that for synching wit the RT branch the following lines
+   * will need to be edited.
+   * heat_units_old = eV_to_ergs / H.cooling_units;  /// NG 221127: this is incorrect
+   * heat_units = eV_to_ergs * 1e-10 * H.time_units * H.density_units / MH / MH;
+   */
+
+  // H.heat_units = H.eV_to_ergs / H.cooling_units;
+  // H.ion_units  = H.time_units;
+
+  /* Rescale rates according to unit system, 
+   * received from the ChemistryHeader */
 
   for (i = 0; i < n_lines; i++) {
     rates_z_h[i]         = v[i][0];
-    Ion_rates_HI_h[i]    = v[i][1] * ion_units;
-    Heat_rates_HI_h[i]   = v[i][2] * heat_units;
-    Ion_rates_HeI_h[i]   = v[i][3] * ion_units;
-    Heat_rates_HeI_h[i]  = v[i][4] * heat_units;
-    Ion_rates_HeII_h[i]  = v[i][5] * ion_units;
-    Heat_rates_HeII_h[i] = v[i][6] * heat_units;
+    Ion_rates_HI_h[i]    = v[i][1] * H.ion_units;
+    Heat_rates_HI_h[i]   = v[i][2] * H.heat_units;
+    Ion_rates_HeI_h[i]   = v[i][3] * H.ion_units;
+    Heat_rates_HeI_h[i]  = v[i][4] * H.heat_units;
+    Ion_rates_HeII_h[i]  = v[i][5] * H.ion_units;
+    Heat_rates_HeII_h[i] = v[i][6] * H.heat_units;
     // chprintf( " %f  %e  %e  %e   \n", rates_z_h[i], Heat_rates_HI_h[i],
     // Heat_rates_HeI_h[i],  Heat_rates_HeII_h[i]); chprintf( " %f  %f  \n",
     // rates_z_h[i], Heat_rates_HI_h[i] );
