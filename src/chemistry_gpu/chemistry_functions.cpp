@@ -81,8 +81,8 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
    */
 
   Chem.H.eV_to_ergs = 1.60218e-12;
-  Chem.H.heat_units = H.eV_to_ergs / H.cooling_units;
-  Chem.H.ion_units  = H.time_units;
+  Chem.H.heat_units = Chem.H.eV_to_ergs / Chem.H.cooling_units;
+  Chem.H.ion_units  = Chem.H.time_units;
 
   Chem.H.reaction_units = MH / (dens_base * time_base);
   Chem.H.max_iter       = 10000;
