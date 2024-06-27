@@ -28,9 +28,9 @@ struct ChemistryHeader {
   Real reaction_units;
   Real dens_number_conv;
   Real eV_to_ergs;
-  Real ion_units
-  Real heat_units
-  Real cool_units
+  Real ion_units;
+  Real heat_units;
+  Real cool_units;
 
   // Cosmological parameters
   Real H0;
