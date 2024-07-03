@@ -65,14 +65,14 @@ void __device__ __host__ __inline__ PLM_Characteristic_Evolution(hydro_utilities
   interface_L_iph.pressure     = interface_L_iph.pressure - qx * del_m.pressure;
 
 #ifdef DE
-  interface_R_imh.gas_energy_specific = interface_R_imh.gas_energy_specific + qx * del_m.gas_energy_specific;
-  interface_L_iph.gas_energy_specific = interface_L_iph.gas_energy_specific - qx * del_m.gas_energy_specific;
+  interface_R_imh.gas_energy = interface_R_imh.gas_energy + qx * del_m.gas_energy;
+  interface_L_iph.gas_energy = interface_L_iph.gas_energy - qx * del_m.gas_energy;
 #endif  // DE
 
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    interface_R_imh.scalar_specific[i] = interface_R_imh.scalar_specific[i] + qx * del_m.scalar_specific[i];
-    interface_L_iph.scalar_specific[i] = interface_L_iph.scalar_specific[i] - qx * del_m.scalar_specific[i];
+    interface_R_imh.scalar[i] = interface_R_imh.scalar[i] + qx * del_m.scalar[i];
+    interface_L_iph.scalar[i] = interface_L_iph.scalar[i] - qx * del_m.scalar[i];
   }
 #endif  // SCALAR
 
@@ -105,11 +105,11 @@ void __device__ __host__ __inline__ PLM_Characteristic_Evolution(hydro_utilities
     sum_2 += lamdiff * del_m.velocity.y();
     sum_3 += lamdiff * del_m.velocity.z();
 #ifdef DE
-    sum_ge += lamdiff * del_m.gas_energy_specific;
+    sum_ge += lamdiff * del_m.gas_energy;
 #endif  // DE
 #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
-      sum_scalar[i] += lamdiff * del_m.scalar_specific[i];
+      sum_scalar[i] += lamdiff * del_m.scalar[i];
     }
 #endif  // SCALAR
   }
@@ -129,11 +129,11 @@ void __device__ __host__ __inline__ PLM_Characteristic_Evolution(hydro_utilities
   interface_L_iph.velocity.z() += 0.5 * dtodx * sum_3;
   interface_L_iph.pressure += 0.5 * dtodx * sum_4;
 #ifdef DE
-  interface_L_iph.gas_energy_specific += 0.5 * dtodx * sum_ge;
+  interface_L_iph.gas_energy += 0.5 * dtodx * sum_ge;
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    interface_L_iph.scalar_specific[i] += 0.5 * dtodx * sum_scalar[i];
+    interface_L_iph.scalar[i] += 0.5 * dtodx * sum_scalar[i];
   }
 #endif  // SCALAR
 
@@ -162,11 +162,11 @@ void __device__ __host__ __inline__ PLM_Characteristic_Evolution(hydro_utilities
     sum_2 += lamdiff * del_m.velocity.y();
     sum_3 += lamdiff * del_m.velocity.z();
 #ifdef DE
-    sum_ge += lamdiff * del_m.gas_energy_specific;
+    sum_ge += lamdiff * del_m.gas_energy;
 #endif  // DE
 #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
-      sum_scalar[i] += lamdiff * del_m.scalar_specific[i];
+      sum_scalar[i] += lamdiff * del_m.scalar[i];
     }
 #endif  // SCALAR
   }
@@ -186,11 +186,11 @@ void __device__ __host__ __inline__ PLM_Characteristic_Evolution(hydro_utilities
   interface_R_imh.velocity.z() += 0.5 * dtodx * sum_3;
   interface_R_imh.pressure += 0.5 * dtodx * sum_4;
 #ifdef DE
-  interface_R_imh.gas_energy_specific += 0.5 * dtodx * sum_ge;
+  interface_R_imh.gas_energy += 0.5 * dtodx * sum_ge;
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    interface_R_imh.scalar_specific[i] += 0.5 * dtodx * sum_scalar[i];
+    interface_R_imh.scalar[i] += 0.5 * dtodx * sum_scalar[i];
   }
 #endif  // SCALAR
 }
@@ -279,13 +279,13 @@ auto __device__ __inline__ PLM_Reconstruction(Real *dev_conserved, int const xid
 
     // Limit the variables that aren't transformed by the characteristic projection
   #ifdef DE
-  del_m.gas_energy_specific = Van_Leer_Limiter(del_L.gas_energy_specific, del_R.gas_energy_specific,
-                                               del_C.gas_energy_specific, del_G.gas_energy_specific);
+  del_m.gas_energy = Van_Leer_Limiter(del_L.gas_energy, del_R.gas_energy,
+                                               del_C.gas_energy, del_G.gas_energy);
   #endif  // DE
   #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    del_m.scalar_specific[i] = Van_Leer_Limiter(del_L.scalar_specific[i], del_R.scalar_specific[i],
-                                                del_C.scalar_specific[i], del_G.scalar_specific[i]);
+    del_m.scalar[i] = Van_Leer_Limiter(del_L.scalar[i], del_R.scalar[i],
+                                                del_C.scalar[i], del_G.scalar[i]);
   }
   #endif  // SCALAR
 #else     // PLMP
