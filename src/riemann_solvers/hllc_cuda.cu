@@ -307,9 +307,9 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real const *dev_conserved, Real const
       f_E  = 0.5 * (f_E_l + f_E_r + (Sr - fabs(Sm)) * Ers + (Sl + fabs(Sm)) * Els - Sl * left_state.energy -
                    Sr * right_state.energy);
 #ifdef DE
-      Real f_ge = 0.5 * (f_ge_l + f_ge_r + (Sr - fabs(Sm)) * gers + (Sl + fabs(Sm)) * gels -
-                         Sl * left_state.gas_energy * left_state.density -
-                         Sr * right_state.gas_energy * right_state.density);
+      Real f_ge =
+          0.5 * (f_ge_l + f_ge_r + (Sr - fabs(Sm)) * gers + (Sl + fabs(Sm)) * gels -
+                 Sl * left_state.gas_energy * left_state.density - Sr * right_state.gas_energy * right_state.density);
 #endif
 #ifdef SCALAR
       for (int i = 0; i < NSCALARS; i++) {

@@ -254,14 +254,12 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real const *dev_conserved, Real const 
           ((Sr * f_mz_l) - (Sl * f_mz_r) + Sl * Sr * (right_state.momentum.z() - left_state.momentum.z())) / (Sr - Sl);
       f_E = ((Sr * f_E_l) - (Sl * f_E_r) + Sl * Sr * (right_state.energy - left_state.energy)) / (Sr - Sl);
 #ifdef DE
-      Real f_ge = ((Sr * f_ge_l) - (Sl * f_ge_r) +
-                   Sl * Sr * (right_state.gas_energy - left_state.gas_energy)) /
-                  (Sr - Sl);
+      Real f_ge =
+          ((Sr * f_ge_l) - (Sl * f_ge_r) + Sl * Sr * (right_state.gas_energy - left_state.gas_energy)) / (Sr - Sl);
 #endif
 #ifdef SCALAR
       for (int i = 0; i < NSCALARS; i++) {
-        f_sc[i] = ((Sr * f_sc_l[i]) - (Sl * f_sc_r[i]) +
-                   Sl * Sr * (right_state.scalar[i] - left_state.scalar[i])) /
+        f_sc[i] = ((Sr * f_sc_l[i]) - (Sl * f_sc_r[i]) + Sl * Sr * (right_state.scalar[i] - left_state.scalar[i])) /
                   (Sr - Sl);
       }
 #endif

@@ -126,13 +126,13 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 
   // Limit the variables that aren't transformed by the characteristic projection
 #ifdef DE
-  del_m_im1.gas_energy = reconstruction::Van_Leer_Limiter(
-      del_L.gas_energy, del_R.gas_energy, del_C.gas_energy, del_G.gas_energy);
+  del_m_im1.gas_energy =
+      reconstruction::Van_Leer_Limiter(del_L.gas_energy, del_R.gas_energy, del_C.gas_energy, del_G.gas_energy);
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    del_m_im1.scalar[i] = reconstruction::Van_Leer_Limiter(del_L.scalar[i], del_R.scalar[i],
-                                                                    del_C.scalar[i], del_G.scalar[i]);
+    del_m_im1.scalar[i] =
+        reconstruction::Van_Leer_Limiter(del_L.scalar[i], del_R.scalar[i], del_C.scalar[i], del_G.scalar[i]);
   }
 #endif  // SCALAR
 
@@ -179,13 +179,13 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 
   // Limit the variables that aren't transformed by the characteristic projection
 #ifdef DE
-  del_m_i.gas_energy = reconstruction::Van_Leer_Limiter(del_L.gas_energy, del_R.gas_energy,
-                                                                 del_C.gas_energy, del_G.gas_energy);
+  del_m_i.gas_energy =
+      reconstruction::Van_Leer_Limiter(del_L.gas_energy, del_R.gas_energy, del_C.gas_energy, del_G.gas_energy);
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    del_m_i.scalar[i] = reconstruction::Van_Leer_Limiter(del_L.scalar[i], del_R.scalar[i],
-                                                                  del_C.scalar[i], del_G.scalar[i]);
+    del_m_i.scalar[i] =
+        reconstruction::Van_Leer_Limiter(del_L.scalar[i], del_R.scalar[i], del_C.scalar[i], del_G.scalar[i]);
   }
 #endif  // SCALAR
 
@@ -233,13 +233,13 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 
   // Limit the variables that aren't transformed by the characteristic projection
 #ifdef DE
-  del_m_ip1.gas_energy = reconstruction::Van_Leer_Limiter(
-      del_L.gas_energy, del_R.gas_energy, del_C.gas_energy, del_G.gas_energy);
+  del_m_ip1.gas_energy =
+      reconstruction::Van_Leer_Limiter(del_L.gas_energy, del_R.gas_energy, del_C.gas_energy, del_G.gas_energy);
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    del_m_ip1.scalar[i] = reconstruction::Van_Leer_Limiter(del_L.scalar[i], del_R.scalar[i],
-                                                                    del_C.scalar[i], del_G.scalar[i]);
+    del_m_ip1.scalar[i] =
+        reconstruction::Van_Leer_Limiter(del_L.scalar[i], del_R.scalar[i], del_C.scalar[i], del_G.scalar[i]);
   }
 #endif  // SCALAR
 
@@ -274,16 +274,14 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
 
 #ifdef DE
   del_m_i.gas_energy = interface_L_iph.gas_energy - interface_R_imh.gas_energy;
-  Real const ge_6             = 6.0 * (cell_i.gas_energy -
-                           0.5 * (interface_R_imh.gas_energy + interface_L_iph.gas_energy));
+  Real const ge_6    = 6.0 * (cell_i.gas_energy - 0.5 * (interface_R_imh.gas_energy + interface_L_iph.gas_energy));
 #endif  // DE
 
 #ifdef SCALAR
   Real scalar_6[NSCALARS];
   for (int i = 0; i < NSCALARS; i++) {
     del_m_i.scalar[i] = interface_L_iph.scalar[i] - interface_R_imh.scalar[i];
-    scalar_6[i]                = 6.0 * (cell_i.scalar[i] -
-                         0.5 * (interface_R_imh.scalar[i] + interface_L_iph.scalar[i]));
+    scalar_6[i]       = 6.0 * (cell_i.scalar[i] - 0.5 * (interface_R_imh.scalar[i] + interface_L_iph.scalar[i]));
   }
 #endif  // SCALAR
 
@@ -354,12 +352,10 @@ __global__ void PPMC_CTU(Real *dev_conserved, Real *dev_bounds_L, Real *dev_boun
   for (int i = 0; i < NSCALARS; i++) {
     interface_L_iph.scalar[i] =
         interface_L_iph.scalar[i] -
-        lambda_max * (0.5 * dtodx) *
-            (del_m_i.scalar[i] - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * scalar_6[i]);
+        lambda_max * (0.5 * dtodx) * (del_m_i.scalar[i] - (1.0 - (2.0 / 3.0) * lambda_max * dtodx) * scalar_6[i]);
     interface_R_imh.scalar[i] =
         interface_R_imh.scalar[i] -
-        lambda_min * (0.5 * dtodx) *
-            (del_m_i.scalar[i] + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * scalar_6[i]);
+        lambda_min * (0.5 * dtodx) * (del_m_i.scalar[i] + (1.0 + (2.0 / 3.0) * lambda_min * dtodx) * scalar_6[i]);
   }
 #endif  // SCALAR
 
@@ -680,17 +676,13 @@ __global__ __launch_bounds__(TPB) void PPMC_VL(Real *dev_conserved, Real *dev_bo
 
   // Compute the interfaces for the variables that don't have characteristics
 #ifdef DE
-  reconstruction::PPM_Single_Variable(cell_im2.gas_energy, cell_im1.gas_energy,
-                                      cell_i.gas_energy, cell_ip1.gas_energy,
-                                      cell_ip2.gas_energy, interface_L_iph.gas_energy,
-                                      interface_R_imh.gas_energy);
+  reconstruction::PPM_Single_Variable(cell_im2.gas_energy, cell_im1.gas_energy, cell_i.gas_energy, cell_ip1.gas_energy,
+                                      cell_ip2.gas_energy, interface_L_iph.gas_energy, interface_R_imh.gas_energy);
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    reconstruction::PPM_Single_Variable(cell_im2.scalar[i], cell_im1.scalar[i],
-                                        cell_i.scalar[i], cell_ip1.scalar[i],
-                                        cell_ip2.scalar[i], interface_L_iph.scalar[i],
-                                        interface_R_imh.scalar[i]);
+    reconstruction::PPM_Single_Variable(cell_im2.scalar[i], cell_im1.scalar[i], cell_i.scalar[i], cell_ip1.scalar[i],
+                                        cell_ip2.scalar[i], interface_L_iph.scalar[i], interface_R_imh.scalar[i]);
   }
 #endif  // SCALAR
 

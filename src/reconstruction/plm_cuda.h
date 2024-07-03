@@ -279,13 +279,11 @@ auto __device__ __inline__ PLM_Reconstruction(Real *dev_conserved, int const xid
 
     // Limit the variables that aren't transformed by the characteristic projection
   #ifdef DE
-  del_m.gas_energy = Van_Leer_Limiter(del_L.gas_energy, del_R.gas_energy,
-                                               del_C.gas_energy, del_G.gas_energy);
+  del_m.gas_energy = Van_Leer_Limiter(del_L.gas_energy, del_R.gas_energy, del_C.gas_energy, del_G.gas_energy);
   #endif  // DE
   #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    del_m.scalar[i] = Van_Leer_Limiter(del_L.scalar[i], del_R.scalar[i],
-                                                del_C.scalar[i], del_G.scalar[i]);
+    del_m.scalar[i] = Van_Leer_Limiter(del_L.scalar[i], del_R.scalar[i], del_C.scalar[i], del_G.scalar[i]);
   }
   #endif  // SCALAR
 #else     // PLMP

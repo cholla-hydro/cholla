@@ -425,8 +425,7 @@ TEST(tALLConserved2Primitive, CorrectInputExpectCorrectOutput)
   testing_utilities::Check_Results(fiducial_data.magnetic.z(), test_data.magnetic.z(), "magnetic.z");
 #endif  // MHD
 #ifdef DE
-  testing_utilities::Check_Results(fiducial_data.gas_energy, test_data.gas_energy,
-                                   "gas_energy");
+  testing_utilities::Check_Results(fiducial_data.gas_energy, test_data.gas_energy, "gas_energy");
 #endif  // DE
 }
 
