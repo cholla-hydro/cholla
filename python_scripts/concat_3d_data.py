@@ -14,15 +14,19 @@ import concat_3d_data
 
 import h5py
 import numpy as np
+
 import pathlib
+from typing import Optional
+import warnings
 
 import concat_internals
 
 # ==============================================================================
 def concat_3d_dataset(output_directory: pathlib.Path,
-                      num_processes: int,
                       output_number: int,
                       build_source_path,
+                      *,
+                      num_processes: Optional[int] = None,
                       skip_fields: list = [],
                       destination_dtype: np.dtype = None,
                       compression_type: str = None,
@@ -43,6 +47,9 @@ def concat_3d_dataset(output_directory: pathlib.Path,
       List of fields to skip concatenating. Defaults to [].
   build_source_path : callable
       A function used to construct the paths to the files that are to be concatenated.
+  num_processes : int, optional
+      The number of ranks that Cholla was run with. This information is now inferred
+      from the hdf5 file and the parameter will be removed in the future.
   destination_dtype : np.dtype
       The data type of the output datasets. Accepts most numpy types. Defaults to the same as the input datasets.
   compression_type : str
@@ -51,35 +58,32 @@ def concat_3d_dataset(output_directory: pathlib.Path,
       What compression settings to use if compressing. Defaults to None.
   chunking : bool or tuple
       Whether or not to use chunking and the chunk size. Defaults to None.
-  output_directory: pathlib.Path :
-
-  num_processes: int :
-
-  output_number: int :
-
-  skip_fields: list :
-        (Default value = [])
-  destination_dtype: np.dtype :
-        (Default value = None)
-  compression_type: str :
-        (Default value = None)
-  compression_options: str :
-        (Default value = None)
-
-  Returns
-  -------
-
   """
 
+  if num_processes is not None:
+    warnings.warn('the num_processes parameter will be removed')
+
   # Error checking
-  assert num_processes > 1, 'num_processes must be greater than 1'
   assert output_number >= 0, 'output_number must be greater than or equal to 0'
 
   # Open the output file for writing
   destination_file = concat_internals.destination_safe_open(output_directory / f'{output_number}.h5')
 
   # Setup the output file
-  with h5py.File(build_source_path(proc_id = 0, nfile = output_number), 'r') as source_file:
+  source_fname_0 = build_source_path(proc_id = 0, nfile = output_number)
+  with h5py.File(source_fname_0, 'r') as source_file:
+
+    # determine how many files data must be concatenated from
+    num_files = concat_internals.infer_numfiles_from_header(source_file.attrs)
+
+    if (num_processes is not None) and (num_processes != num_files):
+      raise RuntimeError(
+        f"header of {source_fname_0!r} implies that it contains data that is "
+        f"split across {num_files} files (rather than {num_processes} files).")
+    elif num_files < 2:
+      raise RuntimeError('it only makes sense to concatenate data split across '
+                         '2 or more files')
+
     # Copy header data
     destination_file = concat_internals.copy_header(source_file, destination_file)
 
@@ -104,7 +108,7 @@ def concat_3d_dataset(output_directory: pathlib.Path,
                                       compression_opts=compression_options)
 
   # loop over files for a given output
-  for i in range(0, num_processes):
+  for i in range(0, num_files):
     # open the input file for reading
     source_file = h5py.File(build_source_path(proc_id = i, nfile = output_number), 'r')
 
@@ -135,7 +139,7 @@ if __name__ == '__main__':
   from timeit import default_timer
   start = default_timer()
 
-  cli = concat_internals.common_cli()
+  cli = concat_internals.common_cli(num_processes_choice = 'deprecate')
   args = cli.parse_args()
 
   build_source_path = concat_internals.get_source_path_builder(
