@@ -220,6 +220,10 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   // New half-step partial update to half-step internal energy
   // ADDED IN TESTING
   #ifdef DE
+  // the partial update to the internal energy can be done in the 3D_half update
+  // because it's computed from the dev_conserved array and applied to the dev_conserved_half
+  // array
+  /*
   // Compute the divergence of Vel before updating the conserved array, this
   // solves synchronization issues when adding this term on
   // Update_Conserved_Variables_3D
@@ -229,6 +233,7 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
                      de_advect_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved_half, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz,
                      Q_Rz, nx, ny, nz, n_ghost, dx, dy, dz, 0.5*dt, gama, n_fields);
   GPU_Error_Check();
+  */
   #endif  // DE
 
   // Step 3: Update the conserved variables half a timestep
@@ -374,6 +379,9 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   GPU_Error_Check();
 
   #ifdef DE
+  // Note that it's ok to change the advected DE here because it is not used in
+  // the conserved variable update at all (fluxes are applied to it, but the value is
+  // not used for, e.g., computing the pressure or temperature).
   // Compute the divergence of Vel before updating the conserved array, this
   // solves synchronization issues when adding this term on
   // Update_Conserved_Variables_3D
@@ -559,9 +567,11 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
         dev_conserved[(n_fields - 1) * n_cells + id] +
         dtodx * (dev_F_x[(n_fields - 1) * n_cells + imo] - dev_F_x[(n_fields - 1) * n_cells + id]) +
         dtody * (dev_F_y[(n_fields - 1) * n_cells + jmo] - dev_F_y[(n_fields - 1) * n_cells + id]) +
-        dtodz * (dev_F_z[(n_fields - 1) * n_cells + kmo] - dev_F_z[(n_fields - 1) * n_cells + id]);// +
-        //0.5 * P * (dtodx * (vx_imo - vx_ipo) + dtody * (vy_jmo - vy_jpo) + dtodz * (vz_kmo - vz_kpo));
-        // Check the pressure term here -- commented out in hydro_cuda.cu
+        dtodz * (dev_F_z[(n_fields - 1) * n_cells + kmo] - dev_F_z[(n_fields - 1) * n_cells + id]) +
+        0.5 * P * (dtodx * (vx_imo - vx_ipo) + dtody * (vy_jmo - vy_jpo) + dtodz * (vz_kmo - vz_kpo));
+        // The pressure term here is computed from the dev_conserved variables that are not changing,
+        // so there is no synchronization issue.  In the full update, where dev_conserved is updated
+        // in place, the pressure term needs to be moved outside the update function
   #endif  // DE
   #ifdef DENSITY_FLOOR
     if (dev_conserved_half[id] < density_floor) {
@@ -580,6 +590,14 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
   #endif  // DENSITY_FLOOR
 
 
+    // Gravity depends on an average of the updated and non-updated quantities
+    // We want to compute the update fully, and then implement further changes
+    // still a synchronization issue for threads that have not finished though
+    // these threads can have gravity updated values that are assumed to be clean
+    // hydro time advanced quantities. How do we do this without updating the arrays?
+    // As long as each cell only depends on itself, there is no problem.
+    // Each cell depends on itself and the potential gradient.
+
 #ifdef GRAVITY
     d_n     = dev_conserved_half[id];
     d_inv_n = 1.0 / d_n;
@@ -588,7 +606,7 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
     vz_n    = dev_conserved_half[3 * n_cells + id] * d_inv_n;
 
     // Calculate the -gradient of potential
-    // Get X componet of gravity field
+    // Get X component of gravity field
     id_l  = (xid - 1) + (yid)*nx + (zid)*nx * ny;
     id_r  = (xid + 1) + (yid)*nx + (zid)*nx * ny;
     pot_l = dev_potential[id_l];
@@ -603,7 +621,7 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
     gx = -0.5 * (pot_r - pot_l) / dx;
   #endif
 
-    // Get Y componet of gravity field
+    // Get Y component of gravity field
     id_l  = (xid) + (yid - 1) * nx + (zid)*nx * ny;
     id_r  = (xid) + (yid + 1) * nx + (zid)*nx * ny;
     pot_l = dev_potential[id_l];
@@ -617,7 +635,7 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
   #else
     gy = -0.5 * (pot_r - pot_l) / dy;
   #endif
-    // Get Z componet of gravity field
+    // Get Z component of gravity field
     id_l  = (xid) + (yid)*nx + (zid - 1) * nx * ny;
     id_r  = (xid) + (yid)*nx + (zid + 1) * nx * ny;
     pot_l = dev_potential[id_l];

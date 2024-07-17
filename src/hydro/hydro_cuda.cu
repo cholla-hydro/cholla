@@ -313,7 +313,16 @@ __global__ void Update_Conserved_Variables_3D(Real *dev_conserved, Real *Q_Lx, R
                                        0.25 * dt * gy * (d + d_n) * (vy + vy_n) +
                                        0.25 * dt * gz * (d + d_n) * (vz + vz_n);
 #endif
+    
 
+
+    // Gravity depends on an average of the updated and non-updated quantities
+    // We want to compute the update fully, and then implement further changes
+    // still a synchronization issue for threads that have not finished though
+    // these threads can have gravity updated values that are assumed to be clean
+    // hydro time advanced quantities. How do we do this without updating the arrays?
+    // As long as each cell only depends on itself, there is no problem.
+    // Each cell depends on itself and the potential gradien.
 #ifdef GRAVITY
     d_n     = dev_conserved[id];
     d_inv_n = 1.0 / d_n;
