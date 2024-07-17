@@ -217,6 +217,20 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   GPU_Error_Check();
   #endif  // MHD
 
+  // New half-step partial update to half-step internal energy
+  // ADDED IN TESTING
+  #ifdef DE
+  // Compute the divergence of Vel before updating the conserved array, this
+  // solves synchronization issues when adding this term on
+  // Update_Conserved_Variables_3D
+  cuda_utilities::AutomaticLaunchParams static const de_advect_launch_params(Partial_Update_Advected_Internal_Energy_3D,
+                                                                             n_cells);
+  hipLaunchKernelGGL(Partial_Update_Advected_Internal_Energy_3D, de_advect_launch_params.get_numBlocks(),
+                     de_advect_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved_half, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz,
+                     Q_Rz, nx, ny, nz, n_ghost, dx, dy, dz, 0.5*dt, gama, n_fields);
+  GPU_Error_Check();
+  #endif  // DE
+
   // Step 3: Update the conserved variables half a timestep
   cuda_utilities::AutomaticLaunchParams static const update_half_launch_params(Update_Conserved_Variables_3D_half,
                                                                                n_cells);
@@ -234,6 +248,20 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
                      ctElectricFields, nx, ny, nz, n_cells, 0.5 * dt, dx, dy, dz);
   GPU_Error_Check();
   #endif  // MHD
+
+  // Select and synchronize the half step
+  // ADDED IN TESTING
+  #ifdef DE
+  cuda_utilities::AutomaticLaunchParams static const de_select_launch_params(Select_Internal_Energy_3D, n_cells);
+  hipLaunchKernelGGL(Select_Internal_Energy_3D, de_select_launch_params.get_numBlocks(),
+                     de_select_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved_half, nx, ny, nz, n_ghost, n_fields);
+  cuda_utilities::AutomaticLaunchParams static const de_sync_launch_params(Sync_Energies_3D, n_cells);
+  hipLaunchKernelGGL(Sync_Energies_3D, de_sync_launch_params.get_numBlocks(),
+                     de_sync_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved_half, nx, ny, nz, n_ghost, gama,
+                     n_fields);
+  GPU_Error_Check();
+  #endif  // DE
+
 
   // Step 4: Construct left and right interface values using updated conserved variables
   #if defined(PLMP) or defined(PLMC)
