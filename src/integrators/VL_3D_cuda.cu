@@ -385,8 +385,8 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   // Compute the divergence of Vel before updating the conserved array, this
   // solves synchronization issues when adding this term on
   // Update_Conserved_Variables_3D
-  // cuda_utilities::AutomaticLaunchParams static const de_advect_launch_params(Partial_Update_Advected_Internal_Energy_3D,
-  //                                                                            n_cells);
+  cuda_utilities::AutomaticLaunchParams static const de_advect_launch_params(Partial_Update_Advected_Internal_Energy_3D,
+                                                                             n_cells);
   hipLaunchKernelGGL(Partial_Update_Advected_Internal_Energy_3D, de_advect_launch_params.get_numBlocks(),
                      de_advect_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved, Q_Lx, Q_Rx, Q_Ly, Q_Ry, Q_Lz,
                      Q_Rz, nx, ny, nz, n_ghost, dx, dy, dz, dt, gama, n_fields);
