@@ -254,8 +254,9 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   GPU_Error_Check();
   #endif  // MHD
 
+/*
   // Select and synchronize the half step
-  // ADDED IN TESTING
+  // ADDED IN TESTING, what happens without it?
   #ifdef DE
   cuda_utilities::AutomaticLaunchParams static const de_select_launch_params(Select_Internal_Energy_3D, n_cells);
   hipLaunchKernelGGL(Select_Internal_Energy_3D, de_select_launch_params.get_numBlocks(),
@@ -266,7 +267,7 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
                      n_fields);
   GPU_Error_Check();
   #endif  // DE
-
+*/
 
   // Step 4: Construct left and right interface values using updated conserved variables
   #if defined(PLMP) or defined(PLMC)
@@ -385,6 +386,8 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   // Compute the divergence of Vel before updating the conserved array, this
   // solves synchronization issues when adding this term on
   // Update_Conserved_Variables_3D
+
+  // Does this need to use the updated pressure from the half-updated conserved quantities?
   cuda_utilities::AutomaticLaunchParams static const de_advect_launch_params(Partial_Update_Advected_Internal_Energy_3D,
                                                                              n_cells);
   hipLaunchKernelGGL(Partial_Update_Advected_Internal_Energy_3D, de_advect_launch_params.get_numBlocks(),
