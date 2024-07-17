@@ -12,7 +12,7 @@ DFLAGS += $(POISSON_SOLVER)
 DFLAGS += -DGRAVITY_GPU
 
 # Solve the Gradient of the Potential using a fourth order scheme (5 points) 
-DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
+#DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
 
 # Write the Gravitational Potential to the output files
 # DFLAGS += -DOUTPUT_POTENTIAL

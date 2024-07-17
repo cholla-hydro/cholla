@@ -10,7 +10,7 @@ DFLAGS += -DCOSMOLOGY
 
 
 # Solve the Primordial Chemical Network (H+He) on the GPU (Includes Radiative Cooling, Photoheating and Photoionization)
-#DFLAGS += -DCHEMISTRY_GPU -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY
+DFLAGS += -DCHEMISTRY_GPU -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY
 
 
 # Perform In-The-Fly analysis of Cosmological Simulations
@@ -21,7 +21,7 @@ DFLAGS += -DCOSMOLOGY
 DFLAGS += -DAVERAGE_SLOW_CELLS
 
 # Solve the Gas Internal Energy using a Dual Energy Formalism
-DFLAGS    += -DDE
+#DFLAGS    += -DDE
 
 # Print Initial Statistics
 DFLAGS += -DPRINT_INITIAL_STATS

@@ -31,7 +31,7 @@
 __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x,
                                                    Real *dev_F_y, Real *dev_F_z, int nx, int ny, int nz, int n_ghost,
                                                    Real dx, Real dy, Real dz, Real dt, Real gamma, int n_fields,
-                                                   Real density_floor);
+                                                   Real density_floor, Real *dev_potential);
 
 void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int ny, int nz, int x_off, int y_off,
                           int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound,
@@ -236,7 +236,7 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
                                                                                n_cells);
   hipLaunchKernelGGL(Update_Conserved_Variables_3D_half, update_half_launch_params.get_numBlocks(),
                      update_half_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved, dev_conserved_half, F_x, F_y,
-                     F_z, nx, ny, nz, n_ghost, dx, dy, dz, 0.5 * dt, gama, n_fields, density_floor);
+                     F_z, nx, ny, nz, n_ghost, dx, dy, dz, 0.5 * dt, gama, n_fields, density_floor, dev_grav_potential);
   GPU_Error_Check();
 
   #ifdef MHD
@@ -443,7 +443,7 @@ void Free_Memory_VL_3D()
 __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *dev_conserved_half, Real *dev_F_x,
                                                    Real *dev_F_y, Real *dev_F_z, int nx, int ny, int nz, int n_ghost,
                                                    Real dx, Real dy, Real dz, Real dt, Real gamma, int n_fields,
-                                                   Real density_floor)
+                                                   Real density_floor, Real *dev_potential)
 {
   Real dtodx  = dt / dx;
   Real dtody  = dt / dy;
@@ -467,9 +467,31 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
   int ipo, jpo, kpo;
   #endif  // DE
 
+#ifdef GRAVITY
+#ifndef DE
+  Real d, d_inv, vx, vy, vz;
+#endif 
+  Real gx, gy, gz, d_n, d_inv_n, vx_n, vy_n, vz_n;
+  Real pot_l, pot_r;
+  int id_l, id_r;
+  gx = 0.0;
+  gy = 0.0;
+  gz = 0.0;
+
+  #ifdef GRAVITY_5_POINTS_GRADIENT
+  int id_ll, id_rr;
+  Real pot_ll, pot_rr;
+  #endif
+
+#endif  // GRAVITY
+
   // threads corresponding to all cells except outer ring of ghost cells do the
   // calculation
-  if (xid > 0 && xid < nx - 1 && yid > 0 && yid < ny - 1 && zid > 0 && zid < nz - 1) {
+  //if (xid > 0 && xid < nx - 1 && yid > 0 && yid < ny - 1 && zid > 0 && zid < nz - 1) {
+
+  // threads corresponding to real cells do the calculation
+  if (xid > n_ghost - 1 && xid < nx - n_ghost && yid > n_ghost - 1 && yid < ny - n_ghost && zid > n_ghost - 1 &&
+      zid < nz - n_ghost) {
   #ifdef DE
     d     = dev_conserved[id];
     d_inv = 1.0 / d;
@@ -537,8 +559,9 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
         dev_conserved[(n_fields - 1) * n_cells + id] +
         dtodx * (dev_F_x[(n_fields - 1) * n_cells + imo] - dev_F_x[(n_fields - 1) * n_cells + id]) +
         dtody * (dev_F_y[(n_fields - 1) * n_cells + jmo] - dev_F_y[(n_fields - 1) * n_cells + id]) +
-        dtodz * (dev_F_z[(n_fields - 1) * n_cells + kmo] - dev_F_z[(n_fields - 1) * n_cells + id]) +
-        0.5 * P * (dtodx * (vx_imo - vx_ipo) + dtody * (vy_jmo - vy_jpo) + dtodz * (vz_kmo - vz_kpo));
+        dtodz * (dev_F_z[(n_fields - 1) * n_cells + kmo] - dev_F_z[(n_fields - 1) * n_cells + id]);// +
+        //0.5 * P * (dtodx * (vx_imo - vx_ipo) + dtody * (vy_jmo - vy_jpo) + dtodz * (vz_kmo - vz_kpo));
+        // Check the pressure term here -- commented out in hydro_cuda.cu
   #endif  // DE
   #ifdef DENSITY_FLOOR
     if (dev_conserved_half[id] < density_floor) {
@@ -555,6 +578,73 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
     #endif  // DE
     }
   #endif  // DENSITY_FLOOR
+
+
+#ifdef GRAVITY
+    d_n     = dev_conserved_half[id];
+    d_inv_n = 1.0 / d_n;
+    vx_n    = dev_conserved_half[1 * n_cells + id] * d_inv_n;
+    vy_n    = dev_conserved_half[2 * n_cells + id] * d_inv_n;
+    vz_n    = dev_conserved_half[3 * n_cells + id] * d_inv_n;
+
+    // Calculate the -gradient of potential
+    // Get X componet of gravity field
+    id_l  = (xid - 1) + (yid)*nx + (zid)*nx * ny;
+    id_r  = (xid + 1) + (yid)*nx + (zid)*nx * ny;
+    pot_l = dev_potential[id_l];
+    pot_r = dev_potential[id_r];
+  #ifdef GRAVITY_5_POINTS_GRADIENT
+    id_ll  = (xid - 2) + (yid)*nx + (zid)*nx * ny;
+    id_rr  = (xid + 2) + (yid)*nx + (zid)*nx * ny;
+    pot_ll = dev_potential[id_ll];
+    pot_rr = dev_potential[id_rr];
+    gx     = -1 * (-pot_rr + 8 * pot_r - 8 * pot_l + pot_ll) / (12 * dx);
+  #else
+    gx = -0.5 * (pot_r - pot_l) / dx;
+  #endif
+
+    // Get Y componet of gravity field
+    id_l  = (xid) + (yid - 1) * nx + (zid)*nx * ny;
+    id_r  = (xid) + (yid + 1) * nx + (zid)*nx * ny;
+    pot_l = dev_potential[id_l];
+    pot_r = dev_potential[id_r];
+  #ifdef GRAVITY_5_POINTS_GRADIENT
+    id_ll  = (xid) + (yid - 2) * nx + (zid)*nx * ny;
+    id_rr  = (xid) + (yid + 2) * nx + (zid)*nx * ny;
+    pot_ll = dev_potential[id_ll];
+    pot_rr = dev_potential[id_rr];
+    gy     = -1 * (-pot_rr + 8 * pot_r - 8 * pot_l + pot_ll) / (12 * dx);
+  #else
+    gy = -0.5 * (pot_r - pot_l) / dy;
+  #endif
+    // Get Z componet of gravity field
+    id_l  = (xid) + (yid)*nx + (zid - 1) * nx * ny;
+    id_r  = (xid) + (yid)*nx + (zid + 1) * nx * ny;
+    pot_l = dev_potential[id_l];
+    pot_r = dev_potential[id_r];
+  #ifdef GRAVITY_5_POINTS_GRADIENT
+    id_ll  = (xid) + (yid)*nx + (zid - 2) * nx * ny;
+    id_rr  = (xid) + (yid)*nx + (zid + 2) * nx * ny;
+    pot_ll = dev_potential[id_ll];
+    pot_rr = dev_potential[id_rr];
+    gz     = -1 * (-pot_rr + 8 * pot_r - 8 * pot_l + pot_ll) / (12 * dx);
+  #else
+    gz = -0.5 * (pot_r - pot_l) / dz;
+  #endif
+
+    // Add gravity term to Momentum
+    dev_conserved_half[n_cells + id] += 0.5 * dt * gx * (d + d_n);
+    dev_conserved_half[2 * n_cells + id] += 0.5 * dt * gy * (d + d_n);
+    dev_conserved_half[3 * n_cells + id] += 0.5 * dt * gz * (d + d_n);
+
+    // Add gravity term to Total Energy
+    // Add the work done by the gravitational force
+    dev_conserved_half[4 * n_cells + id] +=
+        0.5 * dt * (gx * (d * vx + d_n * vx_n) + gy * (d * vy + d_n * vy_n) + gz * (d * vz + d_n * vz_n));
+
+#endif  // GRAVITY
+
+
   }
 }
 

@@ -2,23 +2,23 @@
 
 DFLAGS    += -DMPI_CHOLLA
 DFLAGS    += -DPRECISION=2
+DFLAGS    += -DPPMP
 DFLAGS    += -DHLLC
 
 # Integrator
 ifeq ($(findstring cosmology,$(TYPE)),cosmology)
-DFLAGS    += -DSIMPLE
-DFLAGS    += -DPPMP
+#DFLAGS    += -DSIMPLE
+DFLAGS    += -DVL
 else
 DFLAGS    += -DVL
-DFLAGS    += -DPLMC
 endif
 
 # Apply a density and temperature floor
 DFLAGS    += -DDENSITY_FLOOR
 DFLAGS    += -DTEMPERATURE_FLOOR
 
-# Solve the Gas Internal Energy using a Dual Energy Formalism
-#DFLAGS    += -DDE
+# Solve the Gas Internal Energy usisng a Dual Energy Formalism
+DFLAGS    += -DDE
 
 # Apply cooling on the GPU from precomputed tables
 #DFLAGS    += -DCOOLING_GPU
