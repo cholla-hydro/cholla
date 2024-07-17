@@ -650,6 +650,8 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
     gz = -0.5 * (pot_r - pot_l) / dz;
   #endif
 
+    // turn off for testing
+    /*
     // Add gravity term to Momentum
     dev_conserved_half[n_cells + id] += 0.5 * dt * gx * (d + d_n);
     dev_conserved_half[2 * n_cells + id] += 0.5 * dt * gy * (d + d_n);
@@ -659,6 +661,7 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
     // Add the work done by the gravitational force
     dev_conserved_half[4 * n_cells + id] +=
         0.5 * dt * (gx * (d * vx + d_n * vx_n) + gy * (d * vy + d_n * vy_n) + gz * (d * vz + d_n * vz_n));
+    */
 
 #endif  // GRAVITY
 
