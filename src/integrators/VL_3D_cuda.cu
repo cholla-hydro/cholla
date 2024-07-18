@@ -498,11 +498,13 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
 
   // threads corresponding to all cells except outer ring of ghost cells do the
   // calculation
-  //if (xid > 0 && xid < nx - 1 && yid > 0 && yid < ny - 1 && zid > 0 && zid < nz - 1) {
+  if (xid > 0 && xid < nx - 1 && yid > 0 && yid < ny - 1 && zid > 0 && zid < nz - 1) {
 
+/*
   // threads corresponding to real cells do the calculation
   if (xid > n_ghost - 1 && xid < nx - n_ghost && yid > n_ghost - 1 && yid < ny - n_ghost && zid > n_ghost - 1 &&
       zid < nz - n_ghost) {
+*/
   #ifdef DE
     d     = dev_conserved[id];
     d_inv = 1.0 / d;
