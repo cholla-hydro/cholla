@@ -1,4 +1,5 @@
 #ifdef COSMOLOGY
+  #include <fstream>
 
   #include "../global/global.h"
   #include "../grid/grid3D.h"
@@ -10,8 +11,11 @@ void Grid3D::Initialize_Cosmology(struct Parameters *P)
   chprintf("Initializing Cosmology... \n");
   Cosmo.Initialize(P, Grav, Particles);
 
+  // Create expansion history log file
+  Cosmo.Create_Expansion_History_File(P);
+
   // Change to comoving Cosmological System
-  Change_Cosmological_Frame_Sytem(true);
+  Change_Cosmological_Frame_System(true);
 
   if (fabs(Cosmo.current_a - Cosmo.next_output) < 1e-5) {
     H.Output_Now = true;
@@ -20,29 +24,74 @@ void Grid3D::Initialize_Cosmology(struct Parameters *P)
   chprintf("Cosmology Successfully Initialized. \n\n");
 }
 
+/* Computes dt/da * da */
+Real Cosmology::dtda_cosmo(Real da, Real a)
+{
+  Real a2     = a * a;
+  Real fac_de = pow(a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - current_a));
+  Real a_dot  = sqrt(Omega_R / a2 + Omega_M / a + a2 * Omega_L * fac_de + Omega_K) * H0;
+  return da / a_dot;
+}
+
+/* Compute dt/da * da. dt/da is computed with a Runge-Kutta integration step */
+Real Cosmology::Get_dt_from_da_rk(Real da, Real a)
+{
+  Real a3 = 0.3;
+  Real a4 = 0.6;
+  Real a5 = 1.0;
+  Real a6 = 0.875;
+  Real c1 = 37.0 / 378.0;
+  Real c3 = 250.0 / 621.0;
+  Real c4 = 125.0 / 594.0;
+  Real c6 = 512.0 / 1771.0;
+
+  // compute RK average derivatives
+  Real ak1 = dtda_cosmo(da, a);
+  Real ak3 = dtda_cosmo(da, a + a3 * da);
+  Real ak4 = dtda_cosmo(da, a + a4 * da);
+  Real ak6 = dtda_cosmo(da, a + a6 * da);
+
+  // compute timestep
+  Real dt = (c1 * ak1 + c3 * ak3 + c4 * ak4 + c6 * ak6);
+
+  // return timestep
+  return dt;
+}
+
 Real Cosmology::Get_da_from_dt(Real dt)
 {
-  Real a2    = current_a * current_a;
-  Real a_dot = sqrt(Omega_M / current_a + a2 * Omega_L + Omega_K) * H0;
+  Real a2     = current_a * current_a;
+  Real fac_de = pow(current_a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - current_a));
+  Real a_dot  = sqrt(Omega_R / a2 + Omega_M / current_a + a2 * Omega_L * fac_de + Omega_K) * H0;
   return a_dot * dt;
 }
 
-Real Cosmology::Get_dt_from_da(Real da)
+Real Cosmology::Get_dt_from_da(Real da, Real a)
 {
-  Real a2    = current_a * current_a;
-  Real a_dot = sqrt(Omega_M / current_a + a2 * Omega_L + Omega_K) * H0;
-  return da / a_dot;
+  return Get_dt_from_da_rk(da, a);
+
+  /* The following commented code was the original Euler
+     integrator for computing time from the scale factor.
+     This has been left here temporarily to ease comparison
+     with the Runge-Kutta integrator, but it can be removed
+     eventually. */
+  /* Real a2     = a * a;
+  Real fac_de = pow(a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - a));
+  Real a_dot  = sqrt(Omega_R / a2 + Omega_M / a + a2 * Omega_L * fac_de + Omega_K) * H0;
+  return da / a_dot; */
 }
 
 Real Cosmology::Get_Hubble_Parameter(Real a)
 {
   Real a2     = a * a;
   Real a3     = a2 * a;
-  Real factor = (Omega_M / a3 + Omega_K / a2 + Omega_L);
+  Real a4     = a2 * a2;
+  Real fac_de = pow(a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - a));
+  Real factor = (Omega_R / a4 + Omega_M / a3 + Omega_K / a2 + Omega_L * fac_de);
   return H0 * sqrt(factor);
 }
 
-void Grid3D::Change_Cosmological_Frame_Sytem(bool forward)
+void Grid3D::Change_Cosmological_Frame_System(bool forward)
 {
   if (forward) {
     chprintf(" Converting to Cosmological Comoving System\n");
@@ -128,6 +177,56 @@ void Grid3D::Change_GAS_Frame_System(bool forward)
       }
     }
   }
+}
+
+/* create the file for recording the expansion history */
+void Cosmology::Create_Expansion_History_File(struct Parameters *P)
+{
+  if (not Is_Root_Proc()) {
+    return;
+  }
+
+  std::string file_name(EXPANSION_HISTORY_FILE_NAME);
+  chprintf("\nCreating Expansion History File: %s \n\n", file_name.c_str());
+
+  bool file_exists = false;
+  if (FILE *file = fopen(file_name.c_str(), "r")) {
+    file_exists = true;
+    chprintf("  File exists, appending values: %s \n\n", file_name.c_str());
+    fclose(file);
+  }
+
+  // current date/time based on current system
+  time_t now = time(0);
+  // convert now to string form
+  char *dt = ctime(&now);
+
+  std::string message = "# H0 OmegaM Omega_b OmegaL w0 wa Omega_R Omega_K\n";
+  message += "# " + std::to_string(H0 * 1e3) + " " + std::to_string(Omega_M);
+  message += " " + std::to_string(Omega_b);
+  message += " " + std::to_string(Omega_L) + " " + std::to_string(w0) + " " + std::to_string(wa);
+  message += " " + std::to_string(Omega_R) + " " + std::to_string(Omega_K);
+
+  std::ofstream out_file;
+  out_file.open(file_name.c_str(), std::ios::app);
+  out_file << "# Run date: " << dt;
+  out_file << message.c_str() << std::endl;
+  out_file.close();
+}
+
+/* Write the current entry to the expansion history file */
+void Cosmology::Write_Expansion_History_Entry(void)
+{
+  if (not Is_Root_Proc()) {
+    return;
+  }
+
+  std::string message = std::to_string(t_secs / MYR) + " " + std::to_string(current_a);
+  std::string file_name(EXPANSION_HISTORY_FILE_NAME);
+  std::ofstream out_file;
+  out_file.open(file_name.c_str(), std::ios::app);
+  out_file << message.c_str() << std::endl;
+  out_file.close();
 }
 
 #endif

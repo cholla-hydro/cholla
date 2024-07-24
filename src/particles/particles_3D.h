@@ -274,13 +274,15 @@ class Particles3D
                                                       Real *pos_y_dev, Real *pos_z_dev, Real *vel_x_dev,
                                                       Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev,
                                                       Real *grav_y_dev, Real *grav_z_dev, Real current_a, Real H0,
-                                                      Real cosmo_h, Real Omega_M, Real Omega_L, Real Omega_K);
+                                                      Real cosmo_h, Real Omega_M, Real Omega_L, Real Omega_K,
+                                                      Real Omega_R, Real w0, Real wa);
   void Advance_Particles_KDK_Step2_GPU_function(part_int_t n_local, Real dt, Real *vel_x_dev, Real *vel_y_dev,
                                                 Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev, Real *grav_z_dev);
   void Advance_Particles_KDK_Step2_Cosmo_GPU_function(part_int_t n_local, Real delta_a, Real *vel_x_dev,
                                                       Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev,
                                                       Real *grav_y_dev, Real *grav_z_dev, Real current_a, Real H0,
-                                                      Real cosmo_h, Real Omega_M, Real Omega_L, Real Omega_K);
+                                                      Real cosmo_h, Real Omega_M, Real Omega_L, Real Omega_K,
+                                                      Real Omega_R, Real w0, Real wa);
   part_int_t Compute_Particles_GPU_Array_Size(part_int_t n);
   int Select_Particles_to_Transfer_GPU(int direction, int side);
   void Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, Real *send_buffer,

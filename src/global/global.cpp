@@ -102,10 +102,11 @@ char *Trim(char *s)
 }
 
 // NOLINTNEXTLINE(cert-err58-cpp)
+// NOLINTNEXTLINE(*)
 const std::set<std::string> optionalParams = {
-    "flag_delta",   "ddelta_dt",   "n_delta",  "Lz",       "Lx",      "phi",     "theta",
-    "delta",        "nzr",         "nxr",      "H0",       "Omega_M", "Omega_L", "Init_redshift",
-    "End_redshift", "tile_length", "n_proc_x", "n_proc_y", "n_proc_z"};
+    "flag_delta", "ddelta_dt",     "n_delta",      "Lz",          "Lx",       "phi",      "theta",   "delta",
+    "nzr",        "nxr",           "H0",           "Omega_M",     "Omega_L",  "Omega_R",  "Omega_K", "w0",
+    "wa",         "Init_redshift", "End_redshift", "tile_length", "n_proc_x", "n_proc_y", "n_proc_z"};  // NOLINT
 
 bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameters *parms);
 
@@ -368,6 +369,12 @@ bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameter
     parms->Omega_L = atof(value);
   } else if (strcmp(name, "Omega_b") == 0) {
     parms->Omega_b = atof(value);
+  } else if (strcmp(name, "Omega_R") == 0) {
+    parms->Omega_R = atof(value);
+  } else if (strcmp(name, "w0") == 0) {
+    parms->w0 = atof(value);
+  } else if (strcmp(name, "wa") == 0) {
+    parms->wa = atof(value);
 #endif  // COSMOLOGY
 #ifdef TILED_INITIAL_CONDITIONS
   } else if (strcmp(name, "tile_length") == 0) {

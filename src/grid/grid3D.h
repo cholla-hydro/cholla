@@ -530,6 +530,12 @@ class Grid3D
   void Read_Grid_HDF5(hid_t file_id, struct Parameters P);
 #endif
 
+#if defined(PRINT_INITIAL_STATS) && defined(COSMOLOGY)
+  /*! \fn void Print_Grid_Stats(void)
+   *  \brief Compute stats for grid properties. */
+  void Print_Grid_Stats(void);
+#endif
+
   /*! \fn void Reset(void)
    *  \brief Reset the Grid3D class. */
   void Reset(void);
@@ -854,7 +860,7 @@ class Grid3D
   void Change_DM_Frame_System(bool forward);
   void Change_GAS_Frame_System(bool forward);
   void Change_GAS_Frame_System_GPU(bool forward);
-  void Change_Cosmological_Frame_Sytem(bool forward);
+  void Change_Cosmological_Frame_System(bool forward);
   void Advance_Particles_KDK_Cosmo_Step1_function(part_int_t p_start, part_int_t p_end);
   void Advance_Particles_KDK_Cosmo_Step2_function(part_int_t p_start, part_int_t p_end);
   Real Calc_Particles_dt_Cosmo_function(part_int_t p_start, part_int_t p_end);

@@ -11,6 +11,7 @@ bin/*
 *.dll
 *.exe
 *.o
+*.swp
 *.so
 *.mod
 *.a
