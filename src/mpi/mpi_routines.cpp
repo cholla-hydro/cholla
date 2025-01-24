@@ -303,15 +303,14 @@ void DomainDecompositionBLOCK(struct Parameters *P, struct Header *H, int nx_gin
     nproc_z = tmp;
   }
 
-  #ifdef SET_MPI_GRID
-  // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z]
-  nproc_x = P->n_proc_x;
-  nproc_y = P->n_proc_y;
-  nproc_z = P->n_proc_z;
-  chprintf("Setting MPI grid: nx=%d  ny=%d  nz=%d\n", nproc_x, nproc_y, nproc_z);
-  // chprintf("Setting MPI grid: nx=%d  ny=%d  nz=%d\n", P->n_proc_x,
-  // P->n_proc_y, P->n_proc_z);
-  #endif
+  if ((P->n_proc_x > 0) or (P->n_proc_y > 0) or (P->n_proc_z > 0)) {
+    // (in reality all or none of the parameters will be 0)
+    // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z]
+    nproc_x = P->n_proc_x;
+    nproc_y = P->n_proc_y;
+    nproc_z = P->n_proc_z;
+    chprintf("Setting MPI grid: nx=%d  ny=%d  nz=%d\n", nproc_x, nproc_y, nproc_z);
+  }
 
   // chprintf("Allocating tiling.\n");
   MPI_Barrier(world);

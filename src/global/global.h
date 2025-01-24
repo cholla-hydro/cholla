@@ -335,12 +335,11 @@ struct Parameters {
   Real tile_length;
 #endif  // TILED_INITIAL_CONDITIONS
 
-#ifdef SET_MPI_GRID
-  // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z]
+  // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z] (if they aren't provided, they are set to 0)
   int n_proc_x;
   int n_proc_y;
   int n_proc_z;
-#endif
+
   int bc_potential_type;
 #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
   char UVB_rates_file[MAXLEN];  // File for the UVB photoheating and

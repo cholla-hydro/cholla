@@ -103,10 +103,10 @@ char *Trim(char *s)
 
 // NOLINTNEXTLINE(cert-err58-cpp)
 // NOLINTNEXTLINE(*)
-const std::set<std::string> optionalParams = {
-    "flag_delta", "ddelta_dt",     "n_delta",      "Lz",          "Lx",       "phi",      "theta",   "delta",
-    "nzr",        "nxr",           "H0",           "Omega_M",     "Omega_L",  "Omega_R",  "Omega_K", "w0",
-    "wa",         "Init_redshift", "End_redshift", "tile_length", "n_proc_x", "n_proc_y", "n_proc_z"};  // NOLINT
+const std::set<std::string> optionalParams = {"flag_delta",   "ddelta_dt",  "n_delta", "Lz",  "Lx", "phi",
+                                              "theta",        "delta",      "nzr",     "nxr", "H0", "Omega_M",
+                                              "Omega_L",      "Omega_R",    "Omega_K", "w0",  "wa", "Init_redshift",
+                                              "End_redshift", "tile_length"};  // NOLINT
 
 bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameters *parms);
 
@@ -381,15 +381,6 @@ bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameter
     parms->tile_length = atof(value);
 #endif  // TILED_INITIAL_CONDITIONS
 
-#ifdef SET_MPI_GRID
-    // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z]
-  } else if (strcmp(name, "n_proc_x") == 0) {
-    parms->n_proc_x = atoi(value);
-  } else if (strcmp(name, "n_proc_y") == 0) {
-    parms->n_proc_y = atoi(value);
-  } else if (strcmp(name, "n_proc_z") == 0) {
-    parms->n_proc_z = atoi(value);
-#endif
   } else if (strcmp(name, "bc_potential_type") == 0) {
     parms->bc_potential_type = atoi(value);
 #ifdef CHEMISTRY_GPU
@@ -451,6 +442,25 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   // in the future, maybe we should provide a default value of 5/3 for gamma
   parms->gamma = Real(pmap.value<double>("gamma"));
   CHOLLA_ASSERT(parms->gamma > 1.0, "gamma parameter must be greater than one.");
+
+  // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z]
+  if (pmap.has_param("n_proc_x") or pmap.has_param("n_proc_y") or pmap.has_param("n_proc_z")) {
+    parms->n_proc_x = pmap.value<int>("n_proc_x");
+    parms->n_proc_y = pmap.value<int>("n_proc_y");
+    parms->n_proc_z = pmap.value<int>("n_proc_z");
+    CHOLLA_ASSERT((parms->n_proc_x > 0) and (parms->n_proc_y > 0) and (parms->n_proc_z > 0),
+                  "When specified, n_proc_x, n_proc_y, and n_proc_z must be positive");
+    // the following check also implicitly ensures that n_proc_[xyz] are all 1 without MPI
+    int product = parms->n_proc_x * parms->n_proc_y * parms->n_proc_z;
+    CHOLLA_ASSERT(product == nproc,
+                  "The product of n_proc_x, n_proc_y, and n_proc_z is %d. It doesn't match the "
+                  "number of processes, %d",
+                  product, nproc);
+  } else {
+    parms->n_proc_x = 0;
+    parms->n_proc_y = 0;
+    parms->n_proc_z = 0;
+  }
 
 #ifdef TEMPERATURE_FLOOR
   if (not pmap.has_param("temperature_floor")) {
