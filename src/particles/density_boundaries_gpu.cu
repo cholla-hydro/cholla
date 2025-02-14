@@ -1,9 +1,10 @@
-#if defined(PARTICLES_GPU) && defined(GRAVITY_GPU)
+#if defined(PARTICLES_GPU)
 
   #include <iostream>
 
   #include "../grid/grid3D.h"
   #include "../io/io.h"
+  #include "../utils/error_handling.h"
   #include "particles_3D.h"
 
 __global__ void Set_Particles_Density_Boundaries_Periodic_kernel(int direction, int side, int n_i, int n_j, int nx,
@@ -68,6 +69,9 @@ __global__ void Set_Particles_Density_Boundaries_Periodic_kernel(int direction, 
 
 void Grid3D::Set_Particles_Density_Boundaries_Periodic_GPU(int direction, int side)
 {
+  #ifndef GRAVITY_GPU
+  CHOLLA_ERROR("This function should not be invoked when compiled without GPU-Gravity");
+  #endif  // GRAVITY_GPU
   int n_ghost, nx_g, ny_g, nz_g, size, ngrid, n_i, n_j;
   n_ghost = Particles.G.n_ghost_particles_grid;
   nx_g    = Particles.G.nx_local + 2 * n_ghost;
@@ -148,6 +152,9 @@ __global__ void Load_Particles_Density_Boundary_to_Buffer_kernel(int direction, 
 
 int Grid3D::Load_Particles_Density_Boundary_to_Buffer_GPU(int direction, int side, Real *buffer)
 {
+    #ifndef GRAVITY_GPU
+  CHOLLA_ERROR("This function should not be invoked when compiled without GPU-Gravity");
+    #endif  // GRAVITY_GPU
   int n_ghost, nx_g, ny_g, nz_g, size_buffer, ngrid, n_i, n_j;
   n_ghost = Particles.G.n_ghost_particles_grid;
   nx_g    = Particles.G.nx_local + 2 * n_ghost;
@@ -236,6 +243,9 @@ __global__ void Unload_Particles_Density_Boundary_to_Buffer_kernel(int direction
 
 void Grid3D::Unload_Particles_Density_Boundary_From_Buffer_GPU(int direction, int side, Real *buffer)
 {
+    #ifndef GRAVITY_GPU
+  CHOLLA_ERROR("This function should not be invoked when compiled without GPU-Gravity");
+    #endif  // GRAVITY_GPU
   int n_ghost, nx_g, ny_g, nz_g, size_buffer, ngrid, n_i, n_j;
   n_ghost = Particles.G.n_ghost_particles_grid;
   nx_g    = Particles.G.nx_local + 2 * n_ghost;
@@ -276,4 +286,4 @@ void Grid3D::Unload_Particles_Density_Boundary_From_Buffer_GPU(int direction, in
 
   #endif  // MPI_CHOLLA
 
-#endif  // PARTICLES_GPU & GRAVITY_GPU
+#endif  // PARTICLES_GPU

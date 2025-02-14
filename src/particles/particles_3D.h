@@ -14,8 +14,11 @@
 
     #include "../global/global.h"
     #include "../gravity/grav3D.h"
+    #include "../grid/spatial_domain_props.h"
 
     #ifdef PARTICLES_GPU
+      #include "../utils/gpu.hpp"  // cudaFree
+
       #define TPB_PARTICLES 1024
       // #define PRINT_GPU_MEMORY
       #define PRINT_MAX_MEMORY_USAGE
@@ -218,8 +221,8 @@ class Particles3D
 
   Particles3D(void);
 
-  void Initialize(struct Parameters *P, Grav3D &Grav, Real xbound, Real ybound, Real zbound, Real xdglobal,
-                  Real ydglobal, Real zdglobal);
+  void Initialize(Parameters *P, const SpatialDomainProps &spatial_props, Real xbound, Real ybound, Real zbound,
+                  Real xdglobal, Real ydglobal, Real zdglobal);
 
   void Allocate_Particles_Grid_Field_Real(Real **array_dev, int size);
   void Free_GPU_Array_Real(Real *array);

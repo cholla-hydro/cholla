@@ -358,9 +358,8 @@ static void printDiff(const Real *p, const Real *q, const int nx, const int ny, 
 void Grid3D::Initialize_Gravity(struct Parameters *P)
 {
   chprintf("\nInitializing Gravity... \n");
-  Grav.Initialize(H.xblocal, H.yblocal, H.zblocal, H.xblocal_max, H.yblocal_max, H.zblocal_max, H.xdglobal, H.ydglobal,
-                  H.zdglobal, P->nx, P->ny, P->nz, H.nx_real, H.ny_real, H.nz_real, H.dx, H.dy, H.dz,
-                  H.n_ghost_potential_offset, P);
+  SpatialDomainProps spatial_props = SpatialDomainProps::From_Grid3D(*this, P);
+  Grav.Initialize(spatial_props, H.xdglobal, H.ydglobal, H.zdglobal, H.n_ghost_potential_offset, P);
   chprintf("Gravity Successfully Initialized. \n\n");
 
   if (P->bc_potential_type == 1) {
