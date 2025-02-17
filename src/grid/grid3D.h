@@ -10,6 +10,8 @@
 
 #include <stdio.h>
 
+#include <functional>
+
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 
@@ -463,8 +465,13 @@ class Grid3D
   void Execute_Hydro_Integrator(void);
 
   /*! \fn void Update_Hydro_Grid(void)
-   *  \brief Do all steps to update the hydro. */
-  Real Update_Hydro_Grid(void);
+   *  \brief Do all steps to update the hydro.
+   *
+   *  \param chemistry_callback is a crude way to optionally provide a cooling
+   *  function that is invoked after the hydro-integrator. At the moment,
+   *  this does not support chemistry.
+   */
+  Real Update_Hydro_Grid(std::function<void(Grid3D &)> &chemistry_callback);
 
   void Update_Time();
   /*! \fn void Write_Header_Text(FILE *fp)

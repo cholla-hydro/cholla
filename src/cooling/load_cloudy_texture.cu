@@ -1,17 +1,18 @@
 /*! \file load_cloudy_texture.cu
  *  \brief Wrapper file to load cloudy cooling table as CUDA texture. */
 
-#ifdef CLOUDY_COOL
+#include <stdio.h>
+#include <stdlib.h>
 
-  #include <stdio.h>
-  #include <stdlib.h>
+#include <string>
+#include <vector>
 
-  #include "../cooling/cooling_cuda.h"
-  #include "../cooling/load_cloudy_texture.h"
-  #include "../cooling/texture_utilities.h"
-  #include "../global/global.h"
-  #include "../global/global_cuda.h"
-  #include "../io/io.h"  // provides chprintf
+#include "../cooling/cooling_cuda.h"
+#include "../cooling/load_cloudy_texture.h"
+#include "../cooling/texture_utilities.h"
+#include "../global/global.h"
+#include "../global/global_cuda.h"
+#include "../io/io.h"  // provides chprintf
 
 cudaArray *cuCoolArray;
 cudaArray *cuHeatArray;
@@ -21,13 +22,8 @@ void Test_Cloudy_Speed();
 
 /* \fn void Host_Read_Cooling_Tables(float* cooling_table, float* heating_table)
  * \brief Load the Cloudy cooling tables into host (CPU) memory. */
-void Host_Read_Cooling_Tables(float *cooling_table, float *heating_table)
+void Host_Read_Cooling_Tables(float *cooling_table, float *heating_table, std::string filename)
 {
-  double *n_arr;
-  double *T_arr;
-  double *L_arr;
-  double *H_arr;
-
   int i;
   int nx = 121;
   int ny = 81;
@@ -37,35 +33,33 @@ void Host_Read_Cooling_Tables(float *cooling_table, float *heating_table)
   char *pch;
 
   // allocate arrays for temperature data
-  n_arr = (double *)malloc(nx * ny * sizeof(double));
-  T_arr = (double *)malloc(nx * ny * sizeof(double));
-  L_arr = (double *)malloc(nx * ny * sizeof(double));
-  H_arr = (double *)malloc(nx * ny * sizeof(double));
+  std::vector<double> n_arr(nx * ny);
+  std::vector<double> T_arr(nx * ny);
+  std::vector<double> L_arr(nx * ny);
+  std::vector<double> H_arr(nx * ny);
 
   // Read in cloudy cooling/heating curve (function of density and temperature)
-  i = 0;
-
-  const char *cloudy_filename1 = "./cloudy_coolingcurve.txt";
-  const char *cloudy_filename2 = "src/cooling/cloudy_coolingcurve.txt";
-  const char *file_in_use;
-
-  infile      = fopen(cloudy_filename1, "r");
-  file_in_use = cloudy_filename1;
-  if (infile == NULL) {
-    infile      = fopen(cloudy_filename2, "r");
-    file_in_use = cloudy_filename2;
-  }
-
-  if (infile == NULL) {
-    chprintf(
-        "Unable to open Cloudy file with expected relative paths:\n %s \n OR "
-        "\n %s\n",
-        cloudy_filename1, cloudy_filename2);
-    exit(1);
+  if (not filename.empty()) {
+    infile = fopen(filename.c_str(), "r");
+    CHOLLA_ASSERT(infile != nullptr, "Unable to open cloudy file at %s", filename.c_str());
   } else {
-    chprintf("Using Cloudy file at relative path: %s \n", file_in_use);
+    const char *cloudy_filename1 = "./cloudy_coolingcurve.txt";
+    const char *cloudy_filename2 = "src/cooling/cloudy_coolingcurve.txt";
+    const char *file_in_use      = cloudy_filename1;
+
+    infile = fopen(cloudy_filename1, "r");
+    if (infile == nullptr) {
+      infile      = fopen(cloudy_filename2, "r");
+      file_in_use = cloudy_filename2;
+    }
+
+    CHOLLA_ASSERT(infile != nullptr,
+                  "Unable to open cloudy file. Since no file-path was specified, we tried both \n ->%s AND\n -> %s",
+                  cloudy_filename1, cloudy_filename2);
+    chprintf("Since no file-path was specified, using Cloudy file at relative path: %s\n", file_in_use);
   }
 
+  i = 0;
   while (fgets(buffer, sizeof(buffer), infile) != NULL) {
     if (buffer[0] == '#') {
       continue;
@@ -90,17 +84,11 @@ void Host_Read_Cooling_Tables(float *cooling_table, float *heating_table)
     cooling_table[i] = float(L_arr[i]);
     heating_table[i] = float(H_arr[i]);
   }
-
-  // Free arrays used to read in table data
-  free(n_arr);
-  free(T_arr);
-  free(L_arr);
-  free(H_arr);
 }
 
 /* \fn void Load_Cuda_Textures()
  * \brief Load the Cloudy cooling tables into texture memory on the GPU. */
-void Load_Cuda_Textures()
+void Load_Cuda_Textures(std::string filename)
 {
   float *cooling_table;
   float *heating_table;
@@ -113,7 +101,7 @@ void Load_Cuda_Textures()
   GPU_Error_Check(cudaHostAlloc(&heating_table, nx * ny * sizeof(float), cudaHostAllocDefault));
 
   // Read cooling tables into the host arrays
-  Host_Read_Cooling_Tables(cooling_table, heating_table);
+  Host_Read_Cooling_Tables(cooling_table, heating_table, filename);
 
   // Allocate CUDA arrays in device memory
   cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
@@ -282,5 +270,3 @@ void Test_Cloudy_Speed()
   printf("Exiting due to Test_Cloudy_Speed() being called \n");
   exit(0);
 }
-
-#endif  // CLOUDY_COOL
