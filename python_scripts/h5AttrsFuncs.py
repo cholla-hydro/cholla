@@ -28,3 +28,11 @@ def modifyAttrsVal(fname, Attrs, vals):
     for i, attr in enumerate(Attrs):
         file.attrs.modify(attr, vals[i])
         return f'{attr} updated to {vals[i]}'
+
+if __name__ == '__main__':
+    fname = str(input('file name = '))
+    Attrs = input('attributes ["None" if no change]= ')
+    vals = input('values = ')
+    chollaFlag = readFilePrintHeaders(fname)
+    if Attrs != "None":
+        mod = modifyAttrsVal(fname, Attrs, vals)
