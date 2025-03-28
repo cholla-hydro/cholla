@@ -380,6 +380,12 @@ static void Load_String_Param_Into_Char_Buffer(ParameterMap &pmap, const std::st
  */
 void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
 {
+  // load the domain dimensions (abort with an error if one of these is missing)
+  parms->nx = pmap.value<int>("nx");
+  parms->ny = pmap.value<int>("ny");
+  parms->nz = pmap.value<int>("nz");
+
+  CHOLLA_ASSERT((parms->nx >= 0) and (parms->ny >= 0) and (parms->nz >= 0), "domain dimensions must be positive");
   // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z]
   if (pmap.has_param("n_proc_x") or pmap.has_param("n_proc_y") or pmap.has_param("n_proc_z")) {
     parms->n_proc_x = pmap.value<int>("n_proc_x");
