@@ -26,6 +26,9 @@ case $FQDN in
   *crusher* | *frontier* )
     echo "frontier"
     exit 0 ;;
+  *vista.tacc* )
+    echo "vista"
+    exit 0 ;;
   *)
     host=$(hostname)
     echo "Using default hostname, expecting make.host.$host" >&2

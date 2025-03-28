@@ -16,9 +16,8 @@
 
 Grav3D::Grav3D(void) {}
 
-void Grav3D::Initialize(Real x_min, Real y_min, Real z_min, Real x_max, Real y_max, Real z_max, Real Lx, Real Ly,
-                        Real Lz, int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, Real dx_real,
-                        Real dy_real, Real dz_real, int n_ghost_pot_offset, struct Parameters *P)
+void Grav3D::Initialize(const SpatialDomainProps &spatial_props, Real Lx, Real Ly, Real Lz, int n_ghost_pot_offset,
+                        Parameters *P)
 {
   // Set Box Size
   Lbox_x = Lx;
@@ -26,29 +25,29 @@ void Grav3D::Initialize(Real x_min, Real y_min, Real z_min, Real x_max, Real y_m
   Lbox_z = Lz;
 
   // Set Box Left boundary positions
-  xMin = x_min;
-  yMin = y_min;
-  zMin = z_min;
+  xMin = spatial_props.xMin;
+  yMin = spatial_props.yMin;
+  zMin = spatial_props.zMin;
 
   // Set Box Right boundary positions
-  xMax = x_max;
-  yMax = y_max;
-  zMax = z_max;
+  xMax = spatial_props.xMax;
+  yMax = spatial_props.yMax;
+  zMax = spatial_props.zMax;
 
   // Set uniform ( dx, dy, dz )
-  dx = dx_real;
-  dy = dy_real;
-  dz = dz_real;
+  dx = spatial_props.dx;
+  dy = spatial_props.dy;
+  dz = spatial_props.dz;
 
   // Set Box Total number of cells
-  nx_total = nx;
-  ny_total = ny;
-  nz_total = nz;
+  nx_total = spatial_props.nx_total;
+  ny_total = spatial_props.ny_total;
+  nz_total = spatial_props.nz_total;
 
   // Set Box local domain number of cells
-  nx_local = nx_real;
-  ny_local = ny_real;
-  nz_local = nz_real;
+  nx_local = spatial_props.nx_local;
+  ny_local = spatial_props.ny_local;
+  nz_local = spatial_props.nz_local;
 
   // Local n_cells without ghost cells
   n_cells = nx_local * ny_local * nz_local;

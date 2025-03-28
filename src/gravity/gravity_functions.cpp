@@ -20,7 +20,7 @@
   #include "../model/disk_galaxy.h"
 // #endif
 
-// Set delta_t when usi#ng gravity
+// Set delta_t when using gravity
 void Grid3D::set_dt_Gravity()
 {
   // Delta_t for the hydro
@@ -54,7 +54,7 @@ void Grid3D::set_dt_Gravity()
   // Here da_min is the minumum between da_particles and da_hydro
   Real da_hydro;
   da_hydro =
-      Cosmo.Get_da_from_dt(dt_hydro) * Cosmo.current_a * Cosmo.current_a / Cosmo.H0;  // Convet delta_t to delta_a
+      Cosmo.Get_da_from_dt(dt_hydro) * Cosmo.current_a * Cosmo.current_a / Cosmo.H0;  // Convert delta_t to delta_a
   da_min = fmin(da_hydro, da_particles);                                              // Find the minumum delta_a
   chprintf(" Delta_a_particles: %f      Delta_a_gas: %f   \n", da_particles, da_hydro);
 
@@ -107,7 +107,7 @@ void Grid3D::set_dt_Gravity()
   // Set delta_a after it has been computed
   Cosmo.delta_a = da_min;
   // Convert delta_a back to delta_t
-  dt_min = Cosmo.Get_dt_from_da(Cosmo.delta_a) * Cosmo.H0 / (Cosmo.current_a * Cosmo.current_a);
+  dt_min = Cosmo.Get_dt_from_da(Cosmo.delta_a, Cosmo.current_a) * Cosmo.H0 / (Cosmo.current_a * Cosmo.current_a);
   // Set the new delta_t for the hydro step
   H.dt = dt_min;
   chprintf(" Current_a: %f    delta_a: %f     dt:  %f\n", Cosmo.current_a, Cosmo.delta_a, H.dt);
@@ -115,17 +115,21 @@ void Grid3D::set_dt_Gravity()
       #ifdef AVERAGE_SLOW_CELLS
   // Set the min_delta_t for averaging a slow cell
   da_particles = fmin(da_particles, Cosmo.max_delta_a);
-  min_dt_slow  = Cosmo.Get_dt_from_da(da_particles) / Particles.C_cfl * Cosmo.H0 / (Cosmo.current_a * Cosmo.current_a) /
-                SLOW_FACTOR;
+  min_dt_slow  = Cosmo.Get_dt_from_da(da_particles, Cosmo.current_a);
+  min_dt_slow /= Particles.C_cfl;
+  min_dt_slow *= Cosmo.H0 / (Cosmo.current_a * Cosmo.current_a) / SLOW_FACTOR;
   H.min_dt_slow = min_dt_slow;
       #endif
 
   // Compute the physical time
-  dt_physical   = Cosmo.Get_dt_from_da(Cosmo.delta_a);
+  dt_physical   = Cosmo.Get_dt_from_da(Cosmo.delta_a, Cosmo.current_a);
   Cosmo.dt_secs = dt_physical * Cosmo.time_conversion;
   Cosmo.t_secs += Cosmo.dt_secs;
   chprintf(" t_physical: %f Myr   dt_physical: %f Myr\n", Cosmo.t_secs / MYR, Cosmo.dt_secs / MYR);
   Particles.dt = dt_physical;
+
+  // Write expansion history
+  Cosmo.Write_Expansion_History_Entry();
 
     #else  // Not Cosmology
   // If NOT using COSMOLOGY
@@ -354,9 +358,8 @@ static void printDiff(const Real *p, const Real *q, const int nx, const int ny, 
 void Grid3D::Initialize_Gravity(struct Parameters *P)
 {
   chprintf("\nInitializing Gravity... \n");
-  Grav.Initialize(H.xblocal, H.yblocal, H.zblocal, H.xblocal_max, H.yblocal_max, H.zblocal_max, H.xdglobal, H.ydglobal,
-                  H.zdglobal, P->nx, P->ny, P->nz, H.nx_real, H.ny_real, H.nz_real, H.dx, H.dy, H.dz,
-                  H.n_ghost_potential_offset, P);
+  SpatialDomainProps spatial_props = SpatialDomainProps::From_Grid3D(*this, P);
+  Grav.Initialize(spatial_props, H.xdglobal, H.ydglobal, H.zdglobal, H.n_ghost_potential_offset, P);
   chprintf("Gravity Successfully Initialized. \n\n");
 
   if (P->bc_potential_type == 1) {

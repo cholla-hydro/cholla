@@ -9,6 +9,9 @@
 
 // #define OUTPUT_SKEWERS_TRANSMITTED_FLUX
 
+using std::ifstream;
+using std::string;
+
   #ifdef OUTPUT_SKEWERS
 void Grid3D::Output_Skewers_File(struct Parameters *P)
 {
@@ -73,6 +76,18 @@ void Grid3D::Write_Skewers_Header_HDF5(hid_t file_id)
   status       = H5Aclose(attribute_id);
   attribute_id = H5Acreate(file_id, "Omega_b", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
   status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.Omega_b);
+  status       = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "Omega_K", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.Omega_K);
+  status       = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "Omega_R", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.Omega_R);
+  status       = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "w0", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.w0);
+  status       = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "wa", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.wa);
   status       = H5Aclose(attribute_id);
     #endif
 
@@ -524,6 +539,18 @@ void Grid3D::Write_Analysis_Header_HDF5(hid_t file_id)
   status       = H5Aclose(attribute_id);
   attribute_id = H5Acreate(file_id, "Omega_b", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
   status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.Omega_b);
+  status       = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "Omega_K", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.Omega_K);
+  status       = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "Omega_R", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.Omega_R);
+  status       = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "w0", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.w0);
+  status       = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "wa", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.wa);
   status       = H5Aclose(attribute_id);
   #endif
 

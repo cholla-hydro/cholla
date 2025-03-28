@@ -50,7 +50,7 @@ TEST(tALLParameterMap, Methodsize)
   const char* CONTENTS = R"LITERAL(
 # My sample parameters
 tout=50000
-")LITERAL";
+)LITERAL";
 
   DummyFile dummy   = DummyFile(CONTENTS);
   ParameterMap pmap = ParameterMap(dummy.fp, 0, nullptr);
@@ -69,7 +69,7 @@ n_hydro=10
 xmin=-5
 mypar=true
 mypar2=false
-")LITERAL";
+)LITERAL";
 
 TEST(tALLParameterMap, Methodhasparam)
 {
@@ -94,7 +94,7 @@ gamma=1.4
 init=Disk_3D
 xmin=-5
 mypar=true
-")LITERAL";
+)LITERAL";
 
   DummyFile dummy   = DummyFile(CONTENTS);
   ParameterMap pmap = ParameterMap(dummy.fp, 0, nullptr);
@@ -190,7 +190,7 @@ TEST(tALLParameterMap, Methodwarnunusedparameters)
 tout=50000
 gamma=1.4
 mypar=true
-")LITERAL";
+)LITERAL";
   DummyFile dummy      = DummyFile(CONTENTS);
   ParameterMap pmap    = ParameterMap(dummy.fp, 0, nullptr);
 
@@ -230,4 +230,189 @@ mypar=true
   ASSERT_EQ(pmap.warn_unused_parameters({"gamma", "tout"}, false, true), 1);
   ASSERT_EQ(pmap.warn_unused_parameters({"tout", "gamma", "mypar"}, false, true), 0);
   ASSERT_EQ(pmap.warn_unused_parameters({"mypar"}, false, true), 0);
+}
+
+// the test code for all of the examples is based on the TOML 1.0.0 specification
+// https://toml.io/en/v1.0.0#table
+
+TEST(tALLParameterMapTables, NoKeys)
+{
+  const char* CONTENTS = R"LITERAL(
+[table]
+)LITERAL";
+  DummyFile dummy      = DummyFile(CONTENTS);
+  ParameterMap pmap    = ParameterMap(dummy.fp, 0, nullptr);
+  ASSERT_EQ(pmap.size(), 0);
+}
+
+TEST(tALLParameterMapTables, simple)
+{
+  const char* CONTENTS = R"LITERAL(
+[table-1]
+key1=-1.0
+key2=123
+
+[table-2]
+key1=-2.0
+key2=456
+)LITERAL";
+  DummyFile dummy      = DummyFile(CONTENTS);
+  ParameterMap pmap    = ParameterMap(dummy.fp, 0, nullptr);
+  ASSERT_EQ(pmap.size(), 4);
+  pmap.Enforce_Table_Content_Uniform_Access_Status("table-1", true);
+  ASSERT_EQ(pmap.value<double>("table-1.key1"), -1.0);
+  ASSERT_EQ(pmap.value<int>("table-1.key2"), 123);
+  pmap.Enforce_Table_Content_Uniform_Access_Status("table-1", false);
+
+  pmap.Enforce_Table_Content_Uniform_Access_Status("table-2", true);
+  ASSERT_EQ(pmap.value<double>("table-2.key1"), -2.0);
+  ASSERT_EQ(pmap.value<int>("table-2.key2"), 456);
+  pmap.Enforce_Table_Content_Uniform_Access_Status("table-2", false);
+}
+
+TEST(tALLParameterMapTables, EmptyName)
+{
+  const char* CONTENTS = R"LITERAL(
+[]
+key1=-1.0
+key2=123
+)LITERAL";
+  DummyFile dummy      = DummyFile(CONTENTS);
+  ASSERT_ANY_THROW(ParameterMap pmap = ParameterMap(dummy.fp, 0, nullptr););
+}
+
+TEST(tALLParameterMapTables, BadNames)
+{
+  std::vector<std::string> bad_names = {"[.]",    "[ ]",        "[ fdssf]",   "[sadfasd ]", "[sda.]",
+                                        "[.asd]", "[ssad.sd ]", "[ sdas.sd]", "[sds sdsd]"};
+  for (const std::string& table_name : bad_names) {
+    std::string contents = table_name + "\nkey1=-1.0\n";
+    DummyFile dummy      = DummyFile(contents.c_str());
+    ASSERT_ANY_THROW(ParameterMap pmap = ParameterMap(dummy.fp, 0, nullptr););
+  }
+}
+
+TEST(tALLParameterMapTables, ForbidTableRedefine)
+{
+  const char* CONTENTS = R"LITERAL(
+[fruit]
+apple=1
+
+[fruit]
+orange=2
+)LITERAL";
+  DummyFile dummy      = DummyFile(CONTENTS);
+  ASSERT_ANY_THROW(ParameterMap pmap = ParameterMap(dummy.fp, 0, nullptr););
+}
+
+TEST(tALLParameterMapTables, DontRedefineTable)
+{
+  const char* CONTENTS = R"LITERAL(
+[fruit]
+apple=1
+
+[fruit]
+orange=2
+)LITERAL";
+  DummyFile dummy      = DummyFile(CONTENTS);
+  ASSERT_ANY_THROW(ParameterMap pmap = ParameterMap(dummy.fp, 0, nullptr););
+}
+
+TEST(tALLParameterMapTables, ForbidTableKeyNameCollision)
+{
+  const char* CONTENTS = R"LITERAL(
+[fruit]
+apple=1
+
+[fruit.apple]
+texture=2
+)LITERAL";
+  DummyFile dummy      = DummyFile(CONTENTS);
+  ASSERT_ANY_THROW(ParameterMap pmap = ParameterMap(dummy.fp, 0, nullptr););
+}
+
+TEST(tALLParameterMapTables, TopLevelTableAndTable)
+{
+  const char* CONTENTS = R"LITERAL(
+# these parameters are in the top-level table
+key1=-1.0
+key2=100.0
+
+[table]
+key1=-2.0
+key2=456
+)LITERAL";
+  DummyFile dummy      = DummyFile(CONTENTS);
+  ParameterMap pmap    = ParameterMap(dummy.fp, 0, nullptr);
+  ASSERT_EQ(pmap.size(), 4);
+  ASSERT_EQ(pmap.value<double>("key1"), -1.0);
+  ASSERT_EQ(pmap.value<double>("key2"), 100.0);
+  ASSERT_EQ(pmap.value<double>("table.key1"), -2.0);
+  ASSERT_EQ(pmap.value<int>("table.key2"), 456);
+}
+
+// for now we forbid dotted keys from being specified inside a parameter file
+// (the following cases are technically supported by TOML)
+TEST(tALLParameterMapTables, TemporaryForbiddenDottedKeys)
+{
+  const char* CONTENTS1 = R"LITERAL(
+fruit.apple.color=3
+# Defines a table named fruit
+# Defines a table named fruit.apple
+
+fruit.apple.taste.sweet=true
+# Defines a table named fruit.apple.taste
+# fruit and fruit.apple were already created
+)LITERAL";
+  DummyFile dummy1      = DummyFile(CONTENTS1);
+  ASSERT_ANY_THROW(ParameterMap pmap = ParameterMap(dummy1.fp, 0, nullptr););
+
+  const char* CONTENTS2 = R"LITERAL(
+[fruit]
+apple.color=1
+apple.taste.sweet=true
+
+# you should be able to add sub-tables
+[fruit.apple.texture]
+smooth=true
+)LITERAL";
+  DummyFile dummy2      = DummyFile(CONTENTS2);
+  ASSERT_ANY_THROW(ParameterMap pmap = ParameterMap(dummy2.fp, 0, nullptr););
+}
+
+// the following tests check cases that toml forbids related to dotted-keys
+// (because these scenarios redefine tables)
+TEST(tALLParameterMapTables, ForbiddenRedefineTableDottedKeys)
+{
+  const char* CONTENTS1 = R"LITERAL(
+[fruit]
+apple.color=1
+apple.taste.sweet=true
+
+[fruit.apple]
+)LITERAL";
+  DummyFile dummy1      = DummyFile(CONTENTS1);
+  ASSERT_ANY_THROW(ParameterMap pmap = ParameterMap(dummy1.fp, 0, nullptr););
+
+  const char* CONTENTS2 = R"LITERAL(
+[fruit]
+apple.color=1
+apple.taste.sweet=true
+
+[fruit.apple.taste]
+)LITERAL";
+  DummyFile dummy2      = DummyFile(CONTENTS2);
+  ASSERT_ANY_THROW(ParameterMap pmap = ParameterMap(dummy2.fp, 0, nullptr););
+
+  // it's a little less clear that this last case should correspond to a failure
+  // based on the wording on the toml site, it sounds like it should be disallowed
+  const char* CONTENTS3 = R"LITERAL(
+[fruit.apple.taste]
+sweet=true
+
+[fruit]
+apple.taste.soure=false
+)LITERAL";
+  DummyFile dummy3      = DummyFile(CONTENTS3);
+  ASSERT_ANY_THROW(ParameterMap pmap = ParameterMap(dummy3.fp, 0, nullptr););
 }

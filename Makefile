@@ -85,8 +85,16 @@ ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
     CXXFLAGS += -I$(ROCM_PATH)/include/hipfft -I$(ROCM_PATH)/hipfft/include
     GPUFLAGS += -I$(ROCM_PATH)/include/hipfft -I$(ROCM_PATH)/hipfft/include
     LIBS += -L$(ROCM_PATH)/hipfft/lib -lhipfft
-  else
-    LIBS += -lcufft
+  else 
+    ifdef NVIDIAMATH_ROOT
+      # on a subset of CUDA platform, the NVIDIA MATH libraries are handled
+      # separately from the rest of the core CUDA runtime libraries
+      CXXFLAGS += -I$(NVIDIAMATH_ROOT)/include
+      GPUFLAGS += -I$(NVIDIAMATH_ROOT)/include
+      LIBS += -L$(NVIDIAMATH_ROOT)/lib64 -lcufft
+    else
+      LIBS += -lcufft
+    endif
   endif
   ifeq ($(findstring -DGRAVITY_5_POINTS_GRADIENT,$(DFLAGS)),-DGRAVITY_5_POINTS_GRADIENT)
     DFLAGS += -DPARIS_5PT

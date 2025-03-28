@@ -142,9 +142,7 @@ void Time::Initialize()
       &(Advance_Part_1 = OneTime("Advance_Part_1")),
       &(Advance_Part_2 = OneTime("Advance_Part_2")),
   #endif
-  #ifdef COOLING_GPU
       &(Cooling_GPU = OneTime("Cooling_GPU")),
-  #endif
   #ifdef COOLING_GRACKLE
       &(Cooling_Grackle = OneTime("Cooling_Grackle")),
   #endif

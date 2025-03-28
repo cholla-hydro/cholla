@@ -12,6 +12,7 @@ import numpy as np
 import argparse
 import datetime
 from functools import partial
+import os
 import pathlib
 
 import concat_internals
@@ -125,6 +126,16 @@ def main(args):
         )
 
     #raise RuntimeError(repr(command_triples))
+
+    # create the output directory if it doesn't already exist...
+    abs_out_dir = os.path.abspath(args.output_directory)
+    if not os.path.exists(abs_out_dir):
+        if os.path.exists(os.path.dirname(abs_out_dir)):
+            os.mkdir(abs_out_dir)
+        else:
+            raise RuntimeError(
+                f"Can't create {args.output_directory} since the "
+                f"{args.output_directory}/.. directory doesn't already exist")
 
     for output in args.concat_outputs:
         print(f"concatenating {output}")

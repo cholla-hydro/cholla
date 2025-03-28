@@ -19,6 +19,9 @@ class Cosmology
   Real Omega_L;
   Real Omega_K;
   Real Omega_b;
+  Real Omega_R;
+  Real w0;
+  Real wa;
 
   Real cosmo_G;
   Real cosmo_h;
@@ -64,8 +67,14 @@ class Cosmology
 
   Real Get_Hubble_Parameter(Real a);
 
+  Real dtda_cosmo(Real da, Real a);
+  Real Get_dt_from_da_rk(Real da, Real a);
   Real Get_da_from_dt(Real dt);
-  Real Get_dt_from_da(Real da);
+  Real Get_dt_from_da(Real da, Real a);
+
+  // write expansion history log file
+  void Create_Expansion_History_File(struct Parameters *P);
+  void Write_Expansion_History_Entry(void);
 };
 
   #endif

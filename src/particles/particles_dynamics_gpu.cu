@@ -18,11 +18,14 @@
 
 // FUTURE FIX: The Hubble function was defined here because I couldn't get it
 // form other file, tried -dc flag when compiling buu paris broke.
-__device__ Real Get_Hubble_Parameter_dev(Real a, Real H0, Real Omega_M, Real Omega_L, Real Omega_K)
+__device__ Real Get_Hubble_Parameter_dev(Real a, Real H0, Real Omega_M, Real Omega_L, Real Omega_K, Real Omega_R,
+                                         Real w0, Real wa)
 {
   Real a2     = a * a;
   Real a3     = a2 * a;
-  Real factor = (Omega_M / a3 + Omega_K / a2 + Omega_L);
+  Real a4     = a2 * a2;
+  Real fac_de = pow(a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - a));
+  Real factor = (Omega_R / a4 + Omega_M / a3 + Omega_K / a2 + Omega_L * fac_de);
   return H0 * sqrt(factor);
 }
   #endif
@@ -189,7 +192,8 @@ __global__ void Advance_Particles_KDK_Step1_Cosmo_Kernel(part_int_t n_local, Rea
                                                          Real *pos_z_dev, Real *vel_x_dev, Real *vel_y_dev,
                                                          Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev,
                                                          Real *grav_z_dev, Real current_a, Real H0, Real cosmo_h,
-                                                         Real Omega_M, Real Omega_L, Real Omega_K)
+                                                         Real Omega_M, Real Omega_L, Real Omega_K, Real Omega_R,
+                                                         Real w0, Real wa)
 {
   part_int_t tid = blockIdx.x * blockDim.x + threadIdx.x;
   if (tid >= n_local) {
@@ -205,8 +209,8 @@ __global__ void Advance_Particles_KDK_Step1_Cosmo_Kernel(part_int_t n_local, Rea
   da_half = da / 2;
   a_half  = current_a + da_half;
 
-  H      = Get_Hubble_Parameter_dev(current_a, H0, Omega_M, Omega_L, Omega_K);
-  H_half = Get_Hubble_Parameter_dev(a_half, H0, Omega_M, Omega_L, Omega_K);
+  H      = Get_Hubble_Parameter_dev(current_a, H0, Omega_M, Omega_L, Omega_K, Omega_R, w0, wa);
+  H_half = Get_Hubble_Parameter_dev(a_half, H0, Omega_M, Omega_L, Omega_K, Omega_R, w0, wa);
 
   dt      = da / (current_a * H) * cosmo_h;
   dt_half = da / (a_half * H_half) * cosmo_h / (a_half);
@@ -233,7 +237,8 @@ __global__ void Advance_Particles_KDK_Step1_Cosmo_Kernel(part_int_t n_local, Rea
 __global__ void Advance_Particles_KDK_Step2_Cosmo_Kernel(part_int_t n_local, Real da, Real *vel_x_dev, Real *vel_y_dev,
                                                          Real *vel_z_dev, Real *grav_x_dev, Real *grav_y_dev,
                                                          Real *grav_z_dev, Real current_a, Real H0, Real cosmo_h,
-                                                         Real Omega_M, Real Omega_L, Real Omega_K)
+                                                         Real Omega_M, Real Omega_L, Real Omega_K, Real Omega_R,
+                                                         Real w0, Real wa)
 {
   part_int_t tid = blockIdx.x * blockDim.x + threadIdx.x;
   if (tid >= n_local) {
@@ -249,7 +254,8 @@ __global__ void Advance_Particles_KDK_Step2_Cosmo_Kernel(part_int_t n_local, Rea
   da_half = da / 2;
   a_half  = current_a - da_half;
 
-  dt = da / (current_a * Get_Hubble_Parameter_dev(current_a, H0, Omega_M, Omega_L, Omega_K)) * cosmo_h;
+  dt = da / (current_a * Get_Hubble_Parameter_dev(current_a, H0, Omega_M, Omega_L, Omega_K, Omega_R, w0, wa));
+  dt *= cosmo_h;
 
   // Advance velocities by the second half a step
   vel_x_dev[tid] = (a_half * vel_x + 0.5 * dt * grav_x_dev[tid]) / current_a;
@@ -262,7 +268,7 @@ void Particles3D::Advance_Particles_KDK_Step1_Cosmo_GPU_function(part_int_t n_lo
                                                                  Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev,
                                                                  Real *grav_y_dev, Real *grav_z_dev, Real current_a,
                                                                  Real H0, Real cosmo_h, Real Omega_M, Real Omega_L,
-                                                                 Real Omega_K)
+                                                                 Real Omega_K, Real Omega_R, Real w0, Real wa)
 {
   // set values for GPU kernels
   int ngrid = (n_local - 1) / TPB_PARTICLES + 1;
@@ -275,7 +281,7 @@ void Particles3D::Advance_Particles_KDK_Step1_Cosmo_GPU_function(part_int_t n_lo
   if (n_local > 0) {
     hipLaunchKernelGGL(Advance_Particles_KDK_Step1_Cosmo_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_local, delta_a,
                        pos_x_dev, pos_y_dev, pos_z_dev, vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev,
-                       grav_z_dev, current_a, H0, cosmo_h, Omega_M, Omega_L, Omega_K);
+                       grav_z_dev, current_a, H0, cosmo_h, Omega_M, Omega_L, Omega_K, Omega_R, w0, wa);
     GPU_Error_Check(cudaDeviceSynchronize());
     // GPU_Error_Check();
   }
@@ -285,7 +291,7 @@ void Particles3D::Advance_Particles_KDK_Step2_Cosmo_GPU_function(part_int_t n_lo
                                                                  Real *vel_y_dev, Real *vel_z_dev, Real *grav_x_dev,
                                                                  Real *grav_y_dev, Real *grav_z_dev, Real current_a,
                                                                  Real H0, Real cosmo_h, Real Omega_M, Real Omega_L,
-                                                                 Real Omega_K)
+                                                                 Real Omega_K, Real Omega_R, Real w0, Real wa)
 {
   // set values for GPU kernels
   int ngrid = (n_local - 1) / TPB_PARTICLES + 1;
@@ -298,7 +304,7 @@ void Particles3D::Advance_Particles_KDK_Step2_Cosmo_GPU_function(part_int_t n_lo
   if (n_local > 0) {
     hipLaunchKernelGGL(Advance_Particles_KDK_Step2_Cosmo_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_local, delta_a,
                        vel_x_dev, vel_y_dev, vel_z_dev, grav_x_dev, grav_y_dev, grav_z_dev, current_a, H0, cosmo_h,
-                       Omega_M, Omega_L, Omega_K);
+                       Omega_M, Omega_L, Omega_K, Omega_R, w0, wa);
     GPU_Error_Check(cudaDeviceSynchronize());
     // GPU_Error_Check();
   }

@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "../global/global.h"
+#include "../grid/spatial_domain_props.h"
 
 #ifdef SOR
   #include "../gravity/potential_SOR_3D.h"
@@ -191,9 +192,8 @@ class Grav3D
 
   /*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
    *  \brief Initialize the grid. */
-  void Initialize(Real x_min, Real y_min, Real z_min, Real x_max, Real y_max, Real z_max, Real Lx, Real Ly, Real Lz,
-                  int nx_total, int ny_total, int nz_total, int nx_real, int ny_real, int nz_real, Real dx_real,
-                  Real dy_real, Real dz_real, int n_ghost_pot_offset, struct Parameters *P);
+  void Initialize(const SpatialDomainProps &spatial_props, Real Lx, Real Ly, Real Lz, int n_ghost_pot_offset,
+                  Parameters *P);
 
   void AllocateMemory_CPU(void);
   void Initialize_values_CPU();

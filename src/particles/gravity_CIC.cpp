@@ -46,7 +46,7 @@ void Grid3D::Get_Gravity_Field_Particles()
     #endif  // PARALLEL_OMP
   #endif    // PARTICLES_CPU
 
-  #ifdef PARTICLES_GPU
+  #if defined(PARTICLES_GPU) && defined(GRAVITY_GPU)
   Particles.Get_Gravity_Field_Particles_GPU(Grav.F.potential_h);
   #endif
 }

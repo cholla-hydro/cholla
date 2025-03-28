@@ -108,9 +108,10 @@ void Particles3D::Get_Gravity_Field_Particles_GPU_function(int nx_local, int ny_
                                                            Real *gravity_x_dev, Real *gravity_y_dev,
                                                            Real *gravity_z_dev)
 {
-    #ifndef GRAVITY_GPU
+    #ifdef GRAVITY
+      #ifndef GRAVITY_GPU
   Copy_Potential_To_GPU(potential_host, potential_dev, n_cells_potential);
-    #endif
+      #endif
 
   int nx_g, ny_g, nz_g;
   nx_g = nx_local + 2 * N_GHOST_POTENTIAL;
@@ -133,6 +134,7 @@ void Particles3D::Get_Gravity_Field_Particles_GPU_function(int nx_local, int ny_
                      gravity_y_dev, gravity_z_dev, nx_local, ny_local, nz_local, n_ghost_particles_grid,
                      N_GHOST_POTENTIAL, dx, dy, dz);
   GPU_Error_Check();
+    #endif  // GRAVITY
 }
 
 // Get CIC indexes from the particles positions

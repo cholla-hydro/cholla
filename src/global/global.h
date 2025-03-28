@@ -50,15 +50,6 @@ typedef double Real;
 
 #define LOG_FILE_NAME "run_output.log"
 
-// Conserved Floor Values
-#if (defined(FEEDBACK) || defined(STAR_FORMATION)) && defined(CLOUDY_COOL)
-  #define TEMP_FLOOR 1e1    // 10K for cloudy cooling
-  #define DENS_FLOOR 14.83  // 1e-6 cm^-3
-#else
-  #define TEMP_FLOOR 1e-3
-  #define DENS_FLOOR 1e-5  // in code units
-#endif
-
 // mean molecular weight
 #define MU 0.6
 // Parameters for Enzo dual Energy Condition
@@ -161,10 +152,8 @@ extern Real C_cfl;  // CFL number (0 - 0.5)
 extern Real t_comm;
 extern Real t_other;
 
-#ifdef COOLING_GPU
 extern float *cooling_table;
 extern float *heating_table;
-#endif
 
 /*! \fn void Set_Gammas(Real gamma_in)
  *  \brief Set gamma values for Riemann solver. */
@@ -321,21 +310,25 @@ struct Parameters {
   Real Omega_M;
   Real Omega_L;
   Real Omega_b;
+  Real Omega_R;
+  Real w0;
+  Real wa;
   Real Init_redshift;
   Real End_redshift;
-  char scale_outputs_file[MAXLEN];  // File for the scale_factor output values
-                                    // for cosmological simulations
-#endif                              // COSMOLOGY
+
+  // File for the scale_factor output values for cosmological simulations
+  char scale_outputs_file[MAXLEN];
+  #define EXPANSION_HISTORY_FILE_NAME "expansion_history.txt"
+#endif  // COSMOLOGY
 #ifdef TILED_INITIAL_CONDITIONS
   Real tile_length;
 #endif  // TILED_INITIAL_CONDITIONS
 
-#ifdef SET_MPI_GRID
-  // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z]
+  // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z] (if they aren't provided, they are set to 0)
   int n_proc_x;
   int n_proc_y;
   int n_proc_z;
-#endif
+
   int bc_potential_type;
 #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
   char UVB_rates_file[MAXLEN];  // File for the UVB photoheating and
@@ -362,9 +355,19 @@ struct Parameters {
 #endif
 };
 
-/*! \fn void parse_params(char *param_file, struct Parameters * parms);
- *  \brief Reads the parameters in the given file into a structure. */
-extern void Parse_Params(char *param_file, struct Parameters *parms, int argc, char **argv);
+class ParameterMap;
+
+/*! \brief Reads the from the ParameterMap into the primary Parameters structure.
+ *
+ *  \note
+ *  We opt to pass in an existing ParamterMap (by reference), rather than having this
+ *  function return a ParameterMap, so that we can get away with simply forward-declaring
+ *  ParameterMap (rather than including the full definition)
+ */
+void Parse_Params(ParameterMap &pmap, struct Parameters *parms);
+
+/*! \brief prints a warning if pmap contains any unused parameters */
+void Warn_Unused_Params(ParameterMap &pmap);
 
 /*! \fn int is_param_valid(char *name);
  * \brief Verifies that a param is valid (even if not needed).  Avoids

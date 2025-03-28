@@ -9,6 +9,7 @@ module load rocm/5.7.1
 module load craype-accel-amd-gfx90a
 module load cray-hdf5 cray-fftw
 module load googletest/1.10.0
+module load gcc-mixed
 
 #-- GPU-aware MPI
 export MPICH_GPU_SUPPORT_ENABLED=1
