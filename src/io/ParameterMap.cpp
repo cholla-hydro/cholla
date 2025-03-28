@@ -306,7 +306,7 @@ std::string Process_Full_Name(std::string full_name, std::map<std::string, bool,
 
 }  // anonymous namespace
 
-ParameterMap::ParameterMap(std::FILE* fp, int argc, char** argv)
+ParameterMap::ParameterMap(std::FILE* fp, int argc, char** argv, bool close_fp)
 {
   CHOLLA_ASSERT(fp != nullptr, "ParameterMap was passed a nullptr rather than an actual file object");
   FileLineStream file_line_stream(fp);
@@ -396,6 +396,21 @@ ParameterMap::ParameterMap(std::FILE* fp, int argc, char** argv)
     chprintf("Override with %s=%s\n", key_str.c_str(), value_str.c_str());
     entries_[key_str] = {value_str, false};
   }
+
+  if (close_fp) std::fclose(fp);
+}
+
+/*! try to open a file. */
+static std::FILE* open_file_(const std::string& fname)
+{
+  std::FILE* fp = std::fopen(fname.c_str(), "r");
+  if (fp == nullptr) CHOLLA_ERROR("failed to read parameter file: %s", fname.c_str());
+  return fp;
+}
+
+ParameterMap::ParameterMap(const std::string& fname, int argc, char** argv)
+    : ParameterMap(open_file_(fname), argc, argv, true)
+{
 }
 
 int ParameterMap::warn_unused_parameters(const std::set<std::string>& ignore_params, bool abort_on_warning,

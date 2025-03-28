@@ -94,7 +94,10 @@ class ParameterMap
    * We pass in a ``std::FILE`` object rather than a filename-string because that makes testing
    * easier.
    */
-  ParameterMap(std::FILE* f, int argc, char** argv);
+  ParameterMap(std::FILE* fp, int argc, char** argv, bool close_fp = false);
+
+  /* An overload for the constructor */
+  ParameterMap(const std::string& fname, int argc, char** argv);
 
   /* queries the number of parameters (mostly for testing purposes) */
   std::size_t size() { return entries_.size(); }

@@ -58,7 +58,8 @@ inline __device__ double atomicMax(double* address, double val)
 inline __device__ Real Calc_Timestep(Real gamma, Real* density, Real* momentum_x, Real* momentum_y, Real* momentum_z,
                                      Real* energy, int index, Real dx, Real dy, Real dz)
 {
-  Real dens  = fmax(density[index], DENS_FLOOR);
+  Real dens = fmax(density[index], 1e-5);  // the minimum value is arbitrary. But, it doesn't really matter what we pick
+                                           // since we're removing this entire function in GH-PR #386
   Real d_inv = 1.0 / dens;
   Real vx    = momentum_x[index] * d_inv;
   Real vy    = momentum_y[index] * d_inv;

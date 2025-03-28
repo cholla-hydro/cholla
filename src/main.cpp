@@ -11,8 +11,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "cooling/chemistry.h"
 #include "global/global.h"
 #include "grid/grid3D.h"
+#include "io/ParameterMap.h"
 #include "io/io.h"
 #include "utils/cuda_utilities.h"
 #include "utils/error_handling.h"
@@ -75,8 +77,11 @@ int main(int argc, char *argv[])
   // create the grid
   Grid3D G;
 
-  // read in the parameters
-  Parse_Params(param_file, &P, argc, argv);
+  // read in contents from the parameter file
+  ParameterMap pmap(param_file, argc, argv);
+
+  // use this parameter information to populate the Parameter object
+  Parse_Params(pmap, &P);
   // and output to screen
   chprintf("Git Commit Hash = %s\n", GIT_HASH);
   chprintf("Macro Flags     = %s\n", MACRO_FLAGS);
@@ -148,6 +153,10 @@ int main(int argc, char *argv[])
   G.Initialize_Cosmology(&P);
 #endif
 
+  // in the future, we plan to consolidate COOLING_GRACKLE and CHEMISTRY_GPU
+  // within chemistry_callback
+  std::function<void(Grid3D &)> chemistry_callback = configure_chemistry_callback(pmap);
+
 #ifdef COOLING_GRACKLE
   G.Initialize_Grackle(&P);
 #endif
@@ -180,6 +189,11 @@ int main(int argc, char *argv[])
 #ifdef GRAVITY_ANALYTIC_COMP
   G.Setup_Analytic_Potential(&P);
 #endif
+
+  // now that we are done with initializing various modules, let's check for unused parameters
+  Warn_Unused_Params(pmap);
+
+  // do work in anticipation of the first timestep
 
 #ifdef GRAVITY
   // Get the gravitational potential for the first timestep
@@ -273,7 +287,7 @@ int main(int argc, char *argv[])
 #endif
 
     // Advance the grid by one timestep
-    dti = G.Update_Hydro_Grid();
+    dti = G.Update_Hydro_Grid(chemistry_callback);
 
     // update the simulation time ( t += dt )
     G.Update_Time();
