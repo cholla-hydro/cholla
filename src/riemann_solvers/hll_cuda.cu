@@ -71,11 +71,11 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real const *dev_conserved, Real const 
       left_state.energy       = dev_bounds_L[4 * n_cells + tid];
 #ifdef SCALAR
       for (int i = 0; i < NSCALARS; i++) {
-        left_state.scalar_specific[i] = dev_bounds_L[(5 + i) * n_cells + tid];
+        left_state.scalar[i] = dev_bounds_L[(5 + i) * n_cells + tid];
       }
 #endif
 #ifdef DE
-      left_state.gas_energy_specific = dev_bounds_L[(n_fields - 1) * n_cells + tid];
+      left_state.gas_energy = dev_bounds_L[(n_fields - 1) * n_cells + tid];
 #endif
 
       right_state.density      = dev_bounds_R[tid];
@@ -85,11 +85,11 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real const *dev_conserved, Real const 
       right_state.energy       = dev_bounds_R[4 * n_cells + tid];
 #ifdef SCALAR
       for (int i = 0; i < NSCALARS; i++) {
-        right_state.scalar_specific[i] = dev_bounds_R[(5 + i) * n_cells + tid];
+        right_state.scalar[i] = dev_bounds_R[(5 + i) * n_cells + tid];
       }
 #endif
 #ifdef DE
-      right_state.gas_energy_specific = dev_bounds_R[(n_fields - 1) * n_cells + tid];
+      right_state.gas_energy = dev_bounds_R[(n_fields - 1) * n_cells + tid];
 #endif
 
       // calculate primitive variables
@@ -102,7 +102,7 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real const *dev_conserved, Real const 
           (left_state.velocity.x() * left_state.velocity.x() + left_state.velocity.y() * left_state.velocity.y() +
            left_state.velocity.z() * left_state.velocity.z());
       left_state.pressure = hydro_utilities::Get_Pressure_From_DE(left_state.energy, left_state.energy - E_kin,
-                                                                  left_state.gas_energy_specific, gamma);
+                                                                  left_state.gas_energy, gamma);
 #else
       left_state.pressure = (left_state.energy - 0.5 * left_state.density *
                                                      (left_state.velocity.x() * left_state.velocity.x() +
@@ -113,11 +113,11 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real const *dev_conserved, Real const 
       left_state.pressure = fmax(left_state.pressure, (Real)TINY_NUMBER);
       // #ifdef SCALAR
       // for (int i=0; i<NSCALARS; i++) {
-      //   scl[i] = left_state.scalar_specific[i] / left_state.density;
+      //   scl[i] = left_state.scalar[i] / left_state.density;
       // }
       // #endif
       // #ifdef DE
-      // gel = left_state.gas_energy_specific / left_state.density;
+      // gel = left_state.gas_energy / left_state.density;
       // #endif
       right_state.velocity.x() = right_state.momentum.x() / right_state.density;
       right_state.velocity.y() = right_state.momentum.y() / right_state.density;
@@ -128,7 +128,7 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real const *dev_conserved, Real const 
           (right_state.velocity.x() * right_state.velocity.x() + right_state.velocity.y() * right_state.velocity.y() +
            right_state.velocity.z() * right_state.velocity.z());
       right_state.pressure = hydro_utilities::Get_Pressure_From_DE(right_state.energy, right_state.energy - E_kin,
-                                                                   right_state.gas_energy_specific, gamma);
+                                                                   right_state.gas_energy, gamma);
 #else
       right_state.pressure = (right_state.energy - 0.5 * right_state.density *
                                                        (right_state.velocity.x() * right_state.velocity.x() +
@@ -140,11 +140,11 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real const *dev_conserved, Real const 
     }
     // #ifdef SCALAR
     // for (int i=0; i<NSCALARS; i++) {
-    //   scr[i] = right_state.scalar_specific[i] / right_state.density;
+    //   scr[i] = right_state.scalar[i] / right_state.density;
     // }
     // #endif
     // #ifdef DE
-    // ger = right_state.gas_energy_specific / right_state.density;
+    // ger = right_state.gas_energy / right_state.density;
     // #endif
 
     // calculate the enthalpy in each cell
@@ -189,11 +189,11 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real const *dev_conserved, Real const 
     f_mz_l = left_state.momentum.z() * left_state.velocity.x();
     f_E_l  = (left_state.energy + left_state.pressure) * left_state.velocity.x();
 #ifdef DE
-    Real f_ge_l = left_state.gas_energy_specific * left_state.velocity.x();
+    Real f_ge_l = left_state.gas_energy * left_state.velocity.x();
 #endif
 #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
-      f_sc_l[i] = left_state.scalar_specific[i] * left_state.velocity.x();
+      f_sc_l[i] = left_state.scalar[i] * left_state.velocity.x();
     }
 #endif
 
@@ -203,11 +203,11 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real const *dev_conserved, Real const 
     f_mz_r = right_state.momentum.z() * right_state.velocity.x();
     f_E_r  = (right_state.energy + right_state.pressure) * right_state.velocity.x();
 #ifdef DE
-    Real f_ge_r = right_state.gas_energy_specific * right_state.velocity.x();
+    Real f_ge_r = right_state.gas_energy * right_state.velocity.x();
 #endif
 #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
-      f_sc_r[i] = right_state.scalar_specific[i] * right_state.velocity.x();
+      f_sc_r[i] = right_state.scalar[i] * right_state.velocity.x();
     }
 #endif
 
@@ -254,14 +254,12 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real const *dev_conserved, Real const 
           ((Sr * f_mz_l) - (Sl * f_mz_r) + Sl * Sr * (right_state.momentum.z() - left_state.momentum.z())) / (Sr - Sl);
       f_E = ((Sr * f_E_l) - (Sl * f_E_r) + Sl * Sr * (right_state.energy - left_state.energy)) / (Sr - Sl);
 #ifdef DE
-      Real f_ge = ((Sr * f_ge_l) - (Sl * f_ge_r) +
-                   Sl * Sr * (right_state.gas_energy_specific - left_state.gas_energy_specific)) /
-                  (Sr - Sl);
+      Real f_ge =
+          ((Sr * f_ge_l) - (Sl * f_ge_r) + Sl * Sr * (right_state.gas_energy - left_state.gas_energy)) / (Sr - Sl);
 #endif
 #ifdef SCALAR
       for (int i = 0; i < NSCALARS; i++) {
-        f_sc[i] = ((Sr * f_sc_l[i]) - (Sl * f_sc_r[i]) +
-                   Sl * Sr * (right_state.scalar_specific[i] - left_state.scalar_specific[i])) /
+        f_sc[i] = ((Sr * f_sc_l[i]) - (Sl * f_sc_r[i]) + Sl * Sr * (right_state.scalar[i] - left_state.scalar[i])) /
                   (Sr - Sl);
       }
 #endif
