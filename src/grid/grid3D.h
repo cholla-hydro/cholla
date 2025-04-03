@@ -212,9 +212,10 @@ struct Header {
    *  \brief Length of the current timestep */
   Real dt;
 
-#ifdef AVERAGE_SLOW_CELLS
+  /*! \brief Cells that introduce timesteps shorter than will be averaged with
+   *         neighboring cells. Should be a negative value when the
+   *         AVERAGE_SLOW_CELLS macro isn't defined. */
   Real min_dt_slow;
-#endif
 
   /*! \var t_wall
    *  \brief Wall time */
