@@ -24,7 +24,8 @@
 
 void Simple_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int ny, int nz, int x_off, int y_off,
                               int z_off, int n_ghost, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound,
-                              Real dt, int n_fields, int custom_grav, Real density_floor, Real *host_grav_potential)
+                              Real dt, int n_fields, int custom_grav, Real density_floor, Real *host_grav_potential,
+                              const SlowCellConditionChecker &slow_check, int *any_error)
 {
   // Here, *dev_conserved contains the entire
   // set of conserved variables on the grid
@@ -154,12 +155,23 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx,
                      zbound, dt, gama, n_fields, custom_grav, density_floor, dev_grav_potential);
   GPU_Error_Check();
 
+  // BE AWARE: any "crashed cells" aren't handled yet! We explicitly defer handling of these cases until after
+  // we handle the Dual Energy Formalism
+
   #ifdef DE
   hipLaunchKernelGGL(Select_Internal_Energy_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost,
                      n_fields);
   hipLaunchKernelGGL(Sync_Energies_3D, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, gama, n_fields);
   GPU_Error_Check();
   #endif
+
+  // Step 4: Address any crashed threads
+  cuda_utilities::AutomaticLaunchParams static const post_update_correction_launch_params(
+      PostUpdate_Conserved_Correct_Crashed_3D, n_cells);
+  hipLaunchKernelGGL(PostUpdate_Conserved_Correct_Crashed_3D, post_update_correction_launch_params.get_numBlocks(),
+                     post_update_correction_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved, nx, ny, nz, x_off,
+                     y_off, z_off, n_ghost, gama, n_fields, slow_check, any_error);
+  GPU_Error_Check();
 
   return;
 }
