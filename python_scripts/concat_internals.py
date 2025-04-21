@@ -80,26 +80,26 @@ def infer_numfiles_from_header(hdr: Mapping) -> int:
 
 
 # ==============================================================================
-def copy_header(source_file: h5py.File, destination_file: h5py.File) -> h5py.File:
+def copy_header(
+  source_file: h5py.File,
+  destination_file: h5py.File,
+  skip_keys: Optional[list] = None
+) -> h5py.File:
   """Copy the attributes of one HDF5 file to another, skipping all fields that are specific to an individual rank
 
   Parameters
   ----------
-  source_file : h5py.File
-      The source file
-  destination_file : h5py.File
-      The destination file
-  source_file: h5py.File :
-
-  destination_file: h5py.File :
-
+  source_file, destination_file : h5py.File
+      The source and destination files
+  skip_keys : list, optional
+      Keys to skip
 
   Returns
   -------
   h5py.File
       The destination file with the new header attributes
   """
-  fields_to_skip = ['dims_local', 'offset', 'n_particles_local']
+  fields_to_skip = ['dims_local', 'offset', 'n_particles_local'] + skip_keys
 
   for attr_key in source_file.attrs.keys():
     if attr_key not in fields_to_skip:
@@ -153,7 +153,8 @@ def _add_snaps_arg(cli, required: bool = False):
 
 def add_common_cli_args(cli: argparse.ArgumentParser,
                         num_processes_choice: str,
-                        add_concat_outputs_arg: bool = True):
+                        add_concat_outputs_arg: bool = True,
+                        add_src_dir_arg: bool =True):
   """Add common command-line arguments to an argparse.ArguementParser instance
   
   These arguments are shared among the various concatenation scripts.
@@ -266,7 +267,8 @@ def add_common_cli_args(cli: argparse.ArgumentParser,
     _add_snaps_arg(cli, required = True)
 
   # Other Required Arguments
-  cli.add_argument('-s', '--source-directory', type=pathlib.Path,  required=True, help='The path to the directory for the source HDF5 files.')
+  if add_src_dir_arg:
+    cli.add_argument('-s', '--source-directory', type=pathlib.Path,  required=True, help='The path to the directory for the source HDF5 files.')
   cli.add_argument('-o', '--output-directory', type=pathlib.Path,  required=True, help='The path to the directory to write out the concatenated HDF5 files.') 
     
 
