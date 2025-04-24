@@ -151,19 +151,9 @@ def _add_snaps_arg(cli, required: bool = False):
             '1,2,3)')
   )
 
-def add_common_cli_args(cli: argparse.ArgumentParser,
-                        num_processes_choice: str,
-                        add_concat_outputs_arg: bool = True,
-                        add_src_dir_arg: bool =True):
-  """Add common command-line arguments to an argparse.ArguementParser instance
-  
-  These arguments are shared among the various concatenation scripts.
-
-  Parameters
-  ----------
-  cli: argparse.ArgumentParser
-      Instance that arguments are added to
-  """
+def add_src_cli_args(cli: argparse.ArgumentParser,
+                     add_concat_outputs_arg: bool = True):
+  """Add common arguments to a parser related to specifying source files"""
 
   # ============================================================================
   def concat_output(raw_argument: str,)-> list:
@@ -208,6 +198,42 @@ def add_common_cli_args(cli: argparse.ArgumentParser,
 
     return list(iterable_argument)
   # ============================================================================
+
+  if add_concat_outputs_arg:
+    grp = cli.add_mutually_exclusive_group(required=True)
+    grp.add_argument(
+      "-c",
+      "--concat-outputs",
+      type=concat_output,
+      help=(
+        "DEPRECATED (use --snaps instead) Specify outputs to concatenate. Can "
+        "be a single number (e.g. 8), an inclusive range (e.g. 2-9), or a list "
+        "(e.g. [1,2,3])."
+      )
+    )
+    _add_snaps_arg(grp, required = False)
+  else:
+    _add_snaps_arg(cli, required = True)
+
+  cli.add_argument(
+    "-s",
+    "--source-directory",
+    type=pathlib.Path,
+    required=True,
+    help="The path to the directory for the source HDF5 files."
+  )
+
+def add_common_cli_args(cli: argparse.ArgumentParser,
+                        num_processes_choice: str):
+  """Add common command-line arguments to an argparse.ArguementParser instance
+  
+  These arguments are shared among the various concatenation scripts.
+
+  Parameters
+  ----------
+  cli: argparse.ArgumentParser
+      Instance that arguments are added to
+  """
 
   # ============================================================================
   def positive_int(raw_argument: str) -> int:
@@ -257,18 +283,6 @@ def add_common_cli_args(cli: argparse.ArgumentParser,
   elif num_processes_choice != 'omit':
     raise ValueError('invalid value passed for num_processes_choice')
 
-  if add_concat_outputs_arg:
-    grp = cli.add_mutually_exclusive_group(required=True)
-    grp.add_argument(
-      '-c', '--concat-outputs',   type=concat_output,
-      help = 'DEPRECATED (use --snaps instead) Specify outputs to concatenate. Can be a single number (e.g. 8), an inclusive range (e.g. 2-9), or a list (e.g. [1,2,3]).')
-    _add_snaps_arg(grp, required = False)
-  else:
-    _add_snaps_arg(cli, required = True)
-
-  # Other Required Arguments
-  if add_src_dir_arg:
-    cli.add_argument('-s', '--source-directory', type=pathlib.Path,  required=True, help='The path to the directory for the source HDF5 files.')
   cli.add_argument('-o', '--output-directory', type=pathlib.Path,  required=True, help='The path to the directory to write out the concatenated HDF5 files.') 
     
 
@@ -298,8 +312,8 @@ def common_cli(num_processes_choice = 'use') -> argparse.ArgumentParser:
   """
   # Initialize the CLI
   cli = argparse.ArgumentParser()
-  add_common_cli_args(cli, num_processes_choice = num_processes_choice,
-                      add_concat_outputs_arg = True)
+  add_common_cli_args(cli, num_processes_choice=num_processes_choice)
+  add_src_cli_args(cli, add_concat_outputs_arg=True)
   return cli
 
 # ==============================================================================

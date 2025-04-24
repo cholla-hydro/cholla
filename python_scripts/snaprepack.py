@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
 """
-This file provides machinery to help build Cholla snapshots in postprocess-v2
-format. A snapshot is any dataset that is a snapshot of the simulation state
-(and is required for restarts). For example: fields, particles, gravity. This
-does NOT include slices/projections
+This file provides machinery to help build Cholla snapshots in the hierarichal
+format. Specifically, this file can be invoked from the command line to repack
+an existing file
 """
+
 import argparse
 from collections import UserDict
-from collections.abc import Mapping, Sequence
 from contextlib import nullcontext
+import errno
+import functools
 import itertools
 import os
 import shutil
 import sys
-from typing import Any, Callable, Iterable, Optional, TypedDict, Union
+from typing import (
+    Any, Callable, Iterable, Iterator, Mapping, Optional, Sequence, TypedDict, Union
+)
 
 import numpy as np
-from numpy.typing import NDArray
 import h5py
 
 import concat_internals
@@ -26,11 +28,13 @@ if sys.version_info >= (3, 11, 0):
 else:
     Self = Any
 
-int3 = tuple[int,int,int]
+int3 = tuple[int, int, int]
+RecordDataFn = Callable[[h5py.File, int, int, Mapping], bool]
 
 
 class DatasetOpts(TypedDict, total=False):
     # tracks kwargs for h5py.Group.create_dataset
+    # -> keep in mind, TypedDict subclasses are only used to annotate regular dicts
 
     # The data type of the output datasets. Accepts most numpy types.
     dtype: np.dtype
@@ -42,90 +46,128 @@ class DatasetOpts(TypedDict, total=False):
     chunks: Any
 
 
-def _get_global_dims(f: h5py.File, f_is_concatenated:Optional[bool] = None):
-    if "dims" in f.attrs:
-        tmp = f.attrs["dims"]
-        assert all(int(e) == e for e in tmp)
-        return tuple(int(e) for e in tmp)
-    elif f_is_concatenated and "density" in f:
-        return f["density"].shape
-    raise RuntimeError("can't infer global dims")
+def dset_opts_from_args(args: argparse.Namespace) -> DatasetOpts:
+    return {
+        "dtype": args.dtype,
+        "compression": args.compression_type,
+        "compression_opts": args.compression_opts,
+        "chunks": args.chunking,
+    }
 
 
-def _get_nprocs(f:h5py.File, nprocs: Optional[int3]=None) -> int3:
+def to_int_triple(iterable: Iterable, *, min_val: Optional[int] = None) -> int3:
+    # coerce the specified sequence to a 3 element tuple
+    coerced_l = []
+    for i, elem in enumerate(iterable):
+        if i > 3:
+            raise ValueError("invalid iterable for to_int_triple: more than 3 items")
+        coerced = int(elem)
+        if elem != coerced:
+            raise ValueError(f"converting {elem} to 'int' changes the value")
+        elif (min_val is not None) and (coerced < min_val):
+            raise ValueError(f"min_val, {min_val}, exceeds int({elem})")
+        coerced_l.append(coerced)
+    if len(coerced_l) < 3:
+        raise ValueError("invalid iterable for to_int_triple: less than 3 items")
+    return tuple(coerced_l)
+
+
+def _nprocs_and_blockcellshape(
+    f: h5py.File,
+    missing_nprocs_triple: Optional[int3] = None,
+    f_is_concatenated: bool = False,
+) -> tuple[int3, int3]:
+    # first, infer nprocs
     f_has_nprocs = "nprocs" in f.attrs
-    if nprocs is None and not f_has_nprocs:
+    if missing_nprocs_triple is None and not f_has_nprocs:
         if "domain/blockid_location_arr" in f:
             return f["domain/blockid_location_arr"].shape
         raise ValueError("nprocs kwarg is required; it isn't an attr of f")
-    elif nprocs is None:
+    elif missing_nprocs_triple is None:
         _nprocs = np.asarray(f.attrs["nprocs"])
     else:
-        _nprocs = np.asarray(nprocs)
+        _nprocs = np.asarray(missing_nprocs_triple)
         if f_has_nprocs and np.any(_nprocs != np.asarray(f.attrs["nprocs"])):
-            raise ValueError("nprocs kw inconsistent with f.attrs['nprocs']")
+            raise ValueError(
+                "missing_nprocs_triple inconsistent with f.attrs['nprocs']"
+            )
+    nprocs = to_int_triple(_nprocs, min_val=1)
 
-    # sanity checks
-    assert np.all(_nprocs > 0) and len(_nprocs) == 3
-    dims_local, remainders = np.divmod(f.attrs["dims"], _nprocs)
-    if np.any(dims_local == 0) or np.any(remainders != 0):
-        raise ValueError("global dims and nprocs are inconsistent")
-    return tuple(_nprocs)
+    # next, infer global dims
+    if "dims" in f.attrs:
+        global_dims = np.asarray(f.attrs["dims"])
+    elif f_is_concatenated and "density" in f:
+        global_dims = f["density"].shape
+    else:
+        RuntimeError("can't infer global dims")
+    assert np.shape(global_dims) == (3,)
+
+    # determine block_cell_shape
+    _block_cell_shape, _remainder = np.divmod(global_dims, nprocs)
+    assert np.all(_remainder == 0)
+
+    return nprocs, to_int_triple(_block_cell_shape, min_val=1)
 
 
-def _make_blockid_location_arr(
-    f:h5py.File, *, nprocs: Optional[int3]=None
-) -> NDArray[np.int64]:
-    """Create a blockid_location_arr instance.
+class BlockidLocationArrBuilder:
+    """A blockid_location_arr builer. The array specifies each block's location
 
-    As we note in the description of the file format, the blockid_location_arr
-    is an array specifying the locations of each block. Negative value in the
-    output denote missing values
-    
     Parameters
     ----------
     f
         source file to try to read values from
     nprocs
-        must be provided if the information isn't part source_file
+        must be provided if source file is missing the "nprocs" attribute
     """
 
-    nprocs = _get_nprocs(f=f, nprocs=nprocs)
-    if "domain/blockid_location_arr" in f:
-        assert f["domain/blockid_location_arr"].shape == nprocs
-        return f["domain/blockid_location_arr"][...]
-    else:
-        shape = tuple(int(e) for e in nprocs)
-        return np.full(shape=shape, fill_value=-1, dtype='i8')
+    _arr: np.ndarray # 3D array of i64
+    block_cell_shape: int3
 
-def _calc_block_location(global_cell_offset:int3, block_cell_shape:int3) -> int3:
-    """Compute the block's location in the blockid_location_arr
+    def __init__(self, f: h5py.File, *, missing_nprocs_triple: Optional[int3] = None):
+        nprocs, self.block_cell_shape = _nprocs_and_blockcellshape(
+            f, missing_nprocs_triple=missing_nprocs_triple
+        )
+        try:
+            self._arr = f["domain/blockid_location_arr"][...]
+            assert nprocs == self._arr
+        except KeyError:
+            # Negative values denote unknown blockids
+            self._arr = np.full(shape=nprocs, fill_value=-1, dtype="i8")
 
-    Parameters
-    ----------
-    global_cell_offset
-        In the conceptual global grid of cell-centered field-values, this
-        denotes the 3D index of the leftmost cell in the considered block.
-    block_cell_shape
-        The shape of the array for storing a cell-centered field in each block
-    Returns
-    -------
-    tuple
-        An index of blockid_location_arr
-    """
-    out, remainders = np.divmod(global_cell_offset, block_cell_shape)
-    assert np.all(out >= 0) and np.all(remainders==0)
-    return tuple(out)
+    @property
+    def nprocs(self) -> int3:
+        return self._arr.shape
+
+    def final_arr(self) -> np.ndarray:  # return fully build array
+        missing = np.sum(self._arr < 0)
+        if missing > 0:
+            raise RuntimeError(
+                f"blockid_location_arr missing location info for {missing} blocks"
+            )
+        return self._arr
+
+    def store_location(self, blockid: int, global_cell_offset: int3) -> Self:
+        _idx, remainders = np.divmod(global_cell_offset, self.block_cell_shape)
+        assert np.all(_idx >= 0) and np.all(remainders == 0)  # sanity-check
+        idx = tuple(int(i) for i in _idx)
+
+        if self._arr[idx] < 0:
+            assert blockid not in self._arr  # sanity-check
+            self._arr[idx] = blockid
+        assert self._arr[idx] == blockid
+        return self
 
 
-def _record_field_data(
+def _record_field(
     dst_f: h5py.File,
     expected_store_block_count: int,
-    dest_idx: Any,
+    stored_block_idx: int,
     data: Mapping,
-    skip_fields: list,
-    dset_opts: Mapping
+    *,
+    skip_fields: set,
+    dset_opts: DatasetOpts,
 ) -> bool:
+    """The core logic for recording fields to a file"""
     # get the field names to be copied
     names = [name for name in data.keys() if name not in skip_fields]
 
@@ -133,7 +175,7 @@ def _record_field_data(
     if "field" not in dst_f:
         field_grp = dst_f.create_group("field")
         for field_name, dset in data.items():
-            assert len(dset.shape) == 3 # sanity check!
+            assert len(dset.shape) == 3  # sanity check!
             shape = (expected_store_block_count,) + dset.shape
             field_grp.create_dataset(name=field_name, shape=shape, **dset_opts)
         created_grp = True
@@ -142,117 +184,178 @@ def _record_field_data(
         created_grp = False
 
     # now, store the field data
-    assert len(names) == len(field_grp) # sanity check!
-    dest_sel = np.s_[dest_idx]
+    assert len(names) == len(field_grp)  # sanity check!
+    dest_sel = np.s_[stored_block_idx, ...]
     for name in names:
-        field_grp[name].write_direct(data[name], dest_sel=dest_sel)
+        field_grp[name].write_direct(data[name][...], dest_sel=dest_sel)
 
     return created_grp
 
+
 class SnapBuilder:
-    """
-    A snapshot-file builder, provideing fine-grained control over what is
-    included in the file.
+    """A snapshot-file builder, providing fine control over the file's contents.
 
-    This can be used as a context manager, (i.e. in a ``with``-statement), to
-    help with proper cleanup if any errors occur
+    The output file is organized according to the Hierarichal Schema. Users
+    call builder methods to configure the output before using the `write`
+    to produce the output. Logic is in place to ensure that the result isn't
+    missing crucial information.
 
-        
+    Parameters
+    ----------
+    path
+        Path to the output file.
+    expected_store_block_count
+        Specifies the number of blocks stored in the file. A value of ``None``
+        (the default) indicates that all blocks will be stored.
+
+    Notes
+    -----
+    We suggest using this type as a context manager, (i.e. in a ``with``
+    statement), to help with proper cleanup if any errors occur.
+
+    The various builder-methods are associated with the following aspects of the
+    output file:
+
+    - header-attribute-data: this must always be configured with `set_hdr`.
+    - block-location-data: specifies the block location. This information is
+      required by the builder. The info can be manually specified for a given
+      block with `record_block_loc`. In practice, other methods can be used to
+      implicitly specify this information
+    - snapshot-data: this is the real core of the output. There are a few of
+      "kinds" of snapshot data. Currently, we support the "field" kind. We plan
+      to add support for "gravity" and "particle".
+
+      - to configure the builder to record data of the specified "kind", call
+        the ``{kind}_config``.
+      - to actually record data for a given block, call ``{kind}_record``. The
+        builder will report an error if you call this before ``{kind}_config``
+        or before `set_hdr`.
+
+    Methods
+    -------
+    write
+        Write the output file
+    cleanup
+        Cleanup the builder (unnecessary if you call `write`)
+    set_hdr
+        Copy the header of an existing source file (must be called)
+    record_block_loc
+        Manually record a block's location
+    field_config, particle_config
+        Configure builder for recording field-data or particle-data
+    field_record, particle_record
+        Record the field-data or particle-data from a single block
+    field_record_itr, particle_record_itr
+        Record the field-data or particle-data from multiple blocks
+
     Examples
     --------
     The public methods all return ``self`` to allow chaining.
-    >>> with SnapBuilder(path, *args) as builder:
+
+    Here's an example where we build a file with field data from entire domain
+    >>> with SnapBuilder(out_path) as builder:  # open the snapshot-builder
     ...     builder.set_hdr(src_f) \
-    ...         .record_field_data_itr(itr) \
+    ...         .field_config(opts=dset_opts, skip=skip_fields) \
+    ...         .field_record_itr(itr) \
+    ...         .write()
+
+    In the near future, we plan to support code like the following snippets:
+    >>> with SnapBuilder(out_path) as builder:  # open the snapshot-builder
+    ...     builder.set_hdr(src_f) \
+    ...         .particle_config(...) \
+    ...         .particle_record_itr(itr) \
+    ...         .write()
+    
+    or like:
+    >>> with SnapBuilder(out_path) as builder:  # open the snapshot-builder
+    ...     builder.set_hdr(src_f) \
+    ...         .field_config(opts=dset_opts, skip=skip_fields) \
+    ...         .field_record_itr(itr_field) \
+    ...         .particle_config(...) \
+    ...         .particle_record_itr(itr_particle) \
     ...         .write()
     """
 
     # note: the presence of type annotations means these are instance variables
-    #       (not class variables)
 
-    # attributes tracking global-file props
-    _path: str         # path of file that we will create
-    _tmp_path: str     # path to temporary file
-    _f: h5py.File      # File object that represents the file @ _tmp_path
-    _all_blocks: bool  # store all or 1 block in the file?
-
-    _field_dset_opts: DatasetOpts  # kwargs for h5py.Group.create_dataset
-    _skip_fields: set[str]         # fields that should be skipped
-
-    # properties related to the domain group
+    _tmp_final_path_pair: tuple[str, str]  # temporary and final paths
+    _f: h5py.File  # File object that represents the file @ _tmp_final_path_pair[0]
+    _expected_store_block_count: Optional[int]
+    _recordpack_dict: dict[str, tuple[set, RecordDataFn]]
     _stored_blockid_list: list[int]
-    _blockid_location_arr: Optional[np.ndarray] = None
-    _block_cell_shape: Optional[int3]  # used to compute block-locations
+    _blockid_location_arr_builder: Optional[BlockidLocationArrBuilder] = None
 
     def __init__(
-        self,
-        path: os.PathLike,
-        all_blocks: bool,
-        *,
-        dset_opts: Optional[DatasetOpts]=None,
-        skip_fields: Optional[list]=None
+        self, path: os.PathLike, expected_store_block_count: Optional[int] = None
     ):
-        self._path = os.fsdecode(path)
-        self._tmp_path = f"{self._path}-tmp"
-        assert not os.path.exists(self._path)
-        assert not os.path.exists(self._tmp_path)
-        self._f = h5py.File(self._tmp_path, "w")
-        self._all_blocks = all_blocks
-
-        self._field_dset_opts = dict() if dset_opts is None else dset_opts
-        self._skip_fields = set() if skip_fields is None else set(skip_fields)
-
+        if os.path.exists(path):
+            raise OSError(errno.EEXIST, os.strerror(errno.EEXIST), path)
+        self._tmp_final_path_pair = (f"{os.fsdecode(path)}-tmp", path)
+        self._f = h5py.File(self._tmp_final_path_pair[0], "w-")
+        self._expected_store_block_count = expected_store_block_count
+        self._recordpack_dict = {}
         self._stored_blockid_list = []
-        self._blockid_location_arr = None
-        self._block_cell_shape = None
 
-    def _get_expected_local_block_count(self) -> int:
-        if self._blockid_location_arr is None:
-            raise RuntimeError("set_hdr method was never called")
-        return self._blockid_location_arr.size if self._all_blocks else 1
+    def _require(self, *attrs: str): # common requirement-checking
+        for a in attrs:
+            if getattr(self, a) is not None:
+                continue
+            elif a == "_f":
+                raise RuntimeError("already cleaned up the builder")
+            elif a in ["_blockid_location_arr_builder", "_expected_store_block_count"]:
+                raise RuntimeError("set_hdr method was never called")
+            raise RuntimeError(f"{a} is invalid")
 
     def set_hdr(
         self,
-        source_file: Union[os.PathLike,h5py.File],
-        *,
-        nprocs: Optional[int3] = None
+        source_file: Union[os.PathLike, h5py.File],
+        missing_nprocs_triple: Optional[int3] = None,
     ) -> Self:
         """Copy the header-attributes from source_file
 
-        Kwargs
-        ------
-        nprocs
+        Parameters
+        ----------
+        source_file
+            Used to set the header
+        missing_nprocs_triple
             This must be provided if the information isn't part source_file
+
+        Notes
+        -----
+        If source_file has the hierarichal-schema, all block location data will
+        be read from source_file.
         """
+        self._require("_f")
         if len(self._f.attrs) != 0:
             raise RuntimeError("It's an error to call set_hdr more than once")
+        cm = nullcontext if isinstance(source_file, h5py.File) else h5py.File
 
-        if isinstance(source_file, h5py.File):
-            cm = nullcontext(source_file)
-        else:
-            cm = h5py.File(source_file, "r")
-
-        with cm as src_f:
+        with cm(source_file) as src_f:
             # copy most of the header
-            concat_internals.copy_header(src_f, self._f, skip_keys = ["nprocs"])
+            concat_internals.copy_header(src_f, self._f, skip_keys=["nprocs"])
 
-            # construct the array
-            self._blockid_location_arr = _make_blockid_location_arr(
-                f=src_f, nprocs=nprocs
+            # construct the location-array-builder
+            self._blockid_location_arr_builder = BlockidLocationArrBuilder(
+                f=src_f, missing_nprocs_triple=missing_nprocs_triple
             )
 
-        nprocs = np.array(self._blockid_location_arr.shape)
+        nprocs = np.array(self._blockid_location_arr_builder.nprocs)
         self._f.attrs["nprocs"] = nprocs
+        assert "dims" in self._f.attrs  # this is a hard requirement
 
-        global_dims = _get_global_dims(src_f)
-        self._block_cell_shape, _remainder = np.divmod(global_dims, nprocs)
-        assert np.all(self._block_cell_shape > 0) and np.all(_remainder==0)
-        assert len(self._block_cell_shape) == 3 and len(nprocs) == 3
-
+        tot_block_count = np.prod(nprocs)
+        if self._expected_store_block_count is None:
+            self._expected_store_block_count = tot_block_count
+        elif self._expected_store_block_count > tot_block_count:
+            raise RuntimeError(
+                "builder is configured to store more blocks than actually exist"
+            )
         return self
 
-    def record_blockid_loc(self, blockid:int, global_cell_offset: int3) -> Self:
-        """record the specified block's location
+    def record_block_loc(self, blockid: int, global_cell_offset: int3) -> Self:
+        """Manually record the specified block's location
+
+        You usually don't need to manually call this method.
 
         Parameters
         ----------
@@ -262,26 +365,25 @@ class SnapBuilder:
             Location of the leftmost cell of the block in the conceptual grid
             spanning the entire domain
         """
-        if self._block_cell_shape is None:
-            raise RuntimeError("set_hdr method was never called")
+        self._require("_f", "_blockid_location_arr_builder")
+        self._blockid_location_arr_builder.store_location(blockid, global_cell_offset)
+        return self
 
-        index = _calc_block_location(global_cell_offset, self._block_cell_shape)
-        if self._blockid_location_arr[index] < 0:
-            assert blockid not in self._stored_blockid_list  # sanity check
-            assert blockid not in self._blockid_location_arr  # sanity check
-            self._blockid_location_arr[index] = blockid
-        else:
-            assert self._blockid_location_arr[index] == blockid
-        return Self
+    def _setup_recorder(self, name: str, fn: Callable, **kwargs: Any):
+        self._require("_f")
+        if name in self._recordpack_dict:
+            raise RuntimeError("the {name!r} recorder is already configured")
+        self._recordpack_dict[name] = (set(), functools.partial(fn, **kwargs))
 
-    def record_field_data(
+    def _record_data(
         self,
         blockid: int,
         data: Mapping,
         *,
-        global_cell_offset: Optional[int3] = None
+        global_cell_offset: Optional[int3] = None,
+        kind=None,
     ) -> Self:
-        """Record the specified block's field info
+        """Record the specified block's data of the specified kind
 
         Parameters
         ----------
@@ -292,72 +394,161 @@ class SnapBuilder:
         global_cell_offset
             Optionally specifies the location of the leftmost cell of the block
             in the conceptual grid spanning the entire domain. An error will be
-            raised if this isn't specified & the block's location isn't known.
-        """
+            raised during the final ``write`` command if the locations are
+            never specified.
+        kind
+            The data kind
 
-        assert blockid >= 0
-        if blockid in self._stored_blockid_list:
-            raise RuntimeError("record_field_data already called for blockid")
-        if global_cell_offset is not None:
-            self.record_blockid_loc(blockid, global_cell_offset)
+        Notes
+        -----
+        This function is not intended to be called directly. Instead you should
+        call methods like field_record or particle_record. (In these scenarios,
+        you shouldn't specify the ``kind`` kwarg)
+        """
+        self._require("_f", "_expected_store_block_count")
+        if kind not in self._recordpack_dict:
+            raise RuntimeError(f"{kind}_config was never called")
+        already_recorded_blockids, record_fn = self._recordpack_dict[kind]
+
+        if blockid < 0:
+            raise ValueError("blockid must not be nonnegative")
+        elif blockid in already_recorded_blockids:
+            raise RuntimeError(f"{kind}_record already called for blockid")
+
+        # deal with the block's spatial location
+        if hasattr(data, "attrs") and "offset" in data.attrs:
+            _offset = to_int_triple(data.attrs["offset"])
+            if global_cell_offset is not None:
+                assert _offset == to_int_triple(global_cell_offset)
+            self.record_block_loc(blockid, _offset)
+        elif global_cell_offset is not None:
+            self.record_block_loc(blockid, global_cell_offset)
 
         # handles case where `data` is a h5py.File for existing snapshot file
-        data = data["field"] if "field" in data else data
+        data = data[kind] if kind in data else data
 
-        newly_created = _record_field_data(
-            dst_f=self._f,
-            expected_store_block_count=self._get_expected_local_block_count(),
-            dest_idx=(len(self._stored_blockid_list), ...),
-            data=data,
-            skip_fields=self._skip_fields,
-            dset_opts=self._field_dset_opts
-        )
+        # get the index in the file associated with blockid
+        try:
+            stored_block_idx = self._stored_blockid_list.index(blockid)
+        except ValueError:
+            stored_block_idx = len(self._stored_blockid_list)
 
-        self._stored_blockid_list.append(blockid)
+        # store the data to the file
+        record_fn(self._f, self._expected_store_block_count, stored_block_idx, data)
 
-        if newly_created:
-            assert self._block_cell_shape is not None  # sanity check!
-            self._f["field"].attrs["block_cell_shape"] = self._block_cell_shape
+        # record that we've stored data for blockid
+        already_recorded_blockids.add(blockid)
+        if len(self._stored_blockid_list) == stored_block_idx:
+            self._stored_blockid_list.append(blockid)
 
         return self
 
-    def record_field_data_itr(self, itr: Iterable) -> Self:
-        """Calls self.record_field_data for each entry in itr"""
+    def _record_data_itr(
+        self, itr: Iterable, *, kind: str, file_paths: bool = False
+    ) -> Self:
+        """Records data (of the specified ``kind``) for multiple blocks
 
+        iterable over blocks to write information of a given kind.
+
+        Parameters
+        ----------
+        itr
+            Iterable that returns ``(blockid, data)`` **OR**
+            ``(blockid, data, global_cell_offset)``. When `file_paths`` is
+            ``True``, ``data`` is treated as a file path.
+        kind
+            The data kind
+        file_paths
+            Controls the interpretation of ``itr``.
+
+        Notes
+        -----
+        This function is not intended to be called directly. Instead you should
+        call methods like field_record_itr or particle_record_itr. (In these
+        scenarios, you shouldn't specify the ``kind`` kwarg)
+        """
+
+        cm = h5py.File if file_paths else nullcontext
+        _packlen = None
         for pack in itr:
-            global_cell_offset = None
-            if len(pack) == 2:
-                blockid, data = pack
-            elif len(pack) == 3:
-                blockid, data, global_cell_offset = pack
-            else:
-                raise ValueError("each element of itr must be 2 or 3 elements")
-            self.record_field_data(
-                blockid=blockid, data=data, global_cell_offset=global_cell_offset
-            )
+            if len(pack) != _packlen:
+                if _packlen is not None:
+                    raise ValueError("members of itr have inconsistent lengths")
+                _packlen = len(pack)
+                if _packlen < 2 or _packlen > 3:
+                    raise ValueError("members of itr must hold 2 or 3 elements")
+            blockid,data = pack[:2]
+            global_cell_offset = pack[2] if _packlen == 3 else None
+
+            with cm(data) as _data:
+                self._record_data(
+                    blockid=blockid,
+                    data=_data,
+                    global_cell_offset=global_cell_offset,
+                    kind=kind
+                )
         return self
+
+    field_record = functools.partialmethod(_record_data, kind="field")
+    field_record_itr = functools.partialmethod(_record_data_itr, kind="field")
+    def field_config(
+        self, *, opts: Optional[DatasetOpts] = None, skip: Optional[Iterable] = None
+    ) -> Self:
+        """Configure the builder to write field-data
+
+        Parameters
+        ----------
+        opts
+            Optional kwargs for ``h5py.Group.create_dataset``.
+        skip
+            Fields to omit from output. Defaults to {}.
+        """
+        opts = dict() if opts is None else opts
+        skip = set() if skip is None else set(skip)
+        self._setup_recorder(
+            name="field", fn=_record_field, dset_opts=opts, skip_fields=skip
+        )
+        return self
+
+    particle_record = functools.partialmethod(_record_data, kind="particle")
+    particle_record_itr = functools.partialmethod(_record_data_itr, kind="particle")
+    def particle_config(
+        self, store_particle_count:int, tot_particle_count:int, # *, kwargs...
+    ) -> Self:
+        raise NotImplementedError("we need to implement this")
+        # will look something like:
+        # > self._setup_recorder(
+        # >     name="particle",
+        # >     fn=_record_particle,
+        # >     store_particle_count=store_particle_count,
+        # >     tot_particle_count=tot_particle_count,
+        # >     kwargs...
+        # > )
+        # > return self
 
     def write(self):
-        # set require_all_blocks to False to write file with a subset of blocks
-        if self._f is None:
-            raise RuntimeError("already cleaned up the builder")
+        """finish writing the output file"""
+        self._require(
+            "_f", "_expected_store_block_count", "_blockid_location_arr_builder"
+        )
 
-        # more sanity checks
-        total_block_count = self._blockid_location_arr.size
-        local_block_count = len(self._stored_blockid_list)
-        if self._blockid_location_arr is None or len(self._f.attrs) == 0:
-            raise RuntimeError("set_hdr was never called")
-        elif np.any(self._blockid_location_arr < 0):
-            raise RuntimeError("block location info is missing")
-        elif local_block_count == 0:
+        # generic sanity checks
+        if "dims" not in self._f.attrs:
+            raise RuntimeError("'dims' is missing from header")
+        stored_block_count = len(self._stored_blockid_list)
+        if stored_block_count == 0:
             raise RuntimeError("no snapshot-data is stored for any block")
-        elif self._all_blocks and total_block_count != local_block_count:
+        elif self._expected_store_block_count != stored_block_count:
             raise RuntimeError("snapshot-data is missing for some blocks")
+
+        for kind, (recorded_set, _) in self._recordpack_dict.items():
+            if len(recorded_set) != self._expected_store_block_count:
+                raise RuntimeError(f"{kind}_record wasn't called enough times")
 
         # write the domain group of the file
         domain_grp = self._f.create_group("domain")
         domain_grp.create_dataset(
-            "blockid_location_arr", data=self._blockid_location_arr
+            "blockid_location_arr", data=self._blockid_location_arr_builder.final_arr()
         )
         domain_grp.create_dataset(
             "stored_blockid_list", data=np.array(self._stored_blockid_list)
@@ -366,19 +557,23 @@ class SnapBuilder:
         # save and close!
         self._f.close()
         self._f = None
-        shutil.move(self._tmp_path, self._path)
+        shutil.move(*self._tmp_final_path_pair)
 
     def cleanup(self):
         if self._f is not None:
             self._f.close()
             self._f = None
-            os.remove(self._tmp_path)
+            os.remove(self._tmp_final_path_pair[0])
 
     def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *args, **kwargs):
         self.cleanup()
+
+    def __deepcopy__(self, memo):
+        raise RuntimeError(f"can't deepcopy {self.__class__.__name__}")
+
 
 ##########################################
 class _MockBlockFieldGroup(UserDict):
@@ -389,14 +584,23 @@ class _MockBlockFieldGroup(UserDict):
         super().__init__(dict(grp.items()))
         self._idx_map = idx_map
 
-    def __getitem__(self, key:str):
-        return self.data[key][self._idx_map.get(key,...)]
+    def __getitem__(self, key: str):
+        return self.data[key][self._idx_map.get(key, ...)]
 
-    def __repr__(self): return "<_MockBlockFieldGroup>"
+    def __repr__(self):
+        return "<_MockBlockFieldGroup>"
+
+
+def _product(*iterables: Iterable, advance_right: bool = True) -> Iterator:
+    if advance_right:
+        return itertools.product(*iterables)
+    return map(lambda seq: seq[::-1], itertools.product(*iterables[::-1]))
+
 
 def _iter_block_from_concat(
-    src_f: h5py.File, missing_nprocs_triple: Optional[Sequence] = None,
-)-> Iterable[tuple[int, _MockBlockFieldGroup, int3]]:
+    src_f: h5py.File,
+    missing_nprocs_triple: Optional[Sequence] = None,
+) -> Iterable[tuple[int, _MockBlockFieldGroup, int3]]:
     """
     Iterates over blocks from a previously concatenated field
 
@@ -411,7 +615,7 @@ def _iter_block_from_concat(
         spanning the entire domain
     """
 
-    if "field" in src_f: # we dealing with file put into the new format
+    if "field" in src_f:  # we dealing with file put into the new format
         assert missing_nprocs_triple is None
 
         blockid_list = src_f["domain/stored_blockid_list"][...]
@@ -436,32 +640,34 @@ def _iter_block_from_concat(
             yield blockid, data, global_cell_offset
 
     else:
-        nprocs = _get_nprocs(f=src_f, nprocs=missing_nprocs_triple)
-        global_dims = _get_global_dims(src_f, True)
-        block_cell_shape, _remainder = np.divmod(global_dims, nprocs)
-        assert np.all(block_cell_shape > 0) and np.all(_remainder==0)
-        assert len(block_cell_shape) == 3 and len(nprocs) == 3
-
-        offset_itr = itertools.product(
-            range(0, global_dims[0], block_cell_shape[0]),
-            range(0, global_dims[1], block_cell_shape[1]),
-            range(0, global_dims[2], block_cell_shape[2])    
+        nprocs, block_cell_shape = _nprocs_and_blockcellshape(
+            f=src_f, missing_nprocs_triple=missing_nprocs_triple, f_is_concatenated=True
         )
+
+        # At the time of writing, I'm pretty sure that advance_right=False should assign
+        # blockids in a consistent manner to cholla
+        blockid_offset_pairs = enumerate(_product(
+            range(0, nprocs[0] * block_cell_shape[0], block_cell_shape[0]),
+            range(0, nprocs[1] * block_cell_shape[1], block_cell_shape[1]),
+            range(0, nprocs[2] * block_cell_shape[2], block_cell_shape[2]),
+            advance_right = False
+        ))
 
         def _mk_idx(name, start):
             shape = [e for e in block_cell_shape]
             if name == "magnetic_x":
-                shape[0]+=1
+                shape[0] += 1
             elif name == "magnetic_y":
-                shape[1]+=1
+                shape[1] += 1
             elif name == "magnetic_z":
-                shape[2]+=1
-            return tuple(slice(start[i], start[i]+shape[i], 1) for i in range(3))
+                shape[2] += 1
+            return tuple(slice(start[i], start[i] + shape[i], 1) for i in range(3))
 
-        for blockid, global_cell_offset in enumerate(offset_itr):
+        for blockid, global_cell_offset in blockid_offset_pairs:
             idx_map = {name: _mk_idx(name, global_cell_offset) for name in src_f}
             data = _MockBlockFieldGroup(src_f, idx_map)
             yield blockid, data, global_cell_offset
+
 
 def repack_snapshot(
     out_dir: os.PathLike,
@@ -500,32 +706,27 @@ def repack_snapshot(
 
     out_path = os.path.join(out_dir, os.path.basename(src_path))
     if not os.path.isfile(src_path):
-        raise ValueError(f"{src_path} doesn't exist")
+        raise OSError(errno.ENOENT, os.strerror(errno.ENOENT), src_path)
     elif not os.path.isdir(out_dir):
-        raise ValueError(f"{out_dir=} isn't a directory")
+        raise OSError(errno.ENOTDIR, os.strerror(errno.ENOTDIR), out_dir)
     elif os.path.exists(out_path):
-        raise ValueError(f"{out_path} already exists")
+        raise OSError(errno.EEXIST, os.strerror(errno.EEXIST), out_path)
 
-    with h5py.File(src_path, "r") as src_f: # open the source file
+    with h5py.File(src_path, "r") as src_f:  # open the source file
         # do some basic setup
         itr = _iter_block_from_concat(src_f, missing_nprocs_triple)
 
-        with SnapBuilder(
-            out_path, True, dset_opts=dset_opts, skip_fields=skip_fields
-        ) as builder: # open the snapshot-builder 
-            builder.set_hdr(src_f, nprocs=missing_nprocs_triple) \
-                .record_field_data_itr(itr) \
+        with SnapBuilder(out_path) as builder:  # open the snapshot-builder
+            builder.set_hdr(src_f, missing_nprocs_triple) \
+                .field_config(opts=dset_opts, skip=skip_fields) \
+                .field_record_itr(itr) \
                 .write()
 
+
 parser = argparse.ArgumentParser(
-    description = "Repacks (previously concatenated) HDF5 snapshots for Cholla"
+    description="Repacks (previously concatenated) HDF5 snapshots for Cholla"
 )
-concat_internals.add_common_cli_args(
-    parser,
-    num_processes_choice = 'omit',
-    add_concat_outputs_arg = False,
-    add_src_dir_arg=False
-)
+concat_internals.add_common_cli_args(parser, num_processes_choice="omit")
 parser.add_argument(
     "--missing-nprocs-triple",
     nargs=3,
@@ -534,33 +735,26 @@ parser.add_argument(
     help=(
         "This must be supplied when the 'nproc' attribute is missing from the "
         "input file. This specifies the number of processes along each axis."
-    )
+    ),
 )
 
 parser.add_argument(
-    "--input-path-template",
+    "-s",
+    "--src-path",
     required=True,
     help=(
         "template-path for the input file. This path should generally include "
         "{snap}, which will be replaced by the snapshot numbers"
-    )
+    ),
 )
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = parser.parse_args()
 
-    dset_opts = {
-        "dtype" : args.dtype,
-        "compression" : args.compression_type,
-        "compression_opts" : args.compression_opts,
-        "chunks" : args.chunking
-    }
-
-    for snap_number in args.concat_outputs:
-        repack_snapshot(
-            out_dir=args.output_directory,
-            src_path=args.input_path_template.format(snap=snap_number),
-            missing_nprocs_triple=args.missing_nprocs_triple,
-            skip_fields=args.skip_fields,
-            dset_opts=dset_opts
-        )
+    repack_snapshot(
+        out_dir=args.output_directory,
+        src_path=args.src_path,
+        missing_nprocs_triple=args.missing_nprocs_triple,
+        skip_fields=args.skip_fields,
+        dset_opts=dset_opts_from_args(args),
+    )
