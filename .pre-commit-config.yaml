@@ -13,3 +13,13 @@ repos:
         types_or: [c++, c, cuda]
         args: ["-style=file", "--verbose"]
 
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.11.4
+  hooks:
+  # enable the linter:
+  - id: ruff
+    args: ["--fix", "--show-fixes"]
+  # we currently do **NOT** enable the formatter (while I generally think it's a good
+  # idea, we definitely need buy-in)
+  #-  id: ruff-format
+

@@ -1,0 +1,28 @@
+# this is useful with pre-commit (when we want to exclude files)
+force-exclude = true
+
+# do not add any files to this list. We are only introducing this parameter so that
+# we can start using ruff as soon as possible. We plan to gradually remove all files
+# from this list
+extend-exclude = [
+    "./tools/analyze_tidy_checks.py",
+    "./python_scripts/dask_single_machine_template.py",
+    "./python_scripts/combine_test_files.py",
+    "./python_scripts/concat.py",
+    "./python_scripts/concat_particles.py",
+    "./python_scripts/h5AttrsFuncs.py",
+    "./python_scripts/tools.py",
+    "./python_scripts/concat_3d_data.py",
+    "./python_scripts/concat_2d_data.py",
+    "./python_scripts/compress_snapshots.py",
+    "./python_scripts/data_compress_particles.py",
+    "./python_scripts/load_cholla_snapshot.py",
+    "./python_scripts/move_files.py",
+    "./python_scripts/dask_distributed_template.py",
+    "./python_scripts/plot_sod.py",
+    "./python_scripts/concat_internals.py",
+    "./python_scripts/numdiff.py",
+    "./python_scripts/Projection_Slice_Tutorial.ipynb",
+    "./python_scripts/data_compress_grid.py",
+    "./docs/sphinx/source/conf.py",
+]
