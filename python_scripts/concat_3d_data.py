@@ -39,7 +39,8 @@ def concat_3d_dataset(output_directory: pathlib.Path,
                       *,
                       num_processes: Optional[int] = None,
                       skip_fields: list = [],
-                      dset_opts: Optional[DatasetOpts] = None) -> None:
+                      dset_opts: Optional[DatasetOpts] = None,
+                      legacy_field: bool = False) -> None:
   """Concatenate a single 3D HDF5 Cholla dataset. i.e. take the single files
   generated per process and concatenate them into a single, large file.
 
@@ -60,6 +61,8 @@ def concat_3d_dataset(output_directory: pathlib.Path,
       from the hdf5 file and the parameter will be removed in the future.
   dset_opts
       Optional kwargs for ``h5py.Group.create_dataset``.
+  legacy_field
+      When True, the "field_legacy" HDF5 group will be created.
   """
 
   src_path_0 = build_source_path(proc_id=0, nfile=output_number)
@@ -88,7 +91,7 @@ def concat_3d_dataset(output_directory: pathlib.Path,
     # let's write the concatenated file
     with SnapBuilder(output_directory / f'{output_number}.h5') as builder:
       builder.set_hdr(src_f_0) \
-        .field_config(opts=dset_opts, skip=skip_fields) \
+        .field_config(opts=dset_opts, skip=skip_fields, legacy=legacy_field) \
         .field_record_itr(itr, file_paths=True) \
         .write()
 
@@ -99,6 +102,7 @@ if __name__ == '__main__':
   start = default_timer()
 
   cli = concat_internals.common_cli(num_processes_choice = 'deprecate')
+  concat_internals._add_legacyfield_arg(cli)
   args = cli.parse_args()
 
   dset_opts = dset_opts_from_args(args)
@@ -114,6 +118,7 @@ if __name__ == '__main__':
                       output_number=output,
                       build_source_path = build_source_path,
                       skip_fields=args.skip_fields,
-                      dset_opts=dset_opts)
+                      dset_opts=dset_opts,
+                      legacy_field=args.legacy_field)
 
   print(f'\nTime to execute: {round(default_timer()-start,2)} seconds')

@@ -107,6 +107,20 @@ def copy_header(
 
   return destination_file
 # ==============================================================================
+def _add_legacyfield_arg(cli: argparse.ArgumentParser):
+  cli.add_argument(
+    "--legacy-field",
+    action="store_true",
+    help = (
+      "When specified, the \"field_legacy\" HDF5 group will be created. This group "
+      "contains a 'virtual dataset' for each field with a shape corresponding to the "
+      "entire domain. Accesses to these fields are automatically remapped to the "
+      "corresponding datasets in the \"field\" HDF5 group."
+    )
+  )
+
+
+# ==============================================================================
 
 def _integer_sequence(s: str):
   # converts an argument string to an integer sequence

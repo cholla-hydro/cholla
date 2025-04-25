@@ -192,6 +192,74 @@ def _record_field(
     return created_grp
 
 
+def _configure_virtual_field(
+    dst_f: h5py.File,
+    blockid_location_arr: np.ndarray,
+    stored_blockid_list: Sequence[int],
+    dst_grp: str
+):
+    """Create virtual datasets for each field. The virtual dataset acts like a
+    3D array that spans the entire dataset.
+
+    Parameters
+    ----------
+    dst_f
+        Output file
+    blockid_location_arr
+        specifies the location of each block
+    stored_blockid_list
+        specifies the index of the blockid list
+    dst_grp
+        name of the group where we will write the datasets
+
+    Notes
+    -----
+    This is only intended to limit breakage in existing scripts
+    """
+    total_block_count = np.prod(blockid_location_arr.shape)
+    if len(stored_blockid_list) == total_block_count:
+        blockid_to_idx_map = {
+            blockid : idx for idx,blockid in enumerate(stored_blockid_list)
+        }
+    else:
+        raise ValueError(
+            "can't currently create virtual fields unless the file contains all blocks"
+        )
+
+    # calculate block-shape of a cell-centered field
+    _cc_block_shape, _rem = np.divmod(dst_f.attrs["dims"], blockid_location_arr.shape)
+    assert np.all(_rem == 0) # sanity check!
+    cc_block_shape = to_int_triple(_cc_block_shape)
+
+    # expected shape for dataset storing cell-centered field
+    src_dset_shape = (total_block_count,) + to_int_triple(cc_block_shape)
+    cc_domain_shape = to_int_triple(
+        np.multiply(blockid_location_arr.shape, cc_block_shape)
+    )
+    
+    grp = dst_f.create_group(dst_grp)
+
+    for field_name, field_dset in dst_f["field"].items():
+        if field_dset.shape != src_dset_shape:
+            raise ValueError(
+                f"can't make a virtual dataset for {field} since the stored data "
+                "doesn't have the expected shape for a cell-centered field"
+            )
+        vsrc = h5py.VirtualSource(field_dset)
+        layout = h5py.VirtualLayout(
+            shape=cc_domain_shape, dtype=field_dset.dtype, maxshape=cc_domain_shape
+        )
+
+        for idx3d, blockid in np.ndenumerate(blockid_location_arr):
+            layout_slc=(
+                slice(idx3d[0]*cc_block_shape[0], (idx3d[0]+1)*cc_block_shape[0]),
+                slice(idx3d[1]*cc_block_shape[1], (idx3d[1]+1)*cc_block_shape[1]),
+                slice(idx3d[2]*cc_block_shape[2], (idx3d[2]+1)*cc_block_shape[2])
+            )
+            layout[layout_slc] = vsrc[blockid_to_idx_map[blockid],:,:,:]
+        grp.create_virtual_dataset(name=field_name, layout=layout)
+
+
 class SnapBuilder:
     """A snapshot-file builder, providing fine control over the file's contents.
 
@@ -284,6 +352,7 @@ class SnapBuilder:
     _recordpack_dict: dict[str, tuple[set, RecordDataFn]]
     _stored_blockid_list: list[int]
     _blockid_location_arr_builder: Optional[BlockidLocationArrBuilder] = None
+    _write_virtual_field: Optional[bool] = None
 
     def __init__(
         self, path: os.PathLike, expected_store_block_count: Optional[int] = None
@@ -492,7 +561,11 @@ class SnapBuilder:
     field_record = functools.partialmethod(_record_data, kind="field")
     field_record_itr = functools.partialmethod(_record_data_itr, kind="field")
     def field_config(
-        self, *, opts: Optional[DatasetOpts] = None, skip: Optional[Iterable] = None
+        self,
+        *,
+        opts: Optional[DatasetOpts] = None,
+        skip: Optional[Iterable] = None,
+        legacy: bool = False
     ) -> Self:
         """Configure the builder to write field-data
 
@@ -502,12 +575,16 @@ class SnapBuilder:
             Optional kwargs for ``h5py.Group.create_dataset``.
         skip
             Fields to omit from output. Defaults to {}.
+        legacy
+            When True, the "field_legacy" HDF5 group will be created
         """
         opts = dict() if opts is None else opts
         skip = set() if skip is None else set(skip)
         self._setup_recorder(
             name="field", fn=_record_field, dset_opts=opts, skip_fields=skip
         )
+
+        self._write_virtual_field = legacy
         return self
 
     particle_record = functools.partialmethod(_record_data, kind="particle")
@@ -546,13 +623,16 @@ class SnapBuilder:
                 raise RuntimeError(f"{kind}_record wasn't called enough times")
 
         # write the domain group of the file
+        blockid_location_arr = self._blockid_location_arr_builder.final_arr()
+        stored_blockid_list = np.array(self._stored_blockid_list)
         domain_grp = self._f.create_group("domain")
-        domain_grp.create_dataset(
-            "blockid_location_arr", data=self._blockid_location_arr_builder.final_arr()
-        )
-        domain_grp.create_dataset(
-            "stored_blockid_list", data=np.array(self._stored_blockid_list)
-        )
+        domain_grp.create_dataset("blockid_location_arr", data=blockid_location_arr)
+        domain_grp.create_dataset("stored_blockid_list", data=stored_blockid_list)
+
+        if self._write_virtual_field:
+            _configure_virtual_field(
+                self._f, blockid_location_arr, stored_blockid_list, "field_legacy"
+            )
 
         # save and close!
         self._f.close()
@@ -676,6 +756,7 @@ def repack_snapshot(
     missing_nprocs_triple: Optional[Sequence] = None,
     skip_fields: Optional[Sequence] = None,
     dset_opts: Optional[DatasetOpts] = None,
+    legacy_field: bool = False
 ):
     """This repacks an already concatenated snapshot
 
@@ -691,6 +772,8 @@ def repack_snapshot(
         Optional list of fields to skip concatenating.
     dset_opts
         Optional kwargs for ``h5py.Group.create_dataset``.
+    legacy_field
+        When True, the "field_legacy" HDF5 group will be created.
     """
 
     # coerce arguments
@@ -718,7 +801,7 @@ def repack_snapshot(
 
         with SnapBuilder(out_path) as builder:  # open the snapshot-builder
             builder.set_hdr(src_f, missing_nprocs_triple) \
-                .field_config(opts=dset_opts, skip=skip_fields) \
+                .field_config(opts=dset_opts, skip=skip_fields, legacy=legacy_field) \
                 .field_record_itr(itr) \
                 .write()
 
@@ -748,6 +831,9 @@ parser.add_argument(
     ),
 )
 
+concat_internals._add_legacyfield_arg(parser)
+
+
 if __name__ == "__main__":
     args = parser.parse_args()
 
@@ -757,4 +843,5 @@ if __name__ == "__main__":
         missing_nprocs_triple=args.missing_nprocs_triple,
         skip_fields=args.skip_fields,
         dset_opts=dset_opts_from_args(args),
+        legacy_field=args.legacy_field
     )
