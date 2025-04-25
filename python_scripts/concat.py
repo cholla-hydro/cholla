@@ -7,13 +7,11 @@ At the moment, we only support fluid quantities. In the future, we could
 support other types of fields.
 """
 
-import numpy as np
 
 import argparse
 import datetime
 from functools import partial
 import os
-import pathlib
 
 import concat_internals
 from concat_2d_data import concat_2d_dataset

@@ -5,10 +5,8 @@ force-exclude = true
 # we can start using ruff as soon as possible. We plan to gradually remove all files
 # from this list
 extend-exclude = [
-    "./tools/analyze_tidy_checks.py",
     "./python_scripts/dask_single_machine_template.py",
     "./python_scripts/combine_test_files.py",
-    "./python_scripts/concat.py",
     "./python_scripts/concat_particles.py",
     "./python_scripts/h5AttrsFuncs.py",
     "./python_scripts/tools.py",
