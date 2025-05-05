@@ -78,6 +78,7 @@ inline param_details::TypeErr try_int_(const std::string& str, int& val)
  */
 class ParameterMap
 {
+ public:
   struct ParamEntry {
     std::string param_str;
     bool accessed;
@@ -93,7 +94,10 @@ class ParameterMap
    * We pass in a ``std::FILE`` object rather than a filename-string because that makes testing
    * easier.
    */
-  ParameterMap(std::FILE* f, int argc, char** argv);
+  ParameterMap(std::FILE* fp, int argc, char** argv, bool close_fp = false);
+
+  /* An overload for the constructor */
+  ParameterMap(const std::string& fname, int argc, char** argv);
 
   /* queries the number of parameters (mostly for testing purposes) */
   std::size_t size() { return entries_.size(); }
@@ -197,6 +201,13 @@ class ParameterMap
       if (rslt) (kv_pair.second).accessed = true;
     }
   }
+
+  /*! Aborts with an error message if one or more of the parameters in the specified table has been used or has not
+   *  been used. The precise details depend on the `expect_unused` argument.
+   *
+   *  \note
+   *  It may be better if this were a function that operated on ParameterMap rather than a method */
+  void Enforce_Table_Content_Uniform_Access_Status(std::string table_name, bool expect_unused) const;
 
  private:  // private helper methods
   /* helper function template that tries to retrieve values associated with a given parameter.

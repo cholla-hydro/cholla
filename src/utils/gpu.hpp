@@ -134,20 +134,18 @@ static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
 #define GPU_MAX_THREADS 256
 
 /*!
- * \brief Check for CUDA/HIP error codes. Can be called wrapping a GPU function that returns a value or with no
- * arguments and it will get the latest error code.
+ * \brief formats and reports CUDA/HIP errors. This a helper function invoked by GPU_Error_Check
  *
  * \param[in] code The code to check. Defaults to the last error code
- * \param[in] abort Whether or not to abort if an error is encountered. Defaults to True
+ * \param[in] abort Whether or not to abort if an error is encountered.
  * \param[in] location The location of the call. This should be left as the default value.
  */
-inline void GPU_Error_Check(cudaError_t code = cudaPeekAtLastError(), bool abort = true,
-                            std::experimental::source_location location = std::experimental::source_location::current())
+inline void Format_GPU_Error_Check_Err_(cudaError_t code, bool abort, std::experimental::source_location location)
 {
-#ifndef DISABLE_GPU_ERROR_CHECKING
-  code = cudaDeviceSynchronize();
+  // this function should ALWAYS be compiled, (regardless of whether DISABLE_GPU_ERROR_CHECKING is
+  // defined or not). We will instead conditionally compile calls to this of this function based on
+  // whether DISABLE_GPU_ERROR_CHECKING is defined.
 
-  // Check the code
   if (code != cudaSuccess) {
     std::cout << "GPU_Error_Check: Failed at "
               << "Line: " << location.line() << ", File: " << location.file_name()
@@ -156,6 +154,50 @@ inline void GPU_Error_Check(cudaError_t code = cudaPeekAtLastError(), bool abort
       chexit(code);
     }
   }
+}
+
+/*!
+ * \brief Check for CUDA/HIP error codes. Can be called wrapping a GPU function that returns a value or with no
+ * arguments and it will get the latest error code.
+ *
+ * This function will always check any cuda-exit code explicitly passed into it. If no code is passed, the
+ * function assumes that it's being called immediately after a kernel was launched and performs a cheap
+ * query to make sure that there aren't currently any errors from the kernel launch (this will pick up on any
+ * errors if you haven't recently performed an error check)
+ *
+ * Unless the DISABLE_GPU_ERROR_CHECKING macro is defined, this function will then explicitly synchronize the
+ * device with the host in order to check if there were any errors during the kernel's evaluation.
+ *
+ * \param[in] code The code to check. Defaults to the last error code
+ * \param[in] abort Whether or not to abort if an error is encountered. Defaults to True
+ * \param[in] location The location of the call. This should be left as the default value.
+ *
+ * @note
+ * The fact that we include function calls as default arguments may appear irregular. If the caller doesn't override
+ * the default values, then the functions are guaranteed to be freshly called whenever we invoke ``GPU_Error_Check``
+ * (details are provided on https://en.cppreference.com/w/cpp/language/default_arguments)
+ *
+ * @note
+ * As explained at https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#error-checking
+ * if we want a call to this function right after a kernel launch to be able to detect errors that prevented the
+ * kernel launch it is VERY important that the function explicitly checks an error code retrieved with either
+ * ``cudaPeekAtLastError()`` or ``cudaGetLastError()``. If we don't do this, the function won't automatically
+ * detect launch errors.
+ */
+inline void GPU_Error_Check(cudaError_t code = cudaPeekAtLastError(), bool abort = true,
+                            std::experimental::source_location location = std::experimental::source_location::current())
+{
+  // first, we check the argument passed into this function
+  // - earlier versions of this function did not perform this check.
+  // - as noted up in the docstring, it's extremely important to perform this check in addition to the next
+  //   check because the next check won't identify cases where the kernel fails to launch
+  // - there's basically no reason to disable this check (it is extremely cheap)
+  if (code != cudaSuccess) Format_GPU_Error_Check_Err_(code, abort, location);
+
+#ifndef DISABLE_GPU_ERROR_CHECKING
+  // wait for any kernels being evaluated to finish and check if any errors arose in the process
+  code = cudaDeviceSynchronize();
+  if (code != cudaSuccess) Format_GPU_Error_Check_Err_(code, abort, location);
 #endif  // DISABLE_GPU_ERROR_CHECKING
 }
 

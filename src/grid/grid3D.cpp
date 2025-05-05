@@ -8,8 +8,9 @@
 #endif
 #include "../global/global.h"
 #include "../grid/grid3D.h"
-#include "../grid/grid_enum.h"    // provides grid_enum
-#include "../hydro/hydro_cuda.h"  // provides Calc_dt_GPU
+#include "../grid/grid_enum.h"       // provides grid_enum
+#include "../hydro/average_cells.h"  // provides Average_Slow_Cells and SlowCellConditionChecker
+#include "../hydro/hydro_cuda.h"     // provides Calc_dt_GPU
 #include "../integrators/VL_1D_cuda.h"
 #include "../integrators/VL_2D_cuda.h"
 #include "../integrators/VL_3D_cuda.h"
@@ -17,6 +18,7 @@
 #include "../integrators/simple_2D_cuda.h"
 #include "../integrators/simple_3D_cuda.h"
 #include "../io/io.h"
+#include "../utils/DeviceVector.h"
 #include "../utils/error_handling.h"
 #ifdef MPI_CHOLLA
   #include <mpi.h>
@@ -26,16 +28,9 @@
   #include "../mpi/mpi_routines.h"
 #endif
 #include <stdio.h>
-#ifdef CLOUDY_COOL
-  #include "../cooling/load_cloudy_texture.h"  // provides Load_Cuda_Textures and Free_Cuda_Textures
-#endif
 
 #ifdef PARALLEL_OMP
   #include "../utils/parallel_omp.h"
-#endif
-
-#ifdef COOLING_GPU
-  #include "../cooling/cooling_cuda.h"  // provides Cooling_Update
 #endif
 
 #ifdef DUST
@@ -152,7 +147,9 @@ void Grid3D::Initialize(struct Parameters *P)
 
 #ifdef AVERAGE_SLOW_CELLS
   H.min_dt_slow = 1e-100;  // Initialize the minumum dt to a tiny number
-#endif                     // AVERAGE_SLOW_CELLS
+#else
+  H.min_dt_slow = -1.0;
+#endif  // AVERAGE_SLOW_CELLS
 
 #ifndef MPI_CHOLLA
 
@@ -356,10 +353,6 @@ void Grid3D::AllocateMemory(void)
   for (int i = 0; i < H.n_fields * H.n_cells; i++) {
     C.host[i] = 0.0;
   }
-
-#ifdef CLOUDY_COOL
-  Load_Cuda_Textures();
-#endif  // CLOUDY_COOL
 }
 
 /*! \fn void set_dt(Real dti)
@@ -422,6 +415,9 @@ void Grid3D::Execute_Hydro_Integrator(void)
   Timer.Hydro_Integrator.Start();
 #endif  // CPU_TIME
 
+  // this buffer holds 1 element that is initialized to 0
+  cuda_utilities::DeviceVector<int> error_code_buffer(1, true);
+
   // Run the hydro integrator on the grid
   if (H.nx > 1 && H.ny == 1 && H.nz == 1)  // 1D
   {
@@ -446,16 +442,22 @@ void Grid3D::Execute_Hydro_Integrator(void)
 #ifdef VL
     VL_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
                          H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, H.density_floor,
-                         C.Grav_potential);
+                         C.Grav_potential, SlowCellConditionChecker(1.0 / H.min_dt_slow, H.dx, H.dy, H.dz),
+                         error_code_buffer.data());
 #endif  // VL
 #ifdef SIMPLE
     Simple_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
                              H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, H.density_floor,
-                             C.Grav_potential);
+                             C.Grav_potential, SlowCellConditionChecker(1.0 / H.min_dt_slow, H.dx, H.dy, H.dz),
+                             error_code_buffer.data());
 #endif  // SIMPLE
   } else {
     chprintf("Error: Grid dimensions nx: %d  ny: %d  nz: %d  not supported.\n", H.nx, H.ny, H.nz);
     chexit(-1);
+  }
+
+  if (error_code_buffer[0] != 0) {
+    CHOLLA_ERROR("An error occurred during the hydro calculation.");
   }
 
 #ifdef CPU_TIME
@@ -463,9 +465,7 @@ void Grid3D::Execute_Hydro_Integrator(void)
 #endif  // CPU_TIME
 }
 
-/*! \fn void Update_Hydro_Grid(void)
- *  \brief Do all steps to update the hydro. */
-Real Grid3D::Update_Hydro_Grid()
+Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &chemistry_callback)
 {
 #ifdef ONLY_PARTICLES
   // Don't integrate the Hydro when only solving for particles
@@ -502,18 +502,24 @@ Real Grid3D::Update_Hydro_Grid()
   #endif
 #endif  // SCALAR_FLOOR
 
-// == Perform chemistry/cooling (there are a few different cases) ==
-#ifdef COOLING_GPU
-  #ifdef CPU_TIME
-  Timer.Cooling_GPU.Start();
-  #endif
-  // ==Apply Cooling from cooling/cooling_cuda.h==
-  Cooling_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama);
-  #ifdef CPU_TIME
-  Timer.Cooling_GPU.End();
-  #endif
+  // == Perform chemistry/cooling (there are a few different cases) ==
 
-#endif  // COOLING_GPU
+  if (chemistry_callback) {
+#if defined(CHEMISTRY_GPU) || defined(COOLING_GRACKLE)
+    CHOLLA_ERROR(
+        "sanity check failed: currently it is an error to use the chemistry_callback "
+        "when chemistry (on GPU/via Grackle) is enabled. Currently, chemistry_callback"
+        "only supports tabulated heating/cooling curves of this in the future.");
+#endif  // defined(CHEMISTRY_GPU) || defined(COOLING_GRACKLE)
+#ifdef CPU_TIME
+    Timer.Cooling_GPU.Start();
+#endif
+    // ==Apply Cooling from cooling/chemistry.h==
+    chemistry_callback(*this);
+#ifdef CPU_TIME
+    Timer.Cooling_GPU.End();
+#endif
+  }
 
 #ifdef DUST
   // ==Apply dust from dust/dust_cuda.h==
@@ -578,8 +584,9 @@ Real Grid3D::Update_Hydro_Grid()
   ny_off = ny_local_start;
   nz_off = nz_local_start;
   #endif
-  Average_Slow_Cells(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dx, H.dy, H.dz, gama, max_dti_slow, H.xbound,
-                     H.ybound, H.zbound, nx_off, ny_off, nz_off);
+  Average_Slow_Cells(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, gama,
+                     SlowCellConditionChecker(max_dti_slow, H.dx, H.dy, H.dz), H.xbound, H.ybound, H.zbound, nx_off,
+                     ny_off, nz_off);
 #endif  // AVERAGE_SLOW_CELLS
 
   // ==Calculate the next time step using Calc_dt_GPU from hydro/hydro_cuda.h==
@@ -675,12 +682,6 @@ void Grid3D::FreeMemory(void)
 
 #ifdef COOLING_GRACKLE
   Cool.Free_Memory();
-#endif
-
-#ifdef COOLING_GPU
-  #ifdef CLOUDY_COOL
-  Free_Cuda_Textures();
-  #endif
 #endif
 
 #ifdef CHEMISTRY_GPU

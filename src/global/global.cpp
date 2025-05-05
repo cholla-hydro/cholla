@@ -112,21 +112,8 @@ bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameter
 
 void Init_Param_Struct_Members(ParameterMap &param, struct Parameters *parms);
 
-/*! \fn void Parse_Params(char *param_file, struct Parameters * parms);
- *  \brief Reads the parameters in the given file into a structure. */
-void Parse_Params(char *param_file, struct Parameters *parms, int argc, char **argv)
+void Parse_Params(ParameterMap &pmap, struct Parameters *parms)
 {
-  FILE *fp = fopen(param_file, "r");
-  if (fp == NULL) {
-    chprintf("Exiting at file %s line %d: failed to read param file %s \n", __FILE__, __LINE__, param_file);
-    exit(1);
-    return;
-  }
-
-  // read/parse the parameters in the file and cmd-args into pmap
-  ParameterMap pmap(fp, argc, argv);
-  fclose(fp);
-
 #ifdef COSMOLOGY
   // Initialize file name as an empty string
   parms->scale_outputs_file[0] = '\0';
@@ -140,11 +127,9 @@ void Parse_Params(char *param_file, struct Parameters *parms, int argc, char **a
 
   // the plan is to eventually, use the new parsing functions from Parse_Param like the following
   Init_Param_Struct_Members(pmap, parms);
-
-  pmap.warn_unused_parameters(optionalParams);
-
-  // it may be useful to return pmap in the future so that we can use it to initialize individual modules
 }
+
+void Warn_Unused_Params(ParameterMap &pmap) { pmap.warn_unused_parameters(optionalParams); }
 
 /*! \fn void Parse_Param(char *name,char *value, struct Parameters *parms);
  *  \brief Parses and sets a single param based on name and value.

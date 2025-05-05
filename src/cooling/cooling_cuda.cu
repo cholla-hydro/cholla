@@ -1,33 +1,59 @@
 /*! \file cooling_cuda.cu
  *  \brief Functions to calculate cooling rate for a given rho, P, dt. */
 
-#ifdef COOLING_GPU
+#include <math.h>
 
-  #include <math.h>
+#include "../cooling/cooling_cuda.h"
+#include "../cooling/load_cloudy_texture.h"  // provides Load_Cuda_Textures and Free_Cuda_Textures
+#include "../cooling/texture_utilities.h"
+#include "../global/global.h"
+#include "../global/global_cuda.h"
+#include "../utils/gpu.hpp"
 
-  #include "../cooling/cooling_cuda.h"
-  #include "../global/global.h"
-  #include "../global/global_cuda.h"
-  #include "../utils/gpu.hpp"
+static bool allocated_heating_cooling_textures = false;
+cudaTextureObject_t coolTexObj                 = 0;
+cudaTextureObject_t heatTexObj                 = 0;
 
-  #ifdef CLOUDY_COOL
-    #include "../cooling/texture_utilities.h"
-  #endif
-
-cudaTextureObject_t coolTexObj = 0;
-cudaTextureObject_t heatTexObj = 0;
+template <typename CoolingRecipe>
+__global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
+                               Real gamma, CoolingRecipe recipe);
 
 __device__ Real Photoelectric_Heating(Real n, Real T, Real n_av);
 __device__ Real TI_cool(Real n, Real T);
 
-void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt, Real gamma)
+/*! \brief This is the main object that applies the cooling update
+ *
+ * In more detail, this adjusts the value of the total energy for each cell
+ * according to the specified cooling function.
+ */
+template <typename CoolingRecipe>
+class CoolingUpdateExecutor
+{
+  CoolingRecipe recipe_;
+
+  static void Cooling_Update_(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
+                              Real gamma, CoolingRecipe recipe);
+
+ public:
+  CoolingUpdateExecutor(CoolingRecipe recipe) : recipe_(recipe) {}
+
+  void operator()(Grid3D &grid) const
+  {
+    Header &H = grid.H;
+    Cooling_Update_(grid.C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama, this->recipe_);
+  }
+};
+
+template <typename CoolingRecipe>
+void CoolingUpdateExecutor<CoolingRecipe>::Cooling_Update_(Real *dev_conserved, int nx, int ny, int nz, int n_ghost,
+                                                           int n_fields, Real dt, Real gamma, CoolingRecipe recipe)
 {
   int n_cells = nx * ny * nz;
   int ngrid   = (n_cells + TPB - 1) / TPB;
   dim3 dim1dGrid(ngrid, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
   hipLaunchKernelGGL(cooling_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt,
-                     gama, coolTexObj, heatTexObj);
+                     gama, recipe);
   GPU_Error_Check();
 }
 
@@ -37,8 +63,9 @@ void Cooling_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, in
  *  \brief When passed an array of conserved variables and a timestep, adjust
  the value of the total energy for each cell according to the specified cooling
  function. */
+template <typename CoolingRecipe>
 __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
-                               Real gamma, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
+                               Real gamma, CoolingRecipe recipe)
 {
   int n_cells = nx * ny * nz;
   int is, ie, js, je, ks, ke;
@@ -67,9 +94,9 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
   // #ifndef DE
   Real vx, vy, vz, p;
   // #endif
-  #ifdef DE
+#ifdef DE
   Real ge;
-  #endif
+#endif
 
   mu = 0.6;
   // mu = 1.27;
@@ -96,59 +123,41 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     vz = dev_conserved[3 * n_cells + id] / d;
     p  = (E - 0.5 * d * (vx * vx + vy * vy + vz * vz)) * (gamma - 1.0);
     p  = fmax(p, (Real)TINY_NUMBER);
-  // #endif
-  #ifdef DE
+    // #endif
+#ifdef DE
     ge = dev_conserved[(n_fields - 1) * n_cells + id] / d;
     ge = fmax(ge, (Real)TINY_NUMBER);
-  #endif
+#endif
 
     // calculate the number density of the gas (in cgs)
     n = d * DENSITY_UNIT / (mu * MP);
 
     // calculate the temperature of the gas
     T_init = p * PRESSURE_UNIT / (n * KB);
-  #ifdef DE
+#ifdef DE
     T_init = d * ge * (gamma - 1.0) * PRESSURE_UNIT / (n * KB);
-  #endif
+#endif
 
     // calculate cooling rate per volume
     T = T_init;
-  // call the cooling function
-  #ifdef CLOUDY_COOL
-    cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
-  #else
-    cool = CIE_cool(n, T);
-  #endif
+    // call the cooling function
+    cool = recipe.cool_rate(n, T);
 
     // calculate change in temperature given dt
     del_T = cool * dt * TIME_UNIT * (gamma - 1.0) / (n * KB);
 
-    // limit change in temperature to 1%
-    while (del_T / T > 0.01) {
-      // what dt gives del_T = 0.01*T?
-      dt_sub = 0.01 * T * n * KB / (cool * TIME_UNIT * (gamma - 1.0));
+    // limit change in temperature to 1% (we use fabs for when heating dominates)
+    while (fabs(del_T / T) > 0.01) {
+      // what dt gives del_T with a magnitude of 0.01*T? (we use fabs for cases when heating dominates)
+      dt_sub = fabs(0.01 * T * n * KB / (cool * TIME_UNIT * (gamma - 1.0)));
       // apply that dt
       T -= cool * dt_sub * TIME_UNIT * (gamma - 1.0) / (n * KB);
       // how much time is left from the original timestep?
       dt -= dt_sub;
-  // calculate cooling again
-  #ifdef CLOUDY_COOL
-      cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
-  #else
-      cool = CIE_cool(n, T);
-  #endif
+
+      // calculate cooling again
+      cool = recipe.cool_rate(n, T);
       // calculate new change in temperature
-
-      // at one point, the logic for the above ifdef was called the
-      // Photoelectric_Heating function in the CLOUDY_COOL branch, and had an
-      // additional branch TI_COOL that assigned cool the value of TI_cool(n,T)
-      // -> there were a number of other differences in this function. Because that change
-      //    was made in git-branch that signficantly diverged from dev, we decided to
-      //    simply reverted the logic in order to simplify the merge,
-      // -> to find that alternative logic, use git-blame to identify the commit where
-      //    this text was added (it's the same commit where the logic was reverted)
-      //    was reverted in the same) with lots of merge-conflicts.
-
       del_T = cool * dt * TIME_UNIT * (gamma - 1.0) / (n * KB);
     }
 
@@ -158,23 +167,15 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // adjust value of energy based on total change in temperature
     del_T = T_init - T;  // total change in T
     E -= n * KB * del_T / ((gamma - 1.0) * ENERGY_UNIT);
-  #ifdef DE
+#ifdef DE
     ge -= KB * del_T / (mu * MP * (gamma - 1.0) * SP_ENERGY_UNIT);
-  #endif
-
-  // calculate cooling rate for new T
-  #ifdef CLOUDY_COOL
-    cool = Cloudy_cool(n, T, coolTexObj, heatTexObj);
-  #else
-    cool = CIE_cool(n, T);
-  // printf("%d %d %d %e %e %e\n", xid, yid, zid, n, T, cool);
-  #endif
+#endif
 
     // and send back from kernel
     dev_conserved[4 * n_cells + id] = E;
-  #ifdef DE
+#ifdef DE
     dev_conserved[(n_fields - 1) * n_cells + id] = d * ge;
-  #endif
+#endif
   }
 }
 
@@ -305,10 +306,13 @@ __device__ Real primordial_cool(Real n, Real T)
   return cool;
 }
 
-/* \fn __device__ Real CIE_cool(Real n, Real T)
- * \brief Analytic fit to a solar metallicity CIE cooling curve
-          calculated using Cloudy. */
-__device__ Real CIE_cool(Real n, Real T)
+/*! \brief Analytic fit to a solar metallicity CIE cooling curve calculated using Cloudy.
+ */
+struct CoolRecipeCIE {
+  __device__ static Real cool_rate(Real n, Real T);
+};
+
+__device__ Real CoolRecipeCIE::cool_rate(Real n, Real T)
 {
   Real lambda = 0.0;  // cooling rate, erg s^-1 cm^3
   Real cool   = 0.0;  // cooling per unit volume, erg /s / cm^3
@@ -330,12 +334,32 @@ __device__ Real CIE_cool(Real n, Real T)
   return cool;
 }
 
-  #ifdef CLOUDY_COOL
-/* \fn __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t
- coolTexObj, cudaTextureObject_t heatTexObj)
- * \brief Uses texture mapping to interpolate Cloudy cooling/heating
-          tables at z = 0 with solar metallicity and an HM05 UV background. */
-__device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cudaTextureObject_t heatTexObj)
+/*! \brief Uses texture mapping to interpolate Cloudy cooling/heating
+ *         tables at z = 0 with solar metallicity and an HM05 UV background. */
+class CoolRecipeCloudy
+{
+  cudaTextureObject_t coolTexObj_;
+  cudaTextureObject_t heatTexObj_;
+
+ public:
+  __host__ CoolRecipeCloudy(std::string filename)
+  {
+    // for now, we simply don't deallocate the textures
+    // -> this is poor form and something that should be fixed...
+    // -> in reality, this won't cause any immediate issues since the textures
+    //    are global and will live for the lifetime of the simulation
+    if (!allocated_heating_cooling_textures) {
+      allocated_heating_cooling_textures = true;
+      Load_Cuda_Textures(filename);
+    }
+    this->coolTexObj_ = coolTexObj;
+    this->heatTexObj_ = heatTexObj;
+  }
+
+  __device__ Real cool_rate(Real n, Real T);
+};
+
+__device__ Real CoolRecipeCloudy::cool_rate(Real n, Real T)
 {
   Real lambda  = 0.0;  // log cooling rate, erg s^-1 cm^3
   Real cooling = 0.0;  // cooling per unit volume, erg /s / cm^3
@@ -362,8 +386,8 @@ __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cuda
   if (log10(T) > 9.0) {
     lambda = 0.45 * log10(T) - 26.065;
   } else if (log10(T) >= 1.0) {
-    lambda       = Bilinear_Texture(coolTexObj, remap_log_T, remap_log_n);
-    const Real H = Bilinear_Texture(heatTexObj, remap_log_T, remap_log_n);
+    lambda       = Bilinear_Texture(this->coolTexObj_, remap_log_T, remap_log_n);
+    const Real H = Bilinear_Texture(this->heatTexObj_, remap_log_T, remap_log_n);
     heating      = pow(10, H);
   } else {
     // Do nothing below 10 K
@@ -373,7 +397,6 @@ __device__ Real Cloudy_cool(Real n, Real T, cudaTextureObject_t coolTexObj, cuda
   cooling = pow(10, lambda);
   return n * n * (cooling - heating);
 }
-  #endif  // CLOUDY_COOL
 
 __device__ Real Photoelectric_Heating(Real n, Real T, Real n_av)
 {
@@ -386,6 +409,23 @@ __device__ Real Photoelectric_Heating(Real n, Real T, Real n_av)
     return 0.0;
   }
 }
+
+class CoolRecipeCloudyAndPhotoHeating
+{
+  CoolRecipeCloudy pure_cloudy_recipe;
+  Real n_av_cgs;
+
+ public:
+  __host__ CoolRecipeCloudyAndPhotoHeating(std::string filename, Real n_av_cgs)
+      : pure_cloudy_recipe(filename), n_av_cgs{n_av_cgs}
+  {
+  }
+
+  __device__ Real cool_rate(Real n, Real T)
+  {
+    return pure_cloudy_recipe.cool_rate(n, T) - Photoelectric_Heating(n, T, n_av_cgs);
+  }
+};
 
 /*! \brief Estimated cooling / photoelectric heating function based on description
  *         given in Kim et al. 2015.
@@ -424,4 +464,26 @@ __device__ Real TI_cool(Real n, Real T)
   return cooling;
 }
 
-#endif  // COOLING_GPU
+std::function<void(Grid3D &)> configure_cooling_callback(std::string kind, ParameterMap &pmap)
+{
+  // the caller of this function will ensure that parameters associated with photoelectric_heating
+  // or chemistry.data_file aren't set when using piecewise-cie
+  if (kind == "tabulated-cloudy") {
+    std::string filename = pmap.value_or("chemistry.data_file", std::string());
+    if (pmap.value_or("chemistry.photoelectric_heating", false)) {
+      double n_av_cgs = pmap.value_or("chemistry.photoelectric_n_av_cgs", 100.0);
+      CoolRecipeCloudyAndPhotoHeating recipe(filename, n_av_cgs);
+      CoolingUpdateExecutor<CoolRecipeCloudyAndPhotoHeating> updater(recipe);
+      return {updater};
+    } else {
+      CoolRecipeCloudy recipe(filename);
+      CoolingUpdateExecutor<CoolRecipeCloudy> updater(recipe);
+      return {updater};
+    }
+  } else if (kind == "piecewise-cie") {
+    CoolRecipeCIE recipe{};
+    CoolingUpdateExecutor<CoolRecipeCIE> updater(recipe);
+    return {updater};
+  }
+  return {};
+}

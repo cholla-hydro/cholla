@@ -50,15 +50,6 @@ typedef double Real;
 
 #define LOG_FILE_NAME "run_output.log"
 
-// Conserved Floor Values
-#if (defined(FEEDBACK) || defined(STAR_FORMATION)) && defined(CLOUDY_COOL)
-  #define TEMP_FLOOR 1e1    // 10K for cloudy cooling
-  #define DENS_FLOOR 14.83  // 1e-6 cm^-3
-#else
-  #define TEMP_FLOOR 1e-3
-  #define DENS_FLOOR 1e-5  // in code units
-#endif
-
 // mean molecular weight
 #define MU 0.6
 // Parameters for Enzo dual Energy Condition
@@ -161,10 +152,8 @@ extern Real C_cfl;  // CFL number (0 - 0.5)
 extern Real t_comm;
 extern Real t_other;
 
-#ifdef COOLING_GPU
 extern float *cooling_table;
 extern float *heating_table;
-#endif
 
 /*! \fn void Set_Gammas(Real gamma_in)
  *  \brief Set gamma values for Riemann solver. */
@@ -366,9 +355,19 @@ struct Parameters {
 #endif
 };
 
-/*! \fn void parse_params(char *param_file, struct Parameters * parms);
- *  \brief Reads the parameters in the given file into a structure. */
-extern void Parse_Params(char *param_file, struct Parameters *parms, int argc, char **argv);
+class ParameterMap;
+
+/*! \brief Reads the from the ParameterMap into the primary Parameters structure.
+ *
+ *  \note
+ *  We opt to pass in an existing ParamterMap (by reference), rather than having this
+ *  function return a ParameterMap, so that we can get away with simply forward-declaring
+ *  ParameterMap (rather than including the full definition)
+ */
+void Parse_Params(ParameterMap &pmap, struct Parameters *parms);
+
+/*! \brief prints a warning if pmap contains any unused parameters */
+void Warn_Unused_Params(ParameterMap &pmap);
 
 /*! \fn int is_param_valid(char *name);
  * \brief Verifies that a param is valid (even if not needed).  Avoids

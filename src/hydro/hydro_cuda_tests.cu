@@ -9,6 +9,7 @@
 #include <stdlib.h>
 
 #include <iostream>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -43,6 +44,7 @@ TEST(tHYDROCalcDt3D, CorrectInputExpectCorrectOutput)
   std::vector<Real> host_conserved(n_fields);
   cuda_utilities::DeviceVector<Real> dev_conserved(n_fields);
   cuda_utilities::DeviceVector<Real> dev_dti(1);
+  dev_dti.assign(std::numeric_limits<double>::lowest());
   Real gamma = 5.0 / 3.0;
 
   // Set values of conserved variables for input (host)
