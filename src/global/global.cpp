@@ -431,23 +431,25 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   //
   // Prior to relocating this parameter-parsing, Cosmological simulations simply assumed that all of these parameters
   // were specified (& there were no default values). Now cosmological simulations will loudly fail if a user forgets
-  // one of these parameters (other that wa, which defaults to 0).
+  // parameters like H0, Omega_M, Omega_L, Omega_b, etc.
 #ifdef COSMOLOGY
-  Load_String_Param_Into_Char_Buffer(pmap, "scale_outputs_file", parms->scale_outputs_file, "");
+  if (not pmap.has_param("End_redshift") and not pmap.has_param("scale_outputs_file")) {
+    CHOLLA_ERROR("either the scale_outputs_file or End_redshift parameter must be provided in Cosmology sims");
+  } else {
+    Load_String_Param_Into_Char_Buffer(pmap, "scale_outputs_file", parms->scale_outputs_file, "");
+    parms->End_redshift = pmap.value_or("End_redshift", 0.0);
+  }
   // it turns out that Init_redshift is only needed for special test-problems
   // -> it commonly isn't given a value.
   // -> Since it never had a default value before, we have it fall back to an obviously wrong value
   parms->Init_redshift = pmap.value_or("Init_redshift", -1.0);
-  parms->End_redshift  = pmap.value_or("End_redshift", 0.0);
   parms->H0            = pmap.value<double>("H0");
   parms->Omega_M       = pmap.value<double>("Omega_M");
   parms->Omega_L       = pmap.value<double>("Omega_L");
   parms->Omega_b       = pmap.value<double>("Omega_b");
-  // since w0 and Omega_R never had a reliable default values before, it sure seems like we should abort the
-  // simulation with an error if either is missing. But, the main cosmology test is missing them.
-  parms->Omega_R = pmap.value_or("Omega_R", 0.0);
-  parms->w0      = pmap.value_or("w0", 0.0);
-  parms->wa      = pmap.value_or("wa", 0.0);
+  parms->Omega_R       = pmap.value_or("Omega_R", 0.0);
+  parms->w0            = pmap.value_or("w0", -1.0);
+  parms->wa            = pmap.value_or("wa", 0.0);
 #endif  // COSMOLOGY
 
 #if defined(CHEMISTRY_GPU) || defined(COOLING_GRACKLE)
