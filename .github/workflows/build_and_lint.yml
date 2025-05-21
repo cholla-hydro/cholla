@@ -53,11 +53,11 @@ jobs:
           fi
 
       # Is this really necessary?
-      - name: Git Safe Directory
-        run: |
-          git --version
-          git config --global --add safe.directory /__w/cholla/cholla
-          git config --global --add safe.directory '*'
+      #- name: Git Safe Directory
+      #  run: |
+      #    git --version
+      #    git config --global --add safe.directory /__w/cholla/cholla
+      #    git config --global --add safe.directory '*'
 
       - name: Cholla setup
         run: |
