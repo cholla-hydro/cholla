@@ -43,7 +43,7 @@ jobs:
 
       - name: Show CUDA/HIP version & Compiler version(s)
         run: |
-          if [[ ${{ matrix.conatainer.name }} == 'CUDA' ]]; then
+          if [[ ${{ matrix.container.name }} == 'CUDA' ]]; then
             cc --version
             c++ --version
             nvcc -V
