@@ -2,7 +2,7 @@ name: Compilation-Checks
 
 # This checks that the code successfully compiles with HIP
 #
-# To re-enable the CUDA build, uncomment the line mentioning CUDA under
+# To re-enable the CUDA builds, uncomment the line mentioning CUDA under
 # jobs.Build.strategy.matrix.container
 
 on:
