@@ -13,7 +13,7 @@ on:
 
 jobs:
   Build:
-    name: Platform=${{ matrix.container.name }} TYPE=${{ matrix.make-type }}
+    name: ${{ matrix.container.name }}, TYPE=${{ matrix.make-type }}
     runs-on: ubuntu-latest  # Choose OS/Runner
     container:
       image: ${{matrix.container.link}}
@@ -34,6 +34,13 @@ jobs:
 
       - name: Checkout Cholla Repository
         uses: actions/checkout@v4
+        with:
+          submodules: false  # we don't want our submodule
+          # `set-safe-directory: true` is known not to work in custom docker
+          # images (like the ones that we are using)
+
+      # we can remove this step when the set-safe-directory bug is fixed
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE" 
 
       - name: Show MPI version
         run: mpirun --version
@@ -51,13 +58,6 @@ jobs:
             hipcc --version
             hipconfig --full
           fi
-
-      # Is this really necessary?
-      #- name: Git Safe Directory
-      #  run: |
-      #    git --version
-      #    git config --global --add safe.directory /__w/cholla/cholla
-      #    git config --global --add safe.directory '*'
 
       - name: Cholla setup
         run: |
