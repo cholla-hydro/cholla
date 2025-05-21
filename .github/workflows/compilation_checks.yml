@@ -1,6 +1,6 @@
-name: Build & Lint
+name: Compilation-Checks
 
-# This runs the HIP builds
+# This checks that the code successfully compiles with HIP
 #
 # To re-enable the CUDA build, uncomment the line mentioning CUDA under
 # jobs.Build.strategy.matrix.container
