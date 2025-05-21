@@ -11,56 +11,53 @@ on:
 
 jobs:
   Build:
-    name: Build & Lint = ${{ matrix.container.name }} TYPE=${{ matrix.make-type }}
+    name: Platform=${{ matrix.container.name }} TYPE=${{ matrix.make-type }}
     # if: ${{ false }}  # If uncommented this line will disable this job
-
-    # Choose OS/Runner
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Choose OS/Runner
     container:
       image: ${{matrix.container.link}}
     defaults:
       run:
         shell: bash
-    # Matrix for different make types
     strategy:
       fail-fast: false
-      matrix:
+      matrix:  # Matrix for different make-types and platforms
         make-type: [hydro, gravity, disk, particles, cosmology, mhd, dust, cooling]
-        # The CUDA container can be added with {name: "CUDA", link: "docker://chollahydro/cholla:cuda_github"}
-        container: [{name: "HIP",link: "docker://chollahydro/cholla:rocm_github"}]
-
-    # Setup environment variables
-    env:
+        container:
+          #- {name: "CUDA", link: "docker://chollahydro/cholla:cuda_github"}
+          - {name: "HIP", link: "docker://chollahydro/cholla:rocm_github"}
+    env:  # Set environment variables
       CHOLLA_MAKE_TYPE: ${{ matrix.make-type }}
 
     # Run the job itself
     steps:
-
-    # Install required Tools
-    - uses: actions/checkout@v3
+    - name: Checkout Cholla
+      uses: actions/checkout@v3
 
     # Show versions
     - name: Show MPI version
       run: mpirun --version
+
     - name: Show HDF5 config
+      run: h5cc -showconfig
+
+    - name: Show CUDA/HIP version & Compiler version(s)
       run: |
-        h5cc -showconfig
+        if [[ ${{ matrix.conatainer.name }} == 'CUDA' ]]; then
+          cc --version
+          c++ --version
+          nvcc -V
+        else
+          hipcc --version
+          hipconfig --full
+        fi
+
+    # Is this really necessary?
     - name: Git Safe Directory
       run: |
         git --version
         git config --global --add safe.directory /__w/cholla/cholla
         git config --global --add safe.directory '*'
-    # - name: Show CUDA and gcc version
-    #   if: matrix.container.name == 'CUDA'
-    #   run: |
-    #     cc --version
-    #     c++ --version
-    #     nvcc -V
-    - name: Show HIP and hipcc version
-      if: matrix.container.name == 'HIP'
-      run: |
-        hipcc --version
-        hipconfig --full
 
     # Perform Build
     - name: Cholla setup
