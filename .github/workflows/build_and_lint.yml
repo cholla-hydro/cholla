@@ -72,8 +72,8 @@ jobs:
         echo "CHOLLA_LAUNCH_COMMAND = ${CHOLLA_LAUNCH_COMMAND}"
         echo "CHOLLA_ROOT=${CHOLLA_ROOT}"                     >> $GITHUB_ENV
         echo "CHOLLA_LAUNCH_COMMAND=${CHOLLA_LAUNCH_COMMAND}" >> $GITHUB_ENV
-        echo "F_OFFLOAD=${F_OFFLOAD}                          >> $GITHUB_ENV
-        echo "CHOLLA_ENVSET=${CHOLLA_ENVSET}                  >> $GITHUB_ENV
+        echo "F_OFFLOAD=${F_OFFLOAD}"                         >> $GITHUB_ENV
+        echo "CHOLLA_ENVSET=${CHOLLA_ENVSET}"                 >> $GITHUB_ENV
     - name: Build Cholla
       run: |
         source builds/run_tests.sh
