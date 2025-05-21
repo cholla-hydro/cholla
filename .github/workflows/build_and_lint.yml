@@ -1,7 +1,9 @@
 name: Build & Lint
 
-# This runs the HIP Builds. CUDA builds can be reenabled by adding the CUDA
-# container to the matrix and uncommenting the CUDA lines
+# This runs the HIP builds
+#
+# To re-enable the CUDA build, uncomment the line mentioning CUDA under
+# jobs.Build.strategy.matrix.container
 
 on:
   pull_request:
@@ -12,7 +14,6 @@ on:
 jobs:
   Build:
     name: Platform=${{ matrix.container.name }} TYPE=${{ matrix.make-type }}
-    # if: ${{ false }}  # If uncommented this line will disable this job
     runs-on: ubuntu-latest  # Choose OS/Runner
     container:
       image: ${{matrix.container.link}}
@@ -29,9 +30,9 @@ jobs:
     env:  # Set environment variables
       CHOLLA_MAKE_TYPE: ${{ matrix.make-type }}
 
-    # Run the job itself
-    steps:
-      - name: Checkout Cholla
+    steps:  # list steps of the job
+
+      - name: Checkout Cholla Repository
         uses: actions/checkout@v3
 
       - name: Show MPI version
