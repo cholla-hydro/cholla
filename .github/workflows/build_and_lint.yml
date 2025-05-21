@@ -11,7 +11,7 @@ on:
 
 jobs:
   Build:
-    name: Build & Lint: ${{ matrix.container.name }} TYPE=${{ matrix.make-type }}
+    name: Build & Lint = ${{ matrix.container.name }} TYPE=${{ matrix.make-type }}
     # if: ${{ false }}  # If uncommented this line will disable this job
 
     # Choose OS/Runner
