@@ -1,0 +1,80 @@
+name: Compilation-Checks
+
+# This checks that the code successfully compiles with HIP
+#
+# To re-enable the CUDA builds, uncomment the line mentioning CUDA under
+# jobs.Build.strategy.matrix.container
+
+on:
+  pull_request:
+  schedule:
+    - cron: "37 07 * * 1"  # run every Monday at 07:37UTC. Crontab computed with crontab.guru
+  workflow_dispatch:
+
+jobs:
+  Build:
+    name: Compilation-Check for ${{ matrix.container.name }}, TYPE=${{ matrix.make-type }}
+    runs-on: ubuntu-latest  # Choose OS/Runner
+    container:
+      image: ${{matrix.container.link}}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:  # Matrix for different make-types and platforms
+        make-type: [hydro, gravity, disk, particles, cosmology, mhd, dust, cooling]
+        container:
+          #- {name: "CUDA", link: "docker://chollahydro/cholla:cuda_github"}
+          - {name: "HIP", link: "docker://chollahydro/cholla:rocm_github"}
+    env:  # Set environment variables
+      CHOLLA_MAKE_TYPE: ${{ matrix.make-type }}
+
+    steps:  # list steps of the job
+
+      - name: Checkout Cholla Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: false  # we don't want our submodule
+          # `set-safe-directory: true` is known not to work in custom docker
+          # images (like the ones that we are using)
+
+      # we can remove this step when the set-safe-directory bug is fixed
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE" 
+
+      - name: Show MPI version
+        run: mpirun --version
+
+      - name: Show HDF5 config
+        run: h5cc -showconfig
+
+      - name: Show CUDA/HIP version & Compiler version(s)
+        run: |
+          if [[ ${{ matrix.container.name }} == 'CUDA' ]]; then
+            cc --version
+            c++ --version
+            nvcc -V
+          else
+            hipcc --version
+            hipconfig --full
+          fi
+
+      - name: Cholla setup
+        run: |
+          make clobber
+          source builds/run_tests.sh
+          setupTests -c gcc
+          echo "CHOLLA_ROOT           = ${CHOLLA_ROOT}"
+          echo "CHOLLA_LAUNCH_COMMAND = ${CHOLLA_LAUNCH_COMMAND}"
+          echo "CHOLLA_ROOT=${CHOLLA_ROOT}"                     >> $GITHUB_ENV
+          echo "CHOLLA_LAUNCH_COMMAND=${CHOLLA_LAUNCH_COMMAND}" >> $GITHUB_ENV
+          echo "F_OFFLOAD=${F_OFFLOAD}"                         >> $GITHUB_ENV
+          echo "CHOLLA_ENVSET=${CHOLLA_ENVSET}"                 >> $GITHUB_ENV
+      - name: Build Cholla
+        run: |
+          source builds/run_tests.sh
+          buildCholla OPTIMIZE
+      - name: Build Tests
+        run: |
+          source builds/run_tests.sh
+          buildChollaTests
