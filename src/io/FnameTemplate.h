@@ -7,7 +7,7 @@
 
 #include <string>
 
-#include "../global/global.h"
+#include "../io/ParameterMap.h"
 
 /* Lightweight object designed to centralize the file-naming logic (& any associated configuration).
  *
@@ -50,6 +50,9 @@ class FnameTemplate
 
   /* Specifies whether separate cycles are written to separate directories */
   bool separate_cycle_dirs() const noexcept { return separate_cycle_dirs_; }
+
+  /* Returns the nominal output-directory (this value is unaffected by separate_cycle_dirs()) */
+  const std::string nominal_output_dir_path() const noexcept { return outdir_; }
 
   /* Returns the effective output-directory used for outputs at a given simulation-cycle */
   std::string effective_output_dir_path(int nfile) const noexcept;

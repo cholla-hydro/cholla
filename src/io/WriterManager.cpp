@@ -13,7 +13,7 @@
 #include "../io/ParameterMap.h"  // define ParameterMap
 #include "../io/io.h"
 
-io::WriterManager::WriterManager(ParameterMap &pmap)
+io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap) : fname_template_(P)
 {
   // in the future, the goal is to read directly from ParameterMap (so we can stop storing
   // some of the relevant variables in Parameters)
@@ -46,14 +46,18 @@ io::WriterManager::WriterManager(ParameterMap &pmap)
 
 #ifdef PARTICLES
   // define a lambda function
-  auto write_particle = [](Grid3D &G, Parameters P, int nfile) { G.WriteData_Particles(P, nfile); };
+  auto write_particle = [](Grid3D& G, Parameters P, int nfile, const FnameTemplate& fname_template) {
+    G.WriteData_Particles(P, nfile, fname_template);
+  };
   packs_.push_back(io::detail::WriterPack{"particle", pmap.value_or("n_particle", 1), write_particle});
 
 #endif
 
 #if defined(GRAVITY) && defined(HDF5)
-  auto write_gravity = [](Grid3D &G, Parameters P, int nfile) { G.Grav.Write_Restart_HDF5(&P, nfile); };
-  int n_gravity      = 1;  // <- this is the historical choice
+  auto write_gravity = [](Grid3D& G, Parameters P, int nfile, const FnameTemplate& fname_template) {
+    G.Grav.Write_Restart_HDF5(&P, nfile, fname_template);
+  };
+  int n_gravity = 1;  // <- this is the historical choice
   packs_.push_back(io::detail::WriterPack{"gravity", n_gravity, write_gravity});
 
 #endif

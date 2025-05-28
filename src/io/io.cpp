@@ -88,9 +88,7 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
   chprintf("\nSaving Snapshot: %d \n", nfile);
 
   // ensure the output-directory exists (try to create it if it doesn't exist)
-  // -> Aside: it would be nice to pass an FnameTemplate instance into each function that uses it,
-  //    rather than reconstructing it everywhere
-  Ensure_Dir_Exists(FnameTemplate(P).effective_output_dir_path(nfile));
+  Ensure_Dir_Exists(write_manager.fname_template().effective_output_dir_path(nfile));
 
 #ifdef HDF5
   // Initialize HDF5 interface
@@ -147,10 +145,10 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
 }
 
 /* Output the grid data to file. */
-void Output_Data(Grid3D &G, struct Parameters P, int nfile)
+void Output_Data(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate &fname_template)
 {
   // create the filename
-  std::string filename = FnameTemplate(P).format_fname(nfile, "");
+  std::string filename = fname_template.format_fname(nfile, "");
 
 #if !defined(BINARY) && !defined(HDF5)
   if (G.H.nx * G.H.ny * G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
@@ -216,7 +214,7 @@ void Output_Data(Grid3D &G, struct Parameters P, int nfile)
 #endif
 }
 
-void Output_Float32(Grid3D &G, struct Parameters P, int nfile)
+void Output_Float32(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate &fname_template)
 {
 #ifdef HDF5
   Header H = G.H;
@@ -233,7 +231,7 @@ void Output_Float32(Grid3D &G, struct Parameters P, int nfile)
   }
 
   // create the filename
-  std::string filename = FnameTemplate(P).format_fname(nfile, ".float32");
+  std::string filename = fname_template.format_fname(nfile, ".float32");
 
   // create hdf5 file
   hid_t file_id; /* file identifier */
@@ -329,14 +327,14 @@ void Output_Float32(Grid3D &G, struct Parameters P, int nfile)
 }
 
 /* Output a projection of the grid data to file. */
-void Output_Projected_Data(Grid3D &G, struct Parameters P, int nfile)
+void Output_Projected_Data(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate &fname_template)
 {
 #ifdef HDF5
   hid_t file_id;
   herr_t status;
 
   // create the filename
-  std::string filename = FnameTemplate(P).format_fname(nfile, "_proj");
+  std::string filename = fname_template.format_fname(nfile, "_proj");
 
   // Create a new file
   file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -368,14 +366,14 @@ void Output_Projected_Data(Grid3D &G, struct Parameters P, int nfile)
 }
 
 /* Output a rotated projection of the grid data to file. */
-void Output_Rotated_Projected_Data(Grid3D &G, struct Parameters P, int nfile)
+void Output_Rotated_Projected_Data(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate &fname_template)
 {
 #ifdef HDF5
   hid_t file_id;
   herr_t status;
 
   // create the filename
-  std::string filename = FnameTemplate(P).format_fname(nfile, "_rot_proj");
+  std::string filename = fname_template.format_fname(nfile, "_rot_proj");
 
   if (G.R.flag_delta == 1) {
     // if flag_delta==1, then we are just outputting a
@@ -467,14 +465,15 @@ void Output_Rotated_Projected_Data(Grid3D &G, struct Parameters P, int nfile)
 }
 
 /* Output xy, xz, and yz slices of the grid data. */
-void Output_Slices(Grid3D &G, struct Parameters P, int nfile)
+void Output_Slices(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate &fname_template)
+
 {
 #ifdef HDF5
   hid_t file_id;
   herr_t status;
 
   // create the filename
-  std::string filename = FnameTemplate(P).format_fname(nfile, "_slice");
+  std::string filename = fname_template.format_fname(nfile, "_slice");
 
   // Create a new file
   file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);

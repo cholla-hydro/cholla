@@ -27,19 +27,19 @@ void Print_Stats(Grid3D& G);
 void Write_Data(Grid3D& G, struct Parameters P, int nfile, const io::WriterManager& write_manager);
 
 /* Output the grid data to file. */
-void Output_Data(Grid3D& G, struct Parameters P, int nfile);
+void Output_Data(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);
 
 /* Output the grid data to file as 32-bit floats. */
-void Output_Float32(Grid3D& G, struct Parameters P, int nfile);
+void Output_Float32(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);
 
 /* Output a projection of the grid data to file. */
-void Output_Projected_Data(Grid3D& G, struct Parameters P, int nfile);
+void Output_Projected_Data(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);
 
 /* Output a rotated projection of the grid data to file. */
-void Output_Rotated_Projected_Data(Grid3D& G, struct Parameters P, int nfile);
+void Output_Rotated_Projected_Data(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);
 
 /* Output xy, xz, and yz slices of the grid data to file. */
-void Output_Slices(Grid3D& G, struct Parameters P, int nfile);
+void Output_Slices(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);
 
 /* MPI-safe printf routine */
 int chprintf(const char* __restrict sdata, ...);
