@@ -11,6 +11,7 @@
 
 #include "../global/global.h"
 #include "../grid/grid3D.h"
+#include "../io/ParameterMap.h"  // define ParameterMap
 
 namespace io
 {
@@ -41,7 +42,7 @@ class WriterManager
 
  public:
   WriterManager() = delete;
-  WriterManager(const Parameters &P);
+  WriterManager(ParameterMap &pmap);
 
   /*! apply the writers */
   void Apply_Writers(Grid3D &G, const Parameters &P, int nfile) const

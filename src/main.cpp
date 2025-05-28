@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
 
   // Create the Writer Manager, which is in charge of calling of trigger the various
   // functions that dump data (e.g. snapshots, slices, projections)
-  io::WriterManager writer_manager(P);
+  io::WriterManager writer_manager(pmap);
 
   // initialize the grid
   G.Initialize(&P);

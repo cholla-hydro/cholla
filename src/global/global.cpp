@@ -143,18 +143,6 @@ bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameter
     strncpy(parms->init, value, MAXLEN);
   } else if (strcmp(name, "nfile") == 0) {
     parms->nfile = atoi(value);
-  } else if (strcmp(name, "n_hydro") == 0) {
-    parms->n_hydro = atoi(value);
-  } else if (strcmp(name, "n_particle") == 0) {
-    parms->n_particle = atoi(value);
-  } else if (strcmp(name, "n_projection") == 0) {
-    parms->n_projection = atoi(value);
-  } else if (strcmp(name, "n_rotated_projection") == 0) {
-    parms->n_rotated_projection = atoi(value);
-  } else if (strcmp(name, "n_slice") == 0) {
-    parms->n_slice = atoi(value);
-  } else if (strcmp(name, "n_out_float32") == 0) {
-    parms->n_out_float32 = atoi(value);
   } else if (strcmp(name, "out_float32_density") == 0) {
     parms->out_float32_density = atoi(value);
   } else if (strcmp(name, "out_float32_momentum_x") == 0) {
