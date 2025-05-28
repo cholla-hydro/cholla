@@ -141,10 +141,6 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
   H5close();
 #endif
 
-#if defined(GRAVITY) && defined(HDF5)
-  G.Grav.Write_Restart_HDF5(&P, nfile);
-#endif
-
 #ifdef MPI_CHOLLA
   MPI_Barrier(world);
 #endif

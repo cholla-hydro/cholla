@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 
+#include "../gravity/grav3D.h"
 #include "../io/io.h"
 
 io::WriterManager::WriterManager(const Parameters &P)
@@ -45,6 +46,13 @@ io::WriterManager::WriterManager(const Parameters &P)
   // define a lambda function
   auto write_particle = [](Grid3D &G, Parameters P, int nfile) { G.WriteData_Particles(P, nfile); };
   packs_.push_back(io::detail::WriterPack{"particle", P.n_particle, write_particle});
+
+#endif
+
+#if defined(GRAVITY) && defined(HDF5)
+  auto write_gravity = [](Grid3D &G, Parameters P, int nfile) { G.Grav.Write_Restart_HDF5(&P, nfile); };
+  int n_gravity      = 1;  // <- this is the historical choice
+  packs_.push_back(io::detail::WriterPack{"gravity", n_gravity, write_gravity});
 
 #endif
 }
