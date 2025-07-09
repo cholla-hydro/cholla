@@ -50,3 +50,18 @@ xfail_strict = true
 testpaths = [
   "python/tests",
 ]
+
+[tool.ruff.lint]
+exclude = [
+    "python_scripts/**",
+    "docs/**",
+    "tools/**"
+]
+
+[tool.ruff.format]
+exclude = [
+    "python_scripts/**",
+    "docs/**",
+    "tools/**"
+]
+

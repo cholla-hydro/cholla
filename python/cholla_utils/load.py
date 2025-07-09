@@ -10,6 +10,7 @@ import numpy as np
 
 _IDX3D_TYPE = typing.Any
 
+
 @dataclass(kw_only=True, slots=True)
 class _BlockDiskMapping:
     """Contains info for mapping blockids to locations in hdf5 files"""
@@ -23,6 +24,7 @@ class _BlockDiskMapping:
     # maps blockid to an index that select all associated data from a
     # field-dataset
     field_idx_map: dict[int, tuple[int | slice, ...]]
+
 
 def _infer_blockid_location_arr(fname_template, global_dims, arr_shape):
     # used when hdf5 files don't have an explicit "domain" group
@@ -68,17 +70,13 @@ def _determine_data_layout(f: h5py.File) -> tuple[np.ndarray, _BlockDiskMapping]
     #     to name outputs)
     _dir, _base = os.path.split(filename)
     _sep_i = _base.rfind(".")
-    no_suffix = (
-        (_sep_i == -1) or (_base[_sep_i:] == "") or (_base[:_sep_i] == "")
-    )
+    no_suffix = (_sep_i == -1) or (_base[_sep_i:] == "") or (_base[:_sep_i] == "")
     if no_suffix or not _base[_sep_i + 1 :].isdecimal():
-        inferred_fname_template = filename  # filename doesn't change based on
-                                            # blockid
+        # filename doesn't change based on blockid
+        inferred_fname_template = filename
         cur_filename_suffix = None
     else:
-        inferred_fname_template = (
-            os.path.join(_dir, _base[:_sep_i]) + ".{blockid}"
-        )
+        inferred_fname_template = os.path.join(_dir, _base[:_sep_i]) + ".{blockid}"
         cur_filename_suffix = int(_base[_sep_i + 1 :])
 
     # STEP 2: Check whether the hdf5 file has a flat structure
@@ -86,9 +84,7 @@ def _determine_data_layout(f: h5py.File) -> tuple[np.ndarray, _BlockDiskMapping]
     # Historically, we would always store datasets directly in the root group
     # of the data file. More recent concatenation scripts store no data in
     # groups.
-    flat_structure = any(
-        not isinstance(elem, h5py.Group) for elem in f.values()
-    )
+    flat_structure = any(not isinstance(elem, h5py.Group) for elem in f.values())
 
     # STEP 3: Extract basic domain info information from the file(s)
     # ==============================================================
@@ -174,28 +170,23 @@ class _FieldLoader:
         self._h5_cache = []
         self._finalizer = weakref.finalize(self, _callback, self._h5_cache)
 
-
     def __enter__(self):
         """Treats self as a context manager"""
         return self
 
-
     def __exit__(self, *args):
         self.close()
 
-
     def close(self):
         self._finalizer()
-
 
     def _load_file(self, fname: str) -> h5py.File:
         has_loaded = len(self._h5_cache) == 1
         if self._cur_fname != fname or not has_loaded:
             if has_loaded:
                 self._h5_cache.pop().close()
-            self._h5_cache.append(h5py.File(fname,"r"))
+            self._h5_cache.append(h5py.File(fname, "r"))
         return self._h5_cache[0]
-
 
     def it_chunks(
         self, field_names: Sequence[str]
@@ -219,16 +210,16 @@ class _FieldLoader:
         for location_idx, blockid in np.ndenumerate(self.blockid_location_arr):
             # get the hdf5 group and index selection corresponding to blockid
             fname = self.mapper.fname_template.format(blockid=blockid)
-            f = self._load_file(fname = fname)
+            f = self._load_file(fname=fname)
             grp = f if self.mapper.field_group == "" else f[self.mapper.field_group]
             dataset_idx = self.mapper.field_idx_map[blockid]
 
             # determine the global indices that these correspond to
             tmp = []
             for i in range(len(location_idx)):
-                start = dims_local[i] * location_idx[i]
-                stop = dims_local[i] * (1 + location_idx[i])
-                tmp.append(slice(start,stop))
+                start = int(dims_local[i] * location_idx[i])
+                stop = int(dims_local[i] * (1 + location_idx[i]))
+                tmp.append(slice(start, stop))
             global_idx = tuple(tmp)
 
             # iterate over the specified field names
@@ -238,11 +229,10 @@ class _FieldLoader:
 
 
 @typing.overload
-def load_field(snap: os.PathLike, /, field: str) -> np.ndarray:
-    ...
+def load_field(snap: os.PathLike, /, field: str) -> np.ndarray: ...
 @typing.overload
-def load_field(snap: os.PathLike, /, field: Sequence[str]) -> dict[str, np.ndarray]:
-    ...
+def load_field(snap: os.PathLike, /, field: Sequence[str]) -> dict[str, np.ndarray]: ...
+
 
 def load_field(snap, /, field):
     """Loads in 1 or more fields for a snapshot
@@ -263,14 +253,16 @@ def load_field(snap, /, field):
     else:
         field_seq = field
 
-    out = {field: np.empty(shape=full_dims, dtype='f8') for field in field_seq}
+    out = {field: np.empty(shape=full_dims, dtype="f8") for field in field_seq}
     with _FieldLoader(blockid_location_arr, mapper, full_dims) as field_loader:
         for out_idx, field_name, chunk in field_loader.it_chunks(field_seq):
+            print(out_idx, field_name, chunk.shape)
             out[field_name][out_idx] = chunk
 
     if field != field_seq:
         return out[field]
     return out
+
 
 def get_native_fields(snap: os.PathLike) -> Sequence[str]:
     """Returns the names of the fields that were saved to disk."""
@@ -279,3 +271,12 @@ def get_native_fields(snap: os.PathLike) -> Sequence[str]:
         _, mapper = _determine_data_layout(f)
         grp = f if mapper.field_group == "" else f[mapper.field_group]
         return tuple(grp.keys())
+
+
+def get_native_root_attributes(snap: os.PathLike) -> dict:
+    """Returns the raw root attributes"""
+    # I'm not sure I really like this function, but at the same time, I don't think
+    # we want to commit to any particular approach of digesting and organizing header
+    # information yet
+    with h5py.File(snap, "r") as f:
+        return dict(f.attrs)

@@ -35,7 +35,7 @@ There are 3 ways to do this:
 ## Quickstart
 
 Let's walk through a few scenarios. Suppose that we have a snapshot saved at **path/to/snap.h5.0**. *Importantly*, all of these examples will work if:
-- **path/to/snap.h5.0** contains the entire concatenated snapshot (it also doesn't matter whether it was concatenated with the newer or older scripts or whether it was repacked)
+- **path/to/snap.h5.0** contains the entire concatenated snapshot (In this scenario, the convention is to name the file **path/to/snap.h5**). It doesn't matter whether the file was concatenated with the newer or older scripts (or whether it was repacked)
 - OR, if **path/to/snap.h5.0** is one of many files that the snapshot is distributed between (i.e. there is no concatenation)
 
 Onto the examples:
@@ -45,7 +45,7 @@ Onto the examples:
    ```python
    import cholla_utils
 
-   my_fields = get_native_fields("path/to/snap.h5.0")
+   my_fields = cholla_utils.get_native_fields("path/to/snap.h5.0")
    print(my_fields)  # prints out the names of all saved fields
    ```
 
