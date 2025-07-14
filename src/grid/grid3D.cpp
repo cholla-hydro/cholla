@@ -426,7 +426,11 @@ void Grid3D::Execute_Hydro_Integrator(void)
     //
     // Be aware, STATIC_GRAV won't directly use this pointer (in fact, when STATIC_GRAV is defined, this
     // pointer should be NULL). We should probably refactor to unify STATIC_GRAV and GRAVITY
+#ifdef GRAVITY
     d_Grav_potential = Grav.F.analytic_potential_d;
+#else
+    CHOLLA_ERROR("this should be unreachable when GRAVITY isn't defined");
+#endif
   } else {
     d_Grav_potential = C.d_Grav_potential;
   }
