@@ -201,7 +201,7 @@ hydro_utilities::Primitive __device__ __host__ __inline__ Load_Data(
   #endif  // MHD
 
   loaded_data.pressure = hydro_utilities::Get_Pressure_From_DE(energy, energy - energy_non_thermal, gas_energy, gamma);
-  loaded_data.gas_energy_specific = gas_energy / loaded_data.density;
+  loaded_data.gas_energy = gas_energy / loaded_data.density;
 #else  // not DE
   #ifdef MHD
   loaded_data.pressure = hydro_utilities::Calc_Pressure_Primitive(
@@ -217,7 +217,7 @@ hydro_utilities::Primitive __device__ __host__ __inline__ Load_Data(
 
 #ifdef SCALAR
   for (size_t i = 0; i < grid_enum::nscalars; i++) {
-    loaded_data.scalar_specific[i] = dev_conserved[(grid_enum::scalar + i) * n_cells + id] / loaded_data.density;
+    loaded_data.scalar[i] = dev_conserved[(grid_enum::scalar + i) * n_cells + id] / loaded_data.density;
   }
 #endif  // SCALAR
 
@@ -302,12 +302,12 @@ hydro_utilities::Primitive __device__ __host__ __inline__ Compute_Slope(hydro_ut
 #endif  // MHD
 
 #ifdef DE
-  slopes.gas_energy_specific = coef * (right.gas_energy_specific - left.gas_energy_specific);
+  slopes.gas_energy = coef * (right.gas_energy - left.gas_energy);
 #endif  // DE
 
 #ifdef SCALAR
   for (size_t i = 0; i < grid_enum::nscalars; i++) {
-    slopes.scalar_specific[i] = coef * (right.scalar_specific[i] - left.scalar_specific[i]);
+    slopes.scalar[i] = coef * (right.scalar[i] - left.scalar[i]);
   }
 #endif  // SCALAR
 
@@ -348,12 +348,12 @@ hydro_utilities::Primitive __device__ __host__ __inline__ Compute_Van_Leer_Slope
 #endif  // MHD
 
 #ifdef DE
-  vl_slopes.gas_energy_specific = Calc_Vl_Slope(left_slope.gas_energy_specific, right_slope.gas_energy_specific);
+  vl_slopes.gas_energy = Calc_Vl_Slope(left_slope.gas_energy, right_slope.gas_energy);
 #endif  // DE
 
 #ifdef SCALAR
   for (size_t i = 0; i < grid_enum::nscalars; i++) {
-    vl_slopes.scalar_specific[i] = Calc_Vl_Slope(left_slope.scalar_specific[i], right_slope.scalar_specific[i]);
+    vl_slopes.scalar[i] = Calc_Vl_Slope(left_slope.scalar[i], right_slope.scalar[i]);
   }
 #endif  // SCALAR
 
@@ -650,13 +650,11 @@ hydro_utilities::Primitive __device__ __host__ __inline__ Van_Leer_Limiter(hydro
 #endif  // MHD
 
 #ifdef DE
-  del_m.gas_energy_specific = Van_Leer_Limiter(del_L.gas_energy_specific, del_R.gas_energy_specific,
-                                               del_C.gas_energy_specific, del_G.gas_energy_specific);
+  del_m.gas_energy = Van_Leer_Limiter(del_L.gas_energy, del_R.gas_energy, del_C.gas_energy, del_G.gas_energy);
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    del_m.scalar_specific[i] = Van_Leer_Limiter(del_L.scalar_specific[i], del_R.scalar_specific[i],
-                                                del_C.scalar_specific[i], del_G.scalar_specific[i]);
+    del_m.scalar[i] = Van_Leer_Limiter(del_L.scalar[i], del_R.scalar[i], del_C.scalar[i], del_G.scalar[i]);
   }
 #endif  // SCALAR
 
@@ -727,13 +725,13 @@ void __device__ __host__ __inline__ Monotonize_Parabolic_Interface(hydro_utiliti
 #endif  // MHD
 
 #ifdef DE
-  Monotonize(cell_i.gas_energy_specific, cell_im1.gas_energy_specific, cell_ip1.gas_energy_specific,
-             interface_L_iph.gas_energy_specific, interface_R_imh.gas_energy_specific);
+  Monotonize(cell_i.gas_energy, cell_im1.gas_energy, cell_ip1.gas_energy, interface_L_iph.gas_energy,
+             interface_R_imh.gas_energy);
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    Monotonize(cell_i.scalar_specific[i], cell_im1.scalar_specific[i], cell_ip1.scalar_specific[i],
-               interface_L_iph.scalar_specific[i], interface_R_imh.scalar_specific[i]);
+    Monotonize(cell_i.scalar[i], cell_im1.scalar[i], cell_ip1.scalar[i], interface_L_iph.scalar[i],
+               interface_R_imh.scalar[i]);
   }
 #endif  // SCALAR
 }
@@ -767,11 +765,11 @@ hydro_utilities::Primitive __device__ __host__ __inline__ Calc_Interface_Linear(
 #endif  // MHD
 
 #ifdef DE
-  output.gas_energy_specific = interface(primitive.gas_energy_specific, slopes.gas_energy_specific);
+  output.gas_energy = interface(primitive.gas_energy, slopes.gas_energy);
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    output.scalar_specific[i] = interface(primitive.scalar_specific[i], slopes.scalar_specific[i]);
+    output.scalar[i] = interface(primitive.scalar[i], slopes.scalar[i]);
   }
 #endif  // SCALAR
 
@@ -817,13 +815,11 @@ hydro_utilities::Primitive __device__ __host__ __inline__ Calc_Interface_Parabol
 #endif  // MHD
 
 #ifdef DE
-  output.gas_energy_specific = interface(cell_i.gas_energy_specific, cell_im1.gas_energy_specific,
-                                         slopes_i.gas_energy_specific, slopes_im1.gas_energy_specific);
+  output.gas_energy = interface(cell_i.gas_energy, cell_im1.gas_energy, slopes_i.gas_energy, slopes_im1.gas_energy);
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    output.scalar_specific[i] = interface(cell_i.scalar_specific[i], cell_im1.scalar_specific[i],
-                                          slopes_i.scalar_specific[i], slopes_im1.scalar_specific[i]);
+    output.scalar[i] = interface(cell_i.scalar[i], cell_im1.scalar[i], slopes_i.scalar[i], slopes_im1.scalar[i]);
   }
 #endif  // SCALAR
 
@@ -1021,12 +1017,11 @@ void __device__ __host__ __inline__ Write_Data(hydro_utilities::Primitive const 
 #endif  // MHD
 
 #ifdef DE
-  dev_interface[grid_enum::GasEnergy * n_cells + id] = interface_state.density * interface_state.gas_energy_specific;
+  dev_interface[grid_enum::GasEnergy * n_cells + id] = interface_state.density * interface_state.gas_energy;
 #endif  // DE
 #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    dev_interface[(grid_enum::scalar + i) * n_cells + id] =
-        interface_state.density * interface_state.scalar_specific[i];
+    dev_interface[(grid_enum::scalar + i) * n_cells + id] = interface_state.density * interface_state.scalar[i];
   }
 #endif  // SCALAR
 }

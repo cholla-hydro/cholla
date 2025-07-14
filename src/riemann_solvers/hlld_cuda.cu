@@ -189,18 +189,18 @@ __device__ __host__ reconstruction::InterfaceState loadState(Real const *interfa
 
   #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    state.scalar_specific[i] = interfaceArr[threadId + n_cells * (grid_enum::scalar + i)] / state.density;
+    state.scalar[i] = interfaceArr[threadId + n_cells * (grid_enum::scalar + i)] / state.density;
   }
   #endif  // SCALAR
   #ifdef DE
-  state.gas_energy_specific = interfaceArr[threadId + n_cells * grid_enum::GasEnergy] / state.density;
+  state.gas_energy = interfaceArr[threadId + n_cells * grid_enum::GasEnergy] / state.density;
 
   Real energyNonThermal = hydro_utilities::Calc_Kinetic_Energy_From_Velocity(state.density, state.velocity.x(),
                                                                              state.velocity.y(), state.velocity.z()) +
                           mhd::utils::computeMagneticEnergy(magneticX, state.magnetic.y(), state.magnetic.z());
 
   state.pressure = fmax(hydro_utilities::Get_Pressure_From_DE(state.energy, state.energy - energyNonThermal,
-                                                              state.gas_energy_specific * state.density, gamma),
+                                                              state.gas_energy * state.density, gamma),
                         (Real)TINY_NUMBER);
   #else
   // Note that this function does the positive pressure check
@@ -309,11 +309,11 @@ __device__ __host__ void returnFluxes(int const &threadId, int const &o1, int co
 
   #ifdef SCALAR
   for (int i = 0; i < NSCALARS; i++) {
-    dev_flux[threadId + n_cells * (grid_enum::scalar + i)] = state.scalar_specific[i] * flux.density;
+    dev_flux[threadId + n_cells * (grid_enum::scalar + i)] = state.scalar[i] * flux.density;
   }
   #endif  // SCALAR
   #ifdef DE
-  dev_flux[threadId + n_cells * grid_enum::GasEnergy] = state.gas_energy_specific * flux.density;
+  dev_flux[threadId + n_cells * grid_enum::GasEnergy] = state.gas_energy * flux.density;
   #endif  // DE
 }
 // =====================================================================

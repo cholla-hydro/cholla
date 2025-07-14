@@ -82,7 +82,7 @@ void Temperature_Ceiling(Real *dev_conserved, int nx, int ny, int nz, int n_ghos
 void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real U_floor);
 
 __global__ void Temperature_Floor_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields,
-                                         Real U_floor);
+                                         Real U_floor, int *counter);
 
 void Apply_Scalar_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int field_num, Real scalar_floor);
 
@@ -109,7 +109,7 @@ __global__ void Partial_Update_Advected_Internal_Energy_3D(Real *dev_conserved, 
  */
 __device__ inline bool Cell_Is_Crashed(Real density, Real Etot_density)
 {
-  return (density < 0.0) || (density != density) || (Etot_density < 0.0) || (Etot_density != Etot_density);
+  return (density <= 0.0) || (density != density) || (Etot_density < 0.0) || (Etot_density != Etot_density);
 }
 
 /*! \brief Overwrites the values in the specified cell with the average of all the values from the (up to) 26

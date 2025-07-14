@@ -125,11 +125,11 @@ struct Primitive {
 
 #ifdef DE
   /// The specific thermal energy in the gas
-  Real gas_energy_specific;
+  Real gas_energy;
 #endif  // DE
 
 #ifdef SCALAR
-  Real scalar_specific[grid_enum::nscalars];
+  Real scalar[grid_enum::nscalars];
 #endif  // SCALAR
 
   /// Default constructor, should init everything to zero
@@ -137,7 +137,7 @@ struct Primitive {
   /// Manual constructor, mostly used for testing and doesn't init all members. The `in_` prefix stands for input,
   /// mostly to avoid name collision with the member variables
   Primitive(Real const in_density, VectorXYZ<Real> const& in_velocity, Real const in_pressure,
-            VectorXYZ<Real> const& in_magnetic = {0, 0, 0}, Real const in_gas_energy_specific = 0.0)
+            VectorXYZ<Real> const& in_magnetic = {0, 0, 0}, Real const in_gas_energy = 0.0)
       : density(in_density), velocity(in_velocity), pressure(in_pressure)
   {
 #ifdef MHD
@@ -145,7 +145,7 @@ struct Primitive {
 #endif  // mhd
 
 #ifdef DE
-    gas_energy_specific = in_gas_energy_specific;
+    gas_energy = in_gas_energy;
 #endif  // DE
   };
 };
@@ -168,11 +168,11 @@ struct InterfaceState {
 #endif  // MHD
 
 #ifdef DE
-  Real gas_energy_specific;
+  Real gas_energy;
 #endif  // DE
 
 #ifdef SCALAR
-  Real scalar_specific[grid_enum::nscalars];
+  Real scalar[grid_enum::nscalars];
 #endif  // SCALAR
 
   // Define the constructors
@@ -193,7 +193,7 @@ struct InterfaceState {
     total_pressure = in_total_pressure;
 #endif  // MHD
 #ifdef DE
-    gas_energy_specific = 0.0;
+    gas_energy = 0.0;
 #endif  // DE
   };
 };

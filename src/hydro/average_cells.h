@@ -29,15 +29,17 @@ struct SlowCellConditionChecker {
   /*! \brief Returns whether the cell meets the condition for being considered a slow cell that must
    *  be averaged. */
   template <bool verbose = false>
-  __device__ bool is_slow(Real E, Real d, Real d_inv, Real vx, Real vy, Real vz, Real gamma) const
+  __device__ bool is_slow(Real total_energy, Real density, Real density_inv, Real velocity_x, Real velocity_y,
+                          Real velocity_z, Real gamma) const
   {
-    return this->max_dti_if_slow(E, d, d_inv, vx, vy, vz, gamma) >= 0.0;
+    return this->max_dti_if_slow(total_energy, density, density_inv, velocity_x, velocity_y, velocity_z, gamma) > 0.0;
   }
 
   /*! \brief Returns the max inverse timestep of the specified cell, if it meets the criteria for being
    *  a slow cell. If it doesn't, return a negative value instead.
    */
-  __device__ Real max_dti_if_slow(Real E, Real d, Real d_inv, Real vx, Real vy, Real vz, Real gamma) const;
+  __device__ Real max_dti_if_slow(Real total_energy, Real density, Real density_inv, Real velocity_x, Real velocity_y,
+                                  Real velocity_z, Real gamma) const;
 };
 
 #ifdef AVERAGE_SLOW_CELLS
