@@ -195,7 +195,7 @@ class Grav3D
   /*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
    *  \brief Initialize the grid. */
   void Initialize(const SpatialDomainProps &spatial_props, Real Lx, Real Ly, Real Lz, int n_ghost_pot_offset,
-                  struct Parameters *P);
+                  Parameters *P);
 
   void AllocateMemory_CPU(void);
   void Initialize_values_CPU();

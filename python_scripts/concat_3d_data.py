@@ -13,25 +13,34 @@ import concat_3d_data
 """
 
 import h5py
-import numpy as np
 
+import os
 import pathlib
 from typing import Optional
 import warnings
 
 import concat_internals
+from snaprepack import DatasetOpts, dset_opts_from_args, SnapBuilder
 
 # ==============================================================================
+def _check_num_processes_arg(path: os.PathLike, num_processes_arg: int):
+
+  with h5py.File(path, "r") as f:
+    num_files = concat_internals.infer_numfiles_from_header(f.attrs)
+    if (num_processes_arg != num_files):
+      raise RuntimeError(
+        f"header of {path!r} implies that it contains a subset of data that was split "
+        f"across {num_files} files (rather than across {num_processes_arg} files).")
+  return num_files
+
 def concat_3d_dataset(output_directory: pathlib.Path,
                       output_number: int,
                       build_source_path,
                       *,
                       num_processes: Optional[int] = None,
                       skip_fields: list = [],
-                      destination_dtype: np.dtype = None,
-                      compression_type: str = None,
-                      compression_options: str = None,
-                      chunking = None) -> None:
+                      dset_opts: Optional[DatasetOpts] = None,
+                      legacy_field: bool = False) -> None:
   """Concatenate a single 3D HDF5 Cholla dataset. i.e. take the single files
   generated per process and concatenate them into a single, large file.
 
@@ -50,89 +59,42 @@ def concat_3d_dataset(output_directory: pathlib.Path,
   num_processes : int, optional
       The number of ranks that Cholla was run with. This information is now inferred
       from the hdf5 file and the parameter will be removed in the future.
-  destination_dtype : np.dtype
-      The data type of the output datasets. Accepts most numpy types. Defaults to the same as the input datasets.
-  compression_type : str
-      What kind of compression to use on the output data. Defaults to None.
-  compression_options : str
-      What compression settings to use if compressing. Defaults to None.
-  chunking : bool or tuple
-      Whether or not to use chunking and the chunk size. Defaults to None.
+  dset_opts
+      Optional kwargs for ``h5py.Group.create_dataset``.
+  legacy_field
+      When True, the "field_legacy" HDF5 group will be created.
   """
 
-  if num_processes is not None:
-    warnings.warn('the num_processes parameter will be removed')
+  src_path_0 = build_source_path(proc_id=0, nfile=output_number)
 
   # Error checking
   assert output_number >= 0, 'output_number must be greater than or equal to 0'
+  if num_processes is not None:
+    warnings.warn('the num_processes parameter will be removed')
+    _check_num_processes_arg(src_path_0, num_processes_arg=num_processes)
 
-  # Open the output file for writing
-  destination_file = concat_internals.destination_safe_open(output_directory / f'{output_number}.h5')
 
-  # Setup the output file
-  source_fname_0 = build_source_path(proc_id = 0, nfile = output_number)
-  with h5py.File(source_fname_0, 'r') as source_file:
-
-    # determine how many files data must be concatenated from
-    num_files = concat_internals.infer_numfiles_from_header(source_file.attrs)
-
-    if (num_processes is not None) and (num_processes != num_files):
-      raise RuntimeError(
-        f"header of {source_fname_0!r} implies that it contains data that is "
-        f"split across {num_files} files (rather than {num_processes} files).")
-    elif num_files < 2:
+  # we open up the file associated with source-file 0 to examine header details
+  with h5py.File(src_path_0, "r") as src_f_0:
+    num_files = concat_internals.infer_numfiles_from_header(src_f_0.attrs)
+    if num_files < 2:
       raise RuntimeError('it only makes sense to concatenate data split across '
                          '2 or more files')
 
-    # Copy header data
-    destination_file = concat_internals.copy_header(source_file, destination_file)
+    # create iterator over (blockid, fname) pairs. Note: the very 1st entry will
+    # correspond to src_path_0, but that's totally okay
+    itr = (
+      (blockid, build_source_path(proc_id=blockid, nfile=output_number))
+      for blockid in range(0, num_files)
+    )
 
-    # Create the datasets in the output file
-    datasets_to_copy = list(source_file.keys())
-    datasets_to_copy = [dataset for dataset in datasets_to_copy if not dataset in skip_fields]
+    # let's write the concatenated file
+    with SnapBuilder(output_directory / f'{output_number}.h5') as builder:
+      builder.set_hdr(src_f_0) \
+        .field_config(opts=dset_opts, skip=skip_fields, legacy=legacy_field) \
+        .field_record_itr(itr, file_paths=True) \
+        .write()
 
-    for dataset in datasets_to_copy:
-      dtype = source_file[dataset].dtype if (destination_dtype == None) else destination_dtype
-
-      data_shape = source_file.attrs['dims']
-
-      if dataset == 'magnetic_x': data_shape[0] += 1
-      if dataset == 'magnetic_y': data_shape[1] += 1
-      if dataset == 'magnetic_z': data_shape[2] += 1
-
-      destination_file.create_dataset(name=dataset,
-                                      shape=data_shape,
-                                      dtype=dtype,
-                                      chunks=chunking,
-                                      compression=compression_type,
-                                      compression_opts=compression_options)
-
-  # loop over files for a given output
-  for i in range(0, num_files):
-    # open the input file for reading
-    source_file = h5py.File(build_source_path(proc_id = i, nfile = output_number), 'r')
-
-    # Compute the offset slicing
-    nx_local, ny_local, nz_local = source_file.attrs['dims_local']
-    x_start, y_start, z_start    = source_file.attrs['offset']
-    x_end, y_end, z_end          = x_start+nx_local, y_start+ny_local, z_start+nz_local
-
-    # write data from individual processor file to correct location in concatenated file
-    for dataset in datasets_to_copy:
-      magnetic_offset = [0,0,0]
-      if dataset == 'magnetic_x': magnetic_offset[0] = 1
-      if dataset == 'magnetic_y': magnetic_offset[1] = 1
-      if dataset == 'magnetic_z': magnetic_offset[2] = 1
-
-      destination_file[dataset][x_start:x_end+magnetic_offset[0],
-                                y_start:y_end+magnetic_offset[1],
-                                z_start:z_end+magnetic_offset[2]] = source_file[dataset]
-
-    # Now that the copy is done we close the source file
-    source_file.close()
-
-  # Close destination file now that it is fully constructed
-  destination_file.close()
 # ==============================================================================
 
 if __name__ == '__main__':
@@ -140,8 +102,10 @@ if __name__ == '__main__':
   start = default_timer()
 
   cli = concat_internals.common_cli(num_processes_choice = 'deprecate')
+  concat_internals._add_legacyfield_arg(cli)
   args = cli.parse_args()
 
+  dset_opts = dset_opts_from_args(args)
   build_source_path = concat_internals.get_source_path_builder(
     source_directory = args.source_directory,
     pre_extension_suffix = '',
@@ -154,9 +118,7 @@ if __name__ == '__main__':
                       output_number=output,
                       build_source_path = build_source_path,
                       skip_fields=args.skip_fields,
-                      destination_dtype=args.dtype,
-                      compression_type=args.compression_type,
-                      compression_options=args.compression_opts,
-                      chunking=args.chunking)
+                      dset_opts=dset_opts,
+                      legacy_field=args.legacy_field)
 
   print(f'\nTime to execute: {round(default_timer()-start,2)} seconds')

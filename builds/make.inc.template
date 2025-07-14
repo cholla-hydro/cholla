@@ -4,9 +4,6 @@
 #To use MPI, DFLAGS must include -DMPI_CHOLLA
 DFLAGS += -DMPI_CHOLLA
 
-#Set the MPI Processes grid [nproc_x, nproc_y, nproc_z]
-#DFLAGS += -DSET_MPI_GRID
-
 # Single or double precision
 #DFLAGS += -DPRECISION=1
 DFLAGS += -DPRECISION=2

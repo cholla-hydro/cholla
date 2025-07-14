@@ -80,32 +80,46 @@ def infer_numfiles_from_header(hdr: Mapping) -> int:
 
 
 # ==============================================================================
-def copy_header(source_file: h5py.File, destination_file: h5py.File) -> h5py.File:
+def copy_header(
+  source_file: h5py.File,
+  destination_file: h5py.File,
+  skip_keys: Optional[list] = None
+) -> h5py.File:
   """Copy the attributes of one HDF5 file to another, skipping all fields that are specific to an individual rank
 
   Parameters
   ----------
-  source_file : h5py.File
-      The source file
-  destination_file : h5py.File
-      The destination file
-  source_file: h5py.File :
-
-  destination_file: h5py.File :
-
+  source_file, destination_file : h5py.File
+      The source and destination files
+  skip_keys : list, optional
+      Keys to skip
 
   Returns
   -------
   h5py.File
       The destination file with the new header attributes
   """
-  fields_to_skip = ['dims_local', 'offset', 'n_particles_local']
+  fields_to_skip = ['dims_local', 'offset', 'n_particles_local'] + skip_keys
 
   for attr_key in source_file.attrs.keys():
     if attr_key not in fields_to_skip:
       destination_file.attrs[attr_key] = source_file.attrs[attr_key]
 
   return destination_file
+# ==============================================================================
+def _add_legacyfield_arg(cli: argparse.ArgumentParser):
+  cli.add_argument(
+    "--legacy-field",
+    action="store_true",
+    help = (
+      "When specified, the \"field_legacy\" HDF5 group will be created. This group "
+      "contains a 'virtual dataset' for each field with a shape corresponding to the "
+      "entire domain. Accesses to these fields are automatically remapped to the "
+      "corresponding datasets in the \"field\" HDF5 group."
+    )
+  )
+
+
 # ==============================================================================
 
 def _integer_sequence(s: str):
@@ -151,18 +165,9 @@ def _add_snaps_arg(cli, required: bool = False):
             '1,2,3)')
   )
 
-def add_common_cli_args(cli: argparse.ArgumentParser,
-                        num_processes_choice: str,
-                        add_concat_outputs_arg: bool = True):
-  """Add common command-line arguments to an argparse.ArguementParser instance
-  
-  These arguments are shared among the various concatenation scripts.
-
-  Parameters
-  ----------
-  cli: argparse.ArgumentParser
-      Instance that arguments are added to
-  """
+def add_src_cli_args(cli: argparse.ArgumentParser,
+                     add_concat_outputs_arg: bool = True):
+  """Add common arguments to a parser related to specifying source files"""
 
   # ============================================================================
   def concat_output(raw_argument: str,)-> list:
@@ -207,6 +212,42 @@ def add_common_cli_args(cli: argparse.ArgumentParser,
 
     return list(iterable_argument)
   # ============================================================================
+
+  if add_concat_outputs_arg:
+    grp = cli.add_mutually_exclusive_group(required=True)
+    grp.add_argument(
+      "-c",
+      "--concat-outputs",
+      type=concat_output,
+      help=(
+        "DEPRECATED (use --snaps instead) Specify outputs to concatenate. Can "
+        "be a single number (e.g. 8), an inclusive range (e.g. 2-9), or a list "
+        "(e.g. [1,2,3])."
+      )
+    )
+    _add_snaps_arg(grp, required = False)
+  else:
+    _add_snaps_arg(cli, required = True)
+
+  cli.add_argument(
+    "-s",
+    "--source-directory",
+    type=pathlib.Path,
+    required=True,
+    help="The path to the directory for the source HDF5 files."
+  )
+
+def add_common_cli_args(cli: argparse.ArgumentParser,
+                        num_processes_choice: str):
+  """Add common command-line arguments to an argparse.ArguementParser instance
+  
+  These arguments are shared among the various concatenation scripts.
+
+  Parameters
+  ----------
+  cli: argparse.ArgumentParser
+      Instance that arguments are added to
+  """
 
   # ============================================================================
   def positive_int(raw_argument: str) -> int:
@@ -256,17 +297,6 @@ def add_common_cli_args(cli: argparse.ArgumentParser,
   elif num_processes_choice != 'omit':
     raise ValueError('invalid value passed for num_processes_choice')
 
-  if add_concat_outputs_arg:
-    grp = cli.add_mutually_exclusive_group(required=True)
-    grp.add_argument(
-      '-c', '--concat-outputs',   type=concat_output,
-      help = 'DEPRECATED (use --snaps instead) Specify outputs to concatenate. Can be a single number (e.g. 8), an inclusive range (e.g. 2-9), or a list (e.g. [1,2,3]).')
-    _add_snaps_arg(grp, required = False)
-  else:
-    _add_snaps_arg(cli, required = True)
-
-  # Other Required Arguments
-  cli.add_argument('-s', '--source-directory', type=pathlib.Path,  required=True, help='The path to the directory for the source HDF5 files.')
   cli.add_argument('-o', '--output-directory', type=pathlib.Path,  required=True, help='The path to the directory to write out the concatenated HDF5 files.') 
     
 
@@ -296,8 +326,8 @@ def common_cli(num_processes_choice = 'use') -> argparse.ArgumentParser:
   """
   # Initialize the CLI
   cli = argparse.ArgumentParser()
-  add_common_cli_args(cli, num_processes_choice = num_processes_choice,
-                      add_concat_outputs_arg = True)
+  add_common_cli_args(cli, num_processes_choice=num_processes_choice)
+  add_src_cli_args(cli, add_concat_outputs_arg=True)
   return cli
 
 # ==============================================================================

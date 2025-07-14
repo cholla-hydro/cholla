@@ -1,0 +1,24 @@
+
+#-- Compiler and flags for different build type
+CXX               = mpicxx
+CXXFLAGS_DEBUG    = -g -O0 -std=c++17
+CXXFLAGS_OPTIMIZE = -Ofast -std=c++17
+GPUFLAGS_OPTIMIZE = -g -O3 -std=c++17
+CUDA_ARCH       = sm_90
+OMP_NUM_THREADS   = 16
+
+#-- Library
+# The following ENV variable is defined by TACC's HDF5 module
+# - the module files clearly state that these environment variables
+#   are defined when the modules are loaded
+CUDA_ROOT       := ${TACC_CUDA_DIR}
+HDF5_ROOT       := ${TACC_HDF5_DIR}
+
+# the following is required for cufft
+# - note, the module file description doesn't clearly state that the
+#   environment variable is defined, but it is defined by the module
+#   file and it follows TACC's standard conventions
+NVIDIAMATH_ROOT := ${TACC_NVIDIA_MATH_DIR}
+
+#-- MPI calls accept GPU buffers (requires GPU-aware MPI)
+MPI_GPU = -DMPI_GPU

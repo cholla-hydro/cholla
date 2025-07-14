@@ -88,7 +88,7 @@ void Temperature_Ceiling(Real *dev_conserved, int nx, int ny, int nz, int n_ghos
 void Apply_Temperature_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real U_floor);
 
 __global__ void Temperature_Floor_Kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields,
-                                         Real U_floor);
+                                         Real U_floor, int *counter);
 
 void Apply_Scalar_Floor(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int field_num, Real scalar_floor);
 

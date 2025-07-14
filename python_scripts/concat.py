@@ -7,22 +7,22 @@ At the moment, we only support fluid quantities. In the future, we could
 support other types of fields.
 """
 
-import numpy as np
-
 import argparse
 import datetime
 from functools import partial
-import pathlib
+import os
 
 import concat_internals
 from concat_2d_data import concat_2d_dataset
 from concat_3d_data import concat_3d_dataset
+from snaprepack import dset_opts_from_args
+
 
 parser = argparse.ArgumentParser(
     description = ("Concatenates HDF5 ouputs produced by Cholla")
 )
-concat_internals.add_common_cli_args(parser, num_processes_choice = 'omit',
-                                     add_concat_outputs_arg = False)
+concat_internals.add_common_cli_args(parser, num_processes_choice = 'omit')
+concat_internals.add_src_cli_args(parser, add_concat_outputs_arg=False)
 
 _2D_kinds = ("proj", "slice", "rot_proj")
 
@@ -114,17 +114,35 @@ def main(args):
         command_triples.append(
             ('3D',
              partial(temp_build_source_path, pre_extension_suffix = ''),
-             concat_3d_dataset)
+             partial(concat_3d_dataset, dset_opts=dset_opts_from_args(args)))
         )
     for kind_2D, kwargs in kindkw_2D_pairs:
         command_triples.append(
             (kind_2D,
              partial(temp_build_source_path,
                      pre_extension_suffix = f'_{kind_2D}'),
-             partial(concat_2d_dataset, dataset_kind=kind_2D, **kwargs))
+             partial(
+                 concat_2d_dataset,
+                 dataset_kind=kind_2D,
+                 destination_dtype=args.dtype,
+                 compression_type=args.compression_type,
+                 compression_options=args.compression_opts,
+                 chunking=args.chunking
+                 **kwargs)
+             )
         )
 
     #raise RuntimeError(repr(command_triples))
+
+    # create the output directory if it doesn't already exist...
+    abs_out_dir = os.path.abspath(args.output_directory)
+    if not os.path.exists(abs_out_dir):
+        if os.path.exists(os.path.dirname(abs_out_dir)):
+            os.mkdir(abs_out_dir)
+        else:
+            raise RuntimeError(
+                f"Can't create {args.output_directory} since the "
+                f"{args.output_directory}/.. directory doesn't already exist")
 
     for output in args.concat_outputs:
         print(f"concatenating {output}")
@@ -133,11 +151,7 @@ def main(args):
             concat_fn(output_directory=args.output_directory,
                       output_number=output,
                       build_source_path = build_source_path,
-                      skip_fields=args.skip_fields,
-                      destination_dtype=args.dtype,
-                      compression_type=args.compression_type,
-                      compression_options=args.compression_opts,
-                      chunking=args.chunking)
+                      skip_fields=args.skip_fields)
             t2 = datetime.datetime.now()
             print(f'  -> {dset_kind!r}: {(t2 - t1).total_seconds()}')
 

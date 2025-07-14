@@ -221,7 +221,7 @@ class Particles3D
 
   Particles3D(void);
 
-  void Initialize(struct Parameters *P, const SpatialDomainProps &spatial_props, Real xbound, Real ybound, Real zbound,
+  void Initialize(Parameters *P, const SpatialDomainProps &spatial_props, Real xbound, Real ybound, Real zbound,
                   Real xdglobal, Real ydglobal, Real zdglobal);
 
   void Allocate_Particles_Grid_Field_Real(Real **array_dev, int size);

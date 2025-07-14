@@ -53,7 +53,7 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
   chprintf("Particles Initialized Successfully. \n\n");
 }
 
-void Particles3D::Initialize(struct Parameters *P, const SpatialDomainProps &spatial_props, Real xbound, Real ybound,
+void Particles3D::Initialize(Parameters *P, const SpatialDomainProps &spatial_props, Real xbound, Real ybound,
                              Real zbound, Real xdglobal, Real ydglobal, Real zdglobal)
 {
   // Initialize local and total number of particles to 0

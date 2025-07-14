@@ -80,11 +80,11 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real const *dev_conserved, Real cons
       left_state.pressure = fmax(left_state.pressure, (Real)TINY_NUMBER);
 #ifdef SCALAR
       for (int i = 0; i < NSCALARS; i++) {
-        left_state.scalar_specific[i] = dev_bounds_L[(5 + i) * n_cells + tid] / left_state.density;
+        left_state.scalar[i] = dev_bounds_L[(5 + i) * n_cells + tid] / left_state.density;
       }
 #endif
 #ifdef DE
-      left_state.gas_energy_specific = dge / left_state.density;
+      left_state.gas_energy = dge / left_state.density;
 #endif
       right_state.density      = dev_bounds_R[tid];
       right_state.velocity.x() = dev_bounds_R[o1 * n_cells + tid] / right_state.density;
@@ -109,11 +109,11 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real const *dev_conserved, Real cons
       right_state.pressure = fmax(right_state.pressure, (Real)TINY_NUMBER);
 #ifdef SCALAR
       for (int i = 0; i < NSCALARS; i++) {
-        right_state.scalar_specific[i] = dev_bounds_R[(5 + i) * n_cells + tid] / right_state.density;
+        right_state.scalar[i] = dev_bounds_R[(5 + i) * n_cells + tid] / right_state.density;
       }
 #endif
 #ifdef DE
-      right_state.gas_energy_specific = dge / right_state.density;
+      right_state.gas_energy = dge / right_state.density;
 #endif
     }
     // compute sounds speeds in left and right regions
@@ -144,11 +144,11 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real const *dev_conserved, Real cons
       dev_flux[o3 * n_cells + tid] = ds * vs * left_state.velocity.z();
 #ifdef SCALAR
       for (int i = 0; i < NSCALARS; i++) {
-        dev_flux[(5 + i) * n_cells + tid] = ds * vs * left_state.scalar_specific[i];
+        dev_flux[(5 + i) * n_cells + tid] = ds * vs * left_state.scalar[i];
       }
 #endif
 #ifdef DE
-      dev_flux[(n_fields - 1) * n_cells + tid] = ds * vs * left_state.gas_energy_specific;
+      dev_flux[(n_fields - 1) * n_cells + tid] = ds * vs * left_state.gas_energy;
 #endif
       Es = (ps / (gamma - 1.0)) + 0.5 * ds *
                                       (vs * vs + left_state.velocity.y() * left_state.velocity.y() +
@@ -158,11 +158,11 @@ __global__ void Calculate_Exact_Fluxes_CUDA(Real const *dev_conserved, Real cons
       dev_flux[o3 * n_cells + tid] = ds * vs * right_state.velocity.z();
 #ifdef SCALAR
       for (int i = 0; i < NSCALARS; i++) {
-        dev_flux[(5 + i) * n_cells + tid] = ds * vs * right_state.scalar_specific[i];
+        dev_flux[(5 + i) * n_cells + tid] = ds * vs * right_state.scalar[i];
       }
 #endif
 #ifdef DE
-      dev_flux[(n_fields - 1) * n_cells + tid] = ds * vs * right_state.gas_energy_specific;
+      dev_flux[(n_fields - 1) * n_cells + tid] = ds * vs * right_state.gas_energy;
 #endif
       Es = (ps / (gamma - 1.0)) + 0.5 * ds *
                                       (vs * vs + right_state.velocity.y() * right_state.velocity.y() +
