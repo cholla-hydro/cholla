@@ -308,12 +308,12 @@ __inline__ __host__ __device__ Primitive Conserved_2_Primitive(Conserved const &
 #endif  // MHD
 
 #ifdef DE
-  output.gas_energy_specific = conserved_in.gas_energy / conserved_in.density;
+  output.gas_energy = conserved_in.gas_energy / conserved_in.density;
 #endif  // DE
 
 #ifdef SCALAR
   for (size_t i = 0; i < grid_enum::nscalars; i++) {
-    output.scalar_specific[i] = conserved_in.scalar[i] / conserved_in.density;
+    output.scalar[i] = conserved_in.scalar[i] / conserved_in.density;
   }
 #endif  // SCALAR
 
@@ -368,12 +368,12 @@ __inline__ __host__ __device__ Conserved Primitive_2_Conserved(Primitive const &
 #endif  // MHD
 
 #ifdef DE
-  output.gas_energy = primitive_in.gas_energy_specific * primitive_in.density;
+  output.gas_energy = primitive_in.gas_energy * primitive_in.density;
 #endif  // DE
 
 #ifdef SCALAR
   for (size_t i = 0; i < grid_enum::nscalars; i++) {
-    output.scalar[i] = primitive_in.scalar_specific[i] * primitive_in.density;
+    output.scalar[i] = primitive_in.scalar[i] * primitive_in.density;
   }
 #endif  // SCALAR
 

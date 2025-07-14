@@ -63,11 +63,11 @@ reconstruction::InterfaceState __device__ __host__ inline PCM_Reconstruction(Rea
   interface_state.magnetic       = conserved_data.magnetic;
 #endif  // MHD
 #ifdef DE
-  interface_state.gas_energy_specific = primitive_data.gas_energy_specific;
+  interface_state.gas_energy = primitive_data.gas_energy;
 #endif  // DE
 #ifdef SCALAR
   for (size_t i = 0; i < grid_enum::nscalars; i++) {
-    interface_state.scalar_specific[i] = primitive_data.scalar_specific[i];
+    interface_state.scalar[i] = primitive_data.scalar[i];
   }
 #endif  // SCALAR
 
