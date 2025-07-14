@@ -52,7 +52,7 @@ class FnameTemplate
   bool separate_cycle_dirs() const noexcept { return separate_cycle_dirs_; }
 
   /* Returns the nominal output-directory (this value is unaffected by separate_cycle_dirs()) */
-  const std::string nominal_output_dir_path() const noexcept { return outdir_; }
+  std::string nominal_output_dir_path() const noexcept { return outdir_; }
 
   /* Returns the effective output-directory used for outputs at a given simulation-cycle */
   std::string effective_output_dir_path(int nfile) const noexcept;
