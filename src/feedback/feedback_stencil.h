@@ -7,9 +7,6 @@
 #include "../utils/basic_structs.h"
 #include "../utils/math_utilities.h"  // math_utils::clamp
 
-template<typename T>
-using Arr3 = hydro_utilities::VectorXYZ<T>;
-
 enum struct StencilEvalKind{
   enclosed_stencil_vol_frac, /*!< compute the fraction of the total stencil volume enclosed by each cell */
   enclosed_cell_vol_frac,    /*!< compute the fraction of each cell's volume that is enclosed by the stencil */
@@ -32,7 +29,7 @@ namespace fb_stencil {
  * It's okay for this to be a static function and live in a header since this header should only included in a single source file
  * (2 if running unit-tests).
  */
-static inline __device__ Arr3<Real> nearest_noGhostOverlap_pos_(Real min_stencil_offset, Arr3<Real> pos_indU, 
+static inline __device__ hydro_utilities::VectorXYZ<Real> nearest_noGhostOverlap_pos_(Real min_stencil_offset, hydro_utilities::VectorXYZ<Real> pos_indU, 
                                                                 int ng_x, int ng_y, int ng_z, int n_ghost)
 {
   const Real edge_offset = n_ghost + min_stencil_offset;
@@ -59,7 +56,7 @@ struct CIC {
    *   2. ``indx3x``: the index used to index a 3D array (that has ghost zones)
    */
   template<typename Function>
-  static __device__ void for_each(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f)
+  static __device__ void for_each(hydro_utilities::VectorXYZ<Real> pos_indU, int nx_g, int ny_g, Function f)
   {
     // Step 1: along each axis, identify the integer-index of the leftmost cell covered by the stencil.
     //  - Consider the cell containing the stencil-center. If the stencil-center is at all to the left
@@ -98,7 +95,7 @@ struct CIC {
 
   /* identical to for_each (provided for compatability with interfaces of other stencils). */
   template<typename Function>
-  static __device__ void for_each_enclosedCellVol(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f)
+  static __device__ void for_each_enclosedCellVol(hydro_utilities::VectorXYZ<Real> pos_indU, int nx_g, int ny_g, Function f)
   {
     CIC::for_each(pos_indU, nx_g, ny_g, f);
   }
@@ -112,7 +109,7 @@ struct CIC {
   // * it may be significantly cheaper for some stencils
   // */
   template<typename UnaryFunction>
-  static __device__ void for_each_overlap_zone(Arr3<Real> pos_indU, int ng_x, int ng_y, UnaryFunction f)
+  static __device__ void for_each_overlap_zone(hydro_utilities::VectorXYZ<Real> pos_indU, int ng_x, int ng_y, UnaryFunction f)
   {
     // this is a little crude!
     CIC::for_each(pos_indU, ng_x, ng_y,
@@ -125,7 +122,7 @@ struct CIC {
    * If the specified location already does not overlap with the ghost zone, that is the returned
    * value.
    */
-  static __device__ Arr3<Real> nearest_noGhostOverlap_pos(Arr3<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
+  static __device__ hydro_utilities::VectorXYZ<Real> nearest_noGhostOverlap_pos(hydro_utilities::VectorXYZ<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
   {
     const Real min_stencil_offset = 0.5;
     return nearest_noGhostOverlap_pos_(min_stencil_offset, pos_indU, ng_x, ng_y, ng_z, n_ghost);
@@ -140,7 +137,7 @@ namespace { // nested unnamed namespace (everything here has internal linkage)
  * direction.
  */
 template<typename Function, StencilEvalKind flavor>
-__device__ void for_each_cic27_(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f) {
+__device__ void for_each_cic27_(hydro_utilities::VectorXYZ<Real> pos_indU, int nx_g, int ny_g, Function f) {
   // this visits a 3x3x3 cells region
 
   int leftmost_indx_x = int(pos_indU[0]) - 1;
@@ -230,7 +227,7 @@ struct LegacyCIC27 {
    *   2. ``indx3x``: the index used to index a 3D array (that has ghost zones)
    */
   template<typename Function>
-  static __device__ void for_each(Arr3<Real> pos_indU, int nx_g, int ny_g, Function &&f)
+  static __device__ void for_each(hydro_utilities::VectorXYZ<Real> pos_indU, int nx_g, int ny_g, Function &&f)
   {
     for_each_cic27_<Function, StencilEvalKind::enclosed_stencil_vol_frac>(
       pos_indU, nx_g, ny_g, std::forward<Function>(f));
@@ -245,7 +242,7 @@ struct LegacyCIC27 {
    * This is primarily intended for testing purposes.
    */
   template<typename Function>
-  static __device__ void for_each_enclosedCellVol(Arr3<Real> pos_indU, int nx_g, int ny_g, Function&& f)
+  static __device__ void for_each_enclosedCellVol(hydro_utilities::VectorXYZ<Real> pos_indU, int nx_g, int ny_g, Function&& f)
   {
     for_each_cic27_<Function, StencilEvalKind::enclosed_cell_vol_frac>(
       pos_indU, nx_g, ny_g, std::forward<Function>(f));
@@ -260,7 +257,7 @@ struct LegacyCIC27 {
    *   2. ``indx3x``: the index used to index a 3D array (that has ghost zones)
    */
   template<typename Function>
-  static __device__ void for_each_vecflavor(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f)
+  static __device__ void for_each_vecflavor(hydro_utilities::VectorXYZ<Real> pos_indU, int nx_g, int ny_g, Function f)
   {
     const Real pos_x_indU = pos_indU[0];
     const Real pos_y_indU = pos_indU[1];
@@ -302,7 +299,7 @@ struct LegacyCIC27 {
           Real y_frac = Frac(i, delta_x) * D_Frac(j, delta_y) * Frac(k, delta_z);
           Real z_frac = Frac(i, delta_x) * Frac(j, delta_y) * D_Frac(k, delta_z);
           Real scalar_weight = sqrt(x_frac * x_frac + y_frac * y_frac + z_frac * z_frac) * inv_mag;
-          Arr3<Real> momentum_weights{x_frac * inv_mag, y_frac * inv_mag, z_frac * inv_mag};
+          hydro_utilities::VectorXYZ<Real> momentum_weights{x_frac * inv_mag, y_frac * inv_mag, z_frac * inv_mag};
 
           f(scalar_weight, momentum_weights, indx);
 
@@ -322,7 +319,7 @@ struct LegacyCIC27 {
    * it may be significantly cheaper for some stencils
    */
   template<typename UnaryFunction>
-  static __device__ void for_each_overlap_zone(Arr3<Real> pos_indU, int nx_g, int ny_g, UnaryFunction f)
+  static __device__ void for_each_overlap_zone(hydro_utilities::VectorXYZ<Real> pos_indU, int nx_g, int ny_g, UnaryFunction f)
   {
     for_each_cic27_<UnaryFunction, StencilEvalKind::for_each_overlap_zone>(
       pos_indU, nx_g, ny_g, std::forward<UnaryFunction>(f));
@@ -335,7 +332,7 @@ struct LegacyCIC27 {
    * If the specified location already does not overlap with the ghost zone, that is the returned
    * value.
    */
-  static __device__ Arr3<Real> nearest_noGhostOverlap_pos(Arr3<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
+  static __device__ hydro_utilities::VectorXYZ<Real> nearest_noGhostOverlap_pos(hydro_utilities::VectorXYZ<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
   {
     const Real min_stencil_offset = 1.0; // I think this is right, I'm a little fuzzy on the precised
     return nearest_noGhostOverlap_pos_(min_stencil_offset, pos_indU, ng_x, ng_y, ng_z, n_ghost);
@@ -495,8 +492,8 @@ public:  // interface
    * None of the super-samples are placed on the edges of the cells.
    */
   template<int Log2DivsionsPerAx>
-  __device__ Arr3<Real> Super_Sampled_RadialUnitVec_VolIntegral(int cell_idx_x, int cell_idx_y, int cell_idx_z,
-                                                                const Arr3<Real> ref_pos_IndU) const
+  __device__ hydro_utilities::VectorXYZ<Real> Super_Sampled_RadialUnitVec_VolIntegral(int cell_idx_x, int cell_idx_y, int cell_idx_z,
+                                                                const hydro_utilities::VectorXYZ<Real> ref_pos_IndU) const
   {
     static_assert((0 <= Log2DivsionsPerAx) and ((Log2DivsionsPerAx*3) <= (8*sizeof(unsigned int))),
                   "Log2DivsionsPerAx must be a non-negative integer AND 2^(Log2DivsionsPerAx*3), the total "
@@ -511,7 +508,7 @@ public:  // interface
     const double subgrid_width           = (Log2DivsionsPerAx == 2) ?  0.25 : 1.0 / num_subdivisions_per_ax;
     const double leftmost_subgrid_offset = (Log2DivsionsPerAx == 2) ? 0.125 : 0.5 * subgrid_width;
 
-    Arr3<Real> out{0.0, 0.0, 0.0};
+    hydro_utilities::VectorXYZ<Real> out{0.0, 0.0, 0.0};
 
     for (int ix = 0; ix < num_subdivisions_per_ax; ix++) {
       for (int iy = 0; iy < num_subdivisions_per_ax; iy++) {
@@ -558,7 +555,7 @@ namespace { // nested unnamed namespace (everything here has internal linkage)
  * direction.
  */
 template<typename Function, StencilEvalKind flavor, int CellsPerDiameter, int Log2DivsionsPerAx_PerCell>
-__forceinline__ __device__ void for_each_sphere_(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f) {
+__forceinline__ __device__ void for_each_sphere_(hydro_utilities::VectorXYZ<Real> pos_indU, int nx_g, int ny_g, Function f) {
 
   const SphereObj sphere{/* center = */ {pos_indU[0], pos_indU[1], pos_indU[2]},
                          /* squared_radius = */ 1*1};
@@ -686,7 +683,7 @@ struct Sphere27 {
    *   2. ``indx3x``: the index used to index a 3D array (that has ghost zones)
    */
   template<typename Function>
-  static __device__ void for_each(Arr3<Real> pos_indU, int nx_g, int ny_g, Function &&f)
+  static __device__ void for_each(hydro_utilities::VectorXYZ<Real> pos_indU, int nx_g, int ny_g, Function &&f)
   {
     for_each_sphere_<Function, StencilEvalKind::enclosed_stencil_vol_frac, 2, Log2DivsionsPerAx_PerCell>(
       pos_indU, nx_g, ny_g, std::forward<Function>(f));
@@ -697,7 +694,7 @@ struct Sphere27 {
    * The function should expect 3 arguments: 
    *   1. ``stencil_enclosed_frac``: the fraction of the total stencil volume enclosed by the cell. In other
    *      words, its the volume of the cell enclosed by the stencil divided by the total stencil volume.
-   *   2. ``vec_comp_factor``: a `Arr3<Real>` where the elements represent math-vector components (x, y, z).
+   *   2. ``vec_comp_factor``: a `hydro_utilities::VectorXYZ<Real>` where the elements represent math-vector components (x, y, z).
    *      Essentially, this stores the volume integral (of the region enclosed by the stencil) over the 
    *      radial-unit vector (originating from the stencil center) divided by a normalization constant.
    *      - The normalization constant is computed by taking the sum of each volume-integrated radial-unit 
@@ -709,7 +706,7 @@ struct Sphere27 {
    *   2. ``indx3x``: the index used to index a 3D array (that has ghost zones)
    */
   template<typename Function>
-  static __device__ void for_each_vecflavor(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f)
+  static __device__ void for_each_vecflavor(hydro_utilities::VectorXYZ<Real> pos_indU, int nx_g, int ny_g, Function f)
   {
     // Step 1: along each axis, identify the integer-index of the leftmost cell covered by the stencil.
     const int leftmost_indx_x = int(pos_indU[0] - 1);
@@ -736,7 +733,7 @@ struct Sphere27 {
           total_count += cur_count;  // update total_count
           cached_counts[i][j][k] = std::uint_least16_t(cur_count);  // cache the value of 
 
-          const Arr3<Real> integrated_vec = sphere.Super_Sampled_RadialUnitVec_VolIntegral<Log2DivsionsPerAx_PerCell>(
+          const hydro_utilities::VectorXYZ<Real> integrated_vec = sphere.Super_Sampled_RadialUnitVec_VolIntegral<Log2DivsionsPerAx_PerCell>(
             leftmost_indx_x + i, leftmost_indx_y + j, leftmost_indx_z + k, pos_indU);
           vector_norm += norm3d(integrated_vec[0], integrated_vec[1], integrated_vec[2]);
           // we don't cache the value of integrated_vec... That would put a LOT of strain on registers
@@ -760,11 +757,11 @@ struct Sphere27 {
           //              double(counts[i][j][k])/total_count);
 
           // this has units of subcell volume. We need to divide it by total_count before passing it along
-          const Arr3<Real> tmp = sphere.Super_Sampled_RadialUnitVec_VolIntegral<Log2DivsionsPerAx_PerCell>(
+          const hydro_utilities::VectorXYZ<Real> tmp = sphere.Super_Sampled_RadialUnitVec_VolIntegral<Log2DivsionsPerAx_PerCell>(
             leftmost_indx_x + i, leftmost_indx_y + j, leftmost_indx_z + k, pos_indU);
 
           f(double(cached_counts[i][j][k])/total_count,
-            Arr3<Real>{tmp[0] * vec_factor, tmp[1]*vec_factor, tmp[2]*vec_factor},
+            hydro_utilities::VectorXYZ<Real>{tmp[0] * vec_factor, tmp[1]*vec_factor, tmp[2]*vec_factor},
             ind3D);
         }
       }
@@ -781,7 +778,7 @@ struct Sphere27 {
    * This is primarily intended for testing purposes.
    */
   template<typename Function>
-  static __device__ void for_each_enclosedCellVol(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f)
+  static __device__ void for_each_enclosedCellVol(hydro_utilities::VectorXYZ<Real> pos_indU, int nx_g, int ny_g, Function f)
   {
     for_each_sphere_<Function, StencilEvalKind::enclosed_cell_vol_frac, 2, Log2DivsionsPerAx_PerCell>(
       pos_indU, nx_g, ny_g, std::forward<Function>(f));
@@ -794,7 +791,7 @@ struct Sphere27 {
    * This is is significantly cheaper than calling for_each.
    */
   template<typename UnaryFunction>
-  static __device__ void for_each_overlap_zone(Arr3<Real> pos_indU, int nx_g, int ny_g, UnaryFunction &&f)
+  static __device__ void for_each_overlap_zone(hydro_utilities::VectorXYZ<Real> pos_indU, int nx_g, int ny_g, UnaryFunction &&f)
   {
     for_each_sphere_<UnaryFunction, StencilEvalKind::for_each_overlap_zone, 2, Log2DivsionsPerAx_PerCell>(
       pos_indU, nx_g, ny_g, std::forward<UnaryFunction>(f));
@@ -806,7 +803,7 @@ struct Sphere27 {
    * If the specified location already does not overlap with the ghost zone, that is the returned
    * value.
    */
-  static __device__ Arr3<Real> nearest_noGhostOverlap_pos(Arr3<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
+  static __device__ hydro_utilities::VectorXYZ<Real> nearest_noGhostOverlap_pos(hydro_utilities::VectorXYZ<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
   {
     // we actually provide an alternative more clever. technically, we just can't overlap with nearest
     // super-sampled point inside of ghost zone. Any other amount of overlap is fair game!
@@ -835,7 +832,7 @@ struct SphereBinary {
   inline static constexpr int max_enclosed_neighbors = CellsPerRadius;
 
   template<typename Function>
-  static __device__ void for_each(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f)
+  static __device__ void for_each(hydro_utilities::VectorXYZ<Real> pos_indU, int nx_g, int ny_g, Function f)
   {
     // Step 1: along each axis, identify the integer-index of the leftmost cell covered by the stencil.
     int leftmost_indx_x = int(pos_indU[0]) - CellsPerRadius;
@@ -888,7 +885,7 @@ struct SphereBinary {
    * This is primarily intended for testing purposes.
    */
   template<typename Function>
-  static __device__ void for_each_enclosedCellVol(Arr3<Real> pos_indU, int nx_g, int ny_g, Function f)
+  static __device__ void for_each_enclosedCellVol(hydro_utilities::VectorXYZ<Real> pos_indU, int nx_g, int ny_g, Function f)
   {
     // along each axis, identify the integer-index of the leftmost cell covered by the stencil.
     int leftmost_indx_x = int(pos_indU[0]) - CellsPerRadius;
@@ -913,7 +910,7 @@ struct SphereBinary {
   }
 
   template<typename UnaryFunction>
-  static __device__ void for_each_overlap_zone(Arr3<Real> pos_indU, int ng_x, int ng_y, UnaryFunction f)
+  static __device__ void for_each_overlap_zone(hydro_utilities::VectorXYZ<Real> pos_indU, int ng_x, int ng_y, UnaryFunction f)
   {
     // along each axis, identify the integer-index of the leftmost cell covered by the stencil.
     int leftmost_indx_x = int(pos_indU[0]) - CellsPerRadius;
@@ -947,7 +944,7 @@ struct SphereBinary {
    * If the specified location already does not overlap with the ghost zone, that is the returned
    * value.
    */
-  static __device__ Arr3<Real> nearest_noGhostOverlap_pos(Arr3<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
+  static __device__ hydro_utilities::VectorXYZ<Real> nearest_noGhostOverlap_pos(hydro_utilities::VectorXYZ<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
   {
     // we actually provide an alternative more clever implementation. technically, we just can't overlap with the center 
     // of a cell in the ghost-zone. Any other amount of overlap is fair game!

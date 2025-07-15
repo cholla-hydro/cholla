@@ -6,7 +6,7 @@
 
 #include "../global/global.h"
 #include "../feedback/feedback.h"
-#include "../feedback/feedback_stencil.h"  // Arr3
+#include "../utils/basic_structs.h"
 #include "../utils/reduction_utilities.h"
 #include "../utils/DeviceVector.h"
 #include "../utils/error_handling.h"
@@ -346,7 +346,7 @@ public:
    */
   template<typename Prescription>
   __device__ void Register_Pending_Particle_Feedback(Prescription p, long long int particle_id,
-                                                     Arr3<Real> pos_indU, int ng_x, int ng_y)
+                                                     hydro_utilities::VectorXYZ<Real> pos_indU, int ng_x, int ng_y)
   {
     if (strat_ == OverlapStrat::ignore) return;
 
@@ -369,7 +369,7 @@ public:
    * prior "pass")  It will also return `false` if the specified particle's feedback is scheduled for a future pass. 
    */
   template<typename Prescription>
-  __device__ bool Is_Scheduled_And_Update(Prescription p, part_int_t particle_id, Arr3<Real> pos_indU,
+  __device__ bool Is_Scheduled_And_Update(Prescription p, part_int_t particle_id, hydro_utilities::VectorXYZ<Real> pos_indU,
                                           int ng_x, int ng_y)
   {
     if (this->strat_ == OverlapStrat::ignore) return true;
@@ -413,7 +413,7 @@ private:
 
 };
 
-__device__ __forceinline__ Arr3<Real> Calc_Pos_IndU(int i, const feedback_details::ParticleProps& particle_props,
+__device__ __forceinline__ hydro_utilities::VectorXYZ<Real> Calc_Pos_IndU(int i, const feedback_details::ParticleProps& particle_props,
                                                     const feedback_details::FieldSpatialProps& spatial_props)
 {
   const int n_ghost = spatial_props.n_ghost;
@@ -460,7 +460,7 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
   // this lambda func returns true if particle is in-bounds and has at least 1 SNe
   // - based on the value of the BdryStrat template-parameter, it may also modify the position
   //   that should be used when applying the feedback.
-  auto checkDontSkip_and_maybeRevisePos = [&spatial_props, num_SN_dev](int i, Arr3<Real>& pos_indU) {
+  auto checkDontSkip_and_maybeRevisePos = [&spatial_props, num_SN_dev](int i, hydro_utilities::VectorXYZ<Real>& pos_indU) {
     const int n_ghost = spatial_props.n_ghost;
 
     bool ignore = (((pos_indU[0] < n_ghost) or (pos_indU[0] >= (spatial_props.nx_g - n_ghost))) or
@@ -491,7 +491,7 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
   for (int i = start; i < particle_props.n_local; i += loop_stride) {
     // compute the position in index-units (appropriate for a field with a ghost-zone)
     // - an integer value corresponds to the left edge of a cell
-    Arr3<Real> pos_indU = Calc_Pos_IndU(i, particle_props, spatial_props);
+    hydro_utilities::VectorXYZ<Real> pos_indU = Calc_Pos_IndU(i, particle_props, spatial_props);
 
     if (checkDontSkip_and_maybeRevisePos(i, pos_indU)) {
       ov_scheduler.Register_Pending_Particle_Feedback(fb_model, (long long int)(particle_props.id_dev[i]),
@@ -506,7 +506,7 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
     for (int i = start; i < particle_props.n_local; i += loop_stride) {  
       // compute the position in index-units (appropriate for a field with a ghost-zone)
       // - an integer value corresponds to the left edge of a cell
-      Arr3<Real> pos_indU = Calc_Pos_IndU(i, particle_props, spatial_props);
+      hydro_utilities::VectorXYZ<Real> pos_indU = Calc_Pos_IndU(i, particle_props, spatial_props);
 
       if (checkDontSkip_and_maybeRevisePos(i, pos_indU)) {
 

@@ -9,6 +9,7 @@
 #include "../global/global.h"
 #include "../feedback/feedback.h"
 #include "../feedback/ratecalc.h"
+#include "../utils/basic_structs.h"
 #include "../feedback/feedback_stencil.h"
 
 namespace fb_prescription {
@@ -55,7 +56,7 @@ struct ResolvedSNPrescription{
   static constexpr bool has_resolved_prescription = true;
   static constexpr bool has_unresolved_prescription = false;
 
-  static __device__ Arr3<Real> nearest_noGhostOverlap_pos(Arr3<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
+  static __device__ hydro_utilities::VectorXYZ<Real> nearest_noGhostOverlap_pos(hydro_utilities::VectorXYZ<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
   {
     return Stencil::nearest_noGhostOverlap_pos(pos_indU, ng_x, ng_y, ng_z, n_ghost);
   }
@@ -65,7 +66,7 @@ struct ResolvedSNPrescription{
   static __device__ void for_each_possible_overlap(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
                                                    int nx_g, int ny_g, Function &&f)
   {
-    Stencil::for_each(Arr3<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g, std::forward<Function>(f));
+    Stencil::for_each(hydro_utilities::VectorXYZ<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g, std::forward<Function>(f));
   }
 
   static __device__ void apply_feedback(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, Real vel_x, Real vel_y, Real vel_z,
@@ -88,13 +89,13 @@ struct ResolvedSNPrescription{
     log_fb(cycle_num, num_SN, true, pos_x_indU, pos_y_indU, pos_z_indU,
            vel_x, vel_y, vel_z, particle_id);
 
-    ResolvedSNPrescription::apply(Arr3<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, vel_x, vel_y, vel_z,
+    ResolvedSNPrescription::apply(hydro_utilities::VectorXYZ<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, vel_x, vel_y, vel_z,
                                   nx_g, ny_g, nx_g * ny_g * nz_g, conserved_dev,
                                   feedback_density, feedback_energy);
   }
 
   /* apply the resolved feedback prescription */
-  static __device__ void apply(Arr3<Real> pos_indU, Real vel_x, Real vel_y, Real vel_z,
+  static __device__ void apply(hydro_utilities::VectorXYZ<Real> pos_indU, Real vel_x, Real vel_y, Real vel_z,
                                int nx_g, int ny_g, int n_cells,
                                Real* conserved_device, Real feedback_density, Real feedback_energy)
   {
@@ -186,7 +187,7 @@ using SphereBinaryResolvedSNPrescription = ResolvedSNPrescription<fb_stencil::Sp
  * made the most sense to adopt option #3
  */
 template<typename Stencil>
-__device__ void Overwrite_Average(Arr3<Real> stencil_pos_indU, int nx_g, int ny_g, int nz_g, Real* conserved_device,
+__device__ void Overwrite_Average(hydro_utilities::VectorXYZ<Real> stencil_pos_indU, int nx_g, int ny_g, int nz_g, Real* conserved_device,
                                   Real overwrite_density)
 {
   // step 1: load in the relevant fields
@@ -202,7 +203,7 @@ __device__ void Overwrite_Average(Arr3<Real> stencil_pos_indU, int nx_g, int ny_
   // step 2: determine the average momentum in each cell
   // - Note: we use overwrite_density as the average density since the caller already needed to
   //   compute that value anyways
-  Arr3<Real> avg_momentum;
+  hydro_utilities::VectorXYZ<Real> avg_momentum;
   {
     Real tot_momentum[3] = {0.0, 0.0, 0.0};
     int num              = 0;
@@ -213,7 +214,7 @@ __device__ void Overwrite_Average(Arr3<Real> stencil_pos_indU, int nx_g, int ny_
       tot_momentum[2] += momentum_z[idx3D];
       num++;
     });
-    avg_momentum = Arr3<Real>{tot_momentum[0] / num, tot_momentum[1] / num,
+    avg_momentum = hydro_utilities::VectorXYZ<Real>{tot_momentum[0] / num, tot_momentum[1] / num,
                               tot_momentum[2] / num};
   }
 
@@ -268,7 +269,7 @@ inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real po
 
   Stencil::for_each_vecflavor(
     {pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g,
-    [=](Real scalar_weight, Arr3<Real> momentum_weights, int idx3D) {
+    [=](Real scalar_weight, hydro_utilities::VectorXYZ<Real> momentum_weights, int idx3D) {
 
       // precompute 1/initial_density (take care to avoid divide by 0)
       const Real inv_initial_density = 1.0 / (density[idx3D] + TINY_NUMBER * (density[idx3D] == 0.0));
@@ -360,7 +361,7 @@ struct ResolvedAndUnresolvedSNe {
   static constexpr bool has_resolved_prescription = true;
   static constexpr bool has_unresolved_prescription = true;
 
-  static __device__ Arr3<Real> nearest_noGhostOverlap_pos(Arr3<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
+  static __device__ hydro_utilities::VectorXYZ<Real> nearest_noGhostOverlap_pos(hydro_utilities::VectorXYZ<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
   {
     // for right now, we are assuming that the stencil of the unresolved feedback is the same size or
     // bigger than the stencil used for the resolved feedback
@@ -372,7 +373,7 @@ struct ResolvedAndUnresolvedSNe {
   static __device__ void for_each_possible_overlap(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
                                                    int nx_g, int ny_g, Function &&f)
   {
-    UnresolvedStencil::for_each(Arr3<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g, std::forward<Function>(f));
+    UnresolvedStencil::for_each(hydro_utilities::VectorXYZ<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g, std::forward<Function>(f));
   }
 
   static __device__ void apply_feedback(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, Real vel_x, Real vel_y, Real vel_z,
@@ -385,7 +386,7 @@ struct ResolvedAndUnresolvedSNe {
     Real dV = dx * dy * dz;
     int n_cells    = nx_g * ny_g * nz_g;
 
-    Arr3<Real> pos_indU{pos_x_indU, pos_y_indU, pos_z_indU};
+    hydro_utilities::VectorXYZ<Real> pos_indU{pos_x_indU, pos_y_indU, pos_z_indU};
 
     Real* density = conserved_dev;
 

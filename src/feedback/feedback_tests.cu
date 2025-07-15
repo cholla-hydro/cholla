@@ -22,6 +22,7 @@
 
 #include "../feedback/prescription.h"
 #include "../feedback/kernel.h"
+#include "../utils/basic_structs.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 // Define some general-purpose testing tools. These may be a little overkill for this particular file.
@@ -188,7 +189,7 @@ void assert_allclose(T* actual, T* desired, Extent3D extent,
  * choice reflects the fact that a single thread is historically assigned to a single particle.
  */
 template<typename Stencil>
-__global__ void Stencil_Overlap_Kernel_(Real* out_data, Arr3<Real> pos_indU,
+__global__ void Stencil_Overlap_Kernel_(Real* out_data, hydro_utilities::VectorXYZ<Real> pos_indU,
                                         int nx_g, int ny_g, Stencil stencil, StencilEvalKind eval)
 {
   // first, define the lambda function that actually updates out_data
@@ -231,7 +232,7 @@ std::vector<double> eval_stencil_overlap_(const Real* pos_indxU, Extent3D full_e
   const int num_blocks = 1;
   const int threads_per_block = 1;
 
-  Arr3<Real> pos_indU{pos_indxU[0], pos_indxU[1], pos_indxU[2]};
+  hydro_utilities::VectorXYZ<Real> pos_indU{pos_indxU[0], pos_indxU[1], pos_indxU[2]};
 
   hipLaunchKernelGGL(Stencil_Overlap_Kernel_, num_blocks, threads_per_block, 0, 0,
                      data.data(), pos_indU, full_extent.nx, full_extent.ny, stencil,
@@ -447,19 +448,19 @@ TEST(tALLFeedbackSphereBinaryStencil, SlidingTest)
 // for evaluating a stencil (without overlapping beyond the edge of a grid)
 template <typename Stencil>
 struct StencilTestGridSetup{
-  std::vector<Arr3<Real>> center_pos_indU_list;
+  std::vector<hydro_utilities::VectorXYZ<Real>> center_pos_indU_list;
   Extent3D full_extent;
 };
 
 template <typename Stencil>
-static StencilTestGridSetup<Stencil> Build_Stencil_Test_Grid_Setup(const std::vector<Arr3<Real>>& center_offset_from_cellEdge_LIST,
+static StencilTestGridSetup<Stencil> Build_Stencil_Test_Grid_Setup(const std::vector<hydro_utilities::VectorXYZ<Real>>& center_offset_from_cellEdge_LIST,
                                                                    int n_ghost)
 {
   StencilTestGridSetup<Stencil> out;
 
   // compute the centers of the stencil and the extent of the grid for evaluating the stencil
-  for (const Arr3<Real>& center_offset_from_cellEdge : center_offset_from_cellEdge_LIST) {
-    Arr3<Real> pos_indU{};
+  for (const hydro_utilities::VectorXYZ<Real>& center_offset_from_cellEdge : center_offset_from_cellEdge_LIST) {
+    hydro_utilities::VectorXYZ<Real> pos_indU{};
     for (std::size_t i = 0; i < 3; i++){
       // confirm the offset falls in the range 0 <= center_offset < 1
       CHOLLA_ASSERT(center_offset_from_cellEdge[i] >= 0.0, "Test parameter is flawed");
@@ -479,12 +480,12 @@ static StencilTestGridSetup<Stencil> Build_Stencil_Test_Grid_Setup(const std::ve
 
 
 template<typename Stencil>
-void stencil_volume_check(Arr3<Real> center_offset_from_cellEdge, int n_ghost, Stencil stencil,
+void stencil_volume_check(hydro_utilities::VectorXYZ<Real> center_offset_from_cellEdge, int n_ghost, Stencil stencil,
                           double expected_vol, double vol_rtol = 0.0, double stencil_overlap_rtol = 0.0)
 {
   // compute the center of the stencil and the extent of the grid for evaluating the stencil
   StencilTestGridSetup<Stencil> setup = Build_Stencil_Test_Grid_Setup<Stencil>({center_offset_from_cellEdge}, n_ghost);
-  Arr3<Real> pos_indU = setup.center_pos_indU_list[0];
+  hydro_utilities::VectorXYZ<Real> pos_indU = setup.center_pos_indU_list[0];
   Extent3D full_extent = setup.full_extent;
 
   // now gather the amount of cell-volume enclosed by the stencil
@@ -516,9 +517,9 @@ void stencil_volume_check(Arr3<Real> center_offset_from_cellEdge, int n_ghost, S
 
 TEST(tALLFeedbackCiCStencil, StencilVolumeTest)
 {
-  stencil_volume_check(Arr3<Real>{0.0,0.0,0.0}, 0, fb_stencil::CIC{},
+  stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.0,0.0,0.0}, 0, fb_stencil::CIC{},
                        /* expected_vol = */ 1.0, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
-  stencil_volume_check(Arr3<Real>{0.5,0.5,0.5}, 0, fb_stencil::CIC{},
+  stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.5,0.5,0.5}, 0, fb_stencil::CIC{},
                        /* expected_vol = */ 1.0, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
 }
 
@@ -527,11 +528,11 @@ TEST(tALLFeedbackSphere27Stencil, StencilVolumeTest)
   const double radius = 1; // in units of cell_widths
   const double expected_vol = 4 * 3.141592653589793 * (radius * radius) / 3;
 
-  stencil_volume_check(Arr3<Real>{0.0,0.0,0.0}, 0, fb_stencil::Sphere27<2>{},
+  stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.0,0.0,0.0}, 0, fb_stencil::Sphere27<2>{},
                        expected_vol, /* vol_rtol = */ 0.05, /*stencil_overlap_rtol =*/ 0.0);
-  stencil_volume_check(Arr3<Real>{0.125,0.0,0.0}, 0, fb_stencil::Sphere27<2>{},
+  stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.125,0.0,0.0}, 0, fb_stencil::Sphere27<2>{},
                        expected_vol, /* vol_rtol = */ 0.0004, /*stencil_overlap_rtol =*/ 0.0);
-  stencil_volume_check(Arr3<Real>{0.5,0.5,0.5}, 0, fb_stencil::Sphere27<2>{},
+  stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.5,0.5,0.5}, 0, fb_stencil::Sphere27<2>{},
                        expected_vol, /* vol_rtol = */ 0.05, /*stencil_overlap_rtol =*/ 0.0);
 }
 
@@ -542,11 +543,11 @@ TEST(tALLFeedbackSphere27Stencil, StencilVolumeTest)
 //  const double radius = 3; // in units of cell_widths
 //  const double expected_vol = 4 * 3.141592653589793 * (radius * radius) / 3.0;
 //
-//  stencil_volume_check(Arr3<Real>{0.0,0.0,0.0}, 0, fb_stencil::SphereBinary<3>{},
+//  stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.0,0.0,0.0}, 0, fb_stencil::SphereBinary<3>{},
 //                       expected_vol, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
-//  stencil_volume_check(Arr3<Real>{0.125,0.0,0.0}, 0, fb_stencil::SphereBinary<3>{},
+//  stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.125,0.0,0.0}, 0, fb_stencil::SphereBinary<3>{},
 //                       expected_vol, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
-//  stencil_volume_check(Arr3<Real>{0.5,0.5,0.5}, 0, fb_stencil::SphereBinary<3>{},
+//  stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.5,0.5,0.5}, 0, fb_stencil::SphereBinary<3>{},
 //                       expected_vol, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
 //}
 
@@ -567,7 +568,7 @@ TYPED_TEST_SUITE(tALLFeedbackStencil, MyStencilTypes);
 TYPED_TEST(tALLFeedbackStencil, ForEachFlavorConsistency) {
 
   // determines the central positions of the stencils
-  std::vector<Arr3<Real>> center_offset_from_cellEdge_List = {
+  std::vector<hydro_utilities::VectorXYZ<Real>> center_offset_from_cellEdge_List = {
     {0.00, 0.00, 0.00},
     {0.25, 0.00, 0.00}, {0.5, 0.0, 0.0},  {0.75, 0.00, 0.00},  {0.99, 0.00, 0.00},
     {0.00, 0.25, 0.00}, {0.0, 0.5, 0.0},  {0.00, 0.75, 0.00},  {0.00, 0.99, 0.00},
@@ -590,7 +591,7 @@ TYPED_TEST(tALLFeedbackStencil, ForEachFlavorConsistency) {
     {"for_each_overlap_zone", StencilEvalKind::for_each_overlap_zone}
   };
 
-  for (Arr3<Real> pos_indU : setup.center_pos_indU_list) {
+  for (hydro_utilities::VectorXYZ<Real> pos_indU : setup.center_pos_indU_list) {
     std::vector<std::vector<Real>> rslts{};
 
     std::size_t num_flavors = flavor_pairs.size();
@@ -740,7 +741,7 @@ public:
   }
 
   /* copy TestFieldData into a new object and shift the reference frame */
-  TestFieldData change_ref_frame(Arr3<Real> bulk_velocity) {
+  TestFieldData change_ref_frame(hydro_utilities::VectorXYZ<Real> bulk_velocity) {
 
     const Extent3D& single_field_extent = this->single_field_extent_;
 
@@ -859,7 +860,7 @@ private: // attributes
 
 public:
 
-  TestParticleData(const std::vector<Arr3<Real>>& pos_vec, const std::map<std::string, Real>& other_props)
+  TestParticleData(const std::vector<hydro_utilities::VectorXYZ<Real>>& pos_vec, const std::map<std::string, Real>& other_props)
     : particle_ids_(nullptr),
       general_data_()
   {
@@ -984,13 +985,13 @@ struct FeedbackResults {
 
 template <typename Prescription = fb_prescription::CiCResolvedSNPrescription>
 FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>& prop_l,
-                                   const std::vector<Arr3<Real>>& particle_pos_vec,
+                                   const std::vector<hydro_utilities::VectorXYZ<Real>>& particle_pos_vec,
                                    feedback_details::OverlapStrat ov_strat,
                                    bool separate_launch_per_particle,
                                    feedback_details::BoundaryStrategy bdry_strat = feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues,
                                    const std::optional<Real> maybe_init_density = std::optional<Real>(),
                                    const std::optional<Real> maybe_init_internal_edens = std::optional<Real>(),
-                                   const std::optional<Arr3<Real>> maybe_bulk_vel = std::optional<Arr3<Real>>())
+                                   const std::optional<hydro_utilities::VectorXYZ<Real>> maybe_bulk_vel = std::optional<hydro_utilities::VectorXYZ<Real>>())
 {
 
   feedback_details::FieldSpatialProps spatial_props{
@@ -1014,8 +1015,8 @@ FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>
   const Real init_density        = maybe_init_density.value_or(1482737.17012665); // should be 0.1 particles per cc
   const Real init_internal_edens = maybe_init_internal_edens.value_or(0.00021335 *1.5);
 
-  const Arr3<Real> dflt_bulk_vel = {0.0,0.0,0.0};
-  const Arr3<Real> bulk_vel = maybe_bulk_vel.value_or(dflt_bulk_vel);
+  const hydro_utilities::VectorXYZ<Real> dflt_bulk_vel = {0.0,0.0,0.0};
+  const hydro_utilities::VectorXYZ<Real> bulk_vel = maybe_bulk_vel.value_or(dflt_bulk_vel);
 
   // allocate the temporary field data!
   const Extent3D full_extent{spatial_props.nx_g, spatial_props.ny_g, spatial_props.nz_g};
@@ -1176,7 +1177,7 @@ TYPED_TEST(tALLFeedbackFull, CheckingOverlapStrat)
   const std::vector<AxProps> ax_prop_l = {{5, 0.0, dx}, {5,0.0, dx}, {5,0.0, dx}};
 
   // initialize 50 star particles directly atop each other
-  const std::vector<Arr3<Real>> particle_pos_vec(50, {2.4 *dx, 2.4 *dx, 2.4 *dx});
+  const std::vector<hydro_utilities::VectorXYZ<Real>> particle_pos_vec(50, {2.4 *dx, 2.4 *dx, 2.4 *dx});
 
   // Get the reference answer - here we sequentially launch one kernel after to handle feedback of 
   // each individual particle
@@ -1214,8 +1215,8 @@ struct InjectSummary {
  * frame (ref_frame_vel is measure in the original reference frame of the simulation)
  */
 InjectSummary calc_inject_summary_(TestFieldData& field_data, Real init_density,
-                                   Real init_internal_edens, Arr3<Real> init_bulk_vel,
-                                   Real cell_vol, Arr3<Real> ref_frame_vel = {0.0,0.0,0.0})
+                                   Real init_internal_edens, hydro_utilities::VectorXYZ<Real> init_bulk_vel,
+                                   Real cell_vol, hydro_utilities::VectorXYZ<Real> ref_frame_vel = {0.0,0.0,0.0})
 {
   Extent3D extent = field_data.single_field_extent();
   const std::size_t single_field_size = extent.nx*extent.ny*extent.nz;
@@ -1229,7 +1230,7 @@ InjectSummary calc_inject_summary_(TestFieldData& field_data, Real init_density,
     vec = tmp.host_copy();
   }
 
-  Arr3<Real> bulk_vel{init_bulk_vel[0] - ref_frame_vel[0],
+  hydro_utilities::VectorXYZ<Real> bulk_vel{init_bulk_vel[0] - ref_frame_vel[0],
                       init_bulk_vel[1] - ref_frame_vel[1],
                       init_bulk_vel[2] - ref_frame_vel[2]};
 
@@ -1271,14 +1272,14 @@ InjectSummary calc_inject_summary_(TestFieldData& field_data, Real init_density,
 
 // in this test, we look into the actual injected amounts!
 template<typename Prescription>
-void test_injection_magnitudes_(bool resolved, const Arr3<Real>& bulk_vel)
+void test_injection_magnitudes_(bool resolved, const hydro_utilities::VectorXYZ<Real>& bulk_vel)
 {
   const int n_ghost = 0;
   const Real dx = 1.0 / 256.0;
   const std::vector<AxProps> ax_prop_l = {{5, 0.0, dx}, {5,0.0, dx}, {5,0.0, dx}};
 
   // initialize 1 star particle
-  const std::vector<Arr3<Real>> particle_pos_vec(1, {2.4 *dx, 2.4 *dx, 2.4 *dx});
+  const std::vector<hydro_utilities::VectorXYZ<Real>> particle_pos_vec(1, {2.4 *dx, 2.4 *dx, 2.4 *dx});
 
   const Real density        = (resolved) ? 1e8 : 1e9; // solar-masses per kpc**3
     // default thermal energy density should correspond to pressure of 1e4 K / cm**3 (for a gamma of 5/3)
@@ -1294,7 +1295,7 @@ void test_injection_magnitudes_(bool resolved, const Arr3<Real>& bulk_vel)
 
   // compute the summary properties in the reference frame of the particle where that underwent
   // feedback (this just happens to coincide with bulk_vel)
-  const Arr3<Real> ref_frame_vel = bulk_vel;
+  const hydro_utilities::VectorXYZ<Real> ref_frame_vel = bulk_vel;
 
   InjectSummary summary = calc_inject_summary_(rslt.test_field_data, density, internal_edens, bulk_vel,
                                                dx * dx * dx, ref_frame_vel);
@@ -1363,7 +1364,7 @@ TYPED_TEST(tALLFeedbackFull, InjectionMagnitudesResolved)
 {
   using Prescription = typename TestFixture::PrescriptionT;
   if (Prescription::has_resolved_prescription){
-    test_injection_magnitudes_<Prescription>(true, Arr3<Real>{0.0, 0.0, 0.0});
+    test_injection_magnitudes_<Prescription>(true, hydro_utilities::VectorXYZ<Real>{0.0, 0.0, 0.0});
   }
 }
 
@@ -1372,7 +1373,7 @@ TYPED_TEST(tALLFeedbackFull, InjectionMagnitudesResolvedBulkV)
 {
   using Prescription = typename TestFixture::PrescriptionT;
   if (Prescription::has_resolved_prescription){
-    Arr3<Real> bulk_vel = {0.000205, 0.0, 0.0}; // roughly 200 km/s
+    hydro_utilities::VectorXYZ<Real> bulk_vel = {0.000205, 0.0, 0.0}; // roughly 200 km/s
     test_injection_magnitudes_<Prescription>(true, bulk_vel);
   }
 }
@@ -1382,7 +1383,7 @@ TYPED_TEST(tALLFeedbackFull, InjectionMagnitudesUnresolved)
 {
   using Prescription = typename TestFixture::PrescriptionT;
   if (Prescription::has_unresolved_prescription){
-    test_injection_magnitudes_<Prescription>(false, Arr3<Real>{0.0, 0.0, 0.0});
+    test_injection_magnitudes_<Prescription>(false, hydro_utilities::VectorXYZ<Real>{0.0, 0.0, 0.0});
   }
 }
 
@@ -1390,7 +1391,7 @@ TYPED_TEST(tALLFeedbackFull, InjectionMagnitudesUnresolvedBulkV)
 {
   using Prescription = typename TestFixture::PrescriptionT;
   if (Prescription::has_unresolved_prescription){
-    Arr3<Real> bulk_vel = {0.000205, 0.0, 0.0}; // roughly 200 km/s
+    hydro_utilities::VectorXYZ<Real> bulk_vel = {0.000205, 0.0, 0.0}; // roughly 200 km/s
     test_injection_magnitudes_<Prescription>(false, bulk_vel);
   }
 }
@@ -1412,18 +1413,18 @@ TYPED_TEST(tALLFeedbackFull, ComparingFrameInvariance)
   const std::vector<AxProps> ax_prop_l = {{5, 0.0, dx}, {5,0.0, dx}, {5,0.0, dx}};
 
   // initialize some star particles directly atop each other
-  const std::vector<Arr3<Real>> particle_pos_vec(1, {2.4 *dx, 2.4 *dx, 2.4 *dx});
+  const std::vector<hydro_utilities::VectorXYZ<Real>> particle_pos_vec(1, {2.4 *dx, 2.4 *dx, 2.4 *dx});
 
   [[maybe_unused]] const Real init_density = 1e9; // solar-masses per kpc**3
 
   // Get the reference answer (in the reference frame where there is no bulk velocity)
-  [[maybe_unused]] Arr3<Real> bulk_vel_NULLCASE = {0.0, 0.0, 0.0};
+  [[maybe_unused]] hydro_utilities::VectorXYZ<Real> bulk_vel_NULLCASE = {0.0, 0.0, 0.0};
   FeedbackResults rslt_ref = run_full_feedback_<Prescription>(
     n_ghost, ax_prop_l, particle_pos_vec, feedback_details::OverlapStrat::ignore, true,
     feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues,
     {init_density}, {}, {bulk_vel_NULLCASE});
 
-  [[maybe_unused]] Arr3<Real> bulk_vel_ALT = {0.000205, 0.0, 0.0}; // roughly 200 km/s
+  [[maybe_unused]] hydro_utilities::VectorXYZ<Real> bulk_vel_ALT = {0.000205, 0.0, 0.0}; // roughly 200 km/s
   FeedbackResults rslt_actual = run_full_feedback_<Prescription>(
     n_ghost, ax_prop_l, particle_pos_vec, feedback_details::OverlapStrat::ignore, true,
     feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues,
@@ -1431,7 +1432,7 @@ TYPED_TEST(tALLFeedbackFull, ComparingFrameInvariance)
 
   // shift the reference-frame of the case with the bulk velocity
   TestFieldData actual_field_shifted = rslt_actual.test_field_data.change_ref_frame(
-    Arr3<Real>{1 * bulk_vel_ALT[0], 1 * bulk_vel_ALT[1], 1 * bulk_vel_ALT[2]});
+    hydro_utilities::VectorXYZ<Real>{1 * bulk_vel_ALT[0], 1 * bulk_vel_ALT[1], 1 * bulk_vel_ALT[2]});
 
   if (false) {
     printf("\nLooking at the case without bulk velocity:\n");
@@ -1487,7 +1488,7 @@ private:
 /* Convert a position specified in terms of OuterEdgeOffset vals to concrete position (in index
  * units)
  */
-Arr3<Real> offset_to_concrete(Arr3<OuterEdgeOffset> pos, const std::vector<AxProps>& ax_prop_l,
+hydro_utilities::VectorXYZ<Real> offset_to_concrete(hydro_utilities::VectorXYZ<OuterEdgeOffset> pos, const std::vector<AxProps>& ax_prop_l,
                               int n_ghost, bool to_posIndU = false)
 {
   if (to_posIndU) {
@@ -1509,11 +1510,11 @@ Arr3<Real> offset_to_concrete(Arr3<OuterEdgeOffset> pos, const std::vector<AxPro
       }
     };
 
-    return Arr3<Real>{fn(pos[0], full_extent.nx), fn(pos[1], full_extent.ny),
+    return hydro_utilities::VectorXYZ<Real>{fn(pos[0], full_extent.nx), fn(pos[1], full_extent.ny),
                       fn(pos[2], full_extent.nz)};
   } else {
-    Arr3<Real> pos_indU = offset_to_concrete(pos, ax_prop_l, n_ghost, true);
-    return Arr3<Real>{(pos_indU[0] - n_ghost) * ax_prop_l[0].cell_width + ax_prop_l[0].min,
+    hydro_utilities::VectorXYZ<Real> pos_indU = offset_to_concrete(pos, ax_prop_l, n_ghost, true);
+    return hydro_utilities::VectorXYZ<Real>{(pos_indU[0] - n_ghost) * ax_prop_l[0].cell_width + ax_prop_l[0].min,
                       (pos_indU[1] - n_ghost) * ax_prop_l[1].cell_width + ax_prop_l[1].min,
                       (pos_indU[2] - n_ghost) * ax_prop_l[2].cell_width + ax_prop_l[2].min};
   }
@@ -1526,7 +1527,7 @@ Arr3<Real> offset_to_concrete(Arr3<OuterEdgeOffset> pos, const std::vector<AxPro
  * components may come from `target_vals` OR `filler_vals`.
  */
 template <typename T>
-std::vector<Arr3<T>> build_pos_permutation_l_(const std::vector<T>& target_vals,
+std::vector<hydro_utilities::VectorXYZ<T>> build_pos_permutation_l_(const std::vector<T>& target_vals,
                                               const std::vector<T>& filler_vals)
 {
   const std::size_t target_len = target_vals.size();
@@ -1537,7 +1538,7 @@ std::vector<Arr3<T>> build_pos_permutation_l_(const std::vector<T>& target_vals,
     return filler_vals[ind - target_len];
   };
 
-  std::vector<Arr3<T>> out;
+  std::vector<hydro_utilities::VectorXYZ<T>> out;
   for (std::size_t i = 0; i < total_len; i++) {
     for (std::size_t j = 0; j < total_len; j++) {
       for (std::size_t k = 0; k < total_len; k++) {
@@ -1546,7 +1547,7 @@ std::vector<Arr3<T>> build_pos_permutation_l_(const std::vector<T>& target_vals,
           continue;
         }
 
-        out.push_back(Arr3<T>{get(i), get(j), get(k)});
+        out.push_back(hydro_utilities::VectorXYZ<T>{get(i), get(j), get(k)});
       }
     }
   }
@@ -1644,11 +1645,11 @@ void run_bdry_test_(feedback_details::BoundaryStrategy boundry_strat)
   // let's check what happens when we consider a case with a point outside of the active and
   // ghost zones
   {
-    std::vector<Arr3<OuterEdgeOffset>> pos_l = build_pos_permutation_l_(
+    std::vector<hydro_utilities::VectorXYZ<OuterEdgeOffset>> pos_l = build_pos_permutation_l_(
       outside_ghost_and_active, good_pos_l);
 
-    for (const Arr3<OuterEdgeOffset>& offset_pos : pos_l) {
-      Arr3<Real> cur_pos = offset_to_concrete(offset_pos, ax_prop_l, n_ghost);
+    for (const hydro_utilities::VectorXYZ<OuterEdgeOffset>& offset_pos : pos_l) {
+      hydro_utilities::VectorXYZ<Real> cur_pos = offset_to_concrete(offset_pos, ax_prop_l, n_ghost);
       //printf("%f, %f, %f\n", cur_pos[0],cur_pos[1],cur_pos[2]);
 
       FeedbackResults rslt = run_full_feedback_<Prescription>(n_ghost, ax_prop_l, {cur_pos},
@@ -1667,11 +1668,11 @@ void run_bdry_test_(feedback_details::BoundaryStrategy boundry_strat)
   // confirm that when we place a particle outside the active zone (but in the ghost zone) that
   // feedback is skipped
   {
-    std::vector<Arr3<OuterEdgeOffset>> pos_l = build_pos_permutation_l_(
+    std::vector<hydro_utilities::VectorXYZ<OuterEdgeOffset>> pos_l = build_pos_permutation_l_(
       in_ghost, good_pos_l);
 
-    for (const Arr3<OuterEdgeOffset>& offset_pos : pos_l) {
-      Arr3<Real> cur_pos = offset_to_concrete(offset_pos, ax_prop_l, n_ghost);
+    for (const hydro_utilities::VectorXYZ<OuterEdgeOffset>& offset_pos : pos_l) {
+      hydro_utilities::VectorXYZ<Real> cur_pos = offset_to_concrete(offset_pos, ax_prop_l, n_ghost);
       //printf("%f, %f, %f\n", cur_pos[0],cur_pos[1],cur_pos[2]);
 
       FeedbackResults rslt = run_full_feedback_<Prescription>(n_ghost, ax_prop_l, {cur_pos},
@@ -1691,7 +1692,7 @@ void run_bdry_test_(feedback_details::BoundaryStrategy boundry_strat)
   // confirm the behavior when we place a particle inside the active zone with a stencil that overlaps
   // with the ghost zone.
   {
-    std::vector<Arr3<OuterEdgeOffset>> pos_l = build_pos_permutation_l_(
+    std::vector<hydro_utilities::VectorXYZ<OuterEdgeOffset>> pos_l = build_pos_permutation_l_(
       ghost_overlap, good_pos_l);
 
     BoundaryRelatedExpectation expectation;
@@ -1711,8 +1712,8 @@ void run_bdry_test_(feedback_details::BoundaryStrategy boundry_strat)
       CHOLLA_ERROR("This test doesn't know how to handle the specified bdry_strat.");
     }
 
-    for (const Arr3<OuterEdgeOffset>& offset_pos : pos_l) {
-      Arr3<Real> cur_pos = offset_to_concrete(offset_pos, ax_prop_l, n_ghost);
+    for (const hydro_utilities::VectorXYZ<OuterEdgeOffset>& offset_pos : pos_l) {
+      hydro_utilities::VectorXYZ<Real> cur_pos = offset_to_concrete(offset_pos, ax_prop_l, n_ghost);
       //printf("%f, %f, %f\n", cur_pos[0],cur_pos[1],cur_pos[2]);
 
       FeedbackResults rslt = run_full_feedback_<Prescription>(n_ghost, ax_prop_l, {cur_pos},
@@ -1735,8 +1736,8 @@ void run_bdry_test_(feedback_details::BoundaryStrategy boundry_strat)
   // than on anything else...)
 
   {
-    Arr3<OuterEdgeOffset> offset_pos = {good_pos_l[0], good_pos_l[0], good_pos_l[0]};
-    Arr3<Real> cur_pos = offset_to_concrete(offset_pos, ax_prop_l, n_ghost);
+    hydro_utilities::VectorXYZ<OuterEdgeOffset> offset_pos = {good_pos_l[0], good_pos_l[0], good_pos_l[0]};
+    hydro_utilities::VectorXYZ<Real> cur_pos = offset_to_concrete(offset_pos, ax_prop_l, n_ghost);
     //printf("%f, %f, %f\n", cur_pos[0],cur_pos[1],cur_pos[2]);
     FeedbackResults rslt = run_full_feedback_<Prescription>(n_ghost, ax_prop_l, {cur_pos},
                                                            feedback_details::OverlapStrat::ignore, true,
