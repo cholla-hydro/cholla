@@ -4,56 +4,11 @@
 
 #include "../global/global.h"
 #include "../feedback/feedback.h"
+#include "../utils/basic_structs.h"
 #include "../utils/math_utilities.h"  // math_utils::clamp
 
-
-/* This is kind of a placeholder right now! It's here to help reduce the number of
- * arguments we pass around. Eseentially, it's used in the case where we have 3 entries 
- * (like a mathematical vector).
- *
- * It's not clear if we should lean into the mathematical vector-concept or model this after
- * std::array, or if we should just use int3, float3, double3
- *
- * No matter what we choose to do, it's important that this is an aggregate type!
- *
- * Because this is an aggregate type, you can initi can construct it as:
- * \code{.cpp}
- *    Arr3<double> my_var{1.0, 2.0, 3.0}
- *    Arr3<float> my_var2 = {1.0, 2.0, 3.0};
- *    Arr3<int> my_var3;  // Using the default constructor. Based on a note from the docs of
- *                        // std::array, the values for a non-class type (like float/double/int)
- *                        // may be indeterminate in this case.
- * \endcode
- */
-template <typename T>
-struct Arr3{
-  /* Tracks the values held by the class. To ensure the class is an aggregate, it needs
-   * to be public. With that said, it should be treated as an implementation detail */
-   
-     T arr_[3];
-
-  // constructors are implicitly defined! To ensure this class is an aggregate, these must
-  // all use the default implementation!
-
-  // destructor is implicitly defined
-
-  // move/copy assignment operations are implicitly defined
-
-  __device__ __host__ T& operator[](std::size_t i) {return arr_[i];}
-  __device__ __host__ const T& operator[](std::size_t i) const {return arr_[i];}
-
-  __device__ __host__ T* data() {return arr_; }
-
-  // we may want the following:
-  /*
-  __device__ __host__ T& x() noexcept  {return arr[0];}
-  __device__ __host__ const T& x() const noexcept {return arr[0];}
-  __device__ __host__ T& y() noexcept  {return arr[1];}
-  __device__ __host__ const T& y() const noexcept {return arr[1];}
-  __device__ __host__ T& z() noexcept  {return arr[2];}
-  __device__ __host__ const T& z() const noexcept {return arr[2];}
-  */
-};
+template<typename T>
+using Arr3 = hydro_utilities::VectorXYZ<T>;
 
 enum struct StencilEvalKind{
   enclosed_stencil_vol_frac, /*!< compute the fraction of the total stencil volume enclosed by each cell */
