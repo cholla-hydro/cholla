@@ -4,17 +4,7 @@
 
 #include "../global/global.h"
 #include "../feedback/feedback.h"
-
-// I'm defining this by hand at the moment.
-//
-// It's not clear:
-// - whether cuda/rocm provide intrinsics to speed this up.
-// - whether I should just use std::clamp
-template<typename T>
-__device__ __host__ T clamp(T val, T lo, T hi) {
-  const T tmp = val < lo ? lo : val;
-  return tmp > hi ? hi : tmp;
-}
+#include "../utils/math_utilities.h"  // math_utils::clamp
 
 
 /* This is kind of a placeholder right now! It's here to help reduce the number of
@@ -91,9 +81,9 @@ static inline __device__ Arr3<Real> nearest_noGhostOverlap_pos_(Real min_stencil
                                                                 int ng_x, int ng_y, int ng_z, int n_ghost)
 {
   const Real edge_offset = n_ghost + min_stencil_offset;
-  return { clamp(pos_indU[0], edge_offset, ng_x - edge_offset),
-           clamp(pos_indU[1], edge_offset, ng_y - edge_offset),
-           clamp(pos_indU[2], edge_offset, ng_z - edge_offset) };
+  return { math_utils::clamp(pos_indU[0], edge_offset, ng_x - edge_offset),
+           math_utils::clamp(pos_indU[1], edge_offset, ng_y - edge_offset),
+           math_utils::clamp(pos_indU[2], edge_offset, ng_z - edge_offset) };
 }
 
 /* Represents the stencil for cloud-in-cell deposition */
