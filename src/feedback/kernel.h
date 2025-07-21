@@ -81,11 +81,11 @@ enum struct BoundaryStrategy {
   excludeGhostParticle_ignoreStencilIssues, /*!< Ignore particles in the ghost-zone. Ignore that there could be any
                                              *problems with a stencil
                                              *!< that overlaps with the region beyond the ghost zone. there is a problem
-                                            */
+                                             */
   excludeGhostParticle_snapActiveStencil    /*!< Ignore particles in the ghost-zone. Temporarily (only during feedback)
                                              *snap the positions
                                              *!< to the closest location where feedback will only affect the active zone.
-                                            */
+                                             */
 };
 
 }  // namespace feedback_details
