@@ -320,8 +320,9 @@ __global__ void kernelReduceMax(Real* in, Real* out, size_t N);
  * If passing src to a function causes problems (since we are potentially obfuscating the __shared__ descriptor),
  * we can always convert this into a macro.
  */
-template<std::size_t N, std::size_t Blocksize>
-__device__ void blockAccumulateIntoNReals(Real* __restrict__ dest, Real* __restrict__ src_shared) {
+template <std::size_t N, std::size_t Blocksize>
+__device__ void blockAccumulateIntoNReals(Real* __restrict__ dest, Real* __restrict__ src_shared)
+{
   // reduce the info from all the threads within the block (since src_shared was declared as __shared__,
   // each block has its own copy of src_shared)
   for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
@@ -336,7 +337,7 @@ __device__ void blockAccumulateIntoNReals(Real* __restrict__ dest, Real* __restr
   // atomicAdd reduces across all blocks
   if (threadIdx.x == 0) {
     for (unsigned int cur_ind = 0; cur_ind < N; cur_ind++) {
-      atomicAdd(dest + cur_ind, // <- pointer arithmetic
+      atomicAdd(dest + cur_ind,  // <- pointer arithmetic
                 src_shared[cur_ind]);
     }
   }

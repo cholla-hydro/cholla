@@ -1,23 +1,26 @@
 #include "s99table.h"
 
+#include <cerrno>
 #include <cstdio>
 #include <cstring>
-#include <cerrno>
 #include <fstream>
 #include <string_view>
 
-namespace { // anonymous namespace
+namespace
+{  // anonymous namespace
 
-std::string_view rstripped_view_(std::string_view s) {
+std::string_view rstripped_view_(std::string_view s)
+{
   std::size_t i = s.size();
   while (i > 0) {
     i--;
-    if (s[i] != ' ')  return s.substr(0, i+1);
+    if (s[i] != ' ') return s.substr(0, i + 1);
   }
   return {};
 }
 
-std::string_view trimmed_view_(std::string_view s) {
+std::string_view trimmed_view_(std::string_view s)
+{
   std::size_t substr_start = s.find_first_not_of(' ');
   if (substr_start == std::string_view::npos) return {};
   std::string_view lstripped_view = s.substr(substr_start);
@@ -26,23 +29,23 @@ std::string_view trimmed_view_(std::string_view s) {
 
 /* counts the number of contiguous ' ' characters at start of a string that is
  * null-character-terminated */
-std::size_t leading_space_count_(const char* s) {
-  for(std::size_t i = 0; true; i++) {
+std::size_t leading_space_count_(const char* s)
+{
+  for (std::size_t i = 0; true; i++) {
     if (s[i] != ' ') return i;
   }
 }
 
-template<std::size_t min_contig_space_count>
+template <std::size_t min_contig_space_count>
 struct TokenFinder {
-
   const std::string& line;
-  std::size_t next_token_start = 0; // first index of next token
+  std::size_t next_token_start = 0;  // first index of next token
 
   /* gets the next token. The template argument specifies the minimum number of
    * spaces required to delimit tokens (relevant for parsing col names) */
-  std::string_view next() {
-    std::size_t start = (next_token_start == 0)
-      ? line.find_first_not_of(' ') : next_token_start;
+  std::string_view next()
+  {
+    std::size_t start = (next_token_start == 0) ? line.find_first_not_of(' ') : next_token_start;
     if (line.size() == start) return std::string_view{};
 
     for (std::size_t i = start; i < line.size(); /* update i within loop */) {
@@ -57,12 +60,11 @@ struct TokenFinder {
     this->next_token_start = line.size();
     return {line.data() + start, line.size() - start};
   }
-
 };
 
-
-std::string descr_string_(feedback::S99TabKind kind) {
-  switch(kind) {
+std::string descr_string_(feedback::S99TabKind kind)
+{
+  switch (kind) {
     case feedback::S99TabKind::supernova:
       return "RESULTS FOR THE SUPERNOVA RATE";
     case feedback::S99TabKind::stellar_wind:
@@ -72,40 +74,47 @@ std::string descr_string_(feedback::S99TabKind kind) {
   }
 }
 
-std::vector<std::string> better_col_names(std::vector<std::string> parsed_names,
-                                          feedback::S99TabKind kind) {
+std::vector<std::string> better_col_names(std::vector<std::string> parsed_names, feedback::S99TabKind kind)
+{
   std::string kind_name;
   std::vector<std::string> full_names{};
-  switch(kind) {
+  switch (kind) {
     case feedback::S99TabKind::supernova:
-      kind_name = "supernova";
-      full_names = {
-        "TIME",
-        "ALL SUPERNOVAE: TOTAL RATE", "ALL SUPERNOVAE: POWER",
-        "ALL SUPERNOVAE: ENERGY",
-        "TYPE IB SUPERNOVAE: TOTAL RATE", "TYPE IB SUPERNOVAE: POWER",
-        "TYPE IB SUPERNOVAE: ENERGY",
-        "ALL SUPERNOVAE: TYPICAL MASS", "ALL SUPERNOVAE: LOWEST PROG. MASS",
-        "STARS + SUPERNOVAE: POWER", "STARS + SUPERNOVAE: ENERGY"
-      };
+      kind_name  = "supernova";
+      full_names = {"TIME",
+                    "ALL SUPERNOVAE: TOTAL RATE",
+                    "ALL SUPERNOVAE: POWER",
+                    "ALL SUPERNOVAE: ENERGY",
+                    "TYPE IB SUPERNOVAE: TOTAL RATE",
+                    "TYPE IB SUPERNOVAE: POWER",
+                    "TYPE IB SUPERNOVAE: ENERGY",
+                    "ALL SUPERNOVAE: TYPICAL MASS",
+                    "ALL SUPERNOVAE: LOWEST PROG. MASS",
+                    "STARS + SUPERNOVAE: POWER",
+                    "STARS + SUPERNOVAE: ENERGY"};
       break;
     case feedback::S99TabKind::stellar_wind:
-      kind_name = "stellar wind";
-      full_names = {
-        "TIME",
-        "POWER: ALL", "POWER: OB", "POWER: RSG", "POWER: LBV", "POWER: WR",
-        "ENERGY: ALL",
-        "MOMENTUM FLUX: ALL", "MOMENTUM FLUX: OB", "MOMENTUM FLUX: RSG",
-        "MOMENTUM FLUX: LBV", "MOMENTUM FLUX: WR"
-      };
+      kind_name  = "stellar wind";
+      full_names = {"TIME",
+                    "POWER: ALL",
+                    "POWER: OB",
+                    "POWER: RSG",
+                    "POWER: LBV",
+                    "POWER: WR",
+                    "ENERGY: ALL",
+                    "MOMENTUM FLUX: ALL",
+                    "MOMENTUM FLUX: OB",
+                    "MOMENTUM FLUX: RSG",
+                    "MOMENTUM FLUX: LBV",
+                    "MOMENTUM FLUX: WR"};
       break;
     default:
       CHOLLA_ERROR("there is an unhandled kind of starburst99 table");
   }
 
   if (full_names.size() != parsed_names.size()) {
-    CHOLLA_ERROR("A \"%s\" starburst99 table should have %zu cols, not %zu",
-                 kind_name.c_str(), full_names.size(), parsed_names.size());
+    CHOLLA_ERROR("A \"%s\" starburst99 table should have %zu cols, not %zu", kind_name.c_str(), full_names.size(),
+                 parsed_names.size());
   }
 
   for (std::size_t i = 0; i < parsed_names.size(); i++) {
@@ -118,20 +127,20 @@ std::vector<std::string> better_col_names(std::vector<std::string> parsed_names,
     if (separator_pos == std::string::npos) {
       expected_name = full_name;
     } else {
-      expected_name = full_name.substr(separator_pos+2);
+      expected_name = full_name.substr(separator_pos + 2);
     }
 
     if (expected_name != parsed_names[i]) {
-      CHOLLA_ERROR("column %zu is expected to be labelled %s in a \"%s\" "
-                   "starburst99 table, not \"%s\"",
-                   i, expected_name.c_str(), kind_name.c_str(),
-                   parsed_names[i].c_str());
+      CHOLLA_ERROR(
+          "column %zu is expected to be labelled %s in a \"%s\" "
+          "starburst99 table, not \"%s\"",
+          i, expected_name.c_str(), kind_name.c_str(), parsed_names[i].c_str());
     }
   }
   return full_names;
 }
 
-} // close anonymous namespace
+}  // namespace
 
 feedback::S99Table parse_s99_table(const std::string& fname, feedback::S99TabKind kind)
 {
@@ -149,9 +158,10 @@ feedback::S99Table parse_s99_table(const std::string& fname, feedback::S99TabKin
       std::string expected_description_str = descr_string_(kind);
       if (trimmed_view_(line) != expected_description_str) {
         std::string trimmed_line = std::string(trimmed_view_(line));
-        CHOLLA_ERROR("Expected the description string: \"%s\" on the fourth "
-                     "line of the table. Instead, the line reads: \"%s\"",
-                     expected_description_str.c_str(), trimmed_line.c_str());
+        CHOLLA_ERROR(
+            "Expected the description string: \"%s\" on the fourth "
+            "line of the table. Instead, the line reads: \"%s\"",
+            expected_description_str.c_str(), trimmed_line.c_str());
       }
       std::string tmp = std::string(trimmed_view_(line));
     }
@@ -176,7 +186,7 @@ feedback::S99Table parse_s99_table(const std::string& fname, feedback::S99TabKin
   //   the bottom layer. As a consequence, our parsed_col_names doesn't contain
   //   unique vals. The better names are unique
   std::vector<std::string> col_names = better_col_names(parsed_col_names, kind);
-  const std::size_t ncols = col_names.size();
+  const std::size_t ncols            = col_names.size();
 
   // finally, read the actual data:
   std::vector<double> data = {};
@@ -194,9 +204,8 @@ feedback::S99Table parse_s99_table(const std::string& fname, feedback::S99TabKin
       // (eventually) by a null character since tok is a view of line.data()
       double val = std::strtod(tok.data(), &ptr_end);
 
-      if ((errno != 0) or ((ptr_end - tok.data()) != tok.size())){
-        CHOLLA_ERROR("error parsing floating-point val in %s on line: \"%s\"",
-                     fname.c_str(), line.c_str());
+      if ((errno != 0) or ((ptr_end - tok.data()) != tok.size())) {
+        CHOLLA_ERROR("error parsing floating-point val in %s on line: \"%s\"", fname.c_str(), line.c_str());
       }
       data.push_back(val);
     }
@@ -212,5 +221,3 @@ feedback::S99Table parse_s99_table(const std::string& fname, feedback::S99TabKin
 
   return {std::move(col_names), std::move(data), ncols, nrows};
 }
-
-

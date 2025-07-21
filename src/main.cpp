@@ -172,7 +172,7 @@ int main(int argc, char *argv[])
   }
 #endif
 
-std::function<void(Grid3D&)> feedback_callback;
+  std::function<void(Grid3D &)> feedback_callback;
 
 #if defined(FEEDBACK) && defined(PARTICLE_AGE)
   FeedbackAnalysis sn_analysis(G, &P);

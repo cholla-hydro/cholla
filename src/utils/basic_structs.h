@@ -19,7 +19,7 @@ namespace hydro_utilities
 /*!
  * \brief A data only struct that acts as a simple 3 element vector.
  *
-  * Because this is an aggregate type, you can construct it as:
+ * Because this is an aggregate type, you can construct it as:
  * \code{.cpp}
  *    VectorXYZ<double> my_var{1.0, 2.0, 3.0}
  *    VectorXYZ<float> my_var2 = {1.0, 2.0, 3.0};
