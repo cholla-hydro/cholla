@@ -6,24 +6,25 @@
 
 #pragma once
 
-#include "../global/global.h"
 #include "../feedback/feedback.h"
 #include "../feedback/ratecalc.h"
-#include "../utils/basic_structs.h"
 #include "../feedback/stencil.h"
+#include "../global/global.h"
+#include "../utils/basic_structs.h"
 
-namespace fb_prescription {
+namespace fb_prescription
+{
 
-inline __device__ void log_fb(int cycle_num, int num_SN, bool is_resolved,
-                              Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                              Real vel_x, Real vel_y, Real vel_z, part_int_t particle_id,
-                              Real n_0_cgs = -1.23456789){
+inline __device__ void log_fb(int cycle_num, int num_SN, bool is_resolved, Real pos_x_indU, Real pos_y_indU,
+                              Real pos_z_indU, Real vel_x, Real vel_y, Real vel_z, part_int_t particle_id,
+                              Real n_0_cgs = -1.23456789)
+{
   // use json formatting so this is easier to parse from logs
   kernel_printf(
-    "..fb: { \"cycle\":%d, \"id\": %lld, \"num_SN\": %d, \"resolved\": %d, \"n0\": %g, \"pos_indU\": [%g, %g, %g], "
-    "\"vel\": [%g, %g, %g]}\n",
-    cycle_num, (long long int)(particle_id), num_SN, int(is_resolved), n_0_cgs,
-    pos_x_indU, pos_y_indU, pos_z_indU, vel_x, vel_y, vel_z);
+      "..fb: { \"cycle\":%d, \"id\": %lld, \"num_SN\": %d, \"resolved\": %d, \"n0\": %g, \"pos_indU\": [%g, %g, %g], "
+      "\"vel\": [%g, %g, %g]}\n",
+      cycle_num, (long long int)(particle_id), num_SN, int(is_resolved), n_0_cgs, pos_x_indU, pos_y_indU, pos_z_indU,
+      vel_x, vel_y, vel_z);
 }
 
 /** Compute radius of shell-formation (in kpc) of a supernova
@@ -33,7 +34,8 @@ inline __device__ void log_fb(int cycle_num, int num_SN, bool is_resolved,
  *
  *  \param ndens_cgs the average ambient number density
  */
-inline __device__ __host__ Real radius_shell_formation_kpc(Real ndens_cgs, int num_SN) {
+inline __device__ __host__ Real radius_shell_formation_kpc(Real ndens_cgs, int num_SN)
+{
   // originally, we adopted the normalization from eq.(31) from Kim & Ostriker (2015)
   // 30.2 pc (the fit to R_sh for a multiphase ambient medium) and the analytic
   // scaling for a unifom medium eq.(8)
@@ -46,56 +48,55 @@ inline __device__ __host__ Real radius_shell_formation_kpc(Real ndens_cgs, int n
   return 0.0226 * pow(ndens_cgs, -0.46) * pow(fabs(Real(num_SN)), 0.29);
 }
 
-
-template<typename Stencil>
-struct ResolvedSNPrescription{
-
+template <typename Stencil>
+struct ResolvedSNPrescription {
   /* the following 2 attributes exists for testing purposes */
-  static constexpr bool has_resolved_prescription = true;
+  static constexpr bool has_resolved_prescription   = true;
   static constexpr bool has_unresolved_prescription = false;
 
-  static __device__ hydro_utilities::VectorXYZ<Real> nearest_noGhostOverlap_pos(hydro_utilities::VectorXYZ<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
+  static __device__ hydro_utilities::VectorXYZ<Real> nearest_noGhostOverlap_pos(
+      hydro_utilities::VectorXYZ<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
   {
     return Stencil::nearest_noGhostOverlap_pos(pos_indU, ng_x, ng_y, ng_z, n_ghost);
   }
 
-    // ToDo: refactor to make use of Stencil::for_each_overlap_zone
-  template<typename Function>
-  static __device__ void for_each_possible_overlap(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                                                   int nx_g, int ny_g, Function &&f)
+  // ToDo: refactor to make use of Stencil::for_each_overlap_zone
+  template <typename Function>
+  static __device__ void for_each_possible_overlap(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, int nx_g,
+                                                   int ny_g, Function&& f)
   {
-    Stencil::for_each(hydro_utilities::VectorXYZ<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g, std::forward<Function>(f));
+    Stencil::for_each(hydro_utilities::VectorXYZ<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g,
+                      std::forward<Function>(f));
   }
 
-  static __device__ void apply_feedback(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, Real vel_x, Real vel_y, Real vel_z,
-                                        Real age, Real& mass_ref, part_int_t particle_id,
-                                        Real dx, Real dy, Real dz, int nx_g, int ny_g, int nz_g,
-                                        int n_ghost, int num_SN, int cycle_num, Real* s_info, Real* conserved_dev)
+  static __device__ void apply_feedback(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, Real vel_x, Real vel_y,
+                                        Real vel_z, Real age, Real& mass_ref, part_int_t particle_id, Real dx, Real dy,
+                                        Real dz, int nx_g, int ny_g, int nz_g, int n_ghost, int num_SN, int cycle_num,
+                                        Real* s_info, Real* conserved_dev)
   {
-    int tid  = threadIdx.x;
+    int tid = threadIdx.x;
 
-    s_info[FBInfoLUT::LEN * tid + FBInfoLUT::countSN]       += num_SN;
+    s_info[FBInfoLUT::LEN * tid + FBInfoLUT::countSN] += num_SN;
     s_info[FBInfoLUT::LEN * tid + FBInfoLUT::countResolved] += num_SN;
-    s_info[FBInfoLUT::LEN * tid + FBInfoLUT::totalEnergy]   += feedback::ENERGY_PER_SN;
+    s_info[FBInfoLUT::LEN * tid + FBInfoLUT::totalEnergy] += feedback::ENERGY_PER_SN;
 
     Real dV               = dx * dy * dz;
     Real feedback_energy  = num_SN * feedback::ENERGY_PER_SN / dV;
     Real feedback_density = num_SN * feedback::MASS_PER_SN / dV;
 
-    mass_ref = max(0.0, mass_ref - num_SN * feedback::MASS_PER_SN); // update the cluster mass
+    mass_ref = max(0.0, mass_ref - num_SN * feedback::MASS_PER_SN);  // update the cluster mass
 
-    log_fb(cycle_num, num_SN, true, pos_x_indU, pos_y_indU, pos_z_indU,
-           vel_x, vel_y, vel_z, particle_id);
+    log_fb(cycle_num, num_SN, true, pos_x_indU, pos_y_indU, pos_z_indU, vel_x, vel_y, vel_z, particle_id);
 
-    ResolvedSNPrescription::apply(hydro_utilities::VectorXYZ<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, vel_x, vel_y, vel_z,
-                                  nx_g, ny_g, nx_g * ny_g * nz_g, conserved_dev,
-                                  feedback_density, feedback_energy);
+    ResolvedSNPrescription::apply(hydro_utilities::VectorXYZ<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, vel_x, vel_y,
+                                  vel_z, nx_g, ny_g, nx_g * ny_g * nz_g, conserved_dev, feedback_density,
+                                  feedback_energy);
   }
 
   /* apply the resolved feedback prescription */
-  static __device__ void apply(hydro_utilities::VectorXYZ<Real> pos_indU, Real vel_x, Real vel_y, Real vel_z,
-                               int nx_g, int ny_g, int n_cells,
-                               Real* conserved_device, Real feedback_density, Real feedback_energy)
+  static __device__ void apply(hydro_utilities::VectorXYZ<Real> pos_indU, Real vel_x, Real vel_y, Real vel_z, int nx_g,
+                               int ny_g, int n_cells, Real* conserved_device, Real feedback_density,
+                               Real feedback_energy)
   {
     Real* density    = conserved_device;
     Real* momentum_x = &conserved_device[n_cells * grid_enum::momentum_x];
@@ -103,58 +104,56 @@ struct ResolvedSNPrescription{
     Real* momentum_z = &conserved_device[n_cells * grid_enum::momentum_z];
     Real* energy     = &conserved_device[n_cells * grid_enum::Energy];
 #ifdef DE
-    Real* gasEnergy  = &conserved_device[n_cells * grid_enum::GasEnergy];
+    Real* gasEnergy = &conserved_device[n_cells * grid_enum::GasEnergy];
 #endif
 
-    Stencil::for_each(
-      pos_indU, nx_g, ny_g,
-      [=](double stencil_vol_frac, int idx3D) {
-        // stencil_vol_frac is the fraction of the total stencil volume enclosed by the given cell
-        // indx3D can be used to index the conserved fields (it assumes ghost-zones are present)
+    Stencil::for_each(pos_indU, nx_g, ny_g, [=](double stencil_vol_frac, int idx3D) {
+      // stencil_vol_frac is the fraction of the total stencil volume enclosed by the given cell
+      // indx3D can be used to index the conserved fields (it assumes ghost-zones are present)
 
-        // Step 1: substract off the kinetic-energy-density from total energy density.
-        //  - While we aren't going to inject any of the supernova energy directly as kinetic energy,
-        //    the kinetic energy density will change to some degree because the gas density and gas
-        //    momentum will be changed
+      // Step 1: substract off the kinetic-energy-density from total energy density.
+      //  - While we aren't going to inject any of the supernova energy directly as kinetic energy,
+      //    the kinetic energy density will change to some degree because the gas density and gas
+      //    momentum will be changed
 
-        Real intial_ke_density = 0.5 * (momentum_x[idx3D] * momentum_x[idx3D] +
-                                        momentum_y[idx3D] * momentum_y[idx3D] +
-                                        momentum_z[idx3D] * momentum_z[idx3D]) / density[idx3D];
+      Real intial_ke_density = 0.5 *
+                               (momentum_x[idx3D] * momentum_x[idx3D] + momentum_y[idx3D] * momentum_y[idx3D] +
+                                momentum_z[idx3D] * momentum_z[idx3D]) /
+                               density[idx3D];
 
-        energy[idx3D] -= intial_ke_density;
+      energy[idx3D] -= intial_ke_density;
 
-        // Step 2: convert the momentum-density into the star's reference frame, update the density,
-        //  and then update the momentum-density back into the initial reference-frame
-        //  - since we aren't explicitly injecting the supernova-energy as kinetic energy, this is
-        //    equivalent to adding momentum in the original frame as is done below
-        double injected_density = stencil_vol_frac * feedback_density;
+      // Step 2: convert the momentum-density into the star's reference frame, update the density,
+      //  and then update the momentum-density back into the initial reference-frame
+      //  - since we aren't explicitly injecting the supernova-energy as kinetic energy, this is
+      //    equivalent to adding momentum in the original frame as is done below
+      double injected_density = stencil_vol_frac * feedback_density;
 
-        momentum_x[idx3D] += vel_x * injected_density;
-        momentum_y[idx3D] += vel_y * injected_density;
-        momentum_z[idx3D] += vel_z * injected_density;
+      momentum_x[idx3D] += vel_x * injected_density;
+      momentum_y[idx3D] += vel_y * injected_density;
+      momentum_z[idx3D] += vel_z * injected_density;
 
-        // Step 2b: actually update the density
-        density[idx3D] += injected_density;
+      // Step 2b: actually update the density
+      density[idx3D] += injected_density;
 
-        // Step 3: inject thermal energy
-  #ifdef DE
-        gasEnergy[idx3D] += stencil_vol_frac * feedback_energy;
-  #endif
-        energy[idx3D] += stencil_vol_frac * feedback_energy;
+      // Step 3: inject thermal energy
+#ifdef DE
+      gasEnergy[idx3D] += stencil_vol_frac * feedback_energy;
+#endif
+      energy[idx3D] += stencil_vol_frac * feedback_energy;
 
-        // Step 4: reintroduce the kinetic energy density back to the total energy field
-        energy[idx3D] += 0.5 * (momentum_x[idx3D] * momentum_x[idx3D] +
-                                momentum_y[idx3D] * momentum_y[idx3D] +
-                                momentum_z[idx3D] * momentum_z[idx3D]) / density[idx3D];
-      }
-    );
+      // Step 4: reintroduce the kinetic energy density back to the total energy field
+      energy[idx3D] += 0.5 *
+                       (momentum_x[idx3D] * momentum_x[idx3D] + momentum_y[idx3D] * momentum_y[idx3D] +
+                        momentum_z[idx3D] * momentum_z[idx3D]) /
+                       density[idx3D];
+    });
   }
-
 };
 
 // Define some type aliases to be able to more easily refer to more conveniently
 // refer to different flavors of Resolved Feedback Prescriptions
-using CiCResolvedSNPrescription = ResolvedSNPrescription<fb_stencil::CIC>;
+using CiCResolvedSNPrescription      = ResolvedSNPrescription<fb_stencil::CIC>;
 using Sphere27ResolvedSNPrescription = ResolvedSNPrescription<fb_stencil::Sphere27<2>>;
 // the following case is mostly experimental
 using SphereBinaryResolvedSNPrescription = ResolvedSNPrescription<fb_stencil::SphereBinary<3>>;
@@ -174,9 +173,9 @@ using SphereBinaryResolvedSNPrescription = ResolvedSNPrescription<fb_stencil::Sp
  *        had 1 cell with a particularly high velocity, but below-average density. This approach
  *        would give the gas in that cell a lot of additional inertia, which could cause problems
  *   2. Holding the momentum constant at each location
- *      - Pro: You would ALWAYS avoid converting a very fast-moving underdense cell into a 
+ *      - Pro: You would ALWAYS avoid converting a very fast-moving underdense cell into a
  *        fast-moving average-density cell (This avoid the CON of holding velocity constant)
- *      - Con: In the case where all cells are co-rotating around the disk, but have differing 
+ *      - Con: In the case where all cells are co-rotating around the disk, but have differing
  *        densities, the initially under-dense (over-dense) cells would move slower (faster) after
  *        the overwrite operation. (This loses the PRO of holding velocity constant)
  *   3. Overwriting the momentum of each cell with the average momentum
@@ -185,19 +184,19 @@ using SphereBinaryResolvedSNPrescription = ResolvedSNPrescription<fb_stencil::Sp
  * Since we are already overwriting the density with the average value anyways, we decided that it
  * made the most sense to adopt option #3
  */
-template<typename Stencil>
-__device__ void Overwrite_Average(hydro_utilities::VectorXYZ<Real> stencil_pos_indU, int nx_g, int ny_g, int nz_g, Real* conserved_device,
-                                  Real overwrite_density)
+template <typename Stencil>
+__device__ void Overwrite_Average(hydro_utilities::VectorXYZ<Real> stencil_pos_indU, int nx_g, int ny_g, int nz_g,
+                                  Real* conserved_device, Real overwrite_density)
 {
   // step 1: load in the relevant fields
   // - Note: even if we were holding the momentum density constant in each cell, we would need still
   //   need to modify total energy to reflect changes in kinetic energy density
-  const int n_cells      = nx_g * ny_g * nz_g;
-  Real* density    = conserved_device;
-  Real* momentum_x = &conserved_device[n_cells * grid_enum::momentum_x];
-  Real* momentum_y = &conserved_device[n_cells * grid_enum::momentum_y];
-  Real* momentum_z = &conserved_device[n_cells * grid_enum::momentum_z];
-  Real* energy     = &conserved_device[n_cells * grid_enum::Energy];
+  const int n_cells = nx_g * ny_g * nz_g;
+  Real* density     = conserved_device;
+  Real* momentum_x  = &conserved_device[n_cells * grid_enum::momentum_x];
+  Real* momentum_y  = &conserved_device[n_cells * grid_enum::momentum_y];
+  Real* momentum_z  = &conserved_device[n_cells * grid_enum::momentum_z];
+  Real* energy      = &conserved_device[n_cells * grid_enum::Energy];
 
   // step 2: determine the average momentum in each cell
   // - Note: we use overwrite_density as the average density since the caller already needed to
@@ -206,33 +205,32 @@ __device__ void Overwrite_Average(hydro_utilities::VectorXYZ<Real> stencil_pos_i
   {
     Real tot_momentum[3] = {0.0, 0.0, 0.0};
     int num              = 0;
-    Stencil::for_each_overlap_zone( stencil_pos_indU, nx_g, ny_g, [&](int idx3D)
-    {
+    Stencil::for_each_overlap_zone(stencil_pos_indU, nx_g, ny_g, [&](int idx3D) {
       tot_momentum[0] += momentum_x[idx3D];
       tot_momentum[1] += momentum_y[idx3D];
       tot_momentum[2] += momentum_z[idx3D];
       num++;
     });
-    avg_momentum = hydro_utilities::VectorXYZ<Real>{tot_momentum[0] / num, tot_momentum[1] / num,
-                              tot_momentum[2] / num};
+    avg_momentum =
+        hydro_utilities::VectorXYZ<Real>{tot_momentum[0] / num, tot_momentum[1] / num, tot_momentum[2] / num};
   }
 
   // step 3: Actually overwrite the fields
-  const Real new_ke_density = 0.5 * (avg_momentum[0] * avg_momentum[0] +
-                                     avg_momentum[1] * avg_momentum[1] +
-                                     avg_momentum[2] * avg_momentum[2]) / overwrite_density;
-  Stencil::for_each_overlap_zone( stencil_pos_indU, nx_g, ny_g, [=](int idx3D)
-  {
+  const Real new_ke_density =
+      0.5 *
+      (avg_momentum[0] * avg_momentum[0] + avg_momentum[1] * avg_momentum[1] + avg_momentum[2] * avg_momentum[2]) /
+      overwrite_density;
+  Stencil::for_each_overlap_zone(stencil_pos_indU, nx_g, ny_g, [=](int idx3D) {
     // precompute 1/initial_density (take care to avoid divide by 0)
-    const Real inv_initial_dens  = 1.0 / (density[idx3D] + TINY_NUMBER * (density[idx3D] == 0.0));  
-    const Real intial_ke_density = 0.5 * inv_initial_dens * (momentum_x[idx3D] * momentum_x[idx3D] +
-                                                             momentum_y[idx3D] * momentum_y[idx3D] +
-                                                             momentum_z[idx3D] * momentum_z[idx3D]);
-    density[idx3D] = overwrite_density;
+    const Real inv_initial_dens  = 1.0 / (density[idx3D] + TINY_NUMBER * (density[idx3D] == 0.0));
+    const Real intial_ke_density = 0.5 * inv_initial_dens *
+                                   (momentum_x[idx3D] * momentum_x[idx3D] + momentum_y[idx3D] * momentum_y[idx3D] +
+                                    momentum_z[idx3D] * momentum_z[idx3D]);
+    density[idx3D]    = overwrite_density;
     momentum_x[idx3D] = avg_momentum[0];
     momentum_y[idx3D] = avg_momentum[1];
     momentum_z[idx3D] = avg_momentum[2];
-    energy[idx3D] += new_ke_density-intial_ke_density;
+    energy[idx3D] += new_ke_density - intial_ke_density;
   });
 }
 
@@ -250,13 +248,11 @@ __device__ void Overwrite_Average(hydro_utilities::VectorXYZ<Real> stencil_pos_i
  * - momentum and total energy are not updated self-consistently
  */
 template <typename Stencil>
-inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                                                        Real vel_x, Real vel_y, Real vel_z,
-                                                        int nx_g, int ny_g, int n_ghost,
-                                                        int n_cells, Real* conserved_device,
-                                                        Real feedback_density, Real feedback_momentum, Real feedback_energy)
+inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, Real vel_x,
+                                                        Real vel_y, Real vel_z, int nx_g, int ny_g, int n_ghost,
+                                                        int n_cells, Real* conserved_device, Real feedback_density,
+                                                        Real feedback_momentum, Real feedback_energy)
 {
-
   Real* density    = conserved_device;
   Real* momentum_x = &conserved_device[n_cells * grid_enum::momentum_x];
   Real* momentum_y = &conserved_device[n_cells * grid_enum::momentum_y];
@@ -267,100 +263,97 @@ inline __device__ void Apply_Energy_Momentum_Deposition(Real pos_x_indU, Real po
 #endif
 
   Stencil::for_each_vecflavor(
-    {pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g,
-    [=](Real scalar_weight, hydro_utilities::VectorXYZ<Real> momentum_weights, int idx3D) {
+      {pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g,
+      [=](Real scalar_weight, hydro_utilities::VectorXYZ<Real> momentum_weights, int idx3D) {
+        // precompute 1/initial_density (take care to avoid divide by 0)
+        const Real inv_initial_density = 1.0 / (density[idx3D] + TINY_NUMBER * (density[idx3D] == 0.0));
 
-      // precompute 1/initial_density (take care to avoid divide by 0)
-      const Real inv_initial_density = 1.0 / (density[idx3D] + TINY_NUMBER * (density[idx3D] == 0.0));
+        // Step 1: substract off the kinetic-energy-density from total energy density.
+        //  - Regardles of whether we inject thermal energy, the kinetic energy density will change to
+        //    some degree because the gas density and gas momentum will be changed
 
-      // Step 1: substract off the kinetic-energy-density from total energy density.
-      //  - Regardles of whether we inject thermal energy, the kinetic energy density will change to
-      //    some degree because the gas density and gas momentum will be changed
+        const Real intial_ke_density = 0.5 * inv_initial_density *
+                                       (momentum_x[idx3D] * momentum_x[idx3D] + momentum_y[idx3D] * momentum_y[idx3D] +
+                                        momentum_z[idx3D] * momentum_z[idx3D]);
+        energy[idx3D] -= intial_ke_density;
 
-      const Real intial_ke_density = 0.5 * inv_initial_density * (momentum_x[idx3D] * momentum_x[idx3D] +
-                                                                  momentum_y[idx3D] * momentum_y[idx3D] +
-                                                                  momentum_z[idx3D] * momentum_z[idx3D]);
-      energy[idx3D] -= intial_ke_density;
+        // Step 2: convert the gas's momentum density to its value in the particle's reference frame
+        //  - This must be done after subtracting off KE
+        //  - This could probably be written more concisely (momentum_x[idx3D] -= density[idx3D] * vel_x),
+        //    but before we do that, we should leave the 3 lines of algebra used to derive that in the
+        //    comments since the abbreviated form "looks wrong" at a quick glance
+        {
+          // compute the local velocity
+          Real gas_vx = inv_initial_density * momentum_x[idx3D];
+          Real gas_vy = inv_initial_density * momentum_y[idx3D];
+          Real gas_vz = inv_initial_density * momentum_z[idx3D];
 
-      // Step 2: convert the gas's momentum density to its value in the particle's reference frame
-      //  - This must be done after subtracting off KE
-      //  - This could probably be written more concisely (momentum_x[idx3D] -= density[idx3D] * vel_x),
-      //    but before we do that, we should leave the 3 lines of algebra used to derive that in the
-      //    comments since the abbreviated form "looks wrong" at a quick glance
-      {
-        // compute the local velocity
-        Real gas_vx = inv_initial_density * momentum_x[idx3D];
-        Real gas_vy = inv_initial_density * momentum_y[idx3D];
-        Real gas_vz = inv_initial_density * momentum_z[idx3D];
+          // adjust the velocity so its in the new frame
+          gas_vx -= vel_x;
+          gas_vy -= vel_y;
+          gas_vz -= vel_z;
 
-        // adjust the velocity so its in the new frame
-        gas_vx -= vel_x;
-        gas_vy -= vel_y;
-        gas_vz -= vel_z;
+          // update the momentum
+          momentum_x[idx3D] = density[idx3D] * gas_vx;
+          momentum_y[idx3D] = density[idx3D] * gas_vy;
+          momentum_z[idx3D] = density[idx3D] * gas_vz;
+        }
 
-        // update the momentum
-        momentum_x[idx3D] = density[idx3D] * gas_vx;
-        momentum_y[idx3D] = density[idx3D] * gas_vy;
-        momentum_z[idx3D] = density[idx3D] * gas_vz;
-      }
+        // step 3a: inject density, and momentum
+        density[idx3D] += scalar_weight * feedback_density;
+        momentum_x[idx3D] += momentum_weights[0] * feedback_momentum;
+        momentum_y[idx3D] += momentum_weights[1] * feedback_momentum;
+        momentum_z[idx3D] += momentum_weights[2] * feedback_momentum;
 
-      // step 3a: inject density, and momentum
-      density[idx3D] += scalar_weight * feedback_density;
-      momentum_x[idx3D] += momentum_weights[0] * feedback_momentum;
-      momentum_y[idx3D] += momentum_weights[1] * feedback_momentum;
-      momentum_z[idx3D] += momentum_weights[2] * feedback_momentum;
+        // Step 3b: inject any thermal energy
+        // - Note: its weird to be inject a fixed amount of thermal energy and momentum. This means we are
+        //   injecting a variable amount of total energy...
 
-      // Step 3b: inject any thermal energy
-      // - Note: its weird to be inject a fixed amount of thermal energy and momentum. This means we are
-      //   injecting a variable amount of total energy...
-
-      energy[idx3D] += scalar_weight * feedback_energy;
+        energy[idx3D] += scalar_weight * feedback_energy;
 #ifdef DE
-      gas_energy[idx3D] += scalar_weight * feedback_energy;
+        gas_energy[idx3D] += scalar_weight * feedback_energy;
 #endif
 
-      // precompute 1/final_density (take care to avoid divide by 0)
-      const Real inv_final_density = 1.0 / (density[idx3D] + TINY_NUMBER * (density[idx3D] == 0.0));
+        // precompute 1/final_density (take care to avoid divide by 0)
+        const Real inv_final_density = 1.0 / (density[idx3D] + TINY_NUMBER * (density[idx3D] == 0.0));
 
-      // Step 4: convert the momentum back to the starting reference frame.
-      //  - again, this could certainly be done more concisely
-      {
-        // compute the local velocity
-        Real gas_vx = inv_final_density * momentum_x[idx3D];
-        Real gas_vy = inv_final_density * momentum_y[idx3D];
-        Real gas_vz = inv_final_density * momentum_z[idx3D];
+        // Step 4: convert the momentum back to the starting reference frame.
+        //  - again, this could certainly be done more concisely
+        {
+          // compute the local velocity
+          Real gas_vx = inv_final_density * momentum_x[idx3D];
+          Real gas_vy = inv_final_density * momentum_y[idx3D];
+          Real gas_vz = inv_final_density * momentum_z[idx3D];
 
-        // adjust the velocity that it's in the original frame (it's no longer in the particle's frame)
-        gas_vx += vel_x;
-        gas_vy += vel_y;
-        gas_vz += vel_z;
+          // adjust the velocity that it's in the original frame (it's no longer in the particle's frame)
+          gas_vx += vel_x;
+          gas_vy += vel_y;
+          gas_vz += vel_z;
 
-        // update the momentum
-        momentum_x[idx3D] = density[idx3D] * gas_vx;
-        momentum_y[idx3D] = density[idx3D] * gas_vy;
-        momentum_z[idx3D] = density[idx3D] * gas_vz;
-      }
+          // update the momentum
+          momentum_x[idx3D] = density[idx3D] * gas_vx;
+          momentum_y[idx3D] = density[idx3D] * gas_vy;
+          momentum_z[idx3D] = density[idx3D] * gas_vz;
+        }
 
-      // Step 5: add the new kinetic energy density to the total_energy density field
-      //  - currently the total_energy density field just holds the non-kinetic energy density
-      //  - this needs to happen after changing reference frames (since KE is reference frame dependent)
-      energy[idx3D] += 0.5 * inv_final_density * (momentum_x[idx3D] * momentum_x[idx3D] +
-                                                  momentum_y[idx3D] * momentum_y[idx3D] +
-                                                  momentum_z[idx3D] * momentum_z[idx3D]);
-    }
-  );
+        // Step 5: add the new kinetic energy density to the total_energy density field
+        //  - currently the total_energy density field just holds the non-kinetic energy density
+        //  - this needs to happen after changing reference frames (since KE is reference frame dependent)
+        energy[idx3D] += 0.5 * inv_final_density *
+                         (momentum_x[idx3D] * momentum_x[idx3D] + momentum_y[idx3D] * momentum_y[idx3D] +
+                          momentum_z[idx3D] * momentum_z[idx3D]);
+      });
 }
 
-
 /* Legacy SNe prescription that combines resolved and unresolved */
-template<typename ResolvedPrescriptionT, typename UnresolvedStencil>
+template <typename ResolvedPrescriptionT, typename UnresolvedStencil>
 struct ResolvedAndUnresolvedSNe {
-
   /* the following 2 attributes exists for testing purposes */
-  static constexpr bool has_resolved_prescription = true;
+  static constexpr bool has_resolved_prescription   = true;
   static constexpr bool has_unresolved_prescription = true;
 
-  static __device__ hydro_utilities::VectorXYZ<Real> nearest_noGhostOverlap_pos(hydro_utilities::VectorXYZ<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
+  static __device__ hydro_utilities::VectorXYZ<Real> nearest_noGhostOverlap_pos(
+      hydro_utilities::VectorXYZ<Real> pos_indU, int ng_x, int ng_y, int ng_z, int n_ghost)
   {
     // for right now, we are assuming that the stencil of the unresolved feedback is the same size or
     // bigger than the stencil used for the resolved feedback
@@ -368,22 +361,23 @@ struct ResolvedAndUnresolvedSNe {
   }
 
   // ToDo: refactor to make use of UnresolvedStencil::for_each_overlap_zone
-  template<typename Function>
-  static __device__ void for_each_possible_overlap(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU,
-                                                   int nx_g, int ny_g, Function &&f)
+  template <typename Function>
+  static __device__ void for_each_possible_overlap(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, int nx_g,
+                                                   int ny_g, Function&& f)
   {
-    UnresolvedStencil::for_each(hydro_utilities::VectorXYZ<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g, std::forward<Function>(f));
+    UnresolvedStencil::for_each(hydro_utilities::VectorXYZ<Real>{pos_x_indU, pos_y_indU, pos_z_indU}, nx_g, ny_g,
+                                std::forward<Function>(f));
   }
 
-  static __device__ void apply_feedback(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, Real vel_x, Real vel_y, Real vel_z,
-                                        Real age, Real& mass_ref, part_int_t particle_id,
-                                        Real dx, Real dy, Real dz, int nx_g, int ny_g, int nz_g, int n_ghost,
-                                        int num_SN, int cycle_num, Real* s_info, Real* conserved_dev)
+  static __device__ void apply_feedback(Real pos_x_indU, Real pos_y_indU, Real pos_z_indU, Real vel_x, Real vel_y,
+                                        Real vel_z, Real age, Real& mass_ref, part_int_t particle_id, Real dx, Real dy,
+                                        Real dz, int nx_g, int ny_g, int nz_g, int n_ghost, int num_SN, int cycle_num,
+                                        Real* s_info, Real* conserved_dev)
   {
-    int tid  = threadIdx.x;
+    int tid = threadIdx.x;
 
-    Real dV = dx * dy * dz;
-    int n_cells    = nx_g * ny_g * nz_g;
+    Real dV     = dx * dy * dz;
+    int n_cells = nx_g * ny_g * nz_g;
 
     hydro_utilities::VectorXYZ<Real> pos_indU{pos_x_indU, pos_y_indU, pos_z_indU};
 
@@ -394,9 +388,10 @@ struct ResolvedAndUnresolvedSNe {
     {
       Real dtot = 0.0;
       int num   = 0;
-      UnresolvedStencil::for_each_overlap_zone(
-        pos_indU, nx_g, ny_g,
-        [&dtot, &num, density](int idx3) { dtot += density[idx3]; num++; });
+      UnresolvedStencil::for_each_overlap_zone(pos_indU, nx_g, ny_g, [&dtot, &num, density](int idx3) {
+        dtot += density[idx3];
+        num++;
+      });
       avg_mass_dens = dtot / num;
     }
     Real n_0_cgs = avg_mass_dens * DENSITY_UNIT / (MU * MP);  // average number density in cgs
@@ -405,30 +400,28 @@ struct ResolvedAndUnresolvedSNe {
 
     Real shell_radius = radius_shell_formation_kpc(n_0_cgs, num_SN);
 
-    const bool is_resolved =  (3 * max(dx, max(dy, dz)) <= shell_radius);
+    const bool is_resolved = (3 * max(dx, max(dy, dz)) <= shell_radius);
 
-    mass_ref = max(0.0, mass_ref - num_SN * feedback::MASS_PER_SN);  // update the cluster mass
+    mass_ref              = max(0.0, mass_ref - num_SN * feedback::MASS_PER_SN);  // update the cluster mass
     Real feedback_density = num_SN * feedback::MASS_PER_SN / dV;
 
-    log_fb(cycle_num, num_SN, is_resolved, pos_x_indU, pos_y_indU, pos_z_indU,
-           vel_x, vel_y, vel_z, particle_id, n_0_cgs);
+    log_fb(cycle_num, num_SN, is_resolved, pos_x_indU, pos_y_indU, pos_z_indU, vel_x, vel_y, vel_z, particle_id,
+           n_0_cgs);
 
     if (is_resolved) {
       // inject energy and density
-      Real feedback_energy  = num_SN * feedback::ENERGY_PER_SN / dV;
+      Real feedback_energy = num_SN * feedback::ENERGY_PER_SN / dV;
 
       s_info[FBInfoLUT::LEN * tid + FBInfoLUT::countResolved] += num_SN;
-      s_info[FBInfoLUT::LEN * tid + FBInfoLUT::totalEnergy]   += feedback_energy * dV;
+      s_info[FBInfoLUT::LEN * tid + FBInfoLUT::totalEnergy] += feedback_energy * dV;
 
-      ResolvedPrescriptionT::apply(pos_indU, vel_x, vel_y, vel_z, nx_g, ny_g, n_cells,
-                                   conserved_dev, feedback_density, feedback_energy);
+      ResolvedPrescriptionT::apply(pos_indU, vel_x, vel_y, vel_z, nx_g, ny_g, n_cells, conserved_dev, feedback_density,
+                                   feedback_energy);
     } else {
-
       // only unresolved SN feedback involves averaging the densities.
       // -> we decided that if we are averaging the densities, it probably also
       //    makes sense to average the momentum
-      Overwrite_Average<UnresolvedStencil>(pos_indU, nx_g, ny_g, nz_g,
-                                           conserved_dev, avg_mass_dens);
+      Overwrite_Average<UnresolvedStencil>(pos_indU, nx_g, ny_g, nz_g, conserved_dev, avg_mass_dens);
 
       // inject momentum and density
 
@@ -438,50 +431,51 @@ struct ResolvedAndUnresolvedSNe {
       //    paper.
       // -> the factor of pow(Real(num_SN), 0.93) has a less clear origin
       //    - my speculation is that it comes from the E_{51}^{0.93} term in equation 17 of Kim &
-      //      Ostriker (2015). 
+      //      Ostriker (2015).
       //    - Note: in that other equation, the coefficient is slightly different AND n_0_cgs's
       //      exponent is also slightly different
       //    - It's not clear to me whether we should include this term.
-      // -> Earlier versions of the code divided by sqrt(3). 
+      // -> Earlier versions of the code divided by sqrt(3).
       //    - I didn't totally understand this, but I'm confident that this is due to the fact that
-      //      we weren't explicitly normalizing the momentum based on the full normalized stencil 
+      //      we weren't explicitly normalizing the momentum based on the full normalized stencil
       //      (effectively momentum normalization was computed a prior). Now we do normalize by the
       //      the total magnitude, so it's definitely unnecessary!
-      //    - if we ever want to reintroduce this extra factor of sqrt(3), based on the current 
+      //    - if we ever want to reintroduce this extra factor of sqrt(3), based on the current
       //      organization of the code, we should now do it in the stencil.
-      Real feedback_momentum = feedback::FINAL_MOMENTUM * pow(n_0_cgs, -0.17) * pow(Real(num_SN), 0.93);
+      Real feedback_momentum         = feedback::FINAL_MOMENTUM * pow(n_0_cgs, -0.17) * pow(Real(num_SN), 0.93);
       Real feedback_momentum_density = feedback_momentum / dV;
-      Real feedback_energy = 0.0; // for now, don't inject any energy
+      Real feedback_energy           = 0.0;  // for now, don't inject any energy
 
-      s_info[FBInfoLUT::LEN * tid + FBInfoLUT::countUnresolved]  += num_SN;
-      s_info[FBInfoLUT::LEN * tid + FBInfoLUT::totalMomentum]    += feedback_momentum;
+      s_info[FBInfoLUT::LEN * tid + FBInfoLUT::countUnresolved] += num_SN;
+      s_info[FBInfoLUT::LEN * tid + FBInfoLUT::totalMomentum] += feedback_momentum;
       s_info[FBInfoLUT::LEN * tid + FBInfoLUT::totalUnresEnergy] += feedback_energy * dV;
-      Apply_Energy_Momentum_Deposition<UnresolvedStencil>(
-          pos_x_indU, pos_y_indU, pos_z_indU, vel_x, vel_y, vel_z, nx_g, ny_g, n_ghost, n_cells, conserved_dev,
-          feedback_density, feedback_momentum_density, feedback_energy);
+      Apply_Energy_Momentum_Deposition<UnresolvedStencil>(pos_x_indU, pos_y_indU, pos_z_indU, vel_x, vel_y, vel_z, nx_g,
+                                                          ny_g, n_ghost, n_cells, conserved_dev, feedback_density,
+                                                          feedback_momentum_density, feedback_energy);
     }
   }
 };
 
 // the next line defines a type-aliases to make it easier to refer to different hybrid prescriptions
 // - this uses Orlando's unresolved feedback depostion
-using CiCLegacyResolvedAndUnresolvedPrescription = ResolvedAndUnresolvedSNe<CiCResolvedSNPrescription, fb_stencil::LegacyCIC27>;
+using CiCLegacyResolvedAndUnresolvedPrescription =
+    ResolvedAndUnresolvedSNe<CiCResolvedSNPrescription, fb_stencil::LegacyCIC27>;
 
 // the next line defines a shorthand for describing a prescription that is mostly used for testing purposes
 // - in this case, we adopt a slightly different strategy for momentum-feedback. We still use 27 cells,
 //   but I think some of the choices make more sense (and are easier to understand). With that said, testing
 //   doesn't seem to reveal much of a difference from the prior case. So we primarily stick with the prior case
 //   (since we used it to run simulations already)
-using HybridResolvedAndUnresolvedPrescription = ResolvedAndUnresolvedSNe<CiCResolvedSNPrescription, fb_stencil::Sphere27<2>>;
+using HybridResolvedAndUnresolvedPrescription =
+    ResolvedAndUnresolvedSNe<CiCResolvedSNPrescription, fb_stencil::Sphere27<2>>;
 
 // the following code is left over from a much earlier version:
 
 /*
-inline __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real& mass_ref, part_int_t particle_id,
-                                     Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy,
-                                     Real dz, int nx_g, int ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt,
-                                     const feedback::SWRateCalc sw_calc, Real* s_info,
-                                     Real* conserved_dev, Real gamma, int indx_x, int indx_y, int indx_z)
+inline __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real& mass_ref, part_int_t
+particle_id, Real xMin, Real yMin, Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx_g, int
+ny_g, int nz_g, int n_ghost, int n_step, Real t, Real dt, const feedback::SWRateCalc sw_calc, Real* s_info, Real*
+conserved_dev, Real gamma, int indx_x, int indx_y, int indx_z)
 {
   int tid  = threadIdx.x;
 
@@ -518,4 +512,4 @@ inline __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real ag
 }
 */
 
-} // fb_prescription namespace
+}  // namespace fb_prescription

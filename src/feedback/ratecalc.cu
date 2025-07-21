@@ -1,17 +1,14 @@
 #include <string>
 #include <vector>
 
-#include "../io/io.h"
-#include "../io/ParameterMap.h"
-#include "../feedback/s99table.h"
 #include "../feedback/ratecalc.h"
-
-
+#include "../feedback/s99table.h"
+#include "../io/ParameterMap.h"
+#include "../io/io.h"
 
 feedback::SNRateCalc::SNRateCalc(ParameterMap& pmap)
-  : SNRateCalc() // the dfault constructor sets up some sensible defaults
+    : SNRateCalc()  // the dfault constructor sets up some sensible defaults
 {
-
   chprintf("feedback::Init_State start\n");
 
   std::string snr_filename(pmap.value_or("feedback.snr_filename", ""));
@@ -21,19 +18,19 @@ feedback::SNRateCalc::SNRateCalc(ParameterMap& pmap)
   } else {
     chprintf("Specified a SNR filename %s.\n", snr_filename.data());
 
-    feedback::S99Table tab = parse_s99_table(snr_filename, feedback::S99TabKind::supernova);
+    feedback::S99Table tab     = parse_s99_table(snr_filename, feedback::S99TabKind::supernova);
     const std::size_t time_col = tab.col_index("TIME");
     const std::size_t rate_col = tab.col_index("ALL SUPERNOVAE: TOTAL RATE");
-    const std::size_t nrows = tab.nrows();
+    const std::size_t nrows    = tab.nrows();
 
     // read in array of supernova rate values.
     std::vector<Real> snr_time(nrows);
     std::vector<Real> snr(nrows);
 
-    for (std::size_t i = 0; i < nrows; i++){
+    for (std::size_t i = 0; i < nrows; i++) {
       // in the following divide by # years per kyr (1000)
       snr_time[i] = tab(time_col, i) / 1000;
-      snr[i] = pow(10,tab(rate_col, i)) * 1000 / S_99_TOTAL_MASS;
+      snr[i]      = pow(10, tab(rate_col, i)) * 1000 / S_99_TOTAL_MASS;
     }
 
     time_sn_end_   = snr_time[snr_time.size() - 1];
@@ -44,9 +41,7 @@ feedback::SNRateCalc::SNRateCalc(ParameterMap& pmap)
 
     GPU_Error_Check(cudaMalloc((void**)&dev_snr_, snr.size() * sizeof(Real)));
     GPU_Error_Check(cudaMemcpy(dev_snr_, snr.data(), snr.size() * sizeof(Real), cudaMemcpyHostToDevice));
-
   }
-
 }
 
 /* Read in Stellar wind data from Starburst 99. If no file exists, assume a
@@ -55,12 +50,8 @@ feedback::SNRateCalc::SNRateCalc(ParameterMap& pmap)
  *
  * @param P reference to parameters struct. Passes in starburst 99 filepath
  */
-feedback::SWRateCalc::SWRateCalc( ParameterMap& P)
-  : dev_sw_p_(nullptr),
-    dev_sw_e_(nullptr),
-    sw_dt_(0.0),
-    time_sw_start_(0.0),
-    time_sw_end_(0.0)
+feedback::SWRateCalc::SWRateCalc(ParameterMap& P)
+    : dev_sw_p_(nullptr), dev_sw_e_(nullptr), sw_dt_(0.0), time_sw_start_(0.0), time_sw_end_(0.0)
 {
 #if (!defined(FEEDBACK)) || defined(NO_WIND_FEEDBACK)
   return;
@@ -80,7 +71,7 @@ feedback::SWRateCalc::SWRateCalc( ParameterMap& P)
   std::vector<Real> sw_p(nrows);
   std::vector<Real> sw_e(nrows);
 
-  for (std::size_t i = 0; i < nrows; i++){
+  for (std::size_t i = 0; i < nrows; i++) {
     sw_time[i] = tab(COL_TIME, i) / 1000;  // divide by # years per kyr (1000)
     sw_e[i]    = tab(COL_POWER, i);
     sw_p[i]    = tab(COL_ALL_P_FLUX, i);

@@ -17,22 +17,21 @@
 
 // we define the following as a struct so we can satisfy rules about namespace and struct
 // naming. But you should think of it as a namespace
-struct FBInfoLUT
-{
-// this enum acts like a lookup table (LUT). It maps the names of analysis statistics to
-// contiguous indices. LEN specfies the number of named analysis statistics
-enum {
-  countSN = 0,
-  countResolved,
-  countUnresolved,
-  totalEnergy,
-  totalMomentum,
-  totalUnresEnergy,
-  totalWindMomentum,
-  totalWindEnergy,
-  // make sure the following is always the last entry so that it reflects the number of entries
-  LEN
-};
+struct FBInfoLUT {
+  // this enum acts like a lookup table (LUT). It maps the names of analysis statistics to
+  // contiguous indices. LEN specfies the number of named analysis statistics
+  enum {
+    countSN = 0,
+    countResolved,
+    countUnresolved,
+    totalEnergy,
+    totalMomentum,
+    totalUnresEnergy,
+    totalWindMomentum,
+    totalWindEnergy,
+    // make sure the following is always the last entry so that it reflects the number of entries
+    LEN
+  };
 };
 
 namespace feedback
@@ -51,4 +50,3 @@ std::function<void(Grid3D&)> configure_feedback_callback(struct Parameters& P, P
                                                          FeedbackAnalysis& analysis);
 
 }  // namespace feedback
-

@@ -7,42 +7,45 @@
 
 #include "../utils/error_handling.h"
 
-namespace feedback{
+namespace feedback
+{
 
 /* kinds of starburst99 datatables used by cholla */
 enum class S99TabKind { supernova, stellar_wind };
 
 /* Class that represents a parsed starburst99 table. This is a little over the top, but it's
- * probably fine. We just use this when reading the data out of the table 
+ * probably fine. We just use this when reading the data out of the table
  */
-class S99Table {
-
-public:
-  S99Table(std::vector<std::string> col_names, std::vector<double> data,
-           std::size_t ncols, std::size_t nrows)
-    : col_names_(std::move(col_names)), data_(std::move(data)), ncols_(ncols), nrows_(nrows)
-  { }
+class S99Table
+{
+ public:
+  S99Table(std::vector<std::string> col_names, std::vector<double> data, std::size_t ncols, std::size_t nrows)
+      : col_names_(std::move(col_names)), data_(std::move(data)), ncols_(ncols), nrows_(nrows)
+  {
+  }
 
   /* number of rows in the table */
-  std::size_t nrows() const noexcept {return nrows_;}
+  std::size_t nrows() const noexcept { return nrows_; }
 
   /* number of columns in the table */
-  std::size_t ncols() const noexcept {return ncols_;}
+  std::size_t ncols() const noexcept { return ncols_; }
 
   /* access an entry in the table */
-  double operator() (std::size_t col_ind, std::size_t row_ind) const noexcept
+  double operator()(std::size_t col_ind, std::size_t row_ind) const noexcept
   {
     // probably could remove this check...
     if ((col_ind >= ncols_) or (row_ind >= nrows_)) {
-      CHOLLA_ERROR("invalid index col_ind, %zu, must be less than %zu and row_ind, %zu, must be "
-                   "less than %zu",
-                   col_ind, ncols_, row_ind, nrows_);
+      CHOLLA_ERROR(
+          "invalid index col_ind, %zu, must be less than %zu and row_ind, %zu, must be "
+          "less than %zu",
+          col_ind, ncols_, row_ind, nrows_);
     }
     return data_[row_ind * ncols_ + col_ind];
   }
 
   /* query the name of a given column */
-  std::string col_name(std::size_t col_ind) const noexcept {
+  std::string col_name(std::size_t col_ind) const noexcept
+  {
     if (col_ind < ncols_) return col_names_[col_ind];
     return "";
   }
@@ -56,16 +59,16 @@ public:
     CHOLLA_ERROR("the table doesn't hold a column called: \"%s\"", col_name.c_str());
   }
 
-private:  // attributes  
+ private:  // attributes
   std::vector<std::string> col_names_;
   std::vector<double> data_;
   std::size_t ncols_;
   std::size_t nrows_;
 };
 
-}
+}  // namespace feedback
 
-/* Parse a Starburst99 table 
+/* Parse a Starburst99 table
  *
  * TODO: put this back into the feedback namespace
  */

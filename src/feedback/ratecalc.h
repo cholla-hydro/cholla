@@ -9,7 +9,6 @@
   #include <curand_kernel.h>
 #endif  // O_HIP
 
-
 #include <string>
 
 #include "../global/global.h"
@@ -33,15 +32,15 @@ typedef curandStateMRG32k3a_t feedback_prng_t;
 // mass values.
 #define S_99_TOTAL_MASS 1e6
 
-namespace feedback{
+namespace feedback
+{
 /* The following should really be macros */
 // supernova rate: 1SN / 100 solar masses per 36 Myr
-static const Real DEFAULT_SNR   = 2.8e-7;
+static const Real DEFAULT_SNR = 2.8e-7;
 // default value for when SNe stop (40 Myr)
 static const Real DEFAULT_SN_END = 40000;
 // default value for when SNe start (4 Myr)
 static const Real DEFAULT_SN_START = 4000;
-
 
 /* Encapsulate Supernova Rate Calculation that is primarily intended to interpolate the data from
  * starburst99 tables.
@@ -49,23 +48,22 @@ static const Real DEFAULT_SN_START = 4000;
  * @note
  * The destructor doesn't currently deallocate the device heap-data. That's okay for the moment
  * because the only way to allocate that data at the moment is to call the table-reader constructor,
- * and that table-reader particular constructor is only called once during the entire duration of 
+ * and that table-reader particular constructor is only called once during the entire duration of
  * the simulation. With that said, I do have plans to address this issue in the future.
  */
 struct SNRateCalc {
-
-public:
-
+ public:
   /* Default constructor. Ensures this object is always in a usable state
    *
    * This assumes a constant supernova rate given by feedback::DEFAULT_SNR
    */
   __host__ __device__ SNRateCalc()
-    : dev_snr_(nullptr),
-      snr_dt_(feedback::DEFAULT_SN_END - feedback::DEFAULT_SN_START),
-      time_sn_start_(feedback::DEFAULT_SN_START),
-      time_sn_end_(feedback::DEFAULT_SN_END)
-  { }
+      : dev_snr_(nullptr),
+        snr_dt_(feedback::DEFAULT_SN_END - feedback::DEFAULT_SN_START),
+        time_sn_start_(feedback::DEFAULT_SN_START),
+        time_sn_end_(feedback::DEFAULT_SN_END)
+  {
+  }
 
   /* The "table-reader" constructor.
    *
@@ -74,10 +72,10 @@ public:
    *
    * @param P reference to parameters struct. Passes in starburst 99 filename.
    */
-  __host__ SNRateCalc(ParameterMap& pmap);
+  __host__ SNRateCalc(ParameterMap &pmap);
 
   /* returns supernova rate from starburst 99 (or default analytical rate).
-   * 
+   *
    * Does a basic interpolation of S'99 table values.
    *
    * @param t   The cluster age.
@@ -107,26 +105,25 @@ public:
    * @note
    * It's important to retain the inline annotation to maximize the chance of inlining
    */
-  static inline __device__ int Get_Number_Of_SNe_In_Cluster(Real ave_num_sn, int n_step,
-                                                            part_int_t cluster_id)
+  static inline __device__ int Get_Number_Of_SNe_In_Cluster(Real ave_num_sn, int n_step, part_int_t cluster_id)
   {
     feedback_prng_t state;
     // Note: in the C++ spec, wrap-around behavior is well-defined for unsigned types during integer
     //       overflow (overflow for signed types invokes undefined behavior)
     unsigned long long seed = (cluster_id < 0)
-     ? (unsigned long long)(FEEDBACK_SEED) - (unsigned long long)(-1*cluster_id)
-     : (unsigned long long)(FEEDBACK_SEED) + (unsigned long long)(cluster_id);
+                                  ? (unsigned long long)(FEEDBACK_SEED) - (unsigned long long)(-1 * cluster_id)
+                                  : (unsigned long long)(FEEDBACK_SEED) + (unsigned long long)(cluster_id);
     curand_init(seed, 0, 0, &state);
     skipahead((unsigned long long)(n_step), &state);  // provided by curand
     return (int)curand_poisson(&state, ave_num_sn);
   }
 
-  inline __device__ bool nonzero_sn_probability(Real age) const 
+  inline __device__ bool nonzero_sn_probability(Real age) const
   {
     return (time_sn_start_ <= age) and (age <= time_sn_end_);
   }
 
-private: // attributes
+ private:  // attributes
   /* device array with rate info */
   Real *dev_snr_;
   /* time interval between table data. Assumed to be constant. */
@@ -147,16 +144,16 @@ private: // attributes
  * @note
  * The destructor doesn't currently deallocate the device heap-data. That's okay for the moment
  * because the only way to allocate that data at the moment is to call the table-reader constructor,
- * and that table-reader particular constructor is only called once during the entire duration of 
+ * and that table-reader particular constructor is only called once during the entire duration of
  * the simulation. With that said, I do have plans to address this issue in the future.
  */
 struct SWRateCalc {
+  __host__ SWRateCalc(ParameterMap &P);
 
-  __host__ SWRateCalc(ParameterMap& P);
-
-  __host__ __device__ SWRateCalc(Real *dev_sw_p, Real* dev_sw_e, Real dt, Real t_start, Real t_end)
-    : dev_sw_p_(dev_sw_p), dev_sw_e_(dev_sw_e), sw_dt_(dt), time_sw_start_(t_start), time_sw_end_(t_end)
-  { }
+  __host__ __device__ SWRateCalc(Real *dev_sw_p, Real *dev_sw_e, Real dt, Real t_start, Real t_end)
+      : dev_sw_p_(dev_sw_p), dev_sw_e_(dev_sw_e), sw_dt_(dt), time_sw_start_(t_start), time_sw_end_(t_end)
+  {
+  }
 
   /* Get the Starburst 99 stellar wind momentum flux per solar mass.
    *
@@ -168,8 +165,7 @@ struct SWRateCalc {
     if ((t < time_sw_start_) or (t >= time_sw_end_)) return 0;
 
     int index        = (int)((t - time_sw_start_) / sw_dt_);
-    Real log_p_dynes = (dev_sw_p_[index] + (t - index * sw_dt_) *
-                        (dev_sw_p_[index + 1] - dev_sw_p_[index]) / sw_dt_);
+    Real log_p_dynes = (dev_sw_p_[index] + (t - index * sw_dt_) * (dev_sw_p_[index + 1] - dev_sw_p_[index]) / sw_dt_);
     return pow(10, log_p_dynes) / FORCE_UNIT / S_99_TOTAL_MASS;
   }
 
@@ -183,8 +179,7 @@ struct SWRateCalc {
     if ((t < time_sw_start_) or (t >= time_sw_end_)) return 0;
 
     int index  = (int)((t - time_sw_start_) / sw_dt_);
-    Real log_e = (dev_sw_e_[index] + (t - index * sw_dt_) *
-                  (dev_sw_e_[index + 1] - dev_sw_e_[index]) / sw_dt_);
+    Real log_e = (dev_sw_e_[index] + (t - index * sw_dt_) * (dev_sw_e_[index + 1] - dev_sw_e_[index]) / sw_dt_);
     Real e     = pow(10, log_e) / (MASS_UNIT * VELOCITY_UNIT * VELOCITY_UNIT) * TIME_UNIT / S_99_TOTAL_MASS;
     return e;
   }
@@ -201,12 +196,9 @@ struct SWRateCalc {
     return flux * flux / power / 2;
   }
 
-  inline __device__ bool is_active(Real age) const
-  {
-    return (time_sw_start_ <= age) and (age <= time_sw_end_);
-  }
+  inline __device__ bool is_active(Real age) const { return (time_sw_start_ <= age) and (age <= time_sw_end_); }
 
-private: // attributes
+ private:  // attributes
   /* device array of log base 10 momentum flux values in dynes. */
   Real *dev_sw_p_ = nullptr;
   /* device array of log base 10 power (erg/s) */
@@ -219,6 +211,6 @@ private: // attributes
   Real time_sw_end_ = 0.0;
 };
 
-} // namespace
+}  // namespace feedback
 
 #endif /* FEEDBACK_RATECALC_H */

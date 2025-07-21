@@ -13,40 +13,39 @@
 #include <vector>
 
 // External Includes
-#include <gtest/gtest.h> // Include GoogleTest and related libraries/headers
+#include <gtest/gtest.h>  // Include GoogleTest and related libraries/headers
 
-#include "../global/global.h"
-#include "../utils/gpu.hpp" // gpuFor, GPU_Error_Check
-#include "../utils/DeviceVector.h"
-#include "../utils/error_handling.h"
-
-#include "../feedback/prescription.h"
 #include "../feedback/kernel.h"
+#include "../feedback/prescription.h"
+#include "../global/global.h"
+#include "../utils/DeviceVector.h"
 #include "../utils/basic_structs.h"
+#include "../utils/error_handling.h"
+#include "../utils/gpu.hpp"  // gpuFor, GPU_Error_Check
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 // Define some general-purpose testing tools. These may be a little overkill for this particular file.
-// It may make sense to move these to the testing_utils file and namespace. 
+// It may make sense to move these to the testing_utils file and namespace.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace  // Anonymous namespace
 {
 
-template<typename T>
+template <typename T>
 std::string array_to_string_1D_helper_(T* arr, int len)
 {
   std::string out;
   for (int ix = 0; ix < len; ix++) {
-    if (ix != 0)  out += ", ";  // put delimiter after last element
+    if (ix != 0) out += ", ";  // put delimiter after last element
     out += std::to_string(arr[ix]);
   }
   return out;
 }
 
-template<typename T>
+template <typename T>
 std::string array_to_string(T* arr, int len)
 {
-  return std::string("{") +  array_to_string_1D_helper_(arr, len) + std::string("}");
+  return std::string("{") + array_to_string_1D_helper_(arr, len) + std::string("}");
 };
 
 struct Extent3D {
@@ -60,17 +59,17 @@ struct Extent3D {
  * The indent_size arg is adopted from numpy's similar indent arg in array2string. As in numpy,
  * we don't apply indent on first line
  */
-template<typename T>
+template <typename T>
 std::string array_to_string(T* arr, Extent3D extent, unsigned int indent_size = 0)
 {
   const std::string common_line_prefix = std::string(indent_size, ' ');
 
   std::string out;
-  for (int iz = 0; iz < extent.nz; iz++){
+  for (int iz = 0; iz < extent.nz; iz++) {
     if (iz != 0) out += ",\n\n";  // add delimiter after last element
 
     for (int iy = 0; iy < extent.ny; iy++) {
-      if (iy != 0)  out += ",\n";  // add delimiter after last element
+      if (iy != 0) out += ",\n";  // add delimiter after last element
 
       if ((iz == 0) and (iy == 0)) {
         // explicitly don't insert the indents on very first line
@@ -81,9 +80,10 @@ std::string array_to_string(T* arr, Extent3D extent, unsigned int indent_size = 
         out += common_line_prefix + "  {";
       }
 
-      // ToDo: replace following loop with out += array_to_string_1D_helper_(arr + extent.nx * (iy + extent.ny * iz), extent.nx);
+      // ToDo: replace following loop with out += array_to_string_1D_helper_(arr + extent.nx * (iy + extent.ny * iz),
+      // extent.nx);
       for (int ix = 0; ix < extent.nx; ix++) {
-        if (ix != 0)  out += ", ";  // put delimiter after last element
+        if (ix != 0) out += ", ";  // put delimiter after last element
 
         out += std::to_string(arr[ix + extent.nx * (iy + extent.ny * iz)]);
       }
@@ -95,17 +95,19 @@ std::string array_to_string(T* arr, Extent3D extent, unsigned int indent_size = 
 }
 
 /* converts a 3 element mathematical vector to a string */
-template<typename T>
-std::string Vec3_to_String(T* arr3D) {
-  return (std::string("(") + std::to_string(arr3D[0]) + ", " + std::to_string(arr3D[1]) + ", " + 
+template <typename T>
+std::string Vec3_to_String(T* arr3D)
+{
+  return (std::string("(") + std::to_string(arr3D[0]) + ", " + std::to_string(arr3D[1]) + ", " +
           std::to_string(arr3D[2]) + ")");
 }
 
-template<typename T>
-bool isclose(T actual, T desired, double rtol, double atol = 0.0, bool equal_nan = false) {
-  if (equal_nan and std::isnan(actual) and std::isnan(desired))  return true;
+template <typename T>
+bool isclose(T actual, T desired, double rtol, double atol = 0.0, bool equal_nan = false)
+{
+  if (equal_nan and std::isnan(actual) and std::isnan(desired)) return true;
 
-  double abs_diff = fabs(actual - desired);
+  double abs_diff             = fabs(actual - desired);
   double max_allowed_abs_diff = (atol + rtol * fabs(desired));
   // need to use <= rather than <, to handle case where atol = actual = desired = 0
   return abs_diff <= max_allowed_abs_diff;
@@ -113,12 +115,10 @@ bool isclose(T actual, T desired, double rtol, double atol = 0.0, bool equal_nan
 
 // this is a little overkill, for right now, but it could be nice to have
 // based on signature of numpy's testing.assert_allclose function!
-template<typename T>
-void assert_allclose(T* actual, T* desired, Extent3D extent,
-                     double rtol, double atol = 0.0, bool equal_nan = false,
+template <typename T>
+void assert_allclose(T* actual, T* desired, Extent3D extent, double rtol, double atol = 0.0, bool equal_nan = false,
                      const std::string& err_msg = "")
 {
-
   auto is_close = [equal_nan, atol, rtol](double actual, double desired) -> bool {
     return isclose(actual, desired, rtol, atol, equal_nan);
   };
@@ -138,19 +138,19 @@ void assert_allclose(T* actual, T* desired, Extent3D extent,
   if (count_notclose == 0) return;
 
   // make another pass through - this time gather information to provide an informative error message
-  int first_bad_index[3] = {-1,0,0};
-  double max_abs_diff = 0.0;
-  double max_rel_diff = 0.0;
+  int first_bad_index[3] = {-1, 0, 0};
+  double max_abs_diff    = 0.0;
+  double max_rel_diff    = 0.0;
 
   for (int iz = 0; iz < extent.nz; iz++) {
     for (int iy = 0; iy < extent.ny; iy++) {
       for (int ix = 0; ix < extent.nx; ix++) {
-        int ind3D = ix + extent.nx * (iy + extent.ny * iz);
+        int ind3D    = ix + extent.nx * (iy + extent.ny * iz);
         max_abs_diff = std::fmax(max_abs_diff, std::fabs(actual[ind3D] - desired[ind3D]));
 
         if (desired[ind3D] != 0) {
-          double cur_rel_diff = (actual[ind3D] - desired[ind3D])/double(desired[ind3D]);
-          max_rel_diff = std::fmax(max_rel_diff, std::fabs(cur_rel_diff));
+          double cur_rel_diff = (actual[ind3D] - desired[ind3D]) / double(desired[ind3D]);
+          max_rel_diff        = std::fmax(max_rel_diff, std::fabs(cur_rel_diff));
         }
 
         if (first_bad_index[0] == -1 and (not is_close(actual[ind3D], desired[ind3D]))) {
@@ -162,20 +162,19 @@ void assert_allclose(T* actual, T* desired, Extent3D extent,
     }
   }
 
-    std::size_t total_size = std::size_t(extent.nz) * std::size_t(extent.ny) * std::size_t(extent.nx);
-    int bad_ind3D = first_bad_index[0] + extent.nx * (first_bad_index[1] + extent.ny * first_bad_index[2]);
+  std::size_t total_size = std::size_t(extent.nz) * std::size_t(extent.ny) * std::size_t(extent.nx);
+  int bad_ind3D          = first_bad_index[0] + extent.nx * (first_bad_index[1] + extent.ny * first_bad_index[2]);
 
-    FAIL() << "Not equal to tolerance rtol=" << rtol << ", atol=" << atol << '\n'
-           << err_msg << '\n'
-           << "Mismatched elements: " << count_notclose << " / " << total_size << '\n'
-           << "Max absolute difference: " << max_abs_diff << '\n'
-           << "Max relative difference: " << max_rel_diff << '\n'
-           << "First bad index: " << Vec3_to_String(first_bad_index) << '\n'
-           << "    actual: " << actual[bad_ind3D] << ", desired: " << desired[bad_ind3D] << "\n";
+  FAIL() << "Not equal to tolerance rtol=" << rtol << ", atol=" << atol << '\n'
+         << err_msg << '\n'
+         << "Mismatched elements: " << count_notclose << " / " << total_size << '\n'
+         << "Max absolute difference: " << max_abs_diff << '\n'
+         << "Max relative difference: " << max_rel_diff << '\n'
+         << "First bad index: " << Vec3_to_String(first_bad_index) << '\n'
+         << "    actual: " << actual[bad_ind3D] << ", desired: " << desired[bad_ind3D] << "\n";
 }
 
-} // anonymous namespace
-
+}  // anonymous namespace
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 // Define some tools for testing deposition-stencils
@@ -188,15 +187,15 @@ void assert_allclose(T* actual, T* desired, Extent3D extent,
  * Right now, this function should only be executed by a single thread-block with a single thread. This
  * choice reflects the fact that a single thread is historically assigned to a single particle.
  */
-template<typename Stencil>
-__global__ void Stencil_Overlap_Kernel_(Real* out_data, hydro_utilities::VectorXYZ<Real> pos_indU,
-                                        int nx_g, int ny_g, Stencil stencil, StencilEvalKind eval)
+template <typename Stencil>
+__global__ void Stencil_Overlap_Kernel_(Real* out_data, hydro_utilities::VectorXYZ<Real> pos_indU, int nx_g, int ny_g,
+                                        Stencil stencil, StencilEvalKind eval)
 {
   // first, define the lambda function that actually updates out_data
   auto update_entry_fn = [out_data](double dV, int indx3D) -> void { out_data[indx3D] = dV; };
 
   // second, execute update_entry at each location where the stencil overlaps with the cells
-  switch(eval) {
+  switch (eval) {
     case StencilEvalKind::enclosed_stencil_vol_frac:
       stencil.for_each(pos_indU, nx_g, ny_g, update_entry_fn);
       break;
@@ -204,11 +203,9 @@ __global__ void Stencil_Overlap_Kernel_(Real* out_data, hydro_utilities::VectorX
       stencil.for_each_enclosedCellVol(pos_indU, nx_g, ny_g, update_entry_fn);
       break;
     case StencilEvalKind::for_each_overlap_zone:
-      stencil.for_each_overlap_zone(pos_indU, nx_g, ny_g,
-                                    [out_data](int indx3D) -> void { out_data[indx3D] = 1.0; });
+      stencil.for_each_overlap_zone(pos_indU, nx_g, ny_g, [out_data](int indx3D) -> void { out_data[indx3D] = 1.0; });
       break;
   }
-  
 }
 
 /* Utility function used in multiple tests that evaluates overlap values with a grid of cells (on the device)
@@ -222,43 +219,41 @@ __global__ void Stencil_Overlap_Kernel_(Real* out_data, hydro_utilities::VectorX
  * \param eval Specifies the precise calculation that will be performed.
  */
 template <typename Stencil>
-std::vector<double> eval_stencil_overlap_(const Real* pos_indxU, Extent3D full_extent,
-                                          int n_ghost, Stencil stencil,
-                                          StencilEvalKind eval = StencilEvalKind::enclosed_stencil_vol_frac) {
-
-  cuda_utilities::DeviceVector<Real> data(full_extent.nx*full_extent.ny*full_extent.nz, true);  // initialize to 0
+std::vector<double> eval_stencil_overlap_(const Real* pos_indxU, Extent3D full_extent, int n_ghost, Stencil stencil,
+                                          StencilEvalKind eval = StencilEvalKind::enclosed_stencil_vol_frac)
+{
+  cuda_utilities::DeviceVector<Real> data(full_extent.nx * full_extent.ny * full_extent.nz, true);  // initialize to 0
 
   // launch the kernel
-  const int num_blocks = 1;
+  const int num_blocks        = 1;
   const int threads_per_block = 1;
 
   hydro_utilities::VectorXYZ<Real> pos_indU{pos_indxU[0], pos_indxU[1], pos_indxU[2]};
 
-  hipLaunchKernelGGL(Stencil_Overlap_Kernel_, num_blocks, threads_per_block, 0, 0,
-                     data.data(), pos_indU, full_extent.nx, full_extent.ny, stencil,
-                     eval);
+  hipLaunchKernelGGL(Stencil_Overlap_Kernel_, num_blocks, threads_per_block, 0, 0, data.data(), pos_indU,
+                     full_extent.nx, full_extent.ny, stencil, eval);
 
   GPU_Error_Check(cudaDeviceSynchronize());
-  std::vector<double> out(full_extent.nx*full_extent.ny*full_extent.nz);
+  std::vector<double> out(full_extent.nx * full_extent.ny * full_extent.nz);
   data.cpyDeviceToHost(out);
   return out;
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 // Define miscellaneous tools
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-namespace {
+namespace
+{
 
 /* Struct that specifies 1D spatial properties. This is used to help parameterize tests */
 struct AxProps {
-  int num_cells;  /*!< number of cells along the given axis (excluding ghost zone)*/
-  Real min;  /*!< the position of the left edge of left-most (non-ghost) cell, in code units */
-  Real cell_width;  /*!< Cell width, in code units along cur axis. Must be positive */
+  int num_cells;   /*!< number of cells along the given axis (excluding ghost zone)*/
+  Real min;        /*!< the position of the left edge of left-most (non-ghost) cell, in code units */
+  Real cell_width; /*!< Cell width, in code units along cur axis. Must be positive */
 };
 
-} // anonymous namespace
+}  // anonymous namespace
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 // Define some tests that check some expected trends as we slowly move a stencil to the right along the
@@ -267,7 +262,7 @@ struct AxProps {
 
 // records the first and last index along an index where the stencil has non-zero overlap as well
 // as the overlap values at those indices
-struct OverlapRange{
+struct OverlapRange {
   int first_indx, last_indx;
   double first_overlap, last_overlap;
 };
@@ -275,8 +270,8 @@ struct OverlapRange{
 // iterate over the x-axis (at fixed y_ind and z_ind) of an array that holds the overlap values computed
 // with respect to the stencil. Return the OverlapRange object representing the range of cells with
 // non-zero values
-std::optional<OverlapRange> find_ovrange_(double* v, int y_ind, int z_ind, Extent3D full_extent) {
-
+std::optional<OverlapRange> find_ovrange_(double* v, int y_ind, int z_ind, Extent3D full_extent)
+{
   for (int ix = 0; ix < full_extent.nx; ix++) {
     double overlap_frac = v[ix + full_extent.nx * (y_ind + full_extent.ny * z_ind)];
     if (overlap_frac > 0) {
@@ -284,11 +279,11 @@ std::optional<OverlapRange> find_ovrange_(double* v, int y_ind, int z_ind, Exten
       double prev_inner_overlap = overlap_frac;
       for (int inner_ix = (ix + 1); inner_ix < full_extent.nx; inner_ix++) {
         double inner_overlap = v[inner_ix + full_extent.nx * (y_ind + full_extent.ny * z_ind)];
-        if (inner_overlap == 0.0)  return {{ix, inner_ix - 1, overlap_frac, prev_inner_overlap}};
+        if (inner_overlap == 0.0) return {{ix, inner_ix - 1, overlap_frac, prev_inner_overlap}};
         prev_inner_overlap = inner_overlap;
       }
       // if we got to this point, this means that the (full_extend.nx-1) overlaps with stencil
-      return {{ix, full_extent.nx-1, overlap_frac, prev_inner_overlap}};
+      return {{ix, full_extent.nx - 1, overlap_frac, prev_inner_overlap}};
     }
   }
 
@@ -300,36 +295,33 @@ std::optional<OverlapRange> find_ovrange_(double* v, int y_ind, int z_ind, Exten
  *
  * \param n_ghost the number of ghost-zones to use in the calculation
  * \param tot_vol_atol the acceptable absolute error bound between the empirical
- *                     total-overlap value and 1.0 (the expected value)tolerance for the 
+ *                     total-overlap value and 1.0 (the expected value)tolerance for the
  */
 template <typename Stencil>
-void sliding_stencil_test(int n_ghost, double tot_vol_atol = 0.0, bool ignore_monotonicity_comparisons = false) {
-  
-  Extent3D full_extent{2*n_ghost + 4,  // x-axis
-                       2*n_ghost + 3,  // y-axis
-                       2*n_ghost + 3}; // z-axis
+void sliding_stencil_test(int n_ghost, double tot_vol_atol = 0.0, bool ignore_monotonicity_comparisons = false)
+{
+  Extent3D full_extent{2 * n_ghost + 4,   // x-axis
+                       2 * n_ghost + 3,   // y-axis
+                       2 * n_ghost + 3};  // z-axis
 
   // determine the centers of the stencil
-  Real dummy = 1.1 + n_ghost;
+  Real dummy                              = 1.1 + n_ghost;
   std::vector<Real> sliding_ax_indxU_vals = {
-    1.50 + n_ghost, 1.75 + n_ghost, 2.00 + n_ghost,
-    2.25 + n_ghost, 2.50 + n_ghost,
+      1.50 + n_ghost, 1.75 + n_ghost, 2.00 + n_ghost, 2.25 + n_ghost, 2.50 + n_ghost,
   };
 
   if (Stencil::max_enclosed_neighbors > 1) {
-    int min_width = 2*n_ghost + 1 + 2 * Stencil::max_enclosed_neighbors;
-    full_extent = {min_width + 1,  // x-axis
-                   min_width,  // y-axis
-                   min_width}; // z-axis
-    dummy = 0.1 + n_ghost + Stencil::max_enclosed_neighbors;
+    int min_width = 2 * n_ghost + 1 + 2 * Stencil::max_enclosed_neighbors;
+    full_extent   = {min_width + 1,  // x-axis
+                     min_width,      // y-axis
+                     min_width};     // z-axis
+    dummy         = 0.1 + n_ghost + Stencil::max_enclosed_neighbors;
     sliding_ax_indxU_vals.clear();
-    sliding_ax_indxU_vals = {n_ghost + Stencil::max_enclosed_neighbors + 0.5,
-                             n_ghost + Stencil::max_enclosed_neighbors + 0.75,
-                             n_ghost + Stencil::max_enclosed_neighbors + 1.0,
-                             n_ghost + Stencil::max_enclosed_neighbors + 1.25,
-                             n_ghost + Stencil::max_enclosed_neighbors + 1.5};
+    sliding_ax_indxU_vals = {
+        n_ghost + Stencil::max_enclosed_neighbors + 0.5, n_ghost + Stencil::max_enclosed_neighbors + 0.75,
+        n_ghost + Stencil::max_enclosed_neighbors + 1.0, n_ghost + Stencil::max_enclosed_neighbors + 1.25,
+        n_ghost + Stencil::max_enclosed_neighbors + 1.5};
   }
-  
 
   // evaluate the stencil at each location and store the fractional overlap grid in overlap_results
   std::vector<std::vector<double>> overlap_results{};
@@ -337,23 +329,19 @@ void sliding_stencil_test(int n_ghost, double tot_vol_atol = 0.0, bool ignore_mo
     Real pos_indxU[3] = {sliding_ax_indxU_val, dummy, dummy};
 
     overlap_results.push_back(
-      eval_stencil_overlap_(pos_indxU, full_extent, n_ghost, Stencil{},
-                            StencilEvalKind::enclosed_cell_vol_frac)
-    );
+        eval_stencil_overlap_(pos_indxU, full_extent, n_ghost, Stencil{}, StencilEvalKind::enclosed_cell_vol_frac));
 
-    std::vector<double> stencil_overlap_frac = eval_stencil_overlap_(
-      pos_indxU, full_extent, n_ghost, Stencil{},
-      StencilEvalKind::enclosed_stencil_vol_frac);
+    std::vector<double> stencil_overlap_frac =
+        eval_stencil_overlap_(pos_indxU, full_extent, n_ghost, Stencil{}, StencilEvalKind::enclosed_stencil_vol_frac);
 
-
-    //int num_indents = 2;
-    //std::string tmp_arr = array_to_string(overlap_results.back().data(), full_extent, num_indents);
-    //printf("\n  %s\n:", tmp_arr.c_str());
+    // int num_indents = 2;
+    // std::string tmp_arr = array_to_string(overlap_results.back().data(), full_extent, num_indents);
+    // printf("\n  %s\n:", tmp_arr.c_str());
 
     // sanity check: ensure non-zero vals sum to 1
-    std::string tmp = Vec3_to_String(pos_indxU);
+    std::string tmp      = Vec3_to_String(pos_indxU);
     double total_overlap = 0.0;
-    for (const double & overlap : stencil_overlap_frac) {
+    for (const double& overlap : stencil_overlap_frac) {
       total_overlap += overlap;
     }
     // in the future, we may nee
@@ -365,33 +353,31 @@ void sliding_stencil_test(int n_ghost, double tot_vol_atol = 0.0, bool ignore_mo
   // - To make this test as generic as possible,
   //   -> need to handle cases (especially for super-sampled stencil) where a given y_ind/z_ind near
   //      the edge of the stencil won't have any overlap at all, except when the stencil is positioned
-  //      at very particular x-values (basically it has to do with the distance of the subgrid to 
+  //      at very particular x-values (basically it has to do with the distance of the subgrid to
   //      the stencil-center)
 
-  //const int y_ind = int(dummy);
-  //const int z_ind = int(dummy);
+  // const int y_ind = int(dummy);
+  // const int z_ind = int(dummy);
 
   for (int y_ind = 0; y_ind < full_extent.ny; y_ind++) {
     for (int z_ind = 0; z_ind < full_extent.nz; z_ind++) {
-
       // basically, we setup a separate test each time we encounter this inner loop
       std::optional<OverlapRange> prev_ovrange;
-      for (std::vector<double>& overlap_result: overlap_results) {
-        std::optional<OverlapRange> cur_ovrange = find_ovrange_
-          (overlap_result.data(), y_ind, z_ind, full_extent);
+      for (std::vector<double>& overlap_result : overlap_results) {
+        std::optional<OverlapRange> cur_ovrange = find_ovrange_(overlap_result.data(), y_ind, z_ind, full_extent);
 
-        //printf("%zu, first_overlap: (%d, %g) last_overlap: (%d, %g)\n",
-        //       i, cur_ovrange.value().first_indx, cur_ovrange.value().first_overlap,
-        //       cur_ovrange.value().last_indx, cur_ovrange.value().last_overlap);
+        // printf("%zu, first_overlap: (%d, %g) last_overlap: (%d, %g)\n",
+        //        i, cur_ovrange.value().first_indx, cur_ovrange.value().first_overlap,
+        //        cur_ovrange.value().last_indx, cur_ovrange.value().last_overlap);
 
-        if (bool(prev_ovrange) and bool(cur_ovrange)) { // make comparisons to previous stencil position
+        if (bool(prev_ovrange) and bool(cur_ovrange)) {  // make comparisons to previous stencil position
 
           // its ok to disable to the following lints here since we explicitly cconfirmed
           // that these options are not empty
           // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
           const OverlapRange& prev = *prev_ovrange;
           // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
-          const OverlapRange& cur  = *cur_ovrange;
+          const OverlapRange& cur = *cur_ovrange;
 
           // as the stencil moves rightwards, we expect the first_overlap and last_overlap
           // indices to generally increase
@@ -412,36 +398,30 @@ void sliding_stencil_test(int n_ghost, double tot_vol_atol = 0.0, bool ignore_mo
             if (cur.last_indx == prev.last_indx) {
               ASSERT_GE(cur.last_overlap, prev.last_overlap);
             }
-
           }
         }
         prev_ovrange = cur_ovrange;
       }
     }
   }
-
 }
 
-TEST(tALLFeedbackCiCStencil, SlidingTest)
-{
-  sliding_stencil_test<fb_stencil::CIC>(0);
-}
-
+TEST(tALLFeedbackCiCStencil, SlidingTest) { sliding_stencil_test<fb_stencil::CIC>(0); }
 
 TEST(tALLFeedbackSphere27Stencil, SlidingTest)
 {
   // primary stencil size we would use
-  sliding_stencil_test<fb_stencil::Sphere27<2>>(0,2e-16);
+  sliding_stencil_test<fb_stencil::Sphere27<2>>(0, 2e-16);
   // just testing this case because we can
-  sliding_stencil_test<fb_stencil::Sphere27<4>>(0,3e-16);
+  sliding_stencil_test<fb_stencil::Sphere27<4>>(0, 3e-16);
 }
 
 TEST(tALLFeedbackSphereBinaryStencil, SlidingTest)
 {
   // we have to ignore the part of the test where we check that the enclosed stencil fraction monotonically
-  // increases and decreases (we could refactor the test more a test a different version of that same 
+  // increases and decreases (we could refactor the test more a test a different version of that same
   // behavior)
-  sliding_stencil_test<fb_stencil::SphereBinary<3>>(0,2e-15,true);
+  sliding_stencil_test<fb_stencil::SphereBinary<3>>(0, 2e-15, true);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -451,21 +431,21 @@ TEST(tALLFeedbackSphereBinaryStencil, SlidingTest)
 // A helper-tool that comes up with the standard stencil setup that is necessary
 // for evaluating a stencil (without overlapping beyond the edge of a grid)
 template <typename Stencil>
-struct StencilTestGridSetup{
+struct StencilTestGridSetup {
   std::vector<hydro_utilities::VectorXYZ<Real>> center_pos_indU_list;
   Extent3D full_extent;
 };
 
 template <typename Stencil>
-static StencilTestGridSetup<Stencil> Build_Stencil_Test_Grid_Setup(const std::vector<hydro_utilities::VectorXYZ<Real>>& center_offset_from_cellEdge_LIST,
-                                                                   int n_ghost)
+static StencilTestGridSetup<Stencil> Build_Stencil_Test_Grid_Setup(
+    const std::vector<hydro_utilities::VectorXYZ<Real>>& center_offset_from_cellEdge_LIST, int n_ghost)
 {
   StencilTestGridSetup<Stencil> out;
 
   // compute the centers of the stencil and the extent of the grid for evaluating the stencil
   for (const hydro_utilities::VectorXYZ<Real>& center_offset_from_cellEdge : center_offset_from_cellEdge_LIST) {
     hydro_utilities::VectorXYZ<Real> pos_indU{};
-    for (std::size_t i = 0; i < 3; i++){
+    for (std::size_t i = 0; i < 3; i++) {
       // confirm the offset falls in the range 0 <= center_offset < 1
       CHOLLA_ASSERT(center_offset_from_cellEdge[i] >= 0.0, "Test parameter is flawed");
       CHOLLA_ASSERT(center_offset_from_cellEdge[i] < 1.0, "Test parameter is flawed");
@@ -476,44 +456,46 @@ static StencilTestGridSetup<Stencil> Build_Stencil_Test_Grid_Setup(const std::ve
   }
 
   // choose an extent value that we know will work (even when n_ghost is zero!)
-  out.full_extent = Extent3D{1 + 2*(n_ghost + Stencil::max_enclosed_neighbors),
-                             1 + 2*(n_ghost + Stencil::max_enclosed_neighbors),
-                             1 + 2*(n_ghost + Stencil::max_enclosed_neighbors)};
+  out.full_extent =
+      Extent3D{1 + 2 * (n_ghost + Stencil::max_enclosed_neighbors), 1 + 2 * (n_ghost + Stencil::max_enclosed_neighbors),
+               1 + 2 * (n_ghost + Stencil::max_enclosed_neighbors)};
   return out;
 }
 
-
-template<typename Stencil>
+template <typename Stencil>
 void stencil_volume_check(hydro_utilities::VectorXYZ<Real> center_offset_from_cellEdge, int n_ghost, Stencil stencil,
                           double expected_vol, double vol_rtol = 0.0, double stencil_overlap_rtol = 0.0)
 {
   // compute the center of the stencil and the extent of the grid for evaluating the stencil
   StencilTestGridSetup<Stencil> setup = Build_Stencil_Test_Grid_Setup<Stencil>({center_offset_from_cellEdge}, n_ghost);
   hydro_utilities::VectorXYZ<Real> pos_indU = setup.center_pos_indU_list[0];
-  Extent3D full_extent = setup.full_extent;
+  Extent3D full_extent                      = setup.full_extent;
 
   // now gather the amount of cell-volume enclosed by the stencil
-  std::vector<double> enclosed_cell_vol = eval_stencil_overlap_(pos_indU.data(), full_extent, n_ghost, stencil,
-                                                                StencilEvalKind::enclosed_cell_vol_frac);
+  std::vector<double> enclosed_cell_vol =
+      eval_stencil_overlap_(pos_indU.data(), full_extent, n_ghost, stencil, StencilEvalKind::enclosed_cell_vol_frac);
   // compute the total stencil volume
   double vtot = 0.0;
-  for(double val : enclosed_cell_vol) { vtot += val; }
+  for (double val : enclosed_cell_vol) {
+    vtot += val;
+  }
 
   // now perform the check on the total cell volume
-  EXPECT_TRUE(isclose(vtot, expected_vol,
-                      vol_rtol, 0.0, false)) << "stencil volume, " << vtot << ", does NOT match the expected "
-                                             << "volume, " << expected_vol << ", to within the relative tolerance "
-                                             << "of " << vol_rtol << ". The relative error is: "
-                                             << (vtot - expected_vol)/expected_vol;
+  EXPECT_TRUE(isclose(vtot, expected_vol, vol_rtol, 0.0, false))
+      << "stencil volume, " << vtot << ", does NOT match the expected "
+      << "volume, " << expected_vol << ", to within the relative tolerance "
+      << "of " << vol_rtol << ". The relative error is: " << (vtot - expected_vol) / expected_vol;
 
-  ASSERT_GT(vtot, 0.0); // this is mostly a sanity check!
+  ASSERT_GT(vtot, 0.0);  // this is mostly a sanity check!
 
   // now let's confirm consistency with the calculation of the total stencil volume
   // (otherwise this test is meaningless)
-  for(double& val : enclosed_cell_vol) { val /= vtot; }
+  for (double& val : enclosed_cell_vol) {
+    val /= vtot;
+  }
 
-  std::vector<double> enclosed_stencil_vol = eval_stencil_overlap_(pos_indU.data(), full_extent, n_ghost, stencil,
-                                                                   StencilEvalKind::enclosed_stencil_vol_frac);
+  std::vector<double> enclosed_stencil_vol =
+      eval_stencil_overlap_(pos_indU.data(), full_extent, n_ghost, stencil, StencilEvalKind::enclosed_stencil_vol_frac);
   assert_allclose(enclosed_cell_vol.data(), enclosed_stencil_vol.data(), full_extent, stencil_overlap_rtol, 0.0, false,
                   "the grid of stencil-overlap-vol-fracs computed from the grid on cellvol-fracs is "
                   "inconsistent with the direclty computed grid of stencil-overlap-vol-fracs");
@@ -521,40 +503,39 @@ void stencil_volume_check(hydro_utilities::VectorXYZ<Real> center_offset_from_ce
 
 TEST(tALLFeedbackCiCStencil, StencilVolumeTest)
 {
-  stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.0,0.0,0.0}, 0, fb_stencil::CIC{},
-                       /* expected_vol = */ 1.0, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
-  stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.5,0.5,0.5}, 0, fb_stencil::CIC{},
-                       /* expected_vol = */ 1.0, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
+  stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.0, 0.0, 0.0}, 0, fb_stencil::CIC{},
+                       /* expected_vol = */ 1.0, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/0.0);
+  stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.5, 0.5, 0.5}, 0, fb_stencil::CIC{},
+                       /* expected_vol = */ 1.0, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/0.0);
 }
 
 TEST(tALLFeedbackSphere27Stencil, StencilVolumeTest)
 {
-  const double radius = 1; // in units of cell_widths
+  const double radius       = 1;  // in units of cell_widths
   const double expected_vol = 4 * 3.141592653589793 * (radius * radius) / 3;
 
-  stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.0,0.0,0.0}, 0, fb_stencil::Sphere27<2>{},
-                       expected_vol, /* vol_rtol = */ 0.05, /*stencil_overlap_rtol =*/ 0.0);
-  stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.125,0.0,0.0}, 0, fb_stencil::Sphere27<2>{},
-                       expected_vol, /* vol_rtol = */ 0.0004, /*stencil_overlap_rtol =*/ 0.0);
-  stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.5,0.5,0.5}, 0, fb_stencil::Sphere27<2>{},
-                       expected_vol, /* vol_rtol = */ 0.05, /*stencil_overlap_rtol =*/ 0.0);
+  stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.0, 0.0, 0.0}, 0, fb_stencil::Sphere27<2>{}, expected_vol,
+                       /* vol_rtol = */ 0.05, /*stencil_overlap_rtol =*/0.0);
+  stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.125, 0.0, 0.0}, 0, fb_stencil::Sphere27<2>{}, expected_vol,
+                       /* vol_rtol = */ 0.0004, /*stencil_overlap_rtol =*/0.0);
+  stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.5, 0.5, 0.5}, 0, fb_stencil::Sphere27<2>{}, expected_vol,
+                       /* vol_rtol = */ 0.05, /*stencil_overlap_rtol =*/0.0);
 }
 
-/* Something is funky! as you increase the radius, my intuition tells me that the relative error 
+/* Something is funky! as you increase the radius, my intuition tells me that the relative error
  * should improve, but that does not seem to be the case*/
-//TEST(tALLFeedbackSphereBinaryStencil, StencilVolumeTest)
+// TEST(tALLFeedbackSphereBinaryStencil, StencilVolumeTest)
 //{
-//  const double radius = 3; // in units of cell_widths
-//  const double expected_vol = 4 * 3.141592653589793 * (radius * radius) / 3.0;
+//   const double radius = 3; // in units of cell_widths
+//   const double expected_vol = 4 * 3.141592653589793 * (radius * radius) / 3.0;
 //
-//  stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.0,0.0,0.0}, 0, fb_stencil::SphereBinary<3>{},
-//                       expected_vol, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
-//  stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.125,0.0,0.0}, 0, fb_stencil::SphereBinary<3>{},
-//                       expected_vol, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
-//  stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.5,0.5,0.5}, 0, fb_stencil::SphereBinary<3>{},
-//                       expected_vol, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
-//}
-
+//   stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.0,0.0,0.0}, 0, fb_stencil::SphereBinary<3>{},
+//                        expected_vol, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
+//   stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.125,0.0,0.0}, 0, fb_stencil::SphereBinary<3>{},
+//                        expected_vol, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
+//   stencil_volume_check(hydro_utilities::VectorXYZ<Real>{0.5,0.5,0.5}, 0, fb_stencil::SphereBinary<3>{},
+//                        expected_vol, /* vol_rtol = */ 0.0, /*stencil_overlap_rtol =*/ 0.0);
+// }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 // Define some tests where we check consistency between the different flavors of for_each
@@ -563,22 +544,22 @@ TEST(tALLFeedbackSphere27Stencil, StencilVolumeTest)
 template <typename T>
 class tALLFeedbackStencil : public testing::Test  // NOLINT(readability-identifier-naming)
 {
-public:
-  using StencilT=T;
+ public:
+  using StencilT = T;
 };
 
-using MyStencilTypes = ::testing::Types<fb_stencil::CIC, fb_stencil::LegacyCIC27, fb_stencil::Sphere27<2>, fb_stencil::SphereBinary<3>>;
+using MyStencilTypes =
+    ::testing::Types<fb_stencil::CIC, fb_stencil::LegacyCIC27, fb_stencil::Sphere27<2>, fb_stencil::SphereBinary<3>>;
 TYPED_TEST_SUITE(tALLFeedbackStencil, MyStencilTypes);
 
-TYPED_TEST(tALLFeedbackStencil, ForEachFlavorConsistency) {
-
+TYPED_TEST(tALLFeedbackStencil, ForEachFlavorConsistency)
+{
   // determines the central positions of the stencils
   std::vector<hydro_utilities::VectorXYZ<Real>> center_offset_from_cellEdge_List = {
-    {0.00, 0.00, 0.00},
-    {0.25, 0.00, 0.00}, {0.5, 0.0, 0.0},  {0.75, 0.00, 0.00},  {0.99, 0.00, 0.00},
-    {0.00, 0.25, 0.00}, {0.0, 0.5, 0.0},  {0.00, 0.75, 0.00},  {0.00, 0.99, 0.00},
-    {0.00, 0.00, 0.25}, {0.0, 0.0, 0.5},  {0.00, 0.00, 0.75},  {0.00, 0.00, 0.99},
-    {0.25, 0.25, 0.25}, {0.5, 0.5, 0.5},  {0.75, 0.75, 0.75},  {0.99, 0.99, 0.99},
+      {0.00, 0.00, 0.00}, {0.25, 0.00, 0.00}, {0.5, 0.0, 0.0},    {0.75, 0.00, 0.00}, {0.99, 0.00, 0.00},
+      {0.00, 0.25, 0.00}, {0.0, 0.5, 0.0},    {0.00, 0.75, 0.00}, {0.00, 0.99, 0.00}, {0.00, 0.00, 0.25},
+      {0.0, 0.0, 0.5},    {0.00, 0.00, 0.75}, {0.00, 0.00, 0.99}, {0.25, 0.25, 0.25}, {0.5, 0.5, 0.5},
+      {0.75, 0.75, 0.75}, {0.99, 0.99, 0.99},
   };
 
   const int n_ghost = 0;
@@ -586,24 +567,23 @@ TYPED_TEST(tALLFeedbackStencil, ForEachFlavorConsistency) {
   using Stencil = typename TestFixture::StencilT;
 
   // compute the center of the stencil and the extent of the grid for evaluating the stencil
-  StencilTestGridSetup<Stencil> setup = Build_Stencil_Test_Grid_Setup<Stencil>(center_offset_from_cellEdge_List, n_ghost);
+  StencilTestGridSetup<Stencil> setup =
+      Build_Stencil_Test_Grid_Setup<Stencil>(center_offset_from_cellEdge_List, n_ghost);
   const Extent3D extent = setup.full_extent;
 
   // pair specifying the flavor-name and the actual flavor value
   std::vector<std::pair<std::string, StencilEvalKind>> flavor_pairs = {
-    {"enclosed_stencil_vol_frac", StencilEvalKind::enclosed_stencil_vol_frac},
-    {"enclosed_cell_vol_frac", StencilEvalKind::enclosed_cell_vol_frac},
-    {"for_each_overlap_zone", StencilEvalKind::for_each_overlap_zone}
-  };
+      {"enclosed_stencil_vol_frac", StencilEvalKind::enclosed_stencil_vol_frac},
+      {"enclosed_cell_vol_frac", StencilEvalKind::enclosed_cell_vol_frac},
+      {"for_each_overlap_zone", StencilEvalKind::for_each_overlap_zone}};
 
   for (hydro_utilities::VectorXYZ<Real> pos_indU : setup.center_pos_indU_list) {
     std::vector<std::vector<Real>> rslts{};
 
     std::size_t num_flavors = flavor_pairs.size();
-    for (std::size_t i = 0; i < num_flavors; i++){
+    for (std::size_t i = 0; i < num_flavors; i++) {
       // execute the current flavor of for_each
-      rslts.push_back(eval_stencil_overlap_(pos_indU.data(), extent, n_ghost, Stencil{},
-                                            flavor_pairs[i].second));
+      rslts.push_back(eval_stencil_overlap_(pos_indU.data(), extent, n_ghost, Stencil{}, flavor_pairs[i].second));
 
       if (i == 0) continue;
 
@@ -621,32 +601,30 @@ TYPED_TEST(tALLFeedbackStencil, ForEachFlavorConsistency) {
             bool cur_nonzero = cur[ind3D] > 0.0;
 
             if (ref_nonzero != cur_nonzero) {
-              int index[3] = {ix,iy,iz};
-              FAIL() << "Encountered an inconsistency when comparing the '"
-                     << flavor_pairs[0].first << "' flavor of for_each against the '"
-                     << flavor_pairs[i].first << "' flavor at (ix, iy, iz) = "
-                     << Vec3_to_String(index) << ". Both should be zero or neither should be zero.";
+              int index[3] = {ix, iy, iz};
+              FAIL() << "Encountered an inconsistency when comparing the '" << flavor_pairs[0].first
+                     << "' flavor of for_each against the '" << flavor_pairs[i].first
+                     << "' flavor at (ix, iy, iz) = " << Vec3_to_String(index)
+                     << ". Both should be zero or neither should be zero.";
             }
-
           }
         }
       }
-
     }
-
   }
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-// Define some machinery to help with testing the full feedback functionality where we check our expectations about the total volume enclosed by the stencil
+// Define some machinery to help with testing the full feedback functionality where we check our expectations about the
+// total volume enclosed by the stencil
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-namespace {
+namespace
+{
 
 std::optional<Real> try_get_(const std::map<std::string, Real>& m, const std::string& key)
 {
-  if (auto rslt = m.find(key); rslt != m.end())  return {rslt->second};
+  if (auto rslt = m.find(key); rslt != m.end()) return {rslt->second};
   return {};
 }
 
@@ -657,7 +635,7 @@ const bool idual = false;
 #endif
 
 void init_field_vals_(cuda_utilities::DeviceVector<Real>& data, std::size_t field_size,
-                      const std::map<std::string, Real>& dflt_vals) 
+                      const std::map<std::string, Real>& dflt_vals)
 {
   std::size_t total_size = data.size();
 
@@ -666,21 +644,21 @@ void init_field_vals_(cuda_utilities::DeviceVector<Real>& data, std::size_t fiel
   // default density should be 0.1 particles per cc
   // default thermal energy density should correspond to pressure of 1e3 K / cm**3 (for a gamma of 5/3)
   const Real density       = try_get_(dflt_vals, "density").value_or(1482737.17012665);
-  const Real thermal_edens = try_get_(dflt_vals, "thermal_edens").value_or(0.00021335 *1.5);
+  const Real thermal_edens = try_get_(dflt_vals, "thermal_edens").value_or(0.00021335 * 1.5);
   const Real vx            = try_get_(dflt_vals, "velocity_x").value_or(0.0);
   const Real vy            = try_get_(dflt_vals, "velocity_y").value_or(0.0);
   const Real vz            = try_get_(dflt_vals, "velocity_z").value_or(0.0);
-  const Real tot_edens = thermal_edens + 0.5 * density * (vx * vx + vy * vy + vz * vz);
+  const Real tot_edens     = thermal_edens + 0.5 * density * (vx * vx + vy * vy + vz * vz);
 
-  auto loop_fn = [=] __device__ (int index) {
-    ptr[index] = density;
+  auto loop_fn = [=] __device__(int index) {
+    ptr[index]                                      = density;
     ptr[grid_enum::momentum_x * field_size + index] = density * vx;
     ptr[grid_enum::momentum_y * field_size + index] = density * vy;
     ptr[grid_enum::momentum_z * field_size + index] = density * vz;
     ptr[grid_enum::Energy * field_size + index]     = tot_edens;
-# ifdef DE
-    ptr[grid_enum::GasEnergy * field_size + index]   = thermal_edens;
-# endif        
+#ifdef DE
+    ptr[grid_enum::GasEnergy * field_size + index] = thermal_edens;
+#endif
   };
 
   gpuFor(field_size, loop_fn);
@@ -688,25 +666,23 @@ void init_field_vals_(cuda_utilities::DeviceVector<Real>& data, std::size_t fiel
 
 // make sure this lives for the lifetime of the test where the data gets used!
 struct TestFieldData {
-
-private: // attributes
+ private:  // attributes
   // when cuda_utilities::DeviceVector is updated so that it can be moved in the future, it won't
   // be necessary to wrap particle_ids_ in a unique_ptr.
   std::unique_ptr<cuda_utilities::DeviceVector<Real>> data_;
 
-  Extent3D single_field_extent_; // must include ghost zones
+  Extent3D single_field_extent_;  // must include ghost zones
 
-public:
+ public:
   TestFieldData(Extent3D single_field_extent, std::map<std::string, Real> dflt_vals)
-    : data_(nullptr),
-      single_field_extent_(single_field_extent)
+      : data_(nullptr), single_field_extent_(single_field_extent)
   {
-    const std::size_t single_field_size = single_field_extent.nx*single_field_extent.ny*single_field_extent.nz;
-    data_ = std::make_unique<cuda_utilities::DeviceVector<Real>>((5+idual) * single_field_size);
+    const std::size_t single_field_size = single_field_extent.nx * single_field_extent.ny * single_field_extent.nz;
+    data_ = std::make_unique<cuda_utilities::DeviceVector<Real>>((5 + idual) * single_field_size);
     init_field_vals_(*data_, single_field_size, dflt_vals);
   }
 
-  TestFieldData(TestFieldData&&) = default;
+  TestFieldData(TestFieldData&&)            = default;
   TestFieldData& operator=(TestFieldData&&) = default;
 
   Real* dev_ptr() { return data_->data(); }
@@ -723,15 +699,15 @@ public:
   // this is inefficient! But should get the job done!
   void print_debug_info()
   {
-    std::vector<Real> tmp = this->host_copy();
+    std::vector<Real> tmp        = this->host_copy();
     Extent3D single_field_extent = this->single_field_extent_;
 
     auto print_fn = [single_field_extent, &tmp](int field_index, const std::string& name) {
-      std::size_t field_offset = single_field_extent.nx*single_field_extent.ny*single_field_extent.nz;
+      std::size_t field_offset = single_field_extent.nx * single_field_extent.ny * single_field_extent.nz;
 
       std::size_t output_indent_offset = name.size() + 2;
-      std::string arr_str = array_to_string(tmp.data() + field_index*field_offset, single_field_extent,
-                                            output_indent_offset);
+      std::string arr_str =
+          array_to_string(tmp.data() + field_index * field_offset, single_field_extent, output_indent_offset);
       printf("%s: %s\n", name.c_str(), arr_str.c_str());
     };
 
@@ -739,52 +715,48 @@ public:
     print_fn(grid_enum::momentum_x, "momentum_x");
     print_fn(grid_enum::momentum_y, "momentum_y");
     print_fn(grid_enum::momentum_z, "momentum_z");
-    print_fn(grid_enum::Energy,     "etot_dens");
-# ifdef DE
+    print_fn(grid_enum::Energy, "etot_dens");
+#ifdef DE
     print_fn(grid_enum::GasEnergy, "ethermal_dens");
-# endif
+#endif
   }
 
   /* copy TestFieldData into a new object and shift the reference frame */
-  TestFieldData change_ref_frame(hydro_utilities::VectorXYZ<Real> bulk_velocity) {
-
+  TestFieldData change_ref_frame(hydro_utilities::VectorXYZ<Real> bulk_velocity)
+  {
     const Extent3D& single_field_extent = this->single_field_extent_;
 
     TestFieldData out = TestFieldData(single_field_extent, {});
 
     const Real* in_ptr = this->data_->data();
-    Real* out_ptr = out.data_->data();
+    Real* out_ptr      = out.data_->data();
 
-    const std::size_t field_size = single_field_extent.nx*single_field_extent.ny*single_field_extent.nz;
+    const std::size_t field_size = single_field_extent.nx * single_field_extent.ny * single_field_extent.nz;
 
-    auto loop_fn = [in_ptr, out_ptr, field_size, bulk_velocity] __device__ (int index) {
+    auto loop_fn = [in_ptr, out_ptr, field_size, bulk_velocity] __device__(int index) {
       Real density   = in_ptr[index];
       Real old_mom_x = in_ptr[grid_enum::momentum_x * field_size + index];
       Real old_mom_y = in_ptr[grid_enum::momentum_y * field_size + index];
       Real old_mom_z = in_ptr[grid_enum::momentum_z * field_size + index];
 
-      Real old_KE_dens = 0.5 * ((old_mom_x * old_mom_x) +
-                                (old_mom_y * old_mom_y) +
-                                (old_mom_z * old_mom_z)) / density;
+      Real old_KE_dens = 0.5 * ((old_mom_x * old_mom_x) + (old_mom_y * old_mom_y) + (old_mom_z * old_mom_z)) / density;
 
       Real new_mom_x = old_mom_x - (bulk_velocity[0] * density);
       Real new_mom_y = old_mom_y - (bulk_velocity[1] * density);
       Real new_mom_z = old_mom_z - (bulk_velocity[2] * density);
 
-      Real new_KE_dens = 0.5 * ((new_mom_x * new_mom_x) +
-                                (new_mom_y * new_mom_y) +
-                                (new_mom_z * new_mom_z)) / density;
+      Real new_KE_dens = 0.5 * ((new_mom_x * new_mom_x) + (new_mom_y * new_mom_y) + (new_mom_z * new_mom_z)) / density;
 
       Real new_e = in_ptr[grid_enum::Energy * field_size + index] + (new_KE_dens - old_KE_dens);
 
-      out_ptr[index] = density;
+      out_ptr[index]                                      = density;
       out_ptr[grid_enum::momentum_x * field_size + index] = new_mom_x;
       out_ptr[grid_enum::momentum_y * field_size + index] = new_mom_y;
       out_ptr[grid_enum::momentum_z * field_size + index] = new_mom_z;
       out_ptr[grid_enum::Energy * field_size + index]     = new_e;
-# ifdef DE
-      out_ptr[grid_enum::GasEnergy* field_size + index]   = in_ptr[grid_enum::GasEnergy* field_size + index];
-# endif
+#ifdef DE
+      out_ptr[grid_enum::GasEnergy * field_size + index] = in_ptr[grid_enum::GasEnergy * field_size + index];
+#endif
     };
 
     gpuFor(field_size, loop_fn);
@@ -792,10 +764,8 @@ public:
   }
 };
 
-void assert_fielddata_allclose(TestFieldData& actual_test_field_data, 
-                               TestFieldData& ref_test_field_data, 
-                               bool only_thermale_and_density = false,
-                               double rtol = 0.0, double atol = 0.0)
+void assert_fielddata_allclose(TestFieldData& actual_test_field_data, TestFieldData& ref_test_field_data,
+                               bool only_thermale_and_density = false, double rtol = 0.0, double atol = 0.0)
 {
   std::vector<Real> ref_data    = ref_test_field_data.host_copy();
   std::vector<Real> actual_data = actual_test_field_data.host_copy();
@@ -803,18 +773,15 @@ void assert_fielddata_allclose(TestFieldData& actual_test_field_data,
   // to do: we should really check consistency of extent between actual & desired
   Extent3D extent = ref_test_field_data.single_field_extent();
 
-  const std::size_t single_field_size = extent.nx*extent.ny*extent.nz;
+  const std::size_t single_field_size = extent.nx * extent.ny * extent.nz;
 
-  const std::map<std::string,int> field_index_map = {
-    {"density",    grid_enum::density},
-    {"momentum_x", grid_enum::momentum_x},
-    {"momentum_y", grid_enum::momentum_y},
-    {"momentum_z", grid_enum::momentum_z},
-  # ifdef DE
-    {"ethermal_dens", grid_enum::GasEnergy},
-  # endif
-    {"etot_dens", grid_enum::Energy}
-  };
+  const std::map<std::string, int> field_index_map = {
+      {"density", grid_enum::density},         {"momentum_x", grid_enum::momentum_x},
+      {"momentum_y", grid_enum::momentum_y},   {"momentum_z", grid_enum::momentum_z},
+#ifdef DE
+      {"ethermal_dens", grid_enum::GasEnergy},
+#endif
+      {"etot_dens", grid_enum::Energy}};
 
   auto compare = [&](const std::string& name, Real* actual, Real* ref) {
     if (actual == nullptr) actual = actual_data.data() + single_field_size * field_index_map.at(name);
@@ -833,40 +800,38 @@ void assert_fielddata_allclose(TestFieldData& actual_test_field_data,
     // compute thermal_energy density:
     std::vector<std::vector<Real>> ethermal_l{};
     for (Real* field_ptr : {actual_data.data(), ref_data.data()}) {
-      Real* dens = field_ptr + single_field_size * grid_enum::density;
-      Real* mom_x = field_ptr + single_field_size * grid_enum::momentum_x;
-      Real* mom_y = field_ptr + single_field_size * grid_enum::momentum_y;
-      Real* mom_z = field_ptr + single_field_size * grid_enum::momentum_z;
+      Real* dens      = field_ptr + single_field_size * grid_enum::density;
+      Real* mom_x     = field_ptr + single_field_size * grid_enum::momentum_x;
+      Real* mom_y     = field_ptr + single_field_size * grid_enum::momentum_y;
+      Real* mom_z     = field_ptr + single_field_size * grid_enum::momentum_z;
       Real* tot_edens = field_ptr + single_field_size * grid_enum::Energy;
 
       std::vector<Real> thermal_energy(single_field_size);
       for (std::size_t i = 0; i < single_field_size; i++) {
-        Real ke_dens = 0.5 * (mom_x[i]*mom_x[i] + mom_y[i]*mom_y[i] + mom_z[i]*mom_z[i])/dens[i];
+        Real ke_dens      = 0.5 * (mom_x[i] * mom_x[i] + mom_y[i] * mom_y[i] + mom_z[i] * mom_z[i]) / dens[i];
         thermal_energy[i] = tot_edens[i] - ke_dens;
       }
       ethermal_l.push_back(thermal_energy);
     }
     compare("(etot_dens - ke_dens)", ethermal_l[0].data(), ethermal_l[1].data());
   }
-# ifdef DE
+#ifdef DE
   compare("ethermal_dens", nullptr, nullptr);
-# endif
+#endif
 }
 
 // make sure this lives for the lifetime of the test where the data gets used!
 struct TestParticleData {
-
-private: // attributes
-
+ private:  // attributes
   // when cuda_utilities::DeviceVector is updated so that it can be moved in the future, it won't
   // be necessary to wrap particle_ids_ in a unique_ptr.
   std::unique_ptr<cuda_utilities::DeviceVector<part_int_t>> particle_ids_;
-  std::map<std::string,cuda_utilities::DeviceVector<Real>> general_data_;
+  std::map<std::string, cuda_utilities::DeviceVector<Real>> general_data_;
 
-public:
-
-  TestParticleData(const std::vector<hydro_utilities::VectorXYZ<Real>>& pos_vec, const std::map<std::string, Real>& other_props)
-    : particle_ids_(nullptr)
+ public:
+  TestParticleData(const std::vector<hydro_utilities::VectorXYZ<Real>>& pos_vec,
+                   const std::map<std::string, Real>& other_props)
+      : particle_ids_(nullptr)
   {
     const std::size_t count = pos_vec.size();
 
@@ -881,21 +846,20 @@ public:
 
     // now fill in the local vectors
     for (std::size_t i = 0; i < count; i++) {
-
       host_particle_ids[i] = part_int_t(i);
 
       host_data_.at("pos_x")[i] = pos_vec[i][0];
       host_data_.at("pos_y")[i] = pos_vec[i][1];
       host_data_.at("pos_z")[i] = pos_vec[i][2];
 
-      //printf("pos: %g, %g, %g\n", host_data_.at("pos_x")[i], host_data_.at("pos_y")[i], host_data_.at("pos_z")[i]);
+      // printf("pos: %g, %g, %g\n", host_data_.at("pos_x")[i], host_data_.at("pos_y")[i], host_data_.at("pos_z")[i]);
 
       host_data_.at("vel_x")[i] = try_get_(other_props, "vel_x").value_or(0.0);
       host_data_.at("vel_y")[i] = try_get_(other_props, "vel_y").value_or(0.0);
       host_data_.at("vel_z")[i] = try_get_(other_props, "vel_z").value_or(0.0);
       host_data_.at("mass")[i]  = try_get_(other_props, "mass").value_or(1e3);  // defaults to 1e3 solar masses
-      host_data_.at("age")[i]   = try_get_(other_props, "age").value_or(-1e4);  // defaults to -10 kyr (recall this is 
-                                                                                 // really the formation time)
+      host_data_.at("age")[i]   = try_get_(other_props, "age").value_or(-1e4);  // defaults to -10 kyr (recall this is
+                                                                                // really the formation time)
     }
 
     // now copy host vector contents to the device
@@ -909,19 +873,24 @@ public:
     // now host-vectors are automatically deallocated
   }
 
-  TestParticleData(TestParticleData&&) = default;
+  TestParticleData(TestParticleData&&)            = default;
   TestParticleData& operator=(TestParticleData&&) = default;
 
   part_int_t num_particles() { return part_int_t(particle_ids_->size()); }
 
-  feedback_details::ParticleProps particle_props() {
+  feedback_details::ParticleProps particle_props()
+  {
     return {
-      num_particles(), // number of local particles
-      particle_ids_->data(),
-      general_data_.at("pos_x").data(), general_data_.at("pos_y").data(), general_data_.at("pos_z").data(),
-      general_data_.at("vel_x").data(), general_data_.at("vel_y").data(), general_data_.at("vel_z").data(),
-      general_data_.at("mass").data(),
-      general_data_.at("age").data(),
+        num_particles(),  // number of local particles
+        particle_ids_->data(),
+        general_data_.at("pos_x").data(),
+        general_data_.at("pos_y").data(),
+        general_data_.at("pos_z").data(),
+        general_data_.at("vel_x").data(),
+        general_data_.at("vel_y").data(),
+        general_data_.at("vel_z").data(),
+        general_data_.at("mass").data(),
+        general_data_.at("age").data(),
     };
   }
 
@@ -929,16 +898,16 @@ public:
   {
     CHOLLA_ASSERT((index >= 0) and (index < this->num_particles()), "Invalid Particle Index was specified!");
     return {
-      1, // number of local particles
-      particle_ids_->data() + index,
-      general_data_.at("pos_x").data() + index,
-      general_data_.at("pos_y").data() + index,
-      general_data_.at("pos_z").data() + index,
-      general_data_.at("vel_x").data() + index,
-      general_data_.at("vel_y").data() + index,
-      general_data_.at("vel_z").data() + index,
-      general_data_.at("mass").data() + index,
-      general_data_.at("age").data() + index,
+        1,  // number of local particles
+        particle_ids_->data() + index,
+        general_data_.at("pos_x").data() + index,
+        general_data_.at("pos_y").data() + index,
+        general_data_.at("pos_z").data() + index,
+        general_data_.at("vel_x").data() + index,
+        general_data_.at("vel_y").data() + index,
+        general_data_.at("vel_z").data() + index,
+        general_data_.at("mass").data() + index,
+        general_data_.at("age").data() + index,
     };
   }
 
@@ -954,7 +923,7 @@ public:
     const std::size_t particle_count = this->num_particles();
     std::map<std::string, std::vector<Real>> out;
     for (auto& kv_pair : this->general_data_) {
-      const std::string& key = kv_pair.first;
+      const std::string& key                  = kv_pair.first;
       cuda_utilities::DeviceVector<Real>& vec = kv_pair.second;
 
       out.emplace(key, particle_count);
@@ -978,7 +947,6 @@ public:
       print_fn(kv_pair.first, kv_pair.second);
     }
   }
-
 };
 
 struct FeedbackResults {
@@ -990,51 +958,54 @@ struct FeedbackResults {
 template <typename Prescription = fb_prescription::CiCResolvedSNPrescription>
 FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>& prop_l,
                                    const std::vector<hydro_utilities::VectorXYZ<Real>>& particle_pos_vec,
-                                   feedback_details::OverlapStrat ov_strat,
-                                   bool separate_launch_per_particle,
-                                   feedback_details::BoundaryStrategy bdry_strat = feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues,
-                                   const std::optional<Real> maybe_init_density = std::optional<Real>(),
+                                   feedback_details::OverlapStrat ov_strat, bool separate_launch_per_particle,
+                                   feedback_details::BoundaryStrategy bdry_strat =
+                                       feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues,
+                                   const std::optional<Real> maybe_init_density        = std::optional<Real>(),
                                    const std::optional<Real> maybe_init_internal_edens = std::optional<Real>(),
-                                   const std::optional<hydro_utilities::VectorXYZ<Real>> maybe_bulk_vel = std::optional<hydro_utilities::VectorXYZ<Real>>())
+                                   const std::optional<hydro_utilities::VectorXYZ<Real>> maybe_bulk_vel =
+                                       std::optional<hydro_utilities::VectorXYZ<Real>>())
 {
-
   feedback_details::FieldSpatialProps spatial_props{
-    // left-edges of active zone:
-    prop_l[0].min, prop_l[1].min, prop_l[2].min,
-    // right-edges of active zone:
-    prop_l[0].min + prop_l[0].cell_width * prop_l[0].num_cells,
-    prop_l[1].min + prop_l[1].cell_width * prop_l[1].num_cells,
-    prop_l[2].min + prop_l[2].cell_width * prop_l[2].num_cells,
-    // cell_widths
-    prop_l[0].cell_width, prop_l[1].cell_width, prop_l[2].cell_width,
-    // cells along each axis (including ghost zone)
-    prop_l[0].num_cells + 2 * n_ghost,  // cells along x (with ghosts)
-    prop_l[1].num_cells + 2 * n_ghost,  // cells along y (with ghosts)
-    prop_l[2].num_cells + 2 * n_ghost,  // cells along z (with ghosts)
-    // number of ghost zones:
-    n_ghost,
+      // left-edges of active zone:
+      prop_l[0].min,
+      prop_l[1].min,
+      prop_l[2].min,
+      // right-edges of active zone:
+      prop_l[0].min + prop_l[0].cell_width * prop_l[0].num_cells,
+      prop_l[1].min + prop_l[1].cell_width * prop_l[1].num_cells,
+      prop_l[2].min + prop_l[2].cell_width * prop_l[2].num_cells,
+      // cell_widths
+      prop_l[0].cell_width,
+      prop_l[1].cell_width,
+      prop_l[2].cell_width,
+      // cells along each axis (including ghost zone)
+      prop_l[0].num_cells + 2 * n_ghost,  // cells along x (with ghosts)
+      prop_l[1].num_cells + 2 * n_ghost,  // cells along y (with ghosts)
+      prop_l[2].num_cells + 2 * n_ghost,  // cells along z (with ghosts)
+      // number of ghost zones:
+      n_ghost,
   };
 
   // check for optional test-specific field/particle values::
-  const Real init_density        = maybe_init_density.value_or(1482737.17012665); // should be 0.1 particles per cc
-  const Real init_internal_edens = maybe_init_internal_edens.value_or(0.00021335 *1.5);
+  const Real init_density        = maybe_init_density.value_or(1482737.17012665);  // should be 0.1 particles per cc
+  const Real init_internal_edens = maybe_init_internal_edens.value_or(0.00021335 * 1.5);
 
-  const hydro_utilities::VectorXYZ<Real> dflt_bulk_vel = {0.0,0.0,0.0};
-  const hydro_utilities::VectorXYZ<Real> bulk_vel = maybe_bulk_vel.value_or(dflt_bulk_vel);
+  const hydro_utilities::VectorXYZ<Real> dflt_bulk_vel = {0.0, 0.0, 0.0};
+  const hydro_utilities::VectorXYZ<Real> bulk_vel      = maybe_bulk_vel.value_or(dflt_bulk_vel);
 
   // allocate the temporary field data!
   const Extent3D full_extent{spatial_props.nx_g, spatial_props.ny_g, spatial_props.nz_g};
-  TestFieldData test_field_data(full_extent, {{"density",       init_density},
-                                              {"velocity_x",    bulk_vel[0]},
-                                              {"velocity_y",    bulk_vel[1]},
-                                              {"velocity_z",    bulk_vel[2]},
+  TestFieldData test_field_data(full_extent, {{"density", init_density},
+                                              {"velocity_x", bulk_vel[0]},
+                                              {"velocity_y", bulk_vel[1]},
+                                              {"velocity_z", bulk_vel[2]},
                                               {"thermal_edens", init_internal_edens}});
 
   const std::size_t num_particles = particle_pos_vec.size();
   // allocate the temporary particle data!
-  TestParticleData test_particle_data(particle_pos_vec, {{"vel_x", bulk_vel[0]},
-                                                         {"vel_y", bulk_vel[1]},
-                                                         {"vel_z", bulk_vel[2]}});
+  TestParticleData test_particle_data(particle_pos_vec,
+                                      {{"vel_x", bulk_vel[0]}, {"vel_y", bulk_vel[1]}, {"vel_z", bulk_vel[2]}});
 
   // Declare/allocate device buffer for holding the number of supernovae per particle in the current cycle
   cuda_utilities::DeviceVector<int> d_num_SN(particle_pos_vec.size(), true);  // initialized to 0
@@ -1050,38 +1021,43 @@ FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>
 
   // give some dummy vals:
   const feedback_details::CycleProps cycle_props{0.0,  // current time
-                                                 0.1,  // length of current timestep 
+                                                 0.1,  // length of current timestep
                                                  1};   // the current cycle-number
 
   feedback_details::OverlapScheduler ov_scheduler(ov_strat, spatial_props.nx_g, spatial_props.ny_g, spatial_props.nz_g);
 
   if (separate_launch_per_particle) {
     // actually execute feedback
-    for (std::size_t i = 0; i < particle_pos_vec.size(); i++){
+    for (std::size_t i = 0; i < particle_pos_vec.size(); i++) {
       std::array<Real, FBInfoLUT::LEN> info_tmp;
-      for (int j = 0; j < FBInfoLUT::LEN; j++) { info_tmp[j] = 0.0; }
+      for (int j = 0; j < FBInfoLUT::LEN; j++) {
+        info_tmp[j] = 0.0;
+      }
 
       feedback_details::Exec_Cluster_Feedback_Kernel<Prescription>(
-        test_particle_data.props_of_single_particle(int(i)), spatial_props, cycle_props, 
-        info_tmp.data(), test_field_data.dev_ptr(), d_num_SN.data() + i, ov_scheduler, bdry_strat);
+          test_particle_data.props_of_single_particle(int(i)), spatial_props, cycle_props, info_tmp.data(),
+          test_field_data.dev_ptr(), d_num_SN.data() + i, ov_scheduler, bdry_strat);
 
-      for (int j = 0; j < FBInfoLUT::LEN; j++) { info[j] += info_tmp[j]; }
+      for (int j = 0; j < FBInfoLUT::LEN; j++) {
+        info[j] += info_tmp[j];
+      }
     }
   } else {
-    feedback_details::Exec_Cluster_Feedback_Kernel<Prescription>(
-      test_particle_data.particle_props(), spatial_props, cycle_props,
-      info.data(), test_field_data.dev_ptr(), d_num_SN.data(), ov_scheduler, bdry_strat);
+    feedback_details::Exec_Cluster_Feedback_Kernel<Prescription>(test_particle_data.particle_props(), spatial_props,
+                                                                 cycle_props, info.data(), test_field_data.dev_ptr(),
+                                                                 d_num_SN.data(), ov_scheduler, bdry_strat);
   }
 
   FeedbackResults out{std::move(test_field_data), std::move(test_particle_data), std::move(info)};
   return out;
 }
 
-} // anonymous namespace
+}  // anonymous namespace
 
 bool is_integer_(Real val) { return std::trunc(val) == val; }
 
-void basic_infosummary_checks_(const std::vector<Real>& info) {
+void basic_infosummary_checks_(const std::vector<Real>& info)
+{
   ASSERT_EQ(info.size(), FBInfoLUT::LEN);
 
   // we may need to revisit the following if we ever add more summary-stats
@@ -1092,24 +1068,23 @@ void basic_infosummary_checks_(const std::vector<Real>& info) {
   ASSERT_TRUE(is_integer_(info[FBInfoLUT::countSN]));
   ASSERT_TRUE(is_integer_(info[FBInfoLUT::countResolved]));
   ASSERT_TRUE(is_integer_(info[FBInfoLUT::countUnresolved]));
-  ASSERT_EQ(info[FBInfoLUT::countSN],
-            info[FBInfoLUT::countResolved] + info[FBInfoLUT::countUnresolved]);
+  ASSERT_EQ(info[FBInfoLUT::countSN], info[FBInfoLUT::countResolved] + info[FBInfoLUT::countUnresolved]);
 }
 
 // check the equality of all integers in actual and ref
-void check_infosummary_int_equality_(const std::vector<Real>& actual, const std::vector<Real>& ref) {
+void check_infosummary_int_equality_(const std::vector<Real>& actual, const std::vector<Real>& ref)
+{
   basic_infosummary_checks_(actual);
   basic_infosummary_checks_(ref);
 
-  auto is_loseless_integer = [](Real val) { 
+  auto is_loseless_integer = [](Real val) {
     bool obvious_problem = (
         // in this case Real is a 32 bit float and may encode an integer that can't
         // be losslessly represented
         ((sizeof(Real) == 4) and (fabs(val) > 16777217)) or
         // in this case Real is a 64 bit float and may encode an integer that can't
         // be losslessly represented
-        ((sizeof(Real) == 8) and (fabs(val) > 9007199254740992))
-    );
+        ((sizeof(Real) == 8) and (fabs(val) > 9007199254740992)));
 
     if (obvious_problem) {
       return false;
@@ -1119,7 +1094,7 @@ void check_infosummary_int_equality_(const std::vector<Real>& actual, const std:
   };
 
   for (int i = 0; i < FBInfoLUT::LEN; i++) {
-    if (is_loseless_integer(actual[i]) and is_loseless_integer(ref[i])){
+    if (is_loseless_integer(actual[i]) and is_loseless_integer(ref[i])) {
       ASSERT_EQ(actual[i], ref[i]);
     }
   }
@@ -1130,41 +1105,38 @@ void check_equality(FeedbackResults& rslt_actual, FeedbackResults& rslt_ref)
   int num_particles = int(rslt_ref.test_particle_data.num_particles());
   {
     std::vector<part_int_t> actual_particle_ids = rslt_actual.test_particle_data.host_copy_particle_ids();
-    std::vector<part_int_t> ref_particle_ids = rslt_ref.test_particle_data.host_copy_particle_ids();
-    assert_allclose(actual_particle_ids.data(), ref_particle_ids.data(),
-                    {num_particles, 1, 1}, 0.0, 0.0, false,
+    std::vector<part_int_t> ref_particle_ids    = rslt_ref.test_particle_data.host_copy_particle_ids();
+    assert_allclose(actual_particle_ids.data(), ref_particle_ids.data(), {num_particles, 1, 1}, 0.0, 0.0, false,
                     "problem comparing the particle_ids");
   }
 
   {
     std::map<std::string, std::vector<Real>> actual_data = rslt_actual.test_particle_data.host_copy_general();
-    std::map<std::string, std::vector<Real>> ref_data = rslt_ref.test_particle_data.host_copy_general();
+    std::map<std::string, std::vector<Real>> ref_data    = rslt_ref.test_particle_data.host_copy_general();
 
     for (const auto& kv_pair : actual_data) {
       const std::string& key = kv_pair.first;
 
       std::vector<Real>& actual_vec = actual_data.at(key);
-      std::vector<Real>& ref_vec     = ref_data.at(key);
+      std::vector<Real>& ref_vec    = ref_data.at(key);
 
       std::string err_msg = "problem comparing the particle property: " + key;
 
-      assert_allclose(actual_vec.data(), ref_vec.data(),
-                      {num_particles, 1, 1}, 0.0, 0.0, false, err_msg);
+      assert_allclose(actual_vec.data(), ref_vec.data(), {num_particles, 1, 1}, 0.0, 0.0, false, err_msg);
     }
   }
 
-  assert_fielddata_allclose(rslt_actual.test_field_data, rslt_ref.test_field_data,
-                            false, 0.0, 0.0);
+  assert_fielddata_allclose(rslt_actual.test_field_data, rslt_ref.test_field_data, false, 0.0, 0.0);
 
   // perform a check of the info-summary-statistics
   check_infosummary_int_equality_(rslt_actual.info, rslt_ref.info);
 }
 
 template <typename T>
-class tALLFeedbackFull : public testing::Test // NOLINT(readability-identifier-naming)
+class tALLFeedbackFull : public testing::Test  // NOLINT(readability-identifier-naming)
 {
-public:
-  using PrescriptionT=T;
+ public:
+  using PrescriptionT = T;
 };
 
 using MyPrescriptionTypes = ::testing::Types<fb_prescription::CiCResolvedSNPrescription,
@@ -1180,21 +1152,21 @@ TYPED_TEST(tALLFeedbackFull, CheckingOverlapStrat)
 {
   using Prescription = typename TestFixture::PrescriptionT;
 
-  const int n_ghost = 0;
-  const Real dx = 1.0 / 256.0;
-  const std::vector<AxProps> ax_prop_l = {{5, 0.0, dx}, {5,0.0, dx}, {5,0.0, dx}};
+  const int n_ghost                    = 0;
+  const Real dx                        = 1.0 / 256.0;
+  const std::vector<AxProps> ax_prop_l = {{5, 0.0, dx}, {5, 0.0, dx}, {5, 0.0, dx}};
 
   // initialize 50 star particles directly atop each other
-  const std::vector<hydro_utilities::VectorXYZ<Real>> particle_pos_vec(50, {2.4 *dx, 2.4 *dx, 2.4 *dx});
+  const std::vector<hydro_utilities::VectorXYZ<Real>> particle_pos_vec(50, {2.4 * dx, 2.4 * dx, 2.4 * dx});
 
-  // Get the reference answer - here we sequentially launch one kernel after to handle feedback of 
+  // Get the reference answer - here we sequentially launch one kernel after to handle feedback of
   // each individual particle
   FeedbackResults rslt_ref = run_full_feedback_<Prescription>(
-    n_ghost, ax_prop_l, particle_pos_vec, feedback_details::OverlapStrat::ignore, true,
-    feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues);
+      n_ghost, ax_prop_l, particle_pos_vec, feedback_details::OverlapStrat::ignore, true,
+      feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues);
   FeedbackResults rslt_actual = run_full_feedback_<Prescription>(
-    n_ghost, ax_prop_l, particle_pos_vec, feedback_details::OverlapStrat::sequential, false,
-    feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues);
+      n_ghost, ax_prop_l, particle_pos_vec, feedback_details::OverlapStrat::sequential, false,
+      feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues);
 
   /*
     printf("\nLooking at the OverlapStrat::ignore approach:\n");
@@ -1219,28 +1191,26 @@ struct InjectSummary {
   Real thermal_energy;
 };
 
-/* calculate the amount that is injected in each quantity in the specified reference 
+/* calculate the amount that is injected in each quantity in the specified reference
  * frame (ref_frame_vel is measure in the original reference frame of the simulation)
  */
-InjectSummary calc_inject_summary_(TestFieldData& field_data, Real init_density,
-                                   Real init_internal_edens, hydro_utilities::VectorXYZ<Real> init_bulk_vel,
-                                   Real cell_vol, hydro_utilities::VectorXYZ<Real> ref_frame_vel = {0.0,0.0,0.0})
+InjectSummary calc_inject_summary_(TestFieldData& field_data, Real init_density, Real init_internal_edens,
+                                   hydro_utilities::VectorXYZ<Real> init_bulk_vel, Real cell_vol,
+                                   hydro_utilities::VectorXYZ<Real> ref_frame_vel = {0.0, 0.0, 0.0})
 {
-  Extent3D extent = field_data.single_field_extent();
-  const std::size_t single_field_size = extent.nx*extent.ny*extent.nz;
+  Extent3D extent                     = field_data.single_field_extent();
+  const std::size_t single_field_size = extent.nx * extent.ny * extent.nz;
 
   std::vector<Real> vec;
-  if ((ref_frame_vel[0] == 0.0) and (ref_frame_vel[1] == 0.0) and
-      (ref_frame_vel[2] == 0.0)){
+  if ((ref_frame_vel[0] == 0.0) and (ref_frame_vel[1] == 0.0) and (ref_frame_vel[2] == 0.0)) {
     vec = field_data.host_copy();
   } else {
     TestFieldData tmp = field_data.change_ref_frame(ref_frame_vel);
-    vec = tmp.host_copy();
+    vec               = tmp.host_copy();
   }
 
-  hydro_utilities::VectorXYZ<Real> bulk_vel{init_bulk_vel[0] - ref_frame_vel[0],
-                      init_bulk_vel[1] - ref_frame_vel[1],
-                      init_bulk_vel[2] - ref_frame_vel[2]};
+  hydro_utilities::VectorXYZ<Real> bulk_vel{init_bulk_vel[0] - ref_frame_vel[0], init_bulk_vel[1] - ref_frame_vel[1],
+                                            init_bulk_vel[2] - ref_frame_vel[2]};
 
   InjectSummary out{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
   for (std::size_t i = 0; i < single_field_size; i++) {
@@ -1250,7 +1220,7 @@ InjectSummary calc_inject_summary_(TestFieldData& field_data, Real init_density,
     const Real mom_z     = vec[single_field_size * grid_enum::momentum_z + i];
     const Real tot_edens = vec[single_field_size * grid_enum::Energy + i];
 
-    Real ke_dens = 0.5 * (mom_x*mom_x + mom_y*mom_y + mom_z*mom_z)/dens;
+    Real ke_dens        = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / dens;
     Real thermal_energy = tot_edens - ke_dens;
 
     // compute how different the momentum density is from the initial value
@@ -1258,46 +1228,48 @@ InjectSummary calc_inject_summary_(TestFieldData& field_data, Real init_density,
     const Real excess_mom_y = (mom_y - init_density * bulk_vel[1]);
     const Real excess_mom_z = (mom_z - init_density * bulk_vel[2]);
 
-    out.mass           += (dens - init_density);
-    out.net_mom_x      += excess_mom_x;
-    out.net_mom_y      += excess_mom_y;
-    out.net_mom_z      += excess_mom_z;
-    out.abs_mom_mag    += sqrt((excess_mom_x * excess_mom_x) +
-                               (excess_mom_y * excess_mom_y) +
-                               (excess_mom_z * excess_mom_z));
+    out.mass += (dens - init_density);
+    out.net_mom_x += excess_mom_x;
+    out.net_mom_y += excess_mom_y;
+    out.net_mom_z += excess_mom_z;
+    out.abs_mom_mag +=
+        sqrt((excess_mom_x * excess_mom_x) + (excess_mom_y * excess_mom_y) + (excess_mom_z * excess_mom_z));
     out.thermal_energy += (thermal_energy - init_internal_edens);
   }
 
-  out.mass           *= cell_vol;
-  out.net_mom_x      *= cell_vol;
-  out.net_mom_y      *= cell_vol;
-  out.net_mom_z      *= cell_vol;
-  out.abs_mom_mag    *= cell_vol;
+  out.mass *= cell_vol;
+  out.net_mom_x *= cell_vol;
+  out.net_mom_y *= cell_vol;
+  out.net_mom_z *= cell_vol;
+  out.abs_mom_mag *= cell_vol;
   out.thermal_energy *= cell_vol;
 
   return out;
 }
 
 // in this test, we look into the actual injected amounts!
-template<typename Prescription>
+template <typename Prescription>
 void test_injection_magnitudes_(bool resolved, const hydro_utilities::VectorXYZ<Real>& bulk_vel)
 {
-  const int n_ghost = 0;
-  const Real dx = 1.0 / 256.0;
-  const std::vector<AxProps> ax_prop_l = {{5, 0.0, dx}, {5,0.0, dx}, {5,0.0, dx}};
+  const int n_ghost                    = 0;
+  const Real dx                        = 1.0 / 256.0;
+  const std::vector<AxProps> ax_prop_l = {{5, 0.0, dx}, {5, 0.0, dx}, {5, 0.0, dx}};
 
   // initialize 1 star particle
-  const std::vector<hydro_utilities::VectorXYZ<Real>> particle_pos_vec(1, {2.4 *dx, 2.4 *dx, 2.4 *dx});
+  const std::vector<hydro_utilities::VectorXYZ<Real>> particle_pos_vec(1, {2.4 * dx, 2.4 * dx, 2.4 * dx});
 
-  const Real density        = (resolved) ? 1e8 : 1e9; // solar-masses per kpc**3
-    // default thermal energy density should correspond to pressure of 1e4 K / cm**3 (for a gamma of 5/3)
-  const Real internal_edens = 0.0021335 *1.5;
+  const Real density =
+      (resolved)
+          ? 1e8
+          : 1e9;  // solar-masses per kpc**3
+                  // default thermal energy density should correspond to pressure of 1e4 K / cm**3 (for a gamma of 5/3)
+  const Real internal_edens = 0.0021335 * 1.5;
 
   // launch the feedback
   FeedbackResults rslt = run_full_feedback_<Prescription>(
-    n_ghost, ax_prop_l, particle_pos_vec, feedback_details::OverlapStrat::ignore, true,
-    feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues,
-    {density}, {internal_edens}, {bulk_vel});
+      n_ghost, ax_prop_l, particle_pos_vec, feedback_details::OverlapStrat::ignore, true,
+      feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues, {density}, {internal_edens},
+      {bulk_vel});
 
   ASSERT_EQ(rslt.info[FBInfoLUT::countSN], 1);
 
@@ -1305,8 +1277,8 @@ void test_injection_magnitudes_(bool resolved, const hydro_utilities::VectorXYZ<
   // feedback (this just happens to coincide with bulk_vel)
   const hydro_utilities::VectorXYZ<Real> ref_frame_vel = bulk_vel;
 
-  InjectSummary summary = calc_inject_summary_(rslt.test_field_data, density, internal_edens, bulk_vel,
-                                               dx * dx * dx, ref_frame_vel);
+  InjectSummary summary =
+      calc_inject_summary_(rslt.test_field_data, density, internal_edens, bulk_vel, dx * dx * dx, ref_frame_vel);
   /*
     printf("from_grid:  mass = %g, net_mom = {%g,%g,%g}, abs_mom_mag = %e, thermal_energy/erg = %e\n",
            summary.mass, summary.net_mom_x, summary.net_mom_y, summary.net_mom_z,
@@ -1314,7 +1286,7 @@ void test_injection_magnitudes_(bool resolved, const hydro_utilities::VectorXYZ<
 
     Real info_e = rslt.info[FBInfoLUT::totalEnergy] + rslt.info[FBInfoLUT::totalUnresEnergy];
     printf("from summary_stats:   abs_mom_mag = %e energy/erg = %e\n\n",
-           rslt.info[FBInfoLUT::totalMomentum], 
+           rslt.info[FBInfoLUT::totalMomentum],
            info_e * FORCE_UNIT * LENGTH_UNIT);
   */
 
@@ -1327,12 +1299,10 @@ void test_injection_magnitudes_(bool resolved, const hydro_utilities::VectorXYZ<
     EXPECT_EQ(0.0, summary.net_mom_y);
     EXPECT_EQ(0.0, summary.net_mom_z);
     EXPECT_EQ(0.0, summary.abs_mom_mag);
-    EXPECT_NEAR(feedback::ENERGY_PER_SN, summary.thermal_energy,
-                rtol * feedback::ENERGY_PER_SN);
+    EXPECT_NEAR(feedback::ENERGY_PER_SN, summary.thermal_energy, rtol * feedback::ENERGY_PER_SN);
 
     // sanity check!
-    EXPECT_NEAR(feedback::ENERGY_PER_SN, rslt.info[FBInfoLUT::totalEnergy],
-                rtol * feedback::ENERGY_PER_SN);
+    EXPECT_NEAR(feedback::ENERGY_PER_SN, rslt.info[FBInfoLUT::totalEnergy], rtol * feedback::ENERGY_PER_SN);
   } else {
     // NOTE: feedback::FINAL_MOMENTUM does NOT directly specify the injected radial-momentum
     //       (the radial momentum also depends on the local conditions)
@@ -1346,11 +1316,10 @@ void test_injection_magnitudes_(bool resolved, const hydro_utilities::VectorXYZ<
     EXPECT_NEAR(0.0, summary.net_mom_x, atol);
     EXPECT_NEAR(0.0, summary.net_mom_y, atol);
     EXPECT_NEAR(0.0, summary.net_mom_z, atol);
-    // for thermal energy, we theoretically need tolerance since we added and subtracted 
+    // for thermal energy, we theoretically need tolerance since we added and subtracted
     // kinetic energy
     EXPECT_NEAR(0.0, summary.thermal_energy, atol);
-    EXPECT_NEAR(rslt.info[FBInfoLUT::totalMomentum], summary.abs_mom_mag,
-                rtol * rslt.info[FBInfoLUT::totalMomentum]);
+    EXPECT_NEAR(rslt.info[FBInfoLUT::totalMomentum], summary.abs_mom_mag, rtol * rslt.info[FBInfoLUT::totalMomentum]);
 
     // sanity checks!
     EXPECT_EQ(rslt.info[FBInfoLUT::totalUnresEnergy], 0.0);
@@ -1360,36 +1329,34 @@ void test_injection_magnitudes_(bool resolved, const hydro_utilities::VectorXYZ<
   // criteria for switching between resolved and unresolved feedback changes significantly
   if (resolved) {
     ASSERT_TRUE(rslt.info[FBInfoLUT::countResolved] == 1) << "something is wrong, we expected to be "
-                                                            << "testing unresolved feedback!";
+                                                          << "testing unresolved feedback!";
   } else {
     ASSERT_TRUE(rslt.info[FBInfoLUT::countUnresolved] == 1) << "something is wrong, we expected to be "
-                                                              << "testing unresolved feedback!";
+                                                            << "testing unresolved feedback!";
   }
 }
 
 TYPED_TEST(tALLFeedbackFull, InjectionMagnitudesResolved)
 {
   using Prescription = typename TestFixture::PrescriptionT;
-  if (Prescription::has_resolved_prescription){
+  if (Prescription::has_resolved_prescription) {
     test_injection_magnitudes_<Prescription>(true, hydro_utilities::VectorXYZ<Real>{0.0, 0.0, 0.0});
   }
 }
 
-
 TYPED_TEST(tALLFeedbackFull, InjectionMagnitudesResolvedBulkV)
 {
   using Prescription = typename TestFixture::PrescriptionT;
-  if (Prescription::has_resolved_prescription){
-    hydro_utilities::VectorXYZ<Real> bulk_vel = {0.000205, 0.0, 0.0}; // roughly 200 km/s
+  if (Prescription::has_resolved_prescription) {
+    hydro_utilities::VectorXYZ<Real> bulk_vel = {0.000205, 0.0, 0.0};  // roughly 200 km/s
     test_injection_magnitudes_<Prescription>(true, bulk_vel);
   }
 }
 
-
 TYPED_TEST(tALLFeedbackFull, InjectionMagnitudesUnresolved)
 {
   using Prescription = typename TestFixture::PrescriptionT;
-  if (Prescription::has_unresolved_prescription){
+  if (Prescription::has_unresolved_prescription) {
     test_injection_magnitudes_<Prescription>(false, hydro_utilities::VectorXYZ<Real>{0.0, 0.0, 0.0});
   }
 }
@@ -1397,8 +1364,8 @@ TYPED_TEST(tALLFeedbackFull, InjectionMagnitudesUnresolved)
 TYPED_TEST(tALLFeedbackFull, InjectionMagnitudesUnresolvedBulkV)
 {
   using Prescription = typename TestFixture::PrescriptionT;
-  if (Prescription::has_unresolved_prescription){
-    hydro_utilities::VectorXYZ<Real> bulk_vel = {0.000205, 0.0, 0.0}; // roughly 200 km/s
+  if (Prescription::has_unresolved_prescription) {
+    hydro_utilities::VectorXYZ<Real> bulk_vel = {0.000205, 0.0, 0.0};  // roughly 200 km/s
     test_injection_magnitudes_<Prescription>(false, bulk_vel);
   }
 }
@@ -1415,31 +1382,30 @@ TYPED_TEST(tALLFeedbackFull, ComparingFrameInvariance)
 {
   using Prescription = typename TestFixture::PrescriptionT;
 
-  const int n_ghost = 0;
-  const Real dx = 1.0 / 256.0;
-  const std::vector<AxProps> ax_prop_l = {{5, 0.0, dx}, {5,0.0, dx}, {5,0.0, dx}};
+  const int n_ghost                    = 0;
+  const Real dx                        = 1.0 / 256.0;
+  const std::vector<AxProps> ax_prop_l = {{5, 0.0, dx}, {5, 0.0, dx}, {5, 0.0, dx}};
 
   // initialize some star particles directly atop each other
-  const std::vector<hydro_utilities::VectorXYZ<Real>> particle_pos_vec(1, {2.4 *dx, 2.4 *dx, 2.4 *dx});
+  const std::vector<hydro_utilities::VectorXYZ<Real>> particle_pos_vec(1, {2.4 * dx, 2.4 * dx, 2.4 * dx});
 
-  [[maybe_unused]] const Real init_density = 1e9; // solar-masses per kpc**3
+  [[maybe_unused]] const Real init_density = 1e9;  // solar-masses per kpc**3
 
   // Get the reference answer (in the reference frame where there is no bulk velocity)
   [[maybe_unused]] hydro_utilities::VectorXYZ<Real> bulk_vel_NULLCASE = {0.0, 0.0, 0.0};
-  FeedbackResults rslt_ref = run_full_feedback_<Prescription>(
-    n_ghost, ax_prop_l, particle_pos_vec, feedback_details::OverlapStrat::ignore, true,
-    feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues,
-    {init_density}, {}, {bulk_vel_NULLCASE});
+  FeedbackResults rslt_ref                                            = run_full_feedback_<Prescription>(
+      n_ghost, ax_prop_l, particle_pos_vec, feedback_details::OverlapStrat::ignore, true,
+      feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues, {init_density}, {},
+      {bulk_vel_NULLCASE});
 
-  [[maybe_unused]] hydro_utilities::VectorXYZ<Real> bulk_vel_ALT = {0.000205, 0.0, 0.0}; // roughly 200 km/s
-  FeedbackResults rslt_actual = run_full_feedback_<Prescription>(
-    n_ghost, ax_prop_l, particle_pos_vec, feedback_details::OverlapStrat::ignore, true,
-    feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues,
-    {init_density}, {}, {bulk_vel_ALT});
+  [[maybe_unused]] hydro_utilities::VectorXYZ<Real> bulk_vel_ALT = {0.000205, 0.0, 0.0};  // roughly 200 km/s
+  FeedbackResults rslt_actual                                    = run_full_feedback_<Prescription>(
+      n_ghost, ax_prop_l, particle_pos_vec, feedback_details::OverlapStrat::ignore, true,
+      feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues, {init_density}, {}, {bulk_vel_ALT});
 
   // shift the reference-frame of the case with the bulk velocity
   TestFieldData actual_field_shifted = rslt_actual.test_field_data.change_ref_frame(
-    hydro_utilities::VectorXYZ<Real>{1 * bulk_vel_ALT[0], 1 * bulk_vel_ALT[1], 1 * bulk_vel_ALT[2]});
+      hydro_utilities::VectorXYZ<Real>{1 * bulk_vel_ALT[0], 1 * bulk_vel_ALT[1], 1 * bulk_vel_ALT[2]});
 
   /*
     printf("\nLooking at the case without bulk velocity:\n");
@@ -1452,10 +1418,9 @@ TYPED_TEST(tALLFeedbackFull, ComparingFrameInvariance)
     actual_field_shifted.print_debug_info();
   */
 
-  double rtol = 2.0e-9; // it would be nice to specify tolerances on a per-field basis
+  double rtol = 2.0e-9;  // it would be nice to specify tolerances on a per-field basis
   double atol = 5e-7;
-  assert_fielddata_allclose(actual_field_shifted, rslt_ref.test_field_data,
-                            false, rtol, atol);
+  assert_fielddata_allclose(actual_field_shifted, rslt_ref.test_field_data, false, rtol, atol);
 
   ASSERT_EQ(rslt_actual.info[FBInfoLUT::countSN], particle_pos_vec.size());
 
@@ -1463,48 +1428,49 @@ TYPED_TEST(tALLFeedbackFull, ComparingFrameInvariance)
     // this is mostly just a sanity check to make sure that this test-case gets updated if the
     // criteria for switching between resolved and unresolved feedback changes significantly
     ASSERT_TRUE(rslt_actual.info[FBInfoLUT::countUnresolved] > 0) << "something is wrong, we expected to be "
-                                                                    << "testing unresolved feedback!";
+                                                                  << "testing unresolved feedback!";
   }
 
   check_infosummary_int_equality_(rslt_actual.info, rslt_ref.info);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-// Testing behavior of full-fu some machinery to help with testing the full feedback functionality 
+// Testing behavior of full-fu some machinery to help with testing the full feedback functionality
 // where we check our expectations about the total volume enclosed by the stencil
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // used to specify positions relative to outer ghost/active zone edges
 struct OuterEdgeOffset {
-  Real offset;      // the actual offset
-  bool active_edge; // whether obj refers to outer edge of ghost/active regions
-  bool left_edge;   // whether obj refers to left/right outer edge
+  Real offset;       // the actual offset
+  bool active_edge;  // whether obj refers to outer edge of ghost/active regions
+  bool left_edge;    // whether obj refers to left/right outer edge
 
-  static OuterEdgeOffset L_Active(Real offset) {return {offset, true, true};}
-  static OuterEdgeOffset R_Active(Real offset) {return {offset, true, false};}
-  static OuterEdgeOffset L_Ghost(Real offset) {return {offset, false, true};}
-  static OuterEdgeOffset R_Ghost(Real offset) {return {offset, false, false};}
+  static OuterEdgeOffset L_Active(Real offset) { return {offset, true, true}; }
+  static OuterEdgeOffset R_Active(Real offset) { return {offset, true, false}; }
+  static OuterEdgeOffset L_Ghost(Real offset) { return {offset, false, true}; }
+  static OuterEdgeOffset R_Ghost(Real offset) { return {offset, false, false}; }
 
-private:
+ private:
   // make this private to force usage of static factory methods
   OuterEdgeOffset(Real offset, bool active_edge, bool left_edge)
-    : offset(offset), active_edge(active_edge), left_edge(left_edge)
-  {}
+      : offset(offset), active_edge(active_edge), left_edge(left_edge)
+  {
+  }
 };
 
 // NOLINTBEGIN(misc-no-recursion)
 /* Convert a position specified in terms of OuterEdgeOffset vals to concrete position (in index
  * units)
  */
-hydro_utilities::VectorXYZ<Real> offset_to_concrete(hydro_utilities::VectorXYZ<OuterEdgeOffset> pos, const std::vector<AxProps>& ax_prop_l,
-                              int n_ghost, bool to_posIndU = false)
+hydro_utilities::VectorXYZ<Real> offset_to_concrete(hydro_utilities::VectorXYZ<OuterEdgeOffset> pos,
+                                                    const std::vector<AxProps>& ax_prop_l, int n_ghost,
+                                                    bool to_posIndU = false)
 {
   if (to_posIndU) {
-    const Extent3D full_extent = {ax_prop_l[0].num_cells + 2*n_ghost,   // x-axis
-                                  ax_prop_l[1].num_cells + 2*n_ghost,   // y-axis
-                                  ax_prop_l[2].num_cells + 2*n_ghost};  // z-axis
-    auto fn = [n_ghost](OuterEdgeOffset& arg, int full_ax_len) -> Real
-    {
+    const Extent3D full_extent = {ax_prop_l[0].num_cells + 2 * n_ghost,   // x-axis
+                                  ax_prop_l[1].num_cells + 2 * n_ghost,   // y-axis
+                                  ax_prop_l[2].num_cells + 2 * n_ghost};  // z-axis
+    auto fn                    = [n_ghost](OuterEdgeOffset& arg, int full_ax_len) -> Real {
       if (arg.active_edge and arg.left_edge) {
         return n_ghost + arg.offset;
       } else if (arg.active_edge and (not arg.left_edge)) {
@@ -1513,22 +1479,21 @@ hydro_utilities::VectorXYZ<Real> offset_to_concrete(hydro_utilities::VectorXYZ<O
         return arg.offset + (full_ax_len - n_ghost);
       } else if ((not arg.active_edge) and arg.left_edge) {
         return arg.offset;
-      } else { // ((not arg.active_edge) and (not arg.left_edge))
+      } else {  // ((not arg.active_edge) and (not arg.left_edge))
         return full_ax_len + arg.offset;
       }
     };
 
     return hydro_utilities::VectorXYZ<Real>{fn(pos[0], full_extent.nx), fn(pos[1], full_extent.ny),
-                      fn(pos[2], full_extent.nz)};
+                                            fn(pos[2], full_extent.nz)};
   } else {
     hydro_utilities::VectorXYZ<Real> pos_indU = offset_to_concrete(pos, ax_prop_l, n_ghost, true);
     return hydro_utilities::VectorXYZ<Real>{(pos_indU[0] - n_ghost) * ax_prop_l[0].cell_width + ax_prop_l[0].min,
-                      (pos_indU[1] - n_ghost) * ax_prop_l[1].cell_width + ax_prop_l[1].min,
-                      (pos_indU[2] - n_ghost) * ax_prop_l[2].cell_width + ax_prop_l[2].min};
+                                            (pos_indU[1] - n_ghost) * ax_prop_l[1].cell_width + ax_prop_l[1].min,
+                                            (pos_indU[2] - n_ghost) * ax_prop_l[2].cell_width + ax_prop_l[2].min};
   }
 }
 // NOLINTEND(misc-no-recursion)
-
 
 /* Constructs a vector of all position permutations.
  *
@@ -1537,10 +1502,10 @@ hydro_utilities::VectorXYZ<Real> offset_to_concrete(hydro_utilities::VectorXYZ<O
  */
 template <typename T>
 std::vector<hydro_utilities::VectorXYZ<T>> build_pos_permutation_l_(const std::vector<T>& target_vals,
-                                              const std::vector<T>& filler_vals)
+                                                                    const std::vector<T>& filler_vals)
 {
   const std::size_t target_len = target_vals.size();
-  const std::size_t total_len = target_len + filler_vals.size();
+  const std::size_t total_len  = target_len + filler_vals.size();
 
   auto get = [&](std::size_t ind) -> T {
     if (ind < target_len) return target_vals[ind];
@@ -1551,8 +1516,7 @@ std::vector<hydro_utilities::VectorXYZ<T>> build_pos_permutation_l_(const std::v
   for (std::size_t i = 0; i < total_len; i++) {
     for (std::size_t j = 0; j < total_len; j++) {
       for (std::size_t k = 0; k < total_len; k++) {
-
-        if ((i >= target_len) and (j >= target_len) and (k >= target_len)){
+        if ((i >= target_len) and (j >= target_len) and (k >= target_len)) {
           continue;
         }
 
@@ -1564,16 +1528,11 @@ std::vector<hydro_utilities::VectorXYZ<T>> build_pos_permutation_l_(const std::v
   return out;
 }
 
-enum struct BoundaryRelatedExpectation{
-  no_update,
-  only_active_zone_update,
-  update_with_change_to_ghost
-};
+enum struct BoundaryRelatedExpectation { no_update, only_active_zone_update, update_with_change_to_ghost };
 
-// maybe it would be better to just return the result... and check if it matches 
+// maybe it would be better to just return the result... and check if it matches
 // the expectation...
-bool matches_expectation_(FeedbackResults& rslt, Real init_density, int n_ghost,
-                          BoundaryRelatedExpectation expectation)
+bool matches_expectation_(FeedbackResults& rslt, Real init_density, int n_ghost, BoundaryRelatedExpectation expectation)
 {
   std::vector<Real> ref_data = rslt.test_field_data.host_copy();
 
@@ -1581,17 +1540,16 @@ bool matches_expectation_(FeedbackResults& rslt, Real init_density, int n_ghost,
 
   int active_zone_end[3] = {extent.nx - n_ghost, extent.ny - n_ghost, extent.nz - n_ghost};
 
-  bool any_update = false;
+  bool any_update       = false;
   bool any_ghost_update = false;
   for (int iz = 0; iz < extent.nz; iz++) {
     for (int iy = 0; iy < extent.ny; iy++) {
       for (int ix = 0; ix < extent.nx; ix++) {
-        int ind3D = ix + extent.nx * (iy + extent.ny * iz);
+        int ind3D        = ix + extent.nx * (iy + extent.ny * iz);
         bool is_modified = ref_data[ind3D] != init_density;
-        any_update = any_update or is_modified;
+        any_update       = any_update or is_modified;
 
-        bool is_ghost = ((ix < n_ghost) or (ix >= active_zone_end[0]) or
-                         (iy < n_ghost) or (iy >= active_zone_end[1]) or
+        bool is_ghost = ((ix < n_ghost) or (ix >= active_zone_end[0]) or (iy < n_ghost) or (iy >= active_zone_end[1]) or
                          (iz < n_ghost) or (iz >= active_zone_end[2]));
         any_ghost_update = any_ghost_update or (is_ghost and is_modified);
       }
@@ -1610,10 +1568,10 @@ bool matches_expectation_(FeedbackResults& rslt, Real init_density, int n_ghost,
   }
 }
 
-template<typename Prescription>
+template <typename Prescription>
 void run_bdry_test_(feedback_details::BoundaryStrategy boundry_strat)
 {
-  const int max_enclosed_neighbors = 1; // TODO: generalize this!
+  const int max_enclosed_neighbors = 1;  // TODO: generalize this!
 
   const Real dx = 1.0 / 256.0;
 
@@ -1624,15 +1582,12 @@ void run_bdry_test_(feedback_details::BoundaryStrategy boundry_strat)
 
   // to guarantee that we can place a particle at the center of a cell and avoid having the stencil
   // overlap with the ghost zone, we adopt the following minimum number of active zones.
-  const int min_active_zones = 1 + 2*max_enclosed_neighbors;
+  const int min_active_zones = 1 + 2 * max_enclosed_neighbors;
 
   const std::vector<AxProps> ax_prop_l = {
-    {min_active_zones,   0.0, dx}, 
-    {min_active_zones+1, 0.0, dx},
-    {min_active_zones+2, 0.0, dx}};
+      {min_active_zones, 0.0, dx}, {min_active_zones + 1, 0.0, dx}, {min_active_zones + 2, 0.0, dx}};
 
-  std::vector<OuterEdgeOffset> good_pos_l = 
-    {OuterEdgeOffset::L_Active(max_enclosed_neighbors + 0.5)};
+  std::vector<OuterEdgeOffset> good_pos_l = {OuterEdgeOffset::L_Active(max_enclosed_neighbors + 0.5)};
 
   // particle is outside the ghost zone and the active zone
   std::vector<OuterEdgeOffset> outside_ghost_and_active = {OuterEdgeOffset::L_Ghost(-0.5),
@@ -1640,33 +1595,29 @@ void run_bdry_test_(feedback_details::BoundaryStrategy boundry_strat)
 
   // pariticle is inside the ghost-zone (don't worry, the stencil doesn't extend beyond the outer
   // edge of the ghost zone)
-  std::vector<OuterEdgeOffset> in_ghost = {OuterEdgeOffset::L_Active(-0.5), 
-                                           OuterEdgeOffset::R_Active(0.5)};
+  std::vector<OuterEdgeOffset> in_ghost = {OuterEdgeOffset::L_Active(-0.5), OuterEdgeOffset::R_Active(0.5)};
 
   // particle is inside the active-zone, but stencil overlaps with ghost
   // - we explicitly don't locate these exactly halfway between cells in order to ensure overlap
   //   in the CiC27-case
-  std::vector<OuterEdgeOffset> ghost_overlap = {OuterEdgeOffset::L_Active(0.49), 
-                                                OuterEdgeOffset::R_Active(-0.49)};
+  std::vector<OuterEdgeOffset> ghost_overlap = {OuterEdgeOffset::L_Active(0.49), OuterEdgeOffset::R_Active(-0.49)};
 
-  const Real init_density = 1000.0; // solar-masses per kpc**3
+  const Real init_density = 1000.0;  // solar-masses per kpc**3
 
   // let's check what happens when we consider a case with a point outside of the active and
   // ghost zones
   {
-    std::vector<hydro_utilities::VectorXYZ<OuterEdgeOffset>> pos_l = build_pos_permutation_l_(
-      outside_ghost_and_active, good_pos_l);
+    std::vector<hydro_utilities::VectorXYZ<OuterEdgeOffset>> pos_l =
+        build_pos_permutation_l_(outside_ghost_and_active, good_pos_l);
 
     for (const hydro_utilities::VectorXYZ<OuterEdgeOffset>& offset_pos : pos_l) {
       hydro_utilities::VectorXYZ<Real> cur_pos = offset_to_concrete(offset_pos, ax_prop_l, n_ghost);
-      //printf("%f, %f, %f\n", cur_pos[0],cur_pos[1],cur_pos[2]);
+      // printf("%f, %f, %f\n", cur_pos[0],cur_pos[1],cur_pos[2]);
 
-      FeedbackResults rslt = run_full_feedback_<Prescription>(n_ghost, ax_prop_l, {cur_pos},
-                                                              feedback_details::OverlapStrat::ignore, true,
-                                                              boundry_strat, {init_density});
+      FeedbackResults rslt = run_full_feedback_<Prescription>(
+          n_ghost, ax_prop_l, {cur_pos}, feedback_details::OverlapStrat::ignore, true, boundry_strat, {init_density});
       ASSERT_EQ(rslt.info[FBInfoLUT::countSN], 0);
-      if (not matches_expectation_(rslt, init_density, n_ghost,
-                                   BoundaryRelatedExpectation::no_update)) {
+      if (not matches_expectation_(rslt, init_density, n_ghost, BoundaryRelatedExpectation::no_update)) {
         FAIL() << "When a particle is placed outside of the active and ghost zones, feedback from "
                << "it should not be applied";
       }
@@ -1677,64 +1628,62 @@ void run_bdry_test_(feedback_details::BoundaryStrategy boundry_strat)
   // confirm that when we place a particle outside the active zone (but in the ghost zone) that
   // feedback is skipped
   {
-    std::vector<hydro_utilities::VectorXYZ<OuterEdgeOffset>> pos_l = build_pos_permutation_l_(
-      in_ghost, good_pos_l);
+    std::vector<hydro_utilities::VectorXYZ<OuterEdgeOffset>> pos_l = build_pos_permutation_l_(in_ghost, good_pos_l);
 
     for (const hydro_utilities::VectorXYZ<OuterEdgeOffset>& offset_pos : pos_l) {
       hydro_utilities::VectorXYZ<Real> cur_pos = offset_to_concrete(offset_pos, ax_prop_l, n_ghost);
-      //printf("%f, %f, %f\n", cur_pos[0],cur_pos[1],cur_pos[2]);
+      // printf("%f, %f, %f\n", cur_pos[0],cur_pos[1],cur_pos[2]);
 
-      FeedbackResults rslt = run_full_feedback_<Prescription>(n_ghost, ax_prop_l, {cur_pos},
-                                                              feedback_details::OverlapStrat::ignore, true,
-                                                              boundry_strat, {init_density});
+      FeedbackResults rslt = run_full_feedback_<Prescription>(
+          n_ghost, ax_prop_l, {cur_pos}, feedback_details::OverlapStrat::ignore, true, boundry_strat, {init_density});
       ASSERT_EQ(rslt.info[FBInfoLUT::countSN], 0);
-      if (not matches_expectation_(rslt, init_density, n_ghost,
-                                   BoundaryRelatedExpectation::no_update)) {
+      if (not matches_expectation_(rslt, init_density, n_ghost, BoundaryRelatedExpectation::no_update)) {
         FAIL() << "When a particle is placed outside of the active zone (but in the ghost zone), "
                << "feedback from it should NOT be applied";
       }
     }
   }
 
-  //printf("\n");
+  // printf("\n");
 
   // confirm the behavior when we place a particle inside the active zone with a stencil that overlaps
   // with the ghost zone.
   {
-    std::vector<hydro_utilities::VectorXYZ<OuterEdgeOffset>> pos_l = build_pos_permutation_l_(
-      ghost_overlap, good_pos_l);
+    std::vector<hydro_utilities::VectorXYZ<OuterEdgeOffset>> pos_l =
+        build_pos_permutation_l_(ghost_overlap, good_pos_l);
 
     BoundaryRelatedExpectation expectation;
     std::string explanation;
     if (boundry_strat == feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues) {
       expectation = BoundaryRelatedExpectation::update_with_change_to_ghost;
-      explanation = ("For BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues, when a particle is "
-                     "placed in the active-zone with a stencil overlapping with the ghost-zone, we "
-                     "expect the relevant locations in the ghost zone to be appropriately updated ");
+      explanation =
+          ("For BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues, when a particle is "
+           "placed in the active-zone with a stencil overlapping with the ghost-zone, we "
+           "expect the relevant locations in the ghost zone to be appropriately updated ");
     } else if (boundry_strat == feedback_details::BoundaryStrategy::excludeGhostParticle_snapActiveStencil) {
       expectation = BoundaryRelatedExpectation::only_active_zone_update;
-      explanation = ("For BoundaryStrategy::excludeGhostParticle_snapActiveStencil, when a particle is "
-                     "placed in the active-zone with a stencil overlapping with the ghost-zone, we "
-                     "expect the particle position is temporarily changed so that no ghost-zone values are "
-                     "modified.");
+      explanation =
+          ("For BoundaryStrategy::excludeGhostParticle_snapActiveStencil, when a particle is "
+           "placed in the active-zone with a stencil overlapping with the ghost-zone, we "
+           "expect the particle position is temporarily changed so that no ghost-zone values are "
+           "modified.");
     } else {
       CHOLLA_ERROR("This test doesn't know how to handle the specified bdry_strat.");
     }
 
     for (const hydro_utilities::VectorXYZ<OuterEdgeOffset>& offset_pos : pos_l) {
       hydro_utilities::VectorXYZ<Real> cur_pos = offset_to_concrete(offset_pos, ax_prop_l, n_ghost);
-      //printf("%f, %f, %f\n", cur_pos[0],cur_pos[1],cur_pos[2]);
+      // printf("%f, %f, %f\n", cur_pos[0],cur_pos[1],cur_pos[2]);
 
-      FeedbackResults rslt = run_full_feedback_<Prescription>(n_ghost, ax_prop_l, {cur_pos},
-                                                              feedback_details::OverlapStrat::ignore, true,
-                                                              boundry_strat, {init_density});
-      //rslt.test_field_data.print_debug_info();
+      FeedbackResults rslt = run_full_feedback_<Prescription>(
+          n_ghost, ax_prop_l, {cur_pos}, feedback_details::OverlapStrat::ignore, true, boundry_strat, {init_density});
+      // rslt.test_field_data.print_debug_info();
       ASSERT_EQ(rslt.info[FBInfoLUT::countSN], 1);
       if (not matches_expectation_(rslt, init_density, n_ghost, expectation)) {
         FAIL() << explanation;
       }
 
-      // NOTE: we can potentially perform a more rigorous test here. This involves running 
+      // NOTE: we can potentially perform a more rigorous test here. This involves running
       // run_full_feedback_ again, but this time we set n_ghost to zero and expand active_zone
       // to a larger value (such that the total field size is unchanged...)
     }
@@ -1746,19 +1695,16 @@ void run_bdry_test_(feedback_details::BoundaryStrategy boundry_strat)
 
   {
     hydro_utilities::VectorXYZ<OuterEdgeOffset> offset_pos = {good_pos_l[0], good_pos_l[0], good_pos_l[0]};
-    hydro_utilities::VectorXYZ<Real> cur_pos = offset_to_concrete(offset_pos, ax_prop_l, n_ghost);
-    //printf("%f, %f, %f\n", cur_pos[0],cur_pos[1],cur_pos[2]);
-    FeedbackResults rslt = run_full_feedback_<Prescription>(n_ghost, ax_prop_l, {cur_pos},
-                                                           feedback_details::OverlapStrat::ignore, true,
-                                                           boundry_strat, {init_density});
+    hydro_utilities::VectorXYZ<Real> cur_pos               = offset_to_concrete(offset_pos, ax_prop_l, n_ghost);
+    // printf("%f, %f, %f\n", cur_pos[0],cur_pos[1],cur_pos[2]);
+    FeedbackResults rslt = run_full_feedback_<Prescription>(
+        n_ghost, ax_prop_l, {cur_pos}, feedback_details::OverlapStrat::ignore, true, boundry_strat, {init_density});
     ASSERT_EQ(rslt.info[FBInfoLUT::countSN], 1);
-    if (not matches_expectation_(rslt, init_density, n_ghost,
-                                 BoundaryRelatedExpectation::only_active_zone_update)) {
+    if (not matches_expectation_(rslt, init_density, n_ghost, BoundaryRelatedExpectation::only_active_zone_update)) {
       FAIL() << "When a particle is placed inside the active-zone (such that the stencil "
              << "doesn't overlap with the ghost zone), then only the active zone should be updated";
     }
   }
-
 }
 
 // in these tests case, we perform some tests of the behavior of feedback when particles are near the boundary
