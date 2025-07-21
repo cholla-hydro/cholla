@@ -265,10 +265,16 @@ std::function<void(Grid3D&)> feedback::configure_feedback_callback(struct Parame
 
   // now lets initialize ClusterFeedbackMethod<> and return
   std::function<void(Grid3D&)> out;
+  // what are better names for legacy and legacyAlt?
+  // -> Hybrid_CiCResolved_27Unresolved
+  // -> Hybrid_27Resolved_27Unresolved
   if (sn_model == "legacy") {
+    // this uses 8 Cell CiC Resolved Feedback and Orlando's 27 cell unresolved feedback
     out = ClusterFeedbackMethod<fb_prescription::CiCLegacyResolvedAndUnresolvedPrescription>
       (analysis, use_snr_calc, snr_calc, bndy_strat);
   } else if (sn_model == "legacyAlt") {
+    // this uses 8 Cell CiC Resolved Feedback and an alternate (slightly easier to understand)
+    // 27 cell unresolved feedback prescription
     out = ClusterFeedbackMethod<fb_prescription::HybridResolvedAndUnresolvedPrescription>
       (analysis, use_snr_calc, snr_calc, bndy_strat);
   } else if (sn_model == "resolvedCiC") {

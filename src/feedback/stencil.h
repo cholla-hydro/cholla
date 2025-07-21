@@ -1,3 +1,8 @@
+// this file defines stencils that are used within a prescription
+//
+// the goal here is to be somewhat modular to make it easy to support mutliple versions
+// of a perscription
+
 #pragma once
 
 #include <cstdint>

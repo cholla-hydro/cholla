@@ -1,7 +1,16 @@
+/*!
+ * \file feedback.h
+ * \brief Contains the public interface for using feedback. None of the implementation details are exposed.
+ *
+ */
+
 #pragma once
 
 #include <functional>
 
+// since this is a public header and we want to hide all implementation details, we
+// explicitly avoid including other headers in from the feedback directory. This
+// helps ALWAYS include this header in main.cpp, regardless of the defined macros flags
 #include "../analysis/feedback_analysis.h"
 #include "../global/global.h"
 #include "../io/ParameterMap.h"
@@ -43,46 +52,3 @@ std::function<void(Grid3D&)> configure_feedback_callback(struct Parameters& P, P
 
 }  // namespace feedback
 
-// The following is only here to simplify testing. In the future it may make sense to move it to a different header
-namespace feedback_details
-{
-
-/* Group together all of the particle-property arguments */
-struct ParticleProps {
-  part_int_t n_local;
-  const part_int_t* id_dev;
-  const Real* pos_x_dev;
-  const Real* pos_y_dev;
-  const Real* pos_z_dev;
-  const Real* vel_x_dev;
-  const Real* vel_y_dev;
-  const Real* vel_z_dev;
-  Real* mass_dev;
-  const Real* age_dev;
-};
-
-/* Group together all of arguments describing the spatial field structure. */
-struct FieldSpatialProps {
-  Real xMin;
-  Real yMin;
-  Real zMin;
-  Real xMax;
-  Real yMax;
-  Real zMax;
-  Real dx;
-  Real dy;
-  Real dz;
-  int nx_g;
-  int ny_g;
-  int nz_g;
-  int n_ghost;
-};
-
-/* Groups properties of the simulation's current (global) iteration cycle */
-struct CycleProps {
-  Real t;     /*!< The current time */
-  Real dt;    /*!< Size of the current timestep */
-  int n_step; /*!< This is the current step of the simulation */
-};
-
-}  // namespace feedback_details

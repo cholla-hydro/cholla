@@ -1,7 +1,7 @@
 /* This file defines feeback prescriptions that can actually be used within Cholla
  *
  * Some (not all) of these prescriptions are defined in terms of factored out stencils. Those stencils
- * are defined separately in a different header file.
+ * are defined separately in a different header file (feedback/stencil).
  */
 
 #pragma once
@@ -10,7 +10,7 @@
 #include "../feedback/feedback.h"
 #include "../feedback/ratecalc.h"
 #include "../utils/basic_structs.h"
-#include "../feedback/feedback_stencil.h"
+#include "../feedback/stencil.h"
 
 namespace fb_prescription {
 
@@ -32,8 +32,6 @@ inline __device__ void log_fb(int cycle_num, int num_SN, bool is_resolved,
  *  feedback strategies.
  *
  *  \param ndens_cgs the average ambient number density
- *
- *  \note maybe it would be better if we didn't put this inside the public header?
  */
 inline __device__ __host__ Real radius_shell_formation_kpc(Real ndens_cgs, int num_SN) {
   // originally, we adopted the normalization from eq.(31) from Kim & Ostriker (2015)
@@ -154,10 +152,11 @@ struct ResolvedSNPrescription{
 
 };
 
+// Define some type aliases to be able to more easily refer to more conveniently
+// refer to different flavors of Resolved Feedback Prescriptions
 using CiCResolvedSNPrescription = ResolvedSNPrescription<fb_stencil::CIC>;
-
 using Sphere27ResolvedSNPrescription = ResolvedSNPrescription<fb_stencil::Sphere27<2>>;
-
+// the following case is mostly experimental
 using SphereBinaryResolvedSNPrescription = ResolvedSNPrescription<fb_stencil::SphereBinary<3>>;
 
 /* Overwrite the stencil region with average density specified by `overwrite_average`
@@ -464,10 +463,18 @@ struct ResolvedAndUnresolvedSNe {
   }
 };
 
+// the next line defines a type-aliases to make it easier to refer to different hybrid prescriptions
+// - this uses Orlando's unresolved feedback depostion
 using CiCLegacyResolvedAndUnresolvedPrescription = ResolvedAndUnresolvedSNe<CiCResolvedSNPrescription, fb_stencil::LegacyCIC27>;
 
-// this is weird hybrid-case (mostly here for debugging)
+// the next line defines a shorthand for describing a prescription that is mostly used for testing purposes
+// - in this case, we adopt a slightly different strategy for momentum-feedback. We still use 27 cells,
+//   but I think some of the choices make more sense (and are easier to understand). With that said, testing
+//   doesn't seem to reveal much of a difference from the prior case. So we primarily stick with the prior case
+//   (since we used it to run simulations already)
 using HybridResolvedAndUnresolvedPrescription = ResolvedAndUnresolvedSNe<CiCResolvedSNPrescription, fb_stencil::Sphere27<2>>;
+
+// the following code is left over from a much earlier version:
 
 /*
 inline __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real age, Real& mass_ref, part_int_t particle_id,
