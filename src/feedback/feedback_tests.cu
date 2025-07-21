@@ -16,7 +16,7 @@
 #include <gtest/gtest.h> // Include GoogleTest and related libraries/headers
 
 #include "../global/global.h"
-#include "../utils/gpu.hpp" // gpuFor
+#include "../utils/gpu.hpp" // gpuFor, GPU_Error_Check
 #include "../utils/DeviceVector.h"
 #include "../utils/error_handling.h"
 
@@ -35,7 +35,7 @@ namespace  // Anonymous namespace
 template<typename T>
 std::string array_to_string_1D_helper_(T* arr, int len)
 {
-  std::string out = "";
+  std::string out;
   for (int ix = 0; ix < len; ix++) {
     if (ix != 0)  out += ", ";  // put delimiter after last element
     out += std::to_string(arr[ix]);
@@ -65,7 +65,7 @@ std::string array_to_string(T* arr, Extent3D extent, unsigned int indent_size = 
 {
   const std::string common_line_prefix = std::string(indent_size, ' ');
 
-  std::string out = "";
+  std::string out;
   for (int iz = 0; iz < extent.nz; iz++){
     if (iz != 0) out += ",\n\n";  // add delimiter after last element
 
@@ -238,7 +238,7 @@ std::vector<double> eval_stencil_overlap_(const Real* pos_indxU, Extent3D full_e
                      data.data(), pos_indU, full_extent.nx, full_extent.ny, stencil,
                      eval);
 
-  CHECK(cudaDeviceSynchronize());
+  GPU_Error_Check(cudaDeviceSynchronize());
   std::vector<double> out(full_extent.nx*full_extent.ny*full_extent.nz);
   data.cpyDeviceToHost(out);
   return out;
@@ -376,17 +376,21 @@ void sliding_stencil_test(int n_ghost, double tot_vol_atol = 0.0, bool ignore_mo
 
       // basically, we setup a separate test each time we encounter this inner loop
       std::optional<OverlapRange> prev_ovrange;
-      for (std::size_t i = 0; i < overlap_results.size(); i++) {
+      for (std::vector<double>& overlap_result: overlap_results) {
         std::optional<OverlapRange> cur_ovrange = find_ovrange_
-          (overlap_results[i].data(), y_ind, z_ind, full_extent);
+          (overlap_result.data(), y_ind, z_ind, full_extent);
 
         //printf("%zu, first_overlap: (%d, %g) last_overlap: (%d, %g)\n",
         //       i, cur_ovrange.value().first_indx, cur_ovrange.value().first_overlap,
         //       cur_ovrange.value().last_indx, cur_ovrange.value().last_overlap);
 
-        if (bool(prev_ovrange) and bool(cur_ovrange)) { // make comparisons to previous
-                                                        //stencil position
+        if (bool(prev_ovrange) and bool(cur_ovrange)) { // make comparisons to previous stencil position
+
+          // its ok to disable to the following lints here since we explicitly cconfirmed
+          // that these options are not empty
+          // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
           const OverlapRange& prev = *prev_ovrange;
+          // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
           const OverlapRange& cur  = *cur_ovrange;
 
           // as the stencil moves rightwards, we expect the first_overlap and last_overlap
@@ -557,7 +561,8 @@ TEST(tALLFeedbackSphere27Stencil, StencilVolumeTest)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
-class tALLFeedbackStencil : public testing::Test {
+class tALLFeedbackStencil : public testing::Test  // NOLINT(readability-identifier-naming)
+{
 public:
   using StencilT=T;
 };
@@ -861,8 +866,7 @@ private: // attributes
 public:
 
   TestParticleData(const std::vector<hydro_utilities::VectorXYZ<Real>>& pos_vec, const std::map<std::string, Real>& other_props)
-    : particle_ids_(nullptr),
-      general_data_()
+    : particle_ids_(nullptr)
   {
     const std::size_t count = pos_vec.size();
 
@@ -1042,7 +1046,7 @@ FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>
   }
 
   // allocate a vector to hold summary-info. Make sure to initialize the counters to 0
-  std::vector<Real> info(feedinfoLUT::LEN, 0.0);
+  std::vector<Real> info(FBInfoLUT::LEN, 0.0);
 
   // give some dummy vals:
   const feedback_details::CycleProps cycle_props{0.0,  // current time
@@ -1054,14 +1058,14 @@ FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>
   if (separate_launch_per_particle) {
     // actually execute feedback
     for (std::size_t i = 0; i < particle_pos_vec.size(); i++){
-      std::array<Real, feedinfoLUT::LEN> info_tmp;
-      for (int j = 0; j < feedinfoLUT::LEN; j++) { info_tmp[j] = 0.0; }
+      std::array<Real, FBInfoLUT::LEN> info_tmp;
+      for (int j = 0; j < FBInfoLUT::LEN; j++) { info_tmp[j] = 0.0; }
 
       feedback_details::Exec_Cluster_Feedback_Kernel<Prescription>(
         test_particle_data.props_of_single_particle(int(i)), spatial_props, cycle_props, 
         info_tmp.data(), test_field_data.dev_ptr(), d_num_SN.data() + i, ov_scheduler, bdry_strat);
 
-      for (int j = 0; j < feedinfoLUT::LEN; j++) { info[j] += info_tmp[j]; }
+      for (int j = 0; j < FBInfoLUT::LEN; j++) { info[j] += info_tmp[j]; }
     }
   } else {
     feedback_details::Exec_Cluster_Feedback_Kernel<Prescription>(
@@ -1078,18 +1082,18 @@ FeedbackResults run_full_feedback_(const int n_ghost, const std::vector<AxProps>
 bool is_integer_(Real val) { return std::trunc(val) == val; }
 
 void basic_infosummary_checks_(const std::vector<Real>& info) {
-  ASSERT_EQ(info.size(), feedinfoLUT::LEN);
+  ASSERT_EQ(info.size(), FBInfoLUT::LEN);
 
   // we may need to revisit the following if we ever add more summary-stats
-  for (int i = 0; i < feedinfoLUT::LEN; i++) {
+  for (int i = 0; i < FBInfoLUT::LEN; i++) {
     ASSERT_GE(info[i], 0.0);
   }
 
-  ASSERT_TRUE(is_integer_(info[feedinfoLUT::countSN]));
-  ASSERT_TRUE(is_integer_(info[feedinfoLUT::countResolved]));
-  ASSERT_TRUE(is_integer_(info[feedinfoLUT::countUnresolved]));
-  ASSERT_EQ(info[feedinfoLUT::countSN],
-            info[feedinfoLUT::countResolved] + info[feedinfoLUT::countUnresolved]);
+  ASSERT_TRUE(is_integer_(info[FBInfoLUT::countSN]));
+  ASSERT_TRUE(is_integer_(info[FBInfoLUT::countResolved]));
+  ASSERT_TRUE(is_integer_(info[FBInfoLUT::countUnresolved]));
+  ASSERT_EQ(info[FBInfoLUT::countSN],
+            info[FBInfoLUT::countResolved] + info[FBInfoLUT::countUnresolved]);
 }
 
 // check the equality of all integers in actual and ref
@@ -1098,20 +1102,23 @@ void check_infosummary_int_equality_(const std::vector<Real>& actual, const std:
   basic_infosummary_checks_(ref);
 
   auto is_loseless_integer = [](Real val) { 
-    if ((sizeof(Real) == 4) and (fabs(val) > 16777217)) {
-      // in this case Real is a 32 bit float and may encode an integer that can't
-      // be losslessly represented
-      return false;
-    } else if ((sizeof(Real) == 8) and (fabs(val) > 9007199254740993)) {
-      // in this case Real is a 64 bit float and may encode an integer that can't
-      // be losslessly represented
+    bool obvious_problem = (
+        // in this case Real is a 32 bit float and may encode an integer that can't
+        // be losslessly represented
+        ((sizeof(Real) == 4) and (fabs(val) > 16777217)) or
+        // in this case Real is a 64 bit float and may encode an integer that can't
+        // be losslessly represented
+        ((sizeof(Real) == 8) and (fabs(val) > 9007199254740992))
+    );
+
+    if (obvious_problem) {
       return false;
     } else {
       return std::trunc(val) == val;
     }
   };
 
-  for (int i = 0; i < feedinfoLUT::LEN; i++) {
+  for (int i = 0; i < FBInfoLUT::LEN; i++) {
     if (is_loseless_integer(actual[i]) and is_loseless_integer(ref[i])){
       ASSERT_EQ(actual[i], ref[i]);
     }
@@ -1154,7 +1161,8 @@ void check_equality(FeedbackResults& rslt_actual, FeedbackResults& rslt_ref)
 }
 
 template <typename T>
-class tALLFeedbackFull : public testing::Test {
+class tALLFeedbackFull : public testing::Test // NOLINT(readability-identifier-naming)
+{
 public:
   using PrescriptionT=T;
 };
@@ -1188,18 +1196,18 @@ TYPED_TEST(tALLFeedbackFull, CheckingOverlapStrat)
     n_ghost, ax_prop_l, particle_pos_vec, feedback_details::OverlapStrat::sequential, false,
     feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues);
 
-  if (false) {
+  /*
     printf("\nLooking at the OverlapStrat::ignore approach:\n");
     rslt_ref.test_field_data.print_debug_info();
     rslt_ref.test_particle_data.print_debug_info();
     printf("\nLooking at the OverlapStrat::sequential approach:\n");
     rslt_actual.test_field_data.print_debug_info();
     rslt_actual.test_particle_data.print_debug_info();
-  }
+  */
 
   check_equality(rslt_actual, rslt_ref);
 
-  ASSERT_EQ(rslt_actual.info[feedinfoLUT::countSN], particle_pos_vec.size());
+  ASSERT_EQ(rslt_actual.info[FBInfoLUT::countSN], particle_pos_vec.size());
 }
 
 struct InjectSummary {
@@ -1291,7 +1299,7 @@ void test_injection_magnitudes_(bool resolved, const hydro_utilities::VectorXYZ<
     feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues,
     {density}, {internal_edens}, {bulk_vel});
 
-  ASSERT_EQ(rslt.info[feedinfoLUT::countSN], 1);
+  ASSERT_EQ(rslt.info[FBInfoLUT::countSN], 1);
 
   // compute the summary properties in the reference frame of the particle where that underwent
   // feedback (this just happens to coincide with bulk_vel)
@@ -1299,21 +1307,20 @@ void test_injection_magnitudes_(bool resolved, const hydro_utilities::VectorXYZ<
 
   InjectSummary summary = calc_inject_summary_(rslt.test_field_data, density, internal_edens, bulk_vel,
                                                dx * dx * dx, ref_frame_vel);
-  if (false) {
-
+  /*
     printf("from_grid:  mass = %g, net_mom = {%g,%g,%g}, abs_mom_mag = %e, thermal_energy/erg = %e\n",
            summary.mass, summary.net_mom_x, summary.net_mom_y, summary.net_mom_z,
            summary.abs_mom_mag, summary.thermal_energy * FORCE_UNIT * LENGTH_UNIT);
 
-    Real info_e = rslt.info[feedinfoLUT::totalEnergy] + rslt.info[feedinfoLUT::totalUnresEnergy];
+    Real info_e = rslt.info[FBInfoLUT::totalEnergy] + rslt.info[FBInfoLUT::totalUnresEnergy];
     printf("from summary_stats:   abs_mom_mag = %e energy/erg = %e\n\n",
-           rslt.info[feedinfoLUT::totalMomentum], 
+           rslt.info[FBInfoLUT::totalMomentum], 
            info_e * FORCE_UNIT * LENGTH_UNIT);
-  }
+  */
 
   EXPECT_NEAR(feedback::MASS_PER_SN, summary.mass, 3.6e-15 * feedback::MASS_PER_SN);
 
-  if (rslt.info[feedinfoLUT::countResolved] > 0) {
+  if (rslt.info[FBInfoLUT::countResolved] > 0) {
     Real rtol = 0.0;
 
     EXPECT_EQ(0.0, summary.net_mom_x);
@@ -1324,7 +1331,7 @@ void test_injection_magnitudes_(bool resolved, const hydro_utilities::VectorXYZ<
                 rtol * feedback::ENERGY_PER_SN);
 
     // sanity check!
-    EXPECT_NEAR(feedback::ENERGY_PER_SN, rslt.info[feedinfoLUT::totalEnergy],
+    EXPECT_NEAR(feedback::ENERGY_PER_SN, rslt.info[FBInfoLUT::totalEnergy],
                 rtol * feedback::ENERGY_PER_SN);
   } else {
     // NOTE: feedback::FINAL_MOMENTUM does NOT directly specify the injected radial-momentum
@@ -1342,20 +1349,20 @@ void test_injection_magnitudes_(bool resolved, const hydro_utilities::VectorXYZ<
     // for thermal energy, we theoretically need tolerance since we added and subtracted 
     // kinetic energy
     EXPECT_NEAR(0.0, summary.thermal_energy, atol);
-    EXPECT_NEAR(rslt.info[feedinfoLUT::totalMomentum], summary.abs_mom_mag,
-                rtol * rslt.info[feedinfoLUT::totalMomentum]);
+    EXPECT_NEAR(rslt.info[FBInfoLUT::totalMomentum], summary.abs_mom_mag,
+                rtol * rslt.info[FBInfoLUT::totalMomentum]);
 
     // sanity checks!
-    EXPECT_EQ(rslt.info[feedinfoLUT::totalUnresEnergy], 0.0);
+    EXPECT_EQ(rslt.info[FBInfoLUT::totalUnresEnergy], 0.0);
   }
 
   // this is mostly just a sanity check to make sure that this test-case gets updated if the
   // criteria for switching between resolved and unresolved feedback changes significantly
   if (resolved) {
-    ASSERT_TRUE(rslt.info[feedinfoLUT::countResolved] == 1) << "something is wrong, we expected to be "
+    ASSERT_TRUE(rslt.info[FBInfoLUT::countResolved] == 1) << "something is wrong, we expected to be "
                                                             << "testing unresolved feedback!";
   } else {
-    ASSERT_TRUE(rslt.info[feedinfoLUT::countUnresolved] == 1) << "something is wrong, we expected to be "
+    ASSERT_TRUE(rslt.info[FBInfoLUT::countUnresolved] == 1) << "something is wrong, we expected to be "
                                                               << "testing unresolved feedback!";
   }
 }
@@ -1434,7 +1441,7 @@ TYPED_TEST(tALLFeedbackFull, ComparingFrameInvariance)
   TestFieldData actual_field_shifted = rslt_actual.test_field_data.change_ref_frame(
     hydro_utilities::VectorXYZ<Real>{1 * bulk_vel_ALT[0], 1 * bulk_vel_ALT[1], 1 * bulk_vel_ALT[2]});
 
-  if (false) {
+  /*
     printf("\nLooking at the case without bulk velocity:\n");
     rslt_ref.test_field_data.print_debug_info();
     rslt_ref.test_particle_data.print_debug_info();
@@ -1443,19 +1450,19 @@ TYPED_TEST(tALLFeedbackFull, ComparingFrameInvariance)
     rslt_actual.test_particle_data.print_debug_info();
     printf("\nLooking at the second case after shifting reference frame:\n");
     actual_field_shifted.print_debug_info();
-  }
+  */
 
   double rtol = 2.0e-9; // it would be nice to specify tolerances on a per-field basis
   double atol = 5e-7;
   assert_fielddata_allclose(actual_field_shifted, rslt_ref.test_field_data,
                             false, rtol, atol);
 
-  ASSERT_EQ(rslt_actual.info[feedinfoLUT::countSN], particle_pos_vec.size());
+  ASSERT_EQ(rslt_actual.info[FBInfoLUT::countSN], particle_pos_vec.size());
 
   if (Prescription::has_unresolved_prescription) {
     // this is mostly just a sanity check to make sure that this test-case gets updated if the
     // criteria for switching between resolved and unresolved feedback changes significantly
-    ASSERT_TRUE(rslt_actual.info[feedinfoLUT::countUnresolved] > 0) << "something is wrong, we expected to be "
+    ASSERT_TRUE(rslt_actual.info[FBInfoLUT::countUnresolved] > 0) << "something is wrong, we expected to be "
                                                                     << "testing unresolved feedback!";
   }
 
@@ -1485,6 +1492,7 @@ private:
   {}
 };
 
+// NOLINTBEGIN(misc-no-recursion)
 /* Convert a position specified in terms of OuterEdgeOffset vals to concrete position (in index
  * units)
  */
@@ -1519,6 +1527,7 @@ hydro_utilities::VectorXYZ<Real> offset_to_concrete(hydro_utilities::VectorXYZ<O
                       (pos_indU[2] - n_ghost) * ax_prop_l[2].cell_width + ax_prop_l[2].min};
   }
 }
+// NOLINTEND(misc-no-recursion)
 
 
 /* Constructs a vector of all position permutations.
@@ -1591,11 +1600,11 @@ bool matches_expectation_(FeedbackResults& rslt, Real init_density, int n_ghost,
 
   switch (expectation) {
     case BoundaryRelatedExpectation::no_update:
-      return (any_update == false) and (any_ghost_update == false);
+      return (!any_update) and !any_ghost_update;
     case BoundaryRelatedExpectation::only_active_zone_update:
-      return (any_update == true) and (any_ghost_update == false);
+      return any_update and !any_ghost_update;
     case BoundaryRelatedExpectation::update_with_change_to_ghost:
-      return (any_update == true) and (any_ghost_update == true);
+      return any_update and any_ghost_update;
     default:
       return false;
   }
@@ -1655,7 +1664,7 @@ void run_bdry_test_(feedback_details::BoundaryStrategy boundry_strat)
       FeedbackResults rslt = run_full_feedback_<Prescription>(n_ghost, ax_prop_l, {cur_pos},
                                                               feedback_details::OverlapStrat::ignore, true,
                                                               boundry_strat, {init_density});
-      ASSERT_EQ(rslt.info[feedinfoLUT::countSN], 0);
+      ASSERT_EQ(rslt.info[FBInfoLUT::countSN], 0);
       if (not matches_expectation_(rslt, init_density, n_ghost,
                                    BoundaryRelatedExpectation::no_update)) {
         FAIL() << "When a particle is placed outside of the active and ghost zones, feedback from "
@@ -1678,7 +1687,7 @@ void run_bdry_test_(feedback_details::BoundaryStrategy boundry_strat)
       FeedbackResults rslt = run_full_feedback_<Prescription>(n_ghost, ax_prop_l, {cur_pos},
                                                               feedback_details::OverlapStrat::ignore, true,
                                                               boundry_strat, {init_density});
-      ASSERT_EQ(rslt.info[feedinfoLUT::countSN], 0);
+      ASSERT_EQ(rslt.info[FBInfoLUT::countSN], 0);
       if (not matches_expectation_(rslt, init_density, n_ghost,
                                    BoundaryRelatedExpectation::no_update)) {
         FAIL() << "When a particle is placed outside of the active zone (but in the ghost zone), "
@@ -1720,7 +1729,7 @@ void run_bdry_test_(feedback_details::BoundaryStrategy boundry_strat)
                                                               feedback_details::OverlapStrat::ignore, true,
                                                               boundry_strat, {init_density});
       //rslt.test_field_data.print_debug_info();
-      ASSERT_EQ(rslt.info[feedinfoLUT::countSN], 1);
+      ASSERT_EQ(rslt.info[FBInfoLUT::countSN], 1);
       if (not matches_expectation_(rslt, init_density, n_ghost, expectation)) {
         FAIL() << explanation;
       }
@@ -1742,7 +1751,7 @@ void run_bdry_test_(feedback_details::BoundaryStrategy boundry_strat)
     FeedbackResults rslt = run_full_feedback_<Prescription>(n_ghost, ax_prop_l, {cur_pos},
                                                            feedback_details::OverlapStrat::ignore, true,
                                                            boundry_strat, {init_density});
-    ASSERT_EQ(rslt.info[feedinfoLUT::countSN], 1);
+    ASSERT_EQ(rslt.info[FBInfoLUT::countSN], 1);
     if (not matches_expectation_(rslt, init_density, n_ghost,
                                  BoundaryRelatedExpectation::only_active_zone_update)) {
       FAIL() << "When a particle is placed inside the active-zone (such that the stencil "

@@ -97,7 +97,7 @@ void ClusterFeedbackMethod<FeedbackModel>::operator()(Grid3D& G)
   // h_info is used to store feedback summary info on the host. The following
   // syntax sets all entries to 0 -- important if a process has no particles
   // (this is valid C++ syntax, but historically wasn't valid C syntax)
-  Real h_info[feedinfoLUT::LEN] = {};
+  Real h_info[FBInfoLUT::LEN] = {};
 
   // only apply feedback if we have clusters
   if (G.Particles.n_local > 0) {
@@ -159,8 +159,8 @@ void ClusterFeedbackMethod<FeedbackModel>::operator()(Grid3D& G)
 
   // now gather the feedback summary info into an array called info.
   #ifdef MPI_CHOLLA
-  Real info[feedinfoLUT::LEN];
-  MPI_Reduce(&h_info, &info, feedinfoLUT::LEN, MPI_CHREAL, MPI_SUM, root, world);
+  Real info[FBInfoLUT::LEN];
+  MPI_Reduce(&h_info, &info, FBInfoLUT::LEN, MPI_CHREAL, MPI_SUM, root, world);
   #else
   Real* info = h_info;
   #endif
@@ -169,14 +169,14 @@ void ClusterFeedbackMethod<FeedbackModel>::operator()(Grid3D& G)
   if (procID == 0) {
   #endif
 
-    analysis.countSN += (long)info[feedinfoLUT::countSN];
-    analysis.countResolved += (long)info[feedinfoLUT::countResolved];
-    analysis.countUnresolved += (long)info[feedinfoLUT::countUnresolved];
-    analysis.totalEnergy += info[feedinfoLUT::totalEnergy];
-    analysis.totalMomentum += info[feedinfoLUT::totalMomentum];
-    analysis.totalUnresEnergy += info[feedinfoLUT::totalUnresEnergy];
-    analysis.totalWindMomentum += info[feedinfoLUT::totalWindMomentum];
-    analysis.totalWindEnergy += info[feedinfoLUT::totalWindEnergy];
+    analysis.countSN += (long)info[FBInfoLUT::countSN];
+    analysis.countResolved += (long)info[FBInfoLUT::countResolved];
+    analysis.countUnresolved += (long)info[FBInfoLUT::countUnresolved];
+    analysis.totalEnergy += info[FBInfoLUT::totalEnergy];
+    analysis.totalMomentum += info[FBInfoLUT::totalMomentum];
+    analysis.totalUnresEnergy += info[FBInfoLUT::totalUnresEnergy];
+    analysis.totalWindMomentum += info[FBInfoLUT::totalWindMomentum];
+    analysis.totalWindEnergy += info[FBInfoLUT::totalWindEnergy];
 
     chprintf("iteration %d, t %.4e, dt %.4e", G.H.n_step, G.H.t, G.H.dt);
 
@@ -185,23 +185,23 @@ void ClusterFeedbackMethod<FeedbackModel>::operator()(Grid3D& G)
     if (analysis.countResolved > 0 || analysis.countUnresolved > 0) {
       global_resolved_ratio = analysis.countResolved / (analysis.countResolved + analysis.countUnresolved);
     }
-    chprintf(": number of SN: %d,(R: %d, UR: %d)\n", (int)info[feedinfoLUT::countSN], (long)info[feedinfoLUT::countResolved],
-             (long)info[feedinfoLUT::countUnresolved]);
+    chprintf(": number of SN: %d,(R: %d, UR: %d)\n", (int)info[FBInfoLUT::countSN], (long)info[FBInfoLUT::countResolved],
+             (long)info[FBInfoLUT::countUnresolved]);
     chprintf("    cummulative: #SN: %d, ratio of resolved (R: %d, UR: %d) = %.3e\n", (long)analysis.countSN,
              (long)analysis.countResolved, (long)analysis.countUnresolved, global_resolved_ratio);
-    chprintf("    sn  r energy  : %.5e erg, cumulative: %.5e erg\n", info[feedinfoLUT::totalEnergy] * FORCE_UNIT * LENGTH_UNIT,
+    chprintf("    sn  r energy  : %.5e erg, cumulative: %.5e erg\n", info[FBInfoLUT::totalEnergy] * FORCE_UNIT * LENGTH_UNIT,
              analysis.totalEnergy * FORCE_UNIT * LENGTH_UNIT);
     chprintf("    sn ur energy  : %.5e erg, cumulative: %.5e erg\n",
-             info[feedinfoLUT::totalUnresEnergy] * FORCE_UNIT * LENGTH_UNIT,
+             info[FBInfoLUT::totalUnresEnergy] * FORCE_UNIT * LENGTH_UNIT,
              analysis.totalUnresEnergy * FORCE_UNIT * LENGTH_UNIT);
     chprintf("    sn momentum  : %.5e SM km/s, cumulative: %.5e SM km/s\n",
-             info[feedinfoLUT::totalMomentum] * VELOCITY_UNIT / 1e5, analysis.totalMomentum * VELOCITY_UNIT / 1e5);
+             info[FBInfoLUT::totalMomentum] * VELOCITY_UNIT / 1e5, analysis.totalMomentum * VELOCITY_UNIT / 1e5);
   #endif  // NO_SN_FEEDBACK
 
   #ifndef NO_WIND_FEEDBACK
     chprintf("    wind momentum: %.5e S.M. km/s,  cumulative: %.5e S.M. km/s\n",
-             info[feedinfoLUT::totalWindMomentum] * VELOCITY_UNIT / 1e5, analysis.totalWindMomentum * VELOCITY_UNIT / 1e5);
-    chprintf("    wind energy  : %.5e erg,  cumulative: %.5e erg\n", info[feedinfoLUT::totalWindEnergy] * FORCE_UNIT * LENGTH_UNIT,
+             info[FBInfoLUT::totalWindMomentum] * VELOCITY_UNIT / 1e5, analysis.totalWindMomentum * VELOCITY_UNIT / 1e5);
+    chprintf("    wind energy  : %.5e erg,  cumulative: %.5e erg\n", info[FBInfoLUT::totalWindEnergy] * FORCE_UNIT * LENGTH_UNIT,
              analysis.totalWindEnergy * FORCE_UNIT * LENGTH_UNIT);
   #endif  // NO_WIND_FEEDBACK
 

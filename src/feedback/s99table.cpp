@@ -43,19 +43,19 @@ struct TokenFinder {
   std::string_view next() {
     std::size_t start = (next_token_start == 0)
       ? line.find_first_not_of(' ') : next_token_start;
-    if (line.size() == start) return std::string_view();
+    if (line.size() == start) return std::string_view{};
 
     for (std::size_t i = start; i < line.size(); /* update i within loop */) {
       const std::size_t space_count = leading_space_count_(line.data() + i);
       if (space_count >= min_contig_space_count) {
         this->next_token_start = space_count + i;
-        return std::string_view(line.data() + start, i - start);
+        return {line.data() + start, i - start};
       }
       i += (space_count > 0) ? space_count : 1;
     }
 
     this->next_token_start = line.size();
-    return std::string_view(line.data() + start, line.size() - start);
+    return {line.data() + start, line.size() - start};
   }
 
 };
@@ -165,7 +165,7 @@ feedback::S99Table parse_s99_table(const std::string& fname, feedback::S99TabKin
     TokenFinder<2> f{line, 0};
 
     for (std::string_view tok = f.next(); not tok.empty(); tok = f.next()) {
-      parsed_col_names.push_back(std::string(tok));
+      parsed_col_names.emplace_back(tok);
     }
   }
 
@@ -210,7 +210,7 @@ feedback::S99Table parse_s99_table(const std::string& fname, feedback::S99TabKin
   }
   const std::size_t nrows = data.size() / ncols;
 
-  return feedback::S99Table(col_names, data, ncols, nrows);
+  return {std::move(col_names), std::move(data), ncols, nrows};
 }
 
 

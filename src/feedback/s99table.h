@@ -2,6 +2,7 @@
 #define S99TABLE_H
 
 #include <string>
+#include <utility>  // std::move
 #include <vector>
 
 #include "../utils/error_handling.h"
@@ -19,7 +20,7 @@ class S99Table {
 public:
   S99Table(std::vector<std::string> col_names, std::vector<double> data,
            std::size_t ncols, std::size_t nrows)
-    : col_names_(col_names), data_(data), ncols_(ncols), nrows_(nrows)
+    : col_names_(std::move(col_names)), data_(std::move(data)), ncols_(ncols), nrows_(nrows)
   { }
 
   /* number of rows in the table */

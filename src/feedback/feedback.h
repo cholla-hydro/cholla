@@ -6,7 +6,9 @@
 #include "../global/global.h"
 #include "../io/ParameterMap.h"
 
-namespace feedinfoLUT
+// we define the following as a struct so we can satisfy rules about namespace and struct
+// naming. But you should think of it as a namespace
+struct FBInfoLUT
 {
 // this enum acts like a lookup table (LUT). It maps the names of analysis statistics to
 // contiguous indices. LEN specfies the number of named analysis statistics
@@ -22,7 +24,7 @@ enum {
   // make sure the following is always the last entry so that it reflects the number of entries
   LEN
 };
-}  // namespace feedinfoLUT
+};
 
 namespace feedback
 {

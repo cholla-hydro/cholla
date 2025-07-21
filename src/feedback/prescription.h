@@ -45,7 +45,7 @@ inline __device__ __host__ Real radius_shell_formation_kpc(Real ndens_cgs, int n
   // ambient temperatures fixed at 1e4 K. This made it clear that we, like TIGRESS,
   // should use the analytic choice for a singlephase ambient medium (it means we
   // will more readily transition to unresolved and will decrease chance of over-cooling)
-  return 0.0226 * pow(ndens_cgs, -0.46) * pow(fabsf(num_SN), 0.29);
+  return 0.0226 * pow(ndens_cgs, -0.46) * pow(fabs(Real(num_SN)), 0.29);
 }
 
 
@@ -76,9 +76,9 @@ struct ResolvedSNPrescription{
   {
     int tid  = threadIdx.x;
 
-    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countSN]       += num_SN;
-    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countResolved] += num_SN;
-    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalEnergy]   += feedback::ENERGY_PER_SN;
+    s_info[FBInfoLUT::LEN * tid + FBInfoLUT::countSN]       += num_SN;
+    s_info[FBInfoLUT::LEN * tid + FBInfoLUT::countResolved] += num_SN;
+    s_info[FBInfoLUT::LEN * tid + FBInfoLUT::totalEnergy]   += feedback::ENERGY_PER_SN;
 
     Real dV               = dx * dy * dz;
     Real feedback_energy  = num_SN * feedback::ENERGY_PER_SN / dV;
@@ -402,7 +402,7 @@ struct ResolvedAndUnresolvedSNe {
     }
     Real n_0_cgs = avg_mass_dens * DENSITY_UNIT / (MU * MP);  // average number density in cgs
 
-    s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countSN] += num_SN;
+    s_info[FBInfoLUT::LEN * tid + FBInfoLUT::countSN] += num_SN;
 
     Real shell_radius = radius_shell_formation_kpc(n_0_cgs, num_SN);
 
@@ -418,8 +418,8 @@ struct ResolvedAndUnresolvedSNe {
       // inject energy and density
       Real feedback_energy  = num_SN * feedback::ENERGY_PER_SN / dV;
 
-      s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countResolved] += num_SN;
-      s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalEnergy]   += feedback_energy * dV;
+      s_info[FBInfoLUT::LEN * tid + FBInfoLUT::countResolved] += num_SN;
+      s_info[FBInfoLUT::LEN * tid + FBInfoLUT::totalEnergy]   += feedback_energy * dV;
 
       ResolvedPrescriptionT::apply(pos_indU, vel_x, vel_y, vel_z, nx_g, ny_g, n_cells,
                                    conserved_dev, feedback_density, feedback_energy);
@@ -454,9 +454,9 @@ struct ResolvedAndUnresolvedSNe {
       Real feedback_momentum_density = feedback_momentum / dV;
       Real feedback_energy = 0.0; // for now, don't inject any energy
 
-      s_info[feedinfoLUT::LEN * tid + feedinfoLUT::countUnresolved]  += num_SN;
-      s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalMomentum]    += feedback_momentum;
-      s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalUnresEnergy] += feedback_energy * dV;
+      s_info[FBInfoLUT::LEN * tid + FBInfoLUT::countUnresolved]  += num_SN;
+      s_info[FBInfoLUT::LEN * tid + FBInfoLUT::totalMomentum]    += feedback_momentum;
+      s_info[FBInfoLUT::LEN * tid + FBInfoLUT::totalUnresEnergy] += feedback_energy * dV;
       Apply_Energy_Momentum_Deposition<UnresolvedStencil>(
           pos_x_indU, pos_y_indU, pos_z_indU, vel_x, vel_y, vel_z, nx_g, ny_g, n_ghost, n_cells, conserved_dev,
           feedback_density, feedback_momentum_density, feedback_energy);
@@ -497,8 +497,8 @@ inline __device__ void Wind_Feedback(Real pos_x, Real pos_y, Real pos_z, Real ag
 
   // we log net momentum, not momentum density, and magnitude (not the
   // component along a direction)
-  s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalWindMomentum] += feedback_momentum * dV * sqrt(3.0);
-  s_info[feedinfoLUT::LEN * tid + feedinfoLUT::totalWindEnergy]   += feedback_energy * dV;
+  s_info[FBInfoLUT::LEN * tid + FBInfoLUT::totalWindMomentum] += feedback_momentum * dV * sqrt(3.0);
+  s_info[FBInfoLUT::LEN * tid + FBInfoLUT::totalWindEnergy]   += feedback_energy * dV;
 
 
   const double pos_x_indU = (pos_x - xMin) / dx + n_ghost;

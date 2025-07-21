@@ -121,8 +121,8 @@ public:
 
   SimpleUniqueDevPtr(const SimpleUniqueDevPtr<T>&) = delete;
   SimpleUniqueDevPtr<T>& operator=(const SimpleUniqueDevPtr<T>&) = delete;
-  SimpleUniqueDevPtr(SimpleUniqueDevPtr<T>&& other) : ptr_(other.ptr_) { other.ptr_ = nullptr; }
-  SimpleUniqueDevPtr<T>& operator=(SimpleUniqueDevPtr<T>&& other) { this->swap(other); return *this; }
+  SimpleUniqueDevPtr(SimpleUniqueDevPtr<T>&& other) noexcept : ptr_(other.ptr_) { other.ptr_ = nullptr; }
+  SimpleUniqueDevPtr<T>& operator=(SimpleUniqueDevPtr<T>&& other) noexcept { this->swap(other); return *this; }
 
   /* array-element-access of the underlying pointer (invokes undefined behavior when ``this`` is empty) */
   __device__ __forceinline__ T& operator[](std::ptrdiff_t idx) const noexcept { return ptr_[idx]; }
@@ -223,8 +223,6 @@ public:
    * this is the max value representable by a 64-bit signed integer.
    */
   static inline constexpr part_int_t DFLT_VAL = 9223372036854775807;
-
-public:
 
   /* default constructor */
   __host__ __device__ OverlapScheduler()
@@ -432,7 +430,7 @@ __device__ __forceinline__ hydro_utilities::VectorXYZ<Real> Calc_Pos_IndU(int i,
  * \param[in]     spatial_props Encodes spatial information about the local domain and the fields
  * \param[in]     cycle_props Encodes details about the simulation's current (global) iteration cycle
  * \param[out]    info An array that will is intended to accumulate summary details about the feedback during the course of
- *     this kernel call. This function assumes it has feedinfoLUT::LEN entries that are all initialized to 0.
+ *     this kernel call. This function assumes it has FBInfoLUT::LEN entries that are all initialized to 0.
  * \param[out]    conserved_dev pointer to the fluid-fields that will be updated during this function call.
  * \param[in]     An array of ``particle_props.n_local`` non-negative integers that specify the number of supernovae that are
  *     are scheduled to occur during the current cycle (for each particle).
@@ -452,9 +450,9 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
   FeedbackModel fb_model{};
 
   // prologoue: setup buffer for collecting SN feedback information
-  __shared__ Real s_info[feedinfoLUT::LEN * TPB_FEEDBACK];
-  for (unsigned int cur_ind = 0; cur_ind < feedinfoLUT::LEN; cur_ind++) {
-    s_info[feedinfoLUT::LEN * tid + cur_ind] = 0;
+  __shared__ Real s_info[FBInfoLUT::LEN * TPB_FEEDBACK];
+  for (unsigned int cur_ind = 0; cur_ind < FBInfoLUT::LEN; cur_ind++) {
+    s_info[FBInfoLUT::LEN * tid + cur_ind] = 0;
   }
 
   // this lambda func returns true if particle is in-bounds and has at least 1 SNe
@@ -534,7 +532,7 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
                         particle_props.pos_x_dev[i], particle_props.pos_y_dev[i], particle_props.pos_z_dev[i],
                         pos_indU[0], pos_indU[1], pos_indU[2],
                         particle_props.vel_x_dev[i], particle_props.vel_y_dev[i], particle_props.vel_z_dev[i]);
-          int pre_countResolved = s_info[feedinfoLUT::countResolved];
+          int pre_countResolved = s_info[FBInfoLUT::countResolved];
 #endif /* FEEDBACK_LOG_INDIVIDUAL */
 
           fb_model.apply_feedback(pos_indU[0], pos_indU[1], pos_indU[2], particle_props.vel_x_dev[i],
@@ -549,7 +547,7 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
           kernel_printf("...feedback-log-individual-extra: {\"block\": %d, \"thread\":%d, \"cycle\":%d, \"id\": %lld, \"isResolved\": %d}\n",
                         blockIdx.x, threadIdx.x, cycle_props.n_step,
                         (long long int)(particle_props.id_dev[i]),
-                        int(s_info[feedinfoLUT::countResolved] > pre_countResolved));
+                        int(s_info[FBInfoLUT::countResolved] > pre_countResolved));
 #endif
         }
       }
@@ -559,7 +557,7 @@ __global__ void Cluster_Feedback_Kernel(const feedback_details::ParticleProps pa
   // epilogue: sum the info from all threads (in all blocks) and add it into info
   __syncthreads(); // synchronize all threads in the current block. It's important to do this before
                    // the next function call because we accumulate values on the local block first
-  reduction_utilities::blockAccumulateIntoNReals<feedinfoLUT::LEN,TPB_FEEDBACK>(info, s_info);
+  reduction_utilities::blockAccumulateIntoNReals<FBInfoLUT::LEN,TPB_FEEDBACK>(info, s_info);
 }
 
 struct KernelAndLaunchConf {
@@ -642,7 +640,7 @@ KernelAndLaunchConf fetch_kernel_and_launch_conf_(int threads_per_block, int max
  * \param[in]     spatial_props Encodes spatial information about the local domain and the fields
  * \param[in]     cycle_props Encodes details about the simulation's current (global) iteration cycle
  * \param[out]    info An array on the host that will is intended to accumulate summary details about the feedback during the course of
- *     this kernel call. This function assumes it has feedinfoLUT::LEN entries that are all initialized to 0.
+ *     this kernel call. This function assumes it has FBInfoLUT::LEN entries that are all initialized to 0.
  * \param[out]    conserved_dev pointer to the fluid-fields that will be updated during this function call.
  * \param[in]     An array of ``particle_props.n_local`` non-negative integers that specify the number of supernovae that are
  *     are scheduled to occur during the current cycle (for each particle).
@@ -661,7 +659,7 @@ void Exec_Cluster_Feedback_Kernel(const feedback_details::ParticleProps& particl
 {
 
   // Declare/allocate device buffer for accumulating summary information about feedback
-  cuda_utilities::DeviceVector<Real> d_info(feedinfoLUT::LEN, true);  // initialized to 0
+  cuda_utilities::DeviceVector<Real> d_info(FBInfoLUT::LEN, true);  // initialized to 0
 
   // fetch the kernel and launch parameters (some care is taken to ensure that )
   const std::size_t dynamic_shared_mem_per_block = 0;
@@ -701,7 +699,7 @@ void Exec_Cluster_Feedback_Kernel(const feedback_details::ParticleProps& particl
 
   if (info != nullptr) {
     // copy summary data back to the host
-    GPU_Error_Check(cudaMemcpy(info, d_info.data(), feedinfoLUT::LEN * sizeof(Real), cudaMemcpyDeviceToHost));
+    GPU_Error_Check(cudaMemcpy(info, d_info.data(), FBInfoLUT::LEN * sizeof(Real), cudaMemcpyDeviceToHost));
   } else {
     GPU_Error_Check(cudaDeviceSynchronize());
   }

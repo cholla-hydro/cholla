@@ -81,7 +81,7 @@ struct CIC {
     // note: it's not exactly clear to me how we go from delta_x,delta_y,delta_z to volume-frac, (I just
     //       refactored the code I inherited and get consistent and sensible results)
 
-    #define to_idx3D(i,j,k) ( (leftmost_indx_x + i) + nx_g * ((leftmost_indx_y + j) + ny_g * (leftmost_indx_z + k)) )
+    #define to_idx3D(i,j,k) ( (leftmost_indx_x + (i)) + nx_g * ((leftmost_indx_y + (j)) + ny_g * (leftmost_indx_z + (k))) )
 
     f((1-delta_x) * (1 - delta_y) * (1 - delta_z), to_idx3D(0, 0, 0));  // (i=0, j = 0, k = 0)
     f((1-delta_x) * (1 - delta_y) *      delta_z , to_idx3D(0, 0, 1));  // (i=0, j = 0, k = 1)
@@ -91,6 +91,8 @@ struct CIC {
     f(   delta_x  * (1 - delta_y) *      delta_z , to_idx3D(1, 0, 1));  // (i=1, j = 0, k = 1)
     f(   delta_x  *      delta_y  * (1 - delta_z), to_idx3D(1, 1, 0));  // (i=1, j = 1, k = 0)
     f(   delta_x  *      delta_y  *      delta_z , to_idx3D(1, 1, 1));  // (i=1, j = 1, k = 1)
+
+    #undef to_idx3D
   }
 
   /* identical to for_each (provided for compatability with interfaces of other stencils). */
@@ -130,14 +132,13 @@ struct CIC {
 
 };
 
-namespace { // nested unnamed namespace (everything here has internal linkage)
 
 /* implements a stencil for depositing scalar quantities into a rectangular-prism region
  * (each side-length centered on `pos_indU` that has a length of 2 cell-widths along each
  * direction.
  */
 template<typename Function, StencilEvalKind flavor>
-__device__ void for_each_cic27_(hydro_utilities::VectorXYZ<Real> pos_indU, int nx_g, int ny_g, Function f) {
+static __device__ void for_each_cic27_(hydro_utilities::VectorXYZ<Real> pos_indU, int nx_g, int ny_g, Function f) {
   // this visits a 3x3x3 cells region
 
   int leftmost_indx_x = int(pos_indU[0]) - 1;
@@ -194,9 +195,9 @@ __device__ void for_each_cic27_(hydro_utilities::VectorXYZ<Real> pos_indU, int n
    should be dx*1/2. In the above the 1/2 factor is normalize over 2
    cells/direction.
   */
-inline __device__ Real Frac(int i, Real dx) { return (-0.5 * i * i - 0.5 * i + 1 + i * dx) * 0.5; }
+static inline __device__ Real Frac(int i, Real dx) { return (-0.5 * i * i - 0.5 * i + 1 + i * dx) * 0.5; }
 
-inline __device__ Real D_Frac(int i, Real dx)
+static inline __device__ Real D_Frac(int i, Real dx)
 {
   // I believe this is a piecwise function that does the following:
   //    (i == -1, dx <= 0.5): -1.0
@@ -208,7 +209,6 @@ inline __device__ Real D_Frac(int i, Real dx)
   return (dx > 0.5) * i * (1 - 2 * dx) + ((i + 1) * dx + 0.5 * (i - 1)) - 3 * (i - 1) * (i + 1) * (0.5 - dx);
 }
 
-} // nested unnamed namespace
 
 struct LegacyCIC27 {
 
@@ -352,12 +352,13 @@ struct LegacyCIC27 {
 /* Represents a sphere. This is used to help implement stencils. */
 struct SphereObj{
 
-public:  // attributes
+  // attributes
   double center_indU[3]; /*!< center of the sphere (in index units). An integer value corresponds to a cell-edge.
                           *!< Integer-values plus 0.5 correspond to cell-centers*/
   int raidus2_indU; /*!< squared radius of the sphere (in units of cell-widths)*/
 
-public:  // interface
+  // interface
+
   /* queries whether the sphere encloses a given point */
   __forceinline__ __device__ bool encloses_point(double pos_x_indU, double pos_y_indU, double pos_z_indU) const {
     double delta_x = pos_x_indU - center_indU[0];
@@ -529,8 +530,7 @@ public:  // interface
           const double y = orig_frame_y - ref_pos_IndU[1];
           const double z = orig_frame_z - ref_pos_IndU[2];
 
-          // we explicitly use bitwise operators here for speed purposes
-          const bool coincides_with_origin = ((x == 0.0) & (y == 0.0) & (z==0.0));
+          const bool coincides_with_origin = ((x == 0.0) && (y == 0.0) && (z==0.0));
 
           // for r = sqrt((x*x) + (y*y) + (z*z)), we need to compute x/r, y/r, z/r.
           // - we add coincides_with_origin here to make sure we don't divide by zero if (x,y,z) = (0,0,0)
@@ -548,17 +548,17 @@ public:  // interface
 
 };
 
-namespace { // nested unnamed namespace (everything here has internal linkage)
-
 /* implements a stencil for depositing scalar quantities into a rectangular-prism region
  * (each side-length centered on `pos_indU` that has a length of 2 cell-widths along each
  * direction.
  */
 template<typename Function, StencilEvalKind flavor, int CellsPerDiameter, int Log2DivsionsPerAx_PerCell>
-__forceinline__ __device__ void for_each_sphere_(hydro_utilities::VectorXYZ<Real> pos_indU, int nx_g, int ny_g, Function f) {
+static __forceinline__ __device__ void for_each_sphere_(hydro_utilities::VectorXYZ<Real> pos_indU, int nx_g, int ny_g, Function f) {
 
   const SphereObj sphere{/* center = */ {pos_indU[0], pos_indU[1], pos_indU[2]},
                          /* squared_radius = */ 1*1};
+  // we are intentionally using integer division to speed up the next line
+  // NOLINTNEXTLINE(bugprone-integer-division)
   const Real l_offset = ((CellsPerDiameter % 2) == 0) ? CellsPerDiameter / 2 : 0.5 * CellsPerDiameter;
 
   // Step 1: along each axis, identify the integer-index of the leftmost cell covered by the stencil.
@@ -649,8 +649,6 @@ __forceinline__ __device__ void for_each_sphere_(hydro_utilities::VectorXYZ<Real
   }
 
 }
-
-} // nested unnamed namespace
 
 /* Represents a 27-cell deposition stencil for a sphere with a radius of 1 cell-width. This stencil computes
  * the fraction of the stencil that is enclosed in each cell. The overlap between the stencil and a given cell
