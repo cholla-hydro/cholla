@@ -49,7 +49,7 @@ Onto the examples:
    print(my_fields)  # prints out the names of all saved fields
    ```
 
-2. Loading a single field: This is easy. Suppose the snapshot is saved at If that snapshot has a field called `"density"`, you can simply invoke:
+2. Loading a single field: This is easy. If that snapshot has a field called `"density"`, you can simply invoke:
 
    ```python
    import cholla_utils
@@ -58,6 +58,16 @@ Onto the examples:
    ```
 
    In the above snippet, density holds a numpy array.
+
+   Imagine that we are only interested in working with a subset of the array. For concreteness, imagine that we only want to work with `density[15,:,5:-20]`. The following snippet shows how we can directly load that subset of the data:
+
+   ```python
+   import cholla_utils
+
+   density = cholla_utils.load(
+       "path/to/snap.h5.0", "density", idx=np.s_[15,:,5:-20]
+   )
+   ```
 
 3. Loading multiple fields: if we want to load the `"density"` and `"Energy"` fields at the same time, we would invoke:
 
@@ -70,6 +80,8 @@ Onto the examples:
    # data["density"] holds the density numpy array
    # data["Energy"] holds the Energy numpy array
    ```
+
+   Once again, we can tell the load function to only load a subset of the data by passing the `idx` keyword argument.
 
 [^1]: If there is interest, it would be trivial to upload this package to PyPI.
 [^2]: If you create/destroy/rename any python files, you probably need to fully reinstall `cholla_utils`.
