@@ -10,8 +10,8 @@
 
 #ifdef O_HIP
 
-  #include <hip/hip_cooperative_groups.h>
   #include <hip/hip_runtime.h>
+  #include <hip/hip_cooperative_groups.h>
 
   #if defined(PARIS) || defined(PARIS_GALACTIC)
 
