@@ -1,5 +1,4 @@
-from collections import defaultdict
-from collections.abc import Iterator, Sequence
+from collections.abc import Mapping, Iterator, Sequence
 from dataclasses import dataclass
 import os
 import typing
@@ -9,6 +8,28 @@ import h5py
 import numpy as np
 
 _IDX3D_TYPE = typing.Any
+
+
+class _FieldIndexTemplate:
+    """Holds logic for adjusting a normal numpy index-tuples when accessing to
+    access the data associated with a particular blockid.
+
+    When field data is stored with the hierarchical schema, we need to sligtly adjust
+    the way that the data is stored. Under the flat schema, we won't make any change.
+    """
+
+    def __init__(self, blockid_map: Mapping[int, int] | None = None):
+        # Only pass in blockid_map when using a hierarchical schema
+        self._blockid_map = blockid_map
+
+    def format_field_idx(self, blockid: int, idx: _IDX3D_TYPE | None = None):
+        if self._blockid_map is None:
+            # since data is encoded with classic "flat" schema, we don't adjust idx
+            return idx
+        else:
+            # slightly adjust the index tuple when using the "hierarchical" schema
+            assert len(idx) == 3
+            return (self._blockid_map[blockid], idx[0], idx[1], idx[2])
 
 
 @dataclass(kw_only=True, slots=True)
@@ -21,9 +42,8 @@ class _BlockDiskMapping:
     fname_template: str
     # group containing field data (empty string denotes the root group)
     field_group: str
-    # maps blockid to an index that select all associated data from a
-    # field-dataset
-    field_idx_map: dict[int, tuple[int | slice, ...]]
+    # template for adjusting field indices
+    field_idx_template: _FieldIndexTemplate
 
 
 def _infer_blockid_location_arr(fname_template, global_dims, arr_shape):
@@ -92,18 +112,18 @@ def _determine_data_layout(f: h5py.File) -> tuple[np.ndarray, _BlockDiskMapping]
     if has_explicit_domain_info:
         # this branch primarily handles concatenated files made with newer logic
         blockid_location_arr = f["domain/blockid_location_arr"][...]
-        field_idx_map = {
-            blockid: (i, slice(None), slice(None), slice(None))
-            for i, blockid in enumerate(f["domain/stored_blockid_list"][...])
+        _blockid_map = {
+            blockid: i for i, blockid in enumerate(f["domain/stored_blockid_list"][...])
         }
-        consolidated_data = len(field_idx_map) == blockid_location_arr.size
+        field_idx_template = _FieldIndexTemplate(blockid_map=_blockid_map)
+        consolidated_data = len(_blockid_map) == blockid_location_arr.size
         if not consolidated_data:
             # in the near future, we will support one of the 2 cases:
             # > if (flat_structure):
-            # >     _common_idx = (slice(None), slice(None), slice(None))
+            # >     field_idx_template = _FieldIndexTemplate(blockid_map = None)
             # > else:
-            # >     _common_idx = (0, slice(None), slice(None), slice(None))
-            # > field_idx_map = defaultdict(lambda arg=_common_idx: arg)
+            # >     _blockid_map = defaultdict(lambda arg=0: arg)
+            # >     field_idx_template = _FieldIndexTemplate(blockid_map = _blockid_map)
             raise ValueError(
                 "no support for reading Cholla datasets where data is "
                 "distributed among files that explicitly encode domain info."
@@ -124,7 +144,7 @@ def _determine_data_layout(f: h5py.File) -> tuple[np.ndarray, _BlockDiskMapping]
         def _get_common_idx():
             return (slice(None), slice(None), slice(None))
 
-        field_idx_map = defaultdict(_get_common_idx)
+        field_idx_template = _FieldIndexTemplate(blockid_map=None)
 
     # STEP 4: Finalize the fname template
     # ===================================
@@ -141,7 +161,7 @@ def _determine_data_layout(f: h5py.File) -> tuple[np.ndarray, _BlockDiskMapping]
     mapping = _BlockDiskMapping(
         fname_template=fname_template,
         field_group="" if flat_structure else "field",
-        field_idx_map=field_idx_map,
+        field_idx_template=field_idx_template,
     )
     return blockid_location_arr, mapping
 
@@ -411,7 +431,6 @@ class _FieldLoader:
             fname = self.mapper.fname_template.format(blockid=blockid)
             f = self._load_file(fname=fname)
             grp = f if self.mapper.field_group == "" else f[self.mapper.field_group]
-            dataset_idx = self.mapper.field_idx_map[blockid]
 
             # determine the global indices that the chunk corresponds to
             tmp = []
@@ -425,27 +444,28 @@ class _FieldLoader:
             if load_idx is None:
                 continue
             else:
+                dataset_idx = self.mapper.field_idx_template.format_field_idx(
+                    blockid, load_idx
+                )
                 # iterate over the specified field names
                 for field_name in field_names:
-                    # TODO: it would be nice to merge dataset_idx and load_idx together
-                    #       so that we load as little data as possible
-                    chunk = grp[field_name][dataset_idx][load_idx].astype("f8")
+                    chunk = grp[field_name][dataset_idx].astype("f8")
                     yield out_idx, field_name, chunk
 
 
 @typing.overload
 def load_field(
-    snap: os.PathLike, /, field: str, idx: tuple[slice | int, ...] | None
+    snap: os.PathLike, /, field: str, *, idx: tuple[slice | int, ...] | None
 ) -> np.ndarray: ...
 
 
 @typing.overload
 def load_field(
-    snap: os.PathLike, /, field: Sequence[str], idx: tuple[slice | int, ...] | None
+    snap: os.PathLike, /, field: Sequence[str], *, idx: tuple[slice | int, ...] | None
 ) -> dict[str, np.ndarray]: ...
 
 
-def load_field(snap, /, field, idx=None):
+def load_field(snap, /, field, *, idx=None):
     """Loads in 1 or more fields for a snapshot
 
     Parameters
