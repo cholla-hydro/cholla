@@ -1,4 +1,4 @@
-/*! \file hydro_cuda.h
+/*! \file dual_energy.h
  *  \brief Declaration/implementation of functions used in dual-energy formalism.
  *
  *  \note
@@ -85,8 +85,14 @@ __global__ void Select_Internal_Energy(Real *dev_conserved, hydro_utilities::Vec
   } else if constexpr (NDim == 2) {
     n_cells = grid_shape.x() * grid_shape.y();
 
-    // we maintain the use of blockId for backwards compatability, but I'm not sure it does anything
-    // (i.e. can we just replace blockId with blockIdx.x as in the other 2 branches)?
+    // this difference in logic is left over from the distant past. when we
+    // we needed to use 2D grids to run really large 2D problems, because of
+    // CUDA limits on the 1D grid dimensions. This is reflected the name
+    // `dim2dgrid` for the grid dimensions in e.g. the VL_2D_cuda.cu functions,
+    // versus 'dim1dgrid' for the 3D version, even though then we set up a a 1D
+    // grid. In principle as long as we continue to only use 1D grids, 
+    // Evan thinks that replacing this with blockIdx.x would be fine, since
+    // blockIdx.y will always be 0 for a 1D grid,
     int blockId = blockIdx.x + blockIdx.y * gridDim.x;
     id          = threadIdx.x + blockId * blockDim.x;
 
