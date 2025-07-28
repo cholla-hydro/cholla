@@ -90,7 +90,7 @@ __global__ void Select_Internal_Energy(Real *dev_conserved, hydro_utilities::Vec
     // CUDA limits on the 1D grid dimensions. This is reflected the name
     // `dim2dgrid` for the grid dimensions in e.g. the VL_2D_cuda.cu functions,
     // versus 'dim1dgrid' for the 3D version, even though then we set up a a 1D
-    // grid. In principle as long as we continue to only use 1D grids, 
+    // grid. In principle as long as we continue to only use 1D grids,
     // Evan thinks that replacing this with blockIdx.x would be fine, since
     // blockIdx.y will always be 0 for a 1D grid,
     int blockId = blockIdx.x + blockIdx.y * gridDim.x;
