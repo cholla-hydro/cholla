@@ -26,7 +26,7 @@ jobs:
         make-type: [hydro, gravity, disk, particles, cosmology, mhd, dust, cooling]
         container:
           #- {name: "CUDA", link: "docker://chollahydro/cholla:cuda_github"}
-          - {name: "HIP", link_prefix: "docker://rocm/dev-ubuntu-20.04", version: "5.5.1"}
+          - {name: "HIP", link_prefix: "docker://rocm/dev-ubuntu-20.04", version: "5.7.1"}
     env:  # Set environment variables
       CHOLLA_MAKE_TYPE: ${{ matrix.make-type }}
       CHOLLA_MACHINE: github
@@ -39,18 +39,20 @@ jobs:
 
     steps:  # list steps of the job
 
-      - run: sudo apt-get -y update && apt-get -y install \
-            cmake \
+      - run: sudo apt-get -y update
+      - run: sudo apt-get -y install \
             git \
-            gnupg \
             hipfft \
             libgtest-dev \
             libhdf5-serial-dev \
             libopenmpi-dev \
             openmpi-bin \
-            rocfft \
-            software-properties-common \
-            wget
+            rocfft
+            #
+            #cmake \
+            #gnupg \
+            #software-properties-common \
+            #wget
 
       - run: echo "gfx90a" | sudo tee --append $(hipconfig -R)/bin/target.lst
 
