@@ -26,16 +26,16 @@ jobs:
         make-type: [hydro, gravity, disk, particles, cosmology, mhd, dust, cooling]
         container:
           #- {name: "CUDA", link: "docker://chollahydro/cholla:cuda_github"}
-          - {name: "HIP", link_prefix: "docker:rocm/dev-ubuntu-20.04", version: "5.5.1"}
+          - {name: "HIP", link_prefix: "docker://rocm/dev-ubuntu-20.04", version: "5.5.1"}
     env:  # Set environment variables
       CHOLLA_MAKE_TYPE: ${{ matrix.make-type }}
-        CHOLLA_MACHINE: github
-             HIPCONFIG: /opt/rocm-${{matrix.container.version}}
-             ROCM_PATH: /opt/rocm-${{matrix.container.version}}
-             HDF5_ROOT: /usr/lib/x86_64-linux-gnu/hdf5/serial
-              MPI_ROOT: /usr/lib/x86_64-linux-gnu/openmpi
-       # Avoid annoying cmake -> tzdata install prompt
-       DEBIAN_FRONTEND: noninteractive
+      CHOLLA_MACHINE: github
+      HIPCONFIG: /opt/rocm-${{matrix.container.version}}
+      ROCM_PATH: /opt/rocm-${{matrix.container.version}}
+      HDF5_ROOT: /usr/lib/x86_64-linux-gnu/hdf5/serial
+      MPI_ROOT: /usr/lib/x86_64-linux-gnu/openmpi
+      # Avoid annoying cmake -> tzdata install prompt
+      DEBIAN_FRONTEND: noninteractive
 
     steps:  # list steps of the job
 
