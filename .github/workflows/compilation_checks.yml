@@ -39,18 +39,6 @@ jobs:
 
     steps:  # list steps of the job
 
-      - name: Checkout Cholla Repository
-        uses: actions/checkout@v4
-        with:
-          submodules: false  # we don't want our submodule
-          # `set-safe-directory: true` is known not to work in custom docker
-          # images (like the ones that we are using)
-
-      - run: echo $ROCM_PATH
-
-      # we can remove this step when the set-safe-directory bug is fixed
-      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE" 
-
       - run: sudo apt-get -y update && apt-get -y install \
             cmake \
             git \
@@ -68,6 +56,19 @@ jobs:
 
       # Install rocRand
       - run: sudo apt-get -y install rocrand
+
+      - name: Checkout Cholla Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: false  # we don't want our submodule
+          # `set-safe-directory: true` is known not to work in custom docker
+          # images (like the ones that we are using)
+
+      - run: echo $ROCM_PATH
+
+      # we can remove this step when the set-safe-directory bug is fixed
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE" 
+
 
       - name: Show MPI version
         run: mpirun --version
