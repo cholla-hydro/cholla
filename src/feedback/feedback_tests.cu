@@ -1192,7 +1192,8 @@ struct InjectSummary {
 };
 
 /* calculate the amount that is injected in each quantity in the specified reference
- * frame (ref_frame_vel is measure in the original reference frame of the simulation)
+ * frame (ref_frame_vel is measured with respect to the original reference frame of the
+ * simulation)
  */
 InjectSummary calc_inject_summary_(TestFieldData& field_data, Real init_density, Real init_internal_edens,
                                    hydro_utilities::VectorXYZ<Real> init_bulk_vel, Real cell_vol,
@@ -1247,7 +1248,34 @@ InjectSummary calc_inject_summary_(TestFieldData& field_data, Real init_density,
   return out;
 }
 
+
+/*! Confirms that the info vector records the expected kind of SNe event
+ */
+testing::AssertionResult check_encodes_single_expected_event(const std::vector<Real>& info, bool resolved) {
+  Real n_resolved   = info[FBInfoLUT::countResolved];
+  Real n_unresolved = info[FBInfoLUT::countUnresolved];
+  if ((n_resolved + n_unresolved) != info[FBInfoLUT::countSN]) {
+    return testing::AssertionFailure()
+        << "failed sanity check: the summary statistics recorded at FBInfoLUT::countSN, "
+        << "FBInfoLUT::countUnresolved, and FBInfoLUT::countUnresolved are inconsistent";
+  } else if (info[FBInfoLUT::countSN] != 1) {
+    return testing::AssertionFailure()
+        << "failed sanity check: summary stats indicate that multiple SNe occurred";
+  } else if ((n_unresolved != 0) and resolved) {
+    return testing::AssertionFailure()
+        << "an unresolved SNe was recorded, we expect to be testing resolved feedback";
+  } else if ((n_resolved != 0) and not resolved) {
+    return testing::AssertionFailure()
+        << "a resolved SNe was recorded, we expect to be testing unresolved feedback";
+  } else {
+    return testing::AssertionSuccess();
+  }
+}
+
+
 // in this test, we look into the actual injected amounts!
+// - we can look at the total amount of thermal energy
+// - we can also look at the total amount
 template <typename Prescription>
 void test_injection_magnitudes_(bool resolved, const hydro_utilities::VectorXYZ<Real>& bulk_vel)
 {
@@ -1258,11 +1286,9 @@ void test_injection_magnitudes_(bool resolved, const hydro_utilities::VectorXYZ<
   // initialize 1 star particle
   const std::vector<hydro_utilities::VectorXYZ<Real>> particle_pos_vec(1, {2.4 * dx, 2.4 * dx, 2.4 * dx});
 
-  const Real density =
-      (resolved)
-          ? 1e8
-          : 1e9;  // solar-masses per kpc**3
-                  // default thermal energy density should correspond to pressure of 1e4 K / cm**3 (for a gamma of 5/3)
+  const Real density = (resolved) ? 1e7 : 1e9;  // solar-masses per kpc**3
+
+  // default thermal energy density should correspond to pressure of 1e4 K / cm**3 (for a gamma of 5/3)
   const Real internal_edens = 0.0021335 * 1.5;
 
   // launch the feedback
@@ -1271,34 +1297,36 @@ void test_injection_magnitudes_(bool resolved, const hydro_utilities::VectorXYZ<
       feedback_details::BoundaryStrategy::excludeGhostParticle_ignoreStencilIssues, {density}, {internal_edens},
       {bulk_vel});
 
-  ASSERT_EQ(rslt.info[FBInfoLUT::countSN], 1);
+  // this is mostly just a sanity check to make sure that this test-case gets updated if the
+  // criteria for switching between resolved and unresolved feedback changes significantly
+  // (this has definitely happened in the past!)
+  ASSERT_TRUE(check_encodes_single_expected_event(rslt.info, resolved));
 
-  // compute the summary properties in the reference frame of the particle where that underwent
-  // feedback (this just happens to coincide with bulk_vel)
+  // compute the summary properties in the reference frame of the particle that
+  // underwent the feedback process
+  // - in the current implementation of this test-logic, we chose to make the particle
+  //   velocity match the bulk_vel (the bulk velocity of the gas)
   const hydro_utilities::VectorXYZ<Real> ref_frame_vel = bulk_vel;
-
   InjectSummary summary =
       calc_inject_summary_(rslt.test_field_data, density, internal_edens, bulk_vel, dx * dx * dx, ref_frame_vel);
-  /*
-    printf("from_grid:  mass = %g, net_mom = {%g,%g,%g}, abs_mom_mag = %e, thermal_energy/erg = %e\n",
-           summary.mass, summary.net_mom_x, summary.net_mom_y, summary.net_mom_z,
-           summary.abs_mom_mag, summary.thermal_energy * FORCE_UNIT * LENGTH_UNIT);
 
-    Real info_e = rslt.info[FBInfoLUT::totalEnergy] + rslt.info[FBInfoLUT::totalUnresEnergy];
-    printf("from summary_stats:   abs_mom_mag = %e energy/erg = %e\n\n",
-           rslt.info[FBInfoLUT::totalMomentum],
-           info_e * FORCE_UNIT * LENGTH_UNIT);
-  */
-
-  EXPECT_NEAR(feedback::MASS_PER_SN, summary.mass, 3.6e-15 * feedback::MASS_PER_SN);
+  EXPECT_NEAR(feedback::MASS_PER_SN, summary.mass, 3.6e-15 * feedback::MASS_PER_SN)
+      << "The injected mass doesn't match the hard-coded constant";
 
   if (rslt.info[FBInfoLUT::countResolved] > 0) {
     Real rtol = 0.0;
+    Real atol = 0.0;
+    if ((bulk_vel[0] != 0) or (bulk_vel[1] != 0) or (bulk_vel[2] != 0)) {
+      // we need a tolerance in this case because the injection logic had to
+      // slightly alter the momentum values since we injected mass
+      atol = 2e-19;
+    } 
 
-    EXPECT_EQ(0.0, summary.net_mom_x);
-    EXPECT_EQ(0.0, summary.net_mom_y);
-    EXPECT_EQ(0.0, summary.net_mom_z);
-    EXPECT_EQ(0.0, summary.abs_mom_mag);
+    // when checking the momentum, we need to consider 
+    EXPECT_NEAR(0.0, summary.net_mom_x, atol);
+    EXPECT_NEAR(0.0, summary.net_mom_y, atol);
+    EXPECT_NEAR(0.0, summary.net_mom_z, atol);
+    EXPECT_NEAR(0.0, summary.abs_mom_mag, atol);
     EXPECT_NEAR(feedback::ENERGY_PER_SN, summary.thermal_energy, rtol * feedback::ENERGY_PER_SN);
 
     // sanity check!
@@ -1325,15 +1353,6 @@ void test_injection_magnitudes_(bool resolved, const hydro_utilities::VectorXYZ<
     EXPECT_EQ(rslt.info[FBInfoLUT::totalUnresEnergy], 0.0);
   }
 
-  // this is mostly just a sanity check to make sure that this test-case gets updated if the
-  // criteria for switching between resolved and unresolved feedback changes significantly
-  if (resolved) {
-    ASSERT_TRUE(rslt.info[FBInfoLUT::countResolved] == 1) << "something is wrong, we expected to be "
-                                                          << "testing unresolved feedback!";
-  } else {
-    ASSERT_TRUE(rslt.info[FBInfoLUT::countUnresolved] == 1) << "something is wrong, we expected to be "
-                                                            << "testing unresolved feedback!";
-  }
 }
 
 TYPED_TEST(tALLFeedbackFull, InjectionMagnitudesResolved)
@@ -1435,7 +1454,7 @@ TYPED_TEST(tALLFeedbackFull, ComparingFrameInvariance)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-// Testing behavior of full-fu some machinery to help with testing the full feedback functionality
+// Some machinery to help with testing the full feedback functionality
 // where we check our expectations about the total volume enclosed by the stencil
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
