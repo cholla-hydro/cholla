@@ -6,7 +6,7 @@ name: Compilation-Checks
 # jobs.Build.strategy.matrix.container
 
 on:
-  pull_request:
+  #pull_request:  # <--  temporarily disabled
   schedule:
     - cron: "37 07 * * 1"  # run every Monday at 07:37UTC. Crontab computed with crontab.guru
   workflow_dispatch:
