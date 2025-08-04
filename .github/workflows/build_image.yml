@@ -1,42 +1,51 @@
-name: ci
+name: build_image
 
 on:
   push:
   pull_request:
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
 
 jobs:
-  build:
+  build-and-push-image:
     runs-on: ubuntu-latest
+    # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # Uses the `docker/login-action` action to log in to the Container registry registry using the account and password that will publish the packages. Once published, the packages are scoped to the account defined here.
+      - name: Log in to the Container registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # This step uses the `docker/build-push-action` action to build the image, based on your repository's `Dockerfile`. If the build succeeds, it pushes the image to GitHub Packages.
+      # It uses the `context` parameter to define the build's context as the set of files located in the specified path. For more information, see [Usage](https://github.com/docker/build-push-action#usage) in the README of the `docker/build-push-action` repository.
       - name: Build and export
         uses: docker/build-push-action@v6
         with:
+          context: .
+          push: true
           file: docker/rocm/Dockerfile
           outputs: type=docker,dest=./myimage.tar
-          tags: cholla-rocm:latest
+          tags: ${{ env.REGISTRY }}/cholla-hydro/cholla:latest
           cache-from: type=gha
           cache-to: type=gha
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      # This step generates an artifact attestation for the image, which is an unforgeable statement about where and how it was built. It increases supply chain security for people who consume the image. For more information, see [Using artifact attestations to establish provenance for builds](/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds).
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v2
         with:
-          name: myimage
-          path: ./myimage.tar
-
-  use:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: myimage
-          path: ./myimage.tar
-
-      - name: Load image
-        run: |
-          docker load --input ./myimage.tar
-          docker image ls -a
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
