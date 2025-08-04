@@ -29,6 +29,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  IS_WORKFLOW_DISPATCH: ${{ github.event_name == 'workflow_dispatch' }}
 
 jobs:
   build-and-push-image:
@@ -80,7 +81,7 @@ jobs:
       - name: Build and export
         uses: docker/build-push-action@v6
         with:
-          push: true
+          push: ${{ IS_WORKFLOW_DISPATCH }}
           context: .
           # obviously specifies the path to the docker file
           file: docker/rocm/Dockerfile
