@@ -7,6 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-and-push-image:
@@ -34,13 +35,12 @@ jobs:
       - name: Build and export
         uses: docker/build-push-action@v6
         with:
-          #context: .
           push: true
           file: docker/rocm/Dockerfile
           #outputs: type=docker,dest=./myimage.tar
           tags: ghcr.io/cholla-hydro/cholla:latest
-          #cache-from: type=gha
-          #cache-to: type=gha
+          cache-from: type=gha
+          cache-to: type=gha
           IMAGE_NAME: ${{ github.repository }}
 
       # This step generates an artifact attestation for the image, which is an unforgeable statement about where and how it was built. It increases supply chain security for people who consume the image. For more information, see [Using artifact attestations to establish provenance for builds](/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds).
