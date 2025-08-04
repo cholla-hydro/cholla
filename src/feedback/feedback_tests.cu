@@ -1248,30 +1248,25 @@ InjectSummary calc_inject_summary_(TestFieldData& field_data, Real init_density,
   return out;
 }
 
-
 /*! Confirms that the info vector records the expected kind of SNe event
  */
-testing::AssertionResult check_encodes_single_expected_event(const std::vector<Real>& info, bool resolved) {
+testing::AssertionResult check_encodes_single_expected_event(const std::vector<Real>& info, bool resolved)
+{
   Real n_resolved   = info[FBInfoLUT::countResolved];
   Real n_unresolved = info[FBInfoLUT::countUnresolved];
   if ((n_resolved + n_unresolved) != info[FBInfoLUT::countSN]) {
-    return testing::AssertionFailure()
-        << "failed sanity check: the summary statistics recorded at FBInfoLUT::countSN, "
-        << "FBInfoLUT::countUnresolved, and FBInfoLUT::countUnresolved are inconsistent";
+    return testing::AssertionFailure() << "failed sanity check: the summary statistics recorded at FBInfoLUT::countSN, "
+                                       << "FBInfoLUT::countUnresolved, and FBInfoLUT::countUnresolved are inconsistent";
   } else if (info[FBInfoLUT::countSN] != 1) {
-    return testing::AssertionFailure()
-        << "failed sanity check: summary stats indicate that multiple SNe occurred";
+    return testing::AssertionFailure() << "failed sanity check: summary stats indicate that multiple SNe occurred";
   } else if ((n_unresolved != 0) and resolved) {
-    return testing::AssertionFailure()
-        << "an unresolved SNe was recorded, we expect to be testing resolved feedback";
+    return testing::AssertionFailure() << "an unresolved SNe was recorded, we expect to be testing resolved feedback";
   } else if ((n_resolved != 0) and not resolved) {
-    return testing::AssertionFailure()
-        << "a resolved SNe was recorded, we expect to be testing unresolved feedback";
+    return testing::AssertionFailure() << "a resolved SNe was recorded, we expect to be testing unresolved feedback";
   } else {
     return testing::AssertionSuccess();
   }
 }
-
 
 // in this test, we look into the actual injected amounts!
 // - we can look at the total amount of thermal energy
@@ -1320,9 +1315,8 @@ void test_injection_magnitudes_(bool resolved, const hydro_utilities::VectorXYZ<
       // we need a tolerance in this case because the injection logic had to
       // slightly alter the momentum values since we injected mass
       atol = 2e-19;
-    } 
+    }
 
-    // when checking the momentum, we need to consider 
     EXPECT_NEAR(0.0, summary.net_mom_x, atol);
     EXPECT_NEAR(0.0, summary.net_mom_y, atol);
     EXPECT_NEAR(0.0, summary.net_mom_z, atol);
@@ -1352,7 +1346,6 @@ void test_injection_magnitudes_(bool resolved, const hydro_utilities::VectorXYZ<
     // sanity checks!
     EXPECT_EQ(rslt.info[FBInfoLUT::totalUnresEnergy], 0.0);
   }
-
 }
 
 TYPED_TEST(tALLFeedbackFull, InjectionMagnitudesResolved)
