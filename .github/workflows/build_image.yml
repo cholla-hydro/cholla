@@ -24,7 +24,7 @@ on:
       - ".github/workflows/build_image.yml"
       - "docker/**"
 
-  workflow_dispatch: # run this when we manually trigger the workflow
+  workflow_dispatch:  # run this when we manually trigger the workflow
 
 env:
   REGISTRY: ghcr.io
