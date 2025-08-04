@@ -16,7 +16,7 @@ jobs:
     name: Compilation-Check for ${{ matrix.container.name }}, TYPE=${{ matrix.make-type }}
     runs-on: ubuntu-latest  # Choose OS/Runner
     container:
-      image: ${{matrix.container.link_prefix}}:${{matrix.container.version}}
+      image: ${{matrix.container.link}}
     defaults:
       run:
         shell: bash
@@ -26,38 +26,11 @@ jobs:
         make-type: [hydro, gravity, disk, particles, cosmology, mhd, dust, cooling]
         container:
           #- {name: "CUDA", link: "docker://chollahydro/cholla:cuda_github"}
-          - {name: "HIP", link_prefix: "docker://rocm/dev-ubuntu-22.04", version: "5.7.1"}
+          - {name: "HIP", link: "docker://chollahydro/cholla:rocm_github"}
     env:  # Set environment variables
       CHOLLA_MAKE_TYPE: ${{ matrix.make-type }}
-      CHOLLA_MACHINE: github
-      HIPCONFIG: /opt/rocm-${{matrix.container.version}}
-      ROCM_PATH: /opt/rocm-${{matrix.container.version}}
-      HDF5_ROOT: /usr/lib/x86_64-linux-gnu/hdf5/serial
-      MPI_ROOT: /usr/lib/x86_64-linux-gnu/openmpi
-      # Avoid annoying cmake -> tzdata install prompt
-      DEBIAN_FRONTEND: noninteractive
 
     steps:  # list steps of the job
-
-      - run: sudo apt-get -y update
-      - run: sudo apt-get -y install \
-            git \
-            hipfft \
-            libgtest-dev \
-            libhdf5-serial-dev \
-            libopenmpi-dev \
-            openmpi-bin \
-            rocfft
-            #
-            #cmake \
-            #gnupg \
-            #software-properties-common \
-            #wget
-
-      - run: echo "gfx90a" | sudo tee --append $(hipconfig -R)/bin/target.lst
-
-      # Install rocRand
-      - run: sudo apt-get -y install rocrand
 
       - name: Checkout Cholla Repository
         uses: actions/checkout@v4
@@ -66,11 +39,8 @@ jobs:
           # `set-safe-directory: true` is known not to work in custom docker
           # images (like the ones that we are using)
 
-      - run: echo $ROCM_PATH
-
       # we can remove this step when the set-safe-directory bug is fixed
       - run: git config --global --add safe.directory "$GITHUB_WORKSPACE" 
-
 
       - name: Show MPI version
         run: mpirun --version
