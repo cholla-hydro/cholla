@@ -1,4 +1,4 @@
-name: build_image
+name: Build-Image
 
 # this drew a lot of inspiration from lots of guides on the internet...
 # - ultimately, I was able to find
@@ -81,7 +81,7 @@ jobs:
       - name: Build and export
         uses: docker/build-push-action@v6
         with:
-          push: ${{ IS_WORKFLOW_DISPATCH }}
+          push: ${{ env.IS_WORKFLOW_DISPATCH }}
           context: .
           # obviously specifies the path to the docker file
           file: docker/rocm/Dockerfile
@@ -96,3 +96,13 @@ jobs:
       #   creating an image to use as a build environment).
       # - Attestation is mostly useful when the image is the primary "product"
       #   a project wants to ship
+
+
+      - name: Report
+        run: |
+          echo "${{ env.IS_WORKFLOW_DISPATCH }}"
+          if [[ "${{ env.IS_WORKFLOW_DISPATCH }}" == 'true' ]]; then
+              echo "Successfully Built And Uploaded Image"
+          else
+              echo "Successfully Built Image"
+          fi
