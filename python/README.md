@@ -49,7 +49,7 @@ Onto the examples:
    print(my_fields)  # prints out the names of all saved fields
    ```
 
-2. Loading a single field: This is easy. Suppose the snapshot is saved at If that snapshot has a field called `"density"`, you can simply invoke:
+2. Loading a single field: This is easy. If that snapshot has a field called `"density"`, you can simply invoke:
 
    ```python
    import cholla_utils
