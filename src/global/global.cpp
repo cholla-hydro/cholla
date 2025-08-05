@@ -139,9 +139,7 @@ void Warn_Unused_Params(ParameterMap &pmap) { pmap.warn_unused_parameters(option
 bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameters *parms)
 {
   /* Copy into correct entry in parameters struct */
-  if (strcmp(name, "init") == 0) {
-    strncpy(parms->init, value, MAXLEN);
-  } else if (strcmp(name, "nfile") == 0) {
+  if (strcmp(name, "nfile") == 0) {
     parms->nfile = atoi(value);
   } else if (strcmp(name, "n_hydro") == 0) {
     parms->n_hydro = atoi(value);
@@ -217,12 +215,6 @@ bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameter
     parms->zl_bcnd = atoi(value);
   } else if (strcmp(name, "zu_bcnd") == 0) {
     parms->zu_bcnd = atoi(value);
-  } else if (strcmp(name, "custom_bcnd") == 0) {
-    strncpy(parms->custom_bcnd, value, MAXLEN);
-  } else if (strcmp(name, "outdir") == 0) {
-    strncpy(parms->outdir, value, MAXLEN);
-  } else if (strcmp(name, "indir") == 0) {
-    strncpy(parms->indir, value, MAXLEN);
   } else if (strcmp(name, "rho") == 0) {
     parms->rho = atof(value);
   } else if (strcmp(name, "vx") == 0) {
@@ -307,16 +299,6 @@ bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameter
   } else if (strcmp(name, "prng_seed") == 0) {
     parms->prng_seed = atoi(value);
 #endif  // PARTICLES
-#ifdef FEEDBACK
-  #ifndef NO_SN_FEEDBACK
-  } else if (strcmp(name, "snr_filename") == 0) {
-    strncpy(parms->snr_filename, value, MAXLEN);
-  #endif
-  #ifndef NO_WIND_FEEDBACK
-  } else if (strcmp(name, "sw_filename") == 0) {
-    strncpy(parms->sw_filename, value, MAXLEN);
-  #endif
-#endif
 #ifdef ROTATED_PROJECTION
   } else if (strcmp(name, "nxr") == 0) {
     parms->nxr = atoi(value);
@@ -339,28 +321,6 @@ bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameter
   } else if (strcmp(name, "flag_delta") == 0) {
     parms->flag_delta = atoi(value);
 #endif /*ROTATED_PROJECTION*/
-#ifdef COSMOLOGY
-  } else if (strcmp(name, "scale_outputs_file") == 0) {
-    strncpy(parms->scale_outputs_file, value, MAXLEN);
-  } else if (strcmp(name, "Init_redshift") == 0) {
-    parms->Init_redshift = atof(value);
-  } else if (strcmp(name, "End_redshift") == 0) {
-    parms->End_redshift = atof(value);
-  } else if (strcmp(name, "H0") == 0) {
-    parms->H0 = atof(value);
-  } else if (strcmp(name, "Omega_M") == 0) {
-    parms->Omega_M = atof(value);
-  } else if (strcmp(name, "Omega_L") == 0) {
-    parms->Omega_L = atof(value);
-  } else if (strcmp(name, "Omega_b") == 0) {
-    parms->Omega_b = atof(value);
-  } else if (strcmp(name, "Omega_R") == 0) {
-    parms->Omega_R = atof(value);
-  } else if (strcmp(name, "w0") == 0) {
-    parms->w0 = atof(value);
-  } else if (strcmp(name, "wa") == 0) {
-    parms->wa = atof(value);
-#endif  // COSMOLOGY
 #ifdef TILED_INITIAL_CONDITIONS
   } else if (strcmp(name, "tile_length") == 0) {
     parms->tile_length = atof(value);
@@ -368,28 +328,6 @@ bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameter
 
   } else if (strcmp(name, "bc_potential_type") == 0) {
     parms->bc_potential_type = atoi(value);
-#ifdef CHEMISTRY_GPU
-  } else if (strcmp(name, "UVB_rates_file") == 0) {
-    strncpy(parms->UVB_rates_file, value, MAXLEN);
-#endif
-#ifdef COOLING_GRACKLE
-  } else if (strcmp(name, "UVB_rates_file") == 0) {
-    strncpy(parms->UVB_rates_file, value, MAXLEN);
-#endif
-#ifdef ANALYSIS
-  } else if (strcmp(name, "analysis_scale_outputs_file") == 0) {
-    strncpy(parms->analysis_scale_outputs_file, value, MAXLEN);
-  } else if (strcmp(name, "analysisdir") == 0) {
-    strncpy(parms->analysisdir, value, MAXLEN);
-  } else if (strcmp(name, "lya_skewers_stride") == 0) {
-    parms->lya_skewers_stride = atoi(value);
-  } else if (strcmp(name, "lya_Pk_d_log_k") == 0) {
-    parms->lya_Pk_d_log_k = atof(value);
-  #ifdef OUTPUT_SKEWERS
-  } else if (strcmp(name, "skewersdir") == 0) {
-    strncpy(parms->skewersdir, value, MAXLEN);
-  #endif
-#endif
 #ifdef SCALAR
   #ifdef DUST
   } else if (strcmp(name, "grain_radius") == 0) {
@@ -402,6 +340,25 @@ bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameter
   return true;
 }
 
+/*! \brief this would be entirely unnecessary if the Parameters struct directly stored a std::string
+ */
+static void Load_String_Param_Into_Char_Buffer(ParameterMap &pmap, const std::string &param, char *dest_buffer,
+                                               const char *dflt_val)
+{
+  std::string tmp;
+  if (dflt_val == nullptr) {
+    tmp = pmap.value<std::string>(param);  // an error is reported when the parameter isn't specified
+  } else {
+    tmp = pmap.value_or(param, dflt_val);
+  }
+  // according to strncpy documentation, MAXLEN include the nul-terminator character
+  // (aside: tmp.size() does not include a nul-terminator character)
+  CHOLLA_ASSERT((tmp.size() + 1) <= MAXLEN,
+                "the \"%s\" parameter's value is too long. It must be shorter than %d characters", param.c_str(),
+                MAXLEN);
+  strncpy(dest_buffer, tmp.c_str(), MAXLEN);
+}
+
 /*! \brief Parses and sets a bunch of members of parms from pmap.
  *
  *  The goal is eventually get rid of the old-style function
@@ -412,22 +369,8 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   parms->nx = pmap.value<int>("nx");
   parms->ny = pmap.value<int>("ny");
   parms->nz = pmap.value<int>("nz");
+
   CHOLLA_ASSERT((parms->nx >= 0) and (parms->ny >= 0) and (parms->nz >= 0), "domain dimensions must be positive");
-
-#ifdef STATIC_GRAV
-  parms->custom_grav = pmap.value_or("custom_grav", 0);
-#endif
-
-  parms->tout = pmap.value<double>("tout");  // aborts if missing
-  CHOLLA_ASSERT(parms->tout >= 0.0, "tout parameter must be non-negative");
-
-  parms->outstep        = pmap.value<double>("outstep");  // aborts if missing
-  parms->n_steps_output = pmap.value_or("n_steps_output", 0);
-
-  // in the future, maybe we should provide a default value of 5/3 for gamma
-  parms->gamma = Real(pmap.value<double>("gamma"));
-  CHOLLA_ASSERT(parms->gamma > 1.0, "gamma parameter must be greater than one.");
-
   // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z]
   if (pmap.has_param("n_proc_x") or pmap.has_param("n_proc_y") or pmap.has_param("n_proc_z")) {
     parms->n_proc_x = pmap.value<int>("n_proc_x");
@@ -446,6 +389,86 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
     parms->n_proc_y = 0;
     parms->n_proc_z = 0;
   }
+
+#ifdef STATIC_GRAV
+  parms->custom_grav = pmap.value_or("custom_grav", 0);
+#endif
+
+  parms->tout = pmap.value<double>("tout");  // aborts if missing
+  CHOLLA_ASSERT(parms->tout >= 0.0, "tout parameter must be non-negative");
+
+  parms->outstep        = pmap.value<double>("outstep");  // aborts if missing
+  parms->n_steps_output = pmap.value_or("n_steps_output", 0);
+
+  // in the future, maybe we should provide a default value of 5/3 for gamma
+  parms->gamma = Real(pmap.value<double>("gamma"));
+  CHOLLA_ASSERT(parms->gamma > 1.0, "gamma parameter must be greater than one.");
+
+  // load in a handful of string parameters (this would look a lot more like parsing other parameters if we
+  // stored the values as std::string values)
+  Load_String_Param_Into_Char_Buffer(pmap, "init", parms->init, "");
+  Load_String_Param_Into_Char_Buffer(pmap, "custom_bcnd", parms->custom_bcnd, "");
+  Load_String_Param_Into_Char_Buffer(pmap, "outdir", parms->outdir, "");
+  Load_String_Param_Into_Char_Buffer(pmap, "indir", parms->indir, "");
+
+  // in the future, the feedback module will read in its own parameters (the global Parameter struct won't
+  // know anything about it)
+#ifdef FEEDBACK
+  #ifndef NO_SN_FEEDBACK
+  Load_String_Param_Into_Char_Buffer(pmap, "snr_filename", parms->snr_filename, "");
+  #endif
+  #ifndef NO_WIND_FEEDBACK
+  Load_String_Param_Into_Char_Buffer(pmap, "sw_filename", parms->sw_filename, "");
+  #endif
+#endif
+
+  // in the future, it would probably be good to move this logic into Cosmology::Initialize (or somewhere similar)
+  // and remove these parameters from the global struct. This would provide a few benefits:
+  //   - we could take steps towards removing the optionalParams global variable (there is alternative machinery
+  //     in place to check for unused parameters)
+  //   - we could remove ifdef statements from here and the global Parameters struct (we would also remove the
+  //     these parameters from the Parameters struct)
+  //
+  // Prior to relocating this parameter-parsing, Cosmological simulations simply assumed that all of these parameters
+  // were specified (& there were no default values). Now cosmological simulations will loudly fail if a user forgets
+  // parameters like H0, Omega_M, Omega_L, Omega_b, etc.
+#ifdef COSMOLOGY
+  if (not pmap.has_param("End_redshift") and not pmap.has_param("scale_outputs_file")) {
+    CHOLLA_ERROR("either the scale_outputs_file or End_redshift parameter must be provided in Cosmology sims");
+  } else {
+    Load_String_Param_Into_Char_Buffer(pmap, "scale_outputs_file", parms->scale_outputs_file, "");
+    parms->End_redshift = pmap.value_or("End_redshift", 0.0);
+  }
+  // it turns out that Init_redshift is only needed for special test-problems
+  // -> it commonly isn't given a value.
+  // -> Since it never had a default value before, we have it fall back to an obviously wrong value
+  parms->Init_redshift = pmap.value_or("Init_redshift", -1.0);
+  parms->H0            = pmap.value<double>("H0");
+  parms->Omega_M       = pmap.value<double>("Omega_M");
+  parms->Omega_L       = pmap.value<double>("Omega_L");
+  parms->Omega_b       = pmap.value<double>("Omega_b");
+  parms->Omega_R       = pmap.value_or("Omega_R", 0.0);
+  parms->w0            = pmap.value_or("w0", -1.0);
+  parms->wa            = pmap.value_or("wa", 0.0);
+#endif  // COSMOLOGY
+
+#if defined(CHEMISTRY_GPU) || defined(COOLING_GRACKLE)
+  Load_String_Param_Into_Char_Buffer(pmap, "UVB_rates_file", parms->UVB_rates_file, nullptr);
+#endif
+
+  // we should probably revisit this section and come up with different default behaviors.
+  // -> for right now, we just use dummy defaults (for everything other that skewersdir) to make sure
+  //    we won't break things
+  // -> previously, there weren't any defaults
+#ifdef ANALYSIS
+  Load_String_Param_Into_Char_Buffer(pmap, "analysis_scale_outputs_file", parms->analysis_scale_outputs_file, "");
+  Load_String_Param_Into_Char_Buffer(pmap, "analysisdir", parms->analysis_scale_outputs_file, "");
+  parms->lya_skewers_stride = pmap.value_or("lya_skewers_stride", 0);
+  parms->lya_Pk_d_log_k     = pmap.value_or("lya_Pk_d_log_k", 0.0);
+  #ifdef OUTPUT_SKEWERS
+  Load_String_Param_Into_Char_Buffer(pmap, "skewersdir", parms->skewersdir, nullptr);
+  #endif
+#endif
 
 #ifdef TEMPERATURE_FLOOR
   if (not pmap.has_param("temperature_floor")) {
