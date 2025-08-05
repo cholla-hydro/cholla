@@ -100,7 +100,6 @@ jobs:
 
       - name: Report
         run: |
-          echo "${{ env.IS_WORKFLOW_DISPATCH }}"
           if [[ "${{ env.IS_WORKFLOW_DISPATCH }}" == 'true' ]]; then
               echo "Successfully Built And Uploaded Image"
           else
