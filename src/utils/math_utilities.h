@@ -105,7 +105,7 @@ inline __device__ __host__ Real SquareMagnitude(Real const &v1, Real const &v2, 
  *
  * \param[in,out] vec The vector to permute
  */
-inline __device__ __host__ void Cyclic_Permute_Once(hydro_utilities::VectorXYZ &vec)
+inline __device__ __host__ void Cyclic_Permute_Once(hydro_utilities::VectorXYZ<Real> &vec)
 {
   Real temp = vec.x();
   vec.x()   = vec.y();
@@ -120,7 +120,7 @@ inline __device__ __host__ void Cyclic_Permute_Once(hydro_utilities::VectorXYZ &
  *
  * \param[in,out] vec The vector to permute
  */
-inline __device__ __host__ void Cyclic_Permute_Twice(hydro_utilities::VectorXYZ &vec)
+inline __device__ __host__ void Cyclic_Permute_Twice(hydro_utilities::VectorXYZ<Real> &vec)
 {
   Real temp = vec.y();
   vec.y()   = vec.x();
