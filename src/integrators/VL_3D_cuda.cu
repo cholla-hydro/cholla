@@ -12,6 +12,7 @@
 
   #include "../global/global.h"
   #include "../global/global_cuda.h"
+  #include "../hydro/dual_energy.h"
   #include "../hydro/hydro_cuda.h"
   #include "../integrators/VL_3D_cuda.h"
   #include "../io/io.h"
@@ -25,6 +26,7 @@
   #include "../riemann_solvers/hllc_cuda.h"
   #include "../riemann_solvers/hlld_cuda.h"
   #include "../riemann_solvers/roe_cuda.h"
+  #include "../utils/basic_structs.h"
   #include "../utils/gpu.hpp"
   #include "../utils/hydro_utilities.h"
 
@@ -383,13 +385,15 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   #endif  // MHD
 
   #ifdef DE
-  cuda_utilities::AutomaticLaunchParams static const de_select_launch_params(Select_Internal_Energy_3D, n_cells);
-  hipLaunchKernelGGL(Select_Internal_Energy_3D, de_select_launch_params.get_numBlocks(),
-                     de_select_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields);
-  cuda_utilities::AutomaticLaunchParams static const de_sync_launch_params(Sync_Energies_3D, n_cells);
-  hipLaunchKernelGGL(Sync_Energies_3D, de_sync_launch_params.get_numBlocks(),
-                     de_sync_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved, nx, ny, nz, n_ghost, gama,
-                     n_fields);
+  hydro_utilities::VectorXYZ<int> grid_shape{nx, ny, nz};
+  cuda_utilities::AutomaticLaunchParams static const de_select_launch_params(dual_energy::Select_Internal_Energy<3>,
+                                                                             n_cells);
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(dual_energy::Select_Internal_Energy<3>), de_select_launch_params.get_numBlocks(),
+                     de_select_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved, grid_shape, n_ghost, n_fields);
+  GPU_Error_Check();
+  cuda_utilities::AutomaticLaunchParams static const de_sync_launch_params(dual_energy::Sync_Energies<3>, n_cells);
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(dual_energy::Sync_Energies<3>), de_sync_launch_params.get_numBlocks(),
+                     de_sync_launch_params.get_threadsPerBlock(), 0, 0, dev_conserved, grid_shape, n_ghost, n_fields);
   GPU_Error_Check();
   #endif  // DE
 
