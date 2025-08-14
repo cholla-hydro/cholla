@@ -1,0 +1,67 @@
+# this file is primarily intended to describe the cholla_utils python module
+# (it is located at the root of the repository)
+
+[build-system]
+# here we specify the build-backend. For context:
+# - tools like pip and uv are example of build-frontends. Users directly
+#   interact with 
+# - tools like setuptools, hatchling, scikit-build-core, meson-python are all
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cholla_utils"
+version = "0.1"
+license = "MIT"
+dependencies = [
+    "numpy",
+    "h5py"
+]
+requires-python = ">=3.10"
+
+[dependency-groups]
+# these are development dependencies. They can be installed with pip (v25.1+)
+# by invoking `pip install --user --group dev` from the directory holding this
+# configuration file
+dev = ["pytest"]
+
+# specify information that directly configures the hatchling "build-backend"
+# (we define what a build-backend is up above)
+[tool.hatch.build.targets.sdist]
+packages = ["python/cholla_utils"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["python/cholla_utils"]
+
+# configure pytest
+[tool.pytest.ini_options]
+# settings inspired by: learn.scientific-python.org/development/guides/pytest/
+#  -ra: The -r tells pytest to report extra test summary info on the events
+#       corresponding to all characters following the r. Here, the "a"
+#       corresponds to "all" events (other than passing tests)
+#  --showlocals: directs pytest to show local variables in tracebacks
+#  --strict-markers: ensures we don't try to use an unspecified fixture
+#  --string-config: all configuration mistakes are reported as errors
+addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
+# by default, we treat any test marked xfail that doesn't fail as an error
+# (we can override this locally, if necessary)
+xfail_strict = true
+# limit the directories searched by pytests for the test files
+testpaths = [
+  "python/tests",
+]
+
+[tool.ruff.lint]
+exclude = [
+    "python_scripts/**",
+    "docs/**",
+    "tools/**"
+]
+
+[tool.ruff.format]
+exclude = [
+    "python_scripts/**",
+    "docs/**",
+    "tools/**"
+]
+
