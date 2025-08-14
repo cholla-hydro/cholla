@@ -13,3 +13,13 @@ repos:
         types_or: [c++, c, cuda]
         args: ["-style=file", "--verbose"]
 
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.11.13
+  hooks:
+  # run the linter
+  - id: ruff-check
+    types_or: [ python ] # <- (consider adding jupyter to the list)
+    args: [--fix, "--show-fixes"]
+  # run the formatter
+  - id: ruff-format
+    types_or: [ python ] # <- (consider adding jupyter to the list)
