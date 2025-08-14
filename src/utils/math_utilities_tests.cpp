@@ -84,7 +84,7 @@ TEST(tALLSquareMagnitude, CorrectInputExpectCorrectOutput)
  */
 TEST(tALLCyclicPermuteOnce, CorrectInputExpectCorrectOutput)
 {
-  hydro_utilities::VectorXYZ test_vec{1, 2, 3};
+  hydro_utilities::VectorXYZ<Real> test_vec{1, 2, 3};
 
   math_utils::Cyclic_Permute_Once(test_vec);
 
@@ -102,7 +102,7 @@ TEST(tALLCyclicPermuteOnce, CorrectInputExpectCorrectOutput)
  */
 TEST(tALLCyclicPermuteTwice, CorrectInputExpectCorrectOutput)
 {
-  hydro_utilities::VectorXYZ test_vec{1, 2, 3};
+  hydro_utilities::VectorXYZ<Real> test_vec{1, 2, 3};
 
   math_utils::Cyclic_Permute_Twice(test_vec);
 

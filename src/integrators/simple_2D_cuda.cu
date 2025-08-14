@@ -6,6 +6,7 @@
 
 #include "../global/global.h"
 #include "../global/global_cuda.h"
+#include "../hydro/dual_energy.h"
 #include "../hydro/hydro_cuda.h"
 #include "../integrators/simple_2D_cuda.h"
 #include "../reconstruction/plm_cuda.h"
@@ -15,6 +16,7 @@
 #include "../riemann_solvers/exact_cuda.h"
 #include "../riemann_solvers/hllc_cuda.h"
 #include "../riemann_solvers/roe_cuda.h"
+#include "../utils/basic_structs.h"
 #include "../utils/gpu.hpp"
 
 void Simple_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int y_off, int n_ghost, Real dx, Real dy,
@@ -105,8 +107,12 @@ void Simple_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int 
 
 // Synchronize the total and internal energy
 #ifdef DE
-  hipLaunchKernelGGL(Select_Internal_Energy_2D, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, n_ghost, n_fields);
-  hipLaunchKernelGGL(Sync_Energies_2D, dim2dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, n_ghost, gama, n_fields);
+  hydro_utilities::VectorXYZ<int> grid_shape{nx, ny, 1};
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(dual_energy::Select_Internal_Energy<2>), dim2dGrid, dim1dBlock, 0, 0,
+                     dev_conserved, grid_shape, n_ghost, n_fields);
+  GPU_Error_Check();
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(dual_energy::Sync_Energies<2>), dim2dGrid, dim1dBlock, 0, 0, dev_conserved,
+                     grid_shape, n_ghost, n_fields);
   GPU_Error_Check();
 #endif
 
