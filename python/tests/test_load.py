@@ -182,6 +182,26 @@ def test_load(tmp_path, kwargs):
         np.testing.assert_equal(global_arr[name], loaded[name])
 
 
+@pytest.mark.parametrize("kwargs", _CASES)
+def test_subarray(tmp_path, kwargs):
+    # this scenario imagines we ran a simulation with a single process that output a
+    # single file
+    field_names = ["my-field", "my-field2"]
+
+    global_arr, root_fname = _generate_files(
+        str(tmp_path / "dummy"), field_names=field_names, **kwargs
+    )
+
+    idx = np.s_[1, 2:, -3:-1]
+
+    loaded = cholla_utils.load_field(root_fname, field=field_names[-1], idx=idx)
+    np.testing.assert_equal(global_arr[field_names[-1]][idx], loaded)
+
+    loaded = cholla_utils.load_field(root_fname, field=field_names, idx=idx)
+    for name in field_names:
+        np.testing.assert_equal(global_arr[name][idx], loaded[name])
+
+
 def test_simple_failure(tmp_path):
     field_name = "my-field"
 
