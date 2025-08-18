@@ -140,7 +140,7 @@ void ClusterFeedbackMethod<FeedbackModel>::operator()(Grid3D& G)
       }
     }
 
-    if (lazy_ov_scheduler_.get() == nullptr) {
+    if (lazy_ov_scheduler_ == nullptr) {
       lazy_ov_scheduler_ = std::make_shared<feedback_details::OverlapScheduler>(
           feedback_details::OverlapStrat::sequential, spatial_props.nx_g, spatial_props.ny_g, spatial_props.nz_g);
     }
@@ -176,7 +176,7 @@ void ClusterFeedbackMethod<FeedbackModel>::operator()(Grid3D& G)
   #ifndef NO_SN_FEEDBACK
     Real global_resolved_ratio = 0.0;
     if (analysis.countResolved > 0 || analysis.countUnresolved > 0) {
-      global_resolved_ratio = analysis.countResolved / (analysis.countResolved + analysis.countUnresolved);
+      global_resolved_ratio = (Real)analysis.countResolved / (analysis.countResolved + analysis.countUnresolved);
     }
     chprintf(": number of SN: %d,(R: %d, UR: %d)\n", (int)info[FBInfoLUT::countSN],
              (long)info[FBInfoLUT::countResolved], (long)info[FBInfoLUT::countUnresolved]);
