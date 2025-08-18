@@ -678,7 +678,10 @@ struct TestFieldData {
       : data_(nullptr), single_field_extent_(single_field_extent)
   {
     const std::size_t single_field_size = single_field_extent.nx * single_field_extent.ny * single_field_extent.nz;
-    data_ = std::make_unique<cuda_utilities::DeviceVector<Real>>((5 + idual) * single_field_size);
+    // originally, we set n_fields equal to `5 + idual`. Unfortunately, issues arose when we used
+    // when the cholla was compiled with passive scalars due to our use of grid_enum
+    std::size_t n_fields = grid_enum::num_fields;
+    data_                = std::make_unique<cuda_utilities::DeviceVector<Real>>(n_fields * single_field_size);
     init_field_vals_(*data_, single_field_size, dflt_vals);
   }
 
