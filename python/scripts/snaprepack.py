@@ -253,7 +253,7 @@ def _configure_virtual_field(
     for field_name, field_dset in dst_f["field"].items():
         if field_dset.shape != src_dset_shape:
             raise ValueError(
-                f"can't make a virtual dataset for {field} since the stored data "
+                f"can't make a virtual dataset for {field_name} since the stored data "
                 "doesn't have the expected shape for a cell-centered field"
             )
         vsrc = h5py.VirtualSource(field_dset)

@@ -121,28 +121,27 @@ def concat_2d_dataset(
         # Filter the datasets to only include those that need to be copied
         if not concat_xy:
             datasets_to_copy = [
-                dataset for dataset in datasets_to_copy if not "xy" in dataset
+                dataset for dataset in datasets_to_copy if "xy" not in dataset
             ]
         if not concat_yz:
             datasets_to_copy = [
-                dataset for dataset in datasets_to_copy if not "yz" in dataset
+                dataset for dataset in datasets_to_copy if "yz" not in dataset
             ]
         if not concat_xz:
             datasets_to_copy = [
-                dataset for dataset in datasets_to_copy if not "xz" in dataset
+                dataset for dataset in datasets_to_copy if "xz" not in dataset
             ]
         datasets_to_copy = [
-            dataset for dataset in datasets_to_copy if not dataset in skip_fields
+            dataset for dataset in datasets_to_copy if dataset not in skip_fields
         ]
 
         # Create the datasets in the destination file
         zero_array = np.zeros(1)
         for dataset in datasets_to_copy:
-            dtype = (
-                source_file[dataset].dtype
-                if (destination_dtype == None)
-                else destination_dtype
-            )
+            if destination_dtype is None:
+                dtype = source_file[dataset].dtype
+            else:
+                dtype = destination_dtype
 
             dataset_shape = __get_2d_dataset_shape(source_file, dataset)
 

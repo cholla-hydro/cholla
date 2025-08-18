@@ -225,16 +225,15 @@ def __setup_destination_file(
         # Make list of datasets to copy
         datasets_to_copy = list(source_file.keys())
         datasets_to_copy = [
-            dataset for dataset in datasets_to_copy if not dataset in skip_fields
+            dataset for dataset in datasets_to_copy if dataset not in skip_fields
         ]
 
         # Create the datasets in the output file
         for dataset in datasets_to_copy:
-            dtype = (
-                source_file[dataset].dtype
-                if (destination_dtype == None)
-                else destination_dtype
-            )
+            if destination_dtype is None:
+                dtype = source_file[dataset].dtype
+            else:
+                dtype = destination_dtype
 
             # Determine the shape of the dataset
             if dataset == "density":
@@ -267,7 +266,7 @@ if __name__ == "__main__":
 
     build_source_path = concat_internals.get_source_path_builder(
         source_directory=args.source_directory,
-        pre_extension_suffix=f"_particles",
+        pre_extension_suffix="_particles",
         known_output_snap=args.concat_outputs[0],
     )
 
