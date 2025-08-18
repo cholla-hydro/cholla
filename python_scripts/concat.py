@@ -12,7 +12,11 @@ import datetime
 from functools import partial
 import os
 
-import concat_internals
+# normally, it's considered bad practice to import a submodule starting with an
+# underscore (since that submodule is considered an implementation detail), but the
+# following is done for backwards compatability as we reorganize
+import cholla_utils._concat_internals as concat_internals
+
 from concat_2d_data import concat_2d_dataset
 from concat_3d_data import concat_3d_dataset
 from snaprepack import dset_opts_from_args

@@ -29,7 +29,10 @@ from typing import (
 import numpy as np
 import h5py
 
-import concat_internals
+# normally, it's considered bad practice to import a submodule starting with an
+# underscore (since that submodule is considered an implementation detail), but the
+# following is done for backwards compatability as we reorganize
+import cholla_utils._concat_internals as concat_internals
 
 if sys.version_info >= (3, 11, 0):
     from typing import Self
