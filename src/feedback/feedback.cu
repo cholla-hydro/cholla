@@ -90,7 +90,7 @@ void ClusterFeedbackMethod<FeedbackModel>::operator()(Grid3D& G)
   G.Timer.Feedback.Start();
   #endif
 
-  if (max(fabs(G.H.dy - G.H.dx), fabs(G.H.dz - G.H.dx)) > fabs(1e-15 * G.H.dx)) {
+  if (fmax(fabs(G.H.dy - G.H.dx), fabs(G.H.dz - G.H.dx)) > fabs(1e-15 * G.H.dx)) {
     CHOLLA_ERROR("dx, dy, dz must all approximately be the same with the current feedback prescriptions");
   }
 
