@@ -53,14 +53,14 @@ testpaths = [
 
 [tool.ruff.lint]
 exclude = [
-    "python_scripts/**",
+    "python/contrib/**",
     "docs/**",
     "tools/**"
 ]
 
 [tool.ruff.format]
 exclude = [
-    "python_scripts/**",
+    "python/contrib/**",
     "docs/**",
     "tools/**"
 ]
