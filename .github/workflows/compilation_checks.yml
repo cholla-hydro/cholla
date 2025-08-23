@@ -6,7 +6,7 @@ name: Compilation-Checks
 # jobs.Build.strategy.matrix.container
 
 on:
-  #pull_request:  # <--  temporarily disabled
+  pull_request:
   schedule:
     - cron: "37 07 * * 1"  # run every Monday at 07:37UTC. Crontab computed with crontab.guru
   workflow_dispatch:
@@ -26,7 +26,7 @@ jobs:
         make-type: [hydro, gravity, disk, particles, cosmology, mhd, dust, cooling]
         container:
           #- {name: "CUDA", link: "docker://chollahydro/cholla:cuda_github"}
-          - {name: "HIP", link: "docker://chollahydro/cholla:rocm_github"}
+          - {name: "HIP", link: "ghcr.io/cholla-hydro/cholla-rocm:sha-f638c55"}
     env:  # Set environment variables
       CHOLLA_MAKE_TYPE: ${{ matrix.make-type }}
 
