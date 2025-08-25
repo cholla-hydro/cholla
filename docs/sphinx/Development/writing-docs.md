@@ -21,7 +21,9 @@ Having said that, I suspect that the situation will improve over time since MyST
 
 To locally build the documentation, you must:
 
-1. ensure that you have [Doxygen](https://www.doxygen.nl/) installed (it is invoked as a subprocess so that the output can be used with the {ref}`breathe extension <sphinx-extension/breathe>`.
+1. Manually install a few (non-python) dependencies:
+   - [Doxygen](https://www.doxygen.nl/): it is invoked as a subprocess so that the output can be used with the {ref}`breathe sphinx extension <sphinx-extension/breathe>`
+   - [pandoc](https://pandoc.org/): it is invoked by the [nbsphinx](https://nbsphinx.readthedocs.io/en/0.9.7/) sphinx extension to help generate webpages from jupyter notebooks.
 
 2. Then you should invoke the following commands from the root of the Cholla repository.
    (We suggest that you do this in a virtual python environment).

@@ -37,7 +37,7 @@ jobs:
             # auto-generate the python API reference)
             pip install .
             # install doxygen
-            sudo apt-get install doxygen
+            sudo apt-get install doxygen pandoc
       - name: Build the docs
         run: |
             # the -W flag tells sphinx to treat any warnings as errors
