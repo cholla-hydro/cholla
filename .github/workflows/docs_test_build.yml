@@ -36,6 +36,8 @@ jobs:
             # install the cholla_utils package (I think this is necessary to
             # auto-generate the python API reference)
             pip install .
+            # install doxygen
+            sudo apt-get install doxygen
       - name: Build the docs
         run: |
             # the -W flag tells sphinx to treat any warnings as errors
