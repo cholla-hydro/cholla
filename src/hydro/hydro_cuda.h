@@ -74,12 +74,6 @@ __global__ void Calc_dt_3D(Real *dev_conserved, Real *dev_dti, Real gamma, int n
 Real Calc_dt_GPU(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dx, Real dy, Real dz,
                  Real gamma);
 
-__global__ void Sync_Energies_1D(Real *dev_conserved, int nx, int n_ghost, Real gamma, int n_fields);
-
-__global__ void Sync_Energies_2D(Real *dev_conserved, int nx, int ny, int n_ghost, Real gamma, int n_fields);
-
-__global__ void Sync_Energies_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, Real gamma, int n_fields);
-
 #ifdef TEMPERATURE_CEILING
 void Temperature_Ceiling(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real gamma,
                          Real T_ceiling);
@@ -107,11 +101,12 @@ __global__ void Partial_Update_Advected_Internal_Energy_3D(Real *dev_conserved, 
                                                            int n_ghost, Real dx, Real dy, Real dz, Real dt, Real gamma,
                                                            int n_fields);
 
-__global__ void Select_Internal_Energy_1D(Real *dev_conserved, int nx, int n_ghost, int n_fields);
-
-__global__ void Select_Internal_Energy_2D(Real *dev_conserved, int nx, int ny, int n_ghost, int n_fields);
-
-__global__ void Select_Internal_Energy_3D(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields);
+/*! Returns whether a cell has crashed
+ */
+__device__ inline bool Cell_Is_Crashed(Real density, Real Etot_density)
+{
+  return (density <= 0.0) || (density != density) || (Etot_density <= 0.0) || (Etot_density != Etot_density);
+}
 
 /*! \brief Overwrites the values in the specified cell with the average of all the values from the (up to) 26
  *  neighboring cells.

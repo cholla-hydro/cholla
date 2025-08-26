@@ -1,4 +1,4 @@
-FROM rocm/dev-ubuntu-20.04:5.2.3
+FROM rocm/dev-ubuntu-20.04:5.5.1
 
 # Avoid annoying cmake -> tzdata install prompt
 ENV DEBIAN_FRONTEND=noninteractive
