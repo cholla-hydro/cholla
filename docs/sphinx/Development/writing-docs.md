@@ -50,9 +50,16 @@ $ firefox _build/html/index.html
 ::::
 
 ::::{tab} macOS
+:::{tab} firefox
 ```shell-session
 $ open -a firefox _build/html/index.html
 ```
+:::
+:::{tab} chrome
+```
+$ open -a "Google Chrome" _build/html/index.html
+```
+:::
 ::::
 
 ## Extensions
