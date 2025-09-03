@@ -1,19 +1,20 @@
+# Editing Makefile Parameters
+
 Most of the configuration options in Cholla currently require turning on or off flags in a make.type file. This page contains most of the available options, along with a brief summary of their meanings.
 
-# Makefile Options
+## General options
 
-* **CUDA**: Turns on GPU version of Cholla. The non-GPU version is no longer supported.
 * **DISABLE_GPU_ERROR_CHECKING**: Turns off optional GPU error checking. GPU error checking is on by default with a device sync that may impact performance. Passing this macro flag disables GPU error checking altogether and may improve performance.
 
 * **MPI_CHOLLA**: Turns on MPI version of Cholla. Output files will be appended with the process number.
 
 * **SET_MPI_GRID**: Set the MPI process grid decomposition manually. Can be useful for scaling tests, etc.
 
-* **PRECISION** = 1 or 2 : Run with single or double precision.
+* **PRECISION** = 1 or 2 : Run with single or double precision. (Note, Cholla has not been tested with single precision recently.)
 * **N_STEPS_LIMIT** = : Limit the total number of steps taken to a certain number (useful primarily for testing).
 
-# Output options
-* **OUTPUT**: Output data files. If neither BINARY or HDF5 are turned on, will default to text outputs.
+## Output options
+* **OUTPUT**: Output data files. If neither BINARY or HDF5 are turned on, will default to text outputs (not recommend for multi-D problems).
 * **BINARY**: Output binary files. No longer supported, but code exists.
 * **HDF5**: Output hdf5 files. Requires the use of the hdf5 library when compiling.
 * **N_OUTPUT_COMPLETE** = : Output full grid every N files. Can also be accomplished with the "nfull" parameter in the input file.
@@ -21,29 +22,29 @@ Most of the configuration options in Cholla currently require turning on or off 
 * **PROJECTION**: For 3D simulations, output x-z and y-z projections of density and density-weighted temperature. Only compatible with HDF5 outputs.
 * **ROTATED_PROJECTION**: For 3D simulations, output rotated projections of density and density-weighted temperature. Only compatible with HDF5 outputs.
 
-# Spatial reconstruction methods
+## Spatial reconstruction methods
 * **PCM**: Use piecewise constant reconstruction for hydro integrator. Very diffusive, useful primarily for testing.
 * **PLMP**: Use piecewise linear reconstruction with limiting in the primitive variables. Follows the MUSCL scheme outlined in Toro to advance interface states in time (2006).
 * **PLMC**: Use piecewise linear reconstruction with limiting in the characteristic variables. Follows the procedure outlined in Stone (2008).
 * **PPMP**: Use piecewise parabolic reconstruction with limiting in the primitive variables. Follows the procedure outlined in Fryxell (2000). Contact discontinuity steeping and shock flattening are turned off by default, but can be turned on in the "ppmp_cuda.cu" source file.
 * **PPMC**: Use piecewise parabolic reconstruction with limiting in the characteristic variables. Follows the procedure outlined in Stone (2008).
 
-# Riemann Solvers
+## Riemann Solvers
 * **EXACT**: Use an exact Riemann solver, as described in Toro (2006).
 * **ROE**: Use a Roe Riemann solver, as described in Stone (2008).
 * **HLLC**: Use an HLLC Riemann solver, as described in Stone (2008).
 * **HLLD**: Use an HLLD Riemann solver, as described in [Miyoshi & Kusano (2008)](https://www.sciencedirect.com/science/article/pii/S0021999105001142?via%3Dihub). This is the only solver that supports MHD at this time.
 
-# Hydro Integrators
+## Hydro Integrators
 * **VL**: Use the Van Leer predictor-corrector method, as described in Stone (2009)
 * **SIMPLE**: Use a simple dimensionally-split PLM or PPM style integrator, as described in Schneider (2017)
 
-# Cooling functions
+## Cooling functions
 * **COOLING_GPU**: Use one of the cooling functions defined in cooling_cuda.cu. By default, a piecewise parabolic analytic fit to a CIE cooling curve that cuts off at 10^4 K.
 * **CLOUDY_COOL**: Use a cooling / heating table created with Cloudy assuming solar metallicity and a HM2012 UV background to apply cooling / heating (see Schneider 2017).
 * **COOLING_GRACKLE**:
 
-# Self Gravity
+## Self Gravity
 * **GRAVITY**: Turns on the gravity solver for gas self-gravity; requires choosing a solver (see below)
 * **GRAVITY_GPU**: Gravity arrays reside in GPU memory only (are not copied over to the CPU)
 
@@ -55,7 +56,7 @@ Optional parameters:
 * **OUTPUT_POTENTIAL**: Write out the potential to file
 * **GRAVITY_5_POINTS_GRADIENT**: Use a 5 point approximation when estimating the potential at the cell center (by default 3 point is used)
 
-# Particle Gravity
+## Particle Gravity
 Note: Particles can be used alone, but in order to use particles + hydro, FFT Gravity must also be turned on
 * **PARTICLES**: Turn on particle solver
 * **PARTICLES_CPU**: Use the CPU to evolve the particles
@@ -65,14 +66,14 @@ Note: Particles can be used alone, but in order to use particles + hydro, FFT Gr
 * **PARTICLE_IDS**: Assign IDs to particles
 * **PARTICLE_AGE**: Assign times to particles
 
-# Feedback
+## Feedback
 Note: feedback requires PARTICLES, PARTICLES_GPU, PARTICLE_IDS, PARTICLE_AGE, DE
 * **FEEDBACK**: Turn on feedback
 * **ONLY_RESOLVED**: Treat all supernovae as though shell formation is resolved
 * **NO_WIND_FEEDBACK**: Turn off wind feedback
 * **NO_SN_FEEDBACK**: Turn off supernova feedback
 
-# Additional options
+## Additional options
 * **DE**: Use the dual energy formalism to advect / correct estimates for internal energy. More details are provided [here](https://github.com/cholla-hydro/cholla/wiki/Dual-Energy-Formalism).
 
 * **SCALAR**: Initialize additional scalar fields. Must be used with at least one additional build flag, such as `BASIC_SCALAR`, `DUST`, or `CHEMISTRY_GPU`. New additional scalar fields can also be added according to [these instructions](https://github.com/cholla-hydro/cholla/wiki/Grid_Enum-and-adding-passive-scalars).
