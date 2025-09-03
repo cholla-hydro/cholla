@@ -1,6 +1,6 @@
 # Compiling Cholla
 
-# Overview
+## Overview
 The Cholla build structure is designed to provide a streamlined process to accommodate build environments for different machines, and to provide some default settings for frequently-used configurations of Cholla (such as hydro-only). When compiling Cholla on a new machine for the first time, you will need to edit a few files in the builds directory in order to get started.
 
 ## The builds directory
