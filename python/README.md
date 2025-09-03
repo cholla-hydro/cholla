@@ -2,6 +2,8 @@
 
 This is a python package defining utilities functions and tools for working with Cholla outputs.
 
+<!-- SPHINX-START -->
+
 ## Installation
 
 Currently, you **MUST** install this package from source.[^1] You can skip the rest of this section if you are already familiar with installation of python packages.
