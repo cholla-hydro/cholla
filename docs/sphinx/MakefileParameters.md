@@ -1,4 +1,4 @@
-# Editing Makefile Parameters
+# Makefile Parameters
 
 Most of the configuration options in Cholla currently require turning on or off flags in a make.type file. This page contains most of the available options, along with a brief summary of their meanings.
 
