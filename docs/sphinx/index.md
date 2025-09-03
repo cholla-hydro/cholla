@@ -14,6 +14,7 @@ We're currently in the process of transferring contents from the [Cholla Wiki](h
 Introduction <self>
 GettingStarted
 CompilingCholla
+MakefileParameters
 PythonAnalysis
 Physics/index
 ChollaExamples/index
