@@ -30,7 +30,7 @@ RUN apt-get -y install rocrand
 
 # Needed by Cholla Makefile
 ENV CHOLLA_MACHINE=github
-ENV HIPCONFIG=/opt/rocm-5.2.3
-ENV ROCM_PATH=/opt/rocm-5.2.3
+ENV HIPCONFIG=/opt/rocm-5.5.1
+ENV ROCM_PATH=/opt/rocm-5.5.1
 ENV HDF5_ROOT=/usr/lib/x86_64-linux-gnu/hdf5/serial
 ENV MPI_ROOT=/usr/lib/x86_64-linux-gnu/openmpi
