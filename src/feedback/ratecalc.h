@@ -13,6 +13,7 @@
 
 #include "../global/global.h"
 #include "../io/ParameterMap.h"
+#include "../utils/gpu.hpp"
 
 typedef curandStateMRG32k3a_t feedback_prng_t;
 
