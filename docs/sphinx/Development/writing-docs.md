@@ -80,6 +80,131 @@ There are a bunch of errors right now (I suspect this happened because doxygen i
 
 This is a [simple extension](https://sphinx-inline-tabs.readthedocs.io/en/latest/) that make it easy to inject tabs
 
+### The `par` extension
+
+We have also written adopted and modified an extension for Sphinx to assist with formatting parameters, called `par`. This extension was originally written so that it could be used with Cello/Enzo-E
+
+At present, this extension provides 3 primary features:
+
+```{eval-rst}
+1. A directive called :rst:dir:`par:parameter` that is to be used when defining a new parameter in the reference section.
+   Parameters defined with this directive automatically provide an anchor point to facillitate cross-referencing (i.e. using the :rst:role:`par:param` role).
+
+2. Pretty-formatting of parameter names.
+   This is done by the :rst:dir:`par:parameter` directive, as well as the :rst:role:`par:param` and :rst:role:`par:paramfmt` roles.
+   
+   .. COMMENT: Note, this functionallity supports special formatting of components of parameter names enclosed by angle brackets (e.g. ``{par:paramfmt}`Boundary:<condition>:type``` and ``{par:paramfmt}`Initial:value:<field>``` are respectively rendered as :par:paramfmt:`Boundary:<condition>:type` and :par:paramfmt:`Initial:value:<field>`)
+
+3. Pretty-formatting of parameter types with the :rst:role:`par:typefmt` role.
+   For example, ``{par:typefmt}`str``` gets rendered as :par:typefmt:`str`.
+
+```
+
+
+#### Defining a Parameter
+
+When defining a new parameter in the reference section, you should use the following directive:
+
+:::::{rst:directive} par:parameter
+
+This directive should be used when defining a new runtime parameter.
+
+The argument passed to the directive is the name of the parameter being documented.
+After the line `:::{par:parameter} ParamName`, you should leave a blank line, and then you should define a list of fields (e.g. ``Summary``, ``Type``, ``Default``) that provide an overview of the parameter.
+Finally, you generally provide an extended description after the field-list.
+
+**Example**
+
+It is instructive to consider a concrete example.
+Below we show how to do this for the {par:paramfmt}`chemistry.data_file` parameter:
+
+```{code-block} md
+
+:::{par:parameter} chemistry.data_file
+
+:Summary: path to data file used by "tabulated-cooling" solver
+:Type:    {par:typefmt}`str`
+:Default: *None*
+
+It is an error to specify this parameter when {par:param}`chemistry.kind` chemistry cooling solver other than "tabulated-cooling."
+:::
+```
+
+This snippet will be rendered as the following:[^disable-cross-ref]
+
+% As the footnote mentions, we pass the ``:noindex:`` option to the directive in order
+% to disable cross-referencing.
+
+>  :::{par:parameter} chemistry.data_file
+>  :noindex:
+>
+>  :Summary: path to data file used by "tabulated-cooling" solver
+>  :Type:    {par:typefmt}`str`
+>  :Default: *None*
+>
+>  It is an error to specify this parameter when {par:param}`chemistry.kind` chemistry cooling solver other than "tabulated-cooling."
+>  :::
+
+**Other potential benefits of** {rst:dir}`par:parameter`
+
+Defining parameters with this directive could also facillitate other benefits in the future such as:
+
+* automated populating of parameter tables displayed in physics-module documentation
+* the automated formatting of the text in the parameter fields
+* the displayed format can be easily updated
+:::::
+
+#### Formatting parameters names in text
+
+The extension also defines two roles that can be used when mentioning parameters in text.
+
+::::{rst:role} par:param
+
+This role formats the name of a parameter nicely and creates a cross reference to an existing parameter definition.
+
+
+```{eval-rst}
+For example, ``{par:param}`chemistry.data_file``` renders as :par:param:`chemistry.data_file`.
+
+You can modify this role's behavior by prefixing the content with a ``~`` or ``!``:
+
+* when the role's content is prefixed with a ``~``, the rendered link text only shows the final component of the parameter.
+  For example, ``{par:param}`~chemistry.data_file``` renders as :par:param:`~chemistry.data_file` (it links to the same place as :par:param:`chemistry.data_file`).
+
+* when the role's content is prefixed with a ``!``, no link is constructed. In other words, writing something like ``{par:param}`!chemistry.data_file``` renders as :par:param:`!chemistry.data_file`).
+  This does the same thing as :rst:role:`par:paramfmt`
+```
+
+:::{note}
+Parameter names that also serve as links are intentionally styled different from non-linked parameter names (to provide readers with a visual cue to the difference).
+:::
+::::
+
+::::{rst:role} par:paramfmt
+
+This role is provided as a convenience.
+It effectively aliases the behavior of the {rst:role}`par:param` role when the content is prefixed by ``!`` (i.e. the name is formatted nicely, but no link is created).
+
+```{eval-rst}
+For example, ``{par:paramfmt}`chemistry.data_file``` renders as :par:paramfmt:`chemistry.data_file`.
+```
+
+::::
+
+#### Formatting parameter types in text
+
+We have defined the following role to nicely format the names of parameter types.
+
+::::{rst:role} par:typefmt
+
+The impact of this role is best illustrated by example:
+
+% (there doesn't seem to be a way to write out a role in a codespan in myst-syntax)
+```{eval-rst}
+* ``{par:typefmt}`float``` renders as :par:typefmt:`float`
+* ``{par:typefmt}`str``` renders as :par:typefmt:`str`
+```
+::::
 
 [^poor-markdown-docs]: To be clear, this isn't a slight against Markdown.
     It is indeed possible to write documentation in pure Markdown (but you are missing features and it is more labor intensive).
@@ -95,3 +220,7 @@ This is a [simple extension](https://sphinx-inline-tabs.readthedocs.io/en/latest
     Unlike Markdown, ReStructuredText is always valid ReStructuredText (i.e. there's no questions of vendor-specific dialects), extensibility is built into the core language, and its easier to specify complex tables.
     For these reasons, I think it's generally a better choice for writing documentation.
     With that said, there appears to be a general trend towards adopting Markdown for writing documentation.
+
+[^disable-cross-ref]: To avoid creating confusion with other parameters, we have artificially disabled cross-referencing.
+    If you wanted to render a parameter and disable cross-referencing, you need to pass the ``:noindex:`` option to the directive to the {rst:dir}`par:parameter` parameter.
+
