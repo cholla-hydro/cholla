@@ -5,7 +5,7 @@ is designed to implement the ``par`` domain for documenting and
 cross-referencing Cholla's runtime parameters.
 
 
-Sphinx extension that introduces the par domain for documenting and 
+Sphinx extension that introduces the par domain for documenting and
 cross-referencing parameters
 
 To customize formatting when generating HTML output, define CSS entries for
@@ -18,11 +18,12 @@ Notes
 This module has been adapted from an extension that was originally created for
 documenting Enzo-E's parameters
 """
+
 import re
 from typing import Any, Dict, List, Iterable, Sequence, Set, Tuple, TYPE_CHECKING
 
 from docutils import nodes
-from docutils.parsers.rst.directives import unchanged_required, flag
+from docutils.parsers.rst.directives import flag
 
 from sphinx.domains import Domain
 from sphinx.roles import XRefRole
@@ -52,6 +53,7 @@ else:
     BuildEnvironment = Any
     ExtensionMetadata = Any
 
+
 # the following object is inspired by the napoleon extension
 class Config:
     """par extension settings (configured in `conf.py`)
@@ -68,6 +70,7 @@ class Config:
         components to be formatted as `{comp0} {sep} {comp1}` or if it
         always must be formatted as `{comp0}{sep}{comp1}`.
     """
+
     _config_values: Sequence[tuple[str, Any, _ConfigRebuild, Set[type]]] = (
         ("par_separator", ":", "env", frozenset({str})),
         ("par_never_spaced_separator", True, "env", frozenset({bool})),
@@ -81,16 +84,13 @@ class Config:
             if name in kwargs:
                 n_loaded += 1
                 value = kwargs[name]
-            setattr(self, name, default)
+            setattr(self, name, value)
 
         # error handling
         if n_loaded != len(kwargs):
             for key in kwargs:
                 if all(key != pack[0] for pack in self._config_values):
-                    raise RuntimeError(
-                        "key is not known to the par extension"
-                    )
-
+                    raise RuntimeError("key is not known to the par extension")
 
 
 class parameter_node(nodes.container):
@@ -110,7 +110,9 @@ class parameter_node(nodes.container):
       * if we decide not to use ``nodes.container``, we should instead subclass
         ``nodes.Element`` instead
     """
+
     pass
+
 
 def visit_parameter_node(self, node: parameter_node):
     # self is a Writer object (like sphinx.writers.html.HTML5Translator)
@@ -119,12 +121,14 @@ def visit_parameter_node(self, node: parameter_node):
     # writers for customizing formatting (e.g. add a background color)
     self.visit_container(node)
 
+
 def depart_parameter_node(self, node: parameter_node):
     # self is a Writer object (like sphinx.writers.html.HTML5Translator)
     #
     # in the future, we could make special variants of this for different
     # writers for customizing formatting (e.g. add a background color)
     self.depart_container(node)
+
 
 def _create_parameter_name_nodes(
     name, config: SphinxConfig, add_space_to_separator: bool = False
@@ -152,41 +156,42 @@ def _create_parameter_name_nodes(
     definitions for .param-style and .param-style-var-comp
     """
 
-    name = name.strip() # remove leading/trailing whitespace (may not be
-                        # necessary)
+    name = name.strip()  # remove leading/trailing whitespace (may not be
+    # necessary)
     separator = config.par_separator
 
-    if name == '':
+    if name == "":
         raise ValueError("this function was just passed whitespace")
     elif name[-1] == separator:
-        raise ValueError(f"the final character in '{name}' parameter's name "
-                         f"is a '{separator}'")
+        raise ValueError(
+            f"the final character in '{name}' parameter's name is a '{separator}'"
+        )
     elif any(e.isspace() for e in name):
         # ensure that the name doesn't contain whitespace
         raise ValueError(f"'{name}' contains whitespace")
 
-    if add_space_to_separator and not config.par_never_spaced_separator:
-        make_seperator_node = lambda : nodes.Text(f' {separator} ')
-    else:
-        make_seperator_node = lambda : nodes.Text(separator)
+    def make_separator_node() -> nodes.Text:
+        if add_space_to_separator and not config.par_never_spaced_separator:
+            return nodes.Text(f" {separator} ")
+        else:
+            return nodes.Text(separator)
 
     # split into parts and construct a list of nodes
     node_l = []
     for cur_part in name.split(separator):
         if len(node_l) > 0:
-            node_l.append(make_seperator_node())
+            node_l.append(make_separator_node())
 
-        if ((len(cur_part) > 2) and
-            ('<' == cur_part[0]) and ('>' == cur_part[-1])):
-            cur_classes_attr, test_slc = 'param-style-var-comp', slice(1,-1)
+        if (len(cur_part) > 2) and ("<" == cur_part[0]) and (">" == cur_part[-1]):
+            cur_classes_attr, test_slc = "param-style-var-comp", slice(1, -1)
         else:
-            cur_classes_attr, test_slc = 'param-style', slice(None)
+            cur_classes_attr, test_slc = "param-style", slice(None)
 
-        if any((e in '><') for e in cur_part[test_slc]):
+        if any((e in "><") for e in cur_part[test_slc]):
             raise ValueError(f"Errant '>' or '<' found in {name}")
 
-        cur_node = nodes.inline('', cur_part)
-        cur_node['classes'].append(cur_classes_attr)
+        cur_node = nodes.inline("", cur_part)
+        cur_node["classes"].append(cur_classes_attr)
         node_l.append(cur_node)
 
     return node_l
@@ -214,15 +219,15 @@ class ParameterDirective(SphinxDirective):
 
     has_content = True
     optional_arguments = 0
-    required_arguments = 1 # the required argument is the name of the parameter
-    option_spec: OptionSpec = {'noindex': flag}
+    required_arguments = 1  # the required argument is the name of the parameter
+    option_spec: OptionSpec = {"noindex": flag}
 
     def run(self):
         # the single positional argument passed to this directive is the full
         # name of the parameter that is documented by this directive's contents
         full_name = self.arguments[0]
 
-        noindex = ('noindex' in self.options)
+        noindex = "noindex" in self.options
 
         # STAGE 1: make a parameter node
         # ------------------------------
@@ -245,10 +250,9 @@ class ParameterDirective(SphinxDirective):
             # might be some flexibility)
             # - I believe that the make_id just modifies some characters in the
             #   passed string that may be invalid
-            node_id = make_id(self.env, self.state.document, '',
-                              f'param-{full_name}')
+            node_id = make_id(self.env, self.state.document, "", f"param-{full_name}")
             # add the node_id to the ids attribue of the parameter_node
-            my_parameter_node['ids'].append(node_id)
+            my_parameter_node["ids"].append(node_id)
             # register the parameter_node as an explicit target with the
             # document
             # - this updates some map of ids internally tracked by the document
@@ -258,8 +262,8 @@ class ParameterDirective(SphinxDirective):
             # register the name of the parameter node and the node_id with
             # ParDomain. This will helps with the creation of cross-references
             # to this node at a later time
-            par_domain = self.env.get_domain('par')
-            par_domain.register_parameter_obj(full_name, anchor = node_id)
+            par_domain = self.env.get_domain("par")
+            par_domain.register_parameter_obj(full_name, anchor=node_id)
 
         # STAGE 3: parse the contents within the directive
         # ------------------------------------------------
@@ -290,18 +294,18 @@ class ParameterDirective(SphinxDirective):
             )
 
         # lets create the new field node that will be called Parameter
-        new_fieldname = nodes.field_name('', "Parameter")
+        new_fieldname = nodes.field_name("", "Parameter")
         new_fieldbody = nodes.field_body(
-            '',
+            "",
             nodes.paragraph(
-                '',
-                '',
+                "",
+                "",
                 *_create_parameter_name_nodes(
-                    full_name, config=self.config, add_space_to_separator = True
+                    full_name, config=self.config, add_space_to_separator=True
                 ),
-            )
+            ),
         )
-        new_field = nodes.field('', new_fieldname, new_fieldbody)
+        new_field = nodes.field("", new_fieldname, new_fieldbody)
 
         # insert the new field at the start of field list
         field_list.insert(0, new_field)
@@ -310,7 +314,7 @@ class ParameterDirective(SphinxDirective):
         # - this actually works quite nicely, but I think it may be a little
         #   confusing (so we will disable for now)
         # - we skip the very first field since we know it's the parameter name
-        #self.tag_fieldbody_text(field_list.children[1:])
+        # self.tag_fieldbody_text(field_list.children[1:])
 
         return [my_parameter_node]
 
@@ -340,8 +344,9 @@ class ParameterDirective(SphinxDirective):
             cur_fieldname_str = str(cur_fieldname[0])
 
             # sanity check that fieldbody only has 1 child (a paragraph node)
-            assert ( (len(cur_fieldbody.children) == 1) and
-                     isinstance(cur_fieldbody[0], nodes.paragraph))
+            assert (len(cur_fieldbody.children) == 1) and isinstance(
+                cur_fieldbody[0], nodes.paragraph
+            )
             old_paragraph = cur_fieldbody.pop()
 
             new_paragraph = old_paragraph.copy()
@@ -349,12 +354,11 @@ class ParameterDirective(SphinxDirective):
 
             for elem in old_paragraph.children:
                 if isinstance(elem, nodes.Text):
-                    elem = nodes.inline('', str(elem))
-                    elem['classes'].append(
-                        f"par-fieldval-{cur_fieldname_str.lower()}"
-                    )
+                    elem = nodes.inline("", str(elem))
+                    elem["classes"].append(f"par-fieldval-{cur_fieldname_str.lower()}")
                 new_paragraph.append(elem)
             cur_fieldbody.append(new_paragraph)
+
 
 class ParamFmtRole(SphinxRole):
     """
@@ -365,19 +369,28 @@ class ParamFmtRole(SphinxRole):
         nodes = _create_parameter_name_nodes(name=self.text, config=self.config)
         return nodes, []
 
+
 class paramxref_node(nodes.TextElement):
     # this is just used to give "code-like-formatting" (so that we can
     # distinguish refenerence from non-references)
     pass
 
+
 def html_visit_paramxref_node(self, node: paramxref_node):
-    return self.body.append('<code>')
+    return self.body.append("<code>")
+
 
 def html_depart_paramxref_node(self, node: paramxref_node):
-    return self.body.append('</code>')
+    return self.body.append("</code>")
 
-def visit_paramxref_node(self, node: paramxref_node): pass
-def depart_paramxref_node(self, node: paramxref_node): pass
+
+def visit_paramxref_node(self, node: paramxref_node):
+    pass
+
+
+def depart_paramxref_node(self, node: paramxref_node):
+    pass
+
 
 class ParamXRefRole(XRefRole):
     """
@@ -390,16 +403,21 @@ class ParamXRefRole(XRefRole):
 
     innernodeclass = nodes.inline
 
-    def process_link(self, env: BuildEnvironment, refnode: nodes.Element,
-                     has_explicit_title: bool, title: str,
-                     target: str) -> Tuple[str, str]:
+    def process_link(
+        self,
+        env: BuildEnvironment,
+        refnode: nodes.Element,
+        has_explicit_title: bool,
+        title: str,
+        target: str,
+    ) -> Tuple[str, str]:
         # note it's possible for a cross-reference to be made with an
         # "explicit target" & explicit reference target (that don't necessarily
         # need to match). That is done with syntax like
         #   :role:`mytitle <mytarget>`
         # where role is replaced with some arbitrary syntax
 
-        if (not has_explicit_title) and title[0] == '~':
+        if (not has_explicit_title) and title[0] == "~":
             # leading tilde means nothing for the target (get rid of it)
             target = target[1:]
             # the leading tilde means that we just display the last component
@@ -413,7 +431,7 @@ class ParamXRefRole(XRefRole):
         document: nodes.document,
         env: BuildEnvironment,
         node: nodes.Element,
-        is_ref: bool
+        is_ref: bool,
     ) -> Tuple[List[nodes.Node], List[nodes.system_message]]:
         # called just before the completed nodes are returned
         # -> we are going to customize formatting of the text
@@ -440,18 +458,20 @@ class ParamXRefRole(XRefRole):
         if is_ref:
             # to visually signify that this parameter name is a link,
             # stick the nodes into a paramxref_node
-            param_name_nodes = paramxref_node('', '', *param_name_nodes)
+            param_name_nodes = paramxref_node("", "", *param_name_nodes)
 
         inline_node += param_name_nodes
 
-        #must return a (nodes,messages) tuple
+        # must return a (nodes,messages) tuple
         return [node], []
+
 
 # the split method of the following object is used to produce a list that
 # alternates between non-type parameters & non-type parameters
 # - even entries of the resulting list get special formatting
 # - odd entries don't get that formatting
-_TYPE_EXPR_PATTERN = re.compile(r'([-a-zA-Z]+)')
+_TYPE_EXPR_PATTERN = re.compile(r"([-a-zA-Z]+)")
+
 
 class TypeFmtRole(SphinxRole):
     """
@@ -467,13 +487,12 @@ class TypeFmtRole(SphinxRole):
 
         node_l = []
         for i, elem in enumerate(_TYPE_EXPR_PATTERN.split(name)):
-
             # when ``i`` is odd then we place elem in a node that specifies
             # the special formatting.
             if (i % 2) == 1:
-                node_l.append(nodes.inline('', elem))
-                node_l[-1]['classes'].append('param-type-style')
-            elif elem == '':
+                node_l.append(nodes.inline("", elem))
+                node_l[-1]["classes"].append("param-type-style")
+            elif elem == "":
                 # this is effectively a placeholder that arises when i == 0 &
                 # the very first character belongs to the group of characters
                 # that gets special formatting (this is effectively a
@@ -484,33 +503,32 @@ class TypeFmtRole(SphinxRole):
                 node_l.append(nodes.Text(elem))
         return node_l, []
 
+
 class ParDomain(Domain):
-    name = 'par'
-    label = 'par'
+    name = "par"
+    label = "par"
 
     roles = {
-        'param': ParamXRefRole(),
-        'paramfmt' : ParamFmtRole(),
+        "param": ParamXRefRole(),
+        "paramfmt": ParamFmtRole(),
         # reserve the 'type' role for a potential future where we want to
         # support linking to a description of the type
-        'typefmt' : TypeFmtRole()
+        "typefmt": TypeFmtRole(),
     }
-    directives = {
-        "parameter" : ParameterDirective
-    }
+    directives = {"parameter": ParameterDirective}
 
     initial_data: Dict[str, Dict[str, Tuple[str, str]]] = {
-        'parameters': {},  # each key is the fully qualified name (& dispname)
-                           # each associated value is a tuple of: (
-                           #   docname: document name where target is found
-                           #   node_id: aka the anchor name
+        "parameters": {},  # each key is the fully qualified name (& dispname)
+        # each associated value is a tuple of: (
+        #   docname: document name where target is found
+        #   node_id: aka the anchor name
     }
 
     @property
     def parameters(self) -> Dict[str, Tuple[str, str]]:
-        return self.data.setdefault('parameters', {})
+        return self.data.setdefault("parameters", {})
 
-    def register_parameter_obj(self, full_name:str, anchor:str):
+    def register_parameter_obj(self, full_name: str, anchor: str):
         """
         Adds a new parameter object to the domain
 
@@ -523,7 +541,7 @@ class ParDomain(Domain):
             dispname = full_name
             # TODO: if we add more object types in the future, can't hardcode
             #       type_string
-            type_str = 'Parameter'
+            type_str = "Parameter"
             yield (full_name, dispname, type_str, docname, anchor, 1)
 
     def resolve_xref(
@@ -534,16 +552,18 @@ class ParDomain(Domain):
         typ: str,
         target: str,
         node: pending_xref,
-        contnode: nodes.Element
+        contnode: nodes.Element,
     ) -> nodes.reference | None:
         # if we add more object types, we may want to refactor
         try:
             todocname, anchor = self.parameters[target]
-            return make_refnode(builder, fromdocname, todocname, anchor,
-                                contnode, anchor)
+            return make_refnode(
+                builder, fromdocname, todocname, anchor, contnode, anchor
+            )
         except KeyError:
-            print('could not find reference')
+            print("could not find reference")
             return None
+
 
 def setup(app: Sphinx) -> ExtensionMetadata:
     """Set up the par extension
@@ -554,19 +574,21 @@ def setup(app: Sphinx) -> ExtensionMetadata:
         App object that represents the underlying Sphinx process
     """
 
-    app.add_node(parameter_node,
-                 html=(visit_parameter_node, depart_parameter_node),
-                 latex=(visit_parameter_node, depart_parameter_node),
-                 text=(visit_parameter_node, depart_parameter_node),
-                 man=(visit_parameter_node, depart_parameter_node),
-                 texinfo=(visit_parameter_node, depart_parameter_node)
+    app.add_node(
+        parameter_node,
+        html=(visit_parameter_node, depart_parameter_node),
+        latex=(visit_parameter_node, depart_parameter_node),
+        text=(visit_parameter_node, depart_parameter_node),
+        man=(visit_parameter_node, depart_parameter_node),
+        texinfo=(visit_parameter_node, depart_parameter_node),
     )
-    app.add_node(paramxref_node,
-                 html=(html_visit_paramxref_node, html_depart_paramxref_node),
-                 latex=(visit_paramxref_node, depart_paramxref_node),
-                 text=(visit_paramxref_node, depart_paramxref_node),
-                 man=(visit_paramxref_node, depart_paramxref_node),
-                 texinfo=(visit_paramxref_node, depart_paramxref_node),
+    app.add_node(
+        paramxref_node,
+        html=(html_visit_paramxref_node, html_depart_paramxref_node),
+        latex=(visit_paramxref_node, depart_paramxref_node),
+        text=(visit_paramxref_node, depart_paramxref_node),
+        man=(visit_paramxref_node, depart_paramxref_node),
+        texinfo=(visit_paramxref_node, depart_paramxref_node),
     )
     app.add_domain(ParDomain)
 
@@ -574,7 +596,6 @@ def setup(app: Sphinx) -> ExtensionMetadata:
         app.add_config_value(name, default, rebuild, types=types)
 
     return {
-        'version': '0.1',
-        'parallel_read_safe': True,
+        "version": "0.1",
+        "parallel_read_safe": True,
     }
-
