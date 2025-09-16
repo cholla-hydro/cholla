@@ -6,6 +6,7 @@
 
 #include "../global/global.h"
 #include "../grid/grid3D.h"
+#include "../io/ParameterMap.h"
 
 /* Local function that designates whether we are using a root-process. It gives
  *  * gives a sensible result regardless of whether we are using MPI */
@@ -22,13 +23,13 @@ static inline bool Is_Root_Proc()
 void Print_Stats(Grid3D& G);
 
 /* Write the data */
-void Write_Data(Grid3D& G, struct Parameters P, int nfile);
+void Write_Data(Grid3D& G, struct Parameters P, const ParameterMap& pmap, int nfile);
 
 /* Output the grid data to file. */
-void Output_Data(Grid3D& G, struct Parameters P, int nfile);
+void Output_Data(Grid3D& G, struct Parameters P, const ParameterMap& pmap, int nfile);
 
 /* Output the grid data to file as 32-bit floats. */
-void Output_Float32(Grid3D& G, struct Parameters P, int nfile);
+void Output_Float32(Grid3D& G, struct Parameters P, const ParameterMap& pmap, int nfile);
 
 /* Output a projection of the grid data to file. */
 void Output_Projected_Data(Grid3D& G, struct Parameters P, int nfile);
@@ -137,6 +138,8 @@ herr_t Read_HDF5_Dataset(hid_t file_id, float* dataset_buffer, const char* name)
 
 herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id, double* dataset_buffer, const char* name);
 herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id, float* dataset_buffer, const char* name);
+
+bool Write_HDF5_pmap(hid_t file_id, const ParameterMap& pmap);
 
 /* \brief After HDF5 reads data into a buffer, remap and write to grid buffer. */
 void Fill_Grid_From_HDF5_Buffer(int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, int n_ghost,

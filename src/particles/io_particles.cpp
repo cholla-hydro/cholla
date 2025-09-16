@@ -61,12 +61,6 @@ void Particles3D::Load_Particles_Data(struct Parameters *P)
   #endif
 }
 
-void Grid3D::WriteData_Particles(struct Parameters P, int nfile)
-{
-  // Write the particles data to file
-  OutputData_Particles(P, nfile);
-}
-
   #ifdef HDF5
 
 void Particles3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct Parameters *P)
@@ -754,7 +748,7 @@ void Grid3D::Write_Particles_Data_HDF5(hid_t file_id)
 }
   #endif  // HDF5
 
-void Grid3D::OutputData_Particles(struct Parameters P, int nfile)
+void Grid3D::OutputData_Particles(struct Parameters P, const ParameterMap& pmap, int nfile)
 {
   FILE *out;
   std::string filename = FnameTemplate(P).format_fname(nfile, "_particles");
@@ -773,6 +767,7 @@ void Grid3D::OutputData_Particles(struct Parameters P, int nfile)
 
   // Write header (file attributes)
   Write_Header_HDF5(file_id);
+  Write_HDF5_pmap(file_id, pmap);
   Write_Particles_Header_HDF5(file_id);
   Write_Particles_Data_HDF5(file_id);
 

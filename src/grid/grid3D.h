@@ -827,8 +827,7 @@ class Grid3D
   void Transfer_Particles_Density_Boundaries(struct Parameters P);
   void Copy_Particles_Density_Buffer_Device_to_Host(int direction, int side, Real *buffer_d, Real *buffer_h);
   // void Transfer_Particles_Boundaries( struct Parameters P );
-  void WriteData_Particles(struct Parameters P, int nfile);
-  void OutputData_Particles(struct Parameters P, int nfile);
+  void OutputData_Particles(struct Parameters P, const ParameterMap& pmap, int nfile);
   void Load_Particles_Data(struct Parameters P);
   #ifdef HDF5
   void Write_Particles_Header_HDF5(hid_t file_id);

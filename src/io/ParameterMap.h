@@ -102,6 +102,27 @@ class ParameterMap
   /* queries the number of parameters (mostly for testing purposes) */
   std::size_t size() { return entries_.size(); }
 
+  /*! \brief Applies the given function object ``f`` on each parameter, parameter-value pair
+   *
+   *  Since the parameter file-format doesn't have syntactic typing, the value is always
+   *  provided as a string. The function object should have accept 2 arguments of type
+   * ``const std::string&``.
+   *
+   *  \note
+   *  This method has no impact on whether a value has been "accessed"
+   *
+   *  \note
+   *  In the future, it may be better to provide an iterator rather than this function.
+   */
+  template<typename Fn>
+  void for_each(Fn f) const {
+    for (const auto& kv_pair : entries_) {
+      const std::string& key = kv_pair.first;
+      const std::string& val = kv_pair.second.param_str;
+      f(key, val);
+    }
+  }
+
   /* queries whether the parameter exists. */
   bool has_param(const std::string& param) { return entries_.find(param) != entries_.end(); }
 
