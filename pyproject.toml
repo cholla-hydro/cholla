@@ -68,14 +68,16 @@ testpaths = [
 [tool.ruff.lint]
 exclude = [
     "python_scripts/**",
-    "docs/**",
+    "docs/sphinx/conf.py",
+    "docs/sphinx/PythonExamples/**",
     "tools/**"
 ]
 
 [tool.ruff.format]
 exclude = [
     "python_scripts/**",
-    "docs/**",
+    "docs/sphinx/conf.py",
+    "docs/sphinx/PythonExamples/**",
     "tools/**"
 ]
 

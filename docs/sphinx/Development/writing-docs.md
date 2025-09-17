@@ -156,7 +156,7 @@ Defining parameters with this directive could also facillitate other benefits in
 
 #### Formatting parameters names in text
 
-The extension also defines two roles that can be used when mentioning parameters in text.
+The extension also defines 2 roles that can be used when mentioning parameters in text.
 
 ::::{rst:role} par:param
 
