@@ -5,7 +5,7 @@ This website is under construction.
 We're currently in the process of transferring contents from the [Cholla Wiki](https://github.com/cholla-hydro/cholla/wiki) to this website
 :::
 
-<!-- Here we list contents (that populate the sidebare). -->
+<!-- Here we list contents (that populate the sidebar). -->
 
 :::{toctree}
 :maxdepth: 1
@@ -14,6 +14,7 @@ We're currently in the process of transferring contents from the [Cholla Wiki](h
 Introduction <self>
 GettingStarted
 CompilingCholla
+MakefileParameters
 PythonAnalysis
 Physics/index
 ChollaExamples/index
