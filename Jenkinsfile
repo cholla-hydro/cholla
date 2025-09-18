@@ -39,7 +39,10 @@ pipeline
                     {
                         steps
                         {
-                            sh  '''
+                            sh  '''#!/bin/sh -e
+                                # enable tracing mode now that we read the
+                                # shell-script
+                                set -x
                                 git submodule update --init --recursive
                                 make clobber
                                 '''
