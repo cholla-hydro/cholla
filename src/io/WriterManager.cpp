@@ -38,7 +38,7 @@ io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap) : fnam
 
 #ifdef ROTATED_PROJECTION
   packs_.push_back(io::detail::WriterPack{
-      "rotated_projection", pmap.value_or("n_rotated_projection", 1), {io::RotatedProjWriter(P, pmap)}});
+      "rotated_projection", pmap.value_or("n_rotated_projection", 1), {io::RotatedProjWriter(pmap)}});
 #endif /*ROTATED_PROJECTION*/
 
 #ifdef SLICES

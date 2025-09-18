@@ -20,7 +20,7 @@ struct Rotation {
   Rotation() = delete;
 
   /*! Construct a new instance */
-  Rotation(const Parameters &P, ParameterMap &pmap);
+  Rotation(ParameterMap &pmap);
 
   /*! Number of pixels in x-dir of rotated, projected image*/
   int nx;
@@ -80,7 +80,7 @@ class RotatedProjWriter
 
  public:
   RotatedProjWriter() = delete;
-  RotatedProjWriter(const Parameters &P, ParameterMap &pmap) : rot_info_(P, pmap) {}
+  RotatedProjWriter(ParameterMap &pmap) : rot_info_(pmap) {}
 
   /*! A callable method that writes a rotated projection of the grid data to file.
    */
