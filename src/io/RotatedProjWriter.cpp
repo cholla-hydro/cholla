@@ -11,7 +11,7 @@
 #include "../grid/grid3D.h"
 #include "../io/io.h"
 
-io::Rotation::Rotation(const Parameters &P)
+io::Rotation::Rotation(const Parameters &P, ParameterMap &pmap)
 {
 #ifdef ROTATED_PROJECTION
   // x-dir pixels in projection

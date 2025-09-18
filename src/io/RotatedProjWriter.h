@@ -13,71 +13,58 @@
 namespace io
 {
 
+/*! Tracks rotation information for creating Rotated Projections
+ */
 struct Rotation {
-  // TODO: refactor so we can remove the default constructor
-  Rotation() = default;
+  // the default constructor would put the instance in an invalid state
+  Rotation() = delete;
 
-  /*! primary constructor */
-  Rotation(const Parameters &P);
+  /*! Construct a new instance */
+  Rotation(const Parameters &P, ParameterMap &pmap);
 
-  /*! \var nx
-   *   \brief Number of pixels in x-dir of rotated, projected image*/
+  /*! Number of pixels in x-dir of rotated, projected image*/
   int nx;
 
-  /*! \var nz
-   *   \brief Number of pixels in z-dir of rotated, projected image*/
+  /*! Number of pixels in z-dir of rotated, projected image*/
   int nz;
 
-  /*! \var nx_min
-   *   \brief Left most point in the projected image for this subvolume*/
+  /*! Left most point in the projected image for this subvolume*/
   int nx_min;
 
-  /*! \var nx_max
-   *   \brief Right most point in the projected image for this subvolume*/
+  /*! Right most point in the projected image for this subvolume*/
   int nx_max;
 
-  /*! \var nz_min
-   *   \brief Bottom most point in the projected image for this subvolume*/
+  /*! Bottom most point in the projected image for this subvolume*/
   int nz_min;
 
-  /*! \var nz_max
-   *   \brief Top most point in the projected image for this subvolume*/
+  /*! Top most point in the projected image for this subvolume*/
   int nz_max;
 
-  /*! \var delta
-   *   \brief Rotation angle about z axis in simulation frame*/
+  /*! Rotation angle about z axis in simulation frame*/
   Real delta;
 
-  /*! \var theta
-   *   \brief Rotation angle about x axis in simulation frame*/
+  /*! Rotation angle about x axis in simulation frame*/
   Real theta;
 
-  /*! \var phi
-   *   \brief Rotation angle about y axis in simulation frame*/
+  /*! Rotation angle about y axis in simulation frame*/
   Real phi;
 
-  /*! \var Lx
-   *   \brief Physical x-dir size of projected image*/
+  /*! Physical x-dir size of projected image*/
   Real Lx;
 
-  /*! \var Lz
-   *   \brief Physical z-dir size of projected image*/
+  /*! Physical z-dir size of projected image*/
   Real Lz;
 
-  /*! \var i_delta
-   *   \brief number of output projection for delta rotation*/
+  /*! number of output projection for delta rotation*/
   int i_delta;
 
-  /*! \var n_delta
-   *   \brief total number of output projection for delta rotation*/
+  /*! total number of output projection for delta rotation*/
   Real n_delta;
 
-  /*! \var ddelta_dt
-   *   \brief rate of delta rotation*/
+  /*! rate of delta rotation*/
   Real ddelta_dt;
 
-  /*! \var flag_delta
-   *  \brief output mode for box rotation*/
+  /*! output mode for box rotation*/
   int flag_delta;
 };
 
@@ -93,7 +80,7 @@ class RotatedProjWriter
 
  public:
   RotatedProjWriter() = delete;
-  RotatedProjWriter(const Parameters &P, ParameterMap &pmap) : rot_info_(P) {}
+  RotatedProjWriter(const Parameters &P, ParameterMap &pmap) : rot_info_(P, pmap) {}
 
   /*! A callable method that writes a rotated projection of the grid data to file.
    */
