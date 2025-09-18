@@ -40,9 +40,10 @@ pipeline
                         steps
                         {
                             sh  '''#!/bin/sh -e
-                                # enable tracing mode now that we read the
-                                # shell-script
+                                # enable tracing mode now that the shell
+                                # configuration has been read
                                 set -x
+
                                 git submodule update --init --recursive
                                 make clobber
                                 '''
@@ -52,7 +53,11 @@ pipeline
                     {
                         steps
                         {
-                            sh  '''
+                            sh  '''#!/bin/sh -e
+                                # enable tracing mode now that the shell
+                                # configuration has been read
+                                set -x
+
                                 source builds/run_tests.sh
                                 setupTests -c gcc -t ${CHOLLA_MAKE_TYPE}
 
@@ -64,7 +69,11 @@ pipeline
                     {
                         steps
                         {
-                            sh  '''
+                            sh  '''#!/bin/sh -e
+                                # enable tracing mode now that the shell
+                                # configuration has been read
+                                set -x
+
                                 source builds/run_tests.sh
                                 setupTests -c gcc -t ${CHOLLA_MAKE_TYPE}
 
@@ -78,7 +87,11 @@ pipeline
                         {
                             retry(2)
                             {
-                                sh  '''
+                                sh  '''#!/bin/sh -e
+                                    # enable tracing mode now that the shell
+                                    # configuration has been read
+                                    set -x
+
                                     source builds/run_tests.sh
                                     setupTests -c gcc -t ${CHOLLA_MAKE_TYPE}
 
@@ -92,7 +105,11 @@ pipeline
                         steps
                         {
                             catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                                sh  '''
+                                sh  '''#!/bin/sh -e
+                                    # enable tracing mode now that the shell
+                                    # configuration has been read
+                                    set -x
+
                                     source builds/run_tests.sh
                                     setupTests -c gcc -t ${CHOLLA_MAKE_TYPE}
 
@@ -108,15 +125,19 @@ pipeline
                         {
                             // Print the clang-tidy results with bars of equal
                             // signs seperating each file
-                            sh  '''
+                            sh  '''#!/bin/sh -e
+                                # we explicitly choose not to use tracing mode
+
+                                echo "tidy_results_cpp_${CHOLLA_MAKE_TYPE}.log"
                                 printf '=%.0s' {1..100}
                                 printf "\n"
                                 cat tidy_results_cpp_${CHOLLA_MAKE_TYPE}.log
+                                printf "\n\n"
+
+                                echo "tidy_results_gpu_${CHOLLA_MAKE_TYPE}.log"
                                 printf '=%.0s' {1..100}
                                 printf "\n"
                                 cat tidy_results_gpu_${CHOLLA_MAKE_TYPE}.log
-                                printf '=%.0s' {1..100}
-                                printf "\n"
                                 '''
                         }
                     }
