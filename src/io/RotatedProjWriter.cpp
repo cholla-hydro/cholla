@@ -51,5 +51,5 @@ Rotation::Rotation(const Parameters &P)
 
 void io::RotatedProjWriter::operator()(Grid3D &G, Parameters P, int nfile, const FnameTemplate &fname_template)
 {
-  Output_Rotated_Projected_Data(G, P, nfile, fname_template);
+  Output_Rotated_Projected_Data(G, P, nfile, fname_template, this->rot_info_);
 }

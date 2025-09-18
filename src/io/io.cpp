@@ -366,7 +366,8 @@ void Output_Projected_Data(Grid3D &G, struct Parameters P, int nfile, const Fnam
 }
 
 /* Output a rotated projection of the grid data to file. */
-void Output_Rotated_Projected_Data(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate &fname_template)
+void Output_Rotated_Projected_Data(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate &fname_template,
+                                   Rotation &R)
 {
 #ifdef HDF5
   hid_t file_id;
@@ -375,27 +376,27 @@ void Output_Rotated_Projected_Data(Grid3D &G, struct Parameters P, int nfile, co
   // create the filename
   std::string filename = fname_template.format_fname(nfile, "_rot_proj");
 
-  if (G.R.flag_delta == 1) {
+  if (R.flag_delta == 1) {
     // if flag_delta==1, then we are just outputting a
     // bunch of rotations of the same snapshot
     int i_delta;
     char fname[200];
 
-    for (i_delta = 0; i_delta < G.R.n_delta; i_delta++) {
-      filename += "." + std::to_string(G.R.i_delta);
+    for (i_delta = 0; i_delta < R.n_delta; i_delta++) {
+      filename += "." + std::to_string(R.i_delta);
       chprintf("Outputting rotated projection %s.\n", fname);
 
       // determine delta about z by output index
-      G.R.delta = 2.0 * M_PI * ((double)i_delta) / ((double)G.R.n_delta);
+      R.delta = 2.0 * M_PI * ((double)i_delta) / ((double)R.n_delta);
 
       // Create a new file
       file_id = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
       // Write header (file attributes)
-      G.Write_Header_Rotated_HDF5(file_id);
+      G.Write_Header_Rotated_HDF5(file_id, R);
 
       // Write the density and temperature projections to the output file
-      G.Write_Rotated_Projection_HDF5(file_id);
+      G.Write_Rotated_Projection_HDF5(file_id, R);
 
       // Close the file
       status = H5Fclose(file_id);
@@ -411,23 +412,23 @@ void Output_Rotated_Projected_Data(Grid3D &G, struct Parameters P, int nfile, co
       }
   #endif
 
-      // iterate G.R.i_delta
-      G.R.i_delta++;
+      // iterate R.i_delta
+      R.i_delta++;
     }
 
-  } else if (G.R.flag_delta == 2) {
+  } else if (R.flag_delta == 2) {
     // case 2 -- outputting at a rotating delta
     // rotation rate given in the parameter file
-    G.R.delta = fmod(nfile * G.R.ddelta_dt * 2.0 * M_PI, (2.0 * M_PI));
+    R.delta = fmod(nfile * R.ddelta_dt * 2.0 * M_PI, (2.0 * M_PI));
 
     // Create a new file
     file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
     // Write header (file attributes)
-    G.Write_Header_Rotated_HDF5(file_id);
+    G.Write_Header_Rotated_HDF5(file_id, R);
 
     // Write the density and temperature projections to the output file
-    G.Write_Rotated_Projection_HDF5(file_id);
+    G.Write_Rotated_Projection_HDF5(file_id, R);
 
     // Close the file
     status = H5Fclose(file_id);
@@ -438,10 +439,10 @@ void Output_Rotated_Projected_Data(Grid3D &G, struct Parameters P, int nfile, co
     file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
     // Write header (file attributes)
-    G.Write_Header_Rotated_HDF5(file_id);
+    G.Write_Header_Rotated_HDF5(file_id, R);
 
     // Write the density and temperature projections to the output file
-    G.Write_Rotated_Projection_HDF5(file_id);
+    G.Write_Rotated_Projection_HDF5(file_id, R);
 
     // Close the file
     status = H5Fclose(file_id);
@@ -689,7 +690,7 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
 /*! \fn void Write_Header_Rotated_HDF5(hid_t file_id)
  *  \brief Write the relevant header info to the HDF5 file for rotated
  * projection. */
-void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id)
+void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id, Rotation &R)
 {
   hid_t attribute_id, dataspace_id;
   herr_t status;
@@ -1622,7 +1623,7 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
 /*! \fn void Write_Rotated_Projection_HDF5(hid_t file_id)
  *  \brief Write rotated projected data to a file, at the current simulation
  * time. */
-void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
+void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id, const Rotation &R)
 {
   hid_t dataset_id, dataspace_xzr_id;
   Real *dataset_buffer_dxzr;

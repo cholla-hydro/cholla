@@ -20,9 +20,12 @@ namespace io
  */
 class RotatedProjWriter
 {
+  /*! Tracks the rotation information */
+  Rotation rot_info_;
+
  public:
   RotatedProjWriter() = delete;
-  RotatedProjWriter(const Parameters &P, ParameterMap &pmap) {}
+  RotatedProjWriter(const Parameters &P, ParameterMap &pmap) : rot_info_(P) {}
 
   /*! A callable method that writes a rotated projection of the grid data to file.
    */

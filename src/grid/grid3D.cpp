@@ -213,8 +213,6 @@ void Grid3D::Initialize(struct Parameters *P)
   // allocate memory
   AllocateMemory();
 
-  R = Rotation(*P);
-
 // Values for lower limit for density and temperature
 #ifdef TEMPERATURE_FLOOR
   H.temperature_floor = P->temperature_floor;

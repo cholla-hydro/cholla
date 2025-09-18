@@ -299,10 +299,6 @@ class Grid3D
    *  \brief Header for the grid */
   struct Header H;
 
-  /*! \var struct Rotation R
-   *  \brief Rotation struct for data projections */
-  struct Rotation R;
-
 #ifdef GRAVITY
   // Object that contains data for gravity
   Grav3D Grav;
@@ -514,12 +510,12 @@ class Grid3D
   /*! \fn void Write_Header_Rotated_HDF5(hid_t file_id)
    *  \brief Write the relevant header info to the HDF5 file for rotated
    * projection. */
-  void Write_Header_Rotated_HDF5(hid_t file_id);
+  void Write_Header_Rotated_HDF5(hid_t file_id, Rotation &R);
 
   /*! \fn void Write_Rotated_Projection_HDF5(hid_t file_id)
    *  \brief Write rotated projected data to a file, at the current simulation
    * time. */
-  void Write_Rotated_Projection_HDF5(hid_t file_id);
+  void Write_Rotated_Projection_HDF5(hid_t file_id, const Rotation &R);
 
   /*! \fn void Write_Slices_HDF5(hid_t file_id)
    *  \brief Write xy, xz, and yz slices of all data to a file. */
