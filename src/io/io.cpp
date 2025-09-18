@@ -367,7 +367,7 @@ void Output_Projected_Data(Grid3D &G, struct Parameters P, int nfile, const Fnam
 
 /* Output a rotated projection of the grid data to file. */
 void Output_Rotated_Projected_Data(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate &fname_template,
-                                   Rotation &R)
+                                   io::Rotation &R)
 {
 #ifdef HDF5
   hid_t file_id;
@@ -690,7 +690,7 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
 /*! \fn void Write_Header_Rotated_HDF5(hid_t file_id)
  *  \brief Write the relevant header info to the HDF5 file for rotated
  * projection. */
-void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id, Rotation &R)
+void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id, io::Rotation &R)
 {
   hid_t attribute_id, dataspace_id;
   herr_t status;
@@ -1623,7 +1623,7 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
 /*! \fn void Write_Rotated_Projection_HDF5(hid_t file_id)
  *  \brief Write rotated projected data to a file, at the current simulation
  * time. */
-void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id, const Rotation &R)
+void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id, const io::Rotation &R)
 {
   hid_t dataset_id, dataspace_xzr_id;
   Real *dataset_buffer_dxzr;

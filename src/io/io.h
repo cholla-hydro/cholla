@@ -7,6 +7,7 @@
 #include "../global/global.h"
 #include "../grid/grid3D.h"
 #include "../io/FnameTemplate.h"
+#include "../io/RotatedProjWriter.h"  // io::Rotation
 #include "../io/WriterManager.h"
 
 /* Local function that designates whether we are using a root-process. It gives
@@ -42,7 +43,7 @@ void Output_Projected_Data(Grid3D& G, struct Parameters P, int nfile, const Fnam
  *  wrapped by a callable object that implements the "typical signature"
  */
 void Output_Rotated_Projected_Data(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template,
-                                   Rotation& R);
+                                   io::Rotation& R);
 
 /* Output xy, xz, and yz slices of the grid data to file. */
 void Output_Slices(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);
