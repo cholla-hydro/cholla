@@ -51,6 +51,12 @@
 #endif
 
 struct Rotation {
+  // TODO: refactor so we can remove the default constructor
+  Rotation() = default;
+
+  /*! primary constructor */
+  Rotation(const Parameters &P);
+
   /*! \var nx
    *   \brief Number of pixels in x-dir of rotated, projected image*/
   int nx;
