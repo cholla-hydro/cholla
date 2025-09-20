@@ -36,15 +36,6 @@ void Output_Float32(Grid3D& G, struct Parameters P, int nfile, const FnameTempla
 /* Output a projection of the grid data to file. */
 void Output_Projected_Data(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);
 
-/*! Output a rotated projection of the grid data to file.
- *
- *  \note
- *  The signature of this function diverges from some of the other `Output_<Kind>` functions because its
- *  wrapped by a callable object that implements the "typical signature"
- */
-void Output_Rotated_Projected_Data(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template,
-                                   io::Rotation& R);
-
 /* Output xy, xz, and yz slices of the grid data to file. */
 void Output_Slices(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);
 
