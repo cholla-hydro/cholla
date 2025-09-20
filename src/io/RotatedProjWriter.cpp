@@ -13,6 +13,7 @@
 #include "../global/global.h"  // Parameters
 #include "../grid/grid3D.h"
 #include "../io/io.h"
+#include "../utils/error_handling.h"
 
 io::Rotation::Rotation(ParameterMap &pmap)
 {
@@ -22,6 +23,10 @@ io::Rotation::Rotation(ParameterMap &pmap)
   // - delta, phi, & theta satisfy 0 <= x < 180 (maybe we want to be more flexible)
   // - Lx & Lz are positive (or at least non-zero)
   // - I think flag_delta should only be 0, 1, or 2
+  //
+  // should we make it an error to specify the:
+  // - ddelta_dt parameter when flag_delta != 1
+  // - n_delta parameter when flag_delta != 2
 
   // x-dir pixels in projection
   this->nx = pmap.value<int>("nxr");
@@ -49,6 +54,7 @@ io::Rotation::Rotation(ParameterMap &pmap)
   this->i_delta = 0;
   // number of rotated outputs in a complete revolution
   this->n_delta = pmap.value_or("n_delta", 0);
+  CHOLLA_ASSERT(this->n_delta >= 0, "the \"n_delta\" parameter must not be negative");
   // rate of rotation between outputs, for an actual simulation
   this->ddelta_dt = Real(pmap.value_or("ddelta_dt", 0.0));
   // are we not rotating about z(0)?
@@ -66,13 +72,13 @@ void io::RotatedProjWriter::operator()(Grid3D &G, Parameters P, int nfile, const
   // create the filename
   std::string filename = fname_template.format_fname(nfile, "_rot_proj");
 
+  // it may be a little more explicit to use a switch statement instead of if/elif/else
   if (this->rot_info_.flag_delta == 1) {
     // if flag_delta==1, then we are just outputting a
     // bunch of rotations of the same snapshot
-    int i_delta;
     char fname[200];
 
-    for (i_delta = 0; i_delta < this->rot_info_.n_delta; i_delta++) {
+    for (int i_delta = 0; i_delta < this->rot_info_.n_delta; i_delta++) {
       filename += "." + std::to_string(this->rot_info_.i_delta);
       chprintf("Outputting rotated projection %s.\n", fname);
 
@@ -90,17 +96,8 @@ void io::RotatedProjWriter::operator()(Grid3D &G, Parameters P, int nfile, const
 
       // Close the file
       status = H5Fclose(file_id);
-  #ifdef MPI_CHOLLA
-      if (status < 0) {
-        printf("Output_Rotated_Projected_Data: File write failed. ProcID: %d\n", procID);
-        chexit(-1);
-      }
-  #else
-      if (status < 0) {
-        printf("Output_Rotated_Projected_Data: File write failed.\n");
-        exit(-1);
-      }
-  #endif
+
+      CHOLLA_ASSERT(status >= 0, "Rotated Projection: File write failed. ProcID: %d\n", procID);
 
       // iterate this->rot_info_.i_delta
       this->rot_info_.i_delta++;
@@ -138,17 +135,7 @@ void io::RotatedProjWriter::operator()(Grid3D &G, Parameters P, int nfile, const
     status = H5Fclose(file_id);
   }
 
-  #ifdef MPI_CHOLLA
-  if (status < 0) {
-    printf("Output_Rotated_Projected_Data: File write failed. ProcID: %d\n", procID);
-    chexit(-1);
-  }
-  #else
-  if (status < 0) {
-    printf("Output_Rotated_Projected_Data: File write failed.\n");
-    exit(-1);
-  }
-  #endif
+  CHOLLA_ASSERT(status >= 0, "Rotated Projection: File write failed. ProcID: %d\n", procID);
 
 #else
   printf("Output_Rotated_Projected_Data only defined for HDF5 writes.\n");
