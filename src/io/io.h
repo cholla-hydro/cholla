@@ -6,6 +6,7 @@
 
 #include "../global/global.h"
 #include "../grid/grid3D.h"
+#include "../io/WriterManager.h"
 
 /* Local function that designates whether we are using a root-process. It gives
  *  * gives a sensible result regardless of whether we are using MPI */
@@ -22,7 +23,7 @@ static inline bool Is_Root_Proc()
 void Print_Stats(Grid3D& G);
 
 /* Write the data */
-void Write_Data(Grid3D& G, struct Parameters P, int nfile);
+void Write_Data(Grid3D& G, struct Parameters P, int nfile, const io::WriterManager& write_manager);
 
 /* Output the grid data to file. */
 void Output_Data(Grid3D& G, struct Parameters P, int nfile);
