@@ -41,6 +41,10 @@ pipeline
                         {
                             sh  '''
                                 git submodule update --init --recursive
+                                # confirm we succesfully downloaded the
+                                # submodule
+                                ls cholla-tests-data
+                                ls cholla-tests-data/system_tests
                                 make clobber
                                 '''
                         }
