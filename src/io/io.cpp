@@ -14,6 +14,7 @@
   #include <hdf5.h>
 #endif  // HDF5
 #include "../grid/grid3D.h"
+#include "../io/WriterManager.h"
 #include "../io/io.h"
 #include "../utils/cuda_utilities.h"
 #include "../utils/hydro_utilities.h"
@@ -80,7 +81,7 @@ void Write_Message_To_Log_File(const char *message)
 }
 
 /* Write Cholla Output Data */
-void Write_Data(Grid3D &G, struct Parameters P, int nfile)
+void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManager &write_manager)
 {
   cudaMemcpy(G.C.density, G.C.device, G.H.n_fields * G.H.n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
@@ -114,43 +115,7 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile)
   G.Change_Cosmological_Frame_System(false);
 #endif
 
-#ifndef ONLY_PARTICLES
-  /*call the data output routine for Hydro data*/
-  if (nfile % P.n_hydro == 0) {
-    Output_Data(G, P, nfile);
-  }
-#endif
-
-// This function does other checks to make sure it is valid (3D only)
-#ifdef HDF5
-  if (P.n_out_float32 && nfile % P.n_out_float32 == 0) {
-    Output_Float32(G, P, nfile);
-  }
-#endif
-
-#ifdef PROJECTION
-  if (nfile % P.n_projection == 0) {
-    Output_Projected_Data(G, P, nfile);
-  }
-#endif /*PROJECTION*/
-
-#ifdef ROTATED_PROJECTION
-  if (nfile % P.n_rotated_projection == 0) {
-    Output_Rotated_Projected_Data(G, P, nfile);
-  }
-#endif /*ROTATED_PROJECTION*/
-
-#ifdef SLICES
-  if (nfile % P.n_slice == 0) {
-    Output_Slices(G, P, nfile);
-  }
-#endif /*SLICES*/
-
-#ifdef PARTICLES
-  if (nfile % P.n_particle == 0) {
-    G.WriteData_Particles(P, nfile);
-  }
-#endif
+  write_manager.Apply_Writers(G, P, nfile);
 
 #ifdef COSMOLOGY
   if (G.H.OUTPUT_SCALE_FACOR || G.H.Output_Initial) {
@@ -174,10 +139,6 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile)
 #ifdef HDF5
   // Cleanup HDF5
   H5close();
-#endif
-
-#if defined(GRAVITY) && defined(HDF5)
-  G.Grav.Write_Restart_HDF5(&P, nfile);
 #endif
 
 #ifdef MPI_CHOLLA
