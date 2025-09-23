@@ -8,5 +8,6 @@ Continue porting me from the [wiki](https://github.com/cholla-hydro/cholla/wiki/
 :maxdepth: 1
 
 1D-123-Test/overview
+1D-blast/overview
 :::
 
