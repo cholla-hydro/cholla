@@ -40,10 +40,11 @@ zu_bcnd=0
 # path to output directory
 outdir=./
 ```
-Upon completion, you should obtain 101 output files. The initial and final density, pressure, and velocity (in code units) of the solution is shown below (pink dots) plotted over a high resolution solution with 4000 cells (purple line).  Examples of how to extract and plot data can be found in `cholla/python_scripts/plot_sod.ipynb`.  
-:::{figure} 99.png 
+Upon completion, you should obtain 101 output files. The initial and final density, pressure, and velocity (in code units) of the solution is shown below. Examples of how to extract and plot data can be found in `cholla/python_scripts/plot_sod.ipynb`.  
+:::{figure} two_times.png
 
 We see a contact discontinuity around x = 0.6 followed by a shock at x = 0.65 and a rarefaction fan. We have a contact discontinuity just past x = 0.75 cells and a shock at x = 0.85. 
+
 
 We can also obtain the evolution of the density (here at 10 fps):
 
