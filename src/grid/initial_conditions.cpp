@@ -874,8 +874,8 @@ void Grid3D::KH_res_ind()
 #endif  // DE
 
       }  // i loop
-    }    // j loop
-  }      // k loop
+    }  // j loop
+  }  // k loop
 }
 
 /*! \fn void Rayleigh_Taylor()
