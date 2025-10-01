@@ -9,5 +9,6 @@ Continue porting me from the [wiki](https://github.com/cholla-hydro/cholla/wiki/
 
 1D-123-Test/overview
 1d-blast/overview
+1D-Shu-Osher/overview
 :::
 
