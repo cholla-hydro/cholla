@@ -99,8 +99,7 @@ void PotentialParis3D::Get_Potential(const Real *const density, Real *const pote
   const int ngi = ni + N_GHOST_POTENTIAL + N_GHOST_POTENTIAL;
   const int ngj = nj + N_GHOST_POTENTIAL + N_GHOST_POTENTIAL;
 
-  gpuFor(
-      n, GPU_LAMBDA(const int i) { db[i] = scale * (db[i] - offset); });
+  gpuFor(n, GPU_LAMBDA(const int i) { db[i] = scale * (db[i] - offset); });
   pp_->solve(minBytes_, db, da);
   gpuFor(
       nk, nj, ni, GPU_LAMBDA(const int k, const int j, const int i) {

@@ -108,7 +108,7 @@ void supernova::initState(struct Parameters* P, part_int_t n_local, Real allocat
         }
         if (i > 0) {
           break;  // only care about the first 2 items.  Once i = 1 can break
-        }         // here.
+        }  // here.
 
         data = strtok(nullptr, s99_delim);
         i++;
