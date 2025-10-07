@@ -47,7 +47,6 @@ We see a contact discontinuity around x = 0.6 followed by a shock at x = 0.65 an
 
 :::{figure} two_times.png
 
-We can also obtain the evolution of the density (here at 10 fps):
+We can also obtain the evolution (here at 10 fps):
 
-<img src="https://github.com/user-attachments/assets/0e204b64-0462-4d81-be79-2cd1c4c6a35f" width="682" height="452" />
- 
+

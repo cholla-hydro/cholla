@@ -36,6 +36,7 @@ extensions = [
     'breathe',
     'myst_parser',
     'nbsphinx',
+    'sphinxcontrib.video',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
