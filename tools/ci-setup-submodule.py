@@ -170,9 +170,14 @@ def _run(
 #    from shell-scripting. But, we are starting out with EXTREMELY simple logic
 
 
-def _check_large_files_were_downloaded(submodule_path: str):
+def _large_file_download_check(repo_path: Optional[str], relative_submodule_path: str):
     import json
     import tempfile
+
+    if repo_path is None:
+        submodule_path = relative_submodule_path
+    else:
+        submodule_path = os.path.join(repo_path, relative_submodule_path)
 
     # query the list of all files tracked by git-lfs (in json format)
     with tempfile.TemporaryFile() as tmp_fp:
@@ -273,8 +278,8 @@ def _setup_submodule(repo_path: Optional[str] = None):
 
     # perform a sanity check (maybe we should make this optional?)
     logger.info("Confirming that all large files were successfully downloaded")
-    _check_large_files_were_downloaded(
-        submodule_path=os.path.join(repo_path, "cholla-tests-data")
+    _large_file_download_check(
+        repo_path=repo_path, relative_submodule_path="cholla-tests-data"
     )
 
 
