@@ -40,16 +40,7 @@ pipeline
                         steps
                         {
                             sh  '''
-                                git submodule update --init --recursive
-                                # it's hard to reproduce the submodule-related
-                                # test failure since we started invoking `ls`
-                                # -> but, if/when the failure happens again, we
-                                #    will hopefully be able to diagnose the
-                                #    underlying problem
-                                echo "check that submodule init was succesful"
-                                ls cholla-tests-data
-                                ls cholla-tests-data/system_tests
-                                echo "calling make clobber"
+                                ./tools/ci-setup-submodule.py --color
                                 make clobber
                                 '''
                         }
