@@ -31,7 +31,8 @@ docs = [
     'nbsphinx',
     'sphinx',
     'sphinx-inline-tabs',
-    'sphinx-autodoc-typehints'
+    'sphinx-autodoc-typehints',
+    'sphinxcontrib.video'
 ]
 test = ['pytest']
 dev = [
