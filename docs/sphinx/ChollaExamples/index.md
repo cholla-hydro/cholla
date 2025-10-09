@@ -12,5 +12,6 @@ Continue porting me from the [wiki](https://github.com/cholla-hydro/cholla/wiki/
 1D-Shu-Osher/overview
 1D-Square-Wave/overview
 1D-Strong-Shock/overview
+2d-khd/overview
 :::
 
