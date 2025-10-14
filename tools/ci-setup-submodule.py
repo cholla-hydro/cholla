@@ -25,9 +25,14 @@ logger.setLevel(logging.DEBUG)
 
 def _configure_logger(color=False):
     global logger
-    fmt = "%(name)s > %(message)s"
+
+    color_start = ""
+    color_stop = ""
     if color:
-        fmt = "\x1b[36;20m" + fmt + "\x1b[0m"
+        color_start = "\x1b[36;20m"
+        color_stop = "\x1b[0m"
+
+    fmt = f"{color_start}%(name)s{color_stop} > %(message)s"
 
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(logging.Formatter(fmt))
@@ -132,7 +137,7 @@ def _run(
             _meta_list.append(f"exec_dir: {cwd}")
         _env_str = _fmt_env_args(include_outer_env=include_outer_env, env=env)
         _meta_list.append(f"ENV: {_env_str}")
-        logger.info(f"{_msg}; ({'; '.join(_meta_list)})")
+        logger.info(f"$ {_msg}; ({'; '.join(_meta_list)})")
 
     # adjust stdout if necessary
     if stdout is None and not silent:
@@ -171,7 +176,7 @@ def _run(
 
 
 def _large_file_download_check(repo_path: Optional[str], relative_submodule_path: str):
-    import json
+    import re
     import tempfile
 
     if repo_path is None:
@@ -179,41 +184,85 @@ def _large_file_download_check(repo_path: Optional[str], relative_submodule_path
     else:
         submodule_path = os.path.join(repo_path, relative_submodule_path)
 
-    # query the list of all files tracked by git-lfs (in json format)
-    with tempfile.TemporaryFile() as tmp_fp:
-        _run(
-            *["git", "lfs", "ls-files", "--json"],
-            log=False,
-            cwd=submodule_path,
-            stdout=tmp_fp,
-        )
-        tmp_fp.seek(0)
-        json_data = json.load(tmp_fp)
+    def _run_gitlfs(*args) -> str:
+        # a helper function that runs git-lfs and returns the output as a string
+        with tempfile.TemporaryFile() as tmp_fp:
+            full_command = ["git", "lfs"]
+            full_command.extend(args)
+            _run(*full_command, log=False, cwd=submodule_path, stdout=tmp_fp)
+            tmp_fp.seek(0)
+            return tmp_fp.read().decode("utf-8")
 
-    # some quick sanity checks on the format
-    if "files" not in json_data:
+    # get the git-lfs version
+    version_str = _run_gitlfs("--version")
+    m = re.match("^git-lfs/(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", version_str)
+    if m is None:
         raise ScriptError(
-            '"files" key is missing from json output of `git lfs ls-files` for '
-            f"submodule @ {submodule_path}"
+            f"git-lfs returns a string with an unexpected format: {version_str!r}"
         )
-    elif len(json_data) == 0:
-        raise ScriptError(
-            "there don't appear to be any files tracked by git-lfs in submodule @ "
-            f"{submodule_path}"
-        )
-    elif ("name" not in json_data["files"][0]) or not isinstance(
-        json_data["files"][0].get("checkout"), bool
-    ):
-        raise ScriptError(
-            "Unexpected json format from `git lfs ls-files --json` (did the schema "
-            "change between git-lfs versions)?"
-        )
+    version = (int(m.group(1)), int(m.group(2)), int(m.group(3)))
 
-    # now confirm that each of the files was checked out
-    for finfo in json_data["files"]:
-        if not finfo["checkout"]:
-            path = os.path.join(submodule_path, finfo["name"])
-            raise ScriptError(f"There seems to have been an issue downloading {path}")
+    if version < (2, 6, 0):
+        logger.warn(f"Skip check, since git-lfs version, {'.'.join(version)}, is old")
+    elif version < (3, 7, 0):
+        # get a list of tracked file names (use -n flag rather than --name-only since
+        # past release notes suggests that the latter was originally --names)
+        list_string = _run_gitlfs("ls-files", "-n").rstrip()
+        paths = [os.path.join(submodule_path, p) for p in list_string.splitlines()]
+
+        # test whether each path hold a "pointer file" or the file itself
+        #   https://github.com/git-lfs/git-lfs/blob/8e6e9f1894d8ec89b74222c3fc00cb183959afd9/docs/spec.md
+        # (it's not a perfect check, but good enough for us)
+
+        def is_ptr_file(path: str) -> bool:
+            with open(path, "rb") as f:
+                # the read is padded (I'm not sure how trailing \n conventions work)
+                buf = f.read(1030).rstrip()
+            if len(buf) > 1024:  # the spec requires this
+                return False
+            try:
+                contents = buf.decode(encoding="utf-8", errors="strict")
+            except UnicodeDecodeError:
+                return False
+            pattern = r"^version [^\r\n]+(\n[._a-z0-9]+ [^\r\n]+)*$"
+            return re.match(pattern, contents, flags=re.MULTILINE) is not None
+
+        for p in filter(is_ptr_file, paths):
+            raise ScriptError(f"There seems to have been an issue downloading {p}")
+    else:
+        # I wrote this version of the check first (I realized after that it relies on
+        # very new features)
+        import json
+
+        json_string = _run_gitlfs("ls-files", "--json")
+        json_data = json.loads(json_string)
+
+        # some quick sanity checks on the format
+        if "files" not in json_data:
+            raise ScriptError(
+                '"files" key is missing from json output of `git lfs ls-files` for '
+                f"submodule @ {submodule_path}"
+            )
+        elif len(json_data) == 0:
+            raise ScriptError(
+                "there don't appear to be any files tracked by git-lfs in submodule @ "
+                f"{submodule_path}"
+            )
+        elif ("name" not in json_data["files"][0]) or not isinstance(
+            json_data["files"][0].get("checkout"), bool
+        ):
+            raise ScriptError(
+                "Unexpected json format from `git lfs ls-files --json` (did the schema "
+                "change between git-lfs versions)?"
+            )
+
+        # now confirm that each of the files was checked out
+        for finfo in json_data["files"]:
+            if not finfo["checkout"]:
+                path = os.path.join(submodule_path, finfo["name"])
+                raise ScriptError(
+                    f"There seems to have been an issue downloading {path}"
+                )
 
 
 def _setup_submodule(repo_path: Optional[str] = None):
