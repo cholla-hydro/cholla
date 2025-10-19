@@ -40,7 +40,9 @@ pipeline
                         steps
                         {
                             sh  '''
-                                ./tools/ci-setup-submodule.py --color
+                                if [[ "${CHOLLA_MAKE_TYPE}" == "cosmology" ]]; then
+                                   ./tools/ci-setup-submodule.py --color
+                                fi
                                 make clobber
                                 '''
                         }
