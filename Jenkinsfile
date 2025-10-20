@@ -45,6 +45,7 @@ pipeline
                                    [ "${CHOLLA_MAKE_TYPE}" = "gravity" ]; then
                                     ./tools/ci-setup-submodule.py \
                                        --color \
+                                       --simulate-lfs-fetch-failure \
                                        --fallback-manual-lfs-download
                                 else
                                     # we skip the download because it's not currently
