@@ -592,8 +592,8 @@ def _setup_submodule(
         logger.info(f"Submodule Setup (repo-path: {repo_path})")
 
     # first, off let's init the submodule
-    logger.info("First, perform some basic submodule setup")
-    _run("git", "submodule", "init", cwd=repo_path)
+    #logger.info("First, perform some basic submodule setup")
+    #_run("git", "submodule", "init", cwd=repo_path)
 
     # now, we fetch the submodule data without pulling data for the large files
     # tracked by git-lfs
@@ -607,7 +607,7 @@ def _setup_submodule(
     #    but that doesn't work
     logger.info("Get the submodule data (without full data tracked by git-lfs)")
     _run(
-        *["git", "submodule", "update", "--recursive"],
+        *["git", "submodule", "update", "--init"],
         cwd=repo_path,
         env={"GIT_LFS_SKIP_SMUDGE": "1"},
     )
