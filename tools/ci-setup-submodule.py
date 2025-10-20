@@ -628,13 +628,13 @@ def _setup_submodule(
 
     logger.info("run some commands from root")
 
-    #_run(
-    #    *["git", "ls-files"],
-    #)
+    _run(
+        *["git", "ls-files"],
+    )
 
-    #_run(
-    #    *["git", "fsck", "--full"],
-    #)
+    _run(
+        *["git", "fsck", "--full"],
+    )
 
     # next, we pull the git-lfs tracked data
     logger.info("Pre-fetch then Checkout data tracked by git-lfs")
