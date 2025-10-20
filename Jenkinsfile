@@ -50,9 +50,10 @@ pipeline
                                     #   --fallback-manual-lfs-download
                                     GIT_LFS_SKIP_SMUDGE=1 git submodule update --init
                                     cd cholla-tests-data
-                                    git ls-files
                                     git status
-                                    git fsck --full
+                                    git restore --staged .
+                                    git submodule foreach --recursive git lfs fetch
+                                    git submodule foreach --recursive git lfs checkout
                                     cd ..
                                 else
                                     # we skip the download because it's not currently
