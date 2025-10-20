@@ -612,6 +612,20 @@ def _setup_submodule(
         env={"GIT_LFS_SKIP_SMUDGE": "1"},
     )
 
+    logger.info("Let's see if we can determine what wrong with the submodule")
+    _run(
+        *["git", "status"],
+        cwd="./cholla-tests-data",
+    )
+    _run(
+        *["git", "ls-files"],
+        cwd="./cholla-tests-data",
+    )
+    _run(
+        *["git", "fsck", "--full"],
+        cwd="./cholla-tests-data",
+    )
+
     # next, we pull the git-lfs tracked data
     logger.info("Pre-fetch then Checkout data tracked by git-lfs")
     try:
