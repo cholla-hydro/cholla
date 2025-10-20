@@ -628,15 +628,14 @@ def _setup_submodule(
 
     logger.info("run some commands from root")
 
-    _run(
-        *["git", "ls-files"],
-    )
+    #_run(
+    #    *["git", "ls-files"],
+    #)
 
-    _run(
-        *["git", "fsck", "--full"],
-    )
+    #_run(
+    #    *["git", "fsck", "--full"],
+    #)
 
-    """
     # next, we pull the git-lfs tracked data
     logger.info("Pre-fetch then Checkout data tracked by git-lfs")
     try:
@@ -662,7 +661,6 @@ def _setup_submodule(
         _fallback_download(
             repo_path=repo_path, relative_submodule_path="cholla-tests-data"
         )
-    """
 
 def main(args: argparse.Namespace):
     _configure_logger(color=args.color)
