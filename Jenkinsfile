@@ -29,7 +29,8 @@ pipeline
                     axis
                     {
                         name 'CHOLLA_MAKE_TYPE'
-                        values 'hydro', 'gravity', 'disk', 'particles', 'cosmology', 'mhd', 'dust', 'cooling'
+                        //values 'hydro', 'gravity', 'disk', 'particles', 'cosmology', 'mhd', 'dust', 'cooling'
+                        values 'gravity', 'cosmology', 'mhd'
                     }
                 }
 
