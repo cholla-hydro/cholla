@@ -637,6 +637,8 @@ def _setup_submodule(
     )
 
     # next, we pull the git-lfs tracked data
+    logger.info("skipping everything git-lfs related")
+    """
     logger.info("Pre-fetch then Checkout data tracked by git-lfs")
     try:
         if simulate_lfs_fetch_failure:  # for testing purposes
@@ -661,6 +663,7 @@ def _setup_submodule(
         _fallback_download(
             repo_path=repo_path, relative_submodule_path="cholla-tests-data"
         )
+    """
 
 def main(args: argparse.Namespace):
     _configure_logger(color=args.color)

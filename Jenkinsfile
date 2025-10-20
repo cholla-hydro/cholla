@@ -48,6 +48,10 @@ pipeline
                                        --color \
                                        --simulate-lfs-fetch-failure \
                                        --fallback-manual-lfs-download
+                                    cd cholla-tests-data
+                                    git ls-files
+                                    git status
+                                    git fsck --full
                                 else
                                     # we skip the download because it's not currently
                                     # necessary & we want to minimize calls to
