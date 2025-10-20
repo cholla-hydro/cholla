@@ -372,6 +372,8 @@ def _iterate_over_ptr_file(submodule_path: str) -> Iterable[PointerFileInfo]:
         # past release notes suggests that the latter was originally --names)
         list_string = _run_gitlfs("ls-files", "-n").rstrip()
         paths = list_string.splitlines()
+        print("list of lfs-tracked files in submodule:")
+        print(path)
 
         # test whether each path hold a "pointer file" or the file itself
         for p in paths:
