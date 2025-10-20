@@ -44,14 +44,16 @@ pipeline
                                 if [ "${CHOLLA_MAKE_TYPE}" = "cosmology" ] ||
                                    [ "${CHOLLA_MAKE_TYPE}" = "mhd" ] ||
                                    [ "${CHOLLA_MAKE_TYPE}" = "gravity" ]; then
-                                    ./tools/ci-setup-submodule.py \
-                                       --color \
-                                       --simulate-lfs-fetch-failure \
-                                       --fallback-manual-lfs-download
+                                    #./tools/ci-setup-submodule.py \
+                                    #   --color \
+                                    #   --simulate-lfs-fetch-failure \
+                                    #   --fallback-manual-lfs-download
+                                    GIT_LFS_SKIP_SMUDGE=1 git submodule update --init
                                     cd cholla-tests-data
                                     git ls-files
                                     git status
                                     git fsck --full
+                                    cd ..
                                 else
                                     # we skip the download because it's not currently
                                     # necessary & we want to minimize calls to
