@@ -50,14 +50,12 @@ pipeline
                                     #   --simulate-lfs-fetch-failure \
                                     #   --fallback-manual-lfs-download
                                     GIT_LFS_SKIP_SMUDGE=1 git submodule update --init
-                                    cd cholla-tests-data
-                                    git status
-                                    git restore .
-                                    git status
+                                    git -C ./cholla-tests-data status
+                                    GIT_LFS_SKIP_SMUDGE=1 git -C ./cholla-tests-data restore .
+                                    git -C ./cholla-tests-data status
                                     git submodule foreach --recursive git lfs fetch
                                     git submodule foreach --recursive git lfs checkout
-                                    git status
-                                    cd ..
+                                    git -C ./cholla-tests-data status
                                 else
                                     # we skip the download because it's not currently
                                     # necessary & we want to minimize calls to
