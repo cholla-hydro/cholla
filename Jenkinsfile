@@ -41,7 +41,7 @@ pipeline
                         steps
                         {
                             sh  '''
-                                git config --list
+                                git config --list --show-origin
                                 if [ "${CHOLLA_MAKE_TYPE}" = "cosmology" ] ||
                                    [ "${CHOLLA_MAKE_TYPE}" = "mhd" ] ||
                                    [ "${CHOLLA_MAKE_TYPE}" = "gravity" ]; then
