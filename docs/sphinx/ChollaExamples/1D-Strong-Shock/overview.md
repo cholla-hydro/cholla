@@ -63,6 +63,6 @@ gamma=1.4
 ```
 Upon completion, you should obtain two output files.  The initial and final density (black), pressure (red), and velocity (blue) (in code units) of the solution is shown below. Examples of how to extract and plot data can be found in cholla/python_scripts/plot_sod.ipynb.  
 
-:::figure{two_times.png}
+:::figure{strong-shock-docs.png}
 
 We see a rarefaction expanding from just after the initial discontinuity, followed by a contact discontinuity at x =0.75 and a shock at x = 0.85. There is very slight oscillatory behavior around x = 0.7 but it is limited.
