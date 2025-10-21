@@ -56,6 +56,8 @@ pipeline
                                     git submodule foreach --recursive git lfs fetch
                                     git submodule foreach --recursive git lfs checkout
                                     git -C ./cholla-tests-data status
+                                    cat ./cholla-tests-data/initial_conditions/tCOSMOLOGYSYSTEM50Mpc_CorrectInputExpectCorrectOutput/0.h5.0
+
                                 else
                                     # we skip the download because it's not currently
                                     # necessary & we want to minimize calls to
