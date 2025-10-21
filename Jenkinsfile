@@ -50,6 +50,7 @@ pipeline
                                     #   --simulate-lfs-fetch-failure \
                                     #   --fallback-manual-lfs-download
                                     GIT_LFS_SKIP_SMUDGE=1 git submodule update --init
+                                    git status
                                     git -C ./cholla-tests-data status
                                     GIT_LFS_SKIP_SMUDGE=1 git -C ./cholla-tests-data restore .
                                     git -C ./cholla-tests-data status
