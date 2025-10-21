@@ -12,6 +12,13 @@ Continue porting me from the [wiki](https://github.com/cholla-hydro/cholla/wiki/
 1D-Shu-Osher/overview
 1D-Square-Wave/overview
 1D-Strong-Shock/overview
+1D-Sound-Wave/overview
+1D-Two-Shocks/overview
+2D-Disk/overview
+2D-khri/overview
 2d-khd/overview
+2D-noh/overview
+2D-Rayleigh-Taylor/overview
+2D-Sod/overview
 :::
 

@@ -61,7 +61,7 @@ diaph=0.5
 # value of gamma
 gamma=1.4
 ```
-Upon completion, you should obtain two output files.  The initial and final density, pressure, and velocity (in code units) of the solution is shown below (pink dots) plotted over the exact solution (purple line). Examples of how to extract and plot data can be found in cholla/python_scripts/plot_sod.ipynb.  
+Upon completion, you should obtain two output files.  The initial and final density (black), pressure (red), and velocity (blue) (in code units) of the solution is shown below. Examples of how to extract and plot data can be found in cholla/python_scripts/plot_sod.ipynb.  
 
 :::figure{two_times.png}
 

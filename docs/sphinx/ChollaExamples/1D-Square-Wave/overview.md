@@ -56,7 +56,7 @@ A=1.5
 # value of gamma
 gamma=1.666666666666667
 ```
-Upon completion, you should obtain 101 output files. We can obtain the evolution of the density (here at 10 fps). Pressure is constant to the $10^{-14}$ level. Examples of how to extract and plot data can be found in `cholla/python_scripts/plot_sod.ipynb`.  
+Upon completion, you should obtain 101 output files. We can obtain the evolution of the density. Pressure is constant to the $10^{-14}$ level. Examples of how to extract and plot data can be found in `cholla/python_scripts/plot_sod.ipynb`.  
 
 
 :::{video} square-docs.mp4
@@ -69,13 +69,9 @@ Upon completion, you should obtain 101 output files. We can obtain the evolution
 
 We see a square waveform of amplitude 1.5 propagating rightwards.  
 
-If the wave is left to propagate for an extended period of time, we observe a rapid breakdown in the structure. This breakdown is much fast with the Van Leer integrator than with the Simple integrator:
+If the wave is left to propagate for an extended period of time, we observe a rapid breakdown in the structure. This breakdown is much faster with the Van Leer integrator than with the Simple integrator:
 
 Van Leer:
 
 <img src="https://github.com/user-attachments/assets/52248416-8606-43e8-bac5-8d4179581785" width="682" height="452" />
-
-Simple:
-
-https://github.com/evazlimen/cholla-example-tests/assets/109487593/7e45ec1c-0d61-452f-abc9-eeb2f1eb0024
 
