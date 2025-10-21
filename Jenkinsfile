@@ -52,6 +52,8 @@ pipeline
                                     GIT_LFS_SKIP_SMUDGE=1 git submodule update --init
                                     git status
                                     git -C ./cholla-tests-data status
+                                    # a quick test of git status in a python script
+                                    ./tools/ci-setup-submodule.py
                                     GIT_LFS_SKIP_SMUDGE=1 git -C ./cholla-tests-data restore .
                                     git -C ./cholla-tests-data status
                                     cat ./cholla-tests-data/initial_conditions/tCOSMOLOGYSYSTEM50Mpc_CorrectInputExpectCorrectOutput/0.h5.0

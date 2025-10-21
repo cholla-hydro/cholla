@@ -734,4 +734,9 @@ parser.add_argument(
 )
 
 if __name__ == "__main__":
-    sys.exit(main(parser.parse_args()))
+    _configure_logger(color=True)
+    _run(
+        *["git", "status"],
+        cwd="./cholla-tests-data",
+    )
+    #sys.exit(main(parser.parse_args()))
