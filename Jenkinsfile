@@ -29,8 +29,7 @@ pipeline
                     axis
                     {
                         name 'CHOLLA_MAKE_TYPE'
-                        //values 'hydro', 'gravity', 'disk', 'particles', 'cosmology', 'mhd', 'dust', 'cooling'
-                        values 'gravity', 'cosmology', 'mhd'
+                        values 'hydro', 'gravity', 'disk', 'particles', 'cosmology', 'mhd', 'dust', 'cooling'
                     }
                 }
 
@@ -41,25 +40,12 @@ pipeline
                         steps
                         {
                             sh  '''
-                                git config --list --show-origin
                                 if [ "${CHOLLA_MAKE_TYPE}" = "cosmology" ] ||
                                    [ "${CHOLLA_MAKE_TYPE}" = "mhd" ] ||
                                    [ "${CHOLLA_MAKE_TYPE}" = "gravity" ]; then
                                     ./tools/ci-setup-submodule.py \
                                        --color \
                                        --fallback-manual-lfs-download
-                                    #GIT_LFS_SKIP_SMUDGE=1 git submodule update --init
-                                    #git status
-                                    #git -C ./cholla-tests-data status
-                                    ## a quick test of git status in a python script
-                                    #./tools/ci-setup-submodule.py
-                                    #GIT_LFS_SKIP_SMUDGE=1 git -C ./cholla-tests-data restore .
-                                    #git -C ./cholla-tests-data status
-                                    #cat ./cholla-tests-data/initial_conditions/tCOSMOLOGYSYSTEM50Mpc_CorrectInputExpectCorrectOutput/0.h5.0
-                                    #git submodule foreach --recursive git lfs fetch
-                                    #git submodule foreach --recursive git lfs checkout
-                                    #git -C ./cholla-tests-data status
-
                                 else
                                     # we skip the download because it's not currently
                                     # necessary & we want to minimize calls to
