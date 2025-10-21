@@ -53,10 +53,10 @@ pipeline
                                     git -C ./cholla-tests-data status
                                     GIT_LFS_SKIP_SMUDGE=1 git -C ./cholla-tests-data restore .
                                     git -C ./cholla-tests-data status
+                                    cat ./cholla-tests-data/initial_conditions/tCOSMOLOGYSYSTEM50Mpc_CorrectInputExpectCorrectOutput/0.h5.0
                                     git submodule foreach --recursive git lfs fetch
                                     git submodule foreach --recursive git lfs checkout
                                     git -C ./cholla-tests-data status
-                                    cat ./cholla-tests-data/initial_conditions/tCOSMOLOGYSYSTEM50Mpc_CorrectInputExpectCorrectOutput/0.h5.0
 
                                 else
                                     # we skip the download because it's not currently
