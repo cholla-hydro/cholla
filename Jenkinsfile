@@ -53,8 +53,10 @@ pipeline
                                     cd cholla-tests-data
                                     git status
                                     git restore --staged .
+                                    git status
                                     git submodule foreach --recursive git lfs fetch
                                     git submodule foreach --recursive git lfs checkout
+                                    git status
                                     cd ..
                                 else
                                     # we skip the download because it's not currently
