@@ -107,7 +107,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from typing import Dict, IO, Iterable, Mapping, NamedTuple, Optional
+from typing import (
+    Container, Dict, IO, Iterable, Mapping, NamedTuple, Optional, Union
+)
 
 # Handle some global stuff
 # ========================
@@ -175,18 +177,23 @@ def _get_subprocess_run_env_kwarg(
     else:
         return env
 
+class CmdRslt(NamedTuple):
+    returncode: int  # the exit code
+    stdout: Optional[str]  # the stdout stream (if captured)
+
 
 def _run(
     *args: str,
     log: bool = True,
     silent: bool = False,
-    check_returncode: bool = True,
     cwd: Optional[str] = None,
     timeout: Optional[float] = None,
     include_outer_env: bool = True,
     env: Optional[Mapping[str, str]] = None,
-    stdout: Optional[IO[str]] = None,
-) -> int:
+    stdout: Union[IO[str], int, None] = None,
+    stderr: Union[IO[str], int, None] = None,
+    success_codes: Optional[Container[int]] = (0,),
+) -> CmdRslt:
     """Invoke a command
 
     The interface is loosely inspired by the nox API
@@ -196,11 +203,11 @@ def _run(
     *args
         The command and its arguments
     log : bool
-        When True, we log the command
+        When ``True``, we log the command. Default is ``True``
     silent : bool
-        When True, stdout and stderr are suppressed
-    check_returncode : bool
-        When True, we report an error for non-0 return codes
+        Default is ``False``. When ``True``, silences command output and
+        returns the output from this function. This is accomplished by
+        combining stdout & stderr into a single stream.
     cwd : str, optional
         Optionally specifies a directory to invoke the command from
     timeout : float, optional
@@ -213,13 +220,16 @@ def _run(
         When specified, it's used to specify the subprocess's env variables.
         When include_outer_env is True, we overwrite variables.
     stdout
-        Optionally specifies an open file object where to write the
-        contents of stdout.
+        Optionally specifies an open file object or a file descriptor where
+        the contents of stdout are written. Incompatible with silent=True
+    stderr
+        Optionally specifies an open file object or a file descriptor where
+        the contents of stderr are written. Incompatible with silent=True
 
     Returns
     -------
-    int
-        The command's returncode
+    CmdRslt
+        Holdds the return code and stdout (if it was captured)
     """
     # some argument checking:
     if len(args) == 0:
@@ -236,15 +246,19 @@ def _run(
         _meta_list.append(f"ENV: {_env_str}")
         logger.info(f"$ {_msg}; ({'; '.join(_meta_list)})")
 
-    # adjust stdout if necessary
-    if stdout is None and not silent:
+    # adjust stdout & stderr if necessary
+    if silent:
+        if stdout is not None:
+            raise ValueError("Can't specify stdout kwarg with silent==True")
+        elif stderr is not None:
+            raise ValueError("Can't specify stderr kwarg with silent==True")
+        # combine stdout and stder into a single stream
         stdout = subprocess.PIPE
-    elif stdout is not None and silent:
-        raise ValueError("Can't specify stdout when silent=True")
-    # define the value of stderr
-    stderr = subprocess.STDOUT if silent else None
+        stderr = subprocess.STDOUT
+    elif stderr == subprocess.PIPE:
+        raise ValueError("currently no support for stderr=subprocess.PIPE")
 
-    rslt = subprocess.run(
+    tmp_rslt = subprocess.run(
         args,
         cwd=cwd,
         stdout=stdout,
@@ -252,9 +266,15 @@ def _run(
         env=_get_subprocess_run_env_kwarg(include_outer_env=include_outer_env, env=env),
         timeout=timeout,
     )
-    if check_returncode and (rslt.returncode != 0):
+    sys.stdout.flush()
+
+    # repackage the result
+    _stdout = tmp_rslt.stdout.decode("utf8") if tmp_rslt.stdout is not None else None
+    rslt = CmdRslt(returncode=tmp_rslt.returncode, stdout=_stdout)
+
+    if (success_codes is not None) and (rslt.returncode not in success_codes):
         if silent and rslt.stdout:
-            print(rslt.stdout.decode("utf8"), file=sys.stderr, flush=True)
+            print(rslt.stdout, file=sys.stderr, flush=True)
         cwd = "./" if cwd is None else cwd
         raise ScriptError(
             "subprocess exited with nonzero code\n"
@@ -262,8 +282,7 @@ def _run(
             f"  env: {_fmt_env_args(include_outer_env=include_outer_env, env=env)}\n"
             f"  code: {rslt.returncode}\n"
         )
-    else:
-        return rslt.returncode
+    return rslt
 
 
 # define the actual CI logic
@@ -340,8 +359,20 @@ def _parse_ptr_file(repo_location: str, relative_to_repo_path: str) -> PointerFi
     )
 
 
-def _iterate_over_ptr_file(submodule_path: str) -> Iterable[PointerFileInfo]:
-    # iterate over all git-lfs pointer files
+def _iterate_over_ptr_file(
+    submodule_path: str, yield_possible_paths:bool = False
+) -> Union[Iterable[PointerFileInfo], Iterable[str]]:
+    """
+    A generator that iterates over all git-lfs pointer files.
+
+    By default, it yields a ``PointerFileInfo`` instance for each git-lfs
+    pointer file. It skips any file that already refers to the large file. The
+    behavior is undefined if a file was deleted at each location.
+
+    When ``yield_possible_paths`` is ``True``, this just yields the names of
+    any file known to git-lfs
+    """
+    # a generator that provides information for all git-lfs pointer files
 
     def _run_gitlfs(*args) -> str:
         # a helper function that runs git-lfs and returns the output as a string
@@ -366,21 +397,25 @@ def _iterate_over_ptr_file(submodule_path: str) -> Iterable[PointerFileInfo]:
             f"Skip ptr file iteration, since git-lfs version, {'.'.join(version)}, "
             "is older than 2.6.0"
         )
-    elif version < (3, 7, 0):
-        # elif True:
+    elif version < (3, 7, 0) or yield_possible_paths:
         # get a list of tracked file names (use -n flag rather than --name-only since
         # past release notes suggests that the latter was originally --names)
         list_string = _run_gitlfs("ls-files", "-n").rstrip()
         paths = list_string.splitlines()
-        print("list of lfs-tracked files in submodule:")
-        print(path)
-
-        # test whether each path hold a "pointer file" or the file itself
-        for p in paths:
-            try:
-                yield _parse_ptr_file(submodule_path, p)
-            except RuntimeError:
-                continue
+        
+        if yield_possible_paths:
+            yield from (os.path.join(submodule_path, p) for p in paths)
+        else:
+            # test whether each path hold a "pointer file" or the file itself
+            for p in paths:
+                try:
+                    yield _parse_ptr_file(submodule_path, p)
+                except RuntimeError:
+                    continue
+                except FileNotFoundError:
+                    raise RuntimeError(
+                        f"Expected to find a pointer file or large file at {p}"
+                    ) from None
     else:
         # This branch only works for newer versions of git-lfs. It only exists because
         # I didn't original;y realize that it depends on newer features (we keep it
@@ -509,16 +544,6 @@ def _fallback_download(repo_path: Optional[str], relative_submodule_path: str):
         tmp_fp.seek(0)
         submodule_commit_hash = tmp_fp.read().decode("utf-8").rstrip()
 
-    _run("git", "status", cwd = relative_submodule_path)
-    startpath=relative_submodule_path
-    for root, dirs, files in os.walk(startpath):
-        level = root.replace(startpath, '').count(os.sep)
-        indent = ' ' * 4 * (level)
-        print(f'{indent}{os.path.basename(root)}/')
-        subindent = ' ' * 4 * (level + 1)
-        for f in files:
-            print(f'{subindent}{f}')
-
     # maybe don't hardcode _URL_PREFIX in the future
     _URL_PREFIX = "https://github.com/cholla-hydro/cholla-tests-data"
     base_url = f"{_URL_PREFIX}/raw/{submodule_commit_hash}"
@@ -556,10 +581,18 @@ def _fallback_download(repo_path: Optional[str], relative_submodule_path: str):
             # we use shutil.move in case tmp_dst_path is on a different file-system
             shutil.move(tmp_dst_path, final_dst_path)
 
+def _check_submodule_validity(submod_path: str) -> bool:
+    """Checks whether the submodule is valid"""
+    message = _run(
+        "git", "-C", submod_path, "status", "--porcelain=v1", silent=True, log=False
+    ).stdout
+    return (len(message) == 0) or message.isspace()
+
 
 def _setup_submodule(
     repo_path: Optional[str] = None,
     simulate_lfs_fetch_failure: bool = False,
+    simulate_submodule_error: bool = False,
     fallback_manual_lfs_download: bool = False,
 ):
     """
@@ -586,16 +619,15 @@ def _setup_submodule(
     #    this script)
     # 2. we are executing this script from the root of the repositry (we can adjust
     #    this assumption in the future)
+    _submod_name = "cholla-tests-data"
     if repo_path is None:
         logger.info(f"Submodule Setup (assumed repo-path: {os.getcwd()})")
+        submod_path = f"./{_submod_name}"
     else:
         logger.info(f"Submodule Setup (repo-path: {repo_path})")
+        submod_path = os.path.join(repo_path, _submod_name)
 
-    # first, off let's init the submodule
-    #logger.info("First, perform some basic submodule setup")
-    #_run("git", "submodule", "init", cwd=repo_path)
-
-    # now, we fetch the submodule data without pulling data for the large files
+    # first, we fetch the submodule data without pulling data for the large files
     # tracked by git-lfs
     # -> instead we pull the pointer files (that instructs git-lfs where to get the
     #    data from)
@@ -612,33 +644,31 @@ def _setup_submodule(
         env={"GIT_LFS_SKIP_SMUDGE": "1"},
     )
 
-    logger.info("Let's see if we can determine what wrong with the submodule")
-    _run(
-        *["git", "status"],
-        cwd="./cholla-tests-data",
-    )
-    _run(
-        *["git", "ls-files"],
-        cwd="./cholla-tests-data",
-    )
-    _run(
-        *["git", "fsck", "--full", "--verbose"],
-        cwd="./cholla-tests-data",
-    )
+    logger.info("Check if git submodule update was entirely successful")
+    invalid_submodule = not _check_submodule_validity(submod_path)
+    if invalid_submodule:
+        logger.info("Error with submodule-update. Showing result of git-status")
+        _run("git", "-C", submod_path, "status")
+    elif simulate_submodule_error:
+        logger.info("git submodule update succeeded. Simulating failure")
+        for path in _iterate_over_ptr_file(submod_path, yield_possible_paths=True):
+            os.remove(path)
+        invalid_submodule = True
+    else:
+        logger.info("git submodule update succeeded.")
 
-    logger.info("run some commands from root")
-
-    _run(
-        *["git", "ls-files"],
-    )
-
-    _run(
-        *["git", "fsck", "--full"],
-    )
+    # now we try to fix things up
+    if invalid_submodule:
+        logger.info("Attempt to fixup the submodule")
+        # if we don't disable git-lfs, it will try to run right now
+        _run(
+            *["git", "-C", submod_path, "restore", "."],
+            env={"GIT_LFS_SKIP_SMUDGE": "1"},
+        )
+        if not _check_submodule_validity(submod_path):
+            raise ScriptError("could not fix up the module")
 
     # next, we pull the git-lfs tracked data
-    logger.info("skipping everything git-lfs related")
-    """
     logger.info("Pre-fetch then Checkout data tracked by git-lfs")
     try:
         if simulate_lfs_fetch_failure:  # for testing purposes
@@ -663,7 +693,6 @@ def _setup_submodule(
         _fallback_download(
             repo_path=repo_path, relative_submodule_path="cholla-tests-data"
         )
-    """
 
 def main(args: argparse.Namespace):
     _configure_logger(color=args.color)
@@ -676,6 +705,7 @@ def main(args: argparse.Namespace):
         _setup_submodule(
             repo_path=args.repo_path,
             simulate_lfs_fetch_failure=args.simulate_lfs_fetch_failure,
+            simulate_submodule_error=args.simulate_submodule_error,
             fallback_manual_lfs_download=args.fallback_manual_lfs_download,
         )
 
@@ -717,13 +747,16 @@ parser.add_argument(  # used for testing
 parser.add_argument(  # used for testing
     "--simulate-lfs-fetch-failure",
     action="store_true",
-    default=None,
     help=(
         "skip the git-lfs commands and act as if it failed. This is primarily intended "
         "for testing purposes"
     ),
 )
-
+parser.add_argument(  # used for testing
+    "--simulate-submodule-error",
+    action="store_true",
+    help="simulate a common git submodule update issue"
+)
 parser.add_argument(
     "--fallback-manual-lfs-download",
     action="store_true",
@@ -734,9 +767,4 @@ parser.add_argument(
 )
 
 if __name__ == "__main__":
-    _configure_logger(color=True)
-    _run(
-        *["git", "status"],
-        cwd="./cholla-tests-data",
-    )
-    #sys.exit(main(parser.parse_args()))
+    sys.exit(main(parser.parse_args()))
