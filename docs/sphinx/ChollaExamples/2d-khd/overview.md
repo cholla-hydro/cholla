@@ -41,13 +41,20 @@ zu_bcnd=0
 # path to output directory
 outdir=./
 ```
-Upon completion, you should obtain 201 output files. The initial and final density and pressure (in code units) is shown below. Examples of how to plot projections and slices can be found in `cholla/python_scripts/Projection_Slice_Tutorial.ipynb`.  
-Density:  
-<img src="./images/2dkh-discontinuous_density_xy.png" width="1200" />  
-Pressure:  
-<img src="./images/2dkh-discontinuous_pressure_xy.png" width="1200" />  
+Upon completion, you should obtain 201 output files. The initial and final density is shown below. Examples of how to plot projections and slices can be found in `cholla/python_scripts/Projection_Slice_Tutorial.ipynb`.  
 
-We see even on a relatively low resolution grid, significant shear mixing has occured. An evolution of the density at 10 fps is seen [[here|/images/kh-discont-d.mp4]]:  
+:::{figure} snapshots_khd.png
+
+We see even on a relatively low resolution grid, significant shear mixing has occured. An evolution of the density below.
+
+:::{video} khd-docs.mp4
+    :width: 640
+    :height: 480
+    :autoplay:
+    :loop:
+    :align: center
+:::
+
 
 We can compare Cholla (left) to the results of the [Athena](https://www.astro.princeton.edu/~jstone/Athena/tests/kh/kh.html) code (right), on a 512x512 grid at t = 1.00. Density is shown on a linear color map between 0.9 and 2.1  
 <img src="./images/2d_khdiscontinuous_512density_xy.gif" width="400" />  
