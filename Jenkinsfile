@@ -52,7 +52,7 @@ pipeline
                                     GIT_LFS_SKIP_SMUDGE=1 git submodule update --init
                                     cd cholla-tests-data
                                     git status
-                                    git restore --staged .
+                                    git restore .
                                     git status
                                     git submodule foreach --recursive git lfs fetch
                                     git submodule foreach --recursive git lfs checkout
