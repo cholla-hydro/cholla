@@ -42,6 +42,7 @@ pipeline
                             sh  '''
                                 if [ "${CHOLLA_MAKE_TYPE}" = "cosmology" ] ||
                                    [ "${CHOLLA_MAKE_TYPE}" = "mhd" ] ||
+                                   [ "${CHOLLA_MAKE_TYPE}" = "hydro" ] ||
                                    [ "${CHOLLA_MAKE_TYPE}" = "gravity" ]; then
                                     ./tools/ci-setup-submodule.py \
                                        --color \
