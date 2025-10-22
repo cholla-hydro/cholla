@@ -42,36 +42,58 @@ we can temporarily disable `git-lfs`)
 
 Setting up the Submodule
 ========================
-Since we encounter problems on the CRC's file-system when we invoke the
-following command
+In an ideal world, we would simply call
 
 ```sh
-$ git submodule update --init --recursive
+$ git submodule update --init
 ```
 
-we instead adopt a more manual procedure that achieves equivalent results. The
-steps to our procedure include:
+because it should do everything for us behind the scenes. Unfortunately, this
+can trigger 2 distinct errors on the CRC cluster (one error pertains to
+``git-submodule`` and the other pertains to ``git-lfs``).
 
-1. "initialize" the submodule (`git submodule init`)
+We instead adopt a more manual procedure that achieves equivalent results.
+The steps to our procedure include:
 
-2. pull the submodule data (`git submodule update`).
+1. pull the submodule data, via ``git submodule update --init``, while
+   explicitly disabling ``git-lfs``.
 
-   - Importantly, we use an environment variable to disable all "smudging"
-     pertaining to `git-lfs` when `git submodule update` internally triggers
-     machinery equivalent to `git-clone`, `git-fetch`, and `git-checkout`
-     for each submodule.
+   - In more detail, we use an environment variable to disable all "smudging"
+     pertaining to ``git-lfs`` when ``git submodule update`` internally
+     triggers machinery equivalent to ``git-clone``, ``git-fetch``, and
+     ``git-checkout`` for each submodule.
 
    - Aside: While `git-lfs` provides a few ways to disable smudging, a lot of
      trial-and-error suggests that the environment variable seems to be the
      only way to do it in the context of git submodule.
 
-3. pre-fetch all of the relevant git-lfs data
+   - To be clear: at the end of this step, the submodule **SHOULD** hold
+     "pointer files" for each large file tracked by ``git-lfs``
 
-4. actually checkout the git-lfs data
+2. Now we check if the previous step failed (this is a common failure point on
+   the CRC cluster). If it failed we try to "fix things"
 
-This procedure still fails on the CRC cluster. At the time of writing, all
-failures seem to occur in step 3 (with slightly more descriptive error
-messages than the use of the single flag.
+   - to "fix things," we call ``git -C ./cholla-tests-data restore .``.
+     Importantly, we need to explicitly disable ``git-lfs`` (we use the same
+     environment variable). If we don't disable it, ``git-lfs`` will try to
+     replace all of the pointer files with the corresponding large file (and
+     could produce errors).
+
+   - I don't fully understand exactly how/why ``git-submodule-update`` fails.
+     It always seems to fail when it invokes machinery equivalent to
+     ``git-checkout`` (if it instead failed when invoking machinery equivalent
+     to ``git-clone`` or ``git-fetch``, our attempt to "fix things," will not
+     work).
+
+   - At the end of this step, the submodule **MUST** hold "pointer files" for
+     each large file tracked by ``git-lfs``. If this isn't true, then the
+     script should abort with a failure
+
+3. pre-fetch all of the relevant git-lfs data and then checkout that data
+
+4. If step 3 failed (common on the CRC cluster), we can switch to our
+   fallback strategy. This strategy must be enabled by passing a command line
+   option. We describe the strategy in the next section.
 
 A Manual Fallback Strategy
 ==========================
@@ -99,6 +121,7 @@ This definitely "gets the job done," there are some concerns:
 
 # for portability: only use standard-library modules present in older python versions
 import argparse
+import functools
 import hashlib
 import logging
 import os
@@ -107,9 +130,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from typing import (
-    Container, Dict, IO, Iterable, Mapping, NamedTuple, Optional, Union
-)
+from typing import Container, Dict, IO, Iterable, Mapping, NamedTuple, Optional, Union
 
 # Handle some global stuff
 # ========================
@@ -176,6 +197,7 @@ def _get_subprocess_run_env_kwarg(
         return {}  # subprocess is run with no environment variables
     else:
         return env
+
 
 class CmdRslt(NamedTuple):
     returncode: int  # the exit code
@@ -342,15 +364,16 @@ def _parse_ptr_file(repo_location: str, relative_to_repo_path: str) -> PointerFi
 
     tmp = {}
     cur_pos = 0
-    cur_line = 0
     for match in _keyvalue_regex.finditer(contents):
         if cur_pos != match.start():
-            raise _mk_err(f"line {cur_line} isn't a standard key-value pair")
-        tmp[match["key"]] = match["value"]
+            raise _mk_err(f"line {len(tmp)} isn't a standard key-value pair")
+        key = match["key"]
+        if key in tmp:
+            raise _mk_err(f"the key, {key!r}, appears more than once")
+        tmp[key] = match["value"]
         cur_pos = match.end()
-        cur_line += 1
     if cur_pos != len(contents):
-        raise _mk_err(f"line {cur_line} isn't a standard key-value pair")
+        raise _mk_err(f"line {1 + len(tmp)} isn't a standard key-value pair")
     return PointerFileInfo(
         full_file_path=path,
         relative_to_repo_path=relative_to_repo_path,
@@ -359,70 +382,91 @@ def _parse_ptr_file(repo_location: str, relative_to_repo_path: str) -> PointerFi
     )
 
 
-def _iterate_over_ptr_file(
-    submodule_path: str, yield_possible_paths:bool = False
-) -> Union[Iterable[PointerFileInfo], Iterable[str]]:
-    """
-    A generator that iterates over all git-lfs pointer files.
-
-    By default, it yields a ``PointerFileInfo`` instance for each git-lfs
-    pointer file. It skips any file that already refers to the large file. The
-    behavior is undefined if a file was deleted at each location.
-
-    When ``yield_possible_paths`` is ``True``, this just yields the names of
-    any file known to git-lfs
-    """
-    # a generator that provides information for all git-lfs pointer files
-
-    def _run_gitlfs(*args) -> str:
-        # a helper function that runs git-lfs and returns the output as a string
-        with tempfile.TemporaryFile() as tmp_fp:
-            full_command = ["git", "lfs"]
-            full_command.extend(args)
-            _run(*full_command, log=False, cwd=submodule_path, stdout=tmp_fp)
-            tmp_fp.seek(0)
-            return tmp_fp.read().decode("utf-8")
-
-    # get the git-lfs version
-    version_str = _run_gitlfs("--version")
-    m = re.match(r"^git-lfs/(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", version_str)
+@functools.lru_cache
+def _git_lfs_version() -> tuple[int, int, int]:
+    """returns the major, minor, and patch version numbers for ``git-lfs``"""
+    string = _run("git", "lfs", "--version", log=False, silent=True).stdout.rstrip()
+    m = re.match(r"^git-lfs/(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", string)
     if m is None:
         raise ScriptError(
-            f"git-lfs returns a string with an unexpected format: {version_str!r}"
+            f"git-lfs returns a string with an unexpected format: {string!r}"
         )
-    version = (int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    return (int(m.group(1)), int(m.group(2)), int(m.group(3)))
 
+
+def _scan_lfs_tracked_paths(
+    repo_path: str, *, relative_to_repo_path: bool = True
+) -> Iterable[str]:
+    """
+    Return an iterable of all paths in a repository that correspond to files
+    tracked by git-lfs
+
+    Parameters
+    ----------
+    repo_path
+        Path to the local repository that we are querying
+    relative_to_repo_path
+        When ``True`` (the default), yielded paths are relative to the root
+        of the repository. Otherwise, absolute paths are yielded
+
+    Yields
+    ------
+    str
+        path tracked by ``git-lfs`` (see ``relative_to_repo_path`` kwarg for
+        more details)
+    """
+    version = _git_lfs_version()
     if version < (2, 6, 0):
         raise ScriptError(
-            f"Skip ptr file iteration, since git-lfs version, {'.'.join(version)}, "
-            "is older than 2.6.0"
+            "Can't query files tracked by git-lfs since the git-lfs version, "
+            f"{'.'.join(version)}, is older than 2.6.0"
         )
-    elif version < (3, 7, 0) or yield_possible_paths:
+    else:
         # get a list of tracked file names (use -n flag rather than --name-only since
         # past release notes suggests that the latter was originally --names)
-        list_string = _run_gitlfs("ls-files", "-n").rstrip()
-        paths = list_string.splitlines()
-        
-        if yield_possible_paths:
-            yield from (os.path.join(submodule_path, p) for p in paths)
+        path_list_string = _run(
+            "git", "-C", repo_path, "lfs", "ls-files", "-n", log=False, silent=True
+        ).stdout
+        paths = path_list_string.rstrip().splitlines()
+
+        if relative_to_repo_path:
+            yield from paths
         else:
+            yield from (os.path.join(repo_path, p) for p in paths)
+
+
+def _iterate_over_ptr_file(submodule_path: str) -> Iterable[PointerFileInfo]:
+    """
+    Returns an iterable ``PointerFileInfo`` corresponding for each git-lfs
+    pointer file in the specified submodule. This does not include entries in
+    cases where the pointer file has been replaced with the large file. The
+    behavior is undefined (it may be inconsistent) if no file can be found at
+    the path to an lfs-tracked file.
+    """
+    if _git_lfs_version() < (3, 7, 0):
+        for p in _scan_lfs_tracked_paths(submodule_path, relative_to_repo_path=True):
             # test whether each path hold a "pointer file" or the file itself
-            for p in paths:
-                try:
-                    yield _parse_ptr_file(submodule_path, p)
-                except RuntimeError:
-                    continue
-                except FileNotFoundError:
-                    raise RuntimeError(
-                        f"Expected to find a pointer file or large file at {p}"
-                    ) from None
+            try:
+                yield _parse_ptr_file(submodule_path, p)
+            except RuntimeError:
+                continue
+            except FileNotFoundError:
+                raise RuntimeError(
+                    f"Expected to find a pointer file or large file at {p}"
+                ) from None
     else:
         # This branch only works for newer versions of git-lfs. It only exists because
-        # I didn't original;y realize that it depends on newer features (we keep it
+        # I didn't originaly realize that it depends on newer features (we keep it
         # because it is more efficient)
+
+        # we delay the import of json to reduce overhead
         import json
 
-        json_string = _run_gitlfs("ls-files", "--json")
+        json_string = _run(
+            *["git", "-C", submodule_path, "lfs", "ls-files", "--json"],
+            log=False,
+            silent=True,
+        ).stdout.rstrip()
         json_data = json.loads(json_string)
 
         # some quick sanity checks on the format
@@ -532,10 +576,12 @@ def calc_checksum(fname, alg_name, *, chunksize=_CHUNKSIZE):
 
 
 def _fallback_download(repo_path: Optional[str], relative_submodule_path: str):
-    # this is an EXTREMELY hacky fallback scheme to try to manually download files if
-    # git-lfs failed
-    #
-    # The docstring at the top of this file provides more context
+    """
+    An EXTREMELY hacky fallback scheme to manually download files if
+    git-lfs failed
+
+    The module-level docstring at the top of this file provides more context
+    """
 
     # get commit-hash associated with the submodule
     with tempfile.TemporaryFile() as tmp_fp:
@@ -581,6 +627,7 @@ def _fallback_download(repo_path: Optional[str], relative_submodule_path: str):
             # we use shutil.move in case tmp_dst_path is on a different file-system
             shutil.move(tmp_dst_path, final_dst_path)
 
+
 def _check_submodule_validity(submod_path: str) -> bool:
     """Checks whether the submodule is valid"""
     message = _run(
@@ -608,17 +655,15 @@ def _setup_submodule(
       together, there is a surprising lack of documentation about dealing with
       issues
     - things further get complicated while using them on shared file systems
-      with high latencies (we have run into a bunch of intermittent issues
-      with not downloading files tracked by git-lfs)
+      with high latencies. We have run into a bunch of intermittent issues
+      with git-submodule-update failing in weird ways and with git-lfs failing
+      to download files
+
+    See the module-level docstring for more details.
     """
 
-    # The docstring at the top of this file provides more context
-
-    # we currently assume that:
-    # 1. the repository has already been cloned (it needs to be in order to be running
-    #    this script)
-    # 2. we are executing this script from the root of the repositry (we can adjust
-    #    this assumption in the future)
+    # we currently assume that the repository has already been cloned (it needs to be
+    # in order to be running this script)
     _submod_name = "cholla-tests-data"
     if repo_path is None:
         logger.info(f"Submodule Setup (assumed repo-path: {os.getcwd()})")
@@ -644,35 +689,40 @@ def _setup_submodule(
         env={"GIT_LFS_SKIP_SMUDGE": "1"},
     )
 
-    logger.info("Check if git submodule update was entirely successful")
-    invalid_submodule = not _check_submodule_validity(submod_path)
-    if invalid_submodule:
-        logger.info("Error with submodule-update. Showing result of git-status")
-        _run("git", "-C", submod_path, "status")
-    elif simulate_submodule_error:
-        logger.info("git submodule update succeeded. Simulating failure")
-        for path in _iterate_over_ptr_file(submod_path, yield_possible_paths=True):
-            os.remove(path)
-        invalid_submodule = True
-    else:
-        logger.info("git submodule update succeeded.")
+    # we may want to simulate a git-submodule-update (for testing purposes)
+    if simulate_submodule_error:
+        logger.info("Simulate errors in git-submodule-update")
+        for path in _scan_lfs_tracked_paths(submod_path, relative_to_repo_path=False):
+            try:
+                os.remove(path)
+            except FileNotFoundError:
+                pass  # this means that git-submodule-update naturally had errors
 
-    # now we try to fix things up
-    if invalid_submodule:
-        logger.info("Attempt to fixup the submodule")
-        # if we don't disable git-lfs, it will try to run right now
+    # now, check for errors from git-submodule-update & try to recover (if necessary)
+    # -> silent errors commonly occur on the CRC cluster.
+    logger.info("Check whether git-submodule-update had any errors")
+    if _check_submodule_validity(submod_path):
+        logger.info("git submodule update succeeded.")
+    else:
+        logger.info("Error with git-submodule-update. Showing result of git-status")
+        _run("git", "-C", submod_path, "status")
+
+        logger.info("Attempting to recover from git-submodule-update's error")
+        # we must explicitly disable git-lfs. Otherwise, it will try to run right now
+        # (and we don't want to deal with any git-lfs errors yet)
         _run(
             *["git", "-C", submod_path, "restore", "."],
             env={"GIT_LFS_SKIP_SMUDGE": "1"},
         )
         if not _check_submodule_validity(submod_path):
             raise ScriptError("could not fix up the module")
+        logger.info("Recovery was succesful")
 
-    # next, we pull the git-lfs tracked data
+    # finally, we pull the git-lfs tracked data
     logger.info("Pre-fetch then Checkout data tracked by git-lfs")
     try:
         if simulate_lfs_fetch_failure:  # for testing purposes
-            logger.info("simulate failure of pre-fetch")
+            logger.info("simulating failure of git-lfs")
             raise ScriptError("simulated failure")
         _run(
             *["git", "submodule", "foreach", "--recursive", "git", "lfs", "fetch"],
@@ -682,17 +732,15 @@ def _setup_submodule(
             *["git", "submodule", "foreach", "--recursive", "git", "lfs", "checkout"],
             cwd=repo_path,
         )
-        lfs_success = True
     except ScriptError:
-        lfs_success = False
-        if not fallback_manual_lfs_download:
+        if fallback_manual_lfs_download:
+            logger.info("Attempting to work around git-lfs failure")
+            _fallback_download(
+                repo_path=repo_path, relative_submodule_path="cholla-tests-data"
+            )
+        else:
             raise
 
-    if fallback_manual_lfs_download and not lfs_success:
-        logger.info("Attempting to work around git-lfs failure")
-        _fallback_download(
-            repo_path=repo_path, relative_submodule_path="cholla-tests-data"
-        )
 
 def main(args: argparse.Namespace):
     _configure_logger(color=args.color)
@@ -755,7 +803,7 @@ parser.add_argument(  # used for testing
 parser.add_argument(  # used for testing
     "--simulate-submodule-error",
     action="store_true",
-    help="simulate a common git submodule update issue"
+    help="simulate a common git submodule update issue",
 )
 parser.add_argument(
     "--fallback-manual-lfs-download",
