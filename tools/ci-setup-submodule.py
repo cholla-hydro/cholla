@@ -130,7 +130,17 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from typing import Container, Dict, IO, Iterable, Mapping, NamedTuple, Optional, Union
+from typing import (
+    Container,
+    Dict,
+    IO,
+    Iterable,
+    Mapping,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Union,
+)
 
 # Handle some global stuff
 # ========================
@@ -382,8 +392,8 @@ def _parse_ptr_file(repo_location: str, relative_to_repo_path: str) -> PointerFi
     )
 
 
-@functools.lru_cache
-def _git_lfs_version() -> tuple[int, int, int]:
+@functools.lru_cache(maxsize=1)
+def _git_lfs_version() -> Tuple[int, int, int]:
     """returns the major, minor, and patch version numbers for ``git-lfs``"""
     string = _run("git", "lfs", "--version", log=False, silent=True).stdout.rstrip()
     m = re.match(r"^git-lfs/(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", string)
