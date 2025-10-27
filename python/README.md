@@ -17,6 +17,8 @@ For context some basic context:
 > [!NOTE]  
 > Avoid executing any tests or scripts that import ``cholla_utils`` from within this directory (the presence of the ``cholla_utils`` subdirectory can confuse python).
 
+<!-- SPHINX-START -->
+
 ## Installation
 
 Currently, you **MUST** install this package from source.[^1] You can skip the rest of this section if you are already familiar with installation of python packages.

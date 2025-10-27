@@ -23,7 +23,21 @@ requires-python = ">=3.10"
 # these are development dependencies. They can be installed with pip (v25.1+)
 # by invoking `pip install --user --group dev` from the directory holding this
 # configuration file
-dev = ["pytest"]
+docs = [
+    'breathe',
+    'furo',
+    'ipython >= 8.8', # this is needed with nbsphinx
+    'myst_parser',
+    'nbsphinx',
+    'sphinx',
+    'sphinx-inline-tabs',
+    'sphinx-autodoc-typehints'
+]
+test = ['pytest']
+dev = [
+    {include-group = "docs"},
+    {include-group = 'test'}
+]
 
 # specify information that directly configures the hatchling "build-backend"
 # (we define what a build-backend is up above)
@@ -54,14 +68,16 @@ testpaths = [
 [tool.ruff.lint]
 exclude = [
     "python/contrib/**",
-    "docs/**",
+    "docs/sphinx/conf.py",
+    "docs/sphinx/PythonExamples/**",
     "tools/**"
 ]
 
 [tool.ruff.format]
 exclude = [
     "python/contrib/**",
-    "docs/**",
+    "docs/sphinx/conf.py",
+    "docs/sphinx/PythonExamples/**",
     "tools/**"
 ]
 

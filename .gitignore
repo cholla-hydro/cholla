@@ -3,6 +3,7 @@
 googletest*
 tidy_results*.txt
 bin/*
+docs/cached_mtimes.json
 
 # Compiled source #
 ###################
@@ -52,6 +53,11 @@ disk.*
 *.sql
 *.sqlite
 
+# Python Related #
+##################
+uv.lock
+.ipynb_checkpoints
+
 # Packages #
 ############
 # it's better to unpack these files and commit the raw source
@@ -85,3 +91,4 @@ Thumbs.db
 #############################
 docs/doxygen/build
 docs/sphinx/build
+_build

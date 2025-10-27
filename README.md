@@ -2,7 +2,7 @@
 ![Code Formatting](https://github.com/cholla-hydro/cholla/actions/workflows/code_formatting.yml/badge.svg)
 
 CHOLLA
-============
+======
 A 3D GPU-based hydrodynamics code (Schneider & Robertson, ApJS, 2015).
 
 
@@ -10,7 +10,7 @@ https://user-images.githubusercontent.com/3432028/188235319-e5eb4e5e-00c6-435f-a
 
 
 Getting started
-----------------
+---------------
 This is the stable branch of the *Cholla* hydrodynamics code.
 
 *Cholla* is designed to be run using (AMD or NVIDIA) GPUs, and can be run in serial mode using one GPU
@@ -20,7 +20,7 @@ See the Wiki associated with this repository for more details.
 
 
 Configuration Notes
-------------
+-------------------
 Most of the configuration options available in *Cholla* are selected by commenting/uncommenting
 the appropriate line in a make.type file or by setting environment variables in a make.host file. A Makefile is included in the top level directory, but this Makefile is not intended to be modified directly. Instead, after downloading the code, you should
 be able to configure it for your machine by creating a build script based on one of the make.host examples in the builds directory (see the wiki for more details). Examples of configurations that require edits to a make.type file include single vs
@@ -47,7 +47,7 @@ so MPI mode is most useful on a cluster (or for testing parallel behavior with a
 More information about compiling and running *Cholla* can be found in the wiki associated with this repository.
 
 Other Notes
---------------
+-----------
 
 When running in fewer than 3 dimensions, *Cholla* assumes that the X direction will be used first, then
 the Y, then Z. This is to say, in 1D `nx` must always be greater than 1, and in 2D `nx` and `ny` must be greater than 1.
