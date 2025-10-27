@@ -15,7 +15,15 @@ import os
 import shutil
 import sys
 from typing import (
-    Any, Callable, Iterable, Iterator, Mapping, Optional, Sequence, TypedDict, Union
+    Any,
+    Callable,
+    Iterable,
+    Iterator,
+    Mapping,
+    Optional,
+    Sequence,
+    TypedDict,
+    Union,
 )
 
 import numpy as np
@@ -120,7 +128,7 @@ class BlockidLocationArrBuilder:
         must be provided if source file is missing the "nprocs" attribute
     """
 
-    _arr: np.ndarray # 3D array of i64
+    _arr: np.ndarray  # 3D array of i64
     block_cell_shape: int3
 
     def __init__(self, f: h5py.File, *, missing_nprocs_triple: Optional[int3] = None):
@@ -196,7 +204,7 @@ def _configure_virtual_field(
     dst_f: h5py.File,
     blockid_location_arr: np.ndarray,
     stored_blockid_list: Sequence[int],
-    dst_grp: str
+    dst_grp: str,
 ):
     """Create virtual datasets for each field. The virtual dataset acts like a
     3D array that spans the entire dataset.
@@ -219,7 +227,7 @@ def _configure_virtual_field(
     total_block_count = np.prod(blockid_location_arr.shape)
     if len(stored_blockid_list) == total_block_count:
         blockid_to_idx_map = {
-            blockid : idx for idx,blockid in enumerate(stored_blockid_list)
+            blockid: idx for idx, blockid in enumerate(stored_blockid_list)
         }
     else:
         raise ValueError(
@@ -228,7 +236,7 @@ def _configure_virtual_field(
 
     # calculate block-shape of a cell-centered field
     _cc_block_shape, _rem = np.divmod(dst_f.attrs["dims"], blockid_location_arr.shape)
-    assert np.all(_rem == 0) # sanity check!
+    assert np.all(_rem == 0)  # sanity check!
     cc_block_shape = to_int_triple(_cc_block_shape)
 
     # expected shape for dataset storing cell-centered field
@@ -236,7 +244,7 @@ def _configure_virtual_field(
     cc_domain_shape = to_int_triple(
         np.multiply(blockid_location_arr.shape, cc_block_shape)
     )
-    
+
     grp = dst_f.create_group(dst_grp)
 
     for field_name, field_dset in dst_f["field"].items():
@@ -251,12 +259,12 @@ def _configure_virtual_field(
         )
 
         for idx3d, blockid in np.ndenumerate(blockid_location_arr):
-            layout_slc=(
-                slice(idx3d[0]*cc_block_shape[0], (idx3d[0]+1)*cc_block_shape[0]),
-                slice(idx3d[1]*cc_block_shape[1], (idx3d[1]+1)*cc_block_shape[1]),
-                slice(idx3d[2]*cc_block_shape[2], (idx3d[2]+1)*cc_block_shape[2])
+            layout_slc = (
+                slice(idx3d[0] * cc_block_shape[0], (idx3d[0] + 1) * cc_block_shape[0]),
+                slice(idx3d[1] * cc_block_shape[1], (idx3d[1] + 1) * cc_block_shape[1]),
+                slice(idx3d[2] * cc_block_shape[2], (idx3d[2] + 1) * cc_block_shape[2]),
             )
-            layout[layout_slc] = vsrc[blockid_to_idx_map[blockid],:,:,:]
+            layout[layout_slc] = vsrc[blockid_to_idx_map[blockid], :, :, :]
         grp.create_virtual_dataset(name=field_name, layout=layout)
 
 
@@ -365,7 +373,7 @@ class SnapBuilder:
         self._recordpack_dict = {}
         self._stored_blockid_list = []
 
-    def _require(self, *attrs: str): # common requirement-checking
+    def _require(self, *attrs: str):  # common requirement-checking
         for a in attrs:
             if getattr(self, a) is not None:
                 continue
@@ -546,7 +554,7 @@ class SnapBuilder:
                 _packlen = len(pack)
                 if _packlen < 2 or _packlen > 3:
                     raise ValueError("members of itr must hold 2 or 3 elements")
-            blockid,data = pack[:2]
+            blockid, data = pack[:2]
             global_cell_offset = pack[2] if _packlen == 3 else None
 
             with cm(data) as _data:
@@ -554,18 +562,19 @@ class SnapBuilder:
                     blockid=blockid,
                     data=_data,
                     global_cell_offset=global_cell_offset,
-                    kind=kind
+                    kind=kind,
                 )
         return self
 
     field_record = functools.partialmethod(_record_data, kind="field")
     field_record_itr = functools.partialmethod(_record_data_itr, kind="field")
+
     def field_config(
         self,
         *,
         opts: Optional[DatasetOpts] = None,
         skip: Optional[Iterable] = None,
-        legacy: bool = False
+        legacy: bool = False,
     ) -> Self:
         """Configure the builder to write field-data
 
@@ -589,8 +598,11 @@ class SnapBuilder:
 
     particle_record = functools.partialmethod(_record_data, kind="particle")
     particle_record_itr = functools.partialmethod(_record_data_itr, kind="particle")
+
     def particle_config(
-        self, store_particle_count:int, tot_particle_count:int, # *, kwargs...
+        self,
+        store_particle_count: int,
+        tot_particle_count: int,  # *, kwargs...
     ) -> Self:
         raise NotImplementedError("we need to implement this")
         # will look something like:
@@ -726,12 +738,14 @@ def _iter_block_from_concat(
 
         # At the time of writing, I'm pretty sure that advance_right=False should assign
         # blockids in a consistent manner to cholla
-        blockid_offset_pairs = enumerate(_product(
-            range(0, nprocs[0] * block_cell_shape[0], block_cell_shape[0]),
-            range(0, nprocs[1] * block_cell_shape[1], block_cell_shape[1]),
-            range(0, nprocs[2] * block_cell_shape[2], block_cell_shape[2]),
-            advance_right = False
-        ))
+        blockid_offset_pairs = enumerate(
+            _product(
+                range(0, nprocs[0] * block_cell_shape[0], block_cell_shape[0]),
+                range(0, nprocs[1] * block_cell_shape[1], block_cell_shape[1]),
+                range(0, nprocs[2] * block_cell_shape[2], block_cell_shape[2]),
+                advance_right=False,
+            )
+        )
 
         def _mk_idx(name, start):
             shape = [e for e in block_cell_shape]
@@ -756,7 +770,7 @@ def repack_snapshot(
     missing_nprocs_triple: Optional[Sequence] = None,
     skip_fields: Optional[Sequence] = None,
     dset_opts: Optional[DatasetOpts] = None,
-    legacy_field: bool = False
+    legacy_field: bool = False,
 ):
     """This repacks an already concatenated snapshot
 
@@ -800,10 +814,9 @@ def repack_snapshot(
         itr = _iter_block_from_concat(src_f, missing_nprocs_triple)
 
         with SnapBuilder(out_path) as builder:  # open the snapshot-builder
-            builder.set_hdr(src_f, missing_nprocs_triple) \
-                .field_config(opts=dset_opts, skip=skip_fields, legacy=legacy_field) \
-                .field_record_itr(itr) \
-                .write()
+            builder.set_hdr(src_f, missing_nprocs_triple).field_config(
+                opts=dset_opts, skip=skip_fields, legacy=legacy_field
+            ).field_record_itr(itr).write()
 
 
 parser = argparse.ArgumentParser(
@@ -843,5 +856,5 @@ if __name__ == "__main__":
         missing_nprocs_triple=args.missing_nprocs_triple,
         skip_fields=args.skip_fields,
         dset_opts=dset_opts_from_args(args),
-        legacy_field=args.legacy_field
+        legacy_field=args.legacy_field,
     )
