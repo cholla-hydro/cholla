@@ -14,6 +14,7 @@
   #include <hdf5.h>
 #endif  // HDF5
 #include "../grid/grid3D.h"
+#include "../io/WriterManager.h"
 #include "../io/io.h"
 #include "../utils/cuda_utilities.h"
 #include "../utils/hydro_utilities.h"
@@ -80,16 +81,14 @@ void Write_Message_To_Log_File(const char *message)
 }
 
 /* Write Cholla Output Data */
-void Write_Data(Grid3D &G, struct Parameters P, int nfile)
+void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManager &write_manager)
 {
   cudaMemcpy(G.C.density, G.C.device, G.H.n_fields * G.H.n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
   chprintf("\nSaving Snapshot: %d \n", nfile);
 
   // ensure the output-directory exists (try to create it if it doesn't exist)
-  // -> Aside: it would be nice to pass an FnameTemplate instance into each function that uses it,
-  //    rather than reconstructing it everywhere
-  Ensure_Dir_Exists(FnameTemplate(P).effective_output_dir_path(nfile));
+  Ensure_Dir_Exists(write_manager.fname_template().effective_output_dir_path(nfile));
 
 #ifdef HDF5
   // Initialize HDF5 interface
@@ -114,43 +113,7 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile)
   G.Change_Cosmological_Frame_System(false);
 #endif
 
-#ifndef ONLY_PARTICLES
-  /*call the data output routine for Hydro data*/
-  if (nfile % P.n_hydro == 0) {
-    Output_Data(G, P, nfile);
-  }
-#endif
-
-// This function does other checks to make sure it is valid (3D only)
-#ifdef HDF5
-  if (P.n_out_float32 && nfile % P.n_out_float32 == 0) {
-    Output_Float32(G, P, nfile);
-  }
-#endif
-
-#ifdef PROJECTION
-  if (nfile % P.n_projection == 0) {
-    Output_Projected_Data(G, P, nfile);
-  }
-#endif /*PROJECTION*/
-
-#ifdef ROTATED_PROJECTION
-  if (nfile % P.n_rotated_projection == 0) {
-    Output_Rotated_Projected_Data(G, P, nfile);
-  }
-#endif /*ROTATED_PROJECTION*/
-
-#ifdef SLICES
-  if (nfile % P.n_slice == 0) {
-    Output_Slices(G, P, nfile);
-  }
-#endif /*SLICES*/
-
-#ifdef PARTICLES
-  if (nfile % P.n_particle == 0) {
-    G.WriteData_Particles(P, nfile);
-  }
-#endif
+  write_manager.Apply_Writers(G, P, nfile);
 
 #ifdef COSMOLOGY
   if (G.H.OUTPUT_SCALE_FACOR || G.H.Output_Initial) {
@@ -176,20 +139,16 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile)
   H5close();
 #endif
 
-#if defined(GRAVITY) && defined(HDF5)
-  G.Grav.Write_Restart_HDF5(&P, nfile);
-#endif
-
 #ifdef MPI_CHOLLA
   MPI_Barrier(world);
 #endif
 }
 
 /* Output the grid data to file. */
-void Output_Data(Grid3D &G, struct Parameters P, int nfile)
+void Output_Data(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate &fname_template)
 {
   // create the filename
-  std::string filename = FnameTemplate(P).format_fname(nfile, "");
+  std::string filename = fname_template.format_fname(nfile, "");
 
 #if !defined(BINARY) && !defined(HDF5)
   if (G.H.nx * G.H.ny * G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
@@ -255,7 +214,7 @@ void Output_Data(Grid3D &G, struct Parameters P, int nfile)
 #endif
 }
 
-void Output_Float32(Grid3D &G, struct Parameters P, int nfile)
+void Output_Float32(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate &fname_template)
 {
 #ifdef HDF5
   Header H = G.H;
@@ -272,7 +231,7 @@ void Output_Float32(Grid3D &G, struct Parameters P, int nfile)
   }
 
   // create the filename
-  std::string filename = FnameTemplate(P).format_fname(nfile, ".float32");
+  std::string filename = fname_template.format_fname(nfile, ".float32");
 
   // create hdf5 file
   hid_t file_id; /* file identifier */
@@ -368,14 +327,14 @@ void Output_Float32(Grid3D &G, struct Parameters P, int nfile)
 }
 
 /* Output a projection of the grid data to file. */
-void Output_Projected_Data(Grid3D &G, struct Parameters P, int nfile)
+void Output_Projected_Data(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate &fname_template)
 {
 #ifdef HDF5
   hid_t file_id;
   herr_t status;
 
   // create the filename
-  std::string filename = FnameTemplate(P).format_fname(nfile, "_proj");
+  std::string filename = fname_template.format_fname(nfile, "_proj");
 
   // Create a new file
   file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -407,14 +366,14 @@ void Output_Projected_Data(Grid3D &G, struct Parameters P, int nfile)
 }
 
 /* Output a rotated projection of the grid data to file. */
-void Output_Rotated_Projected_Data(Grid3D &G, struct Parameters P, int nfile)
+void Output_Rotated_Projected_Data(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate &fname_template)
 {
 #ifdef HDF5
   hid_t file_id;
   herr_t status;
 
   // create the filename
-  std::string filename = FnameTemplate(P).format_fname(nfile, "_rot_proj");
+  std::string filename = fname_template.format_fname(nfile, "_rot_proj");
 
   if (G.R.flag_delta == 1) {
     // if flag_delta==1, then we are just outputting a
@@ -506,14 +465,15 @@ void Output_Rotated_Projected_Data(Grid3D &G, struct Parameters P, int nfile)
 }
 
 /* Output xy, xz, and yz slices of the grid data. */
-void Output_Slices(Grid3D &G, struct Parameters P, int nfile)
+void Output_Slices(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate &fname_template)
+
 {
 #ifdef HDF5
   hid_t file_id;
   herr_t status;
 
   // create the filename
-  std::string filename = FnameTemplate(P).format_fname(nfile, "_slice");
+  std::string filename = fname_template.format_fname(nfile, "_slice");
 
   // Create a new file
   file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -3044,57 +3004,6 @@ void Write_Debug(Real *Value, const char *fname, int nValues, int iProc)
   }
 
   fclose(fp);
-}
-
-std::string FnameTemplate::effective_output_dir_path(int nfile) const noexcept
-{
-  // for consistency, ensure that the returned string always has a trailing "/"
-  if (outdir_.empty()) {
-    return "./";
-  } else if (separate_cycle_dirs_) {
-    return this->outdir_ + "/" + std::to_string(nfile) + "/";
-  } else {
-    // if the last character of outdir is not a '/', then the substring of
-    // characters after the final '/' (or entire string if there isn't any '/')
-    // is treated as a file-prefix
-    //
-    // this is accomplished here:
-    std::filesystem::path without_file_prefix = std::filesystem::path(this->outdir_).parent_path();
-    return without_file_prefix.string() + "/";
-  }
-}
-
-std::string FnameTemplate::format_fname(int nfile, const std::string &pre_extension_suffix) const noexcept
-{
-#ifdef MPI_CHOLLA
-  int file_proc_id = procID;
-#else
-  int file_proc_id = 0;
-#endif
-  return format_fname(nfile, file_proc_id, pre_extension_suffix);
-}
-
-std::string FnameTemplate::format_fname(int nfile, int file_proc_id,
-                                        const std::string &pre_extension_suffix) const noexcept
-{
-  // get the leading section of the string
-  const std::string path_prefix =
-      (separate_cycle_dirs_)
-          ? (effective_output_dir_path(nfile) + "/")  // while redundant, the slash signals our intent
-          : outdir_;
-
-  // get the file extension
-#if defined BINARY
-  const char *extension = ".bin";
-#elif defined HDF5
-  const char *extension = ".h5";
-#else
-  const char *extension = ".txt";
-#endif
-
-  std::string procID_part = "." + std::to_string(file_proc_id);  // initialized to empty string
-
-  return path_prefix + std::to_string(nfile) + pre_extension_suffix + extension + procID_part;
 }
 
 void Ensure_Dir_Exists(std::string dir_path)

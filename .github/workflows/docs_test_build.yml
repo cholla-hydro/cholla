@@ -1,0 +1,44 @@
+name: TestBuildDocs
+description: Builds the docs (ensures there are no warnings)
+
+# Note: It's probably useful to have both this action and the ReadTheDocs CI
+#   -> the ReadTheDocs CI will always render the docs and ignore warnings
+#      (useful for people who don't want to build things locally)
+#   -> this action ensures that there are no warnings (they are usually a sign
+#      of an underlying problem)
+
+on:
+  pull_request:
+  schedule:
+    - cron: "31 07 * * 1"  # run every Monday at 07:31UTC. Crontab computed with crontab.guru
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+            # upgrade pip
+            python -m pip install --upgrade pip
+            # install the doc dependencies (for testing)
+            pip install --group dev
+            # install the cholla_utils package (I think this is necessary to
+            # auto-generate the python API reference)
+            pip install .
+            # install doxygen
+            sudo apt-get install doxygen pandoc
+      - name: Build the docs
+        run: |
+            # the -W flag tells sphinx to treat any warnings as errors
+            python -m sphinx -M html docs/sphinx "_build" -W

@@ -40,7 +40,20 @@ pipeline
                         steps
                         {
                             sh  '''
-                                git submodule update --init --recursive
+                                if [ "${CHOLLA_MAKE_TYPE}" = "cosmology" ] ||
+                                   [ "${CHOLLA_MAKE_TYPE}" = "mhd" ] ||
+                                   [ "${CHOLLA_MAKE_TYPE}" = "hydro" ] ||
+                                   [ "${CHOLLA_MAKE_TYPE}" = "gravity" ]; then
+                                    ./tools/ci-setup-submodule.py \
+                                       --color \
+                                       --fallback-manual-lfs-download
+                                else
+                                    # we skip the download because it's not currently
+                                    # necessary & we want to minimize calls to
+                                    # downloads from GitHub's raw-urls (when git-lfs
+                                    # commonly fails)
+                                    echo "hard-coded to skip submodule download"
+                                fi
                                 make clobber
                                 '''
                         }
