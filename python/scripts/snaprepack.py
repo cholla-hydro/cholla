@@ -178,7 +178,26 @@ def _record_field(
     skip_fields: set,
     dset_opts: DatasetOpts,
 ) -> bool:
-    """The core logic for recording fields to a file"""
+    """
+    The core logic for recording fields to a file
+
+    Parameters
+    ----------
+    dst_f
+        Object representing the output file
+    expected_store_block_count
+        The total number of blocks we expect to store in the output file
+    stored_block_idx
+        index in the file associated with the block that the ``data`` argument
+        corresponds to. This may differ from the block's blockid (when writing
+        a file containing every block, there's typically no difference)
+    data
+        A dict-like object mapping names to array data
+    skip_fields
+        Fields to omit from output.
+    dset_opts
+        Optional kwargs for ``h5py.Group.create_dataset``.
+    """
     # get the field names to be copied
     names = [name for name in data.keys() if name not in skip_fields]
 
@@ -199,6 +218,141 @@ def _record_field(
     dest_sel = np.s_[stored_block_idx, ...]
     for name in names:
         field_grp[name].write_direct(data[name][...], dest_sel=dest_sel)
+
+    return created_grp
+
+
+def _record_particle(
+    dst_f: h5py.File,
+    expected_store_block_count: int,
+    stored_block_idx: int,
+    data: Mapping,
+    *,
+    particle_type: str,
+    total_ptype_count: int,
+    skip_props: set,
+    dset_opts: DatasetOpts,
+) -> bool:
+    """
+    The core logic for recording particle-properties (for a single
+    particle-type) to an output file
+
+    Parameters
+    ----------
+    dst_f
+       Object representing the output file
+    expected_store_block_count
+        The total number of blocks we expect to store in the output file
+    stored_block_idx
+        index in the file associated with the block that the ``data`` argument
+        corresponds to. This may differ from the block's blockid (when writing
+        a file containing every block, there's typically no difference)
+    data
+        A dict-like object mapping field names to properties of a single
+        particle-type.
+    particle_type
+        The name of the particle type that is being recorded
+    total_ptype_count
+        The total number of particles with the specified type in the simulation
+    skip_props
+        Properties to omit from output.
+    dset_opts
+        Optional kwargs for ``h5py.Group.create_dataset``.
+
+    Returns
+    -------
+    bool
+        Indicates whether this function creates group/datasets to actually
+        hold data for the current particle-type
+
+    Notes
+    -----
+    This seems to do **WAY** too much. Maybe we should refactor?
+    """
+    # get the field names to be copied
+    name_isflt_pairs = []
+    for name, values in data.items():
+        if name in skip_props:
+            continue
+        elif name == "density":  # skip density-deposition
+            continue
+        elif np.issubdtype(values.dtype, np.floating):
+            name_isflt_pairs.append((name, True))
+        elif np.issubdtype(values.dtype, np.integer):
+            name_isflt_pairs.append((name, False))
+        else:
+            raise ValueError(f"the {name!r} data has an unexpected dtype")
+
+    # get the number of particles being recorded in the current call
+    _local_prop_shape = data[name_isflt_pairs[0][0]].shape
+    assert len(_local_prop_shape) == 1
+    local_block_ptype_count = _local_prop_shape[0]
+
+    # infer the total number particles (of the ptype variety) that will be written
+    # to dst_f (longer-term, it would probably be better if we didn't directly
+    # infer this property)
+    if expected_store_block_count == 1:
+        expected_stored_ptype_count = local_block_ptype_count
+    else:
+        expected_stored_ptype_count = total_ptype_count
+
+    # get the "particle" group (create it if it doesn't exist yet)
+    if "particle" not in dst_f:
+        particle_grp = dst_f.create_group("particle")
+    else:
+        particle_grp = dst_f["particle"]
+
+    # get the <ptype> group (create it if it doesn't exist yet)
+    if particle_type not in particle_grp:
+        ptype_grp = particle_grp.create_group(particle_type)
+        ptype_grp.attrs["total_ptype_count"] = total_ptype_count
+
+        _tmp = ptype_grp.create_dataset(
+            name="stop_block_idx_slc",
+            shape=(expected_store_block_count,),
+            dtype=np.int64,
+        )
+        _tmp[...] = -1  # this is important for error checking!
+
+        # TODO maybe check that the dset has the appropriate size so that we
+        # avoid mishandling deposited fields that were saved to disk (like density)
+
+        # create dsets to hold the concatenated particle properties
+        for name, isflt in name_isflt_pairs:
+            shape = (expected_stored_ptype_count,)
+            if isflt:
+                # I don't think we really want to allow arbitrary datasets for
+                # position properties...
+                ptype_grp.create_dataset(name=name, shape=shape, **dset_opts)
+            else:
+                # this is being done to make sure particle_IDs remains an integer
+                ptype_grp.create_dataset(name=name, shape=shape, dtype=data[name].dtype)
+        created_grp = True
+    else:
+        ptype_grp = particle_grp[particle_type]
+        created_grp = False
+
+    # now, fill in the ptype_grp["stop_block_idx_slc"] and get dest_sel
+    if stored_block_idx == 0:
+        dest_sel = slice(0, local_block_ptype_count)
+    else:
+        _start = ptype_grp["stop_block_idx_slc"][stored_block_idx - 1]
+        if _start < 0:
+            raise ValueError(
+                f"trying to record data for the stored_block_idx, {stored_block_idx} "
+                "but the preceding index got skipped!"
+            )
+        dest_sel = slice(_start, _start + local_block_ptype_count)
+    ptype_grp["stop_block_idx_slc"][stored_block_idx] = dest_sel.stop
+
+    # sanity checks
+    if (stored_block_idx + 1) == expected_store_block_count:
+        assert dest_sel.stop == expected_stored_ptype_count
+    else:
+        assert dest_sel.stop <= expected_stored_ptype_count
+
+    for name, _ in name_isflt_pairs:
+        ptype_grp[name].write_direct(data[name][...], dest_sel=dest_sel)
 
     return created_grp
 
@@ -360,7 +514,8 @@ class SnapBuilder:
     _tmp_final_path_pair: tuple[str, str]  # temporary and final paths
     _f: h5py.File  # File object that represents the file @ _tmp_final_path_pair[0]
     _expected_store_block_count: Optional[int]
-    _recordpack_dict: dict[str, tuple[set, RecordDataFn]]
+    _recordpack_dict: dict[str, tuple[set[int], RecordDataFn]]
+    _stored_particle_types: list[str]
     _stored_blockid_list: list[int]
     _blockid_location_arr_builder: Optional[BlockidLocationArrBuilder] = None
     _write_virtual_field: Optional[bool] = None
@@ -374,6 +529,7 @@ class SnapBuilder:
         self._f = h5py.File(self._tmp_final_path_pair[0], "w-")
         self._expected_store_block_count = expected_store_block_count
         self._recordpack_dict = {}
+        self._stored_particle_types = []
         self._stored_blockid_list = []
 
     def _require(self, *attrs: str):  # common requirement-checking
@@ -470,7 +626,7 @@ class SnapBuilder:
         blockid
             The block's id
         data
-            A dict-like object mapping field names to field data
+            A dict-like object mapping names to array data
         global_cell_offset
             Optionally specifies the location of the leftmost cell of the block
             in the conceptual grid spanning the entire domain. An error will be
@@ -486,9 +642,16 @@ class SnapBuilder:
         you shouldn't specify the ``kind`` kwarg)
         """
         self._require("_f", "_expected_store_block_count")
-        if kind not in self._recordpack_dict:
+        if kind == "particle":
+            if len(self._stored_particle_types) == 0:
+                raise RuntimeError("particle_config was never called")
+            fullkind_l = [f"particle-{ptype}" for ptype in self._stored_particle_types]
+        elif kind not in self._recordpack_dict:
             raise RuntimeError(f"{kind}_config was never called")
-        already_recorded_blockids, record_fn = self._recordpack_dict[kind]
+        else:
+            fullkind_l = [kind]
+
+        already_recorded_blockids, _ = self._recordpack_dict[fullkind_l[0]]
 
         if blockid < 0:
             raise ValueError("blockid must not be nonnegative")
@@ -514,10 +677,17 @@ class SnapBuilder:
             stored_block_idx = len(self._stored_blockid_list)
 
         # store the data to the file
-        record_fn(self._f, self._expected_store_block_count, stored_block_idx, data)
+        for fullkind in fullkind_l:
+            already_recorded_blockids, record_fn = self._recordpack_dict[fullkind]
+            record_fn(
+                dst_f=self._f,
+                expected_store_block_count=self._expected_store_block_count,
+                stored_block_idx=stored_block_idx,
+                data=data,
+            )
 
-        # record that we've stored data for blockid
-        already_recorded_blockids.add(blockid)
+            # record that we've stored data for blockid
+            already_recorded_blockids.add(blockid)
         if len(self._stored_blockid_list) == stored_block_idx:
             self._stored_blockid_list.append(blockid)
 
@@ -604,19 +774,56 @@ class SnapBuilder:
 
     def particle_config(
         self,
-        store_particle_count: int,
-        tot_particle_count: int,  # *, kwargs...
+        total_ptype_counts: dict[str, int],
+        *,
+        concatenating_single_ptype_cholla_outputs: bool,
+        opts: Optional[DatasetOpts] = None,
+        skip: Optional[Iterable] = None,
     ) -> Self:
-        raise NotImplementedError("we need to implement this")
-        # will look something like:
-        # > self._setup_recorder(
-        # >     name="particle",
-        # >     fn=_record_particle,
-        # >     store_particle_count=store_particle_count,
-        # >     tot_particle_count=tot_particle_count,
-        # >     kwargs...
-        # > )
-        # > return self
+        """
+        Configure the builder to write particle data.
+
+        Parameters
+        ----------
+        total_ptype_count
+            A dict mapping particle types to the total simulation-wide count
+            of the specified particle type
+        concatenating_single_ptype_cholla_outputs
+            Indicates whether the builder is concatenating
+        opts
+            Optional kwargs for ``h5py.Group.create_dataset`` when creating
+            datasets for floating point data.
+        skip
+            Particle properties to omit from output. Defaults to {}.
+        """
+
+        opts = dict() if opts is None else opts
+        skip = set() if skip is None else set(skip)
+        if concatenating_single_ptype_cholla_outputs:
+            # there is only 1 ptype in a legacy output file
+            assert len(total_ptype_counts) == 1
+            skip.add("density")
+        else:
+            # in principle we could add other formats (like pre-concatentated files)
+            # -> in any case, this error is here to indicate that we will need to do
+            #    some refactoring in the future if we want to change things
+            raise NotImplementedError(
+                "we don't currently support any case other than the class cholla "
+                "particle output files that just contain data for a single particle "
+                "type"
+            )
+
+        for ptype, total_ptype_count in total_ptype_counts.items():
+            self._setup_recorder(
+                name=f"particle-{ptype}",
+                fn=_record_particle,
+                total_ptype_count=total_ptype_count,
+                particle_type=ptype,
+                dset_opts=opts,
+                skip_props=skip,
+            )
+            self._stored_particle_types.append(ptype)
+        return self
 
     def write(self):
         """finish writing the output file"""
