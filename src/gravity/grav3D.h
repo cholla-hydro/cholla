@@ -5,6 +5,7 @@
 
 #include "../global/global.h"
 #include "../grid/spatial_domain_props.h"
+#include "../io/FnameTemplate.h"
 
 #ifdef SOR
   #include "../gravity/potential_SOR_3D.h"
@@ -202,7 +203,7 @@ class Grav3D
   void FreeMemory_CPU(void);
 
   void Read_Restart_HDF5(struct Parameters *P, int nfile);
-  void Write_Restart_HDF5(struct Parameters *P, int nfile);
+  void Write_Restart_HDF5(struct Parameters *P, int nfile, const FnameTemplate &fname_template);
 
   Real Get_Average_Density();
   Real Get_Average_Density_function(int g_start, int g_end);
