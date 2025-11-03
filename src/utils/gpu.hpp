@@ -20,6 +20,21 @@
 
   #endif  // CUFFT PARIS PARIS_GALACTIC
 
+  #if !defined(HIP_VERSION) || (HIP_VERSION < 40200000)
+  // here, we are enforcing the requirement that HIP is version 4.2 or newer
+  // -> this check picks 4.2 because that's when the `HIP_VERSION` macro was first provided.
+  //    This fact and the format of `HIP_VERSION` are described here:
+  //    https://rocm.docs.amd.com/projects/HIP/en/docs-5.7.1/user_guide/faq.html#how-can-i-know-the-version-of-hip
+  // -> if we really want to add support for older HIP versions, we may need to compile test
+  //    programs to query version numbers as part of the build-systems. But that seems
+  //    unnecessary since, as of Nov 2025, AMD doesn't seem to document versions before 5.0
+  // -> in practice, I suspect we probably use some features that require versions of HIP
+  //    released some time after 4.2 (ideally, we would update the HIP_VERSION requirement
+  //    to reflect that)
+
+    #error "The current version of HIP is too old"
+  #endif
+
   #define WARPSIZE 64
 static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
 
