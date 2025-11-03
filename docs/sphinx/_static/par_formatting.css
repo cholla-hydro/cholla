@@ -1,0 +1,28 @@
+/* Define some styles used by the "par" extension */
+
+/* styling for parameters */
+.param-style{
+  font-weight: bold;
+  color: #00bfff;
+}
+
+/* styling used for variable components in a parameter name.
+ *
+ * This isn't used right now, but you could imagine having a parameter like
+ *     output.<output-kind>.outdir
+ * to specify distinct output directories for various kinds of outputs. In
+ * this scenario <output-kind> is a placeholder that would be replaced by
+ * by names of ouput-kinds. In this scenario, you might have
+ * "output.proj.outdir", "output.slice.outdir", etc.
+ */
+.param-style-var-comp{
+  font-weight: bold;
+  font-style: italic;
+  color: #660099;
+}
+
+/* styling used for parameter types */
+.param-type-style{
+  color: #ffa500;
+  font-weight: bold;
+}

@@ -15,6 +15,7 @@
 #include "global/global.h"
 #include "grid/grid3D.h"
 #include "io/ParameterMap.h"
+#include "io/WriterManager.h"
 #include "io/io.h"
 #include "utils/cuda_utilities.h"
 #include "utils/error_handling.h"
@@ -98,10 +99,14 @@ int main(int argc, char *argv[])
     is_restart = true;
   }
 
+  // Create the Writer Manager, which is in charge of calling of trigger the various
+  // functions that dump data (e.g. snapshots, slices, projections)
+  io::WriterManager writer_manager(P, pmap);
+
   if (is_restart) {
     chprintf("Input directory:  %s\n", P.indir);
   }
-  chprintf("Output directory:  %s\n", P.outdir);
+  chprintf("Output directory:  %s\n", writer_manager.fname_template().nominal_output_dir_path().c_str());
 
   // Check the configuration
   Check_Configuration(P);
@@ -223,7 +228,7 @@ int main(int argc, char *argv[])
   if (!is_restart || G.H.Output_Now) {
     // write the initial conditions to file
     chprintf("Writing initial conditions to file...\n");
-    Write_Data(G, P, nfile);
+    Write_Data(G, P, nfile, writer_manager);
   }
   // add one to the output file count
   nfile++;
@@ -353,7 +358,7 @@ int main(int argc, char *argv[])
     if (G.H.t == outtime || G.H.Output_Now) {
 #ifdef OUTPUT
       /*output the grid data*/
-      Write_Data(G, P, nfile);
+      Write_Data(G, P, nfile, writer_manager);
       // add one to the output file count
       nfile++;
 #endif  // OUTPUT
@@ -369,7 +374,7 @@ int main(int argc, char *argv[])
     // Exit the loop when reached the limit number of steps (optional)
     if (G.H.n_step >= P.n_steps_limit and P.n_steps_limit > 0) {
 #ifdef OUTPUT
-      Write_Data(G, P, nfile);
+      Write_Data(G, P, nfile, writer_manager);
 #endif  // OUTPUT
       break;
     }
