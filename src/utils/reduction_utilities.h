@@ -45,7 +45,7 @@ __device__ constexpr To bit_cast(const From& from) noexcept
  * value in device memory
  * \param[in] val The thread local variable to find the minimum of
  */
-long long __device__ atomicMin(long long* address, long long val)
+inline long long __device__ atomicMin(long long* address, long long val)
 {
   // this uses the pattern recommended by CUDA docs for implementing atomics in terms of CAS
   unsigned long long* address_as_ull = (unsigned long long*)address;
@@ -65,14 +65,14 @@ long long __device__ atomicMin(long long* address, long long val)
 
 }  // namespace reduction_utilities::backport
 
-#ifdef O_HIP && (HIP_VERSION < 50700000)
+#if defined(O_HIP) && (HIP_VERSION < 50700000)
 // HIP versions before 5.7 did not implement atomicMin (or atomicMax) for `long long`, so we
 // backport the function
 
 // expose atomicMin as part of the global namespace
-using reduction_utilities::backport::atomicMin;
+using ::reduction_utilities::backport::atomicMin;
 
-#endif  // O_HIP && (HIP_VERSION < 50700000)
+#endif  // defined(O_HIP) && (HIP_VERSION < 50700000)
 
 /*!
  * \brief Namespace to contain device resident reduction functions. Includes
