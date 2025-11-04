@@ -200,6 +200,11 @@ If Cholla is run with the passive scalar flag ('SCALAR'), a number of scalar fie
 If Cholla is run with 'DUST':
 - 'dust\_density', the dust density in code units (M{sub}`⊙` / kpc{sup}`3`)
 
+If an MHD simulation is run, Cholla writes the following face-centered fields:
+- 'magnetic\_x'
+- 'magnetic\_y'
+- 'magnetic\_z'
+
 
 
 ## Slices, Projections, and Rotated Projections
@@ -254,7 +259,7 @@ We may want to directly embed the result of each script's help command within th
 
 ### Concatenation scripts
 
-The scripts following scripts are provided (for use as command-line tools or as python modules) to help with concatenation:
+The following scripts are provided (for use as command-line tools or as python modules) to help with concatenation:
 
 - {repository-file}`python_scripts/concat_2d_data.py`, for concatenating 2D datasets such as slices, projections, and rotated projections
 - {repository-file}`python_scripts/concat_3d_data.py`, for concatenating field data (aka 3D datasets)
@@ -273,7 +278,7 @@ However, more recent versions of cholla include versions of `concat_3d_data.py` 
 #### CLI Usage
 
 The CLI for all the scripts is similar and details can be found when passing the `--help` option to the script.
-In general you need to tell the script which directory to read files from (the `-s`/`--source-directory` flag), where to write the concatenated files (the `-o`/`--output-directory` flag), how many ranks were used (the `-n`/`--num-processes` flag), and which outputs to concatenate (the `--snaps` flag).
+In general you need to tell the script which directory to read files from (the `-s`/`--source-directory` flag), where to write the concatenated files (the `-o`/`--output-directory` flag), and which outputs to concatenate (the `--snaps` flag).
 The `--snaps` flag accepts a couple of different input formats, it can be a single number (e.g. 8), a range (e.g. 2-9), or a list (e.g. [1,2,3]); ranges are inclusive.
 
 **Example**
