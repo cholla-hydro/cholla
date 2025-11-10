@@ -18,7 +18,5 @@ Continue porting me from the [wiki](https://github.com/cholla-hydro/cholla/wiki/
 2D-khri/overview
 2d-khd/overview
 2D-noh/overview
-2D-Rayleigh-Taylor/overview
-2D-Sod/overview
 :::
 
