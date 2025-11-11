@@ -49,7 +49,10 @@ We see a contact discontinuity around x = 0.6 followed by a shock at x = 0.65 an
 We can also obtain the evolution:
 
 :::{video} docs-blast.mp4
+    :width: 700
+    :height: 500
     :autoplay:
     :loop:
+    :align: center
 :::
 
