@@ -39,7 +39,7 @@ pipeline
                     {
                         steps
                         {
-                            sh  '''#!/bin/bash -xe
+                            sh  '''#!/bin/bash -e
                                 source /etc/profile
                                 # enable tracing mode now that the shell
                                 # configuration has been read
@@ -67,7 +67,7 @@ pipeline
                     {
                         steps
                         {
-                            sh  '''#!/bin/bash -ex
+                            sh  '''#!/bin/bash -x
                                 source /etc/profile
                                 # enable tracing mode now that the shell
                                 # configuration has been read
@@ -84,7 +84,7 @@ pipeline
                     {
                         steps
                         {
-                            sh  '''#!/bin/bash -ex
+                            sh  '''#!/bin/bash -e
                                 source /etc/profile
                                 # enable tracing mode now that the shell
                                 # configuration has been read
