@@ -20,3 +20,19 @@ These parameters should all be specified in the `[chemistry]` parameter table.
 :::{include} param/Chemistry.md
 :::
 
+(Reference-Feedback-Runtime-Params)=
+## Feedback
+
+These parameters should all be specified in the `[feedback]` parameter table.
+
+:::{include} param/Feedback.md
+:::
+
+
+## Gravity
+
+These parameters should all be specified in the `[gravity]` parameter table.
+
+:::{include} param/Gravity.md
+:::
+
