@@ -8,7 +8,11 @@ Port over more from the wiki
 :maxdepth: 1
 
 CoolingChemistry.md
+Cosmology.md
 Dual-Energy-Formalism.md
 Dust.md
+Feedback.md
+Gravity.md
 MHD.md
+Particles.md
 :::

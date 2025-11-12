@@ -53,10 +53,10 @@ void Grav3D::Read_Restart_HDF5(struct Parameters* P, int nfile)
   INITIAL = false;
 }
 
-void Grav3D::Write_Restart_HDF5(struct Parameters* P, int nfile)
+void Grav3D::Write_Restart_HDF5(struct Parameters* P, int nfile, const FnameTemplate& fname_template)
 {
   H5open();
-  std::string filename = FnameTemplate(*P).format_fname(nfile, "_gravity");
+  std::string filename = fname_template.format_fname(nfile, "_gravity");
   hid_t file_id        = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   // Write dt_now
