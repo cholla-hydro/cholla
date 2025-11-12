@@ -357,6 +357,30 @@ The CLI for all the scripts is similar and details can be found when passing the
 In general you need to tell the script which directory to read files from (the `-s`/`--source-directory` flag), where to write the concatenated files (the `-o`/`--output-directory` flag), and which outputs to concatenate (the `--snaps` flag).
 The `--snaps` flag accepts a couple of different input formats, it can be a single number (e.g. 8), a range (e.g. 2-9), or a list (e.g. [1,2,3]); ranges are inclusive.
 
+We show the detailed help messages down below
+
+::::{tab} concat\_2d\_data.py
+
+:::{include-cli-help} ../../python/scripts/concat_2d_data.py
+:::
+
+::::
+
+::::{tab} concat\_3d\_data.py
+
+:::{include-cli-help} ../../python/scripts/concat_3d_data.py
+:::
+
+::::
+
+
+::::{tab} concat\_particles.py
+
+:::{include-cli-help} ../../python/scripts/concat_particles.py
+:::
+
+::::
+
 **Example**
 ```bash
 ./concat_3d_data.py -s /PATH/TO/SOURCE/DIRECTORY/ -o /PATH/TO/DESTINATION/DIRECTORY/ -n 8  --snaps 0-10
