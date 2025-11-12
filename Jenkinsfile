@@ -40,7 +40,7 @@ pipeline
                         steps
                         {
                             sh  '''#!/bin/bash -xe
-                                source ~/.bash_profile
+                                source ~/.bashrc
                                 # enable tracing mode now that the shell
                                 # configuration has been read
                                 set -x
@@ -68,7 +68,7 @@ pipeline
                         steps
                         {
                             sh  '''#!/bin/bash -ex
-                                source ~/.bash_profile
+                                source ~/.bashrc
                                 # enable tracing mode now that the shell
                                 # configuration has been read
                                 set -x
