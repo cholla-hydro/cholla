@@ -40,7 +40,7 @@ pipeline
                         steps
                         {
                             sh  '''#!/bin/bash -xe
-                                source /etc/bashrc
+                                source /etc/profile
                                 # enable tracing mode now that the shell
                                 # configuration has been read
                                 set -x
@@ -68,7 +68,7 @@ pipeline
                         steps
                         {
                             sh  '''#!/bin/bash -ex
-                                source /etc/bashrc
+                                source /etc/profile
                                 # enable tracing mode now that the shell
                                 # configuration has been read
                                 set -x
@@ -85,7 +85,7 @@ pipeline
                         steps
                         {
                             sh  '''#!/bin/bash -ex
-                                source ~/.bash_profile
+                                source /etc/profile
                                 # enable tracing mode now that the shell
                                 # configuration has been read
                                 set -x
@@ -104,6 +104,7 @@ pipeline
                             retry(2)
                             {
                                 sh  '''#!/bin/bash -e
+                                    source /etc/profile
                                     # enable tracing mode now that the shell
                                     # configuration has been read
                                     set -x
@@ -122,6 +123,7 @@ pipeline
                         {
                             catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                                 sh  '''#!/bin/bash -e
+                                    source /etc/profile
                                     # enable tracing mode now that the shell
                                     # configuration has been read
                                     set -x
@@ -142,6 +144,7 @@ pipeline
                             // Print the clang-tidy results with bars of equal
                             // signs seperating each file
                             sh  '''#!/bin/bash -e
+                                source /etc/profile
                                 # we explicitly choose not to use tracing mode
 
                                 echo "tidy_results_cpp_${CHOLLA_MAKE_TYPE}.log"
