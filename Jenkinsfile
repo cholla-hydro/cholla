@@ -39,7 +39,8 @@ pipeline
                     {
                         steps
                         {
-                            sh  '''#!/usr/bin/env - bash -e
+                            sh  '''#!/usr/bin/env bash 
+                                set -e
                                 # enable tracing mode now that the shell
                                 # configuration has been read
                                 set -x
@@ -66,7 +67,8 @@ pipeline
                     {
                         steps
                         {
-                            sh  '''#!/usr/bin/env - bash -e
+                            sh  '''#!/usr/bin/env bash 
+                                set -e
                                 # enable tracing mode now that the shell
                                 # configuration has been read
                                 set -x
