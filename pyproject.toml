@@ -75,7 +75,7 @@ testpaths = [
 
 [tool.ruff.lint]
 exclude = [
-    "python_scripts/**",
+    "python/contrib/**",
     "docs/sphinx/conf.py",
     "docs/sphinx/PythonExamples/**",
     "tools/analyze_tidy_checks.py"
@@ -83,7 +83,7 @@ exclude = [
 
 [tool.ruff.format]
 exclude = [
-    "python_scripts/**",
+    "python/contrib/**",
     "docs/sphinx/conf.py",
     "docs/sphinx/PythonExamples/**",
     "tools/analyze_tidy_checks.py"
