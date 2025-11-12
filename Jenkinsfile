@@ -39,8 +39,7 @@ pipeline
                     {
                         steps
                         {
-                            sh  '''#!/usr/bin/env bash 
-                                set -e
+                            sh  '''#!/bin/bash -xe
                                 # enable tracing mode now that the shell
                                 # configuration has been read
                                 set -x
