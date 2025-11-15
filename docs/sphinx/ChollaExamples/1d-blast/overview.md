@@ -44,7 +44,8 @@ Upon completion, you should obtain 101 output files. The initial and final densi
 
 We see a contact discontinuity around x = 0.6 followed by a shock at x = 0.65 and a rarefaction fan. We have a contact discontinuity just past x = 0.75 cells and a shock at x = 0.85. 
 
-:::{figure} blast.png
+:::{figure} blast.png 
+:::
 
 We can also obtain the evolution:
 
@@ -55,4 +56,3 @@ We can also obtain the evolution:
     :autoplay:
     :loop:
 :::
-

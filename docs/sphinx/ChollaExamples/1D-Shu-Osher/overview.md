@@ -46,9 +46,10 @@ Upon completion, you should obtain 2 output files. The initial and final density
 
 :::{figure} shu-osher.png
 
+
 With the diode disabled, this solution does match that of Schneider and Robertson 2015 and Stone et al. 2008, shown below:
 
-<img src="./images/stone2008shu-osher.png" width="600" />   
-
+:::{figure} schneider-robertson-2015.png
+:::
 
 
