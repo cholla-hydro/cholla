@@ -61,10 +61,10 @@ void Particles3D::Load_Particles_Data(struct Parameters *P)
   #endif
 }
 
-void Grid3D::WriteData_Particles(struct Parameters P, int nfile)
+void Grid3D::WriteData_Particles(struct Parameters P, int nfile, const FnameTemplate &fname_template)
 {
   // Write the particles data to file
-  OutputData_Particles(P, nfile);
+  OutputData_Particles(P, nfile, fname_template);
 }
 
   #ifdef HDF5
@@ -754,10 +754,10 @@ void Grid3D::Write_Particles_Data_HDF5(hid_t file_id)
 }
   #endif  // HDF5
 
-void Grid3D::OutputData_Particles(struct Parameters P, int nfile)
+void Grid3D::OutputData_Particles(struct Parameters P, int nfile, const FnameTemplate &fname_template)
 {
   FILE *out;
-  std::string filename = FnameTemplate(P).format_fname(nfile, "_particles");
+  std::string filename = fname_template.format_fname(nfile, "_particles");
 
   // a binary file is created for each process
   #if defined BINARY

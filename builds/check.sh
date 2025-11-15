@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 if [ -z ${PYTHON} ]; then
   PYTHON=$(which python)

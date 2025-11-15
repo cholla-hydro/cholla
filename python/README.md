@@ -1,6 +1,21 @@
+# Overview
+
+This directory primarily defines the `cholla_utils` package (more detail is provided below). With that said, it also contains some scripts more broadly related to working with Cholla.
+
+For context some basic context:
+- the **../pyproject.toml** file describes the ``cholla_utils`` package
+- the **./cholla_utils** subdirectory contains the files in the actual package
+- the **./contrib** subdirectory contains python logic that was previously **contrib**uted to the cholla repository, but is not actively maintained (in fact, some logic may not even work)
+- the **./examples** subdirectory contains some examples of how to work with cholla datasets.
+- the **./scripts** subdirectory contains some useful python scripts (that make use of the ``cholla_utils`` package)
+- the **./tests** subdirectory contains some tests for the ``cholla_utils`` package
+
 # `cholla_utils`
 
-This is a python package defining utilities functions and tools for working with Cholla outputs.
+`cholla_utils` is a python package defining utilities functions and tools for working with Cholla outputs.
+
+> [!NOTE]  
+> Avoid executing any tests or scripts that import ``cholla_utils`` from within this directory (the presence of the ``cholla_utils`` subdirectory can confuse python).
 
 <!-- SPHINX-START -->
 

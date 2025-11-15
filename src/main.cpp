@@ -99,10 +99,14 @@ int main(int argc, char *argv[])
     is_restart = true;
   }
 
+  // Create the Writer Manager, which is in charge of calling of trigger the various
+  // functions that dump data (e.g. snapshots, slices, projections)
+  io::WriterManager writer_manager(P, pmap);
+
   if (is_restart) {
     chprintf("Input directory:  %s\n", P.indir);
   }
-  chprintf("Output directory:  %s\n", P.outdir);
+  chprintf("Output directory:  %s\n", writer_manager.fname_template().nominal_output_dir_path().c_str());
 
   // Check the configuration
   Check_Configuration(P);
@@ -114,10 +118,6 @@ int main(int argc, char *argv[])
   Write_Message_To_Log_File(message.c_str());
   message = "Macro Flags     = " + std::string(MACRO_FLAGS);
   Write_Message_To_Log_File(message.c_str());
-
-  // Create the Writer Manager, which is in charge of calling of trigger the various
-  // functions that dump data (e.g. snapshots, slices, projections)
-  io::WriterManager writer_manager(P);
 
   // initialize the grid
   G.Initialize(&P);
