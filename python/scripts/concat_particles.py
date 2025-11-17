@@ -1,22 +1,39 @@
 #!/usr/bin/env python3
 """
-Python script for concatenating particle hdf5 datasets. Includes a CLI for concatenating Cholla HDF5 datasets and can be
-imported into other scripts where the `concat_particles_dataset` function can be used to concatenate the datasets.
+Python script for concatenating particle hdf5 datasets. Includes a CLI for
+concatenating Cholla HDF5 datasets and can be imported into other scripts
+where the ``concat_particles_dataset`` function can be used to concatenate
+the datasets.
 
-Generally the easiest way to import this script is to add the `python_scripts` directory to your python path in your
-script like this:
-```
-import sys
-sys.path.append('/PATH/TO/CHOLLA/python_scripts')
-import concat_particles
-```
+Historically, this docstring provided advice for directly importing functionality from
+this script.
+
+* at this time, it's unclear whether anybody actually does this (it has become less
+  necessary now that we provide tools to load in distributed data). If you actually use
+  some part of this functionality, please open a GitHub issue letting us know so we can
+  add that functionality directly into the ``cholla_utils`` python package (of course,
+  we welcome you to open a PR making that change yourself)
+
+* the approach we have historically recommended involves adding the ``python/scripts``
+  directory directly the search path for python modules. To do this, you might add
+  something like the following snippet to your python script:
+
+    import sys
+    sys.path.append('</PATH/TO/CHOLLA>/python/scripts')
+    import concat_2particles
+
+  where you would replace ``</PATH/TO/CHOLLA>`` with an absolute path to your Cholla
+  directory.
 """
 
 import h5py
 import numpy as np
 import pathlib
 
-import concat_internals
+# normally, it's considered bad practice to import a submodule starting with an
+# underscore (since that submodule is considered an implementation detail), but the
+# following is done for backwards compatability as we reorganize
+import cholla_utils._concat_internals as concat_internals
 
 
 # ======================================================================================================================
@@ -222,16 +239,15 @@ def __setup_destination_file(
         # Make list of datasets to copy
         datasets_to_copy = list(source_file.keys())
         datasets_to_copy = [
-            dataset for dataset in datasets_to_copy if not dataset in skip_fields
+            dataset for dataset in datasets_to_copy if dataset not in skip_fields
         ]
 
         # Create the datasets in the output file
         for dataset in datasets_to_copy:
-            dtype = (
-                source_file[dataset].dtype
-                if (destination_dtype == None)
-                else destination_dtype
-            )
+            if destination_dtype is None:
+                dtype = source_file[dataset].dtype
+            else:
+                dtype = destination_dtype
 
             # Determine the shape of the dataset
             if dataset == "density":
@@ -264,7 +280,7 @@ if __name__ == "__main__":
 
     build_source_path = concat_internals.get_source_path_builder(
         source_directory=args.source_directory,
-        pre_extension_suffix=f"_particles",
+        pre_extension_suffix="_particles",
         known_output_snap=args.concat_outputs[0],
     )
 

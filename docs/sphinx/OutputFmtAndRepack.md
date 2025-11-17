@@ -251,7 +251,7 @@ At the time of writing, this is just used for restarts
 
 ## Scripts
 
-We provide a variety of scripts for modifying outputs in the directory called {repository-file}`python_scripts`.
+We provide a variety of scripts for modifying outputs in the directory called {repository-file}`python/scripts`.
 
 :::{todo}
 We may want to directly embed the result of each script's help command within the documentation.
@@ -261,9 +261,9 @@ We may want to directly embed the result of each script's help command within th
 
 The following scripts are provided (for use as command-line tools or as python modules) to help with concatenation:
 
-- {repository-file}`python_scripts/concat_2d_data.py`, for concatenating 2D datasets such as slices, projections, and rotated projections
-- {repository-file}`python_scripts/concat_3d_data.py`, for concatenating field data (aka 3D datasets)
-- {repository-file}`python_scripts/concat_particles.py`, for concatenating particle datasets
+- {repository-file}`python/scripts/concat_2d_data.py`, for concatenating 2D datasets such as slices, projections, and rotated projections
+- {repository-file}`python/scripts/concat_3d_data.py`, for concatenating field data (aka 3D datasets)
+- {repository-file}`python/scripts/concat_particles.py`, for concatenating particle datasets
 
 #### What is concatenation?
 
@@ -290,18 +290,18 @@ The `--snaps` flag accepts a couple of different input formats, it can be a sing
 
 The scripts above contain three public functions, `concat_2d_dataset`, `concat_3d_dataset`, and `concat_particles_dataset`.
 These functions will each concatenate a single output time of a 2D, 3D or particle dataset respectively and can be imported into another python program assuming the scripts are in your python path.
-Generally the easiest way to import this script is to add the `python_scripts` directory to your python path in your script like this:
+Generally the easiest way to import this script is to add the `python/scripts` directory to your python path in your script like this:
 
 ```python
 import sys
-sys.path.append('/PATH/TO/CHOLLA/python\_scripts')
+sys.path.append('/PATH/TO/CHOLLA/python/scripts')
 import concat_3d_data
 ```
 
 (repack-script)=
 ### Repack
 
-Next, we turn our attention to the script called {repository-file}`python_scripts/snaprepack.py`.
+Next, we turn our attention to the script called {repository-file}`python/scripts/snaprepack.py`.
 This file is intended to be used to repack a previously concatenated snapshot file.
 The output file will use the Hierarchical Format.
 

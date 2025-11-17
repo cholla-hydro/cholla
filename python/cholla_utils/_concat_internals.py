@@ -19,18 +19,22 @@ from typing import Optional
 
 # ==============================================================================
 def destination_safe_open(filename: pathlib.Path) -> h5py.File:
-    """Opens a HDF5 file safely and provides useful error messages for some
-    common failure modes
+    """Opens a HDF5 file safely and provides useful error messages for some common failure modes
 
     Parameters
     ----------
     filename : pathlib.Path
-        The full path and name of the file to open
+
+    The full path and name of the file to open :
+
+    filename: pathlib.Path :
+
 
     Returns
     -------
     h5py.File
-        The opened HDF5 file object
+
+    The opened HDF5 file object
     """
 
     try:
@@ -87,8 +91,7 @@ def copy_header(
     destination_file: h5py.File,
     skip_keys: Optional[list] = None,
 ) -> h5py.File:
-    """Copy the attributes of one HDF5 file to another, skipping all fields
-    that are specific to an individual rank
+    """Copy the attributes of one HDF5 file to another, skipping all fields that are specific to an individual rank
 
     Parameters
     ----------
