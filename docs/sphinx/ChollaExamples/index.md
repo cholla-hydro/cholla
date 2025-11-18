@@ -13,6 +13,7 @@ Continue porting me from the [wiki](https://github.com/cholla-hydro/cholla/wiki/
 1D-Square-Wave/overview
 1D-Sound-Wave/overview
 1D-Strong-Shock/overview
+1D-Two-Shocks/overview
 2D-Rayleigh-Taylor/2D-Rayleigh-Taylor
 2D-Kelvin-Helmholtz-Discontinuous/overview
 :::
