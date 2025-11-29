@@ -1,7 +1,6 @@
 # 1D Two Shocks
 This test highlights a collision between two shocks. This test is from Toro's *Riemann solvers and numerical methods for fluid dynamics* Sec. 6.4, test 4.The test consists of left and right states separated at x = 0.4 with velocities 19.5975 and -6.19633, respectively. Density of the left side is 5.99924 and pressure is 460.894. For the right side, density is 5.99242 while pressure is 46.095. Gamma is set to 1.4. This test is performed with the hydro build (`cholla/builds/make.type.hydro`). Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Riemann()`.  
 
-**Important:** This test must be run with diode boundaries [disabled](https://github.com/alwinm/cholla/tree/main-diode) in order to perform as expected (thank you @alwinm!). This branch also uses the Van Leer integrator.
 
 ## Parameter file: (**modified** to add y and z boundary conditions = 0 from `cholla/examples/1D/two_shocks.txt`)
 ```
@@ -64,17 +63,16 @@ diaph=0.4
 # value of gamma
 gamma=1.4
 ```
-Upon completion, you should obtain 2 output files. The initial and final density, pressure, and velocity (in code units) of the solution is shown below (pink dots) plotted over the exact solution (purple line). Examples of how to extract and plot data can be found in `cholla/python_scripts/plot_sod.ipynb`.  
+Upon completion, you should obtain 2 output files. The initial and final density, pressure, velocity, and internal energy (in code units) of the solution is shown below.
 
-:::{figure} two-shocks-initial.png
-:::
-
-:::{figure} two-shocks-final.png
+:::{figure} twoshocks-initial-final.png
 :::
 
 We see a shock, contact discontinuity, and a shock, which is in agreement with Toro's solution and can be seen below:  
 
 :::{figure} toro-solution.png
 :align: center
+:width: 600
+:height: 400
 :::
 

@@ -56,7 +56,7 @@ We see even on a relatively low resolution grid, significant shear mixing has oc
     :loop:
 :::
 
-We can compare Cholla (left) to the results of the [Athena](https://www.astro.princeton.edu/~jstone/Athena/tests/kh/kh.html) code (right), on a 512x512 grid at t = 1.00. Density is shown on a linear color map between 0.9 and 2.1  
+We can compare to the results of the [Athena](https://www.astro.princeton.edu/~jstone/Athena/tests/kh/kh.html) code on a 512x512 grid at t = 1.00. Density is shown on a linear color map between 0.9 and 2.1  
 :::{figure} athena-khd.png 
 :width: 500px
 :align: center
