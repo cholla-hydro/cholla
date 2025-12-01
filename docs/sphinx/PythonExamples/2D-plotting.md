@@ -1,6 +1,6 @@
 # 2D plotting example
 
-Here we show how to read HDF5 output and make a 2D density plot.
+Here is an example plot for making a 2D density plot.
 
 ```python
 import numpy as np
