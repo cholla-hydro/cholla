@@ -9,4 +9,5 @@ If we just want a single tutorial, then maybe we should remove this page and lin
 :maxdepth: 1
 
 Basic Tutorial <Projection_Slice_Tutorial.ipynb>
+2D Plotting <2D-plotting.md>
 :::
