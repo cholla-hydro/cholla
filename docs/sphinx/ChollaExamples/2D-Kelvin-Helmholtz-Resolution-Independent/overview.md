@@ -9,7 +9,7 @@ This test highlights the ability of a code to resolve mixing caused by shear flo
 
 ######################################
 # number of grid cells in the x dimension
-nx=128
+nx=128 
 # number of grid cells in the y dimension
 ny=128
 # number of grid cells in the z dimension
@@ -40,18 +40,32 @@ zu_bcnd=0
 outdir=./
 ```
 
-Upon completion, you should obtain 201 output files. The initial and final densities and pressure for two different resolutions (in code units) of a slice along the y-midplane is shown below. Default resolution (128x128) is compared to a high-res version (256x256). Examples of how to plot projections and slices can be found in `cholla/python_scripts/Projection_Slice_Tutorial.ipynb`.  
-Initial conditions:
-<img src="./images/2dkh_res_indinitial_conditions.png" alt="Initial density and pressure for a resolution of 256x256x256. " width="1200" />  
-Lower resolution solution:  
-<img src="./images/2dkh_res_indres128_t2.png" alt="Solution with resolution 128x128x128. " width="1200" />  
-Higher resolution solution:  
-<img src="./images/2dkh_res_indres256_t2.png" alt="Solution with resolution 256x256x256. " width="1200" />  
+Upon completion, you should obtain 201 output files. The initial and final densities for two different resolutions (in code units) of a slice along the y-midplane is shown below. Default resolution (128x128) is compared to a high-res version (256x256). Examples of how to plot projections and slices can be found in `cholla/python_scripts/Projection_Slice_Tutorial.ipynb`.  
 
-The solution does appear to be independent of resolution. We can also compare the time evolution of the density at the above resolutions. These were simulated until t = 5 to observe the breakdown of the nonlinear regime:   
+:::{figure} snapshots_khri_128.png
+:::
 
-[[lower resolution|/images/kh_res_ind_2d_128.mp4]]
+:::{figure} snapshots_khri_256.png
+:::
 
-[[higher resolution|/images/kh_res_ind_2d_256.mp4]]
+The solution does appear to be independent of resolution. We can also compare the time evolution of the density at the above resolutions.
+
+128X128
+:::{video} khri-128.mp4
+    :width: 700
+    :height: 500
+    :align: center
+    :autoplay:
+    :loop:
+:::
+
+256X256
+:::{video} khri-256.mp4
+    :width: 700
+    :height: 500
+    :align: center
+    :autoplay:
+    :loop:
+:::
 
 The evolutions are almost identical during the linear regime.
