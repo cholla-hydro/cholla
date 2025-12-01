@@ -11,9 +11,7 @@ import pytest
 
 import cholla_utils
 
-_PYTHON_SCRIPTS_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "..", "python_scripts"
-)
+_PYTHON_SCRIPTS_PATH = os.path.join(os.path.dirname(__file__), "..", "scripts")
 
 
 # declare a global constant used to represent the legacy concatenation format

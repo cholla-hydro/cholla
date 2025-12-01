@@ -65,17 +65,27 @@ testpaths = [
   "python/tests",
 ]
 
+[tool.ruff.per-file-target-version]
+# By default, ruff uses project.requires-python to infer the project-wide
+# python version (certain linting/formatting options may be enabled or disabled
+# based on this choice). Here, we are overwriting this version for our developer/CI
+# scripts which may depend on the system-python
+"tools/**" = "py37"
+
+
 [tool.ruff.lint]
 exclude = [
-    "python_scripts/**",
-    "docs/**",
-    "tools/**"
+    "python/contrib/**",
+    "docs/sphinx/conf.py",
+    "docs/sphinx/PythonExamples/**",
+    "tools/analyze_tidy_checks.py"
 ]
 
 [tool.ruff.format]
 exclude = [
-    "python_scripts/**",
-    "docs/**",
-    "tools/**"
+    "python/contrib/**",
+    "docs/sphinx/conf.py",
+    "docs/sphinx/PythonExamples/**",
+    "tools/analyze_tidy_checks.py"
 ]
 

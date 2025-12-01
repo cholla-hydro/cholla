@@ -16,6 +16,7 @@ GettingStarted
 CompilingCholla
 MakefileParameters
 PythonAnalysis
+OutputFmtAndRepack
 Physics/index
 ChollaExamples/index
 PythonExamples/index
