@@ -39,7 +39,11 @@ pipeline
                     {
                         steps
                         {
-                            sh  '''
+                            sh  '''#!/bin/bash -le
+                                # enable tracing mode now that the shell
+                                # configuration has been read
+                                set -x
+
                                 if [ "${CHOLLA_MAKE_TYPE}" = "cosmology" ] ||
                                    [ "${CHOLLA_MAKE_TYPE}" = "mhd" ] ||
                                    [ "${CHOLLA_MAKE_TYPE}" = "hydro" ] ||
@@ -62,7 +66,11 @@ pipeline
                     {
                         steps
                         {
-                            sh  '''
+                            sh  '''#!/bin/bash -le
+                                # enable tracing mode now that the shell
+                                # configuration has been read
+                                set -x
+
                                 source builds/run_tests.sh
                                 setupTests -c gcc -t ${CHOLLA_MAKE_TYPE}
 
@@ -74,7 +82,11 @@ pipeline
                     {
                         steps
                         {
-                            sh  '''
+                            sh  '''#!/bin/bash -le
+                                # enable tracing mode now that the shell
+                                # configuration has been read
+                                set -x
+
                                 source builds/run_tests.sh
                                 setupTests -c gcc -t ${CHOLLA_MAKE_TYPE}
 
@@ -88,7 +100,11 @@ pipeline
                         {
                             retry(2)
                             {
-                                sh  '''
+                                sh  '''#!/bin/bash -le
+                                    # enable tracing mode now that the shell
+                                    # configuration has been read
+                                    set -x
+
                                     source builds/run_tests.sh
                                     setupTests -c gcc -t ${CHOLLA_MAKE_TYPE}
 
@@ -102,7 +118,11 @@ pipeline
                         steps
                         {
                             catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                                sh  '''
+                                sh  '''#!/bin/bash -le
+                                    # enable tracing mode now that the shell
+                                    # configuration has been read
+                                    set -x
+
                                     source builds/run_tests.sh
                                     setupTests -c gcc -t ${CHOLLA_MAKE_TYPE}
 
@@ -118,15 +138,19 @@ pipeline
                         {
                             // Print the clang-tidy results with bars of equal
                             // signs seperating each file
-                            sh  '''
+                            sh  '''#!/bin/bash -le
+                                # we explicitly choose not to use tracing mode
+
+                                echo "tidy_results_cpp_${CHOLLA_MAKE_TYPE}.log"
                                 printf '=%.0s' {1..100}
                                 printf "\n"
                                 cat tidy_results_cpp_${CHOLLA_MAKE_TYPE}.log
+                                printf "\n\n"
+
+                                echo "tidy_results_gpu_${CHOLLA_MAKE_TYPE}.log"
                                 printf '=%.0s' {1..100}
                                 printf "\n"
                                 cat tidy_results_gpu_${CHOLLA_MAKE_TYPE}.log
-                                printf '=%.0s' {1..100}
-                                printf "\n"
                                 '''
                         }
                     }
