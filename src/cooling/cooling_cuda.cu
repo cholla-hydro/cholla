@@ -1,5 +1,41 @@
 /*! \file cooling_cuda.cu
- *  \brief Functions to calculate cooling rate for a given rho, P, dt. */
+ *  \brief Functions to calculate cooling rate for a given rho, P, dt.
+ *
+ *  Nearly all of the functionality implemented in this file follow a common
+ *  strategy. At this time of writing, there are essentially 2 functions that
+ *  deviate from the strategy (`test_cool` and `primordial_cool`), which are
+ *  left over from earlier implementations.
+ *
+ *  Interface
+ *  ---------
+ *  In detail, the `configure_cooling_callback` function produces a std::function, which serves as a callback that
+ *  performs cooling
+ *  - a `std::function` instance acts a more generalized function-pointer that is able to wrap ordinary
+ *    functions **OR** a struct that can act like a function (sometimes known as a "functor" or "callable")
+ *  - at this time, the callback will perform cooling, with specialized code based on the cooling recipe, that acts
+ *    modifies the fields tracked by a `grid` object. The actual implementation of the callback is opaque to the
+ *    rest of cholla.
+ *
+ *  Implementation Strategy
+ *  -----------------------
+ *  At this time of writing, we implement cooling functionality with some basic template-machinery
+ *  - our use of templates allows us to create optimal code for each "cooling recipe", while minimizing duplicated
+ *    code and avoiding conditional compilation with ifdef statements
+ *
+ *  Our idea revolves around the concept of a `CoolingRecipe`.
+ *  - we loosely define a `CoolingRecipe` as any type that implements a `__device__` member-function with the
+ *    `Real cool_rate(Real n, Real T)` function signature (i.e. it computes the cooling rate per unit volume at a
+ *    given number density and temperature)
+ *  - in principle, this may or may not include the effects of photoelectric heating (it may eventually make more
+ *    sense to model photoelectric heating separately)
+ *
+ *  To perform cooling with a given recipe, we an instance of the cooling_recipe to the  __global__ function,
+ * `cooling_kernel`. The concrete type of the `CoolingRecipe` is a template parameter, `cooling_kernel`, so that
+ * invocations of kernels are effectively specialized for each type of recipe.
+ *
+ *  The `CoolingUpdateExecutor` class template simply serves as a nice way to package the particular kind of
+ * CoolingRecipe (and and cooling-recipe-specific parameters) with the logic for launching `cooling_kernel`.
+ */
 
 #include <math.h>
 
@@ -8,6 +44,7 @@
 #include "../cooling/texture_utilities.h"
 #include "../global/global.h"
 #include "../global/global_cuda.h"
+#include "../utils/error_handling.h"
 #include "../utils/gpu.hpp"
 
 static bool allocated_heating_cooling_textures = false;
@@ -18,44 +55,42 @@ template <typename CoolingRecipe>
 __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
                                Real gamma, CoolingRecipe recipe);
 
-__device__ Real Photoelectric_Heating(Real n, Real T, Real n_av);
-__device__ Real TI_cool(Real n, Real T);
-
-/*! \brief This is the main object that applies the cooling update
+/*! \brief Instances of this class template are callables that serve as callback functions for applying
+ *   cooling to the grid.
  *
- * In more detail, this adjusts the value of the total energy for each cell
- * according to the specified cooling function.
+ *  In more detail:
+ *  - This class template is specialized with a "cooling recipe," which encapsulates the
+ *    type of cooling (e.g. cloudy cooling, analytic cie cooling, analytic ti cooling, etc.).
+ *  - After constructing an instance of this class, the instance is typically wrapped within
+ *    ``std::function`` and then returned to the rest of Cholla
+ *  - For the uninitiated, ``std::function`` performs type-erasure on its contents. Essentially,
+ *    the rest of Cholla is totally agnostic about which function is contained by ``std::function``
+ *    (essentially, a ``std::function`` instance is a more general-purpose kind of function pointer
+ *    that can be used on any callable like a callable struct with some associated state or an
+ *    ordinary function)
  */
 template <typename CoolingRecipe>
 class CoolingUpdateExecutor
 {
   CoolingRecipe recipe_;
 
-  static void Cooling_Update_(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
-                              Real gamma, CoolingRecipe recipe);
-
  public:
   CoolingUpdateExecutor(CoolingRecipe recipe) : recipe_(recipe) {}
 
   void operator()(Grid3D &grid) const
   {
-    Header &H = grid.H;
-    Cooling_Update_(grid.C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, gama, this->recipe_);
+    Header &H           = grid.H;
+    Real *dev_conserved = grid.C.device;
+    int n_cells         = H.nx * H.ny * H.nz;
+    int ngrid           = (n_cells + TPB - 1) / TPB;
+    dim3 dim1dGrid(ngrid, 1, 1);
+    dim3 dim1dBlock(TPB, 1, 1);
+
+    hipLaunchKernelGGL(cooling_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, H.nx, H.ny, H.nz, H.n_ghost,
+                       H.n_fields, H.dt, gama, this->recipe_);
+    GPU_Error_Check();
   }
 };
-
-template <typename CoolingRecipe>
-void CoolingUpdateExecutor<CoolingRecipe>::Cooling_Update_(Real *dev_conserved, int nx, int ny, int nz, int n_ghost,
-                                                           int n_fields, Real dt, Real gamma, CoolingRecipe recipe)
-{
-  int n_cells = nx * ny * nz;
-  int ngrid   = (n_cells + TPB - 1) / TPB;
-  dim3 dim1dGrid(ngrid, 1, 1);
-  dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(cooling_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields, dt,
-                     gama, recipe);
-  GPU_Error_Check();
-}
 
 /*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int
  n_ghost, int n_fields, Real dt, Real gamma, cudaTextureObject_t coolTexObj,
@@ -306,33 +341,48 @@ __device__ Real primordial_cool(Real n, Real T)
   return cool;
 }
 
+namespace detail
+{
+
+/*! \brief computes the cooling rate, based on an analytic fit to a solar metallicity
+ *     CIE cooling curve calculated using Cloudy. For log10T, this returns 0
+ *
+ *   \return The cooling rate, lambda, in units of erg s^-1 cm^3 (it is NEVER negative)
+ *
+ *   \note
+ *   It may not be necessary to use __forceinline__, I just used it to ensure I didn't harm existing
+ *   performance
+ *
+ *   \note
+ *   The actual formula for the fit is first described in the appendix of
+ *   (Schneider & Robertson 2018)[https://ui.adsabs.harvard.edu/abs/2018ApJ...860..135S/abstract
+ */
+__forceinline__ __device__ Real analytic_cie_lambda(Real log10T)
+{
+  // fit to CIE cooling function
+  if (log10T < 4.0) {
+    return 0.0;
+  } else if (log10T >= 4.0 && log10T < 5.9) {
+    return pow(10.0, (-1.3 * (log10T - 5.25) * (log10T - 5.25) - 21.25));
+  } else if (log10T >= 5.9 && log10T < 7.4) {
+    return pow(10.0, (0.7 * (log10T - 7.1) * (log10T - 7.1) - 22.8));
+  } else {
+    return pow(10.0, (0.45 * log10T - 26.065));
+  }
+}
+
+}  // namespace detail
+
 /*! \brief Analytic fit to a solar metallicity CIE cooling curve calculated using Cloudy.
  */
 struct CoolRecipeCIE {
-  __device__ static Real cool_rate(Real n, Real T);
-};
-
-__device__ Real CoolRecipeCIE::cool_rate(Real n, Real T)
-{
-  Real lambda = 0.0;  // cooling rate, erg s^-1 cm^3
-  Real cool   = 0.0;  // cooling per unit volume, erg /s / cm^3
-
-  // fit to CIE cooling function
-  if (log10(T) < 4.0) {
-    lambda = 0.0;
-  } else if (log10(T) >= 4.0 && log10(T) < 5.9) {
-    lambda = pow(10.0, (-1.3 * (log10(T) - 5.25) * (log10(T) - 5.25) - 21.25));
-  } else if (log10(T) >= 5.9 && log10(T) < 7.4) {
-    lambda = pow(10.0, (0.7 * (log10(T) - 7.1) * (log10(T) - 7.1) - 22.8));
-  } else {
-    lambda = pow(10.0, (0.45 * log10(T) - 26.065));
+  __device__ static Real cool_rate(Real n, Real T)
+  {
+    Real lambda = detail::analytic_cie_lambda(log10(T));  // cooling rate, erg s^-1 cm^3
+    Real cool   = n * n * lambda;                         // cooling per unit volume, erg /s / cm^3
+    return cool;
   }
-
-  // cooling rate per unit volume
-  cool = n * n * lambda;
-
-  return cool;
-}
+};
 
 /*! \brief Uses texture mapping to interpolate Cloudy cooling/heating
  *         tables at z = 0 with solar metallicity and an HM05 UV background. */
@@ -356,10 +406,10 @@ class CoolRecipeCloudy
     this->heatTexObj_ = heatTexObj;
   }
 
-  __device__ Real cool_rate(Real n, Real T);
+  __device__ Real cool_rate(Real n, Real T) const;
 };
 
-__device__ Real CoolRecipeCloudy::cool_rate(Real n, Real T)
+__device__ Real CoolRecipeCloudy::cool_rate(Real n, Real T) const
 {
   Real lambda  = 0.0;  // log cooling rate, erg s^-1 cm^3
   Real cooling = 0.0;  // cooling per unit volume, erg /s / cm^3
@@ -398,81 +448,134 @@ __device__ Real CoolRecipeCloudy::cool_rate(Real n, Real T)
   return n * n * (cooling - heating);
 }
 
-__device__ Real Photoelectric_Heating(Real n, Real T, Real n_av)
-{
-  // Photoelectric heating based on description given in Kim et al. 2015
-  // n_av is mean density in the sim volume, cm^-3
-  // Returns a positive value, expect sign conversion elsewhere for cooling
-  if (T < 1e4) {
-    return n * n_av * 1.0e-26;
-  } else {
-    return 0.0;
-  }
-}
+/*! Encapsulates our model and configuration for photoelectric heating
+ *
+ *  This implements a very simple model
+ *  - we apply uniform photoelectric heating (over all space and time) to all gas at temperatures
+ *    below 1e4 K
+ *  - this model is described within
+ *    [Kim & Ostriker 2015](https://ui.adsabs.harvard.edu/abs/2015ApJ...802...99K/abstract)
+ *
+ *  @note
+ *  In the future, one could imagine implementing a more sophisticated recipe like TIGRESS
+ *  - For example the amount of heating could be coupled with the properties of clusters
+ *    within the simulation volume
+ *  - If we started to model varying mmw, we could also adopt the TIGRESS strategy to more
+ *    smoothly turn off heating at higher temperatures
+ */
+struct PhotoelectricHeatingModel {
+  /*! This theoretically represents the mean density in the simulation volume. A value of 0.0
+   *  indicates that there is no heating.
+   *
+   *  @note
+   *  I can't remember the precise interpretation, but I think the idea may be that it may be
+   *  used because it loosely relates to the rate of star formation...
+   */
+  double n_av_cgs = 0.0;
+
+  bool is_active() const { return n_av_cgs != 0.0; }
+
+  /*! \brief computes the heating rate per unit volume, erg /s / cm^3.
+   *
+   *  This **NEVER** returns a negative value.
+   */
+  __device__ Real operator()(Real n, Real T) const { return (T < 1e4) ? n * n_av_cgs * 1.0e-26 : 0.0; }
+};
 
 class CoolRecipeCloudyAndPhotoHeating
 {
   CoolRecipeCloudy pure_cloudy_recipe;
-  Real n_av_cgs;
+  PhotoelectricHeatingModel photoelectric_fn;
 
  public:
-  __host__ CoolRecipeCloudyAndPhotoHeating(std::string filename, Real n_av_cgs)
-      : pure_cloudy_recipe(filename), n_av_cgs{n_av_cgs}
+  __host__ CoolRecipeCloudyAndPhotoHeating(std::string filename, PhotoelectricHeatingModel photoelectric_fn)
+      : pure_cloudy_recipe(filename), photoelectric_fn{photoelectric_fn}
   {
   }
 
-  __device__ Real cool_rate(Real n, Real T)
+  __device__ Real cool_rate(Real n, Real T) const
   {
-    return pure_cloudy_recipe.cool_rate(n, T) - Photoelectric_Heating(n, T, n_av_cgs);
+    return pure_cloudy_recipe.cool_rate(n, T) - photoelectric_fn(n, T);
   }
 };
 
-/*! \brief Estimated cooling / photoelectric heating function based on description
- *         given in Kim et al. 2015.
- *  \note  According to Evan, this was implemented back while trying out the photo-heating term
+/*! \brief Analytic cooling/heating recipe that roughly matches the "TI" cooling runs shown in
+ *     in [Kim & Ostriker 2015](https://ui.adsabs.harvard.edu/abs/2015ApJ...802...99K/abstract)
+ *
+ *  For temperatures below 1e4 K:
+ *  - We adopt the same analytic fitting formula as Kim & Ostriker 2015 for T < 1e4 K, which is an
+ *    analytic fit to the results of Koyama & Inutsuka (2002).
+ *  - a description of this fit is provided within
+ *    [Kim+2008](https://ui.adsabs.harvard.edu/abs/2008ApJ...681.1148K/abstract)
+ *  For temperatures above 1e4 K
+ *  - we directly use the exact same analytic CIE fit as CoolRecipeCIE
+ *
+ * \warning
+ * Be aware, that all of our cooling infrastructure probably does not properly account for changes in
+ * mean molecular weights. Historically, we just assumed a fixed mean molecular weight of 0.6 when we
+ * used a CIE analytic fit. In practice, the fit below 1e4 K is intended to be used with a mean
+ * molecular weight fixed to ~1.25
  */
-__device__ Real TI_cool(Real n, Real T)
+class CoolRecipeTI
 {
-  // WARNING: the fact that n_av is currently assigned a hardcoded value is a
-  //          caveat to this function's implementation
-  Real lambda = 0.0;    // cooling rate, erg s^-1 cm^3
-  Real H      = 0.0;    // heating rate, erg s^-1
-  Real n_av   = 100.0;  // mean density in the sim volume
+  PhotoelectricHeatingModel photoelectric_fn;
 
-  // Below 10K only include photoelectric heating
-  if (log10(T) < 1.0) {
-    H = n_av * 1.0e-26;
-  }
-  // Koyama & Inutsaka 2002 analytic fit
-  if (log10(T) >= 1.0 && log10(T) < 4.0) {
-    lambda = 2e-26 * (1e7 * exp(-1.148e5 / (T + 1000.0)) + 1.4e-2 * sqrt(T) * exp(-92.0 / T));
-    H      = n_av * 1.0e-26;
-  }
-  // fit to cloudy CIE cooling function
-  if (log10(T) >= 4.0 && log10(T) < 5.9) {
-    lambda = powf(10.0, (-1.3 * (log10(T) - 5.25) * (log10(T) - 5.25) - 21.25));
-  }
-  if (log10(T) >= 5.9 && log10(T) < 7.4) {
-    lambda = powf(10.0, (0.7 * (log10(T) - 7.1) * (log10(T) - 7.1) - 22.8));
-  }
-  if (log10(T) >= 7.4) {
-    lambda = powf(10.0, (0.45 * log10(T) - 26.065));
+  // doesn't include any photoelectric heating!
+  __device__ static Real cool_rate_only_(Real n, Real T)
+  {
+    Real lambda;  // cooling rate, erg s^-1 cm^3
+    if (T < 10.0) {
+      lambda = 0.0;  // no cooling below 10 K
+    } else if (T >= 10.0 && T < 1e4) {
+      // Koyama & Inutsaka 2002 analytic fit
+      lambda = 2e-26 * (1e7 * exp(-1.148e5 / (T + 1000.0)) + 1.4e-2 * sqrt(T) * exp(-92.0 / T));
+    } else {
+      lambda = detail::analytic_cie_lambda(log10(T));
+    }
+
+    return n * (n * lambda);  // cooling rate per unit volume, erg /s / cm^3
   }
 
-  // cooling rate per unit volume, erg /s / cm^3
-  Real cooling = n * (n * lambda - H);
-  return cooling;
-}
+ public:
+  __host__ CoolRecipeTI(PhotoelectricHeatingModel photoelectric_fn) : photoelectric_fn{photoelectric_fn} {}
+
+  __device__ Real cool_rate(Real n, Real T) { return cool_rate_only_(n, T) - photoelectric_fn(n, T); }
+};
 
 std::function<void(Grid3D &)> configure_cooling_callback(std::string kind, ParameterMap &pmap)
 {
-  // the caller of this function will ensure that parameters associated with photoelectric_heating
-  // or chemistry.data_file aren't set when using piecewise-cie
+  // the caller of this function will is responsible for raising an error when:
+  // - "chemistry.data_file" is set, but we aren't using a recipe that doesn't need a datafile
+
+  // First, we configure an instance of PhotoelectricHeatingModel, based off the parameters
+  // -> to help provide informative error messages, we store the names of the parameters in variables
+  // -> maybe we should only use a single parameter, to just specify the value of n_av_cgs?
+  const char *use_photoelectric_parname  = "chemistry.photoelectric_heating";
+  const char *photoelectric_n_av_parname = "chemistry.photoelectric_n_av_cgs";
+
+  PhotoelectricHeatingModel photoelectric_fn;
+  if (pmap.value_or(use_photoelectric_parname, false)) {
+    // In this case, we want to actually use photoelectric heating
+    double n_av_cgs = pmap.value_or(photoelectric_n_av_parname, 100.0);
+    CHOLLA_ASSERT(n_av_cgs > 0.0, "The \"%s\" parameter cannot specify a non-positive value",
+                  photoelectric_n_av_parname);
+    photoelectric_fn = PhotoelectricHeatingModel{n_av_cgs};
+  } else {
+    CHOLLA_ASSERT(!pmap.has_param(photoelectric_n_av_parname),
+                  "It is an error to specify the \"%s\" parameter when the \"%s\" hasn't "
+                  "explicitly been set to true.",
+                  photoelectric_n_av_parname, use_photoelectric_parname);
+    photoelectric_fn = PhotoelectricHeatingModel{0.0};  // this means that there isn't heating
+  }
+
+  // Next, we branch based on the cooling-recipe
   if (kind == "tabulated-cloudy") {
+    // since photoelectric_fn can be configured to be inactive, we could probably just
+    // consolidate the definitions of CoolRecipeCloudyAndPhotoHeating and CoolRecipeCloudy
+
     std::string filename = pmap.value_or("chemistry.data_file", std::string());
-    if (pmap.value_or("chemistry.photoelectric_heating", false)) {
-      double n_av_cgs = pmap.value_or("chemistry.photoelectric_n_av_cgs", 100.0);
-      CoolRecipeCloudyAndPhotoHeating recipe(filename, n_av_cgs);
+    if (photoelectric_fn.is_active()) {
+      CoolRecipeCloudyAndPhotoHeating recipe(filename, photoelectric_fn);
       CoolingUpdateExecutor<CoolRecipeCloudyAndPhotoHeating> updater(recipe);
       return {updater};
     } else {
@@ -481,8 +584,14 @@ std::function<void(Grid3D &)> configure_cooling_callback(std::string kind, Param
       return {updater};
     }
   } else if (kind == "piecewise-cie") {
+    CHOLLA_ASSERT(not photoelectric_fn.is_active(),
+                  "The \"%s\" cooling recipe is **NOT** compatible with photoelectric heating", kind.c_str());
     CoolRecipeCIE recipe{};
     CoolingUpdateExecutor<CoolRecipeCIE> updater(recipe);
+    return {updater};
+  } else if (kind == "piecewise-ti") {
+    CoolRecipeTI recipe{photoelectric_fn};
+    CoolingUpdateExecutor<CoolRecipeTI> updater(recipe);
     return {updater};
   }
   return {};

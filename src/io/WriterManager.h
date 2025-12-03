@@ -11,6 +11,8 @@
 
 #include "../global/global.h"
 #include "../grid/grid3D.h"
+#include "../io/FnameTemplate.h"  // define FnameTemplate
+#include "../io/ParameterMap.h"   // define ParameterMap
 
 namespace io
 {
@@ -25,7 +27,7 @@ struct WriterPack {
   /*! specifies the cadence for invoking the writer */
   int cadence;
   /*! specifes the writer-function or function-like object */
-  const std::function<void(Grid3D &, Parameters, int)> fn;
+  const std::function<void(Grid3D &, Parameters, int, const FnameTemplate &)> fn;
 };
 
 }  // namespace detail
@@ -37,18 +39,22 @@ struct WriterPack {
  */
 class WriterManager
 {
+  FnameTemplate fname_template_;
   std::vector<io::detail::WriterPack> packs_;
 
  public:
   WriterManager() = delete;
-  WriterManager(const Parameters &P);
+  WriterManager(const Parameters &P, ParameterMap &pmap);
+
+  /*! get the fname-template */
+  const FnameTemplate &fname_template() const noexcept { return fname_template_; }
 
   /*! apply the writers */
   void Apply_Writers(Grid3D &G, const Parameters &P, int nfile) const
   {
     for (const io::detail::WriterPack &pack : packs_) {
       if (nfile % pack.cadence == 0) {
-        pack.fn(G, P, nfile);
+        pack.fn(G, P, nfile, fname_template_);
       }
     }
   }

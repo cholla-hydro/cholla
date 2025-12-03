@@ -8,7 +8,7 @@ Port me [from the wiki](https://github.com/cholla-hydro/cholla/wiki/Input-File-P
 
 ## Required Parameters
 
-These parameters are required in all simulations
+These parameters are required for all simulations
 
 :::{include} param/Required.md
 :::

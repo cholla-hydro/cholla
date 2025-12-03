@@ -1,4 +1,4 @@
-w#!/bin/bash
+#!/bin/bash
 
 module restore PrgEnv-cray
 module load hdf5

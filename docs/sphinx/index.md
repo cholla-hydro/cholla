@@ -17,6 +17,7 @@ CompilingCholla
 MakefileParameters
 WritingParamFiles
 PythonAnalysis
+OutputFmtAndRepack
 Physics/index
 ChollaExamples/index
 PythonExamples/index
