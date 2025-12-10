@@ -17,6 +17,7 @@ logger = logging.getLogger("cholla_utils")
 logger.setLevel(logging.DEBUG)
 mylog = logger
 
+
 class _CachedH5Openner:
     """
     A simple context manager that helps implement the idiom where data is read
@@ -79,6 +80,12 @@ class ChollaDataFmt(enum.Enum):
         return f"<{self.__class__.__name__}, {self.name}>"
 
 
+# the default "data_type" referring to fields on disk
+# -> yt would use "cholla"
+# -> we are using "field"
+_DEFAULT_FIELD_DTYPE = "field"
+
+
 @dataclass(kw_only=True, slots=True, frozen=True)
 class _BlockDiskMapping:
     """
@@ -104,6 +111,66 @@ class _DatasetDiskMapping:
     field_mapping: _BlockDiskMapping
     particle_mapping: _BlockDiskMapping | None
     particle_types: tuple[ParticleType, ...]
+
+
+def _setup_particle_mapping_and_types(
+    fname_template: str, data_fmt: ChollaDataFmt
+) -> tuple[_BlockDiskMapping, tuple[ParticleType, ...]]:
+    """
+    Set up particle mapping and tpyes (once the way that particle data
+    is organized on disk is known)
+
+    Parameters
+    ----------
+    fname_template
+        calling `fname_template.format(blockid=blockid)` gives the path
+        to the file holding particle data associate with blockid
+    data_fmt
+        The format of the particle data in the Cholla dataset.
+
+    Returns
+    -------
+    particle_mapping: _BlockDiskMapping
+        Contains info for mapping blockids to locations in one or more hdf5
+        files
+    particle_types: tuple of strings
+        Specify the kinds of particles included in the dataset
+
+    """
+    match data_fmt:
+        case ChollaDataFmt.LEGACY_CONCAT:
+            raise RuntimeError(
+                "we do not support particle data with legacy concatenation"
+            )
+        case ChollaDataFmt.CONCAT:
+            concat_fname = fname_template.format(blockid=0)
+            assert concat_fname == fname_template  # temporary sanity check!
+            with h5py.File(concat_fname, "r") as f:
+                ptypes = tuple(f["particle"].keys())
+                assert len(ptypes) == 1  # temporary sanity check!
+                idx_map = {}
+                stop_block_idx_slc = f["particle"][ptypes[0]]["stop_block_idx_slc"][()]
+                itr = enumerate(f["domain/stored_blockid_list"][()])
+                for stored_idx, blockid in itr:
+                    if stored_idx == 0:
+                        start = 0
+                    else:
+                        start = stop_block_idx_slc[stored_idx - 1]
+                    idx_map[blockid] = (slice(start, stop_block_idx_slc[stored_idx]),)
+            h5_group_map = {ptype: f"particle/{ptype}" for ptype in ptypes}
+            particle_mapping = _BlockDiskMapping(
+                fname_template=concat_fname, h5_group_map=h5_group_map, idx_map=idx_map
+            )
+        case ChollaDataFmt.DISTRIBUTED:
+            ptypes = ("io",)
+            particle_mapping = _BlockDiskMapping(
+                fname_template=fname_template,
+                h5_group_map={"io": "./"},
+                idx_map=defaultdict(lambda: (slice(None),)),
+            )
+        case _:
+            raise RuntimeError("should be unreachable")
+    return particle_mapping, ptypes
 
 
 def _infer_particle_mapping_and_types(
@@ -137,6 +204,8 @@ def _infer_particle_mapping_and_types(
                 "Skipping check for particle-data when reading data with Cholla's "
                 "legacy concatenation format"
             )
+            # for yt's Cholla frontend, this is not worth the effort
+            # ======================================================
             # the fundamental problem stems from the way that Cholla's legacy fluid
             # concatenation script combines all blocks into 1 giant block.
             # - technically, Cholla had legacy concatenation scripts that did the same
@@ -146,6 +215,10 @@ def _infer_particle_mapping_and_types(
             #   structure. While we could support this mismatch of particle and fluid
             #   data, it would involve a lot of work (and I don't think it will ever
             #   actually come up in the real world)
+            #
+            # for cholla_utils, we could make it work a lot more easily... but I'm
+            # choosing until we are forced to make it work (b/c I'm skeptical it
+            # will ever come up).
             return None, ()
         case ChollaDataFmt.CONCAT:
             expected_suffix = ".h5"
@@ -178,29 +251,13 @@ def _infer_particle_mapping_and_types(
     concat_fname = f"{block0_fluid_fname[:-suf_len]}_particles.h5"
 
     if os.path.isfile(fname_template.format(blockid=0)):
-        ptypes = ("io",)
-        particle_mapping = _BlockDiskMapping(
-            fname_template=fname_template,
-            h5_group_map={"io": "./"},
-            idx_map=defaultdict(lambda: (slice(None),)),
+        particle_mapping, ptypes = _setup_particle_mapping_and_types(
+            fname_template, ChollaDataFmt.DISTRIBUTED
         )
     elif os.path.isfile(concat_fname):
-        with h5py.File(concat_fname, "r") as f:
-            ptypes = tuple(f["particle"].keys())
-            assert len(ptypes) == 1  # temporary sanity check!
-            idx_map = {}
-            stop_block_idx_slc = f["particle"][ptypes[0]]["stop_block_idx_slc"][()]
-            for stored_idx, blockid in enumerate(f["domain/stored_blockid_list"][()]):
-                if stored_idx == 0:
-                    start = 0
-                else:
-                    start = stop_block_idx_slc[stored_idx - 1]
-                idx_map[blockid] = (slice(start, stop_block_idx_slc[stored_idx]),)
-        h5_group_map = {ptype: f"particle/{ptype}" for ptype in ptypes}
-        particle_mapping = _BlockDiskMapping(
-            fname_template=concat_fname, h5_group_map=h5_group_map, idx_map=idx_map
+        particle_mapping, ptypes = _setup_particle_mapping_and_types(
+            concat_fname, ChollaDataFmt.CONCAT
         )
-
     else:
         mylog.info("No particle data was found")
         particle_mapping = None
@@ -286,7 +343,9 @@ def _determine_data_layout(f: h5py.File) -> tuple[np.ndarray, _DatasetDiskMappin
             global_dims=f.attrs["dims"].astype("=i8"),
             arr_shape=f.attrs.get("nprocs", np.array([1, 1, 1])).astype("=i8"),
         )
-        if blockid_location_arr.size == 1:
+        if (blockid_location_arr.size == 1) and (
+            (not filename.endswith(".0")) or ("nprocs" not in f.attrs)
+        ):
             data_fmt = ChollaDataFmt.LEGACY_CONCAT
         else:
             data_fmt = ChollaDataFmt.DISTRIBUTED
@@ -312,15 +371,32 @@ def _determine_data_layout(f: h5py.File) -> tuple[np.ndarray, _DatasetDiskMappin
             raise RuntimeError("should be unreachable")
     field_mapping = _BlockDiskMapping(
         fname_template=fname_template,
-        h5_group_map={"cholla": "./" if flat_structure else "field"},
+        h5_group_map={_DEFAULT_FIELD_DTYPE: "./" if flat_structure else "field"},
         idx_map=field_idx_map,
     )
 
     # STEP 5: Check if there is a particle dataset
     # ============================================
-    particle_mapping, particle_types = _infer_particle_mapping_and_types(
-        block0_fluid_fname=filename, fluid_data_fmt=data_fmt
-    )
+    if (data_fmt is ChollaDataFmt.DISTRIBUTED) and ("n_particles_local" in f.attrs):
+        particle_mapping, particle_types = _setup_particle_mapping_and_types(
+            fname_template=field_mapping.fname_template, data_fmt=data_fmt
+        )
+        # a distributed file can either hold field data or particle data, but not both!
+        field_mapping = None
+    elif (data_fmt is ChollaDataFmt.CONCAT) and ("particle" in f):
+        particle_mapping, particle_types = _setup_particle_mapping_and_types(
+            fname_template=field_mapping.fname_template, data_fmt=data_fmt
+        )
+        # although at the time of writing, we don't provide a nice way to store
+        # field-data and particle-data in the same file, the format was explicitly
+        # designed so that this would be possible
+        if "field" not in f:
+            field_mapping = None
+    else:
+        # check if companion files exist that hold particle data
+        particle_mapping, particle_types = _infer_particle_mapping_and_types(
+            block0_fluid_fname=filename, fluid_data_fmt=data_fmt
+        )
 
     dset_mapping = _DatasetDiskMapping(
         field_mapping=field_mapping,
@@ -390,7 +466,7 @@ def _detect_particle_fields(
         if "n_particles_local" in grp.attrs:
             local_pfield_shape = (grp.attrs["n_particles_local"][0],)
         else:
-            local_pfield_shape = (grp.attrs["total_ptype_count"][0],)
+            local_pfield_shape = (grp.attrs["total_ptype_count"],)
 
         out = []
         for name, dataset in grp.items():
@@ -401,4 +477,3 @@ def _detect_particle_fields(
                 continue
             out.append((ptype, name))
         return out
-
