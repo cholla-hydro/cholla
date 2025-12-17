@@ -54,6 +54,7 @@ extensions = [
 
     # Custom Extensions
     # -----------------
+    "doxybuild",
     "par"
 ]
 
