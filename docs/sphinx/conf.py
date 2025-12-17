@@ -54,7 +54,8 @@ extensions = [
 
     # Custom Extensions
     # -----------------
-    "par"
+    "par",
+    "cli_help",
 ]
 
 source_suffix = [".rst", ".md"]
