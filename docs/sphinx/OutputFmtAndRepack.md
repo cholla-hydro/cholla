@@ -329,10 +329,6 @@ At the time of writing, this is just used for restarts
 
 We provide a variety of scripts for modifying outputs in the directory called {repository-file}`python/scripts`.
 
-:::{todo}
-We may want to directly embed the result of each script's help command within the documentation.
-:::
-
 ### Concatenation scripts
 
 The following scripts are provided (for use as command-line tools or as python modules) to help with concatenation:
