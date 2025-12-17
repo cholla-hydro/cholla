@@ -37,7 +37,6 @@ release = '3.0.1-dev'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'breathe',
     'myst_parser',
     'nbsphinx',
     'sphinx.ext.autodoc',
@@ -155,8 +154,6 @@ def _get_mtime(nominal_path):
     return functools.reduce(max, itr, root_mtime)
 
 def build_doxygen():
-    if os.getenv("SKIPDOXYGEN", "FALSE").lower() == "true":
-        return {}, {} # skip a rebuild
 
     cur_dir = os.path.dirname(os.path.abspath(__file__))
     root_dir = os.path.abspath(os.path.join(cur_dir, "..", ".."))
@@ -164,16 +161,11 @@ def build_doxygen():
     doxygen_dir = os.path.join(root_dir, "docs", "doxygen")
     doxyfile = os.path.join(doxygen_dir, "Doxyfile")
 
-    dox_builddir = os.path.join(doxygen_dir, "build", "xml")
+    dox_builddir = os.path.join(doxygen_dir, "build", "html")
 
     _header_files = [
         os.path.abspath(p) for p in _it_tree_paths(src_dir) if p.endswith(".h")
     ]
-    projects = {"cholla": dox_builddir}
-    projects_source = {"cholla" : ( src_dir, _header_files) }
-
-    out = projects, projects_source
-
 
     # load cached modification times (if they exist)
     try:
@@ -195,7 +187,7 @@ def build_doxygen():
         os.path.isdir(dox_builddir) and
         (cached_mtimes.get("dox-build-dir", None) == _get_mtime(dox_builddir))
     ):
-        return out
+        return dox_builddir
 
     if os.path.exists(dox_builddir):
         shutil.rmtree(dox_builddir)
@@ -220,7 +212,23 @@ def build_doxygen():
     except OSError as e:
         sys.stderr.write(f"doxygen execution failed: {e}")
 
-    return out
+    return dox_builddir
 
-breathe_projects, breathe_projects_source = build_doxygen()
-breathe_default_project = "cholla"
+def generate_and_copy_doxygen():
+    # a short-term hack to get the build-directory
+    # -> the proper fix involves making a sphinx extension
+    sphinx_build_dir = os.path.join(os.getcwd(),sys.argv[-1])
+
+    dox_builddir = build_doxygen()
+
+    # copy the files into the builddir
+    # TODO: build them at the destination to begin with
+    dox_dest_builddir = os.path.join(sphinx_build_dir, "html", "internal-api-ref")
+    os.makedirs(dox_dest_builddir, exist_ok=True)
+    shutil.copytree(src=dox_builddir, dst=dox_dest_builddir, dirs_exist_ok=True)
+
+if os.getenv("SKIPDOXYGEN", "FALSE").lower() == "true":
+    pass # do nothing!
+else:
+    generate_and_copy_doxygen()
+
