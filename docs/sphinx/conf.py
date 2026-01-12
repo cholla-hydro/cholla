@@ -98,6 +98,17 @@ myst_enable_extensions = [
     "fieldlist"
 ]
 
+# -- Options for doxybuild extension -----------------------------------------
+
+# path to the baseline doxyfile (relative to this config file)
+doxybuild_hardcoded_doxyfile = "../doxygen/Doxyfile"
+# path to the C++ source code directory (relative to this config file)
+doxybuild_src_code_dir = "../../src"
+# path relative to the source directory where the stub files are written
+doxybuild_dest_dir = "Reference/internal-api-ref"
+# override doxygen parameters https://www.doxygen.nl/manual/config.html
+doxybuild_overrides = {"PROJECT_NUMBER": release}
+
 # -- Options for par extension -----------------------------------------------
 
 par_separator = "."
