@@ -51,7 +51,8 @@ extensions = [
     # Custom Extensions
     # -----------------
     "doxybuild",
-    "par"
+    "par",
+    "cli_help",
 ]
 
 source_suffix = [".rst", ".md"]
