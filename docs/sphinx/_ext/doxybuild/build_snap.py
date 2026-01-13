@@ -3,18 +3,19 @@ Logic for constructing a cache of modification times.
 """
 
 from collections.abc import Iterator
-from typing import Generic, TypeVar
 import dataclasses
 import json
 import os
 
 from .run_doxygen import DoxyBuildPaths
 
+
 @dataclasses.dataclass
 class DoxyBuildSnapshot:
     """
     Represents a snapshot of a doxygen build
     """
+
     # lists paths to directories or individual files that are relevant to
     # the build
     build_paths: DoxyBuildPaths
@@ -27,13 +28,13 @@ class DoxyBuildSnapshot:
     build_dir_artifacts: set[str]
 
     def __post_init__(self):
-        assert self.build_dir_artifacts is not None # sanity check!
+        assert self.build_dir_artifacts is not None  # sanity check!
 
     def write_json(self, path):
         d = {
             "build_paths": self.build_paths.to_serialization_dict(),
             "mtimes": self.mtimes,
-            "build_dir_artifacts": list(self.build_dir_artifacts)
+            "build_dir_artifacts": list(self.build_dir_artifacts),
         }
         with open(path, "w") as f:
             json.dump(d, f)
@@ -45,8 +46,9 @@ class DoxyBuildSnapshot:
         return cls(
             build_paths=DoxyBuildPaths(**data["build_paths"]),
             mtimes=data["mtimes"],
-            build_dir_artifacts=set(data["build_dir_artifacts"])
+            build_dir_artifacts=set(data["build_dir_artifacts"]),
         )
+
 
 def _it_tree_names(dir_path: os.PathLike) -> Iterator[str]:
     """
@@ -63,8 +65,8 @@ def _it_tree_names(dir_path: os.PathLike) -> Iterator[str]:
         if root_path == dir_path:
             root_name = ""
         else:
-            assert root_path[n_dir_path_chars] == os.sep # sanity_check
-            root_name = root_path[n_dir_path_chars+1:]
+            assert root_path[n_dir_path_chars] == os.sep  # sanity_check
+            root_name = root_path[n_dir_path_chars + 1 :]
 
         yield from (os.path.join(root_name, d) for d in dirs)
         yield from (os.path.join(root_name, f) for f in files)
@@ -104,8 +106,9 @@ def _get_mtime(nominal_path: os.PathLike, return_nameset: bool = False):
         return max_mtime, nameset
     return max_mtime
 
+
 def try_measure_snap(
-    build_paths: DoxyBuildPaths, loudly_fail:bool = False
+    build_paths: DoxyBuildPaths, loudly_fail: bool = False
 ) -> None | DoxyBuildSnapshot:
     """
     try to measure the mtime (modification time) for each the specified
@@ -148,7 +151,7 @@ def build_consistent_with_cache(
     cache_file: os.PathLike, depend_artifact_paths: DoxyBuildPaths
 ) -> bool:
     """
-    Checks 
+    Checks
     Checks whether the modification times for each dependency or artifact of
     the doxygen build matches the modification times from a previous build
 
@@ -177,8 +180,7 @@ def build_consistent_with_cache(
     actual_snap = try_measure_snap(depend_artifact_paths)
 
     if actual_snap is None:
-        # one or more dependencies/artifacts is missing. 
+        # one or more dependencies/artifacts is missing.
         return False
 
     return actual_snap == cached_snap
-

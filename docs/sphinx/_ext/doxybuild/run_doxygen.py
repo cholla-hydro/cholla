@@ -5,7 +5,6 @@ Does the heavy-lifting of actually executing doxygen
 from collections.abc import Mapping
 import dataclasses
 import filecmp
-import json
 import os
 import shutil
 import string
@@ -21,6 +20,7 @@ class DoxyBuildPaths:
     Each field corresponds to a file or directory of files that are either
     dependencies of doxygen or artifacts produced by doxygen.
     """
+
     # The c++ source directory that doxygen docs are build from
     cpp_src_dir: os.PathLike
     # the standard doxygen file (that is committed to the repository)
@@ -35,17 +35,13 @@ class DoxyBuildPaths:
         cls,
         doxybuild_build_cache_dir: os.PathLike,
         cpp_src_dir: os.PathLike,
-        hardcoded_doxyfile: os.PathLike
+        hardcoded_doxyfile: os.PathLike,
     ):
-        cur_dir = os.path.dirname(os.path.abspath(__file__))
-        root_dir = os.path.abspath(os.path.join(cur_dir, "..", "..", "..", ".."))
-        doxygen_dir = os.path.join(root_dir, "docs", "doxygen")
-
         return cls(
             cpp_src_dir=cpp_src_dir,
             hardcoded_doxygen_file=hardcoded_doxyfile,
             generated_doxyfile=os.path.join(doxybuild_build_cache_dir, "Doxyfile"),
-            dox_build_dir=os.path.join(doxybuild_build_cache_dir, "html")
+            dox_build_dir=os.path.join(doxybuild_build_cache_dir, "html"),
         )
 
     @property
@@ -63,8 +59,11 @@ class DoxyBuildPaths:
 
     def to_serialization_dict(self):
         # creates a dict (to be used for dumping JSON)
-        return {field.name: str(getattr(self, field.name))
-                for field in dataclasses.fields(self)}
+        return {
+            field.name: str(getattr(self, field.name))
+            for field in dataclasses.fields(self)
+        }
+
 
 _TEMPLATE = """
 # this is a template for a Doxyfile that can be used by Sphinx
@@ -77,10 +76,11 @@ _TEMPLATE = """
 OUTPUT_DIRECTORY       = {OUTPUT_DIRECTORY}
 INPUT                  = {INPUT}
 """
-#PROJECT_NUMBER         = {DOXYGEN_VERSION_STRING}
-#DOT_PATH               = {DOXYGEN_DOT_PATH}
+# PROJECT_NUMBER         = {DOXYGEN_VERSION_STRING}
+# DOT_PATH               = {DOXYGEN_DOT_PATH}
 
-def _write_template(f: typing.IO, template: str, mapping: Mapping[str,str]):
+
+def _write_template(f: typing.IO, template: str, mapping: Mapping[str, str]):
     # get the field names in the string
     field_name_set = set(
         quad[1] for quad in string.Formatter().parse(template) if quad[1] is not None
@@ -97,23 +97,25 @@ def _write_template(f: typing.IO, template: str, mapping: Mapping[str,str]):
     else:
         f.write(template.format_map(mapping))
 
-def write_custom_doxyfile_if_needed(build_paths: DoxyBuildPaths,
-                                    extra_overrides: dict[str, str]) -> bool:
+
+def write_custom_doxyfile_if_needed(
+    build_paths: DoxyBuildPaths, extra_overrides: dict[str, str]
+) -> bool:
     # returns whether a new doxyfile was written (or if one was reused from
     # a prior build)
 
     template_mapping = {
         "RAW_CONF_FILE": os.path.abspath(build_paths.hardcoded_doxygen_file),
         "INPUT": os.path.abspath(build_paths.cpp_src_dir),
-        "OUTPUT_DIRECTORY": os.path.dirname(build_paths.dox_build_dir)
+        "OUTPUT_DIRECTORY": os.path.dirname(build_paths.dox_build_dir),
     }
 
     with tempfile.TemporaryDirectory() as tmpdirname:
         path = os.path.join(tmpdirname, "Doxyfile")
         with open(path, "w") as f:
             _write_template(f, _TEMPLATE, template_mapping)
-            for (key, value) in extra_overrides.items():
-                assert key not in template_mapping # sanity check!
+            for key, value in extra_overrides.items():
+                assert key not in template_mapping  # sanity check!
                 f.write(f"{key} = {value}\n")
         if os.path.isfile(build_paths.generated_doxyfile):
             if filecmp.cmp(path, build_paths.generated_doxyfile, shallow=False):
@@ -145,5 +147,5 @@ def run_doxygen(build_paths: DoxyBuildPaths) -> bool:
         sys.stderr.write(f"doxygen execution failed: {e}")
 
     if (not success) and os.path.exists(build_paths.dox_build_dir):
-        shutil.rmtree(dox_html_outdir)
+        shutil.rmtree(build_paths.dox_build_dir)
     return success
