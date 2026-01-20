@@ -73,20 +73,44 @@ void io::RotatedProjWriter::operator()(Grid3D &G, Parameters P, int nfile, const
   std::string filename = fname_template.format_fname(nfile, "_rot_proj");
 
   // it may be a little more explicit to use a switch statement instead of if/elif/else
-  if (this->rot_info_.flag_delta == 1) {
-    // if flag_delta==1, then we are just outputting a
-    // bunch of rotations of the same snapshot
-    char fname[200];
+  switch (this->rot_info_.flag_delta) {
+    case 1: {
+      // if flag_delta==1, then we are just outputting a
+      // bunch of rotations of the same snapshot
+      char fname[200];
 
-    for (int i_delta = 0; i_delta < this->rot_info_.n_delta; i_delta++) {
-      filename += "." + std::to_string(this->rot_info_.i_delta);
-      chprintf("Outputting rotated projection %s.\n", fname);
+      for (int i_delta = 0; i_delta < this->rot_info_.n_delta; i_delta++) {
+        filename += "." + std::to_string(this->rot_info_.i_delta);
+        chprintf("Outputting rotated projection %s.\n", fname);
 
-      // determine delta about z by output index
-      this->rot_info_.delta = 2.0 * M_PI * ((double)i_delta) / ((double)this->rot_info_.n_delta);
+        // determine delta about z by output index
+        this->rot_info_.delta = 2.0 * M_PI * ((double)i_delta) / ((double)this->rot_info_.n_delta);
+
+        // Create a new file
+        file_id = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
+        // Write header (file attributes)
+        G.Write_Header_Rotated_HDF5(file_id, this->rot_info_);
+
+        // Write the density and temperature projections to the output file
+        G.Write_Rotated_Projection_HDF5(file_id, this->rot_info_);
+
+        // Close the file
+        status = H5Fclose(file_id);
+
+        CHOLLA_ASSERT(status >= 0, "Rotated Projection: File write failed. ProcID: %d\n", procID);
+
+        // iterate this->rot_info_.i_delta
+        this->rot_info_.i_delta++;
+      }
+      break;
+    }
+    case 2: {  // outputing at a rotating delta
+      // rotation rate given in the parameter file
+      this->rot_info_.delta = fmod(nfile * this->rot_info_.ddelta_dt * 2.0 * M_PI, (2.0 * M_PI));
 
       // Create a new file
-      file_id = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+      file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
       // Write header (file attributes)
       G.Write_Header_Rotated_HDF5(file_id, this->rot_info_);
@@ -96,43 +120,25 @@ void io::RotatedProjWriter::operator()(Grid3D &G, Parameters P, int nfile, const
 
       // Close the file
       status = H5Fclose(file_id);
-
-      CHOLLA_ASSERT(status >= 0, "Rotated Projection: File write failed. ProcID: %d\n", procID);
-
-      // iterate this->rot_info_.i_delta
-      this->rot_info_.i_delta++;
+      break;
     }
+    case 0: {  // just output at the delta given in the parameter file
 
-  } else if (this->rot_info_.flag_delta == 2) {
-    // case 2 -- outputting at a rotating delta
-    // rotation rate given in the parameter file
-    this->rot_info_.delta = fmod(nfile * this->rot_info_.ddelta_dt * 2.0 * M_PI, (2.0 * M_PI));
+      // Create a new file
+      file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
-    // Create a new file
-    file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+      // Write header (file attributes)
+      G.Write_Header_Rotated_HDF5(file_id, this->rot_info_);
 
-    // Write header (file attributes)
-    G.Write_Header_Rotated_HDF5(file_id, this->rot_info_);
+      // Write the density and temperature projections to the output file
+      G.Write_Rotated_Projection_HDF5(file_id, this->rot_info_);
 
-    // Write the density and temperature projections to the output file
-    G.Write_Rotated_Projection_HDF5(file_id, this->rot_info_);
-
-    // Close the file
-    status = H5Fclose(file_id);
-  } else {
-    // case 0 -- just output at the delta given in the parameter file
-
-    // Create a new file
-    file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-
-    // Write header (file attributes)
-    G.Write_Header_Rotated_HDF5(file_id, this->rot_info_);
-
-    // Write the density and temperature projections to the output file
-    G.Write_Rotated_Projection_HDF5(file_id, this->rot_info_);
-
-    // Close the file
-    status = H5Fclose(file_id);
+      // Close the file
+      status = H5Fclose(file_id);
+      break;
+    }
+    default:
+      CHOLLA_ERROR("Invalid flag_delta: %d", this->rot_info_.flag_delta);
   }
 
   CHOLLA_ASSERT(status >= 0, "Rotated Projection: File write failed. ProcID: %d\n", procID);
