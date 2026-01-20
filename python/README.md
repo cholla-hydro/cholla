@@ -194,7 +194,7 @@ If the files following this naming convention, the package provides convenience 
 Furthermore, this functionality also works if:
 - the field data is concatenated and the particle data is distributed
 - the field data is distributed and the particle data is concatenated
-- the field data and the distributed data are both concatenated.
+- the field data and the particle data are both concatenated.
 
 [^1]: If there is interest, it would be trivial to upload this package to PyPI.
 [^2]: If you create/destroy/rename any python files, you probably need to fully reinstall `cholla_utils`.
