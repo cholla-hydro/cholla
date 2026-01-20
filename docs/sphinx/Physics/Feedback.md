@@ -61,7 +61,7 @@ While this "sequencing" solution isn't very "physical," it only makes a practica
 If it is coming into play frequently in a given simulation, we may want to consider alternatives, like shorter timesteps or subcycling (after all, the probability that 2 nearby star clusters would have a supernova at exactly the same time is extremely low)
 :::
 
-The main alternative that we could revisit is implementing the method prescriptions as atomic operations. If we want to adopt this solution in the future, there are a number of important considerations that need to be addressed in the future. These details are highlighted under the collapsible tag
+The main alternative that we could revisit is implementing the method prescriptions as atomic operations. If we want to adopt this solution in the future, there are a number of important considerations that need to be addressed in the future. These details are highlighted in the next subsection.
 
 
 #### ASIDE: Important considerations for atomic "conflict-resolution"

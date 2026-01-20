@@ -24,13 +24,19 @@ where
 
 ### Primer on Radiative Cooling
 
-At the time of writing, simulations must always be initialized with CIE cooling (cooling shuts off below 1e4 K) in order to prevent immediate of the gas disk. The current strategy for using other cooling mechanisms. After running the simulation long enough to start driving turbulence in the gas disk (commonly a few 10s of Myr), you can then restart the simulation with a different cooling recipe.
+At the time of writing, simulations must always be initialized with CIE cooling (cooling shuts off below 1e4 K) in order to prevent immediate collapse of the gas disk.
+
+To use other cooling mechanisms, we currently recommend that you:
+
+- start running the simulation with CIE cooling
+
+- after enough time has passed to start driving turbulence in the gas disk (commonly a few 10s of Myr), you can then restart the simulation with a different cooling recipe.
 
 ### Primer on Feedback and Star Formation:
 
-In a simulation without particles, we feedback is implemented with a CGOLs like mechanism.
-
-We also provide a basic particle-based feedback approach. At the moment, all star particles must be initialized at startup (see below). In the future, the goal is to introduce self-consistent star formation.
+We provide a basic particle-based feedback approach.
+At the moment, all star particles must be initialized at startup (see below).
+In the future, the goal is to introduce self-consistent star formation.
 
 ## Configurations
 
@@ -91,6 +97,7 @@ Consider the parameterization of the potential of a Miyamoto-Nagai potential (th
 :::
 
 At the time of writing, we always define {math}`\Phi_{\rm stars,old}(R,z)=\Phi_{\rm MN}(R,z; M_{\rm stars}, R_{\rm stars}, z_{\rm stars})`, where {math}`R` & {math}`z` are cylindrical coordinates, {math}`R_{\rm stars}` & {math}`z_{\rm stars}` are the scale radius/height, and {math}`M_{\rm stars}` is the mass of the disk.
+Currently, these values are hardcoded where we initialize the `ClusteredDiskGalaxy` struct that holds the Milky Way properties (in {repository-file}`src/model/particles/disk_galaxy.cu`).
 
 At the time of writing, {math}`\Phi_{\rm dm}` is always assumed to be an NFW profile, or
 
@@ -197,7 +204,6 @@ As noted in the [Schneider & Robertson 2018](https://ui.adsabs.harvard.edu/abs/2
 :::
 
 In the above equation
-- Consequently, we define . At the time of writing, this **never** includes contributions from self-gravity. (this definition of self gravity means that we can **NEVER** achieve perfect )
 - {math}`r_0` is the "cooling radius." This effectively is where we choose to normalize the profile. Essentially, the parameterized by specifying {math}`\rho_{\rm h}(r_0)` .
 - {math}`c_{s,{\rm h}}^2(r_0)` is the adiabatic sound speed at the cooling radius, or {math}`c_{s,{\rm h}}(r_0)= \sqrt{\gamma k_B T_{\rm h}(r_0) / (\mu m_{\rm H})}`.
 
@@ -317,7 +323,13 @@ Essentially we can use this to incremental rate of star-formation {math}`d{\rm S
 I can definitely elaborate more -- I found the relevant notes on this topic
 :::
 
-At startup we sample this PDF to determine the {math}`r_{\rm cyl}` at which all particles are expected to form. We create star-particles at these radii and distribute the "turn-on times" from a time a little before we start the simulation until the time specified by the `tout` parameter. We use Poisson sampling to distribute these "turn-on times," to target a particular SFR. 
+At startup we sample this PDF to determine the {math}`r_{\rm cyl}` at which all particles are expected to form. We create star-particles at these radii and distribute the "turn-on times" from a time a little before we start the simulation until the time specified by the `tout` parameter. We use Poisson sampling to distribute these "turn-on times," to target a particular SFR.
+At the time of writing, the SFR is hardcoded within the `disk_stellar_cluster_init_` C++ function (in {repository-file}`src/particles/particles_3D.cpp`).
+
+:::{todo}
+Adjust the location where SFR is set to be co-located with other parameters.
+(Ideally, it would be a runtime parameter)
+:::
 
 
 
