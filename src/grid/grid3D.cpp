@@ -7,6 +7,7 @@
   #include <hdf5.h>
 #endif
 #include "../global/global.h"
+#include "../grid/field_info.h"
 #include "../grid/grid3D.h"
 #include "../grid/grid_enum.h"       // provides grid_enum
 #include "../hydro/average_cells.h"  // provides Average_Slow_Cells and SlowCellConditionChecker
@@ -112,24 +113,8 @@ Real Grid3D::Calc_Inverse_Timestep()
  *  \brief Initialize the grid. */
 void Grid3D::Initialize(struct Parameters *P)
 {
-  // number of fields to track (default 5 is # of conserved variables)
-  H.n_fields = 5;
-
-// if including passive scalars increase the number of fields
-#ifdef SCALAR
-  H.n_fields += NSCALARS;
-#endif
-
-// if including magnetic fields increase the number of fields
-#ifdef MHD
-  H.n_fields += 3;
-#endif  // MHD
-
-// if using dual energy formalism must track internal energy - always the last
-// field!
-#ifdef DE
-  H.n_fields++;
-#endif
+  field_name_map = get_field_id_mapping();
+  H.n_fields     = field_name_map.size();
 
   int nx_in = P->nx;
   int ny_in = P->ny;

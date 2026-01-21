@@ -15,6 +15,7 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../io/FnameTemplate.h"
+#include "../utils/FrozenKeyIdxBiMap.h"
 
 #ifdef HDF5
   #include <hdf5.h>
@@ -296,6 +297,9 @@ class Grid3D
   /*! \var struct Rotation R
    *  \brief Rotation struct for data projections */
   struct Rotation R;
+
+  /*! Describes the mapping between field names and field indices */
+  utils::FrozenKeyIdxBiMap field_name_map;
 
 #ifdef GRAVITY
   // Object that contains data for gravity
