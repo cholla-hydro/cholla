@@ -40,7 +40,7 @@
 
 /*! \fn Grid3D(void)
  *  \brief Constructor for the Grid. */
-Grid3D::Grid3D(void)
+Grid3D::Grid3D(void) : field_info(FieldInfo::create())
 {
   // set initialization flag to 0
   flag_init = 0;
@@ -113,8 +113,7 @@ Real Grid3D::Calc_Inverse_Timestep()
  *  \brief Initialize the grid. */
 void Grid3D::Initialize(struct Parameters *P)
 {
-  field_name_map = get_field_id_mapping();
-  H.n_fields     = field_name_map.size();
+  H.n_fields = field_info.n_fields();
 
   int nx_in = P->nx;
   int ny_in = P->ny;
