@@ -1,4 +1,4 @@
-# 2D plotting example
+# General 2D plotting example
 
 Here is an example python script for making a 2D density plot.
 

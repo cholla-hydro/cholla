@@ -1,7 +1,7 @@
 # 2D Resolution Independent Kelvin-Helmholtz Test
 This test highlights the ability of a code to resolve mixing caused by shear flows, emphasizing the importance of an efficient, high order reconstuction method and a fast code. In general, the level of mixing would increase with the resolution; however, this is a resolution independent version. The test consists of a region of higher density (100) sandwiched between two regions of lower density (1.0). The high density layer has a velocity of 10.5 and the low density layers have a velocity of 9.5. Pressure is set to 2.5 and a 1% pertubation (amplitude of 0.1) is added to the high density layer to provoke the instability. Gamma is set to 1.6666666666666667. This test is performed with the default hydro build (`cholla/builds/make.type.hydro`) and Van Leer integrator. Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `KH_res_ind()`. 
 
-## Parameter file: (`cholla/examples/2D/KH_res_ind_2D.txt`)
+This parameter file can be found in [examples/2D/KH_discontinuous_2D.txt](https://github.com/cholla-hydro/cholla/blob/main/examples/2D/KH_discontinuous_2D.txt) on the `dev` branch.
 ```
 #
 # Parameter File for the 2D resolution independent Kelvin-Helmholtz test.

@@ -11,4 +11,6 @@ If we just want a single tutorial, then maybe we should remove this page and lin
 1D Plotting <1D-plotting.md>
 2D Plotting <2D-plotting.md>
 Basic Tutorial <Projection_Slice_Tutorial.ipynb>
+Kelvin-Helmholtz Discontinuous Plotting <KHD-plot.md>
+Square Wave Plotting <Square-Wave-plot.md>
 :::
