@@ -51,6 +51,12 @@
   #include "../analysis/analysis.h"
 #endif
 
+// forward declare the DatasetSpec struct
+namespace io
+{
+struct DatasetSpec;
+}  // namespace io
+
 struct Rotation {
   /*! \var nx
    *   \brief Number of pixels in x-dir of rotated, projected image*/
@@ -503,7 +509,7 @@ class Grid3D
 
   /*! \fn void Write_Grid_HDF5(hid_t file_id)
    *  \brief Write the grid to a file, at the current simulation time. */
-  void Write_Grid_HDF5(hid_t file_id);
+  void Write_Grid_HDF5(hid_t file_id, const io::DatasetSpec *h5_dataset_spec_arr, int n_dataset_spec);
 
   /*! \fn void Write_Projection_HDF5(hid_t file_id)
    *  \brief Write projected density and temperature data to a file. */

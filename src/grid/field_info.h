@@ -17,6 +17,9 @@ namespace field
 // note: HYDRO includes GasEnergy (if present)
 enum class Kind { HYDRO, SCALAR, MAGNETIC };
 
+/*! Specifies which buffer to use for IO */
+enum class IOBuf { HOST, DEVICE };
+
 /*! This is a "range" in the C++ 20 sense
  *
  *  See \ref FieldInfo::get_id_range for an example
@@ -46,6 +49,7 @@ class FieldInfo
   std::vector<int> hydro_field_ids_;
   std::vector<int> scalar_field_ids_;
   std::vector<int> magnetic_field_ids_;
+  std::vector<field::IOBuf> io_buf_;
 
   // We make the default-constructor private to force the use of the factory method
   FieldInfo() = default;
@@ -84,6 +88,16 @@ class FieldInfo
   {
     bool bad_id = (field_id < 0 || field_id >= n_fields());
     return bad_id ? std::nullopt : std::optional<std::string>{name_id_bimap_.inverse_find(field_id)};
+  }
+
+  /*! try to look up the IOBuf value associated with a field
+   *
+   *  \note We may want to revisit whether this actually should be tracked by FieldInfo in the future.
+   */
+  std::optional<field::IOBuf> io_buf(int field_id) const
+  {
+    bool bad_id = (field_id < 0 || field_id >= n_fields());
+    return bad_id ? std::nullopt : std::optional<field::IOBuf>{io_buf_[field_id]};
   }
 
   /*! Returns the number of fields */

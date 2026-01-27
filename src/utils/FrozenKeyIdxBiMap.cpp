@@ -2,7 +2,9 @@
  *  Implementation for FrozenKeyIdxBiMap
  */
 
-#include "FrozenKeyIdxBiMap.h"
+#include "../utils/FrozenKeyIdxBiMap.h"
+
+#include "../utils/error_handling.h"
 
 /*! Defines a bunch of extra details for implementing \ref FrozenKeyIdxBiMap */
 namespace utils
@@ -103,7 +105,8 @@ FrozenKeyIdxBiMap::FrozenKeyIdxBiMap(const std::vector<std::string>& keys) noexc
   }
 
   // allocate hash table (each row is default constructed)
-  bimap_detail::Row* rows = new bimap_detail::Row[capacity];
+  bimap_detail::Row* rows = new (std::nothrow) bimap_detail::Row[capacity];
+  CHOLLA_ASSERT(rows != nullptr, "allocation error");
   // define a callback function to use when this is destroyed
   auto table_deleter = [capacity](bimap_detail::Row* rows) {
     for (std::size_t i = 0; i < capacity; i++) {
@@ -114,8 +117,9 @@ FrozenKeyIdxBiMap::FrozenKeyIdxBiMap(const std::vector<std::string>& keys) noexc
     delete[] rows;
   };
   this->table_rows_             = std::shared_ptr<bimap_detail::Row[]>(rows, table_deleter);
-  uint16_t* ordered_row_indices = new uint16_t[n_keys];
-  this->ordered_row_indices_    = std::shared_ptr<uint16_t[]>(ordered_row_indices, std::default_delete<uint16_t[]>());
+  uint16_t* ordered_row_indices = new (std::nothrow) uint16_t[n_keys];
+  CHOLLA_ASSERT(ordered_row_indices != nullptr, "allocation error");
+  this->ordered_row_indices_ = std::shared_ptr<uint16_t[]>(ordered_row_indices, std::default_delete<uint16_t[]>());
 
   this->length_   = n_keys;
   this->capacity_ = capacity;

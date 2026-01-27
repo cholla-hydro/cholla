@@ -179,7 +179,7 @@ class FrozenKeyIdxBiMap
   std::string inverse_find(int index) const
   {
     uint16_t row_index = ordered_row_indices_.get()[index];
-    return std::string(table_rows_.get()[row_index].key);
+    return {table_rows_.get()[row_index].key};
   }
 
   /*! return the number of keys in the map */

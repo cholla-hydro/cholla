@@ -145,7 +145,8 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
 }
 
 /* Output the grid data to file. */
-void Output_Data(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate &fname_template)
+void Output_Data(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate &fname_template,
+                 const std::vector<io::DatasetSpec> &h5_dataset_spec)
 {
   // create the filename
   std::string filename = fname_template.format_fname(nfile, "");
@@ -184,7 +185,7 @@ void Output_Data(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate 
   G.Write_Header_HDF5(file_id);
 
   // write the conserved variables to the output file
-  G.Write_Grid_HDF5(file_id);
+  G.Write_Grid_HDF5(file_id, h5_dataset_spec.data(), h5_dataset_spec.size());
 
   // close the file
   status = H5Fclose(file_id);
@@ -1298,43 +1299,13 @@ void Write_Generic_HDF5_Field_GPU(int nx, int ny, int nz, int nx_real, int ny_re
 
 /*! \fn void Write_Grid_HDF5(hid_t file_id)
  *  \brief Write the grid to a file, at the current simulation time. */
-void Grid3D::Write_Grid_HDF5(hid_t file_id)
+void Grid3D::Write_Grid_HDF5(hid_t file_id, const io::DatasetSpec *h5_dataset_spec_arr, int n_dataset_spec)
 {
   int i, j, k, id, buf_id;
   hid_t dataset_id, dataspace_id;
   hid_t dataset_id_full, dataspace_id_full;
   Real *dataset_buffer;
   herr_t status;
-
-  bool output_energy;
-  bool output_momentum;
-
-  #ifdef OUTPUT_ENERGY
-  output_energy = true;
-  #else   // not OUTPUT_ENERGY
-  output_energy = false;
-  #endif  // OUTPUT_ENERGY
-
-  #ifdef OUTPUT_MOMENTUM
-  output_momentum = true;
-  #else   // not OUTPUT_MOMENTUM
-  output_momentum = false;
-  #endif  // OUTPUT_MOMENTUM
-
-  #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
-  bool output_metals, output_electrons;
-    #ifdef OUTPUT_METALS
-  output_metals = true;
-    #else   // not OUTPUT_METALS
-  output_metals = false;
-    #endif  // OUTPUT_METALS
-    #ifdef OUTPUT_ELECTRONS
-  output_electrons = true;
-    #else   // not OUTPUT_ELECTRONS
-  output_electrons = false;
-    #endif  // OUTPUT_ELECTRONS
-
-  #endif  // COOLING_GRACKLE or CHEMISTRY_GPU
 
   // Allocate necessary buffers
   int nx_dset = H.nx_real;
@@ -1349,72 +1320,26 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id)
   dataset_buffer = (Real *)malloc(buffer_size * sizeof(Real));
 
   // Start writing fields
-
-  Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), C.d_density, "/density");
-  if (output_momentum || H.Output_Complete_Data) {
-    Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), C.d_momentum_x, "/momentum_x");
-    Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), C.d_momentum_y, "/momentum_y");
-    Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), C.d_momentum_z, "/momentum_z");
+  for (int i = 0; i < n_dataset_spec; i++) {
+    const io::DatasetSpec cur_spec = h5_dataset_spec_arr[i];
+    if (!H.Output_Complete_Data && cur_spec.condition == io::WriteCond::REQUIRE_COMPLETE_DATA) {
+      continue;
+    }
+    if (cur_spec.io_buf == field::IOBuf::HOST) {
+      Real *ptr = &C.host[cur_spec.field_id * H.n_cells];
+      Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, ptr, cur_spec.name.c_str());
+    } else {
+      Real *ptr = &C.device[cur_spec.field_id * H.n_cells];
+      Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), ptr, cur_spec.name.c_str());
+    }
   }
-  if (output_energy || H.Output_Complete_Data) {
-    Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), C.d_Energy, "/Energy");
-  #ifdef DE
-    Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), C.d_GasEnergy, "/GasEnergy");
-  #endif
-  }
 
-  #ifdef SCALAR
-
-    #ifdef BASIC_SCALAR
-  Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), C.d_basic_scalar, "/scalar0");
-    #endif  // BASIC_SCALAR
-
-    #ifdef DUST
-  Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), C.d_dust_density,
-                            "/dust_density");
-    #endif  // DUST
-
-    #ifdef OUTPUT_CHEMISTRY
-      #ifdef CHEMISTRY_GPU
-  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, C.HI_density, "/HI_density");
-  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, C.HII_density, "/HII_density");
-  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, C.HeI_density, "/HeI_density");
-  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, C.HeII_density, "/HeII_density");
-  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, C.HeIII_density, "/HeIII_density");
-  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, C.e_density, "/e_density");
-      #elif defined(COOLING_GRACKLE)
-  // Cool fields are CPU (host) only
-  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Cool.fields.HI_density, "/HI_density");
-  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Cool.fields.HII_density, "/HII_density");
-  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Cool.fields.HeI_density, "/HeI_density");
-  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Cool.fields.HeII_density, "/HeII_density");
-  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Cool.fields.HeIII_density, "/HeIII_density");
-  if (output_electrons || H.Output_Complete_Data) {
-    Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Cool.fields.e_density, "/e_density");
-  }
-      #endif
-    #endif  // OUTPUT_CHEMISTRY
-
-    #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
-
-      #ifdef GRACKLE_METALS
-  if (output_metals || H.Output_Complete_Data) {
-    Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Cool.fields.metal_density, "/metal_density");
-  }
-      #endif  // GRACKLE_METALS
-
-      #ifdef OUTPUT_TEMPERATURE
-        #ifdef CHEMISTRY_GPU
+  #if defined(OUTPUT_TEMPERATURE) && defined(CHEMISTRY_GPU)
   Compute_Gas_Temperature(Chem.Fields.temperature_h, false);
   Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Chem.Fields.temperature_h, "/temperature");
-        #elif defined(COOLING_GRACKLE)
+  #elif defined(OUTPUT_TEMPERATURE) && defined(COOLING_GRACKLE)
   Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Cool.temperature, "/temperature");
-        #endif
-      #endif
-
-    #endif  // COOLING_GRACKLE || CHEMISTRY_GPU
-
-  #endif  // SCALAR
+  #endif
 
   // 3D case
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) {
