@@ -62,7 +62,7 @@ static constexpr PropPack pack_arr_[] = {
     {"magnetic_z", field::Kind::MAGNETIC, field::IOBuf::DEVICE},
 #endif
 #ifdef DE
-    {"GasEnergy", field::Kind::HYDRO, eld::IOBuf::DEVICE}
+    {"GasEnergy", field::Kind::HYDRO, field::IOBuf::DEVICE}
 #endif
 };
 
