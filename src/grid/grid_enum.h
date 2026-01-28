@@ -22,6 +22,9 @@
 
 // The ": int" forces underlying type to be int.
 
+// if you update this enum, make sure that you also update the pack_arr_ variable from
+// field_info.cpp
+
 namespace grid_enum
 {
 enum : int {
