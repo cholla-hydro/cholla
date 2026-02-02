@@ -17,6 +17,27 @@
 namespace io
 {
 
+namespace
+{  // stuff inside an anonymous namespace is local to this file
+
+// this is used to help setup both FieldWriter & F32FieldWriter
+struct DsetSpecListBuilder_ {
+  std::vector<io::DatasetSpecEntry>& vec;
+  const FieldInfo& field_info;
+
+  void add_entry(const char* name, WriteCond cond)
+  {
+    std::optional<int> maybe_field_id = field_info.field_id(name);
+    if (!maybe_field_id.has_value()) {
+      CHOLLA_ERROR("the current Cholla config has no \"%s\" field", name);
+    }
+    int field_id = maybe_field_id.value();
+    vec.push_back({field_id, '/' + std::string(name), field_info.io_buf(field_id).value(), cond});
+  }
+};
+
+}  // anonymous namespace
+
 // todo: obviously we should move away from these compile-time ifdef statements
 // -> I'm not so sure that we want to directly convert each compile-time conditions
 //    to a runtime parameter
@@ -52,33 +73,26 @@ static constexpr WriteCond ELECTRONS_CONDITION = WriteCond::REQUIRE_COMPLETE_DAT
 
 FieldWriter::FieldWriter(ParameterMap& pmap, const FieldInfo& field_info)
 {
-  std::vector<io::DatasetSpecEntry>& vec = this->h5_dataset_spec_.cc_dataset_entries;
-  auto add_dataset_entry                 = [&vec, &field_info](const char* name, WriteCond cond) {
-    std::optional<int> maybe_field_id = field_info.field_id(name);
-    if (!maybe_field_id.has_value()) {
-      CHOLLA_ERROR("the current Cholla config has no \"%s\" field", name);
-    }
-    int field_id = maybe_field_id.value();
-    vec.push_back({field_id, '/' + std::string(name), field_info.io_buf(field_id).value(), cond});
-  };
+  // construct DsetSpecListBuilder_ to append entries to `this->h5_dataset_spec_`
+  DsetSpecListBuilder_ dsentry_l_builder{this->h5_dataset_spec_.cc_dataset_entries, field_info};
 
-  add_dataset_entry("density", WriteCond::ALWAYS);
-  add_dataset_entry("momentum_x", MOMENTUM_CONDITION);
-  add_dataset_entry("momentum_y", MOMENTUM_CONDITION);
-  add_dataset_entry("momentum_z", MOMENTUM_CONDITION);
-  add_dataset_entry("Energy", ENERGY_CONDITION);
+  dsentry_l_builder.add_entry("density", WriteCond::ALWAYS);
+  dsentry_l_builder.add_entry("momentum_x", MOMENTUM_CONDITION);
+  dsentry_l_builder.add_entry("momentum_y", MOMENTUM_CONDITION);
+  dsentry_l_builder.add_entry("momentum_z", MOMENTUM_CONDITION);
+  dsentry_l_builder.add_entry("Energy", ENERGY_CONDITION);
 #ifdef DE
-  add_dataset_entry("GasEnergy", ENERGY_CONDITION);
+  dsentry_l_builder.add_entry("GasEnergy", ENERGY_CONDITION);
 #endif
 
   for (int field_id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
     std::string name = field_info.field_name(field_id).value();
     if (name == "e_density") {
-      add_dataset_entry(name.c_str(), ELECTRONS_CONDITION);
+      dsentry_l_builder.add_entry(name.c_str(), ELECTRONS_CONDITION);
     } else if (name == "metal_density") {
-      add_dataset_entry(name.c_str(), METALS_CONDITION);
+      dsentry_l_builder.add_entry(name.c_str(), METALS_CONDITION);
     } else {
-      add_dataset_entry(name.c_str(), WriteCond::ALWAYS);
+      dsentry_l_builder.add_entry(name.c_str(), WriteCond::ALWAYS);
     }
   }
 
@@ -92,8 +106,6 @@ FieldWriter::FieldWriter(ParameterMap& pmap, const FieldInfo& field_info)
   // temperature, gravitational potential). That stuff is still handled very manually)
 }
 
-F32FieldWriter::F32FieldWriter(ParameterMap& pmap, const FieldInfo &field_info)
-{
-}
+F32FieldWriter::F32FieldWriter(ParameterMap& pmap, const FieldInfo& field_info) {}
 
 }  // namespace io
