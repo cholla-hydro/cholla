@@ -6,6 +6,8 @@
 #include "../io/WriterManager.h"
 
 #include <functional>
+#include <limits>
+#include <numeric>  // std::lcm
 #include <string>
 #include <vector>
 
@@ -13,23 +15,38 @@
 #include "../io/FieldWriter.h"   // FieldWriter
 #include "../io/ParameterMap.h"  // define ParameterMap
 #include "../io/io.h"
+#include "../utils/error_handling.h"
 
 io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const FieldInfo& field_info)
     : fname_template_(P)
 {
+  bool is_3D = (P.ny > 1) && (P.nz > 1);
   // in the future, the goal is to read directly from ParameterMap (so we can stop storing
   // some of the relevant variables in Parameters)
   const int n_hydro = pmap.value_or("n_hydro", 1);
+  CHOLLA_ASSERT(n_hydro >= 0, "n_hydro must be positive");
 
 #ifndef ONLY_PARTICLES
   // setup the data output routine for Hydro data
   packs_.push_back(io::detail::WriterPack{"hydro", n_hydro, {io::FieldWriter(pmap, field_info)}});
 #endif
 
-  // This function does other checks to make sure it is valid (3D only)
 #ifdef HDF5
-  if (pmap.value_or("n_out_float32", 0)) {
-    packs_.push_back(io::detail::WriterPack{"hydro-f32", n_hydro, {io::F32FieldWriter(pmap, field_info)}});
+  // TODO: move these checks to a factory function of F32FieldWriter that may fail
+  int n_out_float32 = pmap.value_or("n_out_float32", 0);
+  if (n_out_float32) {
+    CHOLLA_ASSERT(is_3D, "float32 outputs only supported in 3D simulations");
+    CHOLLA_ASSERT(n_out_float32 > 0, "n_out_float32 can't be negative");
+
+    // Historically, we would invoke float32 output function at a cadence set by n_hydro and
+    // immediately exit if nfile isn't also a multiple of `n_out_float32`
+    // -> for consistency, we now just set the cadence to the lcm of n_hydro & n_out_float32
+    int64_t lcm = std::lcm(int64_t{n_hydro}, int64_t{n_out_float32});
+    CHOLLA_ASSERT(lcm > int64_t{std::numeric_limits<int>::max()},
+                  "the lcm of n_hydro and n_out_float32 can't be represented by an int");
+    int cadence = static_cast<int>(lcm);
+
+    packs_.push_back(io::detail::WriterPack{"hydro-f32", cadence, {io::F32FieldWriter(pmap, field_info)}});
   }
 #endif
 

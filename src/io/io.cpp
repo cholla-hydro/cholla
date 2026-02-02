@@ -215,17 +215,6 @@ void io::F32FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const Fn
 {
 #ifdef HDF5
   Header H = G.H;
-  // Do nothing in 1-D and 2-D case
-  if (H.ny_real == 1) {
-    return;
-  }
-  if (H.nz_real == 1) {
-    return;
-  }
-  // Do nothing if nfile is not multiple of n_out_float32
-  if (nfile % P.n_out_float32 != 0) {
-    return;
-  }
 
   // create the filename
   std::string filename = fname_template.format_fname(nfile, ".float32");
