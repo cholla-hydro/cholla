@@ -211,7 +211,7 @@ void io::FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const Fname
 #endif
 }
 
-void Output_Float32(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate &fname_template)
+void io::F32FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const FnameTemplate &fname_template) const
 {
 #ifdef HDF5
   Header H = G.H;

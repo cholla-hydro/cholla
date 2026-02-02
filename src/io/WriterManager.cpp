@@ -29,7 +29,7 @@ io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const 
   // This function does other checks to make sure it is valid (3D only)
 #ifdef HDF5
   if (pmap.value_or("n_out_float32", 0)) {
-    packs_.push_back(io::detail::WriterPack{"hydro-f32", n_hydro, &Output_Float32});
+    packs_.push_back(io::detail::WriterPack{"hydro-f32", n_hydro, {io::F32FieldWriter(pmap, field_info)}});
   }
 #endif
 

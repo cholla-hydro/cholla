@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <array>
 #include <optional>
 #include <string>
 #include <vector>
@@ -42,6 +43,8 @@ struct DatasetSpec {
 };
 
 /*! \brief A callable that writes general grid data
+ *
+ *  \todo Maybe work to consolidate this with F32FieldWriter
  */
 class FieldWriter
 {
@@ -50,6 +53,24 @@ class FieldWriter
  public:
   FieldWriter() = delete;
   FieldWriter(ParameterMap &pmap, const FieldInfo &field_info);
+
+  /*! A callable method that writes a rotated projection of the grid data to file.
+   */
+  void operator()(Grid3D &G, Parameters P, int nfile, const FnameTemplate &fname_template) const;
+};
+
+/*! \brief A callable for writing 32-bit outputs of general grid data
+ *
+ *  \todo Maybe work to consolidate this with FieldWriter
+ */
+class F32FieldWriter
+{
+  std::array<bool, 3> write_mag_xyz = {false, false, false};
+  std::vector<std::string> main_fields;
+
+ public:
+  F32FieldWriter() = delete;
+  F32FieldWriter(ParameterMap &pmap, const FieldInfo &field_info);
 
   /*! A callable method that writes a rotated projection of the grid data to file.
    */

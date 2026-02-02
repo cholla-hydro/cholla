@@ -92,4 +92,8 @@ FieldWriter::FieldWriter(ParameterMap& pmap, const FieldInfo& field_info)
   // temperature, gravitational potential). That stuff is still handled very manually)
 }
 
+F32FieldWriter::F32FieldWriter(ParameterMap& pmap, const FieldInfo &field_info)
+{
+}
+
 }  // namespace io
