@@ -71,7 +71,7 @@ FieldWriter::FieldWriter(ParameterMap& pmap, const FieldInfo& field_info)
   add_dataset_entry("GasEnergy", ENERGY_CONDITION);
 #endif
 
-  for (int field_id : field_info.get_id_range(field::Kind::SCALAR)) {
+  for (int field_id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
     std::string name = field_info.field_name(field_id).value();
     if (name == "e_density") {
       add_dataset_entry(name.c_str(), ELECTRONS_CONDITION);

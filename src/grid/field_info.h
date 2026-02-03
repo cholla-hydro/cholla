@@ -15,10 +15,12 @@ namespace field
 {
 
 // note: HYDRO includes GasEnergy (if present)
-enum class Kind { HYDRO, SCALAR, MAGNETIC };
+enum class Kind { HYDRO, PASSIVE_SCALAR, MAGNETIC };
 
 /*! Specifies which buffer to use for IO */
 enum class IOBuf { HOST, DEVICE };
+
+/*! Specifies centering */
 
 /*! This is a "range" in the C++ 20 sense
  *
@@ -88,6 +90,29 @@ class FieldInfo
   {
     bool bad_id = (field_id < 0 || field_id >= n_fields());
     return bad_id ? std::nullopt : std::optional<std::string>{name_id_bimap_.inverse_find(field_id)};
+  }
+
+  /*! try to look up whether the field id refers to a cell-centered field
+   *
+   *  \note
+   *  It may be more useful to return a value that directly specifies whether a field is
+   *  cell-center, x-face-centered, y-face-centered, z-face-centered. It might be
+   *  convenient to specify this with a @ref hydro_utilities::VectorXYZ<int>. For
+   *  example, `{0,0,0}` could represent a cell-centered value and `{1,0,0}`, or maybe
+   *  `{-1, 0, 0}` (we need to think about conventions), could denote a field centered
+   *  on x-faces.
+   */
+  std::optional<bool> is_cell_centered(int field_id)
+  {
+    if (field_id < 0 || field_id >= n_fields()) {
+      return std::nullopt;
+    }
+    for (int id : magnetic_field_ids_) {
+      if (field_id == id) {
+        return std::optional<bool>{false};
+      }
+    }
+    return std::optional<bool>{true};
   }
 
   /*! try to look up the IOBuf value associated with a field

@@ -35,23 +35,23 @@ static constexpr PropPack pack_arr_[] = {
 #ifdef SCALAR
   #ifdef BASIC_SCALAR
     // we use the name "scalar0" for better consistency with the name recorded during IO
-    {"scalar0", field::Kind::SCALAR, field::IOBuf::DEVICE},
+    {"scalar0", field::Kind::PASSIVE_SCALAR, field::IOBuf::DEVICE},
   #endif
 
   #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
-    {"HI_density", field::Kind::SCALAR, field::IOBuf::HOST},
-    {"HII_density", field::Kind::SCALAR, field::IOBuf::HOST},
-    {"HeI_density", field::Kind::SCALAR, field::IOBuf::HOST},
-    {"HeII_density", field::Kind::SCALAR, field::IOBuf::HOST},
-    {"HeIII_density", field::Kind::SCALAR, field::IOBuf::HOST},
-    {"e_density", field::Kind::SCALAR, field::IOBuf::HOST},
+    {"HI_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
+    {"HII_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
+    {"HeI_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
+    {"HeII_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
+    {"HeIII_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
+    {"e_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
     #ifdef GRACKLE_METALS
-    {"metal_density", field::Kind::SCALAR, field::IOBuf::HOST},
+    {"metal_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
     #endif
   #endif
 
   #ifdef DUST
-    {"dust_density", field::Kind::SCALAR, field::IOBuf::DEVICE},
+    {"dust_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::DEVICE},
   #endif  // DUST
 
 #endif  // SCALAR
@@ -84,7 +84,7 @@ FieldInfo FieldInfo::create()
       case field::Kind::HYDRO:
         out.hydro_field_ids_.push_back(i);
         break;
-      case field::Kind::SCALAR:
+      case field::Kind::PASSIVE_SCALAR:
         out.scalar_field_ids_.push_back(i);
         break;
       case field::Kind::MAGNETIC:
@@ -103,7 +103,7 @@ const std::vector<int>& FieldInfo::get_kind_ids_(field::Kind kind) const
   switch (kind) {
     case field::Kind::HYDRO:
       return hydro_field_ids_;
-    case field::Kind::SCALAR:
+    case field::Kind::PASSIVE_SCALAR:
       return scalar_field_ids_;
     case field::Kind::MAGNETIC:
       return magnetic_field_ids_;
