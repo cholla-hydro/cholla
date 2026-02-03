@@ -1345,16 +1345,17 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id, const io::DatasetSpec &h5_dataset_sp
                                  Grav.F.potential_d, "/grav_potential");
   #endif  // GRAVITY and OUTPUT_POTENTIAL
 
-  #ifdef MHD
-    if (H.Output_Complete_Data) {
-      Write_HDF5_Field_3D(H.nx, H.ny, H.nx_real + 1, H.ny_real, H.nz_real, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), C.d_magnetic_x, "/magnetic_x", 0);
-      Write_HDF5_Field_3D(H.nx, H.ny, H.nx_real, H.ny_real + 1, H.nz_real, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), C.d_magnetic_y, "/magnetic_y", 1);
-      Write_HDF5_Field_3D(H.nx, H.ny, H.nx_real, H.ny_real, H.nz_real + 1, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), C.d_magnetic_z, "/magnetic_z", 2);
+    if (h5_dataset_spec.mhd_condition.has_value() &&
+        (h5_dataset_spec.mhd_condition.value() == io::WriteCond::ALWAYS || H.Output_Complete_Data)) {
+      const char *dset_names[3] = {"/magnetic_x", "/magnetic_y", "/magnetic_z"};
+      for (int i = 0; i < 3; i++) {
+        int real_shape[3]      = {H.nx_real + (i == 0), H.ny_real + (i == 1), H.nz_real + (i == 2)};
+        const char *field_name = dset_names[i] + 1;
+        Real *ptr              = &C.device[H.n_cells * field_info.field_id(field_name).value()];
+        Write_HDF5_Field_3D(H.nx, H.ny, real_shape[0], real_shape[1], real_shape[2], H.n_ghost, file_id, dataset_buffer,
+                            device_dataset_vector.data(), ptr, dset_names[i], i);
+      }
     }
-  #endif  // MHD
   }
 
   free(dataset_buffer);
