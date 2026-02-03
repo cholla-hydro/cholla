@@ -73,7 +73,7 @@ static constexpr WriteCond ELECTRONS_CONDITION = WriteCond::REQUIRE_COMPLETE_DAT
 
 FieldWriter::FieldWriter(ParameterMap& pmap, const FieldInfo& field_info)
 {
-  // construct DsetSpecListBuilder_ to append entries to `this->h5_dataset_spec_`
+  // construct DsetSpecListBuilder_ to append entries to `this->h5_dataset_spec_.cc_dataset_entries`
   DsetSpecListBuilder_ dsentry_l_builder{this->h5_dataset_spec_.cc_dataset_entries, field_info};
 
   dsentry_l_builder.add_entry("density", WriteCond::ALWAYS);
@@ -106,6 +106,19 @@ FieldWriter::FieldWriter(ParameterMap& pmap, const FieldInfo& field_info)
   // temperature, gravitational potential). That stuff is still handled very manually)
 }
 
-F32FieldWriter::F32FieldWriter(ParameterMap& pmap, const FieldInfo& field_info) {}
+F32FieldWriter::F32FieldWriter(ParameterMap& pmap, const FieldInfo& field_info)
+{
+  // construct DsetSpecListBuilder_ to append entries to `this->cc_dataset_entries`
+  DsetSpecListBuilder_ dsentry_l_builder{this->cc_dataset_entries, field_info};
+
+  // includes GasEnergy if applicable
+  for (int field_id : field_info.get_id_range(field::Kind::HYDRO)) {
+    std::string field_name = field_info.field_name(field_id).value();
+    std::string param_name = "out_float32_" + field_name;
+    if (pmap.value_or(param_name, 0)) {
+      dsentry_l_builder.add_entry(field_name.c_str(), WriteCond::ALWAYS);
+    }
+  }
+}
 
 }  // namespace io

@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include <array>
 #include <optional>
 #include <string>
 #include <vector>
@@ -65,8 +64,7 @@ class FieldWriter
  */
 class F32FieldWriter
 {
-  std::array<bool, 3> write_mag_xyz = {false, false, false};
-  std::vector<std::string> main_fields;
+  std::vector<DatasetSpecEntry> cc_dataset_entries;
 
  public:
   F32FieldWriter() = delete;

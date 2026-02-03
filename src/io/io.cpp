@@ -252,32 +252,19 @@ void io::F32FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const Fn
     cuda_utilities::DeviceVector<float> static device_dataset_vector{buffer_size};
     auto *dataset_buffer = (float *)malloc(buffer_size * sizeof(float));
 
-    if (P.out_float32_density > 0) {
+    // TODO: try to consolidate some of this logic with that of Grid3D::Write_Grid_HDF5
+
+    // Start writing fields
+    for (const io::DatasetSpecEntry &cur_spec : this->cc_dataset_entries) {
+      // todo: consider more robust behavior here
+      CHOLLA_ASSERT(cur_spec.condition == io::WriteCond::ALWAYS, "unexpected case");
+      CHOLLA_ASSERT(cur_spec.io_buf == field::IOBuf::DEVICE, "unexpected case");
+      Real *ptr = &G.C.device[cur_spec.field_id * H.n_cells];
       Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_density, "/density");
+                          device_dataset_vector.data(), ptr, cur_spec.name.c_str());
     }
-    if (P.out_float32_momentum_x > 0) {
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_momentum_x, "/momentum_x");
-    }
-    if (P.out_float32_momentum_y > 0) {
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_momentum_y, "/momentum_y");
-    }
-    if (P.out_float32_momentum_z > 0) {
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_momentum_z, "/momentum_z");
-    }
-    if (P.out_float32_Energy > 0) {
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_Energy, "/Energy");
-    }
-  #ifdef DE
-    if (P.out_float32_GasEnergy > 0) {
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_GasEnergy, "/GasEnergy");
-    }
-  #endif  // DE
+
+    // TODO: finish transitioning logic
   #ifdef MHD
 
     // TODO (by Alwin, for anyone) : Repair output format if needed and remove these chprintfs when appropriate
