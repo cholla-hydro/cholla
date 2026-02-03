@@ -15,6 +15,7 @@ Introduction <self>
 GettingStarted
 CompilingCholla
 MakefileParameters
+WritingParamFiles
 PythonAnalysis
 OutputFmtAndRepack
 Physics/index

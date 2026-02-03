@@ -27,7 +27,7 @@ this script.
 """
 
 import h5py
-import numpy as np
+from typing import Optional
 import pathlib
 
 # normally, it's considered bad practice to import a submodule starting with an
@@ -35,18 +35,17 @@ import pathlib
 # following is done for backwards compatability as we reorganize
 import cholla_utils._concat_internals as concat_internals
 
+from snaprepack import DatasetOpts, dset_opts_from_args, SnapBuilder
 
-# ======================================================================================================================
+
 def concat_particles_dataset(
     output_directory: pathlib.Path,
-    num_processes: int,
     output_number: int,
     build_source_path,
+    *,
     skip_fields: list = [],
-    destination_dtype: np.dtype = None,
-    compression_type: str = None,
-    compression_options: str = None,
-    chunking=None,
+    dset_opts: Optional[DatasetOpts] = None,
+    ptype_name: Optional[str] = None,
 ) -> None:
     """Concatenate a single particle HDF5 Cholla dataset. i.e. take the single
     files generated per process and concatenate them into a single, large file.
@@ -55,217 +54,67 @@ def concat_particles_dataset(
     ----------
     output_directory : pathlib.Path
         The directory containing the new concatenated files
-    num_processes : int
-        The number of ranks that Cholla was run with
     output_number : int
         The output number to concatenate
     build_source_path : callable
         A function used to construct the paths to the files that are to be concatenated.
     skip_fields : list
         List of fields to skip concatenating. Defaults to [].
-    destination_dtype : np.dtype
-        The data type of the output datasets. Accepts most numpy types. Defaults to the same as the input datasets.
-    compression_type : str
-        What kind of compression to use on the output data. Defaults to None.
-    compression_options : str
-        What compression settings to use if compressing. Defaults to None.
-    chunking : bool or tuple
-        Whether or not to use chunking and the chunk size. Defaults to None.
-    output_directory: pathlib.Path :
-
-    num_processes: int :
-
-    output_number: int :
-
-    skip_fields: list :
-          (Default value = [])
-    destination_dtype: np.dtype :
-          (Default value = None)
-    compression_type: str :
-          (Default value = None)
-    compression_options: str :
-          (Default value = None)
-
-    Returns
-    -------
-
+    dset_opts
+        Optional kwargs for ``h5py.Group.create_dataset``.
+    ptype_name: str, optional
+        A name to use for the particle-type when no particle-type is recorded
     """
+
+    src_path_0 = build_source_path(proc_id=0, nfile=output_number)
 
     # Error checking
-    assert num_processes > 1, "num_processes must be greater than 1"
     assert output_number >= 0, "output_number must be greater than or equal to 0"
 
-    # Open the output file for writing
-    destination_file = concat_internals.destination_safe_open(
-        output_directory / f"{output_number}_particles.h5"
-    )
-
-    # Setup the output file
-    # Note that the call to `__get_num_particles` is potentially expensive as it
-    # opens every single file to read the number of particles in that file
-    num_particles = __get_num_particles(build_source_path, num_processes, output_number)
-    destination_file = __setup_destination_file(
-        build_source_path,
-        destination_file,
-        output_number,
-        num_particles,
-        skip_fields,
-        destination_dtype,
-        compression_type,
-        compression_options,
-        chunking,
-    )
-
-    # loop over files for a given output
-    particles_offset = 0
-    for i in range(0, num_processes):
-        # open the input file for reading
-        source_file = h5py.File(build_source_path(proc_id=i, nfile=output_number), "r")
-
-        # Compute the offset slicing for the 3D data
-        nx_local, ny_local, nz_local = source_file.attrs["dims_local"]
-        x_start, y_start, z_start = source_file.attrs["offset"]
-        x_end, y_end, z_end = x_start + nx_local, y_start + ny_local, z_start + nz_local
-
-        # Get the local number of particles
-        num_particles_local = source_file.attrs["n_particles_local"][0]
-
-        # write data from individual processor file to correct location in concatenated file
-        for dataset in list(destination_file.keys()):
-            if dataset == "density":
-                destination_file[dataset][
-                    x_start:x_end, y_start:y_end, z_start:z_end
-                ] = source_file[dataset]
-            else:
-                start = particles_offset
-                end = particles_offset + num_particles_local
-                destination_file[dataset][start:end] = source_file[dataset]
-
-        # Update the particles offset
-        particles_offset += num_particles_local
-
-        # Now that the copy is done we close the source file
-        source_file.close()
-
-    # Close destination file now that it is fully constructed
-    destination_file.close()
-
-
-# ==============================================================================
-
-
-# ==============================================================================
-def __get_num_particles(
-    build_source_path, num_processes: int, output_number: int
-) -> int:
-    """Get the total number of particles in the output. This function is heavily
-    I/O bound and might benefit from utilizing threads.
-
-    Parameters
-    ----------
-    build_source_path : callable
-        A function used to construct the paths to the files that are to be concatenated.
-    num_processes : int
-        The number of processes
-    output_number : int
-        The output number to get data from
-
-    Returns
-    -------
-    int
-        The total number of particles in the output
-    """
-    # loop over files for a given output
-    num_particles = 0
-    for i in range(0, num_processes):
-        # open the input file for reading
-        with h5py.File(
-            build_source_path(proc_id=i, nfile=output_number), "r"
-        ) as source_file:
-            num_particles += source_file.attrs["n_particles_local"]
-
-    return num_particles
-
-
-# ==============================================================================
-
-
-# ==============================================================================
-def __setup_destination_file(
-    build_source_path,
-    destination_file: h5py.File,
-    output_number: int,
-    num_particles: int,
-    skip_fields: list,
-    destination_dtype: np.dtype,
-    compression_type: str,
-    compression_options: str,
-    chunking,
-) -> h5py.File:
-    """Setup the destination file by copying the header and setting up the datasets
-
-    Parameters
-    ----------
-    build_source_path : callable
-        A function used to construct the paths to the files that are to be concatenated.
-    destination_file : h5py.File
-        The destination file
-    output_number : int
-        The output number to concatenate
-    num_particles : int
-        The total number of particles in the output
-    skip_fields : list
-        List of fields to skip concatenating.
-    destination_dtype : np.dtype
-        The data type of the output datasets. Accepts most numpy types.
-    compression_type : str
-        What kind of compression to use on the output data.
-    compression_options : str
-        What compression settings to use if compressing.
-    chunking : _type_
-        Whether or not to use chunking and the chunk size.
-
-    Returns
-    -------
-    h5py.File
-        The fully set up destination file
-    """
-    with h5py.File(
-        build_source_path(proc_id=0, nfile=output_number), "r"
-    ) as source_file:
-        # Copy header data
-        destination_file = concat_internals.copy_header(source_file, destination_file)
-
-        # Make list of datasets to copy
-        datasets_to_copy = list(source_file.keys())
-        datasets_to_copy = [
-            dataset for dataset in datasets_to_copy if dataset not in skip_fields
-        ]
-
-        # Create the datasets in the output file
-        for dataset in datasets_to_copy:
-            if destination_dtype is None:
-                dtype = source_file[dataset].dtype
-            else:
-                dtype = destination_dtype
-
-            # Determine the shape of the dataset
-            if dataset == "density":
-                data_shape = source_file.attrs["dims"]
-            else:
-                data_shape = num_particles
-
-            # Create the dataset
-            destination_file.create_dataset(
-                name=dataset,
-                shape=data_shape,
-                dtype=dtype,
-                chunks=chunking,
-                compression=compression_type,
-                compression_opts=compression_options,
+    # we open up the file associated with source-file 0 to examine header details
+    with h5py.File(src_path_0, "r") as src_f_0:
+        num_files = concat_internals.infer_numfiles_from_header(src_f_0.attrs)
+        if num_files < 2:
+            raise RuntimeError(
+                "it only makes sense to concatenate data split across 2 or more files"
             )
 
-    return destination_file
+        # create a sequence over (blockid, fname) pairs. Note: the very 1st entry will
+        # correspond to src_path_0, but that's totally okay
+        itr = [
+            (blockid, build_source_path(proc_id=blockid, nfile=output_number))
+            for blockid in range(0, num_files)
+        ]
+
+        # right now this is hard-coded
+        single_ptype_cholla_outputs = True
+
+        # get the stored particle types and the number of particles of each type
+        # -> in the future, this will hopefully be recorded in the hdf5 file
+        if single_ptype_cholla_outputs:
+            if ptype_name is None:
+                raise ValueError(
+                    "the ptype_name kwarg must be provided when no particle type is "
+                    "recorded in the file"
+                )
+            # count up the total particle count
+            num_particles = src_f_0.attrs["n_particles_local"]
+            for _, path in itr[1:]:
+                with h5py.File(path, "r") as f:
+                    num_particles += f.attrs["n_particles_local"]
+            total_ptype_counts = {ptype_name: num_particles}
+        else:
+            assert ptype_name is None
+            raise NotImplementedError()
+
+        # let's write the concatenated file
+        with SnapBuilder(output_directory / f"{output_number}_particles.h5") as builder:
+            builder.set_hdr(src_f_0).particle_config(
+                total_ptype_counts=total_ptype_counts,
+                concatenating_single_ptype_cholla_outputs=single_ptype_cholla_outputs,
+                opts=dset_opts,
+                skip=skip_fields,
+            ).particle_record_itr(itr, file_paths=True).write()
 
 
 # ==============================================================================
@@ -275,9 +124,11 @@ if __name__ == "__main__":
 
     start = default_timer()
 
-    cli = concat_internals.common_cli()
+    cli = concat_internals.common_cli(num_processes_choice="omit")
+    cli.add_argument("--ptype", default="io", help="the particle type to concatenate")
     args = cli.parse_args()
 
+    dset_opts = dset_opts_from_args(args)
     build_source_path = concat_internals.get_source_path_builder(
         source_directory=args.source_directory,
         pre_extension_suffix="_particles",
@@ -288,14 +139,11 @@ if __name__ == "__main__":
     for output in args.concat_outputs:
         concat_particles_dataset(
             output_directory=args.output_directory,
-            num_processes=args.num_processes,
             output_number=output,
             build_source_path=build_source_path,
             skip_fields=args.skip_fields,
-            destination_dtype=args.dtype,
-            compression_type=args.compression_type,
-            compression_options=args.compression_opts,
-            chunking=args.chunking,
+            dset_opts=dset_opts,
+            ptype_name=args.ptype,
         )
 
     print(f"\nTime to execute: {round(default_timer() - start, 2)} seconds")
