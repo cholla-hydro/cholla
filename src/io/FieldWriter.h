@@ -64,6 +64,7 @@ class FieldWriter
  */
 class F32FieldWriter
 {
+  hydro_utilities::VectorXYZ<bool> write_mag = {false, false, false};
   std::vector<DatasetSpecEntry> cc_dataset_entries;
 
  public:

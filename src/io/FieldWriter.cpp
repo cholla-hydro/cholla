@@ -119,6 +119,26 @@ F32FieldWriter::F32FieldWriter(ParameterMap& pmap, const FieldInfo& field_info)
       dsentry_l_builder.add_entry(field_name.c_str(), WriteCond::ALWAYS);
     }
   }
+
+  auto map_name_to_idx = [](const std::string& field_name) -> int {
+    switch (field_name[field_name.size() - 1]) {
+      case 'x':
+        return 0;
+      case 'y':
+        return 1;
+      case 'z':
+        return 2;
+      default:
+        CHOLLA_ERROR("unexepectedly received field_name: %s", field_name.c_str());
+    }
+  };
+
+  for (int field_id : field_info.get_id_range(field::Kind::MAGNETIC)) {
+    std::string field_name = field_info.field_name(field_id).value();
+    if (pmap.value_or("out_float32_" + field_name, 0)) {
+      this->write_mag[map_name_to_idx(field_name)] = true;
+    }
+  }
 }
 
 }  // namespace io

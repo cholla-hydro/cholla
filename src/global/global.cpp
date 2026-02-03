@@ -142,16 +142,6 @@ bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameter
   if (strcmp(name, "nfile") == 0) {
     parms->nfile = atoi(value);
   } else if (strcmp(name, "output_always") == 0) {
-    parms->output_always = atoi(value);
-#ifdef MHD
-  } else if (strcmp(name, "out_float32_magnetic_x") == 0) {
-    parms->out_float32_magnetic_x = atoi(value);
-  } else if (strcmp(name, "out_float32_magnetic_y") == 0) {
-    parms->out_float32_magnetic_y = atoi(value);
-  } else if (strcmp(name, "out_float32_magnetic_z") == 0) {
-    parms->out_float32_magnetic_z = atoi(value);
-#endif  // MHD
-  } else if (strcmp(name, "output_always") == 0) {
     int tmp = atoi(value);
     // In this case the CHOLLA_ASSERT macro runs into issuse with the readability-simplify-boolean-expr clang-tidy check
     // due to some weird macro expansion stuff. That check has been disabled here for now but in clang-tidy 18 the

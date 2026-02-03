@@ -264,27 +264,18 @@ void io::F32FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const Fn
                           device_dataset_vector.data(), ptr, cur_spec.name.c_str());
     }
 
-    // TODO: finish transitioning logic
-  #ifdef MHD
-
     // TODO (by Alwin, for anyone) : Repair output format if needed and remove these chprintfs when appropriate
-    if (P.out_float32_magnetic_x > 0) {
+    const char *dset_names[3] = {"/magnetic_x", "/magnetic_y", "/magnetic_z"};
+    for (int i = 0; i < 3; i++) {
+      if (!this->write_mag[i]) {
+        continue;
+      }
+      const char *field_name = dset_names[i] + 1;
+      Real *ptr              = &G.C.device[H.n_cells * G.field_info.field_id(field_name).value()];
       chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
       Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_magnetic_x, "/magnetic_x");
+                          device_dataset_vector.data(), ptr, dset_names[i]);
     }
-    if (P.out_float32_magnetic_y > 0) {
-      chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_magnetic_y, "/magnetic_y");
-    }
-    if (P.out_float32_magnetic_z > 0) {
-      chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_magnetic_z, "/magnetic_z");
-    }
-
-  #endif  // MHD
 
     free(dataset_buffer);
 

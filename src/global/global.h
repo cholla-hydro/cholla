@@ -203,11 +203,6 @@ struct Parameters {
 #ifdef STATIC_GRAV
   int custom_grav = 0;  // flag to set specific static gravity field
 #endif
-#ifdef MHD
-  int out_float32_magnetic_x = 0;
-  int out_float32_magnetic_y = 0;
-  int out_float32_magnetic_z = 0;
-#endif
   Real xmin;
   Real ymin;
   Real zmin;
