@@ -27,10 +27,6 @@ void Print_Stats(Grid3D& G);
 /* Write the data */
 void Write_Data(Grid3D& G, struct Parameters P, int nfile, const io::WriterManager& write_manager);
 
-/* Output the grid data to file. */
-void Output_Data(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template,
-                 const std::vector<io::DatasetSpec>& h5_dataset_spec);
-
 /* Output the grid data to file as 32-bit floats. */
 void Output_Float32(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);
 

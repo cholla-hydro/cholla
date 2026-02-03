@@ -87,9 +87,4 @@ FieldWriter::FieldWriter(ParameterMap& pmap, const FieldInfo& field_info)
   // manually)
 }
 
-void FieldWriter::operator()(Grid3D& G, Parameters P, int nfile, const FnameTemplate& fname_template) const
-{
-  Output_Data(G, P, nfile, fname_template, h5_dataset_spec_);
-}
-
 }  // namespace io

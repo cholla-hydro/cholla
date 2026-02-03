@@ -14,6 +14,7 @@
   #include <hdf5.h>
 #endif  // HDF5
 #include "../grid/grid3D.h"
+#include "../io/FieldWriter.h"
 #include "../io/WriterManager.h"
 #include "../io/io.h"
 #include "../utils/cuda_utilities.h"
@@ -141,9 +142,7 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
 #endif
 }
 
-/* Output the grid data to file. */
-void Output_Data(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate &fname_template,
-                 const std::vector<io::DatasetSpec> &h5_dataset_spec)
+void io::FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const FnameTemplate &fname_template) const
 {
   // create the filename
   std::string filename = fname_template.format_fname(nfile, "");
@@ -182,7 +181,7 @@ void Output_Data(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate 
   G.Write_Header_HDF5(file_id);
 
   // write the conserved variables to the output file
-  G.Write_Grid_HDF5(file_id, h5_dataset_spec.data(), h5_dataset_spec.size());
+  G.Write_Grid_HDF5(file_id, h5_dataset_spec_.data(), h5_dataset_spec_.size());
 
   // close the file
   status = H5Fclose(file_id);
