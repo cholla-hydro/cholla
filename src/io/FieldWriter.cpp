@@ -52,8 +52,8 @@ static constexpr WriteCond ELECTRONS_CONDITION = WriteCond::REQUIRE_COMPLETE_DAT
 
 FieldWriter::FieldWriter(ParameterMap& pmap, const FieldInfo& field_info)
 {
-  std::vector<io::DatasetSpec>& vec = this->h5_dataset_spec_;
-  auto add_dataset_entry            = [&vec, &field_info](const char* name, WriteCond cond) {
+  std::vector<io::DatasetSpecEntry>& vec = this->h5_dataset_spec_.cc_dataset_entries;
+  auto add_dataset_entry                 = [&vec, &field_info](const char* name, WriteCond cond) {
     std::optional<int> maybe_field_id = field_info.field_id(name);
     if (!maybe_field_id.has_value()) {
       CHOLLA_ERROR("the current Cholla config has no \"%s\" field", name);
@@ -82,9 +82,14 @@ FieldWriter::FieldWriter(ParameterMap& pmap, const FieldInfo& field_info)
     }
   }
 
-  // For now, I'm intentionally ignoring the remaining assorted outputs (e.g. magnetic
-  // fields, temperature, gravitational potential). That stuff is still handled very
-  // manually)
+#ifdef MHD
+  h5_dataset_spec_.mhd_condition = std::optional<WriteCond>{WriteCond::REQUIRE_COMPLETE_DATA};
+#else
+  h5_dataset_spec_.mhd_condition = std::nullopt;
+#endif
+
+  // For now, I'm intentionally ignoring the remaining assorted outputs (e.g.
+  // temperature, gravitational potential). That stuff is still handled very manually)
 }
 
 }  // namespace io

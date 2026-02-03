@@ -509,7 +509,7 @@ class Grid3D
 
   /*! \fn void Write_Grid_HDF5(hid_t file_id)
    *  \brief Write the grid to a file, at the current simulation time. */
-  void Write_Grid_HDF5(hid_t file_id, const io::DatasetSpec *h5_dataset_spec_arr, int n_dataset_spec);
+  void Write_Grid_HDF5(hid_t file_id, const io::DatasetSpec &h5_dataset_spec);
 
   /*! \fn void Write_Projection_HDF5(hid_t file_id)
    *  \brief Write projected density and temperature data to a file. */

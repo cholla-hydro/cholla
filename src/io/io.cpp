@@ -181,7 +181,7 @@ void io::FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const Fname
   G.Write_Header_HDF5(file_id);
 
   // write the conserved variables to the output file
-  G.Write_Grid_HDF5(file_id, h5_dataset_spec_.data(), h5_dataset_spec_.size());
+  G.Write_Grid_HDF5(file_id, h5_dataset_spec_);
 
   // close the file
   status = H5Fclose(file_id);
@@ -1295,7 +1295,7 @@ void Write_Generic_HDF5_Field_GPU(int nx, int ny, int nz, int nx_real, int ny_re
 
 /*! \fn void Write_Grid_HDF5(hid_t file_id)
  *  \brief Write the grid to a file, at the current simulation time. */
-void Grid3D::Write_Grid_HDF5(hid_t file_id, const io::DatasetSpec *h5_dataset_spec_arr, int n_dataset_spec)
+void Grid3D::Write_Grid_HDF5(hid_t file_id, const io::DatasetSpec &h5_dataset_spec)
 {
   int i, j, k, id, buf_id;
   hid_t dataset_id, dataspace_id;
@@ -1316,8 +1316,7 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id, const io::DatasetSpec *h5_dataset_sp
   dataset_buffer = (Real *)malloc(buffer_size * sizeof(Real));
 
   // Start writing fields
-  for (int i = 0; i < n_dataset_spec; i++) {
-    const io::DatasetSpec cur_spec = h5_dataset_spec_arr[i];
+  for (const io::DatasetSpecEntry &cur_spec : h5_dataset_spec.cc_dataset_entries) {
     if (!H.Output_Complete_Data && cur_spec.condition == io::WriteCond::REQUIRE_COMPLETE_DATA) {
       continue;
     }

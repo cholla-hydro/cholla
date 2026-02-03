@@ -5,21 +5,23 @@
 
 #pragma once
 
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "../global/global.h"
 #include "../grid/field_info.h"
 #include "../grid/grid3D.h"
-#include "../io/FnameTemplate.h"  // define FnameTemplate
-#include "../io/ParameterMap.h"   // define ParameterMap
+#include "../io/FnameTemplate.h"     // define FnameTemplate
+#include "../io/ParameterMap.h"      // define ParameterMap
+#include "../utils/basic_structs.h"  // VectorXYZ
 
 namespace io
 {
 
 enum struct WriteCond { ALWAYS, REQUIRE_COMPLETE_DATA };
 
-struct DatasetSpec {
+struct DatasetSpecEntry {
   int field_id;
   /// the dataset name. By convention, this is prefixed with a "/"
   std::string name;
@@ -29,11 +31,21 @@ struct DatasetSpec {
   WriteCond condition;
 };
 
+struct DatasetSpec {
+  /// describes properties about dataset creation for ordinary cell-centered fields
+  std::vector<DatasetSpecEntry> cc_dataset_entries;
+  /// indicates whether we should write magnetic fields
+  ///
+  /// \note Ideally, we would handle these a little more uniformly with other fields,
+  /// but that's a task for another time
+  std::optional<WriteCond> mhd_condition;
+};
+
 /*! \brief A callable that writes general grid data
  */
 class FieldWriter
 {
-  std::vector<DatasetSpec> h5_dataset_spec_;
+  DatasetSpec h5_dataset_spec_;
 
  public:
   FieldWriter() = delete;
