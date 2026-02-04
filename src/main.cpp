@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
 
   // Set initial conditions
   chprintf("Setting initial conditions...\n");
-  G.Set_Initial_Conditions(P);
+  G.Set_Initial_Conditions(P, pmap);
   chprintf("Initial conditions set.\n");
   // set main variables for Read_Grid and Read_Grid_Cat initial conditions
   if (is_restart) {
