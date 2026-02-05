@@ -214,6 +214,8 @@ void Particles3D::Initialize(Parameters *P, const SpatialDomainProps &spatial_pr
     Initialize_Sphere(P);
   } else if (strcmp(P->init, "Zeldovich_Pancake") == 0) {
     Initialize_Zeldovich_Pancake(P);
+  } else if (strcmp(P->init, "Adiabatic_Expansion") == 0) {
+    Initialize_Adiabatic_Expansion(P);
   } else if (strcmp(P->init, "Read_Grid") == 0) {
     Load_Particles_Data(P);
   } else if (strcmp(P->init, "Isolated_Stellar_Cluster") == 0) {
@@ -1137,6 +1139,18 @@ void Particles3D::Initialize_Zeldovich_Pancake(struct Parameters *P)
   n_local = 0;
 
   chprintf(" Particles Zeldovich Pancake Initialized, n_local: %lu\n", n_local);
+}
+
+
+void Particles3D::Initialize_Adiabatic_Expansion(struct Parameters *P)
+{
+  // No particles for the Adiabatic Expansion problem. n_local=0
+
+  chprintf("Setting Adiabatic Expansion initial conditions...\n");
+
+  n_local = 0;
+
+  chprintf(" Particles Adiabatic Expansion initialized, n_local: %lu\n", n_local);
 }
 
 void Grid3D::Initialize_Uniform_Particles()
