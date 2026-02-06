@@ -1559,9 +1559,9 @@ void Grid3D::Zeldovich_Pancake(struct Parameters P)
         E    = ics_values[2 * nPoints + index];
         U    = ics_values[3 * nPoints + index];
         // //
-        //temp = T_init * pow( dens/rho_0, 2./3.);
-        //U = temp / (gamma-1) / MP * KB * 1e-10 * dens;
-        //E = 0.5*dens*vel*vel + U;
+        // temp = T_init * pow( dens/rho_0, 2./3.);
+        // U = temp / (gamma-1) / MP * KB * 1e-10 * dens;
+        // E = 0.5*dens*vel*vel + U;
 
         // chprintf( "%f \n", vel );
         C.density[id]    = dens;
@@ -1600,9 +1600,9 @@ void Grid3D::Adiabatic_Expansion(struct Parameters P)
   chprintf(" Omega_M = %f \n", Omega_M);
 
   H0 /= 1000;  //[km/s / kpc]
-  G           = G_COSMO;
-  rho_0       = 3 * H0 * H0 / (8 * M_PI * G) * Omega_M / h / h;
-  z_init      = P.Init_redshift;
+  G      = G_COSMO;
+  rho_0  = 3 * H0 * H0 / (8 * M_PI * G) * Omega_M / h / h;
+  z_init = P.Init_redshift;
   chprintf(" rho_0 = %f \n", rho_0);
   chprintf(" z_init = %f \n", z_init);
 
@@ -1630,7 +1630,7 @@ void Grid3D::Adiabatic_Expansion(struct Parameters P)
 
         dens = rho_0;
         vel  = 0;
-        U    = T_init/(gamma-1)/MP * KB * 1e-10 * rho_0;
+        U    = T_init / (gamma - 1) / MP * KB * 1e-10 * rho_0;
         E    = U;
 
         // chprintf( "%f \n", vel );
@@ -1649,7 +1649,6 @@ void Grid3D::Adiabatic_Expansion(struct Parameters P)
 
 #endif  // COSMOLOGY
 }
-
 
 void Grid3D::Chemistry_Test(struct Parameters P)
 {

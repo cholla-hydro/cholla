@@ -1141,7 +1141,6 @@ void Particles3D::Initialize_Zeldovich_Pancake(struct Parameters *P)
   chprintf(" Particles Zeldovich Pancake Initialized, n_local: %lu\n", n_local);
 }
 
-
 void Particles3D::Initialize_Adiabatic_Expansion(struct Parameters *P)
 {
   // No particles for the Adiabatic Expansion problem. n_local=0
