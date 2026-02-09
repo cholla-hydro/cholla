@@ -51,7 +51,7 @@ Upon completion, you should obtain 201 output files. The evolution of the densit
     :loop:
 :::
 
-We can compare to the [Fyris Alpha code](https://rsaa.anu.edu.au/research/established-projects/fyris/2-d-noh-shock-test):  
+We can compare to the [Fyris Alpha code](https://www.mso.anu.edu.au/fyris/lw2dnoh.html):  
 
 :::{figure} fyris-alpha.png
 :::
