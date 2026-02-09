@@ -1,7 +1,7 @@
 # 1D Sound Wave
 This test initializes a compression/rarefaction wave across the grid. The setup consists of an initial density and pressure of 1.0 and 0.6, respectively. A sound wave is initialized as a sinusoidal wave with amplitude 1e-4 and wavelength of 1.0. Gamma is set to 1.666666666666667. This test was performed with the hydro build (`cholla/builds/make.type.hydro`) and Van Leer integrator. Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Sound_Wave()`. 
 
-## Parameter file: (modified from`cholla/examples/1D/sound_wave.txt`)
+## Parameter file: ({repository-file}`examples/1D/sound_wave.txt`)
 Modified to add yl_bcnd, yu_bcnd, zl_bcnd, and zu_bcnd=0
 ```
 #
@@ -58,7 +58,7 @@ gamma=1.666666666666667
 ```
 Upon completion, you should obtain five output files. By changing the outstep to 0.005, we can obtain the evolution of the density, pressure, velocity, and internal energy (here at 4 fps).  Examples of how to extract and plot data can be found in `cholla/python_scripts/plot_sod.ipynb`.  
 
-:::{video} soundwave-docs.mp4
+:::{video} soundwave-new.mp4
     :width: 700
     :height: 500
     :align: center

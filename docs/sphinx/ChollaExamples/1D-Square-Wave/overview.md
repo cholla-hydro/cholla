@@ -1,7 +1,7 @@
 # 1D Square Wave
 This test initializes a square wave density pertubation. The setup consists of an initial density and pressure of 1.0 and 0.01, respectively. A square wave is initialized with amplitude 1.5. Gamma is set to 1.666666666666667. This test was performed with the hydro build (`cholla/builds/make.type.hydro`) and Van Leer integrator. Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Square_Wave()`. 
 
-## Parameter file: (modified from`cholla/examples/1D/square_wave.txt`)
+## Parameter file: ({repository-file}`examples/1D/square_wave.txt`)
 Modified to add yl_bcnd, yu_bcnd, zl_bcnd, and zu_bcnd=0
 ```
 #

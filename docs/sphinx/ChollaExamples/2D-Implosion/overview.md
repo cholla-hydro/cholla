@@ -3,7 +3,7 @@ This tests a code's ability to resolve contact discontinuities for a non-grid al
 
 **Important:** This test must be run with diode boundaries [disabled](https://github.com/alwinm/cholla/tree/main-diode) in order to perform as expected (thank you @alwinm!). This branch also uses the Van Leer integrator.
 
-## Parameter file: (`cholla/examples/2D/Implosion_2D.txt`)
+## Parameter file: ({repository-file}`examples/2D/Implosion_2D.txt`)
 ```
 #
 # Parameter File for the 2D implosion test described in Liska, 2003.

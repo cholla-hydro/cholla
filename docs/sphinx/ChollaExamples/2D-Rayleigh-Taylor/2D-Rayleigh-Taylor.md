@@ -3,9 +3,9 @@
 This test demonstrates the mixing resulting from a dense fluid placed on top of a less dense fluid. The bottom half of the grid is given of density of 1.0 while the top has a value of 2.0. Y velocities across the grid are set as a small pertubation tapering off from the center. For both halves, pressure is initialized as decreasing with increasing y position. Gamma is set to 1.4. This test is performed with the static gravity build (`cholla/builds/make.type.static_grav`) and Van Leer integrator.
 Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Rayleigh_Taylor()`. 
 
-## Parameter file:
+## Parameter file:({repository-file}`examples/2D/Rayleigh_Taylor.txt`)
 
-This parameter file can be found in [examples/2D/Rayleigh_Taylor.txt](https://github.com/cholla-hydro/cholla/blob/main/examples/2D/Rayleigh_Taylor.txt) on the `dev` branch.
+Parameter file can be found on the `dev` branch.
 ```
 #
 # Parameter File for the 2D Rayleigh-Taylor test.

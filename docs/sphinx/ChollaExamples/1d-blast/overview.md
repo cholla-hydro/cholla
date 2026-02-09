@@ -1,6 +1,8 @@
 # 1D Blast Wave
 This test is designed to assess the performance of a code near strong shocks and contact discontinuities. Parameters are derived from Woodward & Collela, 1984. The test consists of three regions. For x < 0.1, pressure is set to 1000.0. For x > 0.9, pressure is set to 100. Everywhere else, pressure is set to 0.01. Density is set to 1.0 everywhere and velocity everywhere is zero. Gamma is set to 1.4. This test is performed with the hydro build (`cholla/builds/make.type.hydro`) and Van Leer integrator. Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Blast_1D()`. 
 
+The parameter file can be found at {repository-file}`examples/1D/blast_1D.txt`
+
 ## Parameter file: (`cholla/examples/1D/blast_1D.txt`)
 ```
 #

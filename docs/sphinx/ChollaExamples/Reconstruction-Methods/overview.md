@@ -49,4 +49,4 @@ This movie shows the evolution of the square wave test with both the PLMP and PP
 :align: center
 :::
 
-In this example, we are comparing the final snapshot of the Kelvin-Helmholtz Discontinuous tests using both PLMP and PPMP. The difference between these two methods is much more apparent than what is observed between the PLMC and PLMP methods. For this instability, although the general shape of the fluids remain the same, the PPMP result is more evolved within the same time constaint.
+In this example, we are comparing the final snapshot of the Kelvin-Helmholtz Discontinuous tests using both PLMP and PPMP. The difference between these two methods is much more apparent than what is observed between the PLMC and PLMP methods. For this instability, although the general shape of the fluids remain the same, the PPMP result is more evolved within the same time constraint. 

@@ -1,7 +1,7 @@
 # 1D Strong Shock
 This test is similar to the Sod shock tube but has higher initial pressure and density differences. This shows the ability of a code to limit oscillatory behavior in areas of high density and pressure contrasts. The setup consists of a density and pressure of 10.0 and 100.0, respectively, for 0 \< x \< 0.5 and density= pressure = 1.0 for 0.5 \< x \< 1.0. Gamma is set to 1.4. This test was performed with the hydro build (`cholla/builds/make.type.hydro`) and Van Leer integrator. Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Riemann()`. 
 
-## Parameter file: (modified from`cholla/examples/1D/strong_shock.txt`)
+## Parameter file: ({repository-file}`examples/1D/strong_shock.txt`)
 Modified to add yl_bcnd, yu_bcnd, zl_bcnd, and zu_bcnd=0
 ```
 #
