@@ -143,8 +143,6 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
 #endif
 }
 
-#ifdef HDF5
-
 /*! does the heavy-lifting of writing fields to hdf5 files.
  *
  *  \todo
@@ -153,9 +151,10 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
  *  really cut down on these differences!
  */
 template <bool ForceF32Output>
-void Write_Fields_to_HDF5_helper_(hid_t file_id, const Grid3D &G, const io::DatasetSpec &dataset_spec,
+void Write_Fields_to_HDF5_helper_(const std::string &filename, Grid3D &G, const io::DatasetSpec &dataset_spec,
                                   io::LazyScratchBuf &lazy_scratch_buf)
 {
+#ifdef HDF5
   // get the value-type of the dataset buffers
   using T = std::conditional_t<ForceF32Output, float, Real>;
 
@@ -163,8 +162,16 @@ void Write_Fields_to_HDF5_helper_(hid_t file_id, const Grid3D &G, const io::Data
   bool is_3D      = H.nx > 1 and H.ny > 1 and H.nz > 1;
 
   if (ForceF32Output and not is_3D) {
-    return;  // <- this is the historical behavior!
+    // this approximates historical data... Historically we would actually make a file
+    // but not record fields to it, but this is close enough!
+    return;
   }
+
+  // Create a new file using default properties.
+  hid_t file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
+  // Write the header (file attributes)
+  G.Write_Header_HDF5(file_id);
 
   // Allocate necessary buffers
   int nx_dset = H.nx_real;
@@ -240,9 +247,16 @@ void Write_Fields_to_HDF5_helper_(hid_t file_id, const Grid3D &G, const io::Data
     }
   #endif  // GRAVITY and OUTPUT_POTENTIAL
   }
-}
 
+  // close the file
+  herr_t status = H5Fclose(file_id);
+
+  if (status < 0) {
+    printf("File write failed.\n");
+    exit(-1);
+  }
 #endif
+}
 
 void io::FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const FnameTemplate &fname_template) const
 {
@@ -273,25 +287,7 @@ void io::FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const Fname
 
 // create the file for hdf5 writes
 #elif defined HDF5
-  hid_t file_id; /* file identifier */
-  herr_t status;
-
-  // Create a new file using default properties.
-  file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-
-  // Write the header (file attributes)
-  G.Write_Header_HDF5(file_id);
-
-  // write the conserved variables to the output file
-  Write_Fields_to_HDF5_helper_<false>(file_id, G, this->h5_dataset_spec_, *this->lazy_scratch_buf_);
-
-  // close the file
-  status = H5Fclose(file_id);
-
-  if (status < 0) {
-    printf("File write failed.\n");
-    exit(-1);
-  }
+  Write_Fields_to_HDF5_helper_<false>(filename, G, this->h5_dataset_spec_, *this->lazy_scratch_buf_);
 
 #else
   // open the file for txt writes
@@ -316,27 +312,8 @@ void io::FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const Fname
 void io::F32FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const FnameTemplate &fname_template) const
 {
 #ifdef HDF5
-  Header H = G.H;
-
-  // create the filename
   std::string filename = fname_template.format_fname(nfile, ".float32");
-
-  // Create a new file using default properties.
-  hid_t file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-
-  // Write the header (file attributes)
-  G.Write_Header_HDF5(file_id);
-
-  // write fields to the file
-  Write_Fields_to_HDF5_helper_<true>(file_id, G, this->dataset_spec_, *this->lazy_scratch_buf_);
-
-  // close the file
-  herr_t status = H5Fclose(file_id);
-
-  if (status < 0) {
-    printf("File write failed.\n");
-    exit(-1);
-  }
+  Write_Fields_to_HDF5_helper_<true>(filename, G, this->dataset_spec_, *this->lazy_scratch_buf_);
 #endif  // HDF5
 }
 
