@@ -42,7 +42,7 @@ io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const 
     // immediately exit if nfile isn't also a multiple of `n_out_float32`
     // -> for consistency, we now just set the cadence to the lcm of n_hydro & n_out_float32
     int64_t lcm = std::lcm(int64_t{n_hydro}, int64_t{n_out_float32});
-    CHOLLA_ASSERT(lcm > int64_t{std::numeric_limits<int>::max()},
+    CHOLLA_ASSERT(lcm <= int64_t{std::numeric_limits<int>::max()},
                   "the lcm of n_hydro and n_out_float32 can't be represented by an int");
     int cadence = static_cast<int>(lcm);
 
