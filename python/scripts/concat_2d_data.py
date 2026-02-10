@@ -3,15 +3,27 @@
 Python script for concatenating 2D hdf5 datasets for when -DSLICES,
 -DPROJECTION, or -DROTATED_PROJECTION is turned on in Cholla. Includes a CLI for
 concatenating Cholla HDF5 datasets and can be imported into other scripts where
-the `concat_2d_dataset` function can be used to concatenate the HDF5 files.
+the ``concat_2d_dataset`` function can be used to concatenate the HDF5 files.
 
-Generally the easiest way to import this script is to add the `python_scripts`
-directory to your python path in your script like this:
-```
-import sys
-sys.path.append('/PATH/TO/CHOLLA/python_scripts')
-import concat_2d_data
-```
+Historically, this docstring provided advice for directly importing functionality from
+this script.
+
+* at this time, it's unclear whether anybody actually does this (it has become less
+  necessary now that we provide tools to load in distributed data). If you actually use
+  some part of this functionality, please open a GitHub issue letting us know so we can
+  add that functionality directly into the ``cholla_utils`` python package (of course,
+  we welcome you to open a PR making that change yourself)
+
+* the approach we have historically recommended involves adding the ``python/scripts``
+  directory directly the search path for python modules. To do this, you might add
+  something like the following snippet to your python script:
+
+    import sys
+    sys.path.append('</PATH/TO/CHOLLA>/python/scripts')
+    import concat_2d_data
+
+  where you would replace ``</PATH/TO/CHOLLA>`` with an absolute path to your Cholla
+  directory.
 """
 
 import h5py
@@ -21,7 +33,10 @@ import pathlib
 from typing import Optional
 import warnings
 
-import concat_internals
+# normally, it's considered bad practice to import a submodule starting with an
+# underscore (since that submodule is considered an implementation detail), but the
+# following is done for backwards compatability as we reorganize
+import cholla_utils._concat_internals as concat_internals
 
 
 # ==============================================================================
@@ -118,28 +133,27 @@ def concat_2d_dataset(
         # Filter the datasets to only include those that need to be copied
         if not concat_xy:
             datasets_to_copy = [
-                dataset for dataset in datasets_to_copy if not "xy" in dataset
+                dataset for dataset in datasets_to_copy if "xy" not in dataset
             ]
         if not concat_yz:
             datasets_to_copy = [
-                dataset for dataset in datasets_to_copy if not "yz" in dataset
+                dataset for dataset in datasets_to_copy if "yz" not in dataset
             ]
         if not concat_xz:
             datasets_to_copy = [
-                dataset for dataset in datasets_to_copy if not "xz" in dataset
+                dataset for dataset in datasets_to_copy if "xz" not in dataset
             ]
         datasets_to_copy = [
-            dataset for dataset in datasets_to_copy if not dataset in skip_fields
+            dataset for dataset in datasets_to_copy if dataset not in skip_fields
         ]
 
         # Create the datasets in the destination file
         zero_array = np.zeros(1)
         for dataset in datasets_to_copy:
-            dtype = (
-                source_file[dataset].dtype
-                if (destination_dtype == None)
-                else destination_dtype
-            )
+            if destination_dtype is None:
+                dtype = source_file[dataset].dtype
+            else:
+                dtype = destination_dtype
 
             dataset_shape = __get_2d_dataset_shape(source_file, dataset)
 

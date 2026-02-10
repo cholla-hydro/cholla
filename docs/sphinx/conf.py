@@ -10,10 +10,7 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-import functools
-import json
 import os
-import subprocess
 import sys
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -36,7 +33,6 @@ release = '3.0.1-dev'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'breathe',
     'myst_parser',
     'nbsphinx',
     'sphinx.ext.autodoc',
@@ -54,7 +50,9 @@ extensions = [
 
     # Custom Extensions
     # -----------------
-    "par"
+    "doxybuild",
+    "par",
+    "cli_help",
 ]
 
 source_suffix = [".rst", ".md"]
@@ -101,6 +99,17 @@ myst_enable_extensions = [
     "fieldlist"
 ]
 
+# -- Options for doxybuild extension -----------------------------------------
+
+# path to the baseline doxyfile (relative to this config file)
+doxybuild_hardcoded_doxyfile = "../doxygen/Doxyfile"
+# path to the C++ source code directory (relative to this config file)
+doxybuild_src_code_dir = "../../src"
+# path relative to the source directory where the stub files are written
+doxybuild_dest_dir = "Reference/internal-api-ref"
+# override doxygen parameters https://www.doxygen.nl/manual/config.html
+doxybuild_overrides = {"PROJECT_NUMBER": release}
+
 # -- Options for par extension -----------------------------------------------
 
 par_separator = "."
@@ -124,77 +133,3 @@ extlinks = {
 
 # -- Doxygen/Breathe Stuff ---------------------------------------------------
 
-def _it_tree_paths(dir_path, include_dirs=True):
-    # recursive iterate over paths to all files (and possibly directories)
-    for root, dirs, files in os.walk(dir_path, followlinks=False):
-        if include_dirs:
-            yield from (os.path.join(root, d) for d in dirs)
-        yield from (os.path.join(root, f) for f in files)
-
-def _dirtree_mtime(dir_path):
-    """
-    Walk a directory and determine the most recent time at which a contained
-    file/directory was modified, created, deleted, removed, etc.
-    """
-
-    def get_mtime(path): # gives posix timestamp in seconds (rounded up)
-        return os.stat(dir_path).st_mtime + 1
-
-    # explicitly measure mtime of root dir
-    root_mtime = get_mtime(dir_path)
-
-    # make iterator over the mtimes of each item in dir_path. We explicitly
-    # check mtimes of directories since they provide the only indication that
-    # files within a that directory were deleted/moved
-    itr = (get_mtime(p) for p in _it_tree_paths(dir_path, include_dirs=True))
-
-    return functools.reduce(max, itr, root_mtime)
-
-def build_doxygen():
-    if os.getenv("SKIPDOXYGEN", "FALSE").lower() == "true":
-        return None # skip a rebuild
-
-    # load cached modification times (if they exist)
-    try:
-        with open("../cached_mtimes.json", "r") as f:
-            cached_mtimes = json.load(f)
-    except FileNotFoundError:
-        cached_mtimes = {"src" : None, "dox" : None}
-
-    dox_builddir = "../doxygen/build/xml/"
-
-    # determine modification time of the source code directory tree
-    src_mtime = _dirtree_mtime("../../src")
-
-    # if the doxygen build-dir already exists, and the modification times
-    # (of the source code directory and the doxygen build-dir) match the
-    # cached values, then we don't need to regenerate the documentation
-    if (
-        os.path.isdir(dox_builddir) and
-        (cached_mtimes["src"] == src_mtime) and
-        (cached_mtimes["dox"] == _dirtree_mtime(dox_builddir))
-    ):
-        return None
-
-    try:
-        retcode = subprocess.call("doxygen", cwd="../doxygen")
-
-        if retcode < 0:
-            sys.stderr.write("doxygen terminated by signal %s" % (-retcode))
-        else:
-            # get modification time of dox_builddir (after the build)
-            dox_mtime = _dirtree_mtime(dox_builddir)
-            mtime_pack = {"src": src_mtime, "dox": dox_mtime}
-            with open("../cached_mtimes.json", "w") as f:
-                json.dump(mtime_pack, f)
-    except OSError as e:
-        sys.stderr.write(f"doxygen execution failed: {e}")
-
-    return {"cholla": dox_builddir}
-
-_header_files = [
-    os.path.abspath(p) for p in _it_tree_paths("../../src") if p.endswith(".h")
-]
-breath_projects = build_doxygen() # always build doxygen docs (for local & rtd builds)
-breathe_default_project = "cholla"
-breathe_projects_source = {"cholla" : ( "../../src/", _header_files )}

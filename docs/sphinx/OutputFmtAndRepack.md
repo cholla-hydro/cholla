@@ -80,7 +80,32 @@ Historically all concatenation scripts would use this schema.
 
 ### Hierarchical Schema
 
-An alternative schema, adopted when we repack snapshot data, is shown below.
+We adopt variants an alternative hierarichal schema when we repack snapshot data.
+There are currently 2 variants of this schema (for grid-data and particle-data).
+
+We preface our description by mentioning that **ALL** variants **MUST** have an HDF5 group called `"domain"`, which is described by the structure:
+
+```
+domain/
+ ├── blockid_location_arr     # shape: (BLx,BLy,BLz)
+ └── stored_blockid_list      # shape: (nBStored,)
+```
+In the above diagram (and in subsequent diagrams), 
+- we follow numpy conventions for describing arrays with C-contiguous layouts.
+  In other words, the fastest index is last axis
+
+- we define `BLx`,`BLy`, and `BLz` as the number of blocks per axis.
+
+- `nBStored` is the number of blocks in the file.
+  It should nominally be `1` or `BLx*BLy*BLz`
+
+- `"domain/blockid_location_arr"` specifies the relative locations of the blocks.
+
+
+With that out of the way, we now describe both variants:
+
+:::{tab} grid-data
+
 Presently, this is the scheme produced by scripts that concatenate 3D field-data or {ref}`repacking previously concatenated field data. <repack-script>`
 
 ```
@@ -96,34 +121,77 @@ Presently, this is the scheme produced by scripts that concatenate 3D field-data
 ```
 
 In the above diagram:
-- we follow numpy conventions for describing arrays with C-contiguous layouts.
-  In other words, the fastest index is last axis
-
-- `BLx`,`BLy`,`BLz` refer to the number of blocks per axis.
 
 - `nBx`,`nBy`,`nBz` refer to the number of cells per block.
   This is the shape of a cell-centered field.
-
-- `nBStored` is the number of blocks in the file.
-  It should nominally be `1` or `BLx*BLy*BLz`
-
-- `"domain/blockid_location_arr"` specifies the relative locations of the blocks.
+  Don't confuse these with `BLx`, `BLy`, and `BLz`, (which we previously defined as the number of blocks per axis)
 
 - the data at `{field/<field-0>}[i, ...]` corresponds to the data of the block with blockid specified by `{domain/stored_blockid_list}[i]`
 
-:::{note}
+```{note}
 Files in this format **ALWAYS** provide the `"dims"` attribute (in HEADER-ATTRS) and the ``"domain"`` group.
 Importantly, `"dims"` specifies `(nDx,nDy,nDz)`, the number of cells on the conceptual global Domain-grid, and the shape of `"domain/blockid_location_arr"` is `(BLx,BLy,BLz)`.
 Thus, you always can infer `(nBx,nBy,nBz) = (nDx/BLx, nDy/BLy, nDz/BLz)`.
 Consequently, you can determine whether a `field/<field-0>` is cell-centered, face-centered, etc. by looking at the field's shape.
+```
 :::
 
-The above format is intended to be forward-compatible with a scheme that also stores particle-data and gravity-data in the same file.
+
+:::{tab} particle-data
+
+Presently, this is the scheme produced by scripts that concatenate particle data
+
+```
+/                                      # root group
+ ├── HEADER-ATTRS  (REQUIRED)
+ ├── domain/       (REQUIRED)
+ │    ├── blockid_location_arr        # shape: (BLx,BLy,BLz)
+ │    └── stored_blockid_list         # shape: (nBStored,)
+ └── particle/
+      ├── <ptype-a>
+      │    ├── ATTR:total_ptype_count    # i64
+      │    ├── stop_block_idx_slc        # 1D shape: (nBStored,)
+      │    ├── <particle-prop-a0>        # 1D shape: (stop_block_idx_slc[-1],)
+      │    ├── <particle-prop-a1>        # 1D shape: (stop_block_idx_slc[-1],)
+      │    └── ...                       # 1D shape: (stop_block_idx_slc[-1],)
+      ├── <ptype-b>
+      │    ├── ATTR:total_ptype_count    # i64
+      │    ├── stop_block_idx_slc        # 1D shape: (nBStored,)
+      │    ├── <particle-prop-b0>        # 1D shape: (stop_block_idx_slc[-1],)
+      │    ├── <particle-prop-b1>        # 1D shape: (stop_block_idx_slc[-1],)
+      │    └── ...                       # 1D shape: (stop_block_idx_slc[-1],)
+      └── ...
+```
+In the above diagram:
+
+- Although at the time of writing, Cholla only ever considers a single particle-type, the schema is structured to accomodate the use of multiple particle-types in a single simulation (e.g. dark-matter particles, star cluster particles, *maybe* tracer particles)
+
+- **IMPORTANTLY:** different particle types are allowed to have different sets of attributes.
+  For the sake of example, we may want to explicitly track creation time & mass for cluster particles (since they can vary from particle-to-particle), but it makes no sense to do the same for dark matter particles.
+
+- `particle/<ptype-a>/ATTR:total_ptype_count` specifies the total number of particles (of the given type) in the ENTIRE simulation.
+
+- `particle/<ptype-a>/stop_block_idx_slc` holds monotonically non-decreasing values.
+  It also satisfies the invariants that
+  - `{particle/<ptype-a>/stop_block_idx_slc}[0] >= 0`
+  - When `nBStored == nBx*nBy*nBz`, then `{particle/<ptype-a>/stop_block_idx_slc}[-1] =={particle/ATTR:total_ptype_count}`.
+    In other cases, `{particle/<ptype-a>/stop_block_idx_slc}[-1] <= {particle/<ptype-a>/ATTR:total_ptype_count}`
+
+- The values of ``<ptype-a>/<particle-prop-a0>`` that describe particles for the blockid specified by `{domain/stored_blockid_list}[i]` are given by `{particle/<ptype-a>/<particle-prop-a0>}[slc]`, where `slc` is:
+  - ``0:{particle/<ptype-a>/stop_block_idx_slc}[0]``, when `i` is 0
+  - ``{particle/<ptype-a>/stop_block_idx_slc}[i-1]:{particle/<ptype-a>/stop_block_idx_slc}[i]``, in all other cases
+
+
+```{note}
+If we're interested in supporting cases where a simulation was run with multiple kinds of particle-data, we may want to store an attribute in the ``particle`` HDF5 group to explicitly list all known particle-types.
+```
+
+:::
+
+#### ASIDE: Preview of a hypothetical, more general schema
+
+Both of the above variants are intended to be forward-compatible with a **hypothetical** variant that can store field-data, particle-data, and gravity-data in the same file.
 We illustrate what this could look like down below
-
-#### ASIDE: Preview of more general schema
-
-Here we sketch a more-general hypothetical schema that can also include particle and gravity data:
 
 ```
 /                                      # root group
@@ -136,26 +204,22 @@ Here we sketch a more-general hypothetical schema that can also include particle
  │    ├── <field-1>        # 4D shape: (nBStored,nBx,nBy,nBz) or (nBStored, ...)
  │    └── ...              # 4D shape: (nBStored,nBx,nBy,nBz) or (nBStored, ...)
  ├── particle/
- │    ├── ATTR:total_particle_count    # i64
- │    ├── stop_particle_idx            # 1D shape: (nBStored,)
- │    ├── <particle-prop-0>            # 1D shape: (stop_particle_idx[-1],)
- │    ├── <particle-prop-1>            # 1D shape: (stop_particle_idx[-1],)
- │    └── ...                          # 1D shape: (stop_particle_idx[-1],)
+ │    ├── <ptype-a>
+ │    │    ├── ATTR:total_ptype_count    # i64
+ │    │    ├── stop_block_idx_slc        # 1D shape: (nBStored,)
+ │    │    ├── <particle-prop-a0>        # 1D shape: (stop_block_idx_slc[-1],)
+ │    │    ├── <particle-prop-a1>        # 1D shape: (stop_block_idx_slc[-1],)
+ │    │    └── ...                       # 1D shape: (stop_block_idx_slc[-1],)
+ │    ├── <ptype-b>
+ │    │    ├── ATTR:total_ptype_count    # i64
+ │    │    ├── stop_block_idx_slc        # 1D shape: (nBStored,)
+ │    │    ├── <particle-prop-b0>        # 1D shape: (stop_block_idx_slc[-1],)
+ │    │    ├── <particle-prop-b1>        # 1D shape: (stop_block_idx_slc[-1],)
+ │    │    └── ...                       # 1D shape: (stop_block_idx_slc[-1],)
+ │    └── ...
  └── gravity/
       └── gravity          # 4D shape: (nBStored,nBx,nBy,nBz)
 ```
-
-
-A few notes about particle group in this hypothetical extension:
-
-- `particle/ATTR:total_particle_count` specifies the total number of particles in the ENTIRE simulation.
-- `particle/stop_particle_idx` holds monotonically non-decreasing values.
-  - when `nBStored == nBx*nBy*nBz`, then `{particle/stop_particle_idx}[-1] =={particle/ATTR:total_particle_count}`
-  - in other cases, `{particle/stop_particle_idx}[-1] <={particle/ATTR:total_particle_count}`
-- The values of <particle-prop-0> that describe particles for the blockid specified by `{domain/stored_blockid_list}[i]` are given by `{particle/<particle-prop-0>}[slc]`, where `slc` is:
-  - `0:{particle/stop_particle_idx}[0]`, when `i` is 0
-  - `{particle/stop_particle_idx}[i-1]:{particle/stop_particle_idx}[i]`, in all other cases
-
 
 ## Header Attributes
 The following attributes are attached to all Cholla outputs:
@@ -205,8 +269,6 @@ If an MHD simulation is run, Cholla writes the following face-centered fields:
 - 'magnetic\_y'
 - 'magnetic\_z'
 
-
-
 ## Slices, Projections, and Rotated Projections
 For 3D simulations, Cholla can also be run with flags to output slices and projections of the data.
 (This can be useful for larges simulations if saving the full dataset is too costly to achieve a high time resolution for snapshots.)
@@ -241,9 +303,23 @@ Rotated projections are similar, but are integrated along an axis specified by t
 
 ## Particle data
 
+In all simulations with particles, HDF5 files will include a collection of 1D datasets that are each named after the particle-property that is tracked.
+The collection of datasets or arrays is equivalent to the ["parallel array" organization strategy](https://en.wikipedia.org/wiki/Parallel_array).
+In other words, values located at the same index in each dataset all describe different attributes of the same particle.
+
+While the precise set of particle properties vary between simulations, particles always have the following attributes:
+
+- ``particle_IDs`` (the particle id that is unique to the current particle)
+- ``pos_x``, ``pos_y``, ``pos_z`` (tracks positions)
+- ``vel_x``, ``vel_y``, ``vel_z`` (tracks particle velocity)
+
 :::{todo}
-Add Me!
+Expand on other attributes.
 :::
+
+At the time of writing, Cholla assumes there is only one particle-type in a simulation and directly writes the property datasets using the flat scheme.
+Under the alternative hierarchical-format, the property datasets are found under the ``particle/<ptype>/`` HDF5 grouping.
+
 
 ## Gravity data
 
@@ -251,19 +327,15 @@ At the time of writing, this is just used for restarts
 
 ## Scripts
 
-We provide a variety of scripts for modifying outputs in the directory called {repository-file}`python_scripts`.
-
-:::{todo}
-We may want to directly embed the result of each script's help command within the documentation.
-:::
+We provide a variety of scripts for modifying outputs in the directory called {repository-file}`python/scripts`.
 
 ### Concatenation scripts
 
 The following scripts are provided (for use as command-line tools or as python modules) to help with concatenation:
 
-- {repository-file}`python_scripts/concat_2d_data.py`, for concatenating 2D datasets such as slices, projections, and rotated projections
-- {repository-file}`python_scripts/concat_3d_data.py`, for concatenating field data (aka 3D datasets)
-- {repository-file}`python_scripts/concat_particles.py`, for concatenating particle datasets
+- {repository-file}`python/scripts/concat_2d_data.py`, for concatenating 2D datasets such as slices, projections, and rotated projections
+- {repository-file}`python/scripts/concat_3d_data.py`, for concatenating field data (aka 3D datasets)
+- {repository-file}`python/scripts/concat_particles.py`, for concatenating particle datasets
 
 #### What is concatenation?
 
@@ -281,6 +353,30 @@ The CLI for all the scripts is similar and details can be found when passing the
 In general you need to tell the script which directory to read files from (the `-s`/`--source-directory` flag), where to write the concatenated files (the `-o`/`--output-directory` flag), and which outputs to concatenate (the `--snaps` flag).
 The `--snaps` flag accepts a couple of different input formats, it can be a single number (e.g. 8), a range (e.g. 2-9), or a list (e.g. [1,2,3]); ranges are inclusive.
 
+We show the detailed help messages down below
+
+::::{tab} concat\_2d\_data.py
+
+:::{include-cli-help} ../../python/scripts/concat_2d_data.py
+:::
+
+::::
+
+::::{tab} concat\_3d\_data.py
+
+:::{include-cli-help} ../../python/scripts/concat_3d_data.py
+:::
+
+::::
+
+
+::::{tab} concat\_particles.py
+
+:::{include-cli-help} ../../python/scripts/concat_particles.py
+:::
+
+::::
+
 **Example**
 ```bash
 ./concat_3d_data.py -s /PATH/TO/SOURCE/DIRECTORY/ -o /PATH/TO/DESTINATION/DIRECTORY/ -n 8  --snaps 0-10
@@ -290,18 +386,18 @@ The `--snaps` flag accepts a couple of different input formats, it can be a sing
 
 The scripts above contain three public functions, `concat_2d_dataset`, `concat_3d_dataset`, and `concat_particles_dataset`.
 These functions will each concatenate a single output time of a 2D, 3D or particle dataset respectively and can be imported into another python program assuming the scripts are in your python path.
-Generally the easiest way to import this script is to add the `python_scripts` directory to your python path in your script like this:
+Generally the easiest way to import this script is to add the `python/scripts` directory to your python path in your script like this:
 
 ```python
 import sys
-sys.path.append('/PATH/TO/CHOLLA/python\_scripts')
+sys.path.append('/PATH/TO/CHOLLA/python/scripts')
 import concat_3d_data
 ```
 
 (repack-script)=
 ### Repack
 
-Next, we turn our attention to the script called {repository-file}`python_scripts/snaprepack.py`.
+Next, we turn our attention to the script called {repository-file}`python/scripts/snaprepack.py`.
 This file is intended to be used to repack a previously concatenated snapshot file.
 The output file will use the Hierarchical Format.
 
