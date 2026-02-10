@@ -147,30 +147,8 @@ void io::FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const Fname
   // create the filename
   std::string filename = fname_template.format_fname(nfile, "");
 
-#if !defined(BINARY) && !defined(HDF5)
-  if (G.H.nx * G.H.ny * G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
-#endif
-
 // open the file for binary writes
-#if defined BINARY
-  FILE *out;
-  out = fopen(filename.data(), "w");
-  if (out == NULL) {
-    printf("Error opening output file.\n");
-    exit(-1);
-  }
-
-  // write the header to the output file
-  G.Write_Header_Binary(out);
-
-  // write the conserved variables to the output file
-  G.Write_Grid_Binary(out);
-
-  // close the output file
-  fclose(out);
-
-// create the file for hdf5 writes
-#elif defined HDF5
+#ifdef HDF5
   hid_t file_id; /* file identifier */
   herr_t status;
 
@@ -192,6 +170,8 @@ void io::FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const Fname
   }
 
 #else
+
+  if (G.H.nx * G.H.ny * G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
   // open the file for txt writes
   FILE *out;
   out = fopen(filename.data(), "w");
@@ -513,38 +493,6 @@ void Grid3D::Write_Header_Text(FILE *fp)
   fprintf(fp, "nx: %d  ny: %d  nz: %d\n", H.nx, H.ny, H.nz);
   fprintf(fp, "xmin: %f  ymin: %f  zmin: %f\n", H.xbound, H.ybound, H.zbound);
   fprintf(fp, "t: %f\n", H.t);
-}
-
-/*! \fn void Write_Header_Binary(FILE *fp)
- *  \brief Write the relevant header info to a binary output file. */
-void Grid3D::Write_Header_Binary(FILE *fp)
-{
-  // Write the header info to the output file
-  // fwrite(&H, sizeof(H), 1, fp);
-  fwrite(&H.n_cells, sizeof(int), 1, fp);
-  fwrite(&H.n_ghost, sizeof(int), 1, fp);
-  fwrite(&H.nx, sizeof(int), 1, fp);
-  fwrite(&H.ny, sizeof(int), 1, fp);
-  fwrite(&H.nz, sizeof(int), 1, fp);
-  fwrite(&H.nx_real, sizeof(int), 1, fp);
-  fwrite(&H.ny_real, sizeof(int), 1, fp);
-  fwrite(&H.nz_real, sizeof(int), 1, fp);
-  fwrite(&H.xbound, sizeof(Real), 1, fp);
-  fwrite(&H.ybound, sizeof(Real), 1, fp);
-  fwrite(&H.zbound, sizeof(Real), 1, fp);
-  fwrite(&H.xblocal, sizeof(Real), 1, fp);
-  fwrite(&H.yblocal, sizeof(Real), 1, fp);
-  fwrite(&H.zblocal, sizeof(Real), 1, fp);
-  fwrite(&H.xdglobal, sizeof(Real), 1, fp);
-  fwrite(&H.ydglobal, sizeof(Real), 1, fp);
-  fwrite(&H.zdglobal, sizeof(Real), 1, fp);
-  fwrite(&H.dx, sizeof(Real), 1, fp);
-  fwrite(&H.dy, sizeof(Real), 1, fp);
-  fwrite(&H.dz, sizeof(Real), 1, fp);
-  fwrite(&H.t, sizeof(Real), 1, fp);
-  fwrite(&H.dt, sizeof(Real), 1, fp);
-  fwrite(&H.t_wall, sizeof(Real), 1, fp);
-  fwrite(&H.n_step, sizeof(int), 1, fp);
 }
 
 #ifdef HDF5
@@ -965,102 +913,6 @@ void Grid3D::Write_Grid_Text(FILE *fp)
         }
       }
     }
-  }
-}
-
-/*! \fn void Write_Grid_Binary(FILE *fp)
- *  \brief Write the conserved quantities to a binary output file. */
-void Grid3D::Write_Grid_Binary(FILE *fp)
-{
-  int id, i, j, k;
-
-  // Write the conserved quantities to the output file
-
-  // 1D case
-  if (H.nx > 1 && H.ny == 1 && H.nz == 1) {
-    id = H.n_ghost;
-
-    fwrite(&(C.density[id]), sizeof(Real), H.nx_real, fp);
-    fwrite(&(C.momentum_x[id]), sizeof(Real), H.nx_real, fp);
-    fwrite(&(C.momentum_y[id]), sizeof(Real), H.nx_real, fp);
-    fwrite(&(C.momentum_z[id]), sizeof(Real), H.nx_real, fp);
-    fwrite(&(C.Energy[id]), sizeof(Real), H.nx_real, fp);
-#ifdef DE
-    fwrite(&(C.GasEnergy[id]), sizeof(Real), H.nx_real, fp);
-#endif  // DE
-  }
-
-  // 2D case
-  else if (H.nx > 1 && H.ny > 1 && H.nz == 1) {
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fwrite(&(C.density[id]), sizeof(Real), H.nx_real, fp);
-    }
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fwrite(&(C.momentum_x[id]), sizeof(Real), H.nx_real, fp);
-    }
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fwrite(&(C.momentum_y[id]), sizeof(Real), H.nx_real, fp);
-    }
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fwrite(&(C.momentum_z[id]), sizeof(Real), H.nx_real, fp);
-    }
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fwrite(&(C.Energy[id]), sizeof(Real), H.nx_real, fp);
-    }
-#ifdef DE
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fwrite(&(C.GasEnergy[id]), sizeof(Real), H.nx_real, fp);
-    }
-#endif  // DE
-
-  }
-
-  // 3D case
-  else {
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fwrite(&(C.density[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fwrite(&(C.momentum_x[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fwrite(&(C.momentum_y[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fwrite(&(C.momentum_z[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fwrite(&(C.Energy[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-#ifdef DE
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fwrite(&(C.GasEnergy[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-#endif  // DE
   }
 }
 
@@ -2132,11 +1984,9 @@ void Grid3D::Read_Grid(struct Parameters P)
   filename += std::to_string(P.nfile);
   char sbuffer[1024];
 
-#if defined BINARY
-  filename += ".bin";
-#elif defined HDF5
+#if defined HDF5
   filename += ".h5";
-#endif  // BINARY or HDF5
+#endif  // HDF5
 // for now assumes you will run on the same number of processors
 #ifdef MPI_CHOLLA
   #ifdef TILED_INITIAL_CONDITIONS
@@ -2148,22 +1998,7 @@ void Grid3D::Read_Grid(struct Parameters P)
   #endif  // TILED_INITIAL_CONDITIONS
 #endif    // MPI_CHOLLA
 
-#if defined BINARY
-  FILE *fp;
-  // open the file
-  fp = fopen(filename, "r");
-  if (!fp) {
-    printf("Unable to open input file.\n");
-    exit(0);
-  }
-
-  // read in grid data
-  Read_Grid_Binary(fp);
-
-  // close the file
-  fclose(fp);
-
-#elif defined HDF5
+#if defined HDF5
   hid_t file_id;
   herr_t status;
 
@@ -2179,138 +2014,7 @@ void Grid3D::Read_Grid(struct Parameters P)
 
   // close the file
   status = H5Fclose(file_id);
-#endif  // BINARY or HDF5
-}
-
-/*! \fn Read_Grid_Binary(FILE *fp)
- *  \brief Read in grid data from a binary file. */
-void Grid3D::Read_Grid_Binary(FILE *fp)
-{
-  int id, i, j, k;
-  size_t rs;
-
-  // Read in the header data
-  rs = fread(&H.n_cells, sizeof(int), 1, fp);
-  rs = fread(&H.n_ghost, sizeof(int), 1, fp);
-  rs = fread(&H.nx, sizeof(int), 1, fp);
-  rs = fread(&H.ny, sizeof(int), 1, fp);
-  rs = fread(&H.nz, sizeof(int), 1, fp);
-  rs = fread(&H.nx_real, sizeof(int), 1, fp);
-  rs = fread(&H.ny_real, sizeof(int), 1, fp);
-  rs = fread(&H.nz_real, sizeof(int), 1, fp);
-  rs = fread(&H.xbound, sizeof(Real), 1, fp);
-  rs = fread(&H.ybound, sizeof(Real), 1, fp);
-  rs = fread(&H.zbound, sizeof(Real), 1, fp);
-  rs = fread(&H.xblocal, sizeof(Real), 1, fp);
-  rs = fread(&H.yblocal, sizeof(Real), 1, fp);
-  rs = fread(&H.zblocal, sizeof(Real), 1, fp);
-  rs = fread(&H.xdglobal, sizeof(Real), 1, fp);
-  rs = fread(&H.ydglobal, sizeof(Real), 1, fp);
-  rs = fread(&H.zdglobal, sizeof(Real), 1, fp);
-  rs = fread(&H.dx, sizeof(Real), 1, fp);
-  rs = fread(&H.dy, sizeof(Real), 1, fp);
-  rs = fread(&H.dz, sizeof(Real), 1, fp);
-  rs = fread(&H.t, sizeof(Real), 1, fp);
-  rs = fread(&H.dt, sizeof(Real), 1, fp);
-  rs = fread(&H.t_wall, sizeof(Real), 1, fp);
-  rs = fread(&H.n_step, sizeof(int), 1, fp);
-
-// Read in the conserved quantities from the input file
-#ifdef WITH_GHOST
-  fread(&(C.density[id]), sizeof(Real), H.n_cells, fp);
-  fread(&(C.momentum_x[id]), sizeof(Real), H.n_cells, fp);
-  fread(&(C.momentum_y[id]), sizeof(Real), H.n_cells, fp);
-  fread(&(C.momentum_z[id]), sizeof(Real), H.n_cells, fp);
-  fread(&(C.Energy[id]), sizeof(Real), H.n_cells, fp);
-#endif  // WITH_GHOST
-
-#ifdef NO_GHOST
-  // 1D case
-  if (H.nx > 1 && H.ny == 1 && H.nz == 1) {
-    id = H.n_ghost;
-
-    fread(&(C.density[id]), sizeof(Real), H.nx_real, fp);
-    fread(&(C.momentum_x[id]), sizeof(Real), H.nx_real, fp);
-    fread(&(C.momentum_y[id]), sizeof(Real), H.nx_real, fp);
-    fread(&(C.momentum_z[id]), sizeof(Real), H.nx_real, fp);
-    fread(&(C.Energy[id]), sizeof(Real), H.nx_real, fp);
-  #ifdef DE
-    fread(&(C.GasEnergy[id]), sizeof(Real), H.nx_real, fp);
-  #endif
-  }
-
-  // 2D case
-  else if (H.nx > 1 && H.ny > 1 && H.nz == 1) {
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fread(&(C.density[id]), sizeof(Real), H.nx_real, fp);
-    }
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fread(&(C.momentum_x[id]), sizeof(Real), H.nx_real, fp);
-    }
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fread(&(C.momentum_y[id]), sizeof(Real), H.nx_real, fp);
-    }
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fread(&(C.momentum_z[id]), sizeof(Real), H.nx_real, fp);
-    }
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fread(&(C.Energy[id]), sizeof(Real), H.nx_real, fp);
-    }
-  #ifdef DE
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fread(&(C.GasEnergy[id]), sizeof(Real), H.nx_real, fp);
-    }
-  #endif
-  }
-
-  // 3D case
-  else {
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fread(&(C.density[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fread(&(C.momentum_x[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fread(&(C.momentum_y[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fread(&(C.momentum_z[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fread(&(C.Energy[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-  #ifdef DE
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fread(&(C.GasEnergy[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-  #endif
-  }
-#endif
+#endif  // HDF5
 }
 
 #ifdef HDF5
