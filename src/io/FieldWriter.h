@@ -9,13 +9,6 @@
 #include <string>
 #include <vector>
 
-#ifdef HDF5
-  #include <hdf5.h>
-#else
-  #include <cstdint>
-hid_t = int64_t;
-#endif
-
 #include "../global/global.h"
 #include "../grid/field_info.h"
 #include "../grid/grid3D.h"
@@ -63,9 +56,6 @@ class FieldWriter
    *  viable solution since std::function requires that this class is copy-constructible
    */
   std::shared_ptr<LazyScratchBuf> lazy_scratch_buf_;
-
-  /*! Record field data to the specified HDF5 file */
-  void Write_HDF5_(hid_t file_id, const Grid3D &G) const;
 
  public:
   FieldWriter() = delete;

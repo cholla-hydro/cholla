@@ -143,75 +143,6 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
 #endif
 }
 
-void io::FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const FnameTemplate &fname_template) const
-{
-  // create the filename
-  std::string filename = fname_template.format_fname(nfile, "");
-
-#if !defined(BINARY) && !defined(HDF5)
-  if (G.H.nx * G.H.ny * G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
-#endif
-
-// open the file for binary writes
-#if defined BINARY
-  FILE *out;
-  out = fopen(filename.data(), "w");
-  if (out == NULL) {
-    printf("Error opening output file.\n");
-    exit(-1);
-  }
-
-  // write the header to the output file
-  G.Write_Header_Binary(out);
-
-  // write the conserved variables to the output file
-  G.Write_Grid_Binary(out);
-
-  // close the output file
-  fclose(out);
-
-// create the file for hdf5 writes
-#elif defined HDF5
-  hid_t file_id; /* file identifier */
-  herr_t status;
-
-  // Create a new file using default properties.
-  file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-
-  // Write the header (file attributes)
-  G.Write_Header_HDF5(file_id);
-
-  // write the conserved variables to the output file
-  this->Write_HDF5_(file_id, G);
-
-  // close the file
-  status = H5Fclose(file_id);
-
-  if (status < 0) {
-    printf("File write failed.\n");
-    exit(-1);
-  }
-
-#else
-  // open the file for txt writes
-  FILE *out;
-  out = fopen(filename.data(), "w");
-  if (out == NULL) {
-    printf("Error opening output file.\n");
-    exit(-1);
-  }
-
-  // write the header to the output file
-  G.Write_Header_Text(out);
-
-  // write the conserved variables to the output file
-  G.Write_Grid_Text(out);
-
-  // close the output file
-  fclose(out);
-#endif
-}
-
 #ifdef HDF5
 
 /*! does the heavy-lifting of writing fields to hdf5 files.
@@ -289,9 +220,98 @@ void Write_Fields_to_HDF5_helper_(hid_t file_id, const Grid3D &G, const io::Data
       }
     }
   }
+
+  // handle all of the weird special cases
+  if constexpr (not ForceF32Output) {
+  #if defined(OUTPUT_TEMPERATURE) && defined(CHEMISTRY_GPU)
+    Compute_Gas_Temperature(G.Chem.Fields.temperature_h, false);
+    Write_Grid_HDF5_Field_CPU(H, file_id, host_dataset_buf, G.Chem.Fields.temperature_h, "/temperature");
+  #elif defined(OUTPUT_TEMPERATURE) && defined(COOLING_GRACKLE)
+    Write_Grid_HDF5_Field_CPU(H, file_id, host_dataset_buf, G.Cool.temperature, "/temperature");
+  #endif
+
+  #if defined(GRAVITY) && defined(OUTPUT_POTENTIAL)
+    if (is_3D) {  // 3D case
+      const Grav3D &Grav = G.Grav;
+      Write_Generic_HDF5_Field_GPU(Grav.nx_local + 2 * N_GHOST_POTENTIAL, Grav.ny_local + 2 * N_GHOST_POTENTIAL,
+                                   Grav.nz_local + 2 * N_GHOST_POTENTIAL, Grav.nx_local, Grav.ny_local, Grav.nz_local,
+                                   N_GHOST_POTENTIAL, file_id, host_dataset_buf, dev_dataset_buf, Grav.F.potential_d,
+                                   "/grav_potential");
+    }
+  #endif  // GRAVITY and OUTPUT_POTENTIAL
+  }
 }
 
 #endif
+
+void io::FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const FnameTemplate &fname_template) const
+{
+  // create the filename
+  std::string filename = fname_template.format_fname(nfile, "");
+
+#if !defined(BINARY) && !defined(HDF5)
+  if (G.H.nx * G.H.ny * G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
+#endif
+
+// open the file for binary writes
+#if defined BINARY
+  FILE *out;
+  out = fopen(filename.data(), "w");
+  if (out == NULL) {
+    printf("Error opening output file.\n");
+    exit(-1);
+  }
+
+  // write the header to the output file
+  G.Write_Header_Binary(out);
+
+  // write the conserved variables to the output file
+  G.Write_Grid_Binary(out);
+
+  // close the output file
+  fclose(out);
+
+// create the file for hdf5 writes
+#elif defined HDF5
+  hid_t file_id; /* file identifier */
+  herr_t status;
+
+  // Create a new file using default properties.
+  file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
+  // Write the header (file attributes)
+  G.Write_Header_HDF5(file_id);
+
+  // write the conserved variables to the output file
+  Write_Fields_to_HDF5_helper_<false>(file_id, G, this->h5_dataset_spec_, *this->lazy_scratch_buf_);
+
+  // close the file
+  status = H5Fclose(file_id);
+
+  if (status < 0) {
+    printf("File write failed.\n");
+    exit(-1);
+  }
+
+#else
+  // open the file for txt writes
+  FILE *out;
+  out = fopen(filename.data(), "w");
+  if (out == NULL) {
+    printf("Error opening output file.\n");
+    exit(-1);
+  }
+
+  // write the header to the output file
+  G.Write_Header_Text(out);
+
+  // write the conserved variables to the output file
+  G.Write_Grid_Text(out);
+
+  // close the output file
+  fclose(out);
+#endif
+}
 
 void io::F32FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const FnameTemplate &fname_template) const
 {
@@ -1288,45 +1308,6 @@ void Write_Generic_HDF5_Field_GPU(int nx, int ny, int nz, int nx_real, int ny_re
   Fill_HDF5_Buffer_From_Grid_GPU(nx, ny, nz, nx_real, ny_real, nz_real, n_ghost, dataset_buffer, device_hdf5_buffer,
                                  source_buffer);
   Write_HDF5_Dataset_Grid(nx, ny, nz, nx_real, ny_real, nz_real, file_id, dataset_buffer, name);
-}
-
-void io::FieldWriter::Write_HDF5_(hid_t file_id, const Grid3D &G) const
-{
-  // write the normal fields
-  Write_Fields_to_HDF5_helper_<false>(file_id, G, this->h5_dataset_spec_, *this->lazy_scratch_buf_);
-
-  // write all of the special-case fields
-
-  // Access necessary buffers (they should already be pre-allocated)
-  const Header &H = G.H;
-  int nx_dset     = H.nx_real;
-  int ny_dset     = H.ny_real;
-  int nz_dset     = H.nz_real;
-  #ifdef MHD
-  size_t buffer_size = (nx_dset + 1) * (ny_dset + 1) * (nz_dset + 1);
-  #else
-  size_t buffer_size = nx_dset * ny_dset * nz_dset;
-  #endif
-  Real *dev_dataset_buf  = this->lazy_scratch_buf_->get_buf_dev<Real>(buffer_size);
-  Real *host_dataset_buf = this->lazy_scratch_buf_->get_buf_host<Real>(buffer_size);
-
-  #if defined(OUTPUT_TEMPERATURE) && defined(CHEMISTRY_GPU)
-  Compute_Gas_Temperature(G.Chem.Fields.temperature_h, false);
-  Write_Grid_HDF5_Field_CPU(H, file_id, host_dataset_buf, G.Chem.Fields.temperature_h, "/temperature");
-  #elif defined(OUTPUT_TEMPERATURE) && defined(COOLING_GRACKLE)
-  Write_Grid_HDF5_Field_CPU(H, file_id, host_dataset_buf, G.Cool.temperature, "/temperature");
-  #endif
-
-  // 3D case
-  if (H.nx > 1 && H.ny > 1 && H.nz > 1) {
-  #if defined(GRAVITY) && defined(OUTPUT_POTENTIAL)
-    const Grav3D &Grav = G.Grav;
-    Write_Generic_HDF5_Field_GPU(Grav.nx_local + 2 * N_GHOST_POTENTIAL, Grav.ny_local + 2 * N_GHOST_POTENTIAL,
-                                 Grav.nz_local + 2 * N_GHOST_POTENTIAL, Grav.nx_local, Grav.ny_local, Grav.nz_local,
-                                 N_GHOST_POTENTIAL, file_id, host_dataset_buf, dev_dataset_buf, Grav.F.potential_d,
-                                 "/grav_potential");
-  #endif  // GRAVITY and OUTPUT_POTENTIAL
-  }
 }
 #endif  // HDF5
 
