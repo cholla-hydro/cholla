@@ -134,10 +134,9 @@ F32FieldWriter::F32FieldWriter(ParameterMap& pmap, const FieldInfo& field_info) 
   };
 
   for (int field_id : field_info.get_id_range(field::Kind::MAGNETIC)) {
-    std::string field_name = field_info.field_name(field_id).value();
-    if (pmap.value_or("out_float32_" + field_name, 0)) {
-      this->dataset_spec_.write_mag[map_name_to_idx(field_name)] = true;
-    }
+    std::string field_name                                     = field_info.field_name(field_id).value();
+    bool write_field                                           = pmap.value_or("out_float32_" + field_name, 0) != 0;
+    this->dataset_spec_.write_mag[map_name_to_idx(field_name)] = write_field;
   }
 }
 

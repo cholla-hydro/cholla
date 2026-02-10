@@ -273,16 +273,16 @@ void Write_Fields_to_HDF5_helper_(hid_t file_id, const Grid3D &G, const io::Data
   if (is_3D) {
     const char *dset_names[3] = {"/magnetic_x", "/magnetic_y", "/magnetic_z"};
     for (int i = 0; i < 3; i++) {
+      if (not dataset_spec.write_mag[i]) continue;
       const char *field_name = dset_names[i] + 1;
       Real *ptr              = &G.C.device[H.n_cells * G.field_info.field_id(field_name).value()];
       if constexpr (ForceF32Output) {
-        if (not dataset_spec.write_mag[i]) continue;
         // TODO (by Alwin, for anyone) : Repair output format if needed and remove the chprintf when appropriate
         chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
         Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, host_dataset_buf,
                             dev_dataset_buf, ptr, dset_names[i]);
       } else {
-        if (not dataset_spec.write_mag[i] or not H.Output_Complete_Data) continue;
+        if (not H.Output_Complete_Data) continue;
         int real_shape[3] = {H.nx_real + (i == 0), H.ny_real + (i == 1), H.nz_real + (i == 2)};
         Write_HDF5_Field_3D(H.nx, H.ny, real_shape[0], real_shape[1], real_shape[2], H.n_ghost, file_id,
                             host_dataset_buf, dev_dataset_buf, ptr, dset_names[i], i);
