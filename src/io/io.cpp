@@ -10,6 +10,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <type_traits>
 #ifdef HDF5
   #include <hdf5.h>
 #endif  // HDF5
@@ -211,6 +212,87 @@ void io::FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const Fname
 #endif
 }
 
+#ifdef HDF5
+
+/*! does the heavy-lifting of writing fields to hdf5 files.
+ *
+ *  \todo
+ *  The initial implementation goes out of its way to retain all of the historical
+ *  distinctions that occur between regular outputs and float32 outputs. We should
+ *  really cut down on these differences!
+ */
+template <bool ForceF32Output>
+void Write_Fields_to_HDF5_helper_(hid_t file_id, const Grid3D &G, const io::DatasetSpec &dataset_spec,
+                                  io::LazyScratchBuf &lazy_scratch_buf)
+{
+  // get the value-type of the dataset buffers
+  using T = std::conditional_t<ForceF32Output, float, Real>;
+
+  const Header &H = G.H;
+  bool is_3D      = H.nx > 1 and H.ny > 1 and H.nz > 1;
+
+  if (ForceF32Output and not is_3D) {
+    return;  // <- this is the historical behavior!
+  }
+
+  // Allocate necessary buffers
+  int nx_dset = H.nx_real;
+  int ny_dset = H.ny_real;
+  int nz_dset = H.nz_real;
+  #ifdef MHD
+  size_t buffer_size = (nx_dset + 1) * (ny_dset + 1) * (nz_dset + 1);
+  #else
+  size_t buffer_size = nx_dset * ny_dset * nz_dset;
+  #endif
+  T *dev_dataset_buf  = lazy_scratch_buf.get_buf_dev<T>(buffer_size);
+  T *host_dataset_buf = lazy_scratch_buf.get_buf_host<T>(buffer_size);
+
+  // write out regular cell-centered fields
+  for (const io::DatasetSpecEntry &cur_spec : dataset_spec.cc_dataset_entries) {
+    if constexpr (ForceF32Output) {
+      // todo: consider more robust behavior here
+      CHOLLA_ASSERT(cur_spec.condition == io::WriteCond::ALWAYS, "unexpected case");
+      CHOLLA_ASSERT(cur_spec.io_buf == field::IOBuf::DEVICE, "unexpected case");
+      Real *ptr = &G.C.device[cur_spec.field_id * H.n_cells];
+      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf,
+                          ptr, cur_spec.name.c_str());
+    } else {
+      if (cur_spec.condition == io::WriteCond::REQUIRE_COMPLETE_DATA && not H.Output_Complete_Data) continue;
+      if (cur_spec.io_buf == field::IOBuf::HOST) {
+        Real *ptr = &G.C.host[cur_spec.field_id * H.n_cells];
+        Write_Grid_HDF5_Field_CPU(H, file_id, host_dataset_buf, ptr, cur_spec.name.c_str());
+      } else {
+        Real *ptr = &G.C.device[cur_spec.field_id * H.n_cells];
+        Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, ptr, cur_spec.name.c_str());
+      }
+    }
+  }
+
+  // write out magnetic fields
+  // -> we maintain historical behavior and only do this for 3D simulations
+  if (is_3D) {
+    const char *dset_names[3] = {"/magnetic_x", "/magnetic_y", "/magnetic_z"};
+    for (int i = 0; i < 3; i++) {
+      const char *field_name = dset_names[i] + 1;
+      Real *ptr              = &G.C.device[H.n_cells * G.field_info.field_id(field_name).value()];
+      if constexpr (ForceF32Output) {
+        if (not dataset_spec.write_mag[i]) continue;
+        // TODO (by Alwin, for anyone) : Repair output format if needed and remove the chprintf when appropriate
+        chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
+        Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, host_dataset_buf,
+                            dev_dataset_buf, ptr, dset_names[i]);
+      } else {
+        if (not dataset_spec.write_mag[i] or not H.Output_Complete_Data) continue;
+        int real_shape[3] = {H.nx_real + (i == 0), H.ny_real + (i == 1), H.nz_real + (i == 2)};
+        Write_HDF5_Field_3D(H.nx, H.ny, real_shape[0], real_shape[1], real_shape[2], H.n_ghost, file_id,
+                            host_dataset_buf, dev_dataset_buf, ptr, dset_names[i], i);
+      }
+    }
+  }
+}
+
+#endif
+
 void io::F32FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const FnameTemplate &fname_template) const
 {
 #ifdef HDF5
@@ -219,69 +301,22 @@ void io::F32FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const Fn
   // create the filename
   std::string filename = fname_template.format_fname(nfile, ".float32");
 
-  // create hdf5 file
-  hid_t file_id; /* file identifier */
-  herr_t status;
-
   // Create a new file using default properties.
-  file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  hid_t file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   // Write the header (file attributes)
   G.Write_Header_HDF5(file_id);
 
-  // write the conserved variables to the output file
-
-  // 3-D Case
-  if (H.nx > 1 && H.ny > 1 && H.nz > 1) {
-    int nx_dset = H.nx_real;
-    int ny_dset = H.ny_real;
-    int nz_dset = H.nz_real;
-    size_t buffer_size;
-    // Need a larger device buffer for MHD. In the future, if other fields need
-    // a larger device buffer, choose the maximum of the sizes. If the buffer is
-    // too large, it does not cause bugs (Oct 6 2022)
-  #ifdef MHD
-    buffer_size = (nx_dset + 1) * (ny_dset + 1) * (nz_dset + 1);
-  #else
-    buffer_size = nx_dset * ny_dset * nz_dset;
-  #endif  // MHD
-
-    float *dev_dataset_buf  = this->lazy_scratch_buf_->get_buf_dev<float>(buffer_size);
-    float *host_dataset_buf = this->lazy_scratch_buf_->get_buf_host<float>(buffer_size);
-
-    // TODO: try to consolidate some of this logic with that of Grid3D::Write_Grid_HDF5
-
-    // Start writing fields
-    for (const io::DatasetSpecEntry &cur_spec : this->dataset_spec_.cc_dataset_entries) {
-      // todo: consider more robust behavior here
-      CHOLLA_ASSERT(cur_spec.condition == io::WriteCond::ALWAYS, "unexpected case");
-      CHOLLA_ASSERT(cur_spec.io_buf == field::IOBuf::DEVICE, "unexpected case");
-      Real *ptr = &G.C.device[cur_spec.field_id * H.n_cells];
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf,
-                          ptr, cur_spec.name.c_str());
-    }
-
-    // TODO (by Alwin, for anyone) : Repair output format if needed and remove these chprintfs when appropriate
-    const char *dset_names[3] = {"/magnetic_x", "/magnetic_y", "/magnetic_z"};
-    for (int i = 0; i < 3; i++) {
-      if (!this->dataset_spec_.write_mag[i]) {
-        continue;
-      }
-      const char *field_name = dset_names[i] + 1;
-      Real *ptr              = &G.C.device[H.n_cells * G.field_info.field_id(field_name).value()];
-      chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, host_dataset_buf,
-                          dev_dataset_buf, ptr, dset_names[i]);
-    }
-
-    if (status < 0) {
-      printf("File write failed.\n");
-      exit(-1);
-    }
-  }  // 3-D case
+  // write fields to the file
+  Write_Fields_to_HDF5_helper_<true>(file_id, G, this->dataset_spec_, *this->lazy_scratch_buf_);
 
   // close the file
-  status = H5Fclose(file_id);
+  herr_t status = H5Fclose(file_id);
+
+  if (status < 0) {
+    printf("File write failed.\n");
+    exit(-1);
+  }
 #endif  // HDF5
 }
 
