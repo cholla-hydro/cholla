@@ -181,7 +181,7 @@ void io::FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const Fname
   G.Write_Header_HDF5(file_id);
 
   // write the conserved variables to the output file
-  G.Write_Grid_HDF5(file_id, h5_dataset_spec_);
+  this->Write_HDF5_(file_id, G);
 
   // close the file
   status = H5Fclose(file_id);
@@ -246,38 +246,33 @@ void io::F32FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const Fn
     buffer_size = nx_dset * ny_dset * nz_dset;
   #endif  // MHD
 
-    // Using static DeviceVector here automatically allocates the buffer the
-    // first time it is needed It persists until program exit, and then calls
-    // Free upon destruction
-    cuda_utilities::DeviceVector<float> static device_dataset_vector{buffer_size};
-    auto *dataset_buffer = (float *)malloc(buffer_size * sizeof(float));
+    float *dev_dataset_buf  = this->lazy_scratch_buf_->get_buf_dev<float>(buffer_size);
+    float *host_dataset_buf = this->lazy_scratch_buf_->get_buf_host<float>(buffer_size);
 
     // TODO: try to consolidate some of this logic with that of Grid3D::Write_Grid_HDF5
 
     // Start writing fields
-    for (const io::DatasetSpecEntry &cur_spec : this->cc_dataset_entries) {
+    for (const io::DatasetSpecEntry &cur_spec : this->dataset_spec_.cc_dataset_entries) {
       // todo: consider more robust behavior here
       CHOLLA_ASSERT(cur_spec.condition == io::WriteCond::ALWAYS, "unexpected case");
       CHOLLA_ASSERT(cur_spec.io_buf == field::IOBuf::DEVICE, "unexpected case");
       Real *ptr = &G.C.device[cur_spec.field_id * H.n_cells];
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), ptr, cur_spec.name.c_str());
+      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf,
+                          ptr, cur_spec.name.c_str());
     }
 
     // TODO (by Alwin, for anyone) : Repair output format if needed and remove these chprintfs when appropriate
     const char *dset_names[3] = {"/magnetic_x", "/magnetic_y", "/magnetic_z"};
     for (int i = 0; i < 3; i++) {
-      if (!this->write_mag[i]) {
+      if (!this->dataset_spec_.write_mag[i]) {
         continue;
       }
       const char *field_name = dset_names[i] + 1;
       Real *ptr              = &G.C.device[H.n_cells * G.field_info.field_id(field_name).value()];
       chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                          device_dataset_vector.data(), ptr, dset_names[i]);
+      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, host_dataset_buf,
+                          dev_dataset_buf, ptr, dset_names[i]);
     }
-
-    free(dataset_buffer);
 
     if (status < 0) {
       printf("File write failed.\n");
@@ -1260,15 +1255,15 @@ void Write_Generic_HDF5_Field_GPU(int nx, int ny, int nz, int nx_real, int ny_re
   Write_HDF5_Dataset_Grid(nx, ny, nz, nx_real, ny_real, nz_real, file_id, dataset_buffer, name);
 }
 
-/*! \fn void Write_Grid_HDF5(hid_t file_id)
- *  \brief Write the grid to a file, at the current simulation time. */
-void Grid3D::Write_Grid_HDF5(hid_t file_id, const io::DatasetSpec &h5_dataset_spec)
+void io::FieldWriter::Write_HDF5_(hid_t file_id, const Grid3D &G) const
 {
   int i, j, k, id, buf_id;
   hid_t dataset_id, dataspace_id;
   hid_t dataset_id_full, dataspace_id_full;
   Real *dataset_buffer;
   herr_t status;
+
+  const Header &H = G.H;
 
   // Allocate necessary buffers
   int nx_dset = H.nx_real;
@@ -1279,53 +1274,52 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id, const io::DatasetSpec &h5_dataset_sp
   #else
   size_t buffer_size = nx_dset * ny_dset * nz_dset;
   #endif
-  cuda_utilities::DeviceVector<Real> static device_dataset_vector{buffer_size};
-  dataset_buffer = (Real *)malloc(buffer_size * sizeof(Real));
+  Real *dev_dataset_buf  = this->lazy_scratch_buf_->get_buf_dev<Real>(buffer_size);
+  Real *host_dataset_buf = this->lazy_scratch_buf_->get_buf_host<Real>(buffer_size);
 
   // Start writing fields
-  for (const io::DatasetSpecEntry &cur_spec : h5_dataset_spec.cc_dataset_entries) {
+  for (const io::DatasetSpecEntry &cur_spec : this->h5_dataset_spec_.cc_dataset_entries) {
     if (!H.Output_Complete_Data && cur_spec.condition == io::WriteCond::REQUIRE_COMPLETE_DATA) {
       continue;
     }
     if (cur_spec.io_buf == field::IOBuf::HOST) {
-      Real *ptr = &C.host[cur_spec.field_id * H.n_cells];
-      Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, ptr, cur_spec.name.c_str());
+      Real *ptr = &G.C.host[cur_spec.field_id * H.n_cells];
+      Write_Grid_HDF5_Field_CPU(H, file_id, host_dataset_buf, ptr, cur_spec.name.c_str());
     } else {
-      Real *ptr = &C.device[cur_spec.field_id * H.n_cells];
-      Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), ptr, cur_spec.name.c_str());
+      Real *ptr = &G.C.device[cur_spec.field_id * H.n_cells];
+      Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, ptr, cur_spec.name.c_str());
     }
   }
 
   #if defined(OUTPUT_TEMPERATURE) && defined(CHEMISTRY_GPU)
-  Compute_Gas_Temperature(Chem.Fields.temperature_h, false);
-  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Chem.Fields.temperature_h, "/temperature");
+  Compute_Gas_Temperature(G.Chem.Fields.temperature_h, false);
+  Write_Grid_HDF5_Field_CPU(H, file_id, host_dataset_buf, G.Chem.Fields.temperature_h, "/temperature");
   #elif defined(OUTPUT_TEMPERATURE) && defined(COOLING_GRACKLE)
-  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Cool.temperature, "/temperature");
+  Write_Grid_HDF5_Field_CPU(H, file_id, host_dataset_buf, G.Cool.temperature, "/temperature");
   #endif
 
   // 3D case
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) {
   #if defined(GRAVITY) && defined(OUTPUT_POTENTIAL)
+    const Grav3D &Grav = G.Grav;
     Write_Generic_HDF5_Field_GPU(Grav.nx_local + 2 * N_GHOST_POTENTIAL, Grav.ny_local + 2 * N_GHOST_POTENTIAL,
                                  Grav.nz_local + 2 * N_GHOST_POTENTIAL, Grav.nx_local, Grav.ny_local, Grav.nz_local,
-                                 N_GHOST_POTENTIAL, file_id, dataset_buffer, device_dataset_vector.data(),
-                                 Grav.F.potential_d, "/grav_potential");
+                                 N_GHOST_POTENTIAL, file_id, host_dataset_buf, dev_dataset_buf, Grav.F.potential_d,
+                                 "/grav_potential");
   #endif  // GRAVITY and OUTPUT_POTENTIAL
 
-    if (h5_dataset_spec.mhd_condition.has_value() &&
-        (h5_dataset_spec.mhd_condition.value() == io::WriteCond::ALWAYS || H.Output_Complete_Data)) {
-      const char *dset_names[3] = {"/magnetic_x", "/magnetic_y", "/magnetic_z"};
-      for (int i = 0; i < 3; i++) {
-        int real_shape[3]      = {H.nx_real + (i == 0), H.ny_real + (i == 1), H.nz_real + (i == 2)};
-        const char *field_name = dset_names[i] + 1;
-        Real *ptr              = &C.device[H.n_cells * field_info.field_id(field_name).value()];
-        Write_HDF5_Field_3D(H.nx, H.ny, real_shape[0], real_shape[1], real_shape[2], H.n_ghost, file_id, dataset_buffer,
-                            device_dataset_vector.data(), ptr, dset_names[i], i);
+    const char *dset_names[3] = {"/magnetic_x", "/magnetic_y", "/magnetic_z"};
+    for (int i = 0; i < 3; i++) {
+      if (!this->h5_dataset_spec_.write_mag[i] || !H.Output_Complete_Data) {
+        continue;
       }
+      int real_shape[3]      = {H.nx_real + (i == 0), H.ny_real + (i == 1), H.nz_real + (i == 2)};
+      const char *field_name = dset_names[i] + 1;
+      Real *ptr              = &G.C.device[H.n_cells * G.field_info.field_id(field_name).value()];
+      Write_HDF5_Field_3D(H.nx, H.ny, real_shape[0], real_shape[1], real_shape[2], H.n_ghost, file_id, host_dataset_buf,
+                          dev_dataset_buf, ptr, dset_names[i], i);
     }
   }
-
-  free(dataset_buffer);
 }
 #endif  // HDF5
 

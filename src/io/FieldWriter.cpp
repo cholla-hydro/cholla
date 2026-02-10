@@ -71,7 +71,7 @@ static constexpr WriteCond ELECTRONS_CONDITION = WriteCond::ALWAYS;
 static constexpr WriteCond ELECTRONS_CONDITION = WriteCond::REQUIRE_COMPLETE_DATA;
 #endif
 
-FieldWriter::FieldWriter(ParameterMap& pmap, const FieldInfo& field_info)
+FieldWriter::FieldWriter(ParameterMap& pmap, const FieldInfo& field_info) : lazy_scratch_buf_(new LazyScratchBuf)
 {
   // construct DsetSpecListBuilder_ to append entries to `this->h5_dataset_spec_.cc_dataset_entries`
   DsetSpecListBuilder_ dsentry_l_builder{this->h5_dataset_spec_.cc_dataset_entries, field_info};
@@ -97,19 +97,19 @@ FieldWriter::FieldWriter(ParameterMap& pmap, const FieldInfo& field_info)
   }
 
 #ifdef MHD
-  h5_dataset_spec_.mhd_condition = std::optional<WriteCond>{WriteCond::REQUIRE_COMPLETE_DATA};
+  h5_dataset_spec_.write_mag = {true, true, true};
 #else
-  h5_dataset_spec_.mhd_condition = std::nullopt;
+  h5_dataset_spec_.write_mag = {false, false, false};
 #endif
 
   // For now, I'm intentionally ignoring the remaining assorted outputs (e.g.
   // temperature, gravitational potential). That stuff is still handled very manually)
 }
 
-F32FieldWriter::F32FieldWriter(ParameterMap& pmap, const FieldInfo& field_info)
+F32FieldWriter::F32FieldWriter(ParameterMap& pmap, const FieldInfo& field_info) : lazy_scratch_buf_(new LazyScratchBuf)
 {
   // construct DsetSpecListBuilder_ to append entries to `this->cc_dataset_entries`
-  DsetSpecListBuilder_ dsentry_l_builder{this->cc_dataset_entries, field_info};
+  DsetSpecListBuilder_ dsentry_l_builder{this->dataset_spec_.cc_dataset_entries, field_info};
 
   // includes GasEnergy if applicable
   for (int field_id : field_info.get_id_range(field::Kind::HYDRO)) {
@@ -136,7 +136,7 @@ F32FieldWriter::F32FieldWriter(ParameterMap& pmap, const FieldInfo& field_info)
   for (int field_id : field_info.get_id_range(field::Kind::MAGNETIC)) {
     std::string field_name = field_info.field_name(field_id).value();
     if (pmap.value_or("out_float32_" + field_name, 0)) {
-      this->write_mag[map_name_to_idx(field_name)] = true;
+      this->dataset_spec_.write_mag[map_name_to_idx(field_name)] = true;
     }
   }
 }

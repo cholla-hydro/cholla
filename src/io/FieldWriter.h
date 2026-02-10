@@ -5,14 +5,22 @@
 
 #pragma once
 
-#include <optional>
+#include <memory>
 #include <string>
 #include <vector>
+
+#ifdef HDF5
+  #include <hdf5.h>
+#else
+  #include <cstdint>
+hid_t = int64_t;
+#endif
 
 #include "../global/global.h"
 #include "../grid/field_info.h"
 #include "../grid/grid3D.h"
-#include "../io/FnameTemplate.h"     // define FnameTemplate
+#include "../io/FnameTemplate.h"  // define FnameTemplate
+#include "../io/LazyScratchBuf.h"
 #include "../io/ParameterMap.h"      // define ParameterMap
 #include "../utils/basic_structs.h"  // VectorXYZ
 
@@ -38,7 +46,7 @@ struct DatasetSpec {
   ///
   /// \note Ideally, we would handle these a little more uniformly with other fields,
   /// but that's a task for another time
-  std::optional<WriteCond> mhd_condition;
+  hydro_utilities::VectorXYZ<bool> write_mag = {false, false, false};
 };
 
 /*! \brief A callable that writes general grid data
@@ -48,6 +56,16 @@ struct DatasetSpec {
 class FieldWriter
 {
   DatasetSpec h5_dataset_spec_;
+  /*! this is tracked in a pointer so we can mutate the buffer even in const methods
+   *
+   *  \note
+   *  I'm not thrilled that this is a shared pointer, but that seems to be the only
+   *  viable solution since std::function requires that this class is copy-constructible
+   */
+  std::shared_ptr<LazyScratchBuf> lazy_scratch_buf_;
+
+  /*! Record field data to the specified HDF5 file */
+  void Write_HDF5_(hid_t file_id, const Grid3D &G) const;
 
  public:
   FieldWriter() = delete;
@@ -64,8 +82,14 @@ class FieldWriter
  */
 class F32FieldWriter
 {
-  hydro_utilities::VectorXYZ<bool> write_mag = {false, false, false};
-  std::vector<DatasetSpecEntry> cc_dataset_entries;
+  DatasetSpec dataset_spec_;
+  /*! this is tracked in a pointer so we can mutate the buffer even in const methods
+   *
+   *  \note
+   *  I'm not thrilled that this is a shared pointer, but that seems to be the only
+   *  viable solution since std::function requires that this class is copy-constructible
+   */
+  std::shared_ptr<LazyScratchBuf> lazy_scratch_buf_;
 
  public:
   F32FieldWriter() = delete;
