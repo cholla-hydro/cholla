@@ -61,6 +61,15 @@ io::Rotation::Rotation(ParameterMap &pmap)
   // are we outputting multiple rotations(1)? or rotating during a
   // simulation(2)?
   this->flag_delta = pmap.value_or("flag_delta", 0);
+
+  // after we make it possible to enable the RotatedProjectionWriter without a
+  // compile-time ifdef, the following should probably get converted to an error
+  // that aborts the program
+  if (flag_delta == 1 && n_delta == 0) {
+    chprintf(
+        "WARNING: when flag_delta = 1 and n_delta = 0, no rotated projections "
+        "are made\n");
+  }
 }
 
 void io::RotatedProjWriter::operator()(Grid3D &G, Parameters P, int nfile, const FnameTemplate &fname_template)
@@ -69,25 +78,25 @@ void io::RotatedProjWriter::operator()(Grid3D &G, Parameters P, int nfile, const
   hid_t file_id;
   herr_t status;
 
-  // create the filename
-  std::string filename = fname_template.format_fname(nfile, "_rot_proj");
+  std::string_view standard_suffix = "_rot_proj";
 
   // it may be a little more explicit to use a switch statement instead of if/elif/else
   switch (this->rot_info_.flag_delta) {
     case 1: {
       // if flag_delta==1, then we are just outputting a
       // bunch of rotations of the same snapshot
-      char fname[200];
 
       for (int i_delta = 0; i_delta < this->rot_info_.n_delta; i_delta++) {
-        filename += "." + std::to_string(this->rot_info_.i_delta);
-        chprintf("Outputting rotated projection %s.\n", fname);
+        // determine the filename
+        std::string post_extension_suffix = std::to_string(i_delta);
+        std::string filename =
+            fname_template.format_fname(nfile, standard_suffix, std::optional<std::string_view>(post_extension_suffix));
 
         // determine delta about z by output index
         this->rot_info_.delta = 2.0 * M_PI * ((double)i_delta) / ((double)this->rot_info_.n_delta);
 
         // Create a new file
-        file_id = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+        file_id = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
         // Write header (file attributes)
         G.Write_Header_Rotated_HDF5(file_id, this->rot_info_);
@@ -106,6 +115,9 @@ void io::RotatedProjWriter::operator()(Grid3D &G, Parameters P, int nfile, const
       break;
     }
     case 2: {  // outputing at a rotating delta
+      // determine the filename
+      std::string filename = fname_template.format_fname(nfile, standard_suffix);
+
       // rotation rate given in the parameter file
       this->rot_info_.delta = fmod(nfile * this->rot_info_.ddelta_dt * 2.0 * M_PI, (2.0 * M_PI));
 
@@ -123,6 +135,8 @@ void io::RotatedProjWriter::operator()(Grid3D &G, Parameters P, int nfile, const
       break;
     }
     case 0: {  // just output at the delta given in the parameter file
+      // determine the filename
+      std::string filename = fname_template.format_fname(nfile, standard_suffix);
 
       // Create a new file
       file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);

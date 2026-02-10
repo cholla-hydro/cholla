@@ -5,7 +5,9 @@
 
 #pragma once
 
+#include <optional>
 #include <string>
+#include <string_view>
 
 #include "../io/ParameterMap.h"
 
@@ -58,9 +60,11 @@ class FnameTemplate
   std::string effective_output_dir_path(int nfile) const noexcept;
 
   /* format the file path */
-  std::string format_fname(int nfile, const std::string& pre_extension_suffix) const noexcept;
+  std::string format_fname(int nfile, std::string_view pre_extension_suffix,
+                           std::optional<std::string_view> post_extension_suffix = std::nullopt) const noexcept;
 
-  std::string format_fname(int nfile, int file_proc_id, const std::string& pre_extension_suffix) const noexcept;
+  std::string format_fname(int nfile, int file_proc_id, std::string_view pre_extension_suffix,
+                           std::optional<std::string_view> post_extension_suffix = std::nullopt) const noexcept;
 
  private:
   bool separate_cycle_dirs_;
