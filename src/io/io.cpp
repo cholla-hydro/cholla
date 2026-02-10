@@ -1292,18 +1292,16 @@ void Write_Generic_HDF5_Field_GPU(int nx, int ny, int nz, int nx_real, int ny_re
 
 void io::FieldWriter::Write_HDF5_(hid_t file_id, const Grid3D &G) const
 {
-  int i, j, k, id, buf_id;
-  hid_t dataset_id, dataspace_id;
-  hid_t dataset_id_full, dataspace_id_full;
-  Real *dataset_buffer;
-  herr_t status;
+  // write the normal fields
+  Write_Fields_to_HDF5_helper_<false>(file_id, G, this->h5_dataset_spec_, *this->lazy_scratch_buf_);
 
+  // write all of the special-case fields
+
+  // Access necessary buffers (they should already be pre-allocated)
   const Header &H = G.H;
-
-  // Allocate necessary buffers
-  int nx_dset = H.nx_real;
-  int ny_dset = H.ny_real;
-  int nz_dset = H.nz_real;
+  int nx_dset     = H.nx_real;
+  int ny_dset     = H.ny_real;
+  int nz_dset     = H.nz_real;
   #ifdef MHD
   size_t buffer_size = (nx_dset + 1) * (ny_dset + 1) * (nz_dset + 1);
   #else
@@ -1311,20 +1309,6 @@ void io::FieldWriter::Write_HDF5_(hid_t file_id, const Grid3D &G) const
   #endif
   Real *dev_dataset_buf  = this->lazy_scratch_buf_->get_buf_dev<Real>(buffer_size);
   Real *host_dataset_buf = this->lazy_scratch_buf_->get_buf_host<Real>(buffer_size);
-
-  // Start writing fields
-  for (const io::DatasetSpecEntry &cur_spec : this->h5_dataset_spec_.cc_dataset_entries) {
-    if (!H.Output_Complete_Data && cur_spec.condition == io::WriteCond::REQUIRE_COMPLETE_DATA) {
-      continue;
-    }
-    if (cur_spec.io_buf == field::IOBuf::HOST) {
-      Real *ptr = &G.C.host[cur_spec.field_id * H.n_cells];
-      Write_Grid_HDF5_Field_CPU(H, file_id, host_dataset_buf, ptr, cur_spec.name.c_str());
-    } else {
-      Real *ptr = &G.C.device[cur_spec.field_id * H.n_cells];
-      Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, ptr, cur_spec.name.c_str());
-    }
-  }
 
   #if defined(OUTPUT_TEMPERATURE) && defined(CHEMISTRY_GPU)
   Compute_Gas_Temperature(G.Chem.Fields.temperature_h, false);
@@ -1342,18 +1326,6 @@ void io::FieldWriter::Write_HDF5_(hid_t file_id, const Grid3D &G) const
                                  N_GHOST_POTENTIAL, file_id, host_dataset_buf, dev_dataset_buf, Grav.F.potential_d,
                                  "/grav_potential");
   #endif  // GRAVITY and OUTPUT_POTENTIAL
-
-    const char *dset_names[3] = {"/magnetic_x", "/magnetic_y", "/magnetic_z"};
-    for (int i = 0; i < 3; i++) {
-      if (!this->h5_dataset_spec_.write_mag[i] || !H.Output_Complete_Data) {
-        continue;
-      }
-      int real_shape[3]      = {H.nx_real + (i == 0), H.ny_real + (i == 1), H.nz_real + (i == 2)};
-      const char *field_name = dset_names[i] + 1;
-      Real *ptr              = &G.C.device[H.n_cells * G.field_info.field_id(field_name).value()];
-      Write_HDF5_Field_3D(H.nx, H.ny, real_shape[0], real_shape[1], real_shape[2], H.n_ghost, file_id, host_dataset_buf,
-                          dev_dataset_buf, ptr, dset_names[i], i);
-    }
   }
 }
 #endif  // HDF5
