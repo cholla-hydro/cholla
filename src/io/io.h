@@ -84,6 +84,13 @@ herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id, float* dataset_buff
 void Fill_Grid_From_HDF5_Buffer(int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, int n_ghost,
                                 Real* hdf5_buffer, Real* grid_buffer);
 
+/*! Data moves from host grid_buffer to dataset_buffer to hdf5 file */
+void Write_Grid_HDF5_Field_CPU(Header H, hid_t file_id, Real* dataset_buffer, Real* grid_buffer, const char* name);
+
+/*! Data moves from device_grid_buffer to device_hdf5_buffer to dataset_buffer to hdf5 file */
+void Write_Grid_HDF5_Field_GPU(Header H, hid_t file_id, Real* dataset_buffer, Real* device_hdf5_buffer,
+                               Real* device_grid_buffer, const char* name);
+
 // From io/io_gpu.cu
 // Use GPU to pack source -> device_buffer, then copy device_buffer -> buffer,
 // then write HDF5 field
