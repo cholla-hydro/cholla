@@ -13,16 +13,10 @@
 #include "../io/FnameTemplate.h"
 #include "../io/WriterManager.h"
 
-/* Local function that designates whether we are using a root-process. It gives
- *  * gives a sensible result regardless of whether we are using MPI */
-static inline bool Is_Root_Proc()
-{
-#ifdef MPI_CHOLLA
-  return procID == root;
-#else
-  return true;
-#endif
-}
+/*! Local function that designates whether we are using a root-process. It gives
+ *  a sensible result regardless of whether we are using MPI
+ */
+inline bool Is_Root_Proc() { return procID == root; }
 
 /* Compute stats for a grid. */
 void Print_Stats(Grid3D& G);
