@@ -5,7 +5,9 @@
 
 #include "SliceWriter.h"
 
+#ifndef HDF5
 #include <hdf5.h>
+#endif
 
 #include <algorithm>  // std::fill, std::max
 #include <cstddef>    // ptrdiff_t
@@ -113,6 +115,10 @@ void Fill_Slice_Buf_(Real *buf, const hydro_utilities::VectorXYZ<int> &local_act
   CHOLLA_ERROR("Received unknown PlaneChoice");
 }
 
+}  // anonymous namespace
+
+#ifdef HDF5
+
 // this isn't very useful (yet)
 struct SliceProps {
   PlaneChoice choice;
@@ -120,9 +126,6 @@ struct SliceProps {
   hid_t dataspace_id;
 };
 
-}  // anonymous namespace
-
-#ifdef HDF5
 /*! Helper function that does most heavy lifting for writing HDF5 slices */
 static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id,
                                const std::vector<std::pair<int, std::string>> &cc_field_id_dset_name_pairs)
