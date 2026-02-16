@@ -22,7 +22,35 @@
 namespace io
 {
 
-SliceWriter::SliceWriter(ParameterMap &pmap, const FieldInfo &field_info) {}
+SliceWriter::SliceWriter(ParameterMap &pmap, const FieldInfo &field_info)
+{
+  // this maps field names to shorttened dataset names
+  // -> this is for historical purposes. Honestly, I think it would be better to
+  //    preserve the full field name
+  const std::map<std::string, std::string> name_map{{"density", "d"},     {"momentum_x", "mx"}, {"momentum_y", "my"},
+                                                    {"momentum_z", "mz"}, {"Energy", "E"},      {"GasEnergy", "GE"}};
+  // append entries to cc_field_id_dset_name_pairs_ for each cell-centered hydro field
+  for (int field_id : field_info.get_id_range(field::Kind::HYDRO)) {
+    std::string field_name = field_info.field_name(field_id).value();
+    std::string dset_name;
+    auto search = name_map.find(field_name);
+    if (search == name_map.end()) {
+      // in this case, I REALLY think we should stick with the regular field name
+      CHOLLA_ERROR("there isn't a standard short-name for the \"%s\" field name", field_name.c_str());
+    } else {
+      dset_name = search->second;
+    }
+    this->cc_field_id_dset_name_pairs_.emplace_back(field_id, dset_name);
+  }
+
+  // if there are any passive scalars, we will ONLY save the very first one in a dataset
+  // named scalar
+  // -> frankly, I think we would be better off just ignoring this historical convention
+  //    and saving slices of all passive scalars to datasets that use the field's name
+  for (int field_id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
+    this->cc_field_id_dset_name_pairs_.emplace_back(field_id, "scalar");
+  }
+}
 
 namespace
 {  // stuff inside an anonymous namespace is local to this file
@@ -96,7 +124,8 @@ struct SliceProps {
 
 #ifdef HDF5
 /*! Helper function that does most heavy lifting for writing HDF5 slices */
-static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
+static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id,
+                               const std::vector<std::pair<int, std::string>> &cc_field_id_dset_name_pairs)
 {
   const Header &H = G.H;
   bool is_3D      = H.nx > 1 && H.ny > 1 && H.nz > 1;
@@ -107,15 +136,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   const FieldInfo &field_info = G.field_info;
   const Grid3D::Conserved &C  = G.C;
   const bool using_MHD        = field_info.n_fields(field::Kind::MAGNETIC) > 0;
-
-  const std::map<std::string, std::string> name_map{{"density", "d"},     {"momentum_x", "mx"}, {"momentum_y", "my"},
-                                                    {"momentum_z", "mz"}, {"Energy", "E"},      {"GasEnergy", "GE"}};
-
-  int i, j, k, id, buf_id;
-  #ifdef SCALAR
-  Real *dataset_buffer_scalar;
-  #endif
-  herr_t status;
 
   #ifndef MPI_CHOLLA
   const hydro_utilities::VectorXYZ<ptrdiff_t> global_slice_idx{H.nx / 2, H.ny / 2, H.nz / 2};
@@ -163,8 +183,11 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
         CHOLLA_ERROR("Unrecognized PlaneChoice");
     }
 
-    // record slices of the Hydro-fields (includes GasEnergy, if compiled with Dual Energy)
-    for (int field_id : field_info.get_id_range(field::Kind::HYDRO)) {
+    // record slices of all cell-centered fields
+    for (const std::pair<int, std::string> pair : cc_field_id_dset_name_pairs) {
+      int field_id          = pair.first;
+      std::string dset_name = pair.second;
+
       const Real *ptr = &C.host[field_id * H.n_cells];
       auto get_val    = [=](int active_zone_xid, int active_zone_yid, int active_zone_zid) -> Real {
         int xid = active_zone_xid + n_ghost;
@@ -180,10 +203,9 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
         std::fill(buf.begin(), buf.end(), static_cast<Real>(0.0));
       }
 
-      std::string field_name = field_info.field_name(field_id).value();
-      std::string dset_name  = '/' + name_map.at(field_name) + slice_prop.name_suffix;
+      std::string full_dset_name = '/' + dset_name + slice_prop.name_suffix;
 
-      status = Write_HDF5_Dataset(file_id, slice_prop.dataspace_id, buf.data(), dset_name.c_str());
+      herr_t status = Write_HDF5_Dataset(file_id, slice_prop.dataspace_id, buf.data(), full_dset_name.c_str());
     }
 
     for (int field_id : field_info.get_id_range(field::Kind::MAGNETIC)) {
@@ -210,137 +232,15 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
         std::fill(buf.begin(), buf.end(), static_cast<Real>(0.0));
       }
 
-      std::string dset_name = '/' + field_name + slice_prop.name_suffix;
+      std::string full_dset_name = '/' + field_name + slice_prop.name_suffix;
 
-      status = Write_HDF5_Dataset(file_id, slice_prop.dataspace_id, buf.data(), dset_name.c_str());
+      herr_t status = Write_HDF5_Dataset(file_id, slice_prop.dataspace_id, buf.data(), full_dset_name.c_str());
     }
   }
-
-  // Allocate memory for the xy slices
-  #ifdef SCALAR
-  dataset_buffer_scalar = (Real *)malloc(NSCALARS * H.nx_real * H.ny_real * sizeof(Real));
-  #endif
-
-  // Copy the xy slices to the memory buffers
-  for (j = 0; j < H.ny_real; j++) {
-    for (i = 0; i < H.nx_real; i++) {
-      buf_id     = j + i * H.ny_real;
-      int zslice = global_slice_idx.z();
-      // check whether the slice intersects the current process's local domain
-      if (zslice >= idx_local_start.z() && zslice < idx_local_start.z() + nz_local) {
-        id = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost, zslice - idx_local_start.z() + H.n_ghost,
-                                            H.nx, H.ny);
-  #ifdef SCALAR
-        for (int ii = 0; ii < NSCALARS; ii++) {
-          dataset_buffer_scalar[buf_id + ii * H.nx * H.ny] = C.scalar[id + ii * H.n_cells];
-        }
-  #endif
-      } else {
-        // write zeros if slice doesn't intersect the current process's local domain
-  #ifdef SCALAR
-        for (int ii = 0; ii < NSCALARS; ii++) {
-          dataset_buffer_scalar[buf_id + ii * H.nx * H.ny] = 0;
-        }
-  #endif
-      }
-    }
-  }
-
-  // Write out the xy datasets for each variable
-  #ifdef SCALAR
-  // it turns out that due to an oversight, we *only* write the very first scalar
-  status = Write_HDF5_Dataset(file_id, slice_props[0].dataspace_id, dataset_buffer_scalar, "/scalar_xy");
-  #endif
-
-  // free the dataset buffers
-  #ifdef SCALAR
-  free(dataset_buffer_scalar);
-  #endif
-
-  // allocate the memory for the xz slices
-  #ifdef SCALAR
-  dataset_buffer_scalar = (Real *)malloc(NSCALARS * H.nx_real * H.nz_real * sizeof(Real));
-  #endif
-
-  // Copy the xz slices to the memory buffers
-  for (k = 0; k < H.nz_real; k++) {
-    for (i = 0; i < H.nx_real; i++) {
-      buf_id     = k + i * H.nz_real;
-      int yslice = global_slice_idx.y();
-      // check whether the slice intersects the current process's local domain
-      if (yslice >= idx_local_start.y() && yslice < idx_local_start.y() + ny_local) {
-        id = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - idx_local_start.y() + H.n_ghost, k + H.n_ghost,
-                                            H.nx, H.ny);
-  #ifdef SCALAR
-        for (int ii = 0; ii < NSCALARS; ii++) {
-          dataset_buffer_scalar[buf_id + ii * H.nx * H.nz] = C.scalar[id + ii * H.n_cells];
-        }
-  #endif
-      } else {
-        // write zeros if slice doesn't intersect the current process's local domain
-  #ifdef SCALAR
-        for (int ii = 0; ii < NSCALARS; ii++) {
-          dataset_buffer_scalar[buf_id + ii * H.nx * H.nz] = 0;
-        }
-  #endif
-      }
-    }
-  }
-
-  // Write out the xz datasets for each variable
-  #ifdef SCALAR
-  // it turns out that due to an oversight, we *only* write the very first scalar
-  status = Write_HDF5_Dataset(file_id, slice_props[1].dataspace_id, dataset_buffer_scalar, "/scalar_xz");
-  #endif
-
-  // free the dataset buffers
-  #ifdef SCALAR
-  free(dataset_buffer_scalar);
-  #endif
-
-  // allocate the memory for the yz slices
-  #ifdef SCALAR
-  dataset_buffer_scalar = (Real *)malloc(NSCALARS * H.ny_real * H.nz_real * sizeof(Real));
-  #endif
-
-  // Copy the yz slices to the memory buffers
-  for (k = 0; k < H.nz_real; k++) {
-    for (j = 0; j < H.ny_real; j++) {
-      buf_id     = k + j * H.nz_real;
-      int xslice = global_slice_idx.x();
-      // check whether the slice intersects the current process's local domain
-      if (xslice >= idx_local_start.x() && xslice < idx_local_start.x() + nx_local) {
-        id = cuda_utilities::compute1DIndex(xslice - idx_local_start.x(), j + H.n_ghost, k + H.n_ghost, H.nx, H.ny);
-  #ifdef SCALAR
-        for (int ii = 0; ii < NSCALARS; ii++) {
-          dataset_buffer_scalar[buf_id + ii * H.ny * H.nz] = C.scalar[id + ii * H.n_cells];
-        }
-  #endif
-      } else {
-        // write zeros if slice doesn't intersect the current process's local domain
-  #ifdef SCALAR
-        for (int ii = 0; ii < NSCALARS; ii++) {
-          dataset_buffer_scalar[buf_id + ii * H.ny * H.nz] = 0;
-        }
-  #endif
-      }
-    }
-  }
-
-  // Write out the yz datasets for each variable
-  #ifdef SCALAR
-  // it turns out that due to an oversight, we *only* write the very first scalar
-  status = Write_HDF5_Dataset(file_id, slice_props[2].dataspace_id, dataset_buffer_scalar, "/scalar_yz");
-  #endif
-
-  // free the dataset buffers
-  #ifdef SCALAR
-  free(dataset_buffer_scalar);
-  #endif
 
   // free the dataspace ids
   for (const SliceProps &slice_prop : slice_props) {
-    status = H5Sclose(slice_prop.dataspace_id);
+    herr_t status = H5Sclose(slice_prop.dataspace_id);
   }
 }
 #endif  // HDF5
@@ -361,7 +261,7 @@ void SliceWriter::operator()(Grid3D &G, struct Parameters P, int nfile, const Fn
   G.Write_Header_HDF5(file_id);
 
   // Write slices of all variables to the output file
-  Write_Slices_HDF5_(G, file_id);
+  Write_Slices_HDF5_(G, file_id, cc_field_id_dset_name_pairs_);
 
   // Close the file
   status = H5Fclose(file_id);

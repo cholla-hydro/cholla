@@ -5,6 +5,10 @@
 
 #pragma once
 
+#include <string>
+#include <utility>  // std::pair
+#include <vector>
+
 #include "../global/global.h"
 #include "../grid/grid3D.h"
 
@@ -25,6 +29,10 @@ namespace io
  */
 class SliceWriter
 {
+  /// for each cell-centered field that will be written, this holds a
+  /// (field_id, dset_name) pair
+  std::vector<std::pair<int, std::string>> cc_field_id_dset_name_pairs_;
+
  public:
   SliceWriter() = delete;
   SliceWriter(ParameterMap &pmap, const FieldInfo &field_info);
