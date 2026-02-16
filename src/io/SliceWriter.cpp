@@ -106,6 +106,7 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   }
   const FieldInfo &field_info = G.field_info;
   const Grid3D::Conserved &C  = G.C;
+  const bool using_MHD        = field_info.n_fields(field::Kind::MAGNETIC) > 0;
 
   const std::map<std::string, std::string> name_map{{"density", "d"},     {"momentum_x", "mx"}, {"momentum_y", "my"},
                                                     {"momentum_z", "mz"}, {"Energy", "E"},      {"GasEnergy", "GE"}};
@@ -162,6 +163,7 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
         CHOLLA_ERROR("Unrecognized PlaneChoice");
     }
 
+    // record slices of the Hydro-fields (includes GasEnergy, if compiled with Dual Energy)
     for (int field_id : field_info.get_id_range(field::Kind::HYDRO)) {
       const Real *ptr = &C.host[field_id * H.n_cells];
       auto get_val    = [=](int active_zone_xid, int active_zone_yid, int active_zone_zid) -> Real {
@@ -183,14 +185,38 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
 
       status = Write_HDF5_Dataset(file_id, slice_prop.dataspace_id, buf.data(), dset_name.c_str());
     }
+
+    for (int field_id : field_info.get_id_range(field::Kind::MAGNETIC)) {
+      std::string field_name = field_info.field_name(field_id).value();
+
+      if (slice_intersects_local_domain) {
+        char comp       = field_name[field_name.size() - 1];  // <- holds 'x', 'y', or 'z'
+        int field_id    = field_info.field_id(field_name).value();
+        const Real *ptr = &C.host[field_id * H.n_cells];
+        const hydro_utilities::VectorXYZ<int> off_L{n_ghost - (comp == 'x'), n_ghost - (comp == 'y'),
+                                                    n_ghost - (comp == 'z')};
+        const hydro_utilities::VectorXYZ<int> off_R{n_ghost, n_ghost, n_ghost};
+
+        auto get_val = [=](int active_zone_xid, int active_zone_yid, int active_zone_zid) -> Real {
+          int i_L = cuda_utilities::compute1DIndex(active_zone_xid + off_L.x(), active_zone_yid + off_L.y(),
+                                                   active_zone_zid + off_L.z(), nx, ny);
+          int i_R = cuda_utilities::compute1DIndex(active_zone_xid + off_R.x(), active_zone_yid + off_R.y(),
+                                                   active_zone_zid + off_R.z(), nx, ny);
+          return 0.5 * (ptr[i_L] + ptr[i_R]);
+        };
+
+        Fill_Slice_Buf_(buf.data(), local_active_zone_shape, slice_prop.choice, local_active_zone_slice_idx, get_val);
+      } else {
+        std::fill(buf.begin(), buf.end(), static_cast<Real>(0.0));
+      }
+
+      std::string dset_name = '/' + field_name + slice_prop.name_suffix;
+
+      status = Write_HDF5_Dataset(file_id, slice_prop.dataspace_id, buf.data(), dset_name.c_str());
+    }
   }
 
   // Allocate memory for the xy slices
-  #ifdef MHD
-  std::vector<Real> dataset_buffer_magnetic_x(H.nx_real * H.ny_real);
-  std::vector<Real> dataset_buffer_magnetic_y(H.nx_real * H.ny_real);
-  std::vector<Real> dataset_buffer_magnetic_z(H.nx_real * H.ny_real);
-  #endif  // MHD
   #ifdef SCALAR
   dataset_buffer_scalar = (Real *)malloc(NSCALARS * H.nx_real * H.ny_real * sizeof(Real));
   #endif
@@ -204,17 +230,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
       if (zslice >= idx_local_start.z() && zslice < idx_local_start.z() + nz_local) {
         id = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost, zslice - idx_local_start.z() + H.n_ghost,
                                             H.nx, H.ny);
-  #ifdef MHD
-        int id_xm1                        = cuda_utilities::compute1DIndex(i + H.n_ghost - 1, j + H.n_ghost,
-                                                                           zslice - idx_local_start.z() + H.n_ghost, H.nx, H.ny);
-        int id_ym1                        = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost - 1,
-                                                                           zslice - idx_local_start.z() + H.n_ghost, H.nx, H.ny);
-        int id_zm1                        = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost,
-                                                                           zslice - idx_local_start.z() + H.n_ghost - 1, H.nx, H.ny);
-        dataset_buffer_magnetic_x[buf_id] = 0.5 * (C.magnetic_x[id] + C.magnetic_x[id_xm1]);
-        dataset_buffer_magnetic_y[buf_id] = 0.5 * (C.magnetic_y[id] + C.magnetic_y[id_ym1]);
-        dataset_buffer_magnetic_z[buf_id] = 0.5 * (C.magnetic_z[id] + C.magnetic_z[id_zm1]);
-  #endif  // MHD
   #ifdef SCALAR
         for (int ii = 0; ii < NSCALARS; ii++) {
           dataset_buffer_scalar[buf_id + ii * H.nx * H.ny] = C.scalar[id + ii * H.n_cells];
@@ -222,11 +237,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   #endif
       } else {
         // write zeros if slice doesn't intersect the current process's local domain
-  #ifdef MHD
-        dataset_buffer_magnetic_x[buf_id] = 0;
-        dataset_buffer_magnetic_y[buf_id] = 0;
-        dataset_buffer_magnetic_z[buf_id] = 0;
-  #endif  // MHD
   #ifdef SCALAR
         for (int ii = 0; ii < NSCALARS; ii++) {
           dataset_buffer_scalar[buf_id + ii * H.nx * H.ny] = 0;
@@ -237,11 +247,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   }
 
   // Write out the xy datasets for each variable
-  #ifdef MHD
-  status = Write_HDF5_Dataset(file_id, slice_props[0].dataspace_id, dataset_buffer_magnetic_x.data(), "/magnetic_x_xy");
-  status = Write_HDF5_Dataset(file_id, slice_props[0].dataspace_id, dataset_buffer_magnetic_y.data(), "/magnetic_y_xy");
-  status = Write_HDF5_Dataset(file_id, slice_props[0].dataspace_id, dataset_buffer_magnetic_z.data(), "/magnetic_z_xy");
-  #endif  // MHD
   #ifdef SCALAR
   // it turns out that due to an oversight, we *only* write the very first scalar
   status = Write_HDF5_Dataset(file_id, slice_props[0].dataspace_id, dataset_buffer_scalar, "/scalar_xy");
@@ -253,11 +258,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   #endif
 
   // allocate the memory for the xz slices
-  #ifdef MHD
-  dataset_buffer_magnetic_x.resize(H.nx_real * H.nz_real);
-  dataset_buffer_magnetic_y.resize(H.nx_real * H.nz_real);
-  dataset_buffer_magnetic_z.resize(H.nx_real * H.nz_real);
-  #endif  // MHD
   #ifdef SCALAR
   dataset_buffer_scalar = (Real *)malloc(NSCALARS * H.nx_real * H.nz_real * sizeof(Real));
   #endif
@@ -271,17 +271,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
       if (yslice >= idx_local_start.y() && yslice < idx_local_start.y() + ny_local) {
         id = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - idx_local_start.y() + H.n_ghost, k + H.n_ghost,
                                             H.nx, H.ny);
-  #ifdef MHD
-        int id_xm1 = cuda_utilities::compute1DIndex(i + H.n_ghost - 1, yslice - idx_local_start.y() + H.n_ghost,
-                                                    k + H.n_ghost, H.nx, H.ny);
-        int id_ym1 = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - idx_local_start.y() + H.n_ghost - 1,
-                                                    k + H.n_ghost, H.nx, H.ny);
-        int id_zm1 = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - idx_local_start.y() + H.n_ghost,
-                                                    k + H.n_ghost - 1, H.nx, H.ny);
-        dataset_buffer_magnetic_x[buf_id] = 0.5 * (C.magnetic_x[id] + C.magnetic_x[id_xm1]);
-        dataset_buffer_magnetic_y[buf_id] = 0.5 * (C.magnetic_y[id] + C.magnetic_y[id_ym1]);
-        dataset_buffer_magnetic_z[buf_id] = 0.5 * (C.magnetic_z[id] + C.magnetic_z[id_zm1]);
-  #endif  // MHD
   #ifdef SCALAR
         for (int ii = 0; ii < NSCALARS; ii++) {
           dataset_buffer_scalar[buf_id + ii * H.nx * H.nz] = C.scalar[id + ii * H.n_cells];
@@ -289,11 +278,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   #endif
       } else {
         // write zeros if slice doesn't intersect the current process's local domain
-  #ifdef MHD
-        dataset_buffer_magnetic_x[buf_id] = 0;
-        dataset_buffer_magnetic_y[buf_id] = 0;
-        dataset_buffer_magnetic_z[buf_id] = 0;
-  #endif  // MHD
   #ifdef SCALAR
         for (int ii = 0; ii < NSCALARS; ii++) {
           dataset_buffer_scalar[buf_id + ii * H.nx * H.nz] = 0;
@@ -304,11 +288,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   }
 
   // Write out the xz datasets for each variable
-  #ifdef MHD
-  status = Write_HDF5_Dataset(file_id, slice_props[1].dataspace_id, dataset_buffer_magnetic_x.data(), "/magnetic_x_xz");
-  status = Write_HDF5_Dataset(file_id, slice_props[1].dataspace_id, dataset_buffer_magnetic_y.data(), "/magnetic_y_xz");
-  status = Write_HDF5_Dataset(file_id, slice_props[1].dataspace_id, dataset_buffer_magnetic_z.data(), "/magnetic_z_xz");
-  #endif  // MHD
   #ifdef SCALAR
   // it turns out that due to an oversight, we *only* write the very first scalar
   status = Write_HDF5_Dataset(file_id, slice_props[1].dataspace_id, dataset_buffer_scalar, "/scalar_xz");
@@ -320,11 +299,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   #endif
 
   // allocate the memory for the yz slices
-  #ifdef MHD
-  dataset_buffer_magnetic_x.resize(H.ny_real * H.nz_real);
-  dataset_buffer_magnetic_y.resize(H.ny_real * H.nz_real);
-  dataset_buffer_magnetic_z.resize(H.ny_real * H.nz_real);
-  #endif  // MHD
   #ifdef SCALAR
   dataset_buffer_scalar = (Real *)malloc(NSCALARS * H.ny_real * H.nz_real * sizeof(Real));
   #endif
@@ -337,17 +311,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
       // check whether the slice intersects the current process's local domain
       if (xslice >= idx_local_start.x() && xslice < idx_local_start.x() + nx_local) {
         id = cuda_utilities::compute1DIndex(xslice - idx_local_start.x(), j + H.n_ghost, k + H.n_ghost, H.nx, H.ny);
-  #ifdef MHD
-        int id_xm1 =
-            cuda_utilities::compute1DIndex(xslice - idx_local_start.x() - 1, j + H.n_ghost, k + H.n_ghost, H.nx, H.ny);
-        int id_ym1 =
-            cuda_utilities::compute1DIndex(xslice - idx_local_start.x(), j + H.n_ghost - 1, k + H.n_ghost, H.nx, H.ny);
-        int id_zm1 =
-            cuda_utilities::compute1DIndex(xslice - idx_local_start.x(), j + H.n_ghost, k + H.n_ghost - 1, H.nx, H.ny);
-        dataset_buffer_magnetic_x[buf_id] = 0.5 * (C.magnetic_x[id] + C.magnetic_x[id_xm1]);
-        dataset_buffer_magnetic_y[buf_id] = 0.5 * (C.magnetic_y[id] + C.magnetic_y[id_ym1]);
-        dataset_buffer_magnetic_z[buf_id] = 0.5 * (C.magnetic_z[id] + C.magnetic_z[id_zm1]);
-  #endif  // MHD
   #ifdef SCALAR
         for (int ii = 0; ii < NSCALARS; ii++) {
           dataset_buffer_scalar[buf_id + ii * H.ny * H.nz] = C.scalar[id + ii * H.n_cells];
@@ -355,11 +318,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   #endif
       } else {
         // write zeros if slice doesn't intersect the current process's local domain
-  #ifdef MHD
-        dataset_buffer_magnetic_x[buf_id] = 0;
-        dataset_buffer_magnetic_y[buf_id] = 0;
-        dataset_buffer_magnetic_z[buf_id] = 0;
-  #endif  // MHD
   #ifdef SCALAR
         for (int ii = 0; ii < NSCALARS; ii++) {
           dataset_buffer_scalar[buf_id + ii * H.ny * H.nz] = 0;
@@ -370,11 +328,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   }
 
   // Write out the yz datasets for each variable
-  #ifdef MHD
-  status = Write_HDF5_Dataset(file_id, slice_props[2].dataspace_id, dataset_buffer_magnetic_x.data(), "/magnetic_x_yz");
-  status = Write_HDF5_Dataset(file_id, slice_props[2].dataspace_id, dataset_buffer_magnetic_y.data(), "/magnetic_y_yz");
-  status = Write_HDF5_Dataset(file_id, slice_props[2].dataspace_id, dataset_buffer_magnetic_z.data(), "/magnetic_z_yz");
-  #endif  // MHD
   #ifdef SCALAR
   // it turns out that due to an oversight, we *only* write the very first scalar
   status = Write_HDF5_Dataset(file_id, slice_props[2].dataspace_id, dataset_buffer_scalar, "/scalar_yz");
