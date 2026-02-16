@@ -12,6 +12,7 @@
 #include "../gravity/grav3D.h"
 #include "../io/FieldWriter.h"   // FieldWriter
 #include "../io/ParameterMap.h"  // define ParameterMap
+#include "../io/SliceWriter.h"   // SliceWriter
 #include "../io/io.h"
 
 io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const FieldInfo& field_info)
@@ -43,7 +44,7 @@ io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const 
 #endif /*ROTATED_PROJECTION*/
 
 #ifdef SLICES
-  packs_.push_back(io::detail::WriterPack{"slice", pmap.value_or("n_slice", 1), &Output_Slices});
+  packs_.push_back(io::detail::WriterPack{"slice", pmap.value_or("n_slice", 1), {io::SliceWriter(pmap, field_info)}});
 #endif /*SLICES*/
 
 #ifdef PARTICLES
