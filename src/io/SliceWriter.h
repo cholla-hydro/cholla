@@ -17,7 +17,8 @@ namespace io
 
 /*! \brief A callable object that writes slice data
  *
- *  Specifically, the object writes xy, xz, and yz slices of the grid data.
+ *  Specifically, the object writes xy, xz, and yz cell-cenetered slices of the grid
+ *  data.
  *
  *  For more context, a "callable" object is sometimes called a "functor." Essentially
  *  a "callable" object carries around state and can be called like a function.
