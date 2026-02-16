@@ -41,7 +41,10 @@ struct DatasetSpec {
   std::optional<WriteCond> mhd_condition;
 };
 
-/*! \brief A callable that writes general grid data
+/*! \brief A callable type that writes general grid data
+ *
+ *  For more context, a "callable" object is sometimes called a "functor." Essentially
+ *  a "callable" object carries around state and can be called like a function.
  */
 class FieldWriter
 {
@@ -51,7 +54,12 @@ class FieldWriter
   FieldWriter() = delete;
   FieldWriter(ParameterMap &pmap, const FieldInfo &field_info);
 
-  /*! A callable method that writes a rotated projection of the grid data to file.
+  /*! Writes the field data to disk.
+   *
+   *  \note
+   *  In case you are unaware, this overloads the "function call operator". If we have an
+   *  instance, `obj`, then you call this method by invoking `obj(G, P, nfile, fname_template)`.
+   *  In python, this method would be called `__call__`
    */
   void operator()(Grid3D &G, Parameters P, int nfile, const FnameTemplate &fname_template) const;
 };
