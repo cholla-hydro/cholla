@@ -51,7 +51,7 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   int xslice = H.nx / 2;
   int yslice = H.ny / 2;
   int zslice = H.nz / 2;
-  [[maybe_unused]] const hydro_utilities::VectorXYZ<ptrdiff_t> idx_local_start{0, 0, 0};
+  const hydro_utilities::VectorXYZ<ptrdiff_t> idx_local_start{0, 0, 0};
   #else  // defined(MPI_CHOLLA)
   int xslice = nx_global / 2;
   int yslice = ny_global / 2;
@@ -90,15 +90,8 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   // Copy the xy slices to the memory buffers
   for (j = 0; j < H.ny_real; j++) {
     for (i = 0; i < H.nx_real; i++) {
-      id     = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost, zslice, H.nx, H.ny);
       buf_id = j + i * H.ny_real;
-  #ifdef MHD
-      int id_xm1 = cuda_utilities::compute1DIndex(i + H.n_ghost - 1, j + H.n_ghost, zslice, H.nx, H.ny);
-      int id_ym1 = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost - 1, zslice, H.nx, H.ny);
-      int id_zm1 = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost, zslice - 1, H.nx, H.ny);
-  #endif  // MHD
-      // When there are multiple processes, check whether this slice is in
-      // your domain
+      // check whether the slice intersects the current process's local domain
       if (zslice >= idx_local_start.z() && zslice < idx_local_start.z() + nz_local) {
         id = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost, zslice - idx_local_start.z() + H.n_ghost,
                                             H.nx, H.ny);
@@ -128,9 +121,8 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
           dataset_buffer_scalar[buf_id + ii * H.nx * H.ny] = C.scalar[id + ii * H.n_cells];
         }
   #endif
-      }
-      // if the slice isn't in your domain, just write out zeros
-      else {
+      } else {
+        // write zeros if slice doesn't intersect the current process's local domain
         dataset_buffer_d[buf_id]  = 0;
         dataset_buffer_mx[buf_id] = 0;
         dataset_buffer_my[buf_id] = 0;
@@ -212,15 +204,8 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   // Copy the xz slices to the memory buffers
   for (k = 0; k < H.nz_real; k++) {
     for (i = 0; i < H.nx_real; i++) {
-      id     = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice, k + H.n_ghost, H.nx, H.ny);
       buf_id = k + i * H.nz_real;
-  #ifdef MHD
-      int id_xm1 = cuda_utilities::compute1DIndex(i + H.n_ghost - 1, yslice, k + H.n_ghost, H.nx, H.ny);
-      int id_ym1 = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - 1, k + H.n_ghost, H.nx, H.ny);
-      int id_zm1 = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice, k + H.n_ghost - 1, H.nx, H.ny);
-  #endif  // MHD
-      // When there are multiple processes, check whether this slice is in
-      // your domain
+      // check whether the slice intersects the current process's local domain
       if (yslice >= idx_local_start.y() && yslice < idx_local_start.y() + ny_local) {
         id = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - idx_local_start.y() + H.n_ghost, k + H.n_ghost,
                                             H.nx, H.ny);
@@ -250,9 +235,8 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
           dataset_buffer_scalar[buf_id + ii * H.nx * H.nz] = C.scalar[id + ii * H.n_cells];
         }
   #endif
-      }
-      // if the slice isn't in your domain, just write out zeros
-      else {
+      } else {
+        // write zeros if slice doesn't intersect the current process's local domain
         dataset_buffer_d[buf_id]  = 0;
         dataset_buffer_mx[buf_id] = 0;
         dataset_buffer_my[buf_id] = 0;
@@ -335,15 +319,8 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   // Copy the yz slices to the memory buffers
   for (k = 0; k < H.nz_real; k++) {
     for (j = 0; j < H.ny_real; j++) {
-      id     = cuda_utilities::compute1DIndex(xslice, j + H.n_ghost, k + H.n_ghost, H.nx, H.ny);
       buf_id = k + j * H.nz_real;
-  #ifdef MHD
-      int id_xm1 = cuda_utilities::compute1DIndex(xslice - 1, j + H.n_ghost, k + H.n_ghost, H.nx, H.ny);
-      int id_ym1 = cuda_utilities::compute1DIndex(xslice, j + H.n_ghost - 1, k + H.n_ghost, H.nx, H.ny);
-      int id_zm1 = cuda_utilities::compute1DIndex(xslice, j + H.n_ghost, k + H.n_ghost - 1, H.nx, H.ny);
-  #endif  // MHD
-      // When there are multiple processes, check whether this slice is in
-      // your domain
+      // check whether the slice intersects the current process's local domain
       if (xslice >= idx_local_start.x() && xslice < idx_local_start.x() + nx_local) {
         id = cuda_utilities::compute1DIndex(xslice - idx_local_start.x(), j + H.n_ghost, k + H.n_ghost, H.nx, H.ny);
   #ifdef MHD
@@ -372,9 +349,8 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
           dataset_buffer_scalar[buf_id + ii * H.ny * H.nz] = C.scalar[id + ii * H.n_cells];
         }
   #endif
-      }
-      // if the slice isn't in your domain, just write out zeros
-      else {
+      } else {
+        // write zeros if slice doesn't intersect the current process's local domain
         dataset_buffer_d[buf_id]  = 0;
         dataset_buffer_mx[buf_id] = 0;
         dataset_buffer_my[buf_id] = 0;
