@@ -97,7 +97,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
       int id_ym1 = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost - 1, zslice, H.nx, H.ny);
       int id_zm1 = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost, zslice - 1, H.nx, H.ny);
   #endif  // MHD
-  #ifdef MPI_CHOLLA
       // When there are multiple processes, check whether this slice is in
       // your domain
       if (zslice >= idx_local_start.z() && zslice < idx_local_start.z() + nz_local) {
@@ -111,7 +110,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
         int id_zm1 = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost,
                                                     zslice - idx_local_start.z() + H.n_ghost - 1, H.nx, H.ny);
     #endif  // MHD
-  #endif    // MPI_CHOLLA
         dataset_buffer_d[buf_id]  = C.density[id];
         dataset_buffer_mx[buf_id] = C.momentum_x[id];
         dataset_buffer_my[buf_id] = C.momentum_y[id];
@@ -130,7 +128,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
           dataset_buffer_scalar[buf_id + ii * H.nx * H.ny] = C.scalar[id + ii * H.n_cells];
         }
   #endif
-  #ifdef MPI_CHOLLA
       }
       // if the slice isn't in your domain, just write out zeros
       else {
@@ -153,7 +150,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
         }
     #endif
       }
-  #endif  // MPI_CHOLLA
     }
   }
 
@@ -223,7 +219,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
       int id_ym1 = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - 1, k + H.n_ghost, H.nx, H.ny);
       int id_zm1 = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice, k + H.n_ghost - 1, H.nx, H.ny);
   #endif  // MHD
-  #ifdef MPI_CHOLLA
       // When there are multiple processes, check whether this slice is in
       // your domain
       if (yslice >= idx_local_start.y() && yslice < idx_local_start.y() + ny_local) {
@@ -237,7 +232,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
         int id_zm1 = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - idx_local_start.y() + H.n_ghost,
                                                     k + H.n_ghost - 1, H.nx, H.ny);
     #endif  // MHD
-  #endif    // MPI_CHOLLA
         dataset_buffer_d[buf_id]  = C.density[id];
         dataset_buffer_mx[buf_id] = C.momentum_x[id];
         dataset_buffer_my[buf_id] = C.momentum_y[id];
@@ -256,7 +250,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
           dataset_buffer_scalar[buf_id + ii * H.nx * H.nz] = C.scalar[id + ii * H.n_cells];
         }
   #endif
-  #ifdef MPI_CHOLLA
       }
       // if the slice isn't in your domain, just write out zeros
       else {
@@ -279,7 +272,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
         }
     #endif
       }
-  #endif  // MPI_CHOLLA
     }
   }
 
@@ -350,7 +342,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
       int id_ym1 = cuda_utilities::compute1DIndex(xslice, j + H.n_ghost - 1, k + H.n_ghost, H.nx, H.ny);
       int id_zm1 = cuda_utilities::compute1DIndex(xslice, j + H.n_ghost, k + H.n_ghost - 1, H.nx, H.ny);
   #endif  // MHD
-  #ifdef MPI_CHOLLA
       // When there are multiple processes, check whether this slice is in
       // your domain
       if (xslice >= idx_local_start.x() && xslice < idx_local_start.x() + nx_local) {
@@ -363,7 +354,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
         int id_zm1 =
             cuda_utilities::compute1DIndex(xslice - idx_local_start.x(), j + H.n_ghost, k + H.n_ghost - 1, H.nx, H.ny);
     #endif  // MHD
-  #endif    // MPI_CHOLLA
         dataset_buffer_d[buf_id]  = C.density[id];
         dataset_buffer_mx[buf_id] = C.momentum_x[id];
         dataset_buffer_my[buf_id] = C.momentum_y[id];
@@ -382,7 +372,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
           dataset_buffer_scalar[buf_id + ii * H.ny * H.nz] = C.scalar[id + ii * H.n_cells];
         }
   #endif
-  #ifdef MPI_CHOLLA
       }
       // if the slice isn't in your domain, just write out zeros
       else {
@@ -405,7 +394,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
         }
     #endif
       }
-  #endif  // MPI_CHOLLA
     }
   }
 
