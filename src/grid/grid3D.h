@@ -704,6 +704,8 @@ class Grid3D
 
   void Zeldovich_Pancake(struct Parameters P);
 
+  void Adiabatic_Expansion(struct Parameters P);
+
   void Chemistry_Test(struct Parameters P);
 
 #ifdef MHD
