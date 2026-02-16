@@ -48,14 +48,10 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   herr_t status;
 
   #ifndef MPI_CHOLLA
-  int xslice = H.nx / 2;
-  int yslice = H.ny / 2;
-  int zslice = H.nz / 2;
+  const hydro_utilities::VectorXYZ<ptrdiff_t> global_slice_idx{H.nx / 2, H.ny / 2, H.nz / 2};
   const hydro_utilities::VectorXYZ<ptrdiff_t> idx_local_start{0, 0, 0};
   #else  // defined(MPI_CHOLLA)
-  int xslice = nx_global / 2;
-  int yslice = ny_global / 2;
-  int zslice = nz_global / 2;
+  const hydro_utilities::VectorXYZ<ptrdiff_t> global_slice_idx{nx_global / 2, ny_global / 2, nz_global / 2};
   const hydro_utilities::VectorXYZ<ptrdiff_t> idx_local_start{nx_local_start, ny_local_start, nz_local_start};
   #endif
 
@@ -90,7 +86,8 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   // Copy the xy slices to the memory buffers
   for (j = 0; j < H.ny_real; j++) {
     for (i = 0; i < H.nx_real; i++) {
-      buf_id = j + i * H.ny_real;
+      buf_id     = j + i * H.ny_real;
+      int zslice = global_slice_idx.z();
       // check whether the slice intersects the current process's local domain
       if (zslice >= idx_local_start.z() && zslice < idx_local_start.z() + nz_local) {
         id = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost, zslice - idx_local_start.z() + H.n_ghost,
@@ -204,7 +201,8 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   // Copy the xz slices to the memory buffers
   for (k = 0; k < H.nz_real; k++) {
     for (i = 0; i < H.nx_real; i++) {
-      buf_id = k + i * H.nz_real;
+      buf_id     = k + i * H.nz_real;
+      int yslice = global_slice_idx.y();
       // check whether the slice intersects the current process's local domain
       if (yslice >= idx_local_start.y() && yslice < idx_local_start.y() + ny_local) {
         id = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - idx_local_start.y() + H.n_ghost, k + H.n_ghost,
@@ -319,7 +317,8 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   // Copy the yz slices to the memory buffers
   for (k = 0; k < H.nz_real; k++) {
     for (j = 0; j < H.ny_real; j++) {
-      buf_id = k + j * H.nz_real;
+      buf_id     = k + j * H.nz_real;
+      int xslice = global_slice_idx.x();
       // check whether the slice intersects the current process's local domain
       if (xslice >= idx_local_start.x() && xslice < idx_local_start.x() + nx_local) {
         id = cuda_utilities::compute1DIndex(xslice - idx_local_start.x(), j + H.n_ghost, k + H.n_ghost, H.nx, H.ny);
