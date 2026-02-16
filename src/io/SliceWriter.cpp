@@ -20,6 +20,12 @@ namespace io
 
 SliceWriter::SliceWriter(ParameterMap &pmap, const FieldInfo &field_info) {}
 
+// this isn't very useful (yet)
+struct SliceProps {
+  const char *name_suffix;
+  hid_t dataspace_id;
+};
+
 #ifdef HDF5
 /*! Helper function that does most heavy lifting for writing HDF5 slices */
 static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
@@ -33,7 +39,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
 
   const Grid3D::Conserved &C = G.C;
   int i, j, k, id, buf_id;
-  hid_t dataset_id, dataspace_id;
   Real *dataset_buffer_d;
   Real *dataset_buffer_mx;
   Real *dataset_buffer_my;
@@ -55,15 +60,14 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   const hydro_utilities::VectorXYZ<ptrdiff_t> idx_local_start{nx_local_start, ny_local_start, nz_local_start};
   #endif
 
-  int nx_dset = H.nx_real;
-  int ny_dset = H.ny_real;
-  int nz_dset = H.nz_real;
-  hsize_t dims[2];
+  // Create the data spaces for the datasets
+  hsize_t dims_xy[2] = {static_cast<hsize_t>(H.nx_real), static_cast<hsize_t>(H.ny_real)};
+  hsize_t dims_xz[2] = {static_cast<hsize_t>(H.nx_real), static_cast<hsize_t>(H.nz_real)};
+  hsize_t dims_yz[2] = {static_cast<hsize_t>(H.ny_real), static_cast<hsize_t>(H.nz_real)};
 
-  // Create the xy data space for the datasets
-  dims[0]      = nx_dset;
-  dims[1]      = ny_dset;
-  dataspace_id = H5Screate_simple(2, dims, NULL);
+  SliceProps slice_props[3] = {{"xy", H5Screate_simple(2, dims_xy, nullptr)},
+                               {"xz", H5Screate_simple(2, dims_xz, nullptr)},
+                               {"yz", H5Screate_simple(2, dims_yz, nullptr)}};
 
   // Allocate memory for the xy slices
   dataset_buffer_d  = (Real *)malloc(H.nx_real * H.ny_real * sizeof(Real));
@@ -143,24 +147,23 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   }
 
   // Write out the xy datasets for each variable
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_d, "/d_xy");
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_mx, "/mx_xy");
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_my, "/my_xy");
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_mz, "/mz_xy");
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_E, "/E_xy");
+  status = Write_HDF5_Dataset(file_id, slice_props[0].dataspace_id, dataset_buffer_d, "/d_xy");
+  status = Write_HDF5_Dataset(file_id, slice_props[0].dataspace_id, dataset_buffer_mx, "/mx_xy");
+  status = Write_HDF5_Dataset(file_id, slice_props[0].dataspace_id, dataset_buffer_my, "/my_xy");
+  status = Write_HDF5_Dataset(file_id, slice_props[0].dataspace_id, dataset_buffer_mz, "/mz_xy");
+  status = Write_HDF5_Dataset(file_id, slice_props[0].dataspace_id, dataset_buffer_E, "/E_xy");
   #ifdef MHD
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_magnetic_x.data(), "/magnetic_x_xy");
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_magnetic_y.data(), "/magnetic_y_xy");
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_magnetic_z.data(), "/magnetic_z_xy");
+  status = Write_HDF5_Dataset(file_id, slice_props[0].dataspace_id, dataset_buffer_magnetic_x.data(), "/magnetic_x_xy");
+  status = Write_HDF5_Dataset(file_id, slice_props[0].dataspace_id, dataset_buffer_magnetic_y.data(), "/magnetic_y_xy");
+  status = Write_HDF5_Dataset(file_id, slice_props[0].dataspace_id, dataset_buffer_magnetic_z.data(), "/magnetic_z_xy");
   #endif  // MHD
   #ifdef DE
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_GE, "/GE_xy");
+  status = Write_HDF5_Dataset(file_id, slice_props[0].dataspace_id, dataset_buffer_GE, "/GE_xy");
   #endif
   #ifdef SCALAR
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_scalar, "/scalar_xy");
+  // it turns out that due to an oversight, we *only* write the very first scalar
+  status = Write_HDF5_Dataset(file_id, slice_props[0].dataspace_id, dataset_buffer_scalar, "/scalar_xy");
   #endif
-  // Free the dataspace id
-  status = H5Sclose(dataspace_id);
 
   // free the dataset buffers
   free(dataset_buffer_d);
@@ -174,11 +177,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   #ifdef SCALAR
   free(dataset_buffer_scalar);
   #endif
-
-  // Create the xz data space for the datasets
-  dims[0]      = nx_dset;
-  dims[1]      = nz_dset;
-  dataspace_id = H5Screate_simple(2, dims, NULL);
 
   // allocate the memory for the xz slices
   dataset_buffer_d  = (Real *)malloc(H.nx_real * H.nz_real * sizeof(Real));
@@ -258,25 +256,23 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   }
 
   // Write out the xz datasets for each variable
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_d, "/d_xz");
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_mx, "/mx_xz");
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_my, "/my_xz");
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_mz, "/mz_xz");
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_E, "/E_xz");
+  status = Write_HDF5_Dataset(file_id, slice_props[1].dataspace_id, dataset_buffer_d, "/d_xz");
+  status = Write_HDF5_Dataset(file_id, slice_props[1].dataspace_id, dataset_buffer_mx, "/mx_xz");
+  status = Write_HDF5_Dataset(file_id, slice_props[1].dataspace_id, dataset_buffer_my, "/my_xz");
+  status = Write_HDF5_Dataset(file_id, slice_props[1].dataspace_id, dataset_buffer_mz, "/mz_xz");
+  status = Write_HDF5_Dataset(file_id, slice_props[1].dataspace_id, dataset_buffer_E, "/E_xz");
   #ifdef MHD
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_magnetic_x.data(), "/magnetic_x_xz");
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_magnetic_y.data(), "/magnetic_y_xz");
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_magnetic_z.data(), "/magnetic_z_xz");
+  status = Write_HDF5_Dataset(file_id, slice_props[1].dataspace_id, dataset_buffer_magnetic_x.data(), "/magnetic_x_xz");
+  status = Write_HDF5_Dataset(file_id, slice_props[1].dataspace_id, dataset_buffer_magnetic_y.data(), "/magnetic_y_xz");
+  status = Write_HDF5_Dataset(file_id, slice_props[1].dataspace_id, dataset_buffer_magnetic_z.data(), "/magnetic_z_xz");
   #endif  // MHD
   #ifdef DE
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_GE, "/GE_xz");
+  status = Write_HDF5_Dataset(file_id, slice_props[1].dataspace_id, dataset_buffer_GE, "/GE_xz");
   #endif
   #ifdef SCALAR
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_scalar, "/scalar_xz");
+  // it turns out that due to an oversight, we *only* write the very first scalar
+  status = Write_HDF5_Dataset(file_id, slice_props[1].dataspace_id, dataset_buffer_scalar, "/scalar_xz");
   #endif
-
-  // Free the dataspace id
-  status = H5Sclose(dataspace_id);
 
   // free the dataset buffers
   free(dataset_buffer_d);
@@ -290,11 +286,6 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   #ifdef SCALAR
   free(dataset_buffer_scalar);
   #endif
-
-  // Create the yz data space for the datasets
-  dims[0]      = ny_dset;
-  dims[1]      = nz_dset;
-  dataspace_id = H5Screate_simple(2, dims, NULL);
 
   // allocate the memory for the yz slices
   dataset_buffer_d  = (Real *)malloc(H.ny_real * H.nz_real * sizeof(Real));
@@ -373,25 +364,23 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   }
 
   // Write out the yz datasets for each variable
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_d, "/d_yz");
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_mx, "/mx_yz");
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_my, "/my_yz");
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_mz, "/mz_yz");
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_E, "/E_yz");
+  status = Write_HDF5_Dataset(file_id, slice_props[2].dataspace_id, dataset_buffer_d, "/d_yz");
+  status = Write_HDF5_Dataset(file_id, slice_props[2].dataspace_id, dataset_buffer_mx, "/mx_yz");
+  status = Write_HDF5_Dataset(file_id, slice_props[2].dataspace_id, dataset_buffer_my, "/my_yz");
+  status = Write_HDF5_Dataset(file_id, slice_props[2].dataspace_id, dataset_buffer_mz, "/mz_yz");
+  status = Write_HDF5_Dataset(file_id, slice_props[2].dataspace_id, dataset_buffer_E, "/E_yz");
   #ifdef MHD
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_magnetic_x.data(), "/magnetic_x_yz");
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_magnetic_y.data(), "/magnetic_y_yz");
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_magnetic_z.data(), "/magnetic_z_yz");
+  status = Write_HDF5_Dataset(file_id, slice_props[2].dataspace_id, dataset_buffer_magnetic_x.data(), "/magnetic_x_yz");
+  status = Write_HDF5_Dataset(file_id, slice_props[2].dataspace_id, dataset_buffer_magnetic_y.data(), "/magnetic_y_yz");
+  status = Write_HDF5_Dataset(file_id, slice_props[2].dataspace_id, dataset_buffer_magnetic_z.data(), "/magnetic_z_yz");
   #endif  // MHD
   #ifdef DE
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_GE, "/GE_yz");
+  status = Write_HDF5_Dataset(file_id, slice_props[2].dataspace_id, dataset_buffer_GE, "/GE_yz");
   #endif
   #ifdef SCALAR
-  status = Write_HDF5_Dataset(file_id, dataspace_id, dataset_buffer_scalar, "/scalar_yz");
+  // it turns out that due to an oversight, we *only* write the very first scalar
+  status = Write_HDF5_Dataset(file_id, slice_props[2].dataspace_id, dataset_buffer_scalar, "/scalar_yz");
   #endif
-
-  // Free the dataspace id
-  status = H5Sclose(dataspace_id);
 
   // free the dataset buffers
   free(dataset_buffer_d);
@@ -405,6 +394,11 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   #ifdef SCALAR
   free(dataset_buffer_scalar);
   #endif
+
+  // free the dataspace ids
+  for (const SliceProps &slice_prop : slice_props) {
+    status = H5Sclose(slice_prop.dataspace_id);
+  }
 }
 #endif  // HDF5
 
