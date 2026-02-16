@@ -1,4 +1,5 @@
 from collections.abc import Mapping, Iterator, Sequence
+from collections import defaultdict
 from dataclasses import dataclass
 import os
 import typing
@@ -7,163 +8,45 @@ import weakref
 import h5py
 import numpy as np
 
+from ._misc import (
+    _DatasetDiskMapping,
+    _determine_data_layout,
+    _detect_particle_fields,
+    ParticleType,
+)
+
 _IDX3D_TYPE = typing.Any
 
+_FULL_REGION_SLICE_3D = tuple(slice(None) for _ in range(3))
 
-class _FieldIndexTemplate:
-    """Holds logic for adjusting a normal numpy index-tuples when accessing to
-    access the data associated with a particular blockid.
 
-    When field data is stored with the hierarchical schema, we need to sligtly adjust
-    the way that the data is stored. Under the flat schema, we won't make any change.
+def _format_field_idx(
+    blockid: int, idx_map: Mapping[int, tuple[int | slice, ...]], idx: _IDX3D_TYPE
+):
     """
+    This function combines both
+      1. `idx_map[block_id]`, which specifies the index selection to load
+          all field values for the specified block from an hdf5 dataset as a
+          3D array
+      2. `idx`, which specifies the index selection to access field values in
+          a region of interest from a 3D array (that initially holds all
+          field values)
 
-    def __init__(self, blockid_map: Mapping[int, int] | None = None):
-        # Only pass in blockid_map when using a hierarchical schema
-        self._blockid_map = blockid_map
-
-    def format_field_idx(self, blockid: int, idx: _IDX3D_TYPE | None = None):
-        if self._blockid_map is None:
-            # since data is encoded with classic "flat" schema, we don't adjust idx
-            return idx
-        else:
-            # slightly adjust the index tuple when using the "hierarchical" schema
-            assert len(idx) == 3
-            return (self._blockid_map[blockid], idx[0], idx[1], idx[2])
-
-
-@dataclass(kw_only=True, slots=True)
-class _BlockDiskMapping:
-    """Contains info for mapping blockids to locations in hdf5 files"""
-
-    # ``fname_template.format(blockid=...)`` produces the file containing
-    # blockid (this can properly handle cases where all blocks are stored in a
-    # single file)
-    fname_template: str
-    # group containing field data (empty string denotes the root group)
-    field_group: str
-    # template for adjusting field indices
-    field_idx_template: _FieldIndexTemplate
-
-
-def _infer_blockid_location_arr(fname_template, global_dims, arr_shape):
-    # used when hdf5 files don't have an explicit "domain" group
-    blockid_location_arr = np.empty(shape=tuple(int(e) for e in arr_shape), dtype="i8")
-    if blockid_location_arr.size == 1:
-        # primarily intended to handle the result of older concatenation scripts (it
-        # also handles the case when only a single block is used, which is okay)
-        blockid_location_arr[0, 0, 0] = 0
-    else:  # handle distributed cholla datasets
-        local_dims, rem = np.divmod(global_dims, blockid_location_arr.shape)
-        assert np.all(rem == 0) and np.all(local_dims > 0)
-        for blockid in range(0, blockid_location_arr.size):
-            with h5py.File(fname_template.format(blockid=blockid), "r") as f:
-                tmp, rem = np.divmod(f.attrs["offset"][:], local_dims)
-            assert np.all(rem == 0)  # sanity check
-            idx3D = tuple(int(e) for e in tmp)
-            blockid_location_arr[idx3D] = blockid
-    return blockid_location_arr
-
-
-def _determine_data_layout(f: h5py.File) -> tuple[np.ndarray, _BlockDiskMapping]:
-    """Determine the data layout of the snapshot
-
-    The premise is that the basic different data formats shouldn't
-    matter outside of this function.
-
-    Note
-    ----
-    In principle, we could make stronger inferences about the ways that Cholla's
-    output format is organized, when using distributed output files.
+    The returned index tuple can be used to directly load values in the region
+    of interest from the hdf5 dataset
     """
-    filename = f.filename
-
-    # STEP 1: infer the template for all Cholla data-files by inspecting fname
-    # ========================================================================
-    # There are 2 conventions for the names of Cholla's data-files:
-    #  1. "root.h5.{blockid}" is the standard format Cholla uses when writing
-    #     files storing a single snapshot. Each MPI-rank will write a separate
-    #     file & replace ``{blockid}`` with MPI-rank (Modern Cholla versions
-    #     without MPI replace ``{blockid}`` with ``0``)
-    #  2. "root.h5": is the standard format used by Cholla's concatenation
-    #     scripts (older versions of Cholla without MPI also used this format
-    #     to name outputs)
-    _dir, _base = os.path.split(filename)
-    _sep_i = _base.rfind(".")
-    no_suffix = (_sep_i == -1) or (_base[_sep_i:] == "") or (_base[:_sep_i] == "")
-    if no_suffix or not _base[_sep_i + 1 :].isdecimal():
-        # filename doesn't change based on blockid
-        inferred_fname_template = filename
-        cur_filename_suffix = None
+    full_block_idx = idx_map[blockid]
+    ndim_full_block_idx = len(full_block_idx)
+    if full_block_idx == _FULL_REGION_SLICE_3D:
+        return idx
+    elif (ndim_full_block_idx == 4) and full_block_idx[1:] == _FULL_REGION_SLICE_3D:
+        return (full_block_idx[0], idx[0], idx[1], idx[2])
+    elif (ndim_full_block_idx == 3) or (ndim_full_block_idx == 4):
+        # this shouldn't happen with the current file organization schemes, but we
+        # could try supporting this case
+        raise NotImplementedError("can't handle this case (yet)")
     else:
-        inferred_fname_template = os.path.join(_dir, _base[:_sep_i]) + ".{blockid}"
-        cur_filename_suffix = int(_base[_sep_i + 1 :])
-
-    # STEP 2: Check whether the hdf5 file has a flat structure
-    # ========================================================
-    # Historically, we would always store datasets directly in the root group
-    # of the data file. More recent concatenation scripts store no data in
-    # groups.
-    flat_structure = any(not isinstance(elem, h5py.Group) for elem in f.values())
-
-    # STEP 3: Extract basic domain info information from the file(s)
-    # ==============================================================
-    has_explicit_domain_info = "domain" in f
-    if has_explicit_domain_info:
-        # this branch primarily handles concatenated files made with newer logic
-        blockid_location_arr = f["domain/blockid_location_arr"][...]
-        _blockid_map = {
-            blockid: i for i, blockid in enumerate(f["domain/stored_blockid_list"][...])
-        }
-        field_idx_template = _FieldIndexTemplate(blockid_map=_blockid_map)
-        consolidated_data = len(_blockid_map) == blockid_location_arr.size
-        if not consolidated_data:
-            # in the near future, we will support one of the 2 cases:
-            # > if (flat_structure):
-            # >     field_idx_template = _FieldIndexTemplate(blockid_map = None)
-            # > else:
-            # >     _blockid_map = defaultdict(lambda arg=0: arg)
-            # >     field_idx_template = _FieldIndexTemplate(blockid_map = _blockid_map)
-            raise ValueError(
-                "no support for reading Cholla datasets where data is "
-                "distributed among files that explicitly encode domain info."
-            )
-    else:  # (not has_explicit_domain_info)
-        # this branch covers distributed datasets (directly written by Cholla)
-        # and older concatenated files.
-        #
-        # historically, when the dataset is concatenated (in post-processing),
-        # the "nprocs" hdf5 attribute has been dropped
-        blockid_location_arr = _infer_blockid_location_arr(
-            fname_template=inferred_fname_template,
-            global_dims=f.attrs["dims"].astype("=i8"),
-            arr_shape=f.attrs.get("nprocs", np.array([1, 1, 1])).astype("=i8"),
-        )
-        consolidated_data = blockid_location_arr.size == 1
-
-        def _get_common_idx():
-            return (slice(None), slice(None), slice(None))
-
-        field_idx_template = _FieldIndexTemplate(blockid_map=None)
-
-    # STEP 4: Finalize the fname template
-    # ===================================
-    if consolidated_data:
-        fname_template = filename
-    elif cur_filename_suffix != 0:
-        raise ValueError(  # mostly just a sanity check!
-            "filename passed to the load function for a distributed cholla "
-            "dataset must end in '.0'"
-        )
-    else:
-        fname_template = inferred_fname_template
-
-    mapping = _BlockDiskMapping(
-        fname_template=fname_template,
-        field_group="" if flat_structure else "field",
-        field_idx_template=field_idx_template,
-    )
-    return blockid_location_arr, mapping
+        raise RuntimeError("there's probably a bug")
 
 
 @dataclass(kw_only=True, slots=True)
@@ -352,11 +235,11 @@ class _GlobalIdx3DSelection:
         return tuple(load_idx), tuple(out_idx)
 
 
-class _FieldLoader:
+class _DataLoader:
     """Helper type that actually loads chunks of data."""
 
     blockid_location_arr: np.ndarray
-    mapper: _BlockDiskMapping
+    mapper: _DatasetDiskMapping
     global_dims: list[int, int, int]
     _cur_fname: str | None  # the currently open filename
     # _h5_cache is a list with 0 or 1 elements (it helps with _finalizer)
@@ -364,7 +247,12 @@ class _FieldLoader:
     # weakref.finalize performs cleanup (more reliably than __del__)
     _finalizer: weakref.finalize
 
-    def __init__(self, blockid_location_arr, mapper, global_dims):
+    def __init__(
+        self,
+        blockid_location_arr: np.ndarray,
+        mapper: _DatasetDiskMapping,
+        global_dims: list[int, int, int],
+    ):
         def _callback(thing_sequence):  # closes all things in thing_sequence
             for thing in thing_sequence:
                 thing.close()
@@ -403,7 +291,7 @@ class _FieldLoader:
         ----------
         field_names
             The names of the fields that will be loaded
-        slice_triple
+        idx_selector
             Represents information about the regions that we want to select.
 
         Yields
@@ -428,9 +316,9 @@ class _FieldLoader:
 
         for location_idx, blockid in itr:
             # get the hdf5 group and index selection corresponding to blockid
-            fname = self.mapper.fname_template.format(blockid=blockid)
+            fname = self.mapper.field_mapping.fname_template.format(blockid=blockid)
             f = self._load_file(fname=fname)
-            grp = f if self.mapper.field_group == "" else f[self.mapper.field_group]
+            grp = f[self.mapper.field_mapping.h5_group_map["field"]]
 
             # determine the global indices that the chunk corresponds to
             tmp = []
@@ -444,13 +332,106 @@ class _FieldLoader:
             if load_idx is None:
                 continue
             else:
-                dataset_idx = self.mapper.field_idx_template.format_field_idx(
-                    blockid, load_idx
+                dataset_idx = _format_field_idx(
+                    blockid, self.mapper.field_mapping.idx_map, load_idx
                 )
                 # iterate over the specified field names
                 for field_name in field_names:
                     chunk = grp[field_name][dataset_idx].astype("f8")
                     yield out_idx, field_name, chunk
+
+    def get_particle_counts(
+        self, block_slice_triple: tuple[slice, slice, slice]
+    ) -> dict[ParticleType, int]:
+        mapper = self.mapper.particle_mapping
+        if mapper is None:
+            return {}
+
+        # going to need to change this once we have multiple particle types
+        assert len(self.mapper.particle_types) == 1
+
+        fname_template = mapper.fname_template
+        concatenated = fname_template.format(blockid=0) == fname_template
+        itr = self.blockid_location_arr[block_slice_triple].flat
+
+        if concatenated:
+            counter = 0
+            for blockid in itr:
+                idx = mapper.idx_map[blockid]
+                assert len(idx) == 1  # sanity check!
+                slc = idx[0]
+                assert (
+                    (slc.start >= 0)
+                    and (slc.stop >= 0)
+                    and (slc.step is None or slc.step == 1)
+                )  # another sanity check!
+                counter += slc.stop - slc.start
+        else:
+            counter = 0
+            for blockid in itr:
+                # get the hdf5 group and index selection corresponding to blockid
+                fname = mapper.fname_template.format(blockid=blockid)
+                f = self._load_file(fname=fname)
+                counter += f.attrs["n_particles_local"][0]
+        return {self.mapper.particle_types[0]: int(counter)}
+
+    def it_chunk_particle(
+        self,
+        ptype_prop_map: Mapping[ParticleType, Sequence[str]],
+        block_slice_triple: tuple[slice, slice, slice],
+    ) -> Iterator[tuple[slice, tuple[ParticleType, str], np.ndarray]]:
+        """
+        Returns an iterator that iterates over chunks of particle properties
+
+        Parameters
+        ----------
+        ptype_prop_map
+            Maps ptypes to the sequence of properties that we want to probe
+        block_slice_triple
+            slices the 3d regular array of blocks
+
+        Yields
+        ------
+        out_idx: slice
+            Specifies the set of indices of the concatenated output array that the
+            yielded chunk corresponds to.
+        tuple[str,str]
+            Specifies (particle-type, property)
+        chunk: np.ndarray
+            The actual chunk of data
+        """
+
+        itr = self.blockid_location_arr[block_slice_triple].flat
+
+        for ptype in ptype_prop_map:
+            if ptype not in self.mapper.particle_types:
+                raise ValueError(f"{ptype} is not a known particle type")
+
+        n_loaded = {ptype: 0 for ptype in ptype_prop_map}
+        mapper = self.mapper.particle_mapping
+        for blockid in itr:
+            # get the hdf5 group and index selection corresponding to blockid
+            fname = mapper.fname_template.format(blockid=blockid)
+            f = self._load_file(fname=fname)
+
+            # get the indices in a generic dataset that correspond to blockid
+            # (in the future, the indices probably need to be specific to both
+            # the blockid and the particle-type)
+            idx = mapper.idx_map[blockid]
+
+            for ptype, props in ptype_prop_map.items():
+                grp = f[self.mapper.particle_mapping.h5_group_map[ptype]]
+                out_slc = None
+                for prop in props:
+                    data = grp[prop][idx]
+                    if out_slc is None:
+                        out_slc = slice(n_loaded[ptype], n_loaded[ptype] + data.size)
+                    yield out_slc, (ptype, prop), data
+                if out_slc is not None:
+                    n_loaded[ptype] = out_slc.stop
+
+    def get_particle_count(particle_type, block_slice_triple):
+        pass
 
 
 @typing.overload
@@ -478,6 +459,12 @@ def load_field(snap, /, field, *, idx=None):
         Optionally specifies a tuple of 3 `slice` instances that specify the
         subset of indices to load from disk. The easiest way to specify this
         is by using numpy.s_[...]
+
+    Returns
+    -------
+    np.ndarray or dict[str, np.ndarray]
+        A single array of field data, or a dictionary of field data (depending
+        on whether the field is a single string or a sequence).
     """
     with h5py.File(snap, "r") as f:
         blockid_location_arr, mapper = _determine_data_layout(f)
@@ -496,8 +483,8 @@ def load_field(snap, /, field, *, idx=None):
     field_dict = {f: np.empty(shape=nominal_shape, dtype="f8") for f in field_seq}
 
     # fill the output buffers
-    with _FieldLoader(blockid_location_arr, mapper, full_dims) as field_loader:
-        itr = field_loader.it_chunks(field_seq, selector)
+    with _DataLoader(blockid_location_arr, mapper, full_dims) as data_loader:
+        itr = data_loader.it_chunks(field_seq, selector)
         for out_idx, field_name, chunk in itr:
             field_dict[field_name][out_idx] = chunk
 
@@ -516,8 +503,134 @@ def get_native_fields(snap: os.PathLike) -> Sequence[str]:
     # this could be significantly more efficient
     with h5py.File(snap, "r") as f:
         _, mapper = _determine_data_layout(f)
-        grp = f if mapper.field_group == "" else f[mapper.field_group]
+        grp = f[mapper.field_mapping.h5_group_map["field"]]
         return tuple(grp.keys())
+
+
+def _coerce_block_idx(
+    block_idx: Sequence[int | slice] | None, n_sim_dims: int
+) -> tuple[slice, ...]:
+    if block_idx is None:
+        return tuple(slice(None) for _ in range(n_sim_dims))
+
+    try:
+        len_block_idx = len(block_idx)
+    except TypeError:
+        raise TypeError("block_idx must be coercible to a tuple") from None
+
+    if len_block_idx != n_sim_dims:
+        raise ValueError(
+            "when specified, block_idx must be a tuple with the same number "
+            "of elements as the simulation has dimensions"
+        )
+    elif any(not isinstance(e, int | slice) for e in block_idx):
+        raise TypeError("all elements of block_idx must ints or slices")
+
+    def _to_slc(arg):
+        return slice(-1, None) if arg == -1 else slice(arg, arg + 1)
+
+    return tuple(e if isinstance(e, slice) else _to_slc(e) for e in block_idx)
+
+
+@typing.overload
+def load_particle(
+    snap: os.PathLike,
+    /,
+    ptype_prop_pair: tuple[[ParticleType, str]],
+    *,
+    block_idx: Sequence[int | slice] | None,
+) -> np.ndarray: ...
+
+
+@typing.overload
+def load_particle(
+    snap: os.PathLike,
+    /,
+    ptype_prop_pair: tuple[ParticleType, str],
+    *,
+    block_idx: Sequence[int | slice] | None,
+) -> dict[tuple[ParticleType, str], np.ndarray]: ...
+
+
+def load_particle(snap, /, ptype_prop_pair, *, block_idx=None):
+    """Loads in 1 or more fields for a snapshot
+
+    Parameters
+    ----------
+    snap
+        Path to the snapshot
+    ptype_prop_pair
+        A single `(<particle-type>, <particle-property>)` pair or a sequence of pairs.
+    block_idx
+        Optionally specifies a tuple of 3 `slice` instances that specify the
+        subset of blocks to load from disk. The easiest way to specify this
+        is by using numpy.s_[...].
+
+    Returns
+    -------
+    np.ndarray or dict[tuple[str, str], np.ndarray]
+        A single 1D array of particle properties, or a dictionary of particle
+        properties (depending on whether `ptype_prop_pair` is a single pair, or a
+        sequence).
+    """
+    with h5py.File(snap, "r") as f:
+        blockid_location_arr, mapper = _determine_data_layout(f)
+        full_dims = tuple(int(e) for e in f.attrs["dims"][:].astype("=i8"))
+
+    # construct ptype_prop_map
+    if (
+        isinstance(ptype_prop_pair, tuple)
+        and (len(ptype_prop_pair) == 2)
+        and isinstance(ptype_prop_pair[0], str)
+        and isinstance(ptype_prop_pair[1], str)
+    ):
+        return_dict = False
+        ptype_prop_map = {ptype_prop_pair[0]: [ptype_prop_pair[1]]}
+    else:
+        return_dict = True
+        ptype_prop_map = defaultdict(list)
+        for ptype, prop in ptype_prop_pair:
+            ptype_prop_map[ptype].append(prop)
+
+    # coerce the block_idx argument
+    block_idx = _coerce_block_idx(block_idx, len(full_dims))
+
+    with _DataLoader(blockid_location_arr, mapper, full_dims) as data_loader:
+        # get the total number of particles that we will read
+        particle_counts = data_loader.get_particle_counts(block_idx)
+
+        # (this is a much sillier way of getting particle_counts from before)
+        # _simpler_map = {ptype: props[:1] for ptype, props in ptype_prop_map.items()}
+        # alt_particle_counts = {ptype: 0 for ptype in ptype_prop_map}
+        # itr = data_loader.it_chunk_particle(_simpler_map, block_idx)
+        # for out_idx, ptype_prop_pair, chunk in itr:
+        #     alt_particle_counts[ptype_prop_pair[0]] = out_idx.stop
+        # assert alt_particle_counts == particle_counts
+
+        itr = data_loader.it_chunk_particle(ptype_prop_map, block_idx)
+        particle_data = {}
+        for out_idx, ptype_prop_pair, chunk in itr:
+            # allocated the buffer the first time we encounter a ptype_prop_pair. We
+            # wait to allocate since properties (namely particle_IDs) may not be floats
+            if ptype_prop_pair not in particle_data:
+                shape = (particle_counts[ptype_prop_pair[0]],)
+                particle_data[ptype_prop_pair] = np.empty(shape, dtype=chunk.dtype)
+            particle_data[ptype_prop_pair][out_idx] = chunk
+
+    if return_dict:
+        return particle_data
+    return next(iter(particle_data.values()))
+
+
+def get_native_ptype_properties(snap: os.PathLike) -> Sequence[[ParticleType, str]]:
+    """
+    Returns the 2-tuples of (ptype, property) for each property that of
+    each particle-type that was saved to disk.
+    """
+    # this could be significantly more efficient
+    with h5py.File(snap, "r") as f:
+        _, mapper = _determine_data_layout(f)
+        return _detect_particle_fields(mapper)
 
 
 def get_native_root_attributes(snap: os.PathLike) -> dict:
