@@ -1,3 +1,7 @@
+/*! \file
+ *  \brief Implements logic pertaining to reading and writing data.
+ */
+
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -113,6 +117,11 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
   G.Change_Cosmological_Frame_System(false);
 #endif
 
+  // this method call does most of the heavy lifting
+  // -> recall that the writer manager was initialized at startup to manage a variable
+  //    number of output types (e.g. field-dumps, particle-dumps, slices, etc.)
+  // -> in this method call, the writer manager writes zero to all of the registered
+  //    output types based on the value of nfile.
   write_manager.Apply_Writers(G, P, nfile);
 
 #ifdef COSMOLOGY

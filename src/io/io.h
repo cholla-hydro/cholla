@@ -1,3 +1,7 @@
+/*! \file
+ *  \brief Declares logic pertaining to reading and writing data.
+ */
+
 #pragma once
 
 #include <iomanip>
@@ -23,7 +27,13 @@ static inline bool Is_Root_Proc()
 /* Compute stats for a grid. */
 void Print_Stats(Grid3D& G);
 
-/* Write the data */
+/*! Write all data files
+ *
+ *  \param G the grid object
+ *  \param P the parameter struct
+ *  \param nfile the index corresponding to the current output
+ *  \param writer_manager Manages the data writers.
+ */
 void Write_Data(Grid3D& G, struct Parameters P, int nfile, const io::WriterManager& write_manager);
 
 /* Output the grid data to file. */
