@@ -7,8 +7,11 @@
 
 #include <hdf5.h>
 
+#include <cstddef>  // ptrdiff_t
+
 #include "../io/FnameTemplate.h"
 #include "../io/io.h"
+#include "../utils/basic_structs.h"
 #include "../utils/cuda_utilities.h"
 #include "../utils/error_handling.h"
 
@@ -43,14 +46,17 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   Real *dataset_buffer_scalar;
   #endif
   herr_t status;
-  int xslice, yslice, zslice;
-  xslice = H.nx / 2;
-  yslice = H.ny / 2;
-  zslice = H.nz / 2;
-  #ifdef MPI_CHOLLA
-  xslice = nx_global / 2;
-  yslice = ny_global / 2;
-  zslice = nz_global / 2;
+
+  #ifndef MPI_CHOLLA
+  int xslice = H.nx / 2;
+  int yslice = H.ny / 2;
+  int zslice = H.nz / 2;
+  [[maybe_unused]] const hydro_utilities::VectorXYZ<ptrdiff_t> idx_local_start{0, 0, 0};
+  #else  // defined(MPI_CHOLLA)
+  int xslice = nx_global / 2;
+  int yslice = ny_global / 2;
+  int zslice = nz_global / 2;
+  const hydro_utilities::VectorXYZ<ptrdiff_t> idx_local_start{nx_local_start, ny_local_start, nz_local_start};
   #endif
 
   int nx_dset = H.nx_real;
@@ -94,16 +100,16 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   #ifdef MPI_CHOLLA
       // When there are multiple processes, check whether this slice is in
       // your domain
-      if (zslice >= nz_local_start && zslice < nz_local_start + nz_local) {
-        id = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost, zslice - nz_local_start + H.n_ghost, H.nx,
-                                            H.ny);
+      if (zslice >= idx_local_start.z() && zslice < idx_local_start.z() + nz_local) {
+        id = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost, zslice - idx_local_start.z() + H.n_ghost,
+                                            H.nx, H.ny);
     #ifdef MHD
         int id_xm1 = cuda_utilities::compute1DIndex(i + H.n_ghost - 1, j + H.n_ghost,
-                                                    zslice - nz_local_start + H.n_ghost, H.nx, H.ny);
+                                                    zslice - idx_local_start.z() + H.n_ghost, H.nx, H.ny);
         int id_ym1 = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost - 1,
-                                                    zslice - nz_local_start + H.n_ghost, H.nx, H.ny);
+                                                    zslice - idx_local_start.z() + H.n_ghost, H.nx, H.ny);
         int id_zm1 = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost,
-                                                    zslice - nz_local_start + H.n_ghost - 1, H.nx, H.ny);
+                                                    zslice - idx_local_start.z() + H.n_ghost - 1, H.nx, H.ny);
     #endif  // MHD
   #endif    // MPI_CHOLLA
         dataset_buffer_d[buf_id]  = C.density[id];
@@ -220,15 +226,15 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   #ifdef MPI_CHOLLA
       // When there are multiple processes, check whether this slice is in
       // your domain
-      if (yslice >= ny_local_start && yslice < ny_local_start + ny_local) {
-        id = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - ny_local_start + H.n_ghost, k + H.n_ghost, H.nx,
-                                            H.ny);
+      if (yslice >= idx_local_start.y() && yslice < idx_local_start.y() + ny_local) {
+        id = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - idx_local_start.y() + H.n_ghost, k + H.n_ghost,
+                                            H.nx, H.ny);
     #ifdef MHD
-        int id_xm1 = cuda_utilities::compute1DIndex(i + H.n_ghost - 1, yslice - ny_local_start + H.n_ghost,
+        int id_xm1 = cuda_utilities::compute1DIndex(i + H.n_ghost - 1, yslice - idx_local_start.y() + H.n_ghost,
                                                     k + H.n_ghost, H.nx, H.ny);
-        int id_ym1 = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - ny_local_start + H.n_ghost - 1,
+        int id_ym1 = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - idx_local_start.y() + H.n_ghost - 1,
                                                     k + H.n_ghost, H.nx, H.ny);
-        int id_zm1 = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - ny_local_start + H.n_ghost,
+        int id_zm1 = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - idx_local_start.y() + H.n_ghost,
                                                     k + H.n_ghost - 1, H.nx, H.ny);
     #endif  // MHD
   #endif    // MPI_CHOLLA
@@ -347,15 +353,15 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
   #ifdef MPI_CHOLLA
       // When there are multiple processes, check whether this slice is in
       // your domain
-      if (xslice >= nx_local_start && xslice < nx_local_start + nx_local) {
-        id = cuda_utilities::compute1DIndex(xslice - nx_local_start, j + H.n_ghost, k + H.n_ghost, H.nx, H.ny);
+      if (xslice >= idx_local_start.x() && xslice < idx_local_start.x() + nx_local) {
+        id = cuda_utilities::compute1DIndex(xslice - idx_local_start.x(), j + H.n_ghost, k + H.n_ghost, H.nx, H.ny);
     #ifdef MHD
         int id_xm1 =
-            cuda_utilities::compute1DIndex(xslice - nx_local_start - 1, j + H.n_ghost, k + H.n_ghost, H.nx, H.ny);
+            cuda_utilities::compute1DIndex(xslice - idx_local_start.x() - 1, j + H.n_ghost, k + H.n_ghost, H.nx, H.ny);
         int id_ym1 =
-            cuda_utilities::compute1DIndex(xslice - nx_local_start, j + H.n_ghost - 1, k + H.n_ghost, H.nx, H.ny);
+            cuda_utilities::compute1DIndex(xslice - idx_local_start.x(), j + H.n_ghost - 1, k + H.n_ghost, H.nx, H.ny);
         int id_zm1 =
-            cuda_utilities::compute1DIndex(xslice - nx_local_start, j + H.n_ghost, k + H.n_ghost - 1, H.nx, H.ny);
+            cuda_utilities::compute1DIndex(xslice - idx_local_start.x(), j + H.n_ghost, k + H.n_ghost - 1, H.nx, H.ny);
     #endif  // MHD
   #endif    // MPI_CHOLLA
         dataset_buffer_d[buf_id]  = C.density[id];
