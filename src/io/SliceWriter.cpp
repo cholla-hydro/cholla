@@ -102,14 +102,14 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
       if (zslice >= idx_local_start.z() && zslice < idx_local_start.z() + nz_local) {
         id = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost, zslice - idx_local_start.z() + H.n_ghost,
                                             H.nx, H.ny);
-    #ifdef MHD
+  #ifdef MHD
         int id_xm1 = cuda_utilities::compute1DIndex(i + H.n_ghost - 1, j + H.n_ghost,
                                                     zslice - idx_local_start.z() + H.n_ghost, H.nx, H.ny);
         int id_ym1 = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost - 1,
                                                     zslice - idx_local_start.z() + H.n_ghost, H.nx, H.ny);
         int id_zm1 = cuda_utilities::compute1DIndex(i + H.n_ghost, j + H.n_ghost,
                                                     zslice - idx_local_start.z() + H.n_ghost - 1, H.nx, H.ny);
-    #endif  // MHD
+  #endif  // MHD
         dataset_buffer_d[buf_id]  = C.density[id];
         dataset_buffer_mx[buf_id] = C.momentum_x[id];
         dataset_buffer_my[buf_id] = C.momentum_y[id];
@@ -136,19 +136,19 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
         dataset_buffer_my[buf_id] = 0;
         dataset_buffer_mz[buf_id] = 0;
         dataset_buffer_E[buf_id]  = 0;
-    #ifdef MHD
+  #ifdef MHD
         dataset_buffer_magnetic_x[buf_id] = 0;
         dataset_buffer_magnetic_y[buf_id] = 0;
         dataset_buffer_magnetic_z[buf_id] = 0;
-    #endif  // MHD
-    #ifdef DE
+  #endif  // MHD
+  #ifdef DE
         dataset_buffer_GE[buf_id] = 0;
-    #endif
-    #ifdef SCALAR
+  #endif
+  #ifdef SCALAR
         for (int ii = 0; ii < NSCALARS; ii++) {
           dataset_buffer_scalar[buf_id + ii * H.nx * H.ny] = 0;
         }
-    #endif
+  #endif
       }
     }
   }
@@ -224,14 +224,14 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
       if (yslice >= idx_local_start.y() && yslice < idx_local_start.y() + ny_local) {
         id = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - idx_local_start.y() + H.n_ghost, k + H.n_ghost,
                                             H.nx, H.ny);
-    #ifdef MHD
+  #ifdef MHD
         int id_xm1 = cuda_utilities::compute1DIndex(i + H.n_ghost - 1, yslice - idx_local_start.y() + H.n_ghost,
                                                     k + H.n_ghost, H.nx, H.ny);
         int id_ym1 = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - idx_local_start.y() + H.n_ghost - 1,
                                                     k + H.n_ghost, H.nx, H.ny);
         int id_zm1 = cuda_utilities::compute1DIndex(i + H.n_ghost, yslice - idx_local_start.y() + H.n_ghost,
                                                     k + H.n_ghost - 1, H.nx, H.ny);
-    #endif  // MHD
+  #endif  // MHD
         dataset_buffer_d[buf_id]  = C.density[id];
         dataset_buffer_mx[buf_id] = C.momentum_x[id];
         dataset_buffer_my[buf_id] = C.momentum_y[id];
@@ -258,19 +258,19 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
         dataset_buffer_my[buf_id] = 0;
         dataset_buffer_mz[buf_id] = 0;
         dataset_buffer_E[buf_id]  = 0;
-    #ifdef MHD
+  #ifdef MHD
         dataset_buffer_magnetic_x[buf_id] = 0;
         dataset_buffer_magnetic_y[buf_id] = 0;
         dataset_buffer_magnetic_z[buf_id] = 0;
-    #endif  // MHD
-    #ifdef DE
+  #endif  // MHD
+  #ifdef DE
         dataset_buffer_GE[buf_id] = 0;
-    #endif
-    #ifdef SCALAR
+  #endif
+  #ifdef SCALAR
         for (int ii = 0; ii < NSCALARS; ii++) {
           dataset_buffer_scalar[buf_id + ii * H.nx * H.nz] = 0;
         }
-    #endif
+  #endif
       }
     }
   }
@@ -346,14 +346,14 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
       // your domain
       if (xslice >= idx_local_start.x() && xslice < idx_local_start.x() + nx_local) {
         id = cuda_utilities::compute1DIndex(xslice - idx_local_start.x(), j + H.n_ghost, k + H.n_ghost, H.nx, H.ny);
-    #ifdef MHD
+  #ifdef MHD
         int id_xm1 =
             cuda_utilities::compute1DIndex(xslice - idx_local_start.x() - 1, j + H.n_ghost, k + H.n_ghost, H.nx, H.ny);
         int id_ym1 =
             cuda_utilities::compute1DIndex(xslice - idx_local_start.x(), j + H.n_ghost - 1, k + H.n_ghost, H.nx, H.ny);
         int id_zm1 =
             cuda_utilities::compute1DIndex(xslice - idx_local_start.x(), j + H.n_ghost, k + H.n_ghost - 1, H.nx, H.ny);
-    #endif  // MHD
+  #endif  // MHD
         dataset_buffer_d[buf_id]  = C.density[id];
         dataset_buffer_mx[buf_id] = C.momentum_x[id];
         dataset_buffer_my[buf_id] = C.momentum_y[id];
@@ -380,19 +380,19 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id)
         dataset_buffer_my[buf_id] = 0;
         dataset_buffer_mz[buf_id] = 0;
         dataset_buffer_E[buf_id]  = 0;
-    #ifdef MHD
+  #ifdef MHD
         dataset_buffer_magnetic_x[buf_id] = 0;
         dataset_buffer_magnetic_y[buf_id] = 0;
         dataset_buffer_magnetic_z[buf_id] = 0;
-    #endif  // MHD
-    #ifdef DE
+  #endif  // MHD
+  #ifdef DE
         dataset_buffer_GE[buf_id] = 0;
-    #endif
-    #ifdef SCALAR
+  #endif
+  #ifdef SCALAR
         for (int ii = 0; ii < NSCALARS; ii++) {
           dataset_buffer_scalar[buf_id + ii * H.ny * H.nz] = 0;
         }
-    #endif
+  #endif
       }
     }
   }
