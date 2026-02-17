@@ -101,123 +101,42 @@ static void Write_Grid_Text_(FILE* fp, const Grid3D& G)
   const Grid3D::Conserved& C = G.C;
 
   // Write the conserved quantities to the output file
+  bool is_1D = (H.nx > 1 && H.ny == 1 && H.nz == 1);
 
-  // 1D case
-  if (H.nx > 1 && H.ny == 1 && H.nz == 1) {
-    fprintf(fp, "id\trho\tmx\tmy\tmz\tE");
-#ifdef MHD
-    fprintf(fp, "\tmagX\tmagY\tmagZ");
-#endif  // MHD
-#ifdef DE
-    fprintf(fp, "\tge");
-#endif
-    fprintf(fp, "\n");
-    for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
-      id = i;
-      fprintf(fp, "%d\t%f\t%f\t%f\t%f\t%f", i - H.n_ghost, C.density[id], C.momentum_x[id], C.momentum_y[id],
-              C.momentum_z[id], C.Energy[id]);
-#ifdef MHD
-      fprintf(fp, "\t%f\t%f\t%f", C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
-#endif  // MHD
-#ifdef DE
-      fprintf(fp, "\t%f", C.GasEnergy[id]);
-#endif  // DE
-      fprintf(fp, "\n");
-    }
-#ifdef MHD
-    // Save the last line of magnetic fields
-    id = H.nx - H.n_ghost;
-    fprintf(fp, "%d\tNan\tNan\tNan\tNan\tNan\t%f\t%f\t%f", id, C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
-  #ifdef DE
-    fprintf(fp, "\tNan");
-  #endif  // DE
-    fprintf(fp, "\n");
-#endif  // MHD
+  if (not is_1D) {
+    chprintf("Warning: can only write Fields to text files for 1D datasets\n");
+    return;
   }
 
-  // 2D case
-  else if (H.nx > 1 && H.ny > 1 && H.nz == 1) {
-    fprintf(fp, "idx\tidy\trho\tmx\tmy\tmz\tE");
+  fprintf(fp, "id\trho\tmx\tmy\tmz\tE");
 #ifdef MHD
-    fprintf(fp, "\tmagX\tmagY\tmagZ");
+  fprintf(fp, "\tmagX\tmagY\tmagZ");
 #endif  // MHD
 #ifdef DE
-    fprintf(fp, "\tge");
+  fprintf(fp, "\tge");
 #endif
-    fprintf(fp, "\n");
-    for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
-      for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
-        id = i + j * H.nx;
-        fprintf(fp, "%d\t%d\t%f\t%f\t%f\t%f\t%f", i - H.n_ghost, j - H.n_ghost, C.density[id], C.momentum_x[id],
-                C.momentum_y[id], C.momentum_z[id], C.Energy[id]);
+  fprintf(fp, "\n");
+  for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+    id = i;
+    fprintf(fp, "%d\t%f\t%f\t%f\t%f\t%f", i - H.n_ghost, C.density[id], C.momentum_x[id], C.momentum_y[id],
+            C.momentum_z[id], C.Energy[id]);
 #ifdef MHD
-        fprintf(fp, "\t%f\t%f\t%f", C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
+    fprintf(fp, "\t%f\t%f\t%f", C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
 #endif  // MHD
 #ifdef DE
-        fprintf(fp, "\t%f", C.GasEnergy[id]);
+    fprintf(fp, "\t%f", C.GasEnergy[id]);
 #endif  // DE
-        fprintf(fp, "\n");
-      }
-#ifdef MHD
-      // Save the last line of magnetic fields
-      id = i + (H.ny - H.n_ghost) * H.nx;
-      fprintf(fp, "%d\t%d\tNan\tNan\tNan\tNan\tNan\t%f\t%f\t%f", i - H.n_ghost, H.ny - 2 * H.n_ghost, C.magnetic_x[id],
-              C.magnetic_y[id], C.magnetic_z[id]);
-  #ifdef DE
-      fprintf(fp, "\tNan");
-  #endif  // DE
-      fprintf(fp, "\n");
-#endif  // MHD
-    }
-#ifdef MHD
-    // Save the last line of magnetic fields
-    id = H.nx - H.n_ghost + (H.ny - H.n_ghost) * H.nx;
-    fprintf(fp, "%d\t%d\tNan\tNan\tNan\tNan\tNan\t%f\t%f\t%f", H.nx - 2 * H.n_ghost, H.ny - 2 * H.n_ghost,
-            C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
-  #ifdef DE
-    fprintf(fp, "\tNan");
-  #endif  // DE
     fprintf(fp, "\n");
-#endif  // MHD
   }
-
-  // 3D case
-  else {
-    fprintf(fp, "idx\tidy\tidz\trho\tmx\tmy\tmz\tE");
-#ifdef DE
-    fprintf(fp, "\tge");
-#endif
 #ifdef MHD
-    fprintf(fp, "\tmagX\tmagY\tmagZ");
+  // Save the last line of magnetic fields
+  id = H.nx - H.n_ghost;
+  fprintf(fp, "%d\tNan\tNan\tNan\tNan\tNan\t%f\t%f\t%f", id, C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
+  #ifdef DE
+  fprintf(fp, "\tNan");
+  #endif  // DE
+  fprintf(fp, "\n");
 #endif  // MHD
-    fprintf(fp, "\n");
-    for (i = H.n_ghost - 1; i < H.nx - H.n_ghost; i++) {
-      for (j = H.n_ghost - 1; j < H.ny - H.n_ghost; j++) {
-        for (k = H.n_ghost - 1; k < H.nz - H.n_ghost; k++) {
-          id = i + j * H.nx + k * H.nx * H.ny;
-
-          // Exclude the rightmost ghost cell on the "left" side for the hydro
-          // variables
-          if ((i >= H.n_ghost) and (j >= H.n_ghost) and (k >= H.n_ghost)) {
-            fprintf(fp, "%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f", i - H.n_ghost, j - H.n_ghost, k - H.n_ghost, C.density[id],
-                    C.momentum_x[id], C.momentum_y[id], C.momentum_z[id], C.Energy[id]);
-#ifdef DE
-            fprintf(fp, "\t%f", C.GasEnergy[id]);
-#endif  // DE
-          } else {
-            fprintf(fp, "%d\t%d\t%d\tn/a\tn/a\tn/a\tn/a\tn/a", i - H.n_ghost, j - H.n_ghost, k - H.n_ghost);
-#ifdef DE
-            fprintf(fp, "\tn/a");
-#endif  // DE
-          }
-#ifdef MHD
-          fprintf(fp, "\t%f\t%f\t%f", C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
-#endif  // MHD
-          fprintf(fp, "\n");
-        }
-      }
-    }
-  }
 }
 
 void FieldWriter::operator()(Grid3D& G, Parameters P, int nfile, const FnameTemplate& fname_template) const
