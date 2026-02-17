@@ -227,33 +227,13 @@ void io::FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const Fname
   // create the filename
   std::string filename = fname_template.format_fname(nfile, "");
 
-#if !defined(BINARY) && !defined(HDF5)
-  if (G.H.nx * G.H.ny * G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
-#endif
-
-// open the file for binary writes
-#if defined BINARY
-  FILE *out;
-  out = fopen(filename.data(), "w");
-  if (out == NULL) {
-    printf("Error opening output file.\n");
-    exit(-1);
-  }
-
-  // write the header to the output file
-  G.Write_Header_Binary(out);
-
-  // write the conserved variables to the output file
-  G.Write_Grid_Binary(out);
-
-  // close the output file
-  fclose(out);
-
-// create the file for hdf5 writes
-#elif defined HDF5
+#ifdef HDF5
+  // create the file for hdf5 writes
   Write_Fields_to_HDF5_helper_<false>(filename, G, this->h5_dataset_spec_, *this->lazy_scratch_buf_);
 
 #else
+  if (G.H.nx * G.H.ny * G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
+
   // open the file for txt writes
   FILE *out;
   out = fopen(filename.data(), "w");
