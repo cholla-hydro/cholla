@@ -5,7 +5,10 @@
 
 #include "../io/FieldWriter.h"
 
+#include <cmath>
 #include <cstdio>
+#include <limits>
+#include <map>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -97,8 +100,9 @@ FieldWriter::FieldWriter(ParameterMap& pmap, const FieldInfo& field_info)
 static void Write_Grid_Text_(FILE* fp, const Grid3D& G)
 {
   int id, i, j, k;
-  const Header& H            = G.H;
-  const Grid3D::Conserved& C = G.C;
+  const Header& H             = G.H;
+  const Grid3D::Conserved& C  = G.C;
+  const FieldInfo& field_info = G.field_info;
 
   // Write the conserved quantities to the output file
   bool is_1D = (H.nx > 1 && H.ny == 1 && H.nz == 1);
@@ -108,35 +112,60 @@ static void Write_Grid_Text_(FILE* fp, const Grid3D& G)
     return;
   }
 
-  fprintf(fp, "id\trho\tmx\tmy\tmz\tE");
-#ifdef MHD
-  fprintf(fp, "\tmagX\tmagY\tmagZ");
-#endif  // MHD
-#ifdef DE
-  fprintf(fp, "\tge");
-#endif
-  fprintf(fp, "\n");
-  for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
-    id = i;
-    fprintf(fp, "%d\t%f\t%f\t%f\t%f\t%f", i - H.n_ghost, C.density[id], C.momentum_x[id], C.momentum_y[id],
-            C.momentum_z[id], C.Energy[id]);
-#ifdef MHD
-    fprintf(fp, "\t%f\t%f\t%f", C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
-#endif  // MHD
-#ifdef DE
-    fprintf(fp, "\t%f", C.GasEnergy[id]);
-#endif  // DE
-    fprintf(fp, "\n");
+  constexpr int MAX_FIELDS = 20;  // <- make this bigger, if necessary
+  const int n_fields       = field_info.n_fields();
+  CHOLLA_ASSERT(n_fields > 0, "n_names must be positive");
+  CHOLLA_ASSERT(n_fields <= MAX_FIELDS, "n_fields %d exceeds MAX_FIELDS, %d", n_fields, MAX_FIELDS);
+  // collect info about each field
+  const Real* ptr_arr[MAX_FIELDS];
+  bool is_cell_centered[MAX_FIELDS];
+  bool all_cell_centered = true;
+  for (int field_id = 0; field_id < n_fields; field_id++) {
+    ptr_arr[field_id]          = &G.C.host[field_id * G.H.n_cells];
+    is_cell_centered[field_id] = field_info.is_cell_centered(field_id).value();
+    all_cell_centered          = all_cell_centered and is_cell_centered[field_id];
   }
-#ifdef MHD
-  // Save the last line of magnetic fields
-  id = H.nx - H.n_ghost;
-  fprintf(fp, "%d\tNan\tNan\tNan\tNan\tNan\t%f\t%f\t%f", id, C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
-  #ifdef DE
-  fprintf(fp, "\tNan");
-  #endif  // DE
-  fprintf(fp, "\n");
-#endif  // MHD
+
+  // these are historical short names that we have traditionally used
+  // -> if a field name isn't in here, we will reuse the field name
+  const std::map<std::string, std::string> name_map{
+      {"density", "rho"},  {"momentum_x", "mx"},   {"momentum_y", "my"},   {"momentum_z", "mz"},  {"Energy", "E"},
+      {"GasEnergy", "ge"}, {"magnetic_x", "magX"}, {"magnetic_y", "magY"}, {"magnetic_z", "magZ"}};
+
+  // write the very first line of the output table
+  std::fprintf(fp, "id");
+  for (int field_id = 0; field_id < n_fields; field_id++) {
+    // determin the column name
+    std::string field_name      = field_info.field_name(field_id).value();
+    auto search                 = name_map.find(field_name);
+    const std::string& col_name = (search == name_map.end()) ? field_name : search->second;
+    std::fprintf(fp, "\t%s", col_name.c_str());
+  }
+  std::fputc('\n', fp);
+
+  // write all normal rows
+  for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+    std::fprintf(fp, "%d", i - H.n_ghost);
+    for (int field_idx = 0; i < n_fields; i++) {
+      std::fprintf(fp, "\t%f", ptr_arr[field_idx][i]);
+    }
+    std::fputc('\n', fp);
+  }
+
+  // if any fields are not cell-centered (i.e. the magnetic fields), we need to write
+  // an extra table row
+  if (not all_cell_centered) {
+    int i = H.nx - H.n_ghost;
+    std::fprintf(fp, "%d", i - H.n_ghost);
+    for (int field_idx = 0; i < n_fields; i++) {
+      if (is_cell_centered[field_idx]) {
+        std::fprintf(fp, "\tNaN");
+      } else {
+        std::fprintf(fp, "\t%f", ptr_arr[field_idx][i]);
+      }
+    }
+    std::fputc('\n', fp);
+  }
 }
 
 void FieldWriter::operator()(Grid3D& G, Parameters P, int nfile, const FnameTemplate& fname_template) const
