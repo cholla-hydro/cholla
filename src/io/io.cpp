@@ -14,7 +14,6 @@
   #include <hdf5.h>
 #endif  // HDF5
 #include "../grid/grid3D.h"
-#include "../io/FieldWriter.h"
 #include "../io/WriterManager.h"
 #include "../io/io.h"
 #include "../utils/cuda_utilities.h"
@@ -139,55 +138,6 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
 
 #ifdef MPI_CHOLLA
   MPI_Barrier(world);
-#endif
-}
-
-void io::FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const FnameTemplate &fname_template) const
-{
-  // create the filename
-  std::string filename = fname_template.format_fname(nfile, "");
-
-// open the file for binary writes
-#ifdef HDF5
-  hid_t file_id; /* file identifier */
-  herr_t status;
-
-  // Create a new file using default properties.
-  file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-
-  // Write the header (file attributes)
-  G.Write_Header_HDF5(file_id);
-
-  // write the conserved variables to the output file
-  G.Write_Grid_HDF5(file_id, h5_dataset_spec_);
-
-  // close the file
-  status = H5Fclose(file_id);
-
-  if (status < 0) {
-    printf("File write failed.\n");
-    exit(-1);
-  }
-
-#else
-
-  if (G.H.nx * G.H.ny * G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
-  // open the file for txt writes
-  FILE *out;
-  out = fopen(filename.data(), "w");
-  if (out == NULL) {
-    printf("Error opening output file.\n");
-    exit(-1);
-  }
-
-  // write the header to the output file
-  G.Write_Header_Text(out);
-
-  // write the conserved variables to the output file
-  G.Write_Grid_Text(out);
-
-  // close the output file
-  fclose(out);
 #endif
 }
 
