@@ -295,9 +295,13 @@ auto __device__ __inline__ PLM_Reconstruction(Real *dev_conserved, int const xid
   hydro_utilities::Primitive interface_R_imh = reconstruction::Calc_Interface_Linear(cell_i, del_m, -1.0);
 
 // Do the characteristic tracing
-#ifndef VL
+//#ifndef VL
+
+#ifdef CTU
   PLM_Characteristic_Evolution(cell_i, del_m, dt, dx, gamma, interface_R_imh, interface_L_iph);
-#endif  // VL
+#endif //CTU
+  
+//#endif  // VL
 
   // apply minimum constraints
   interface_R_imh.density  = fmax(interface_R_imh.density, (Real)TINY_NUMBER);

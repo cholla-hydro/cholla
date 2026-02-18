@@ -1025,5 +1025,124 @@ void __device__ __host__ __inline__ Write_Data(hydro_utilities::Primitive const 
   }
 #endif  // SCALAR
 }
+
+// =====================================================================================================================
+/*!
+ * \brief Write the interface data to the appropriate arrays
+ *
+ * \param[in] interface_state The interface state to write
+ * \param[out] dev_interface The interface array
+ * \param[in] dev_conserved The conserved variables
+ * \param[in] id The cell id to write to
+ * \param[in] n_cells The total number of cells
+ * \param[in] o1 Directional parameter
+ * \param[in] o2 Directional parameter
+ * \param[in] o3 Directional parameter
+ * \param[in] gamma The adiabatic index
+ */
+void __device__ __host__ __inline__ Write_Data_SIMPLE(hydro_utilities::Primitive const &interface_state_L, 
+                                               hydro_utilities::Primitive const &interface_state_R, Real *dev_interface_L,
+                                               Real *dev_interface_R,
+                                               Real const *dev_conserved, size_t const &id_iph, size_t const &id_imh, 
+                                               size_t const &n_cells,
+                                               size_t const &o1, size_t const &o2, size_t const &o3, Real const &gamma,
+                                               Real const &dtodx)
+//  interface_L_iph -> dev_bounds_L, d_R, mx_R, E_R, p_R, deg_R, mxfr, gefr
+//  interface_R_imh -> dev_bounds_R, d_L, mx_L, E_L, p_L, dge_L, mxfl, gefl
+//  size_t id_iph = cuda_utilities::compute1DIndex(xid, yid, zid, nx, ny);
+//  size_t id_imh = cuda_utilities::compute1DIndex(xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny);
+//  reconstruction::Write_Data_SIMPLE(interface_L_iph, interface_R_imh, dev_bounds_L, dev_bounds_R, dev_conserved, id_iph, id_imh, n_cells, o1, o2, o3, gamma);
+{
+  Real d_R  = interface_state_L.density;
+  Real p_R  = interface_state_L.pressure;
+  Real vx_R = interface_state_L.velocity.x()
+  Real vy_R = interface_state_L.velocity.y()
+  Real vz_R = interface_state_L.velocity.z()
+  Real mx_R = d_R*vx_R;
+  Real my_R = d_R*vy_R;
+  Real mz_R = d_R*vz_R;
+  Real E_R  = p_R/(gamma-1.0) + 0.5*d_R*(vx_R*vx_R + vy_R*vy_R + vz_R*vz_R);
+
+  Real d_L   = interface_state_R.density;
+  Real p_L   = interface_state_R.pressure;
+  Real vx_L  = interface_state_R.velocity.x()
+  Real vy_L  = interface_state_R.velocity.y()
+  Real vz_L  = interface_state_R.velocity.z()
+  Real mx_L  = d_L*vx_L;
+  Real my_L  = d_L*vy_L;
+  Real mz_L  = d_L*vz_L;
+  Real E_L   = p_L/(gamma-1.0) + 0.5*d_L*(vx_L*vx_L + vy_L*vy_L + vz_L*vz_L);
+#ifdef DE
+  Real ge_R  = interface_state_L.gas_energy;
+  Real ge_L  = interface_state_R.gas_energy;
+  Real dge_R = d_R*ge_R;
+  Real dge_L = d_L*ge_L;
+#endif
+
+  Real dfr  = mx_R;
+  Real mxfr = mx_R*vx_R + p_R; 
+  Real myfr = mx_R*vy_R;
+  Real mzfr = mx_R*vz_R;
+  Real Efr  = (E_R + p_R) * vx_R;
+
+  Real dfl  = mx_L;
+  Real mxfl = mx_L*vx_L + p_L; 
+  Real myfl = mx_L*vy_L;
+  Real mzfl = mx_L*vz_L;
+  Real Efl  = (E_L + p_L) * vx_L;
+#ifdef DE
+  Real gefr = dge_R*vx_R;
+  Real gefl = dge_L*vx_L;
+#endif 
+
+  // Evolve the boundary extrapolated values at a half a timestep
+  d_L += 0.5 * (dtodx) * (dfl - dfr);
+  d_R += 0.5 * (dtodx) * (dfl - dfr);
+
+  mx_L += 0.5 * (dtodx) * (mxfl - mxfr);
+  mx_R += 0.5 * (dtodx) * (mxfl - mxfr);
+
+  my_L += 0.5 * (dtodx) * (myfl - myfr);
+  my_R += 0.5 * (dtodx) * (myfl - myfr);
+
+  mz_L += 0.5 * (dtodx) * (mzfl - mzfr);
+  mz_R += 0.5 * (dtodx) * (mzfl - mzfr);
+
+  E_L += 0.5 * (dtodx) * (Efl - Efr);
+  E_R += 0.5 * (dtodx) * (Efl - Efr);
+
+#ifdef DE
+  dge_L += 0.5 * (dtodx) * (gefl - gefr);
+  dge_R += 0.5 * (dtodx) * (gefl - gefr);
+#endif
+
+  // Write out density and momentum for imh
+  dev_interface_R[grid_enum::density * n_cells + id_imh] = fmax(d_L, (Real)TINY_NUMBER);
+  dev_interface_R[o1 * n_cells + id_imh]                 = mx_L;
+  dev_interface_R[o2 * n_cells + id_imh]                 = my_L;
+  dev_interface_R[o3 * n_cells + id_imh]                 = mz_L;
+
+  // Note energy is computed directly from evolved state
+  dev_interface_R[grid_enum::Energy  * n_cells + id_imh] = fmax(E_L, (Real)TINY_NUMBER);
+
+#ifdef DE
+  dev_interface_R[grid_enum::GasEnergy * n_cells + id_imh] = fmax(dge_L, (Real)TINY_NUMBER);
+#endif  // DE
+
+  // Write out density and momentum for iph
+  dev_interface_L[grid_enum::density * n_cells + id_iph] = fmax(d_R, (Real)TINY_NUMBER);
+  dev_interface_L[o1 * n_cells + id_iph]                 = mx_R;
+  dev_interface_L[o2 * n_cells + id_iph]                 = my_R;
+  dev_interface_L[o3 * n_cells + id_iph]                 = mz_R;
+
+  // Note energy is computed directly from evolved state
+  dev_interface_L[grid_enum::Energy  * n_cells + id_iph] = fmax(E_R, (Real)TINY_NUMBER);
+
+#ifdef DE
+  dev_interface_L[grid_enum::GasEnergy * n_cells + id_iph] = fmax(dge_R, (Real)TINY_NUMBER);
+#endif  // DE
+
+}
+
 // =====================================================================================================================
 }  // namespace reconstruction

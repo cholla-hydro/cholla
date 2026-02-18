@@ -50,6 +50,9 @@ __global__ __launch_bounds__(TPB) void PLM_cuda(Real *dev_conserved, Real *dev_b
   // Compute the total number of cells
   int const n_cells = nx * ny * nz;
 
+
+#ifndef SIMPLE
+
   // Convert the left and right states in the primitive to the conserved variables send final values back from kernel
   // bounds_R refers to the right side of the i-1/2 interface
   size_t id = cuda_utilities::compute1DIndex(xid, yid, zid, nx, ny);
@@ -57,6 +60,11 @@ __global__ __launch_bounds__(TPB) void PLM_cuda(Real *dev_conserved, Real *dev_b
 
   id = cuda_utilities::compute1DIndex(xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny);
   reconstruction::Write_Data(interface_R_imh, dev_bounds_R, dev_conserved, id, n_cells, o1, o2, o3, gamma);
+#else  //SIMPLE
+  size_t id_iph = cuda_utilities::compute1DIndex(xid, yid, zid, nx, ny);
+  size_t id_imh = cuda_utilities::compute1DIndex(xid - int(dir == 0), yid - int(dir == 1), zid - int(dir == 2), nx, ny);
+  reconstruction::Write_Data_SIMPLE(interface_L_iph, interface_R_imh, dev_bounds_L, dev_bounds_R, dev_conserved, id_iph, id_imh, n_cells, o1, o2, o3, gamma, dt/dx);
+#endif //SIMPLE
 }
 
 // Instantiate the relevant template specifications
