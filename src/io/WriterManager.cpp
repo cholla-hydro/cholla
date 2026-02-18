@@ -10,11 +10,13 @@
 #include <vector>
 
 #include "../gravity/grav3D.h"
-#include "../io/ParameterMap.h"       // ParameterMap
+#include "../io/FieldWriter.h"        // FieldWriter
+#include "../io/ParameterMap.h"       // define ParameterMap
 #include "../io/RotatedProjWriter.h"  // RotatedProjWriter
 #include "../io/io.h"
 
-io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap) : fname_template_(P)
+io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const FieldInfo& field_info)
+    : fname_template_(P)
 {
   // in the future, the goal is to read directly from ParameterMap (so we can stop storing
   // some of the relevant variables in Parameters)
@@ -22,7 +24,7 @@ io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap) : fnam
 
 #ifndef ONLY_PARTICLES
   // setup the data output routine for Hydro data
-  packs_.push_back(io::detail::WriterPack{"hydro", n_hydro, &Output_Data});
+  packs_.push_back(io::detail::WriterPack{"hydro", n_hydro, {io::FieldWriter(pmap, field_info)}});
 #endif
 
   // This function does other checks to make sure it is valid (3D only)
