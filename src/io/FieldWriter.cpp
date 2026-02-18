@@ -99,7 +99,6 @@ FieldWriter::FieldWriter(ParameterMap& pmap, const FieldInfo& field_info)
 /*! Write the conserved quantities to a text output file */
 static void Write_Grid_Text_(FILE* fp, const Grid3D& G)
 {
-  int id, i, j, k;
   const Header& H             = G.H;
   const Grid3D::Conserved& C  = G.C;
   const FieldInfo& field_info = G.field_info;
@@ -144,9 +143,9 @@ static void Write_Grid_Text_(FILE* fp, const Grid3D& G)
   std::fputc('\n', fp);
 
   // write all normal rows
-  for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+  for (int i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
     std::fprintf(fp, "%d", i - H.n_ghost);
-    for (int field_idx = 0; i < n_fields; i++) {
+    for (int field_idx = 0; field_idx < n_fields; field_idx++) {
       std::fprintf(fp, "\t%f", ptr_arr[field_idx][i]);
     }
     std::fputc('\n', fp);
@@ -157,7 +156,7 @@ static void Write_Grid_Text_(FILE* fp, const Grid3D& G)
   if (not all_cell_centered) {
     int i = H.nx - H.n_ghost;
     std::fprintf(fp, "%d", i - H.n_ghost);
-    for (int field_idx = 0; i < n_fields; i++) {
+    for (int field_idx = 0; field_idx < n_fields; field_idx++) {
       if (is_cell_centered[field_idx]) {
         std::fprintf(fp, "\tNaN");
       } else {
