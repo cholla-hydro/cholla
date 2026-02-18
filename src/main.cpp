@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
 
   // Create the Writer Manager, which is in charge of calling of trigger the various
   // functions that dump data (e.g. snapshots, slices, projections)
-  io::WriterManager writer_manager(P, pmap);
+  io::WriterManager writer_manager(P, pmap, G.field_info);
 
   if (is_restart) {
     chprintf("Input directory:  %s\n", P.indir);
