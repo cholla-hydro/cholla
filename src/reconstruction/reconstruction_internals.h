@@ -1055,9 +1055,9 @@ void __device__ __host__ __inline__ Write_Data_SIMPLE(hydro_utilities::Primitive
 {
   Real d_R  = interface_state_L.density;
   Real p_R  = interface_state_L.pressure;
-  Real vx_R = interface_state_L.velocity.x()
-  Real vy_R = interface_state_L.velocity.y()
-  Real vz_R = interface_state_L.velocity.z()
+  Real vx_R = interface_state_L.velocity.x();
+  Real vy_R = interface_state_L.velocity.y();
+  Real vz_R = interface_state_L.velocity.z();
   Real mx_R = d_R*vx_R;
   Real my_R = d_R*vy_R;
   Real mz_R = d_R*vz_R;
@@ -1065,9 +1065,9 @@ void __device__ __host__ __inline__ Write_Data_SIMPLE(hydro_utilities::Primitive
 
   Real d_L   = interface_state_R.density;
   Real p_L   = interface_state_R.pressure;
-  Real vx_L  = interface_state_R.velocity.x()
-  Real vy_L  = interface_state_R.velocity.y()
-  Real vz_L  = interface_state_R.velocity.z()
+  Real vx_L  = interface_state_R.velocity.x();
+  Real vy_L  = interface_state_R.velocity.y();
+  Real vz_L  = interface_state_R.velocity.z();
   Real mx_L  = d_L*vx_L;
   Real my_L  = d_L*vy_L;
   Real mz_L  = d_L*vz_L;
