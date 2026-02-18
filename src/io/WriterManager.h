@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "../global/global.h"
+#include "../grid/field_info.h"
 #include "../grid/grid3D.h"
 #include "../io/FnameTemplate.h"  // define FnameTemplate
 #include "../io/ParameterMap.h"   // define ParameterMap
@@ -44,7 +45,7 @@ class WriterManager
 
  public:
   WriterManager() = delete;
-  WriterManager(const Parameters &P, ParameterMap &pmap);
+  WriterManager(const Parameters &P, ParameterMap &pmap, const FieldInfo &field_info);
 
   /*! get the fname-template */
   const FnameTemplate &fname_template() const noexcept { return fname_template_; }

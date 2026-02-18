@@ -10,6 +10,7 @@
 
 #include "../global/global.h"
 #include "../grid/grid3D.h"
+#include "../io/FieldWriter.h"
 #include "../io/FnameTemplate.h"
 #include "../io/WriterManager.h"
 
@@ -29,9 +30,6 @@ void Print_Stats(Grid3D& G);
  *  \param writer_manager Manages the data writers.
  */
 void Write_Data(Grid3D& G, struct Parameters P, int nfile, const io::WriterManager& write_manager);
-
-/* Output the grid data to file. */
-void Output_Data(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);
 
 /* Output the grid data to file as 32-bit floats. */
 void Output_Float32(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);

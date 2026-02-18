@@ -14,6 +14,7 @@
 
 #include "../global/global.h"
 #include "../global/global_cuda.h"
+#include "../grid/field_info.h"
 #include "../io/FnameTemplate.h"
 
 #ifdef HDF5
@@ -49,6 +50,12 @@
 #ifdef ANALYSIS
   #include "../analysis/analysis.h"
 #endif
+
+// forward declare the DatasetSpec struct
+namespace io
+{
+struct DatasetSpec;
+}  // namespace io
 
 struct Rotation {
   /*! \var nx
@@ -297,6 +304,9 @@ class Grid3D
    *  \brief Rotation struct for data projections */
   struct Rotation R;
 
+  /*! Describes the mapping between field names and field indices */
+  FieldInfo field_info;
+
 #ifdef GRAVITY
   // Object that contains data for gravity
   Grav3D Grav;
@@ -499,7 +509,7 @@ class Grid3D
 
   /*! \fn void Write_Grid_HDF5(hid_t file_id)
    *  \brief Write the grid to a file, at the current simulation time. */
-  void Write_Grid_HDF5(hid_t file_id);
+  void Write_Grid_HDF5(hid_t file_id, const io::DatasetSpec &h5_dataset_spec);
 
   /*! \fn void Write_Projection_HDF5(hid_t file_id)
    *  \brief Write projected density and temperature data to a file. */
