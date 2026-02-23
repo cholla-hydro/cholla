@@ -1,7 +1,9 @@
 # 2D Disk
 This models the Milky Way's stellar disk following a Kuzmin profile. Gamma is set to 1.001. Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Disk_2D()`. This test is performed with the static gravity build (`cholla/builds/make.type.static_grav`) and Van Leer integrator.  
 
-## Parameter file: ({repository-file}`examples/2D/disk.txt`): dev branch
+The parameter file can be found at: {repository-file}`examples/2D/disk.txt`
+
+## Parameter file: 
 ```
 #
 # Parameter File for a 2D disk in keplerian rotation.
@@ -43,7 +45,7 @@ outdir=./
 ```
 While the parameter file claims to be for a 2D disk in keplerian rotation (custom_grav = 3), the initial condition Disk_2D matches the ICs of custom_grav = 4.   
   
-Upon completion, you should obtain 501 output files. (Note: when running with the Simple integrator, there is a thread crash. However, the Van Leer integrator is able to run the simulation to completion.) An evolution of the density is shown below. Examples of how to plot projections and slices can be found in `cholla/python_scripts/Projection_Slice_Tutorial.ipynb`.  
+Upon completion, you should obtain 501 output files. (Note: when running with the Simple integrator, there is a thread crash. However, the Van Leer integrator is able to run the simulation to completion.) An evolution of the density is shown below. Examples of how to plot projections and slices can be found in the [General 2D plotting example](../../PythonExamples/2D-plotting.md).
 
 :::{video} disk-docs.mp4
     :width: 700

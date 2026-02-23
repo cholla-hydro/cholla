@@ -1,8 +1,9 @@
 # 2D Discontinuous Kelvin-Helmholtz Test
 This test highlights the ability of a code to resolve mixing caused by shear flows, emphasizing the importance of an efficient, high order reconstuction method and a fast code. The level of mixing increases with the resolution. See Chandrasekhar 1961. It consists of a high density region (density = 1 and x velocity = 0.5) in the middle third of the grid sandwiched between two low density regions (density = 1 and x velocity = -0.5). Y-velocities are perturbed by a sine wave of amplitude 0.1. Pressure is 2.5 everywhere and gamma is set to 1.666667. Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `KH()`.This test is performed with the default hydro build (`cholla/builds/make.type.hydro`) and Van Leer integrator.  
 
+The parameter file can be found at: {repository-file}`examples/2D/KH_discontinuous_2D.txt`
 
-## Parameter file: ({repository-file}`examples/2D/KH_discontinuous_2D.txt`)
+## Parameter file: 
 ```
 #
 # Parameter File for the 2D discontinuous Kelvin-Helmholtz test.
@@ -41,7 +42,7 @@ zu_bcnd=0
 # path to output directory
 outdir=./
 ```
-Upon completion, you should obtain 201 output files. The initial and final density (in code units) is shown below. Examples of how to plot projections and slices can be found in `cholla/python_scripts/Projection_Slice_Tutorial.ipynb`.  
+Upon completion, you should obtain 201 output files. The initial and final density (in code units) is shown below. Examples of how to plot projections and slices can be found in the [General 2D plotting example](../../PythonExamples/2D-plotting.md). 
 Density:  
 :::{figure} snapshots_khd.png 
 :::
@@ -56,10 +57,6 @@ We see even on a relatively low resolution grid, significant shear mixing has oc
     :loop:
 :::
 
-We can compare to the results of the [Athena](https://www.astro.princeton.edu/~jstone/Athena/tests/kh/kh.html) code on a 512x512 grid at t = 1.00. Density is shown on a linear color map between 0.9 and 2.1  
-:::{figure} athena-khd.png 
-:width: 500px
-:align: center
-:::
+
 
 

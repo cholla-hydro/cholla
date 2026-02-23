@@ -1,7 +1,9 @@
 # 2D Implosion
 This tests a code's ability to resolve contact discontinuities for a non-grid aligned shock tube and can determine the symmetry of a code. It consists of a diamond region of density = 0.125 and pressure = 0.14 inside a square region of both density and pressure of 1. Parameters from Liska and Wendroff 2003. Gamma is set to 1.4. Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Implosion_2D()`.This test is performed with the default hydro build (`cholla/builds/make.type.hydro`).  
 
-## Parameter file: ({repository-file}`examples/2D/Implosion_2D.txt`)
+The parameter file can be found at: {repository-file}`examples/2D/Implosion_2D.txt`
+
+## Parameter file: 
 ```
 #
 # Parameter File for the 2D implosion test described in Liska, 2003.
@@ -40,7 +42,7 @@ zu_bcnd=0
 # path to output directory
 outdir=./
 ```
-Upon completion, you should obtain 251 output files. An evolution of the pressure overlaid with density contours is seen here at 10 fps. Examples of how to plot projections and slices can be found in `cholla/python_scripts/Projection_Slice_Tutorial.ipynb`.  
+Upon completion, you should obtain 251 output files. An evolution of the pressure overlaid with density contours is seen here at 10 fps. Examples of how to plot projections and slices can be found in the [General 2D plotting example](../../PythonExamples/2D-plotting.md).
 
 We see that a jet has appeared in the solution due to the high symmetry preservation of Cholla. We can quantify the perservation of symmetry in density over time by taking the sum over the full grid of the absolute value of $d_{ij}-d_{ji}$ across the line y = x.
 

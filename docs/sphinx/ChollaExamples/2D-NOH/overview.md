@@ -1,8 +1,10 @@
 # 2D Noh Strong Shock
 This test highlights the ability of a code to track a high Mach number shock. Parameters from Liska and Wendroff 2003. The test consists of an infinitely strong circular shock radiating from the origin. There is initially a constant density of 1.0 across the grid and a velocity of 1.0 towards the center everywhere. Pressure is set to $10^{-6}$ everywhere. Gamma is set to 1.66666667. This test is performed with the default hydro build (`cholla/builds/make.type.hydro`) and Van Leer integrator. Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Noh_2D()`. 
 
-## Parameter file: ({repository-file}`examples/2D/Noh_2D.txt`)
-Modified to add zl_bcnd=0 and zu_bcnd=0. 
+The parameter file can be found at: {repository-file}`examples/2D/Noh_2D.txt`
+
+## Parameter file:
+
 ```
 #
 # Parameter File for the 2D Noh problem described in Liska, 2003.
@@ -41,7 +43,7 @@ custom_bcnd=noh
 # path to output directory
 outdir=./
 ```
-Upon completion, you should obtain 201 output files. The evolution of the density is shown below. Examples of how to plot projections and slices can be found in `cholla/python_scripts/Projection_Slice_Tutorial.ipynb`.  
+Upon completion, you should obtain 201 output files. The evolution of the density is shown below. Examples of how to plot projections and slices can be found in the [General 2D plotting example](../../PythonExamples/2D-plotting.md).
 
 :::{video} noh-docs.mp4
     :width: 700

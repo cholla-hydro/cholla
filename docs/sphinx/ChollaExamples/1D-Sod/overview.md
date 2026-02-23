@@ -1,7 +1,10 @@
 # 1D Sod Shock Tube
 This test highlights the ability of a code to resolve shocks and contact discontinuities over a narrow region. Parameters from Sod (1978). The setup consists of a density and pressure of 1.0 for x \< 0 and 0.1 for x \> 0.5. Gamma is set to 1.4. This test was performed with the hydro build (`cholla/builds/make.type.hydro`) and Van Leer integrator. Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Riemann()`. 
 
-## Parameter file: ({repository-file}`examples/1D/sod.txt`)
+
+The parameter file can be found at {repository-file}`examples/1D/sod.txt`
+
+## Parameter File:
 ```
 #
 # Parameter File for 1D Sod Shock tube
@@ -60,7 +63,7 @@ diaph=0.5
 # value of gamma
 gamma=1.4
 ```
-Upon completion, you should obtain two output files.The initial and final density, pressure, velocity, and internal energy (in code units) of the solution is shown below.  Examples of how to extract and plot data can be found in `cholla/python_scripts/plot_sod.ipynb`.  
+Upon completion, you should obtain two output files.The initial and final density, pressure, and velocity (in code units) of the solution is shown below.  Examples of how to extract and plot data can be found in the [General 1D Plotting Example](../../PythonExamples/1D-plotting.md).  
 
 :::{figure} sod-initial-final.png
 :::

@@ -1,8 +1,9 @@
 # 1D Square Wave
 This test initializes a square wave density pertubation. The setup consists of an initial density and pressure of 1.0 and 0.01, respectively. A square wave is initialized with amplitude 1.5. Gamma is set to 1.666666666666667. This test was performed with the hydro build (`cholla/builds/make.type.hydro`) and Van Leer integrator. Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Square_Wave()`. 
 
-## Parameter file: ({repository-file}`examples/1D/square_wave.txt`)
-Modified to add yl_bcnd, yu_bcnd, zl_bcnd, and zu_bcnd=0
+The parameter file can be found at: {repository-file}`examples/1D/square_wave.txt`
+
+## Parameter file:
 ```
 #
 # Parameter File for square wave test
@@ -56,7 +57,7 @@ A=1.5
 # value of gamma
 gamma=1.666666666666667
 ```
-Upon completion, you should obtain 101 output files. We can obtain the evolution of the density. Pressure is constant to the $10^{-14}$ level. Examples of how to extract and plot data can be found in `cholla/python_scripts/plot_sod.ipynb`.  
+Upon completion, you should obtain 101 output files. The evolution of the density is shown below. Pressure is constant to the $10^{-14}$ level. Examples of how to extract and plot data can be found in the [General 1D Plotting Example](../../PythonExamples/1D-plotting.md).    
 
 
 :::{video} square-docs.mp4
