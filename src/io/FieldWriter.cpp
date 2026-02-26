@@ -22,6 +22,8 @@
 namespace io
 {
 
+// the following anonymous namespace encloses machinery used to help us implement
+// FieldWriter's constructor
 namespace
 {  // stuff inside an anonymous namespace is local to this file
 
@@ -30,8 +32,7 @@ namespace
  *
  *  \note
  *  At this time, the `std::vector<io::DatasetSpecEntry>` is technically tracked by a
- *  @ref DatasetSpec that is tracked by @ref FieldWriter. But, in PR #469, we'll start
- *  tracking DatasetSpec directly as part of @ref FieldWriter
+ *  @ref DatasetSpec that is tracked by @ref FieldWriter.
  *
  *  How it's Used
  *  =============
@@ -265,6 +266,11 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
   // away from ifdefs, the handling remains very manual
 }
 
+// the following anonymous namespace encloses functions used to help us implement
+// FieldWriter::operator()
+namespace
+{  // stuff inside an anonymous namespace is local to this file
+
 /*! does the heavy-lifting of writing fields to hdf5 files.
  *
  *  \todo
@@ -399,8 +405,8 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
  *
  *  \returns The number of entries written to ptr_arr
  */
-static int Record_Colnames_And_Get_Field_Ptrs_(const Real** ptr_arr, bool* is_cell_centered, std::FILE* fp,
-                                               const DatasetSpec& dataset_spec, const Grid3D& G)
+int Record_Colnames_And_Get_Field_Ptrs_(const Real** ptr_arr, bool* is_cell_centered, std::FILE* fp,
+                                        const DatasetSpec& dataset_spec, const Grid3D& G)
 {
   const Header& H             = G.H;
   const Grid3D::Conserved& C  = G.C;
@@ -451,7 +457,7 @@ static int Record_Colnames_And_Get_Field_Ptrs_(const Real** ptr_arr, bool* is_ce
 
 /*! Helper function that write the conserved quantities to a text output file
  *
- *  \param[out] filename output file name
+ *  \param[in] filename output file name
  *  \param[in] G specifies all grid data
  *  \param[in] dataset_spec Specifies properties about all fields that may be written
  *      by the current simulation
@@ -460,7 +466,7 @@ static int Record_Colnames_And_Get_Field_Ptrs_(const Real** ptr_arr, bool* is_ce
  *  The fact that the data is interleaved (and the fact that the number of characters
  *  per row is a variable), makes this a little tricky.
  */
-static void Write_Grid_Text_(const std::string& filename, const Grid3D& G, const DatasetSpec& dataset_spec)
+void Write_Grid_Text_(const std::string& filename, const Grid3D& G, const DatasetSpec& dataset_spec)
 {
   const Header& H             = G.H;
   const Grid3D::Conserved& C  = G.C;
@@ -482,13 +488,13 @@ static void Write_Grid_Text_(const std::string& filename, const Grid3D& G, const
 
   // Part 1: Open the file for txt writes and write the header
   // ---------------------------------------------------------
-  std::FILE* out = std::fopen(filename.data(), "w");
-  if (out == nullptr) {
+  std::FILE* fp = std::fopen(filename.data(), "w");
+  if (fp == nullptr) {
     CHOLLA_ERROR("Error opening output file.");
   }
 
   // write the header to the output file
-  G.Write_Header_Text(out);
+  G.Write_Header_Text(fp);
 
   // Part 2: collect info about each field & write the initial header for the text file
   // ----------------------------------------------------------------------------------
@@ -531,8 +537,10 @@ static void Write_Grid_Text_(const std::string& filename, const Grid3D& G, const
 
   // Part 4: Close the output file
   // -----------------------------
-  std::fclose(out);
+  std::fclose(fp);
 }
+
+}  // anonymous namespace
 
 void FieldWriter::operator()(Grid3D& G, Parameters P, int nfile, const FnameTemplate& fname_template) const
 {
