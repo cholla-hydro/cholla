@@ -319,9 +319,7 @@ void Output_Slices(Grid3D &G, struct Parameters P, int nfile, const FnameTemplat
 #endif    // HDF5
 }
 
-/*! \fn void Write_Header_Text(FILE *fp)
- *  \brief Write some relevant header info to a text output file. */
-void Grid3D::Write_Header_Text(FILE *fp)
+void Grid3D::Write_Header_Text(FILE *fp) const
 {
   // Write the header info to the output file
   fprintf(fp, "Header Information\n");

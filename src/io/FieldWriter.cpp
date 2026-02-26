@@ -451,7 +451,7 @@ static int Record_Colnames_And_Get_Field_Ptrs_(const Real** ptr_arr, bool* is_ce
 
 /*! Helper function that write the conserved quantities to a text output file
  *
- *  \param[out] fp output file stream that column names are written to
+ *  \param[out] filename output file name
  *  \param[in] G specifies all grid data
  *  \param[in] dataset_spec Specifies properties about all fields that may be written
  *      by the current simulation
@@ -460,18 +460,18 @@ static int Record_Colnames_And_Get_Field_Ptrs_(const Real** ptr_arr, bool* is_ce
  *  The fact that the data is interleaved (and the fact that the number of characters
  *  per row is a variable), makes this a little tricky.
  */
-static void Write_Grid_Text_(std::FILE* fp, const Grid3D& G, const DatasetSpec& dataset_spec)
+static void Write_Grid_Text_(const std::string& filename, const Grid3D& G, const DatasetSpec& dataset_spec)
 {
   const Header& H             = G.H;
   const Grid3D::Conserved& C  = G.C;
   const FieldInfo& field_info = G.field_info;
 
+  if (H.nx * H.ny * H.nz > 1000) std::printf("Ascii outputs only recommended for small problems!\n");
+
   // sanity check: the factory method should prevent construction of FieldWriter in
   // circumstances where the following assertion would fail
   bool is_1D = (H.nx > 1 && H.ny == 1 && H.nz == 1);
   CHOLLA_ASSERT(is_1D, "can only write Fields to text files for 1D datasets");
-
-  // Write the conserved quantities to the output file
 
   constexpr int MAX_FIELDS = 20;  // <- make this bigger, if necessary
   {                               // perform some sanity checks!
@@ -480,7 +480,17 @@ static void Write_Grid_Text_(std::FILE* fp, const Grid3D& G, const DatasetSpec& 
     CHOLLA_ASSERT(n_fields <= MAX_FIELDS, "n_fields %d exceeds MAX_FIELDS, %d", n_fields, MAX_FIELDS);
   }
 
-  // Part 1: collect info about each field & write the initial header for the text file
+  // Part 1: Open the file for txt writes and write the header
+  // ---------------------------------------------------------
+  std::FILE* out = std::fopen(filename.data(), "w");
+  if (out == nullptr) {
+    CHOLLA_ERROR("Error opening output file.");
+  }
+
+  // write the header to the output file
+  G.Write_Header_Text(out);
+
+  // Part 2: collect info about each field & write the initial header for the text file
   // ----------------------------------------------------------------------------------
   // these arrays will hold entries for each field that we want to serialize
   // (the precise details may depend upon G.H.Output_Complete_Data)
@@ -493,7 +503,7 @@ static void Write_Grid_Text_(std::FILE* fp, const Grid3D& G, const DatasetSpec& 
     all_cell_centered = all_cell_centered or is_cell_centered[ptr_idx];
   }
 
-  // Part 2: Record all data
+  // Part 3: Record all data
   // -----------------------
   // write all normal rows
   for (int i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
@@ -518,41 +528,27 @@ static void Write_Grid_Text_(std::FILE* fp, const Grid3D& G, const DatasetSpec& 
     }
     std::fputc('\n', fp);
   }
+
+  // Part 4: Close the output file
+  // -----------------------------
+  std::fclose(out);
 }
 
 void FieldWriter::operator()(Grid3D& G, Parameters P, int nfile, const FnameTemplate& fname_template) const
 {
+  const char* pre_extension_suffix = (this->file_format_ == FileFormat::H5_F32) ? ".float32" : "";
+  std::string filename             = fname_template.format_fname(nfile, pre_extension_suffix);
+
   switch (this->file_format_) {
-    case FileFormat::H5_F32: {
-      std::string filename = fname_template.format_fname(nfile, ".float32");
+    case FileFormat::H5_F32:
       Write_Fields_to_HDF5_helper_<true>(filename, G, this->dataset_spec_, *this->lazy_scratch_buf_);
       return;
-    }
-    case FileFormat::H5_NATIVE_PRECISION: {
-      std::string filename = fname_template.format_fname(nfile, "");
+    case FileFormat::H5_NATIVE_PRECISION:
       Write_Fields_to_HDF5_helper_<false>(filename, G, this->dataset_spec_, *this->lazy_scratch_buf_);
       return;
-    }
-    case FileFormat::TEXT: {
-      std::string filename = fname_template.format_fname(nfile, "");
-
-      if (G.H.nx * G.H.ny * G.H.nz > 1000) std::printf("Ascii outputs only recommended for small problems!\n");
-      // open the file for txt writes
-      std::FILE* out = std::fopen(filename.data(), "w");
-      if (out == nullptr) {
-        CHOLLA_ERROR("Error opening output file.");
-      }
-
-      // write the header to the output file
-      G.Write_Header_Text(out);
-
-      // write the conserved variables to the output file
-      Write_Grid_Text_(out, G, this->dataset_spec_);
-
-      // close the output file
-      std::fclose(out);
+    case FileFormat::TEXT:
+      Write_Grid_Text_(filename, G, this->dataset_spec_);
       return;
-    }
   }
   CHOLLA_ERROR("can't handle specified file format");
 }

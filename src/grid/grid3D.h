@@ -482,7 +482,7 @@ class Grid3D
   void Update_Time();
   /*! \fn void Write_Header_Text(FILE *fp)
    *  \brief Write the relevant header info to a text output file. */
-  void Write_Header_Text(FILE *fp);
+  void Write_Header_Text(FILE *fp) const;
 
 #ifdef HDF5
   /*! \fn void Write_Header_HDF5(hid_t file_id)
