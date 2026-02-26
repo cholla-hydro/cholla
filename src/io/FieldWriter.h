@@ -22,7 +22,7 @@
 namespace io
 {
 
-enum struct FileFormat { TEXT, H5_NATIVE_PRECISION };
+enum struct FileFormat { TEXT, H5_NATIVE_PRECISION, H5_F32 };
 
 /*! Specifies the condition for writing data to disk. */
 enum struct WriteCond { ALWAYS, REQUIRE_COMPLETE_DATA };
@@ -74,8 +74,6 @@ struct DatasetSpec {
  *
  *  For more context, a "callable" object is sometimes called a "functor." Essentially
  *  a "callable" object carries around state and can be called like a function.
- *
- *  \todo Maybe work to consolidate this with F32FieldWriter
  */
 class FieldWriter
 {
@@ -105,52 +103,29 @@ class FieldWriter
    *  method actually gets call. Consequently, the callsite needs to make the judgement
    *  on whether or how to report errors. (We can address this in the future)
    */
-  static std::pair<WriterFn, std::string> try_create(int ndim, ParameterMap &pmap, const FieldInfo &field_info)
+  static std::pair<WriterFn, std::string> try_create(int ndim, ParameterMap &pmap, const FieldInfo &field_info,
+                                                     bool write_h5_f32)
   {
+    // construct a payload denoting an error
+    auto prep_err = [](const std::string &msg) -> std::pair<WriterFn, std::string> {
+      return std::pair<WriterFn, std::string>{WriterFn(), msg};
+    };
+
 #ifdef HDF5
-    FileFormat file_format = FileFormat::H5_NATIVE_PRECISION;
+    FileFormat file_format = (write_h5_f32) ? FileFormat::H5_F32 : FileFormat::H5_NATIVE_PRECISION;
 #else
+    if (write_h5_f32) return prep_err("h5_f32 outputs require compilation with hdf5");
     FileFormat file_format = FileFormat::TEXT;
 #endif
 
-    std::pair<WriterFn, std::string> out;
     if (file_format == FileFormat::TEXT and ndim != 1) {
-      out.second = std::string("can only write Fields to text files for 1D datasets");
-      return out;
-    } else {
-      out.first = WriterFn(FieldWriter(file_format, pmap, field_info));
-      return out;
+      return prep_err("can only write Fields to text files for 1D simulations");
+    } else if (file_format == FileFormat::H5_F32 and ndim != 3) {
+      return prep_err("can only write Fields to h5_f32 files for 3D simulations");
     }
+    std::pair<WriterFn, std::string> out{WriterFn(FieldWriter(file_format, pmap, field_info)), ""};
+    return out;
   }
-
-  /*! Writes the field data to disk.
-   *
-   *  \note
-   *  In case you are unaware, this overloads the "function call operator". If we have an
-   *  instance, `obj`, then you call this method by invoking `obj(G, P, nfile, fname_template)`.
-   *  In python, this method would be called `__call__`
-   */
-  void operator()(Grid3D &G, Parameters P, int nfile, const FnameTemplate &fname_template) const;
-};
-
-/*! \brief A callable for writing 32-bit outputs of general grid data
- *
- *  \todo Maybe work to consolidate this with FieldWriter
- */
-class F32FieldWriter
-{
-  DatasetSpec dataset_spec_;
-  /*! this is tracked in a pointer so we can mutate the buffer even in const methods
-   *
-   *  \note
-   *  I'm not thrilled that this is a shared pointer, but that seems to be the only
-   *  viable solution since std::function requires that this class is copy-constructible
-   */
-  std::shared_ptr<LazyScratchBuf> lazy_scratch_buf_;
-
- public:
-  F32FieldWriter() = delete;
-  F32FieldWriter(ParameterMap &pmap, const FieldInfo &field_info);
 
   /*! Writes the field data to disk.
    *

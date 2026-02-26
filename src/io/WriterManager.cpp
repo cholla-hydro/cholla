@@ -34,12 +34,12 @@ io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const 
   // in the future, the goal is to read directly from ParameterMap (so we can stop storing
   // some of the relevant variables in Parameters)
   const int n_hydro = pmap.value_or("n_hydro", 1);
-  CHOLLA_ASSERT(n_hydro >= 0, "n_hydro must be positive");
+  CHOLLA_ASSERT(n_hydro >= 1, "n_hydro must be positive");
 
 #ifndef ONLY_PARTICLES
   {
     // setup the data output routine for Hydro data
-    std::pair<io::WriterFn, std::string> rslt = io::FieldWriter::try_create(ndim, pmap, field_info);
+    std::pair<io::WriterFn, std::string> rslt = io::FieldWriter::try_create(ndim, pmap, field_info, false);
     if (rslt.first) {
       packs_.push_back(io::detail::WriterPack{"hydro", n_hydro, rslt.first});
     } else {
@@ -48,11 +48,8 @@ io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const 
   }
 #endif
 
-#ifdef HDF5
-  // TODO: move these checks to a factory function of F32FieldWriter that may fail
   int n_out_float32 = pmap.value_or("n_out_float32", 0);
   if (n_out_float32) {
-    CHOLLA_ASSERT(ndim == 3, "float32 outputs only supported in 3D simulations");
     CHOLLA_ASSERT(n_out_float32 > 0, "n_out_float32 can't be negative");
 
     // Historically, we would invoke float32 output function at a cadence set by n_hydro and
@@ -63,9 +60,12 @@ io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const 
                   "the lcm of n_hydro and n_out_float32 can't be represented by an int");
     int cadence = static_cast<int>(lcm);
 
-    packs_.push_back(io::detail::WriterPack{"hydro-f32", cadence, {io::F32FieldWriter(pmap, field_info)}});
+    std::pair<io::WriterFn, std::string> rslt = io::FieldWriter::try_create(ndim, pmap, field_info, true);
+    if (not rslt.first) {
+      CHOLLA_ERROR("Error while preparing dumps for f32 hdf5 outputs: %s", rslt.second.c_str());
+    }
+    packs_.push_back(io::detail::WriterPack{"hydro-f32", cadence, rslt.first});
   }
-#endif
 
 #ifdef PROJECTION
   packs_.push_back(io::detail::WriterPack{"projection", pmap.value_or("n_projection", 1), &Output_Projected_Data});

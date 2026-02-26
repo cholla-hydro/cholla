@@ -117,6 +117,20 @@ std::optional<std::string> lookup_legacy_short_name_(std::string_view field_name
   }
 }
 
+int bfield_name_to_012_(std::string_view field_name)
+{
+  if (field_name == "magnetic_x") {
+    return 0;
+  } else if (field_name == "magnetic_y") {
+    return 1;
+  } else if (field_name == "magnetic_z") {
+    return 2;
+  } else {
+    std::string tmp(field_name);
+    CHOLLA_ERROR("unexepectedly received field_name: %s", tmp.c_str());
+  }
+}
+
 }  // anonymous namespace
 
 // todo: obviously we should move away from these compile-time ifdef statements
@@ -156,53 +170,96 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
 {
   this->file_format_ = file_format;
 
-  // determine configuration parameters for DsetSpecListBuilder_
+  // Part 1: create a DsetSpecListBuilder_ instance
+  // ==============================================
+
+  // Part 1A: determine configuration parameters for DsetSpecListBuilder_
   std::optional<field::IOBuf> force_buf_choice = std::nullopt;
   std::function<std::string(std::string_view)> out_name_recipe;
-  if (this->file_format_ == FileFormat::TEXT) {
-    // when writing text outputs
-    // -> we ALWAYS save data from host
-    force_buf_choice = std::optional<field::IOBuf>{field::IOBuf::HOST};
-    // -> we try to use the legacy short name, but if none exists, we reuse the field
-    //    name as the output name
-    out_name_recipe = [](std::string_view field_name) -> std::string {
-      std::optional<std::string> maybe_out_name = lookup_legacy_short_name_(field_name);
-      if (maybe_out_name.has_value()) return maybe_out_name.value();
-      return std::string(field_name);
-    };
-  } else {  // this->file_format == FileFormat::H5_NATIVE_PRECISION
-    out_name_recipe = [](std::string_view field_name) { return '/' + std::string(field_name); };
+  switch (this->file_format_) {
+    case FileFormat::TEXT:
+      force_buf_choice = std::optional<field::IOBuf>{field::IOBuf::HOST};
+      // set output name to legacy short name (fall back to field name if there isn't a short name)
+      out_name_recipe = [](std::string_view field_name) -> std::string {
+        std::optional<std::string> maybe_out_name = lookup_legacy_short_name_(field_name);
+        if (maybe_out_name.has_value()) return maybe_out_name.value();
+        return std::string(field_name);
+      };
+      break;
+    case FileFormat::H5_F32:
+      force_buf_choice = std::optional<field::IOBuf>{field::IOBuf::DEVICE};
+      [[fallthrough]];
+    case FileFormat::H5_NATIVE_PRECISION:
+      out_name_recipe = [](std::string_view field_name) { return '/' + std::string(field_name); };
+      break;
+    default:
+      CHOLLA_ERROR("can't handle specified file format");
   }
 
-  // construct DsetSpecListBuilder_
+  // Part 1B: actually DsetSpecListBuilder_
   std::vector<io::DatasetSpecEntry>& vec = this->dataset_spec_.cc_dataset_entries;
   DsetSpecListBuilder_ registrar(vec, field_info, out_name_recipe, force_buf_choice);
 
-  registrar.add_entry("density", WriteCond::ALWAYS);
-  registrar.add_entry("momentum_x", MOMENTUM_CONDITION);
-  registrar.add_entry("momentum_y", MOMENTUM_CONDITION);
-  registrar.add_entry("momentum_z", MOMENTUM_CONDITION);
-  registrar.add_entry("Energy", ENERGY_CONDITION);
+  // Part 2: record the cell-centered fields that will be recorded
+  // =============================================================
+  // TODO: logic for determining recorded fields should be independent of file format
+  if (this->file_format_ == FileFormat::H5_F32) {
+    for (int field_id : field_info.get_id_range(field::Kind::HYDRO)) {  // (includes GasEnergy, if applicable)
+      std::string field_name = field_info.field_name(field_id).value();
+      std::string param_name = "out_float32_" + field_name;
+      if (pmap.value_or(param_name, 0)) {
+        registrar.add_entry(field_name.c_str(), WriteCond::ALWAYS);
+      }
+    }
+
+    for (int field_id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
+      std::string field_name = field_info.field_name(field_id).value();
+      std::string param_name = "out_float32_" + field_name;
+      if (pmap.value_or(param_name, 0)) {
+        registrar.add_entry(field_name.c_str(), WriteCond::ALWAYS);
+      }
+    }
+
+  } else {  // all output formats other than FileFormat::H5_F32
+    registrar.add_entry("density", WriteCond::ALWAYS);
+    registrar.add_entry("momentum_x", MOMENTUM_CONDITION);
+    registrar.add_entry("momentum_y", MOMENTUM_CONDITION);
+    registrar.add_entry("momentum_z", MOMENTUM_CONDITION);
+    registrar.add_entry("Energy", ENERGY_CONDITION);
 #ifdef DE
-  registrar.add_entry("GasEnergy", ENERGY_CONDITION);
+    registrar.add_entry("GasEnergy", ENERGY_CONDITION);
 #endif
 
-  for (int field_id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
-    std::string name = field_info.field_name(field_id).value();
-    if (name == "e_density") {
-      registrar.add_entry(name.c_str(), ELECTRONS_CONDITION);
-    } else if (name == "metal_density") {
-      registrar.add_entry(name.c_str(), METALS_CONDITION);
-    } else {
-      registrar.add_entry(name.c_str(), WriteCond::ALWAYS);
+    for (int field_id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
+      std::string name = field_info.field_name(field_id).value();
+      if (name == "e_density") {
+        registrar.add_entry(name.c_str(), ELECTRONS_CONDITION);
+      } else if (name == "metal_density") {
+        registrar.add_entry(name.c_str(), METALS_CONDITION);
+      } else {
+        registrar.add_entry(name.c_str(), WriteCond::ALWAYS);
+      }
     }
   }
 
-#ifdef MHD
-  dataset_spec_.write_mag = {true, true, true};
-#else
+  // Part 3: record the face-centered fields that will be recorded
+  // =============================================================
+
+  // by default we don't expect to write any bfields
   dataset_spec_.write_mag = {false, false, false};
-#endif
+
+  // this loop is empty if not compiled with MHD
+  for (int field_id : field_info.get_id_range(field::Kind::MAGNETIC)) {
+    std::string field_name = field_info.field_name(field_id).value();
+    // TODO: logic for determining recorded fields should be independent of file format
+    bool write;
+    if (this->file_format_ == FileFormat::H5_F32) {
+      write = pmap.value_or("out_float32_" + field_name, 0) != 0;
+    } else {
+      write = true;
+    }
+    this->dataset_spec_.write_mag[bfield_name_to_012_(field_name)] = write;
+  }
 
   // For now, we don't bothered migrating temperature and gravitational potential
   // away from ifdefs, the handling remains very manual
@@ -219,7 +276,11 @@ template <bool ForceF32Output>
 void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const io::DatasetSpec& dataset_spec,
                                   io::LazyScratchBuf& lazy_scratch_buf)
 {
-#ifdef HDF5
+#ifndef HDF5
+  CHOLLA_ERROR(
+      "This error should never show up. Somehow FieldWriter was configured "
+      "to write hdf5 files when cholla wasn't compiled with hdf5");
+#else
   // get the value-type of the dataset buffers
   using T = std::conditional_t<ForceF32Output, float, Real>;
 
@@ -461,84 +522,39 @@ static void Write_Grid_Text_(std::FILE* fp, const Grid3D& G, const DatasetSpec& 
 
 void FieldWriter::operator()(Grid3D& G, Parameters P, int nfile, const FnameTemplate& fname_template) const
 {
-  // create the filename
-  std::string filename = fname_template.format_fname(nfile, "");
-
-  if (this->file_format_ == FileFormat::H5_NATIVE_PRECISION) {
-#ifndef HDF5
-    CHOLLA_ERROR(
-        "This error should never show up. Somehow FieldWriter was configured "
-        "to write hdf5 files when cholla wasn't compiled with hdf5");
-#else
-    // create the file for hdf5 writes
-    Write_Fields_to_HDF5_helper_<false>(filename, G, this->h5_dataset_spec_, *this->lazy_scratch_buf_);
-#endif
-  } else if (this->file_format_ == FileFormat::TEXT) {
-    if (G.H.nx * G.H.ny * G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
-    // open the file for txt writes
-    std::FILE* out = std::fopen(filename.data(), "w");
-    if (out == nullptr) {
-      CHOLLA_ERROR("Error opening output file.");
+  switch (this->file_format_) {
+    case FileFormat::H5_F32: {
+      std::string filename = fname_template.format_fname(nfile, ".float32");
+      Write_Fields_to_HDF5_helper_<true>(filename, G, this->dataset_spec_, *this->lazy_scratch_buf_);
+      return;
     }
+    case FileFormat::H5_NATIVE_PRECISION: {
+      std::string filename = fname_template.format_fname(nfile, "");
+      Write_Fields_to_HDF5_helper_<false>(filename, G, this->dataset_spec_, *this->lazy_scratch_buf_);
+      return;
+    }
+    case FileFormat::TEXT: {
+      std::string filename = fname_template.format_fname(nfile, "");
 
-    // write the header to the output file
-    G.Write_Header_Text(out);
+      if (G.H.nx * G.H.ny * G.H.nz > 1000) std::printf("Ascii outputs only recommended for small problems!\n");
+      // open the file for txt writes
+      std::FILE* out = std::fopen(filename.data(), "w");
+      if (out == nullptr) {
+        CHOLLA_ERROR("Error opening output file.");
+      }
 
-    // write the conserved variables to the output file
-    Write_Grid_Text_(out, G, this->dataset_spec_);
+      // write the header to the output file
+      G.Write_Header_Text(out);
 
-    // close the output file
-    std::fclose(out);
-  } else {
-    CHOLLA_ERROR("can't handle specified file format");
-  }
-}
+      // write the conserved variables to the output file
+      Write_Grid_Text_(out, G, this->dataset_spec_);
 
-F32FieldWriter::F32FieldWriter(ParameterMap& pmap, const FieldInfo& field_info) : lazy_scratch_buf_(new LazyScratchBuf)
-{
-  // construct DsetSpecListBuilder_ to append entries to `this->dataset_spec_.cc_dataset_entries`
-  std::optional<field::IOBuf> force_buf_choice{field::IOBuf::DEVICE};
-  std::function<std::string(std::string_view)> out_name_recipe = [](std::string_view field_name) {
-    return '/' + std::string(field_name);
-  };
-  std::vector<io::DatasetSpecEntry>& vec = this->dataset_spec_.cc_dataset_entries;
-  DsetSpecListBuilder_ dsentry_l_builder(vec, field_info, out_name_recipe, force_buf_choice);
-
-  // includes GasEnergy if applicable
-  for (int field_id : field_info.get_id_range(field::Kind::HYDRO)) {
-    std::string field_name = field_info.field_name(field_id).value();
-    std::string param_name = "out_float32_" + field_name;
-    if (pmap.value_or(param_name, 0)) {
-      dsentry_l_builder.add_entry(field_name.c_str(), WriteCond::ALWAYS);
+      // close the output file
+      std::fclose(out);
+      return;
     }
   }
-
-  auto map_name_to_idx = [](const std::string& field_name) -> int {
-    switch (field_name[field_name.size() - 1]) {
-      case 'x':
-        return 0;
-      case 'y':
-        return 1;
-      case 'z':
-        return 2;
-      default:
-        CHOLLA_ERROR("unexepectedly received field_name: %s", field_name.c_str());
-    }
-  };
-
-  for (int field_id : field_info.get_id_range(field::Kind::MAGNETIC)) {
-    std::string field_name                                     = field_info.field_name(field_id).value();
-    bool write_field                                           = pmap.value_or("out_float32_" + field_name, 0) != 0;
-    this->dataset_spec_.write_mag[map_name_to_idx(field_name)] = write_field;
-  }
-}
-
-void io::F32FieldWriter::operator()(Grid3D& G, Parameters P, int nfile, const FnameTemplate& fname_template) const
-{
-#ifdef HDF5
-  std::string filename = fname_template.format_fname(nfile, ".float32");
-  Write_Fields_to_HDF5_helper_<true>(filename, G, this->dataset_spec_, *this->lazy_scratch_buf_);
-#endif  // HDF5
+  CHOLLA_ERROR("can't handle specified file format");
 }
 
 }  // namespace io
