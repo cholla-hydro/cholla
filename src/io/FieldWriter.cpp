@@ -89,7 +89,6 @@ struct DsetSpecListBuilder_ {
   }
 };
 
-
 /*! Lookup the shortened output name that was historically used in text outputs
  *
  *  \todo Can we reuse this for a similar purpose when recording slices?
@@ -217,14 +216,14 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
  *  really cut down on these differences!
  */
 template <bool ForceF32Output>
-void Write_Fields_to_HDF5_helper_(const std::string &filename, Grid3D &G, const io::DatasetSpec &dataset_spec,
-                                  io::LazyScratchBuf &lazy_scratch_buf)
+void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const io::DatasetSpec& dataset_spec,
+                                  io::LazyScratchBuf& lazy_scratch_buf)
 {
 #ifdef HDF5
   // get the value-type of the dataset buffers
   using T = std::conditional_t<ForceF32Output, float, Real>;
 
-  const Header &H = G.H;
+  const Header& H = G.H;
   bool is_3D      = H.nx > 1 and H.ny > 1 and H.nz > 1;
 
   if (ForceF32Output and not is_3D) {
@@ -248,25 +247,25 @@ void Write_Fields_to_HDF5_helper_(const std::string &filename, Grid3D &G, const 
   #else
   size_t buffer_size = nx_dset * ny_dset * nz_dset;
   #endif
-  T *dev_dataset_buf  = lazy_scratch_buf.get_buf_dev<T>(buffer_size);
-  T *host_dataset_buf = lazy_scratch_buf.get_buf_host<T>(buffer_size);
+  T* dev_dataset_buf  = lazy_scratch_buf.get_buf_dev<T>(buffer_size);
+  T* host_dataset_buf = lazy_scratch_buf.get_buf_host<T>(buffer_size);
 
   // write out regular cell-centered fields
-  for (const io::DatasetSpecEntry &cur_spec : dataset_spec.cc_dataset_entries) {
+  for (const io::DatasetSpecEntry& cur_spec : dataset_spec.cc_dataset_entries) {
     if constexpr (ForceF32Output) {
       // todo: consider more robust behavior here
       CHOLLA_ASSERT(cur_spec.condition == io::WriteCond::ALWAYS, "unexpected case");
       CHOLLA_ASSERT(cur_spec.io_buf == field::IOBuf::DEVICE, "unexpected case");
-      Real *ptr = &G.C.device[cur_spec.field_id * H.n_cells];
+      Real* ptr = &G.C.device[cur_spec.field_id * H.n_cells];
       Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf,
                           ptr, cur_spec.name.c_str());
     } else {
       if (cur_spec.condition == io::WriteCond::REQUIRE_COMPLETE_DATA && not H.Output_Complete_Data) continue;
       if (cur_spec.io_buf == field::IOBuf::HOST) {
-        Real *ptr = &G.C.host[cur_spec.field_id * H.n_cells];
+        Real* ptr = &G.C.host[cur_spec.field_id * H.n_cells];
         Write_Grid_HDF5_Field_CPU(H, file_id, host_dataset_buf, ptr, cur_spec.name.c_str());
       } else {
-        Real *ptr = &G.C.device[cur_spec.field_id * H.n_cells];
+        Real* ptr = &G.C.device[cur_spec.field_id * H.n_cells];
         Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, ptr, cur_spec.name.c_str());
       }
     }
@@ -275,11 +274,11 @@ void Write_Fields_to_HDF5_helper_(const std::string &filename, Grid3D &G, const 
   // write out magnetic fields
   // -> we maintain historical behavior and only do this for 3D simulations
   if (is_3D) {
-    const char *dset_names[3] = {"/magnetic_x", "/magnetic_y", "/magnetic_z"};
+    const char* dset_names[3] = {"/magnetic_x", "/magnetic_y", "/magnetic_z"};
     for (int i = 0; i < 3; i++) {
       if (not dataset_spec.write_mag[i]) continue;
-      const char *field_name = dset_names[i] + 1;
-      Real *ptr              = &G.C.device[H.n_cells * G.field_info.field_id(field_name).value()];
+      const char* field_name = dset_names[i] + 1;
+      Real* ptr              = &G.C.device[H.n_cells * G.field_info.field_id(field_name).value()];
       if constexpr (ForceF32Output) {
         // TODO (by Alwin, for anyone) : Repair output format if needed and remove the chprintf when appropriate
         chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
@@ -305,7 +304,7 @@ void Write_Fields_to_HDF5_helper_(const std::string &filename, Grid3D &G, const 
 
   #if defined(GRAVITY) && defined(OUTPUT_POTENTIAL)
     if (is_3D) {  // 3D case
-      const Grav3D &Grav = G.Grav;
+      const Grav3D& Grav = G.Grav;
       Write_Generic_HDF5_Field_GPU(Grav.nx_local + 2 * N_GHOST_POTENTIAL, Grav.ny_local + 2 * N_GHOST_POTENTIAL,
                                    Grav.nz_local + 2 * N_GHOST_POTENTIAL, Grav.nx_local, Grav.ny_local, Grav.nz_local,
                                    N_GHOST_POTENTIAL, file_id, host_dataset_buf, dev_dataset_buf, Grav.F.potential_d,
@@ -371,7 +370,7 @@ static int Record_Colnames_And_Get_Field_Ptrs_(const Real** ptr_arr, bool* is_ce
   }
 
   // now, let's handled magnetic fields (if applicable)
-  const char *field_names[3] = {"magnetic_x", "magnetic_y", "magnetic_z"};
+  const char* field_names[3] = {"magnetic_x", "magnetic_y", "magnetic_z"};
   for (int i = 0; i < 3; i++) {
     if (not dataset_spec.write_mag[i]) continue;
 
@@ -388,7 +387,6 @@ static int Record_Colnames_And_Get_Field_Ptrs_(const Real** ptr_arr, bool* is_ce
 
   return field_ptr_counter;
 }
-
 
 /*! Helper function that write the conserved quantities to a text output file
  *
@@ -496,12 +494,13 @@ void FieldWriter::operator()(Grid3D& G, Parameters P, int nfile, const FnameTemp
   }
 }
 
-F32FieldWriter::F32FieldWriter(ParameterMap &pmap, const FieldInfo &field_info) : lazy_scratch_buf_(new LazyScratchBuf)
+F32FieldWriter::F32FieldWriter(ParameterMap& pmap, const FieldInfo& field_info) : lazy_scratch_buf_(new LazyScratchBuf)
 {
   // construct DsetSpecListBuilder_ to append entries to `this->dataset_spec_.cc_dataset_entries`
   std::optional<field::IOBuf> force_buf_choice{field::IOBuf::DEVICE};
-  std::function<std::string(std::string_view)> out_name_recipe
-    = [](std::string_view field_name) { return '/' + std::string(field_name); };
+  std::function<std::string(std::string_view)> out_name_recipe = [](std::string_view field_name) {
+    return '/' + std::string(field_name);
+  };
   std::vector<io::DatasetSpecEntry>& vec = this->dataset_spec_.cc_dataset_entries;
   DsetSpecListBuilder_ dsentry_l_builder(vec, field_info, out_name_recipe, force_buf_choice);
 
@@ -514,7 +513,7 @@ F32FieldWriter::F32FieldWriter(ParameterMap &pmap, const FieldInfo &field_info) 
     }
   }
 
-  auto map_name_to_idx = [](const std::string &field_name) -> int {
+  auto map_name_to_idx = [](const std::string& field_name) -> int {
     switch (field_name[field_name.size() - 1]) {
       case 'x':
         return 0;
@@ -534,7 +533,7 @@ F32FieldWriter::F32FieldWriter(ParameterMap &pmap, const FieldInfo &field_info) 
   }
 }
 
-void io::F32FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const FnameTemplate &fname_template) const
+void io::F32FieldWriter::operator()(Grid3D& G, Parameters P, int nfile, const FnameTemplate& fname_template) const
 {
 #ifdef HDF5
   std::string filename = fname_template.format_fname(nfile, ".float32");
