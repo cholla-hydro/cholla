@@ -20,22 +20,39 @@
 io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const FieldInfo& field_info)
     : fname_template_(P)
 {
-  bool is_3D = (P.ny > 1) && (P.nz > 1);
+  int ndim;
+  if ((P.nx > 1) and (P.ny > 1) and (P.nz > 1)) {
+    ndim = 3;
+  } else if ((P.nx > 1) and (P.ny > 1) and (P.nz == 1)) {
+    ndim = 2;
+  } else if ((P.nx > 1) and (P.ny == 1) and (P.nz == 1)) {
+    ndim = 1;
+  } else {
+    CHOLLA_ERROR("Parameter file had unexpected dimensions");
+  }
+
   // in the future, the goal is to read directly from ParameterMap (so we can stop storing
   // some of the relevant variables in Parameters)
   const int n_hydro = pmap.value_or("n_hydro", 1);
   CHOLLA_ASSERT(n_hydro >= 0, "n_hydro must be positive");
 
 #ifndef ONLY_PARTICLES
-  // setup the data output routine for Hydro data
-  packs_.push_back(io::detail::WriterPack{"hydro", n_hydro, {io::FieldWriter(pmap, field_info)}});
+  {
+    // setup the data output routine for Hydro data
+    std::pair<io::WriterFn, std::string> rslt = io::FieldWriter::try_create(ndim, pmap, field_info);
+    if (rslt.first) {
+      packs_.push_back(io::detail::WriterPack{"hydro", n_hydro, rslt.first});
+    } else {
+      chprintf("WARNING: %s\n", rslt.second.c_str());
+    }
+  }
 #endif
 
 #ifdef HDF5
   // TODO: move these checks to a factory function of F32FieldWriter that may fail
   int n_out_float32 = pmap.value_or("n_out_float32", 0);
   if (n_out_float32) {
-    CHOLLA_ASSERT(is_3D, "float32 outputs only supported in 3D simulations");
+    CHOLLA_ASSERT(ndim == 3, "float32 outputs only supported in 3D simulations");
     CHOLLA_ASSERT(n_out_float32 > 0, "n_out_float32 can't be negative");
 
     // Historically, we would invoke float32 output function at a cadence set by n_hydro and
