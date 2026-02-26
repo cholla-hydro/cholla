@@ -152,13 +152,9 @@ static constexpr WriteCond ELECTRONS_CONDITION = WriteCond::ALWAYS;
 static constexpr WriteCond ELECTRONS_CONDITION = WriteCond::REQUIRE_COMPLETE_DATA;
 #endif
 
-FieldWriter::FieldWriter(ParameterMap& pmap, const FieldInfo& field_info)
+FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const FieldInfo& field_info)
 {
-#ifdef HDF5
-  this->file_format_ = FileFormat::H5_NATIVE_PRECISION;
-#else
-  this->file_format_ = FileFormat::TEXT;
-#endif
+  this->file_format_ = file_format;
 
   // determine configuration parameters for DsetSpecListBuilder_
   std::optional<field::IOBuf> force_buf_choice = std::nullopt;
@@ -297,13 +293,12 @@ static void Write_Grid_Text_(std::FILE* fp, const Grid3D& G, const DatasetSpec& 
   const Grid3D::Conserved& C  = G.C;
   const FieldInfo& field_info = G.field_info;
 
-  // Write the conserved quantities to the output file
+  // sanity check: the factory method should prevent construction of FieldWriter in
+  // circumstances where the following assertion would fail
   bool is_1D = (H.nx > 1 && H.ny == 1 && H.nz == 1);
+  CHOLLA_ASSERT(is_1D, "can only write Fields to text files for 1D datasets");
 
-  if (not is_1D) {
-    chprintf("Warning: can only write Fields to text files for 1D datasets\n");
-    return;
-  }
+  // Write the conserved quantities to the output file
 
   constexpr int MAX_FIELDS = 20;  // <- make this bigger, if necessary
   {                               // perform some sanity checks!

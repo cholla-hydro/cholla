@@ -18,6 +18,9 @@
 namespace io
 {
 
+/*! wraps a function or function-like object for writing outputs */
+using WriterFn = std::function<void(Grid3D &, Parameters, int, const FnameTemplate &)>;
+
 namespace detail
 {
 
@@ -28,7 +31,7 @@ struct WriterPack {
   /*! specifies the cadence for invoking the writer */
   int cadence;
   /*! specifes the writer-function or function-like object */
-  const std::function<void(Grid3D &, Parameters, int, const FnameTemplate &)> fn;
+  const WriterFn fn;
 };
 
 }  // namespace detail

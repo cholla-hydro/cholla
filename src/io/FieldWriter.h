@@ -7,6 +7,7 @@
 
 #include <optional>
 #include <string>
+#include <utility>  // std::pair
 #include <vector>
 
 #include "../global/global.h"
@@ -14,6 +15,7 @@
 #include "../grid/grid3D.h"
 #include "../io/FnameTemplate.h"     // define FnameTemplate
 #include "../io/ParameterMap.h"      // define ParameterMap
+#include "../io/WriterManager.h"     // declare WriterFn
 #include "../utils/basic_structs.h"  // VectorXYZ
 
 namespace io
@@ -77,9 +79,39 @@ class FieldWriter
   FileFormat file_format_;
   DatasetSpec dataset_spec_;
 
+  // this has been made private to force the usage of the factory method
+  FieldWriter(FileFormat file_format, ParameterMap &pmap, const FieldInfo &field_info);
+
  public:
   FieldWriter() = delete;
-  FieldWriter(ParameterMap &pmap, const FieldInfo &field_info);
+
+  /*! Factory method that tries to construct a FieldWriter instance
+   *
+   *  If this is unsuccessful, the returned @ref WriterFn will be "empty" and the
+   *  string will describe the underlying issue.
+   *
+   *  \note
+   *  At the time of writing, end-users don't have a lot of control over whether this
+   *  method actually gets call. Consequently, the callsite needs to make the judgement
+   *  on whether or how to report errors. (We can address this in the future)
+   */
+  static std::pair<WriterFn, std::string> try_create(int ndim, ParameterMap &pmap, const FieldInfo &field_info)
+  {
+#ifdef HDF5
+    FileFormat file_format = FileFormat::H5_NATIVE_PRECISION;
+#else
+    FileFormat file_format = FileFormat::TEXT;
+#endif
+
+    std::pair<WriterFn, std::string> out;
+    if (file_format == FileFormat::TEXT and ndim != 1) {
+      out.second = std::string("can only write Fields to text files for 1D datasets");
+      return out;
+    } else {
+      out.first = WriterFn(FieldWriter(file_format, pmap, field_info));
+      return out;
+    }
+  }
 
   /*! Writes the field data to disk.
    *
