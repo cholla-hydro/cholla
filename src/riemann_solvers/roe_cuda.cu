@@ -242,8 +242,8 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
       Real coeff = 0.0;
 
       // left eigenvector [0] * del_q
-      a0 = del_d * Na * (0.5 * g1 * vsq + vx * a) - del_mx * Na * (g1 * vx + a) - del_my * Na * g1 * vy -
-           del_mz * Na * g1 * vz + del_E * Na * g1;
+      a0    = del_d * Na * (0.5 * g1 * vsq + vx * a) - del_mx * Na * (g1 * vx + a) - del_my * Na * g1 * vy -
+              del_mz * Na * g1 * vz + del_E * Na * g1;
       coeff = a0 * fmax(fabs(lambda_m), etah);
       sum_0 += coeff;
       sum_1 += coeff * (vx - a);
@@ -261,8 +261,8 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
       sum_3 += coeff;
       sum_4 += coeff * vz;
       // left eigenvector [3] * del_q
-      a3 = del_d * (1.0 - Na * g1 * vsq) + del_mx * g1 * vx / asq + del_my * g1 * vy / asq + del_mz * g1 * vz / asq -
-           del_E * g1 / asq;
+      a3    = del_d * (1.0 - Na * g1 * vsq) + del_mx * g1 * vx / asq + del_my * g1 * vy / asq + del_mz * g1 * vz / asq -
+              del_E * g1 / asq;
       coeff = a3 * fmax(fabs(lambda_0), etah);
       sum_0 += coeff;
       sum_1 += coeff * vx;
@@ -270,8 +270,8 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real *dev_bounds_L, Real *dev_bounds_R
       sum_3 += coeff * vz;
       sum_4 += coeff * 0.5 * vsq;
       // left eigenvector [4] * del_q
-      a4 = del_d * Na * (0.5 * g1 * vsq - vx * a) - del_mx * Na * (g1 * vx - a) - del_my * Na * g1 * vy -
-           del_mz * Na * g1 * vz + del_E * Na * g1;
+      a4    = del_d * Na * (0.5 * g1 * vsq - vx * a) - del_mx * Na * (g1 * vx - a) - del_my * Na * g1 * vy -
+              del_mz * Na * g1 * vz + del_E * Na * g1;
       coeff = a4 * fmax(fabs(lambda_p), etah);
       sum_0 += coeff;
       sum_1 += coeff * (vx + a);

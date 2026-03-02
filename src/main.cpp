@@ -376,7 +376,7 @@ int main(int argc, char *argv[])
     // Check that the magnetic field has zero divergence
     mhd::checkMagneticDivergence(G);
 #endif  // MHD
-  }     /*end loop over timesteps*/
+  } /*end loop over timesteps*/
 
 #ifdef CPU_TIME
   // Print timing statistics
