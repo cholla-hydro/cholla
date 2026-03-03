@@ -62,7 +62,8 @@ void Write_Projection_HDF5_(const Grid3D &G, hid_t file_id)
   dims[1]               = nz_dset;
   hid_t dataspace_xz_id = H5Screate_simple(2, dims, nullptr);
 
-  auto calc_T = [=](int xid, int yid, int zid) -> Real {
+  // define a lambda function to compute temperature
+  auto calc_T = [&](int xid, int yid, int zid) -> Real {
     int const id = cuda_utilities::compute1DIndex(xid, yid, zid, H.nx, H.ny);
 
     Real const d = C.density[id];
@@ -90,6 +91,9 @@ void Write_Projection_HDF5_(const Grid3D &G, hid_t file_id)
     return T;
   };
 
+  // in principle, we could refactor out some of this logic so that we could get rid of
+  // the ifdef DUST statement. For now, that doesn't seem very urgent
+
   // Copy the xy density and temperature projections to the memory buffer
   for (int j = 0; j < H.ny_real; j++) {
     for (int i = 0; i < H.nx_real; i++) {
@@ -111,32 +115,7 @@ void Write_Projection_HDF5_(const Grid3D &G, hid_t file_id)
   #ifdef DUST
         dust_xy += C.dust_density[id] * H.dz;
   #endif
-        // calculate number density
-        Real const n = d * DENSITY_UNIT / (mu * MP);
-
-  // calculate temperature
-  #ifdef DE
-        Real const T = hydro_utilities::Calc_Temp_DE(C.GasEnergy[id], gama, n);
-  #else  // DE is not defined
-        Real const mx = C.momentum_x[id];
-        Real const my = C.momentum_y[id];
-        Real const mz = C.momentum_z[id];
-        Real const E  = C.Energy[id];
-
-    #ifdef MHD
-        auto const magnetic_centered =
-            mhd::utils::cellCenteredMagneticFields(C.host, id, xid, yid, zid, H.n_cells, H.nx, H.ny);
-        Real const T = hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n, magnetic_centered.x(),
-                                                            magnetic_centered.y(), magnetic_centered.z());
-    #else   // MHD is not defined
-        Real const T = hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n);
-    #endif  // MHD
-  #endif    // DE
-
-        Real T_alt = calc_T(xid, yid, zid);
-        // CHOLLA_ASSERT(T_alt == T, "checking consistency %.17g %.17g", T_alt, T);
-
-        Txy += T * d * H.dz;
+        Txy += calc_T(xid, yid, zid) * d * H.dz;
       }
       int const buf_id           = j + i * H.ny_real;
       dataset_buffer_dxy[buf_id] = dxy;
@@ -167,26 +146,7 @@ void Write_Projection_HDF5_(const Grid3D &G, hid_t file_id)
   #ifdef DUST
         dust_xz += C.dust_density[id] * H.dy;
   #endif
-        // calculate number density
-        Real const n = d * DENSITY_UNIT / (mu * MP);
-  #ifdef DE
-        Real const T = hydro_utilities::Calc_Temp_DE(C.GasEnergy[id], gama, n);
-  #else  // DE is not defined
-        Real const mx = C.momentum_x[id];
-        Real const my = C.momentum_y[id];
-        Real const mz = C.momentum_z[id];
-        Real const E  = C.Energy[id];
-
-    #ifdef MHD
-        auto const magnetic_centered =
-            mhd::utils::cellCenteredMagneticFields(C.host, id, xid, yid, zid, H.n_cells, H.nx, H.ny);
-        Real const T = hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n, magnetic_centered.x(),
-                                                            magnetic_centered.y(), magnetic_centered.z());
-    #else   // MHD is not defined
-        Real const T = hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n);
-    #endif  // MHD
-  #endif    // DE
-        Txz += T * d * H.dy;
+        Txz += calc_T(xid, yid, zid) * d * H.dy;
       }
       int const buf_id           = k + i * H.nz_real;
       dataset_buffer_dxz[buf_id] = dxz;
