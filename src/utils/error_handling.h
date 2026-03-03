@@ -3,7 +3,6 @@
 #include <stdlib.h>
 
 #include <optional>
-#include <utility>  // std::exchange
 
 #include "../global/global.h"
 [[noreturn]] void chexit(int code);
