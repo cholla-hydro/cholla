@@ -15,6 +15,7 @@
 #include <string>
 
 #include "../grid/field_info.h"
+#include "../io/FieldWriter.h"
 #include "../io/FnameTemplate.h"
 #include "../io/io.h"
 #include "../utils/basic_structs.h"
@@ -26,31 +27,25 @@ namespace io
 
 SliceWriter::SliceWriter(ParameterMap &pmap, const FieldInfo &field_info)
 {
-  // this maps field names to shorttened dataset names
-  // -> this is for historical purposes. Honestly, I think it would be better to
-  //    preserve the full field name
-  const std::map<std::string, std::string> name_map{{"density", "d"},     {"momentum_x", "mx"}, {"momentum_y", "my"},
-                                                    {"momentum_z", "mz"}, {"Energy", "E"},      {"GasEnergy", "GE"}};
   // append entries to cc_field_id_dset_name_pairs_ for each cell-centered hydro field
   for (int field_id : field_info.get_id_range(field::Kind::HYDRO)) {
-    std::string field_name = field_info.field_name(field_id).value();
+    std::optional<std::string> maybe_field_name = field_info.field_name(field_id);
+    std::string field_name                      = get_or_abort(maybe_field_name);
+    std::optional<std::string> maybe_dset_name  = lookup_legacy_short_name_(field_name, false);
     std::string dset_name;
-    auto search = name_map.find(field_name);
-    if (search == name_map.end()) {
+    if (maybe_dset_name.has_value()) {
+      dset_name = maybe_dset_name.value();
+    } else {
       // in this case, I REALLY think we should stick with the regular field name
       CHOLLA_ERROR("there isn't a standard short-name for the \"%s\" field name", field_name.c_str());
-    } else {
-      dset_name = search->second;
     }
     this->cc_field_id_dset_name_pairs_.emplace_back(field_id, dset_name);
   }
 
-  // if there are any passive scalars, we will ONLY save the very first one in a dataset
-  // named scalar
-  // -> frankly, I think we would be better off just ignoring this historical convention
-  //    and saving slices of all passive scalars to datasets that use the field's name
+  // append an entry for each field_name
   for (int field_id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
-    this->cc_field_id_dset_name_pairs_.emplace_back(field_id, "scalar");
+    std::optional<std::string> maybe_field_name = field_info.field_name(field_id);
+    this->cc_field_id_dset_name_pairs_.emplace_back(field_id, get_or_abort(maybe_field_name));
   }
 }
 
