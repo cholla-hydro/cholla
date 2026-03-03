@@ -168,6 +168,7 @@ static constexpr WriteCond ELECTRONS_CONDITION = WriteCond::REQUIRE_COMPLETE_DAT
 #endif
 
 FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const FieldInfo& field_info)
+    : lazy_scratch_buf_(std::make_shared<LazyScratchBuf>())
 {
   this->file_format_ = file_format;
 
