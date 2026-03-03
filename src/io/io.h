@@ -8,6 +8,7 @@
 #include "../grid/grid3D.h"
 #include "../io/FieldWriter.h"
 #include "../io/FnameTemplate.h"
+#include "../io/RotatedProjWriter.h"  // io::Rotation
 #include "../io/WriterManager.h"
 
 /* Local function that designates whether we are using a root-process. It gives
@@ -32,9 +33,6 @@ void Output_Float32(Grid3D& G, struct Parameters P, int nfile, const FnameTempla
 
 /* Output a projection of the grid data to file. */
 void Output_Projected_Data(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);
-
-/* Output a rotated projection of the grid data to file. */
-void Output_Rotated_Projected_Data(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);
 
 /* Output xy, xz, and yz slices of the grid data to file. */
 void Output_Slices(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);

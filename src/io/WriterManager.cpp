@@ -10,8 +10,9 @@
 #include <vector>
 
 #include "../gravity/grav3D.h"
-#include "../io/FieldWriter.h"   // FieldWriter
-#include "../io/ParameterMap.h"  // define ParameterMap
+#include "../io/FieldWriter.h"        // FieldWriter
+#include "../io/ParameterMap.h"       // define ParameterMap
+#include "../io/RotatedProjWriter.h"  // RotatedProjWriter
 #include "../io/io.h"
 
 io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const FieldInfo& field_info)
@@ -38,8 +39,8 @@ io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const 
 #endif /*PROJECTION*/
 
 #ifdef ROTATED_PROJECTION
-  packs_.push_back(io::detail::WriterPack{"rotated_projection", pmap.value_or("n_rotated_projection", 1),
-                                          &Output_Rotated_Projected_Data});
+  packs_.push_back(io::detail::WriterPack{
+      "rotated_projection", pmap.value_or("n_rotated_projection", 1), {io::RotatedProjWriter(pmap)}});
 #endif /*ROTATED_PROJECTION*/
 
 #ifdef SLICES
