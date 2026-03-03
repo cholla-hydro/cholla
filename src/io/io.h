@@ -27,9 +27,6 @@ void Print_Stats(Grid3D& G);
 /* Write the data */
 void Write_Data(Grid3D& G, struct Parameters P, int nfile, const io::WriterManager& write_manager);
 
-/* Output a projection of the grid data to file. */
-void Output_Projected_Data(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);
-
 /* Output a rotated projection of the grid data to file. */
 void Output_Rotated_Projected_Data(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);
 
