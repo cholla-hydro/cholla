@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 // External Includes
@@ -47,6 +48,11 @@ class DeviceVector
                 "usage of functions like cudaMemcpy, cudaMemcpyPeer, cudaMemset");
 
  public:
+  typedef T value_type;
+
+  /*! Construct an empty DeviceVector */
+  DeviceVector() noexcept : _size(0), _ptr(nullptr) {}
+
   /*!
    * \brief Construct a new Device Vector object by calling the
    * `_allocate` private method
@@ -58,6 +64,20 @@ class DeviceVector
    */
   DeviceVector(size_t const size, bool const initialize = false);
 
+  /*! Define a move constructor */
+  DeviceVector(DeviceVector<T> &&other) noexcept
+      : _size(std::exchange(other._size, 0)), _ptr(std::exchange(other._ptr, nullptr))
+  {
+  }
+
+  /*! Define move assignment */
+  DeviceVector &operator=(DeviceVector<T> &&other) noexcept
+  {
+    std::swap(_size, other._size);
+    std::swap(_ptr, other._ptr);
+    return *this;
+  }
+
   /*!
    * \brief Destroy the Device Vector object by calling the `_deAllocate`
    * private method
@@ -68,11 +88,8 @@ class DeviceVector
   /* The following are deleted because they currently lead to invalid state.
    * (But they can all easily be implemented in the future).
    */
-  DeviceVector()                                           = delete;
   DeviceVector(const DeviceVector<T> &)                    = delete;
-  DeviceVector(DeviceVector<T> &&)                         = delete;
   DeviceVector<T> &operator=(const DeviceVector<T> &other) = delete;
-  DeviceVector<T> &operator=(DeviceVector<T> &&other)      = delete;
 
   /*!
    * \brief Get the raw device pointer
@@ -192,14 +209,21 @@ class DeviceVector
   void _allocate(size_t const size)
   {
     _size = size;
-    GPU_Error_Check(cudaMalloc(&_ptr, _size * sizeof(T)));
+    if (size == 0) {
+      _ptr = nullptr;
+    } else {
+      GPU_Error_Check(cudaMalloc(&_ptr, _size * sizeof(T)));
+    }
   }
 
   /*!
    * \brief Free the device side array
    *
    */
-  void _deAllocate() { GPU_Error_Check(cudaFree(_ptr)); }
+  void _deAllocate()
+  {
+    if (_ptr != nullptr) GPU_Error_Check(cudaFree(_ptr));
+  }
 };
 }  // namespace cuda_utilities
 // =============================================================================
@@ -217,12 +241,14 @@ namespace cuda_utilities
 
 // =========================================================================
 template <typename T>
-DeviceVector<T>::DeviceVector(size_t const size, bool const initialize)
+DeviceVector<T>::DeviceVector(size_t const size, bool const initialize) : DeviceVector()
 {
-  _allocate(size);
+  if (size > 0) {
+    _allocate(size);
 
-  if (initialize) {
-    GPU_Error_Check(cudaMemset(_ptr, 0, _size * sizeof(T)));
+    if (initialize) {
+      GPU_Error_Check(cudaMemset(_ptr, 0, _size * sizeof(T)));
+    }
   }
 }
 // =========================================================================
@@ -240,11 +266,13 @@ void DeviceVector<T>::resize(size_t const newSize)
   // Allocate new array
   _allocate(newSize);
 
-  // Copy the values from the old array to the new array
-  GPU_Error_Check(cudaMemcpyPeer(_ptr, 0, oldDevPtr, 0, count));
+  if (oldDevPtr != nullptr) {
+    // Copy the values from the old array to the new array
+    GPU_Error_Check(cudaMemcpyPeer(_ptr, 0, oldDevPtr, 0, count));
 
-  // Free the old array
-  GPU_Error_Check(cudaFree(oldDevPtr));
+    // Free the old array
+    GPU_Error_Check(cudaFree(oldDevPtr));
+  }
 }
 // =========================================================================
 

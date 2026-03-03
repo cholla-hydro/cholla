@@ -102,7 +102,7 @@ class FieldInfo
    *  `{-1, 0, 0}` (we need to think about conventions), could denote a field centered
    *  on x-faces.
    */
-  std::optional<bool> is_cell_centered(int field_id)
+  std::optional<bool> is_cell_centered(int field_id) const
   {
     if (field_id < 0 || field_id >= n_fields()) {
       return std::nullopt;

@@ -6,7 +6,7 @@
 #include "SliceWriter.h"
 
 #ifndef HDF5
-#include <hdf5.h>
+  #include <hdf5.h>
 #endif
 
 #include <algorithm>  // std::fill, std::max
@@ -269,9 +269,9 @@ void SliceWriter::operator()(Grid3D &G, struct Parameters P, int nfile, const Fn
   if (status < 0) {
     CHOLLA_ERROR("Output_Slices: File write failed. ProcID: %d\n", procID);
   }
-#else     // HDF5 is not defined
+#else   // HDF5 is not defined
   printf("Output_Slices only defined for hdf5 writes.\n");
-#endif    // HDF5
+#endif  // HDF5
 }
 
 }  // namespace io

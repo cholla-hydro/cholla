@@ -141,30 +141,6 @@ bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameter
   /* Copy into correct entry in parameters struct */
   if (strcmp(name, "nfile") == 0) {
     parms->nfile = atoi(value);
-  } else if (strcmp(name, "out_float32_density") == 0) {
-    parms->out_float32_density = atoi(value);
-  } else if (strcmp(name, "out_float32_momentum_x") == 0) {
-    parms->out_float32_momentum_x = atoi(value);
-  } else if (strcmp(name, "out_float32_momentum_y") == 0) {
-    parms->out_float32_momentum_y = atoi(value);
-  } else if (strcmp(name, "out_float32_momentum_z") == 0) {
-    parms->out_float32_momentum_z = atoi(value);
-  } else if (strcmp(name, "out_float32_Energy") == 0) {
-    parms->out_float32_Energy = atoi(value);
-#ifdef DE
-  } else if (strcmp(name, "out_float32_GasEnergy") == 0) {
-    parms->out_float32_GasEnergy = atoi(value);
-#endif  // DE
-  } else if (strcmp(name, "output_always") == 0) {
-    parms->output_always = atoi(value);
-#ifdef MHD
-  } else if (strcmp(name, "out_float32_magnetic_x") == 0) {
-    parms->out_float32_magnetic_x = atoi(value);
-  } else if (strcmp(name, "out_float32_magnetic_y") == 0) {
-    parms->out_float32_magnetic_y = atoi(value);
-  } else if (strcmp(name, "out_float32_magnetic_z") == 0) {
-    parms->out_float32_magnetic_z = atoi(value);
-#endif  // MHD
   } else if (strcmp(name, "output_always") == 0) {
     int tmp = atoi(value);
     // In this case the CHOLLA_ASSERT macro runs into issuse with the readability-simplify-boolean-expr clang-tidy check

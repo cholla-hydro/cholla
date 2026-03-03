@@ -51,12 +51,6 @@
   #include "../analysis/analysis.h"
 #endif
 
-// forward declare the DatasetSpec struct
-namespace io
-{
-struct DatasetSpec;
-}  // namespace io
-
 struct Rotation {
   /*! \var nx
    *   \brief Number of pixels in x-dir of rotated, projected image*/
@@ -488,28 +482,12 @@ class Grid3D
   void Update_Time();
   /*! \fn void Write_Header_Text(FILE *fp)
    *  \brief Write the relevant header info to a text output file. */
-  void Write_Header_Text(FILE *fp);
-
-  /*! \fn void Write_Grid_Text(FILE *fp)
-   *  \brief Write the grid to a file, at the current simulation time. */
-  void Write_Grid_Text(FILE *fp);
-
-  /*! \fn void Write_Header_Binary(FILE *fp)
-   *  \brief Write the relevant header info to a binary output file. */
-  void Write_Header_Binary(FILE *fp);
-
-  /*! \fn void Write_Grid_Binary(FILE *fp)
-   *  \brief Write the grid to a file, at the current simulation time. */
-  void Write_Grid_Binary(FILE *fp);
+  void Write_Header_Text(FILE *fp) const;
 
 #ifdef HDF5
   /*! \fn void Write_Header_HDF5(hid_t file_id)
    *  \brief Write the relevant header info to the HDF5 file. */
   void Write_Header_HDF5(hid_t file_id);
-
-  /*! \fn void Write_Grid_HDF5(hid_t file_id)
-   *  \brief Write the grid to a file, at the current simulation time. */
-  void Write_Grid_HDF5(hid_t file_id, const io::DatasetSpec &h5_dataset_spec);
 
   /*! \fn void Write_Projection_HDF5(hid_t file_id)
    *  \brief Write projected density and temperature data to a file. */
@@ -534,10 +512,6 @@ class Grid3D
   /*! \fn void Read_Grid_Cat(struct Parameters P)
    *  \brief Read in grid data from a single concatenated output file. */
   void Read_Grid_Cat(struct Parameters P);
-
-  /*! \fn Read_Grid_Binary(FILE *fp)
-   *  \brief Read in grid data from a binary file. */
-  void Read_Grid_Binary(FILE *fp);
 
 #ifdef HDF5
   /*! \fn void Read_Grid_HDF5(hid_t file_id)

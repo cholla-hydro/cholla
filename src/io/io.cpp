@@ -10,11 +10,11 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <type_traits>
 #ifdef HDF5
   #include <hdf5.h>
 #endif  // HDF5
 #include "../grid/grid3D.h"
-#include "../io/FieldWriter.h"
 #include "../io/WriterManager.h"
 #include "../io/io.h"
 #include "../utils/cuda_utilities.h"
@@ -140,187 +140,6 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
 #ifdef MPI_CHOLLA
   MPI_Barrier(world);
 #endif
-}
-
-void io::FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const FnameTemplate &fname_template) const
-{
-  // create the filename
-  std::string filename = fname_template.format_fname(nfile, "");
-
-#if !defined(BINARY) && !defined(HDF5)
-  if (G.H.nx * G.H.ny * G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
-#endif
-
-// open the file for binary writes
-#if defined BINARY
-  FILE *out;
-  out = fopen(filename.data(), "w");
-  if (out == NULL) {
-    printf("Error opening output file.\n");
-    exit(-1);
-  }
-
-  // write the header to the output file
-  G.Write_Header_Binary(out);
-
-  // write the conserved variables to the output file
-  G.Write_Grid_Binary(out);
-
-  // close the output file
-  fclose(out);
-
-// create the file for hdf5 writes
-#elif defined HDF5
-  hid_t file_id; /* file identifier */
-  herr_t status;
-
-  // Create a new file using default properties.
-  file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-
-  // Write the header (file attributes)
-  G.Write_Header_HDF5(file_id);
-
-  // write the conserved variables to the output file
-  G.Write_Grid_HDF5(file_id, h5_dataset_spec_);
-
-  // close the file
-  status = H5Fclose(file_id);
-
-  if (status < 0) {
-    printf("File write failed.\n");
-    exit(-1);
-  }
-
-#else
-  // open the file for txt writes
-  FILE *out;
-  out = fopen(filename.data(), "w");
-  if (out == NULL) {
-    printf("Error opening output file.\n");
-    exit(-1);
-  }
-
-  // write the header to the output file
-  G.Write_Header_Text(out);
-
-  // write the conserved variables to the output file
-  G.Write_Grid_Text(out);
-
-  // close the output file
-  fclose(out);
-#endif
-}
-
-void Output_Float32(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate &fname_template)
-{
-#ifdef HDF5
-  Header H = G.H;
-  // Do nothing in 1-D and 2-D case
-  if (H.ny_real == 1) {
-    return;
-  }
-  if (H.nz_real == 1) {
-    return;
-  }
-  // Do nothing if nfile is not multiple of n_out_float32
-  if (nfile % P.n_out_float32 != 0) {
-    return;
-  }
-
-  // create the filename
-  std::string filename = fname_template.format_fname(nfile, ".float32");
-
-  // create hdf5 file
-  hid_t file_id; /* file identifier */
-  herr_t status;
-
-  // Create a new file using default properties.
-  file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-
-  // Write the header (file attributes)
-  G.Write_Header_HDF5(file_id);
-
-  // write the conserved variables to the output file
-
-  // 3-D Case
-  if (H.nx > 1 && H.ny > 1 && H.nz > 1) {
-    int nx_dset = H.nx_real;
-    int ny_dset = H.ny_real;
-    int nz_dset = H.nz_real;
-    size_t buffer_size;
-    // Need a larger device buffer for MHD. In the future, if other fields need
-    // a larger device buffer, choose the maximum of the sizes. If the buffer is
-    // too large, it does not cause bugs (Oct 6 2022)
-  #ifdef MHD
-    buffer_size = (nx_dset + 1) * (ny_dset + 1) * (nz_dset + 1);
-  #else
-    buffer_size = nx_dset * ny_dset * nz_dset;
-  #endif  // MHD
-
-    // Using static DeviceVector here automatically allocates the buffer the
-    // first time it is needed It persists until program exit, and then calls
-    // Free upon destruction
-    cuda_utilities::DeviceVector<float> static device_dataset_vector{buffer_size};
-    auto *dataset_buffer = (float *)malloc(buffer_size * sizeof(float));
-
-    if (P.out_float32_density > 0) {
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_density, "/density");
-    }
-    if (P.out_float32_momentum_x > 0) {
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_momentum_x, "/momentum_x");
-    }
-    if (P.out_float32_momentum_y > 0) {
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_momentum_y, "/momentum_y");
-    }
-    if (P.out_float32_momentum_z > 0) {
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_momentum_z, "/momentum_z");
-    }
-    if (P.out_float32_Energy > 0) {
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_Energy, "/Energy");
-    }
-  #ifdef DE
-    if (P.out_float32_GasEnergy > 0) {
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_GasEnergy, "/GasEnergy");
-    }
-  #endif  // DE
-  #ifdef MHD
-
-    // TODO (by Alwin, for anyone) : Repair output format if needed and remove these chprintfs when appropriate
-    if (P.out_float32_magnetic_x > 0) {
-      chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_magnetic_x, "/magnetic_x");
-    }
-    if (P.out_float32_magnetic_y > 0) {
-      chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_magnetic_y, "/magnetic_y");
-    }
-    if (P.out_float32_magnetic_z > 0) {
-      chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_magnetic_z, "/magnetic_z");
-    }
-
-  #endif  // MHD
-
-    free(dataset_buffer);
-
-    if (status < 0) {
-      printf("File write failed.\n");
-      exit(-1);
-    }
-  }  // 3-D case
-
-  // close the file
-  status = H5Fclose(file_id);
-#endif  // HDF5
 }
 
 /* Output a projection of the grid data to file. */
@@ -461,9 +280,7 @@ void Output_Rotated_Projected_Data(Grid3D &G, struct Parameters P, int nfile, co
 #endif
 }
 
-/*! \fn void Write_Header_Text(FILE *fp)
- *  \brief Write some relevant header info to a text output file. */
-void Grid3D::Write_Header_Text(FILE *fp)
+void Grid3D::Write_Header_Text(FILE *fp) const
 {
   // Write the header info to the output file
   fprintf(fp, "Header Information\n");
@@ -474,38 +291,6 @@ void Grid3D::Write_Header_Text(FILE *fp)
   fprintf(fp, "nx: %d  ny: %d  nz: %d\n", H.nx, H.ny, H.nz);
   fprintf(fp, "xmin: %f  ymin: %f  zmin: %f\n", H.xbound, H.ybound, H.zbound);
   fprintf(fp, "t: %f\n", H.t);
-}
-
-/*! \fn void Write_Header_Binary(FILE *fp)
- *  \brief Write the relevant header info to a binary output file. */
-void Grid3D::Write_Header_Binary(FILE *fp)
-{
-  // Write the header info to the output file
-  // fwrite(&H, sizeof(H), 1, fp);
-  fwrite(&H.n_cells, sizeof(int), 1, fp);
-  fwrite(&H.n_ghost, sizeof(int), 1, fp);
-  fwrite(&H.nx, sizeof(int), 1, fp);
-  fwrite(&H.ny, sizeof(int), 1, fp);
-  fwrite(&H.nz, sizeof(int), 1, fp);
-  fwrite(&H.nx_real, sizeof(int), 1, fp);
-  fwrite(&H.ny_real, sizeof(int), 1, fp);
-  fwrite(&H.nz_real, sizeof(int), 1, fp);
-  fwrite(&H.xbound, sizeof(Real), 1, fp);
-  fwrite(&H.ybound, sizeof(Real), 1, fp);
-  fwrite(&H.zbound, sizeof(Real), 1, fp);
-  fwrite(&H.xblocal, sizeof(Real), 1, fp);
-  fwrite(&H.yblocal, sizeof(Real), 1, fp);
-  fwrite(&H.zblocal, sizeof(Real), 1, fp);
-  fwrite(&H.xdglobal, sizeof(Real), 1, fp);
-  fwrite(&H.ydglobal, sizeof(Real), 1, fp);
-  fwrite(&H.zdglobal, sizeof(Real), 1, fp);
-  fwrite(&H.dx, sizeof(Real), 1, fp);
-  fwrite(&H.dy, sizeof(Real), 1, fp);
-  fwrite(&H.dz, sizeof(Real), 1, fp);
-  fwrite(&H.t, sizeof(Real), 1, fp);
-  fwrite(&H.dt, sizeof(Real), 1, fp);
-  fwrite(&H.t_wall, sizeof(Real), 1, fp);
-  fwrite(&H.n_step, sizeof(int), 1, fp);
 }
 
 #ifdef HDF5
@@ -803,228 +588,6 @@ void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id)
 }
 #endif  // HDF5
 
-/*! \fn void Write_Grid_Text(FILE *fp)
- *  \brief Write the conserved quantities to a text output file. */
-void Grid3D::Write_Grid_Text(FILE *fp)
-{
-  int id, i, j, k;
-
-  // Write the conserved quantities to the output file
-
-  // 1D case
-  if (H.nx > 1 && H.ny == 1 && H.nz == 1) {
-    fprintf(fp, "id\trho\tmx\tmy\tmz\tE");
-#ifdef MHD
-    fprintf(fp, "\tmagX\tmagY\tmagZ");
-#endif  // MHD
-#ifdef DE
-    fprintf(fp, "\tge");
-#endif
-    fprintf(fp, "\n");
-    for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
-      id = i;
-      fprintf(fp, "%d\t%f\t%f\t%f\t%f\t%f", i - H.n_ghost, C.density[id], C.momentum_x[id], C.momentum_y[id],
-              C.momentum_z[id], C.Energy[id]);
-#ifdef MHD
-      fprintf(fp, "\t%f\t%f\t%f", C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
-#endif  // MHD
-#ifdef DE
-      fprintf(fp, "\t%f", C.GasEnergy[id]);
-#endif  // DE
-      fprintf(fp, "\n");
-    }
-#ifdef MHD
-    // Save the last line of magnetic fields
-    id = H.nx - H.n_ghost;
-    fprintf(fp, "%d\tNan\tNan\tNan\tNan\tNan\t%f\t%f\t%f", id, C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
-  #ifdef DE
-    fprintf(fp, "\tNan");
-  #endif  // DE
-    fprintf(fp, "\n");
-#endif  // MHD
-  }
-
-  // 2D case
-  else if (H.nx > 1 && H.ny > 1 && H.nz == 1) {
-    fprintf(fp, "idx\tidy\trho\tmx\tmy\tmz\tE");
-#ifdef MHD
-    fprintf(fp, "\tmagX\tmagY\tmagZ");
-#endif  // MHD
-#ifdef DE
-    fprintf(fp, "\tge");
-#endif
-    fprintf(fp, "\n");
-    for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
-      for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
-        id = i + j * H.nx;
-        fprintf(fp, "%d\t%d\t%f\t%f\t%f\t%f\t%f", i - H.n_ghost, j - H.n_ghost, C.density[id], C.momentum_x[id],
-                C.momentum_y[id], C.momentum_z[id], C.Energy[id]);
-#ifdef MHD
-        fprintf(fp, "\t%f\t%f\t%f", C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
-#endif  // MHD
-#ifdef DE
-        fprintf(fp, "\t%f", C.GasEnergy[id]);
-#endif  // DE
-        fprintf(fp, "\n");
-      }
-#ifdef MHD
-      // Save the last line of magnetic fields
-      id = i + (H.ny - H.n_ghost) * H.nx;
-      fprintf(fp, "%d\t%d\tNan\tNan\tNan\tNan\tNan\t%f\t%f\t%f", i - H.n_ghost, H.ny - 2 * H.n_ghost, C.magnetic_x[id],
-              C.magnetic_y[id], C.magnetic_z[id]);
-  #ifdef DE
-      fprintf(fp, "\tNan");
-  #endif  // DE
-      fprintf(fp, "\n");
-#endif  // MHD
-    }
-#ifdef MHD
-    // Save the last line of magnetic fields
-    id = H.nx - H.n_ghost + (H.ny - H.n_ghost) * H.nx;
-    fprintf(fp, "%d\t%d\tNan\tNan\tNan\tNan\tNan\t%f\t%f\t%f", H.nx - 2 * H.n_ghost, H.ny - 2 * H.n_ghost,
-            C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
-  #ifdef DE
-    fprintf(fp, "\tNan");
-  #endif  // DE
-    fprintf(fp, "\n");
-#endif  // MHD
-  }
-
-  // 3D case
-  else {
-    fprintf(fp, "idx\tidy\tidz\trho\tmx\tmy\tmz\tE");
-#ifdef DE
-    fprintf(fp, "\tge");
-#endif
-#ifdef MHD
-    fprintf(fp, "\tmagX\tmagY\tmagZ");
-#endif  // MHD
-    fprintf(fp, "\n");
-    for (i = H.n_ghost - 1; i < H.nx - H.n_ghost; i++) {
-      for (j = H.n_ghost - 1; j < H.ny - H.n_ghost; j++) {
-        for (k = H.n_ghost - 1; k < H.nz - H.n_ghost; k++) {
-          id = i + j * H.nx + k * H.nx * H.ny;
-
-          // Exclude the rightmost ghost cell on the "left" side for the hydro
-          // variables
-          if ((i >= H.n_ghost) and (j >= H.n_ghost) and (k >= H.n_ghost)) {
-            fprintf(fp, "%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f", i - H.n_ghost, j - H.n_ghost, k - H.n_ghost, C.density[id],
-                    C.momentum_x[id], C.momentum_y[id], C.momentum_z[id], C.Energy[id]);
-#ifdef DE
-            fprintf(fp, "\t%f", C.GasEnergy[id]);
-#endif  // DE
-          } else {
-            fprintf(fp, "%d\t%d\t%d\tn/a\tn/a\tn/a\tn/a\tn/a", i - H.n_ghost, j - H.n_ghost, k - H.n_ghost);
-#ifdef DE
-            fprintf(fp, "\tn/a");
-#endif  // DE
-          }
-#ifdef MHD
-          fprintf(fp, "\t%f\t%f\t%f", C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
-#endif  // MHD
-          fprintf(fp, "\n");
-        }
-      }
-    }
-  }
-}
-
-/*! \fn void Write_Grid_Binary(FILE *fp)
- *  \brief Write the conserved quantities to a binary output file. */
-void Grid3D::Write_Grid_Binary(FILE *fp)
-{
-  int id, i, j, k;
-
-  // Write the conserved quantities to the output file
-
-  // 1D case
-  if (H.nx > 1 && H.ny == 1 && H.nz == 1) {
-    id = H.n_ghost;
-
-    fwrite(&(C.density[id]), sizeof(Real), H.nx_real, fp);
-    fwrite(&(C.momentum_x[id]), sizeof(Real), H.nx_real, fp);
-    fwrite(&(C.momentum_y[id]), sizeof(Real), H.nx_real, fp);
-    fwrite(&(C.momentum_z[id]), sizeof(Real), H.nx_real, fp);
-    fwrite(&(C.Energy[id]), sizeof(Real), H.nx_real, fp);
-#ifdef DE
-    fwrite(&(C.GasEnergy[id]), sizeof(Real), H.nx_real, fp);
-#endif  // DE
-  }
-
-  // 2D case
-  else if (H.nx > 1 && H.ny > 1 && H.nz == 1) {
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fwrite(&(C.density[id]), sizeof(Real), H.nx_real, fp);
-    }
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fwrite(&(C.momentum_x[id]), sizeof(Real), H.nx_real, fp);
-    }
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fwrite(&(C.momentum_y[id]), sizeof(Real), H.nx_real, fp);
-    }
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fwrite(&(C.momentum_z[id]), sizeof(Real), H.nx_real, fp);
-    }
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fwrite(&(C.Energy[id]), sizeof(Real), H.nx_real, fp);
-    }
-#ifdef DE
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fwrite(&(C.GasEnergy[id]), sizeof(Real), H.nx_real, fp);
-    }
-#endif  // DE
-
-  }
-
-  // 3D case
-  else {
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fwrite(&(C.density[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fwrite(&(C.momentum_x[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fwrite(&(C.momentum_y[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fwrite(&(C.momentum_z[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fwrite(&(C.Energy[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-#ifdef DE
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fwrite(&(C.GasEnergy[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-#endif  // DE
-  }
-}
-
 #ifdef HDF5
 herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, double *attribute, const char *name)
 {
@@ -1252,74 +815,6 @@ void Write_Generic_HDF5_Field_GPU(int nx, int ny, int nz, int nx_real, int ny_re
   Fill_HDF5_Buffer_From_Grid_GPU(nx, ny, nz, nx_real, ny_real, nz_real, n_ghost, dataset_buffer, device_hdf5_buffer,
                                  source_buffer);
   Write_HDF5_Dataset_Grid(nx, ny, nz, nx_real, ny_real, nz_real, file_id, dataset_buffer, name);
-}
-
-/*! \fn void Write_Grid_HDF5(hid_t file_id)
- *  \brief Write the grid to a file, at the current simulation time. */
-void Grid3D::Write_Grid_HDF5(hid_t file_id, const io::DatasetSpec &h5_dataset_spec)
-{
-  int i, j, k, id, buf_id;
-  hid_t dataset_id, dataspace_id;
-  hid_t dataset_id_full, dataspace_id_full;
-  Real *dataset_buffer;
-  herr_t status;
-
-  // Allocate necessary buffers
-  int nx_dset = H.nx_real;
-  int ny_dset = H.ny_real;
-  int nz_dset = H.nz_real;
-  #ifdef MHD
-  size_t buffer_size = (nx_dset + 1) * (ny_dset + 1) * (nz_dset + 1);
-  #else
-  size_t buffer_size = nx_dset * ny_dset * nz_dset;
-  #endif
-  cuda_utilities::DeviceVector<Real> static device_dataset_vector{buffer_size};
-  dataset_buffer = (Real *)malloc(buffer_size * sizeof(Real));
-
-  // Start writing fields
-  for (const io::DatasetSpecEntry &cur_spec : h5_dataset_spec.cc_dataset_entries) {
-    if (!H.Output_Complete_Data && cur_spec.condition == io::WriteCond::REQUIRE_COMPLETE_DATA) {
-      continue;
-    }
-    if (cur_spec.io_buf == field::IOBuf::HOST) {
-      Real *ptr = &C.host[cur_spec.field_id * H.n_cells];
-      Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, ptr, cur_spec.name.c_str());
-    } else {
-      Real *ptr = &C.device[cur_spec.field_id * H.n_cells];
-      Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), ptr, cur_spec.name.c_str());
-    }
-  }
-
-  #if defined(OUTPUT_TEMPERATURE) && defined(CHEMISTRY_GPU)
-  Compute_Gas_Temperature(Chem.Fields.temperature_h, false);
-  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Chem.Fields.temperature_h, "/temperature");
-  #elif defined(OUTPUT_TEMPERATURE) && defined(COOLING_GRACKLE)
-  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Cool.temperature, "/temperature");
-  #endif
-
-  // 3D case
-  if (H.nx > 1 && H.ny > 1 && H.nz > 1) {
-  #if defined(GRAVITY) && defined(OUTPUT_POTENTIAL)
-    Write_Generic_HDF5_Field_GPU(Grav.nx_local + 2 * N_GHOST_POTENTIAL, Grav.ny_local + 2 * N_GHOST_POTENTIAL,
-                                 Grav.nz_local + 2 * N_GHOST_POTENTIAL, Grav.nx_local, Grav.ny_local, Grav.nz_local,
-                                 N_GHOST_POTENTIAL, file_id, dataset_buffer, device_dataset_vector.data(),
-                                 Grav.F.potential_d, "/grav_potential");
-  #endif  // GRAVITY and OUTPUT_POTENTIAL
-
-    if (h5_dataset_spec.mhd_condition.has_value() &&
-        (h5_dataset_spec.mhd_condition.value() == io::WriteCond::ALWAYS || H.Output_Complete_Data)) {
-      const char *dset_names[3] = {"/magnetic_x", "/magnetic_y", "/magnetic_z"};
-      for (int i = 0; i < 3; i++) {
-        int real_shape[3]      = {H.nx_real + (i == 0), H.ny_real + (i == 1), H.nz_real + (i == 2)};
-        const char *field_name = dset_names[i] + 1;
-        Real *ptr              = &C.device[H.n_cells * field_info.field_id(field_name).value()];
-        Write_HDF5_Field_3D(H.nx, H.ny, real_shape[0], real_shape[1], real_shape[2], H.n_ghost, file_id, dataset_buffer,
-                            device_dataset_vector.data(), ptr, dset_names[i], i);
-      }
-    }
-  }
-
-  free(dataset_buffer);
 }
 #endif  // HDF5
 
@@ -1671,11 +1166,9 @@ void Grid3D::Read_Grid(struct Parameters P)
   filename += std::to_string(P.nfile);
   char sbuffer[1024];
 
-#if defined BINARY
-  filename += ".bin";
-#elif defined HDF5
+#if defined HDF5
   filename += ".h5";
-#endif  // BINARY or HDF5
+#endif  // HDF5
 // for now assumes you will run on the same number of processors
 #ifdef MPI_CHOLLA
   #ifdef TILED_INITIAL_CONDITIONS
@@ -1687,22 +1180,7 @@ void Grid3D::Read_Grid(struct Parameters P)
   #endif  // TILED_INITIAL_CONDITIONS
 #endif    // MPI_CHOLLA
 
-#if defined BINARY
-  FILE *fp;
-  // open the file
-  fp = fopen(filename, "r");
-  if (!fp) {
-    printf("Unable to open input file.\n");
-    exit(0);
-  }
-
-  // read in grid data
-  Read_Grid_Binary(fp);
-
-  // close the file
-  fclose(fp);
-
-#elif defined HDF5
+#if defined HDF5
   hid_t file_id;
   herr_t status;
 
@@ -1718,138 +1196,7 @@ void Grid3D::Read_Grid(struct Parameters P)
 
   // close the file
   status = H5Fclose(file_id);
-#endif  // BINARY or HDF5
-}
-
-/*! \fn Read_Grid_Binary(FILE *fp)
- *  \brief Read in grid data from a binary file. */
-void Grid3D::Read_Grid_Binary(FILE *fp)
-{
-  int id, i, j, k;
-  size_t rs;
-
-  // Read in the header data
-  rs = fread(&H.n_cells, sizeof(int), 1, fp);
-  rs = fread(&H.n_ghost, sizeof(int), 1, fp);
-  rs = fread(&H.nx, sizeof(int), 1, fp);
-  rs = fread(&H.ny, sizeof(int), 1, fp);
-  rs = fread(&H.nz, sizeof(int), 1, fp);
-  rs = fread(&H.nx_real, sizeof(int), 1, fp);
-  rs = fread(&H.ny_real, sizeof(int), 1, fp);
-  rs = fread(&H.nz_real, sizeof(int), 1, fp);
-  rs = fread(&H.xbound, sizeof(Real), 1, fp);
-  rs = fread(&H.ybound, sizeof(Real), 1, fp);
-  rs = fread(&H.zbound, sizeof(Real), 1, fp);
-  rs = fread(&H.xblocal, sizeof(Real), 1, fp);
-  rs = fread(&H.yblocal, sizeof(Real), 1, fp);
-  rs = fread(&H.zblocal, sizeof(Real), 1, fp);
-  rs = fread(&H.xdglobal, sizeof(Real), 1, fp);
-  rs = fread(&H.ydglobal, sizeof(Real), 1, fp);
-  rs = fread(&H.zdglobal, sizeof(Real), 1, fp);
-  rs = fread(&H.dx, sizeof(Real), 1, fp);
-  rs = fread(&H.dy, sizeof(Real), 1, fp);
-  rs = fread(&H.dz, sizeof(Real), 1, fp);
-  rs = fread(&H.t, sizeof(Real), 1, fp);
-  rs = fread(&H.dt, sizeof(Real), 1, fp);
-  rs = fread(&H.t_wall, sizeof(Real), 1, fp);
-  rs = fread(&H.n_step, sizeof(int), 1, fp);
-
-// Read in the conserved quantities from the input file
-#ifdef WITH_GHOST
-  fread(&(C.density[id]), sizeof(Real), H.n_cells, fp);
-  fread(&(C.momentum_x[id]), sizeof(Real), H.n_cells, fp);
-  fread(&(C.momentum_y[id]), sizeof(Real), H.n_cells, fp);
-  fread(&(C.momentum_z[id]), sizeof(Real), H.n_cells, fp);
-  fread(&(C.Energy[id]), sizeof(Real), H.n_cells, fp);
-#endif  // WITH_GHOST
-
-#ifdef NO_GHOST
-  // 1D case
-  if (H.nx > 1 && H.ny == 1 && H.nz == 1) {
-    id = H.n_ghost;
-
-    fread(&(C.density[id]), sizeof(Real), H.nx_real, fp);
-    fread(&(C.momentum_x[id]), sizeof(Real), H.nx_real, fp);
-    fread(&(C.momentum_y[id]), sizeof(Real), H.nx_real, fp);
-    fread(&(C.momentum_z[id]), sizeof(Real), H.nx_real, fp);
-    fread(&(C.Energy[id]), sizeof(Real), H.nx_real, fp);
-  #ifdef DE
-    fread(&(C.GasEnergy[id]), sizeof(Real), H.nx_real, fp);
-  #endif
-  }
-
-  // 2D case
-  else if (H.nx > 1 && H.ny > 1 && H.nz == 1) {
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fread(&(C.density[id]), sizeof(Real), H.nx_real, fp);
-    }
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fread(&(C.momentum_x[id]), sizeof(Real), H.nx_real, fp);
-    }
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fread(&(C.momentum_y[id]), sizeof(Real), H.nx_real, fp);
-    }
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fread(&(C.momentum_z[id]), sizeof(Real), H.nx_real, fp);
-    }
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fread(&(C.Energy[id]), sizeof(Real), H.nx_real, fp);
-    }
-  #ifdef DE
-    for (j = 0; j < H.ny_real; j++) {
-      id = H.n_ghost + (j + H.n_ghost) * H.nx;
-      fread(&(C.GasEnergy[id]), sizeof(Real), H.nx_real, fp);
-    }
-  #endif
-  }
-
-  // 3D case
-  else {
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fread(&(C.density[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fread(&(C.momentum_x[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fread(&(C.momentum_y[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fread(&(C.momentum_z[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fread(&(C.Energy[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-  #ifdef DE
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        id = H.n_ghost + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        fread(&(C.GasEnergy[id]), sizeof(Real), H.nx_real, fp);
-      }
-    }
-  #endif
-  }
-#endif
+#endif  // HDF5
 }
 
 #ifdef HDF5
