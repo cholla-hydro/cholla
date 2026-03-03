@@ -47,8 +47,8 @@ struct DatasetSpecEntry {
   // the following constructor is defined in order to make this type work with
   // std::vector::emplace_back. Delete it, once we require C++20 or newer
 #if __cpp_aggregate_paren_init < 201902L
-  DatasetSpecEntry(int field_id, const std::string &name, field::IOBuf io_buf, WriteCond condition)
-      : field_id{field_id}, name{name}, io_buf{io_buf}, condition{condition}
+  DatasetSpecEntry(int field_id, std::string name, field::IOBuf io_buf, WriteCond condition)
+      : field_id{field_id}, name{std::move(name)}, io_buf{io_buf}, condition{condition}
   {
   }
 #endif

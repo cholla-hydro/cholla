@@ -45,7 +45,7 @@ namespace
  *  - once we finish constructing @ref FieldWriter is constructed, the instance of this
  *    type is discarded
  */
-struct DsetSpecListBuilder_ {
+struct DsetSpecListBuilder {
   using OutNameRecipie = std::function<std::string(std::string_view)>;
 
  private:
@@ -60,8 +60,8 @@ struct DsetSpecListBuilder_ {
 
  public:
   /*! make a new instance */
-  DsetSpecListBuilder_(std::vector<io::DatasetSpecEntry>& wrapped_vec, const FieldInfo& field_info,
-                       OutNameRecipie out_name_recipe, std::optional<field::IOBuf> force_buf_choice = std::nullopt)
+  DsetSpecListBuilder(std::vector<io::DatasetSpecEntry>& wrapped_vec, const FieldInfo& field_info,
+                      OutNameRecipie out_name_recipe, std::optional<field::IOBuf> force_buf_choice = std::nullopt)
       : wrapped_vec(wrapped_vec),
         field_info(field_info),
         out_name_recipe(out_name_recipe),
@@ -79,13 +79,15 @@ struct DsetSpecListBuilder_ {
     }
     int field_id = maybe_field_id.value();
 
-    // determine the buffer that data will be written from
-    field::IOBuf io_buf = force_buf_choice.has_value() ? force_buf_choice.value() : field_info.io_buf(field_id).value();
-
     // determine the dset_name
     std::string dset_name = out_name_recipe(name);
 
-    wrapped_vec.emplace_back(field_id, std::move(dset_name), io_buf, cond);
+    if (force_buf_choice.has_value()) {
+      wrapped_vec.emplace_back(field_id, std::move(dset_name), force_buf_choice.value(), cond);
+    } else {
+      std::optional<field::IOBuf> io_buf = field_info.io_buf(field_id);
+      wrapped_vec.emplace_back(field_id, std::move(dset_name), get_or_abort(io_buf), cond);
+    }
   }
 };
 
@@ -101,17 +103,17 @@ struct DsetSpecListBuilder_ {
 std::optional<std::string> lookup_legacy_short_name_(std::string_view field_name)
 {
   if (field_name == "density") {
-    return std::optional<std::string>("rho");
+    return {std::string("rho")};
   } else if (field_name == "momentum_x") {
-    return std::optional<std::string>("mx");
+    return {std::string("mx")};
   } else if (field_name == "momentum_y") {
-    return std::optional<std::string>("my");
+    return {std::string("my")};
   } else if (field_name == "momentum_z") {
-    return std::optional<std::string>("mz");
+    return {std::string("mz")};
   } else if (field_name == "Energy") {
-    return std::optional<std::string>("E");
+    return {std::string("E")};
   } else if (field_name == "GasEnergy") {
-    return std::optional<std::string>("ge");
+    return {std::string("ge")};
   } else {
     return std::nullopt;
   }
@@ -156,7 +158,7 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
 {
   this->file_format_ = file_format;
 
-  // determine configuration parameters for DsetSpecListBuilder_
+  // determine configuration parameters for DsetSpecListBuilder
   std::optional<field::IOBuf> force_buf_choice = std::nullopt;
   std::function<std::string(std::string_view)> out_name_recipe;
   if (this->file_format_ == FileFormat::TEXT) {
@@ -174,9 +176,9 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
     out_name_recipe = [](std::string_view field_name) { return '/' + std::string(field_name); };
   }
 
-  // construct DsetSpecListBuilder_
+  // construct DsetSpecListBuilder
   std::vector<io::DatasetSpecEntry>& vec = this->dataset_spec_.cc_dataset_entries;
-  DsetSpecListBuilder_ registrar(vec, field_info, out_name_recipe, force_buf_choice);
+  DsetSpecListBuilder registrar(vec, field_info, out_name_recipe, force_buf_choice);
 
   registrar.add_entry("density", WriteCond::ALWAYS);
   registrar.add_entry("momentum_x", MOMENTUM_CONDITION);
@@ -188,7 +190,8 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
 #endif
 
   for (int field_id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
-    std::string name = field_info.field_name(field_id).value();
+    std::optional<std::string> maybe_field_name = field_info.field_name(field_id);
+    std::string name                            = get_or_abort(maybe_field_name);
     if (name == "e_density") {
       registrar.add_entry(name.c_str(), ELECTRONS_CONDITION);
     } else if (name == "metal_density") {
