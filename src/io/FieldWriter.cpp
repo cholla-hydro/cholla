@@ -46,7 +46,7 @@ namespace
  *  - once we finish constructing @ref FieldWriter is constructed, the instance of this
  *    type is discarded
  */
-struct DsetSpecListBuilder_ {
+struct DsetSpecListBuilder {
   using OutNameRecipie = std::function<std::string(std::string_view)>;
 
  private:
@@ -61,8 +61,8 @@ struct DsetSpecListBuilder_ {
 
  public:
   /*! make a new instance */
-  DsetSpecListBuilder_(std::vector<io::DatasetSpecEntry>& wrapped_vec, const FieldInfo& field_info,
-                       OutNameRecipie out_name_recipe, std::optional<field::IOBuf> force_buf_choice = std::nullopt)
+  DsetSpecListBuilder(std::vector<io::DatasetSpecEntry>& wrapped_vec, const FieldInfo& field_info,
+                      OutNameRecipie out_name_recipe, std::optional<field::IOBuf> force_buf_choice = std::nullopt)
       : wrapped_vec(wrapped_vec),
         field_info(field_info),
         out_name_recipe(out_name_recipe),
@@ -80,13 +80,15 @@ struct DsetSpecListBuilder_ {
     }
     int field_id = maybe_field_id.value();
 
-    // determine the buffer that data will be written from
-    field::IOBuf io_buf = force_buf_choice.has_value() ? force_buf_choice.value() : field_info.io_buf(field_id).value();
-
     // determine the dset_name
     std::string dset_name = out_name_recipe(name);
 
-    wrapped_vec.emplace_back(field_id, std::move(dset_name), io_buf, cond);
+    if (force_buf_choice.has_value()) {
+      wrapped_vec.emplace_back(field_id, std::move(dset_name), force_buf_choice.value(), cond);
+    } else {
+      std::optional<field::IOBuf> io_buf = field_info.io_buf(field_id);
+      wrapped_vec.emplace_back(field_id, std::move(dset_name), get_or_abort(io_buf), cond);
+    }
   }
 };
 
@@ -102,17 +104,17 @@ struct DsetSpecListBuilder_ {
 std::optional<std::string> lookup_legacy_short_name_(std::string_view field_name)
 {
   if (field_name == "density") {
-    return std::optional<std::string>("rho");
+    return {std::string("rho")};
   } else if (field_name == "momentum_x") {
-    return std::optional<std::string>("mx");
+    return {std::string("mx")};
   } else if (field_name == "momentum_y") {
-    return std::optional<std::string>("my");
+    return {std::string("my")};
   } else if (field_name == "momentum_z") {
-    return std::optional<std::string>("mz");
+    return {std::string("mz")};
   } else if (field_name == "Energy") {
-    return std::optional<std::string>("E");
+    return {std::string("E")};
   } else if (field_name == "GasEnergy") {
-    return std::optional<std::string>("ge");
+    return {std::string("ge")};
   } else {
     return std::nullopt;
   }
@@ -172,7 +174,7 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
 {
   this->file_format_ = file_format;
 
-  // Part 1: create a DsetSpecListBuilder_ instance
+  // Part 1: create a DsetSpecListBuilder instance
   // ==============================================
 
   // Part 1A: determine configuration parameters for DsetSpecListBuilder_
@@ -198,25 +200,27 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
       CHOLLA_ERROR("can't handle specified file format");
   }
 
-  // Part 1B: actually DsetSpecListBuilder_
+  // Part 1B: actually DsetSpecListBuilder
   std::vector<io::DatasetSpecEntry>& vec = this->dataset_spec_.cc_dataset_entries;
-  DsetSpecListBuilder_ registrar(vec, field_info, out_name_recipe, force_buf_choice);
+  DsetSpecListBuilder registrar(vec, field_info, out_name_recipe, force_buf_choice);
 
   // Part 2: record the cell-centered fields that will be recorded
   // =============================================================
   // TODO: logic for determining recorded fields should be independent of file format
   if (this->file_format_ == FileFormat::H5_F32) {
     for (int field_id : field_info.get_id_range(field::Kind::HYDRO)) {  // (includes GasEnergy, if applicable)
-      std::string field_name = field_info.field_name(field_id).value();
-      std::string param_name = "out_float32_" + field_name;
+      std::optional<std::string> maybe_field_name = field_info.field_name(field_id);
+      std::string field_name                      = get_or_abort(maybe_field_name);
+      std::string param_name                      = "out_float32_" + field_name;
       if (pmap.value_or(param_name, 0)) {
         registrar.add_entry(field_name.c_str(), WriteCond::ALWAYS);
       }
     }
 
     for (int field_id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
-      std::string field_name = field_info.field_name(field_id).value();
-      std::string param_name = "out_float32_" + field_name;
+      std::optional<std::string> maybe_field_name = field_info.field_name(field_id);
+      std::string field_name                      = get_or_abort(maybe_field_name);
+      std::string param_name                      = "out_float32_" + field_name;
       if (pmap.value_or(param_name, 0)) {
         registrar.add_entry(field_name.c_str(), WriteCond::ALWAYS);
       }
@@ -233,7 +237,8 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
 #endif
 
     for (int field_id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
-      std::string name = field_info.field_name(field_id).value();
+      std::optional<std::string> maybe_field_name = field_info.field_name(field_id);
+      std::string name                            = get_or_abort(maybe_field_name);
       if (name == "e_density") {
         registrar.add_entry(name.c_str(), ELECTRONS_CONDITION);
       } else if (name == "metal_density") {
@@ -252,7 +257,8 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
 
   // this loop is empty if not compiled with MHD
   for (int field_id : field_info.get_id_range(field::Kind::MAGNETIC)) {
-    std::string field_name = field_info.field_name(field_id).value();
+    std::optional<std::string> maybe_field_name = field_info.field_name(field_id);
+    std::string field_name                      = get_or_abort(maybe_field_name);
     // TODO: logic for determining recorded fields should be independent of file format
     bool write;
     if (this->file_format_ == FileFormat::H5_F32) {
@@ -345,8 +351,9 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
     const char* dset_names[3] = {"/magnetic_x", "/magnetic_y", "/magnetic_z"};
     for (int i = 0; i < 3; i++) {
       if (not dataset_spec.write_mag[i]) continue;
-      const char* field_name = dset_names[i] + 1;
-      Real* ptr              = &G.C.device[H.n_cells * G.field_info.field_id(field_name).value()];
+      const char* field_name            = dset_names[i] + 1;
+      std::optional<int> maybe_field_id = G.field_info.field_id(field_name);
+      Real* ptr                         = &G.C.device[H.n_cells * get_or_abort(maybe_field_id)];
       if constexpr (ForceF32Output) {
         // TODO (by Alwin, for anyone) : Repair output format if needed and remove the chprintf when appropriate
         chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
@@ -445,7 +452,8 @@ int Record_Colnames_And_Get_Field_Ptrs_(const Real** ptr_arr, bool* is_cell_cent
     const char* field_name = field_names[i];
     std::fprintf(fp, "\t%s", field_name);  // <- write the column name
 
-    const Real* ptr                     = &G.C.host[H.n_cells * field_info.field_id(field_name).value()];
+    std::optional<int> maybe_field_id   = field_info.field_id(field_name);
+    const Real* ptr                     = &G.C.host[H.n_cells * get_or_abort(maybe_field_id)];
     ptr_arr[field_ptr_counter]          = ptr;
     is_cell_centered[field_ptr_counter] = false;
     field_ptr_counter++;
