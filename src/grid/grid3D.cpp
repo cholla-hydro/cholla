@@ -197,41 +197,6 @@ void Grid3D::Initialize(struct Parameters *P)
   // allocate memory
   AllocateMemory();
 
-#ifdef ROTATED_PROJECTION
-  // x-dir pixels in projection
-  R.nx = P->nxr;
-  // z-dir pixels in projection
-  R.nz = P->nzr;
-  // minimum x location to project
-  R.nx_min = 0;
-  // minimum z location to project
-  R.nz_min = 0;
-  // maximum x location to project
-  R.nx_max = R.nx;
-  // maximum z location to project
-  R.nz_max = R.nz;
-  // rotation angle about z direction
-  R.delta = M_PI * (P->delta / 180.);  // convert to radians
-  // rotation angle about x direction
-  R.theta = M_PI * (P->theta / 180.);  // convert to radians
-  // rotation angle about y direction
-  R.phi = M_PI * (P->phi / 180.);  // convert to radians
-  // x-dir physical size of projection
-  R.Lx = P->Lx;
-  // z-dir physical size of projection
-  R.Lz = P->Lz;
-  // initialize a counter for rotated outputs
-  R.i_delta = 0;
-  // number of rotated outputs in a complete revolution
-  R.n_delta = P->n_delta;
-  // rate of rotation between outputs, for an actual simulation
-  R.ddelta_dt = P->ddelta_dt;
-  // are we not rotating about z(0)?
-  // are we outputting multiple rotations(1)? or rotating during a
-  // simulation(2)?
-  R.flag_delta = P->flag_delta;
-#endif /*ROTATED_PROJECTION*/
-
 // Values for lower limit for density and temperature
 #ifdef TEMPERATURE_FLOOR
   H.temperature_floor = P->temperature_floor;
