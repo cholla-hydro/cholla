@@ -5,11 +5,13 @@
 
 #pragma once
 
+#include <optional>
 #include <string>
+#include <string_view>
 
 #include "../io/ParameterMap.h"
 
-/* Lightweight object designed to centralize the file-naming logic (& any associated configuration).
+/*! Lightweight object designed to centralize the file-naming logic (& any associated configuration).
  *
  * Cholla pathnames traditionally followed the following template:
  *     "{outdir}{nfile}{pre_extension_suffix}{extension}.{proc_id}"
@@ -46,21 +48,25 @@ class FnameTemplate
   {
   }
 
-  FnameTemplate(const Parameters& P) : FnameTemplate(not P.legacy_flat_outdir, P.outdir) {}
+  explicit FnameTemplate(const Parameters& P) : FnameTemplate(not P.legacy_flat_outdir, P.outdir) {}
 
-  /* Specifies whether separate cycles are written to separate directories */
+  /*! Specifies whether separate cycles are written to separate directories */
   bool separate_cycle_dirs() const noexcept { return separate_cycle_dirs_; }
 
-  /* Returns the nominal output-directory (this value is unaffected by separate_cycle_dirs()) */
+  /*! Returns the nominal output-directory (this value is unaffected by separate_cycle_dirs()) */
   std::string nominal_output_dir_path() const noexcept { return outdir_; }
 
-  /* Returns the effective output-directory used for outputs at a given simulation-cycle */
+  /*! Returns the effective output-directory used for outputs at a given simulation-cycle */
   std::string effective_output_dir_path(int nfile) const noexcept;
 
-  /* format the file path */
-  std::string format_fname(int nfile, const std::string& pre_extension_suffix) const noexcept;
+  /**\{*/  // <- the functions inside this doxygen group share a docstring
+  /*! format the file path */
+  std::string format_fname(int nfile, std::string_view pre_extension_suffix,
+                           std::optional<std::string_view> post_extension_suffix = std::nullopt) const noexcept;
 
-  std::string format_fname(int nfile, int file_proc_id, const std::string& pre_extension_suffix) const noexcept;
+  std::string format_fname(int nfile, int file_proc_id, std::string_view pre_extension_suffix,
+                           std::optional<std::string_view> post_extension_suffix = std::nullopt) const noexcept;
+  /**\}*/
 
  private:
   bool separate_cycle_dirs_;

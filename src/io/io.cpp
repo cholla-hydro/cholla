@@ -1,3 +1,7 @@
+/*! \file
+ *  \brief Implements logic pertaining to reading and writing data.
+ */
+
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -10,6 +14,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <unordered_set>
 #ifdef HDF5
   #include <hdf5.h>
 #endif  // HDF5
@@ -110,6 +115,11 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
   G.Change_Cosmological_Frame_System(false);
 #endif
 
+  // this method call does most of the heavy lifting
+  // -> recall that the writer manager was initialized at startup to manage a variable
+  //    number of output types (e.g. field-dumps, particle-dumps, slices, etc.)
+  // -> in this method call, the writer manager writes zero to all of the registered
+  //    output types based on the value of nfile.
   write_manager.Apply_Writers(G, P, nfile);
 
 #ifdef COSMOLOGY
@@ -290,105 +300,6 @@ void Output_Projected_Data(Grid3D &G, struct Parameters P, int nfile, const Fnam
 #else
   printf("Output_Projected_Data only defined for hdf5 writes.\n");
 #endif  // HDF5
-}
-
-/* Output a rotated projection of the grid data to file. */
-void Output_Rotated_Projected_Data(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate &fname_template)
-{
-#ifdef HDF5
-  hid_t file_id;
-  herr_t status;
-
-  // create the filename
-  std::string filename = fname_template.format_fname(nfile, "_rot_proj");
-
-  if (G.R.flag_delta == 1) {
-    // if flag_delta==1, then we are just outputting a
-    // bunch of rotations of the same snapshot
-    int i_delta;
-    char fname[200];
-
-    for (i_delta = 0; i_delta < G.R.n_delta; i_delta++) {
-      filename += "." + std::to_string(G.R.i_delta);
-      chprintf("Outputting rotated projection %s.\n", fname);
-
-      // determine delta about z by output index
-      G.R.delta = 2.0 * M_PI * ((double)i_delta) / ((double)G.R.n_delta);
-
-      // Create a new file
-      file_id = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-
-      // Write header (file attributes)
-      G.Write_Header_Rotated_HDF5(file_id);
-
-      // Write the density and temperature projections to the output file
-      G.Write_Rotated_Projection_HDF5(file_id);
-
-      // Close the file
-      status = H5Fclose(file_id);
-  #ifdef MPI_CHOLLA
-      if (status < 0) {
-        printf("Output_Rotated_Projected_Data: File write failed. ProcID: %d\n", procID);
-        chexit(-1);
-      }
-  #else
-      if (status < 0) {
-        printf("Output_Rotated_Projected_Data: File write failed.\n");
-        exit(-1);
-      }
-  #endif
-
-      // iterate G.R.i_delta
-      G.R.i_delta++;
-    }
-
-  } else if (G.R.flag_delta == 2) {
-    // case 2 -- outputting at a rotating delta
-    // rotation rate given in the parameter file
-    G.R.delta = fmod(nfile * G.R.ddelta_dt * 2.0 * M_PI, (2.0 * M_PI));
-
-    // Create a new file
-    file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-
-    // Write header (file attributes)
-    G.Write_Header_Rotated_HDF5(file_id);
-
-    // Write the density and temperature projections to the output file
-    G.Write_Rotated_Projection_HDF5(file_id);
-
-    // Close the file
-    status = H5Fclose(file_id);
-  } else {
-    // case 0 -- just output at the delta given in the parameter file
-
-    // Create a new file
-    file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-
-    // Write header (file attributes)
-    G.Write_Header_Rotated_HDF5(file_id);
-
-    // Write the density and temperature projections to the output file
-    G.Write_Rotated_Projection_HDF5(file_id);
-
-    // Close the file
-    status = H5Fclose(file_id);
-  }
-
-  #ifdef MPI_CHOLLA
-  if (status < 0) {
-    printf("Output_Rotated_Projected_Data: File write failed. ProcID: %d\n", procID);
-    chexit(-1);
-  }
-  #else
-  if (status < 0) {
-    printf("Output_Rotated_Projected_Data: File write failed.\n");
-    exit(-1);
-  }
-  #endif
-
-#else
-  printf("Output_Rotated_Projected_Data only defined for HDF5 writes.\n");
-#endif
 }
 
 /* Output xy, xz, and yz slices of the grid data. */
@@ -584,7 +495,7 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
 /*! \fn void Write_Header_Rotated_HDF5(hid_t file_id)
  *  \brief Write the relevant header info to the HDF5 file for rotated
  * projection. */
-void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id)
+void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id, io::Rotation &R)
 {
   hid_t attribute_id, dataspace_id;
   herr_t status;
@@ -1215,7 +1126,7 @@ void Grid3D::Write_Projection_HDF5(hid_t file_id)
 /*! \fn void Write_Rotated_Projection_HDF5(hid_t file_id)
  *  \brief Write rotated projected data to a file, at the current simulation
  * time. */
-void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id)
+void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id, const io::Rotation &R)
 {
   hid_t dataset_id, dataspace_xzr_id;
   Real *dataset_buffer_dxzr;
@@ -2157,6 +2068,38 @@ void Grid3D::Print_Grid_Stats(void)
 }
   #endif  // PRINT_INITIAL_STATS and COSMOLOGY
 
+// this should work whether Cholla is configured with COOLING_GRACKLE or CHEMISTRY_GPU
+// - earlier versions of this logic wouldn't work with Grackle
+static void cosmo_init_chemical_species_(const Header &H, const FieldInfo &field_info, Real *host_field_ptr)
+{
+  if (!field_info.field_id("HI_density").has_value()) {
+    CHOLLA_ERROR("This function has been erroneously executed. There are no chemical species");
+  }
+
+  Real *density       = &host_field_ptr[H.n_cells * field_info.field_id("density").value()];
+  Real *HI_density    = &host_field_ptr[H.n_cells * field_info.field_id("HI_density").value()];
+  Real *HII_density   = &host_field_ptr[H.n_cells * field_info.field_id("HII_density").value()];
+  Real *HeI_density   = &host_field_ptr[H.n_cells * field_info.field_id("HeI_density").value()];
+  Real *HeII_density  = &host_field_ptr[H.n_cells * field_info.field_id("HeII_density").value()];
+  Real *HeIII_density = &host_field_ptr[H.n_cells * field_info.field_id("HeIII_density").value()];
+  Real *e_density     = &host_field_ptr[H.n_cells * field_info.field_id("e_density").value()];
+
+  for (int k = 0; k < H.nz_real; k++) {
+    for (int j = 0; j < H.ny_real; j++) {
+      for (int i = 0; i < H.nx_real; i++) {
+        int id            = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
+        int buf_id        = k + j * (H.nz_real) + i * (H.nz_real) * (H.ny_real);
+        HI_density[id]    = INITIAL_FRACTION_HI * density[id];
+        HII_density[id]   = INITIAL_FRACTION_HII * density[id];
+        HeI_density[id]   = INITIAL_FRACTION_HEI * density[id];
+        HeII_density[id]  = INITIAL_FRACTION_HEII * density[id];
+        HeIII_density[id] = INITIAL_FRACTION_HEIII * density[id];
+        e_density[id]     = INITIAL_FRACTION_ELECTRON * density[id];
+      }
+    }
+  }
+}
+
 /*! \fn void Read_Grid_HDF5(hid_t file_id)
  *  \brief Read in grid data from an hdf5 file. */
 void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
@@ -2183,59 +2126,36 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
   dataset_buffer = (Real *)malloc((H.nz_real) * (H.ny_real) * (H.nx_real) * sizeof(Real));
   #endif
 
-  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.density, "/density");
-  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.momentum_x, "/momentum_x");
-  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.momentum_y, "/momentum_y");
-  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.momentum_z, "/momentum_z");
-  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.Energy, "/Energy");
-  #ifdef DE
-  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.GasEnergy, "/GasEnergy");
+  // load all of the hydro fields (include GasEnergy if using dual-energy formalism)
+  for (int field_id : field_info.get_id_range(field::Kind::HYDRO)) {
+    Real *dest_ptr        = &C.host[field_id * H.n_cells];
+    std::string dset_name = "/" + field_info.field_name(field_id).value();
+    Read_Grid_HDF5_Field(file_id, dataset_buffer, H, dest_ptr, dset_name.c_str());
+  }
+
+  // initialize a set of scalar fields that we want to skip
+  std::unordered_set<std::string> skip_loading_scalar;
+  #if (defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)) && defined(COSMOLOGY)
+  if (P.nfile == 0) {
+    // overwrite skip_loading_scalar
+    // -> we skip all primordial species fields, they're initialized in cosmo_init_chemical_species_
+    // -> we also skip metal_density (presumably the field is set to 0 elsewhere?)
+    skip_loading_scalar = {"HI_density",    "HII_density", "HeI_density",  "HeII_density",
+                           "HeIII_density", "e_density",   "metal_density"};
+    cosmo_init_chemical_species_(H, field_info, C.host);
+  }
   #endif
 
-  #ifdef SCALAR
-
-    #ifdef BASIC_SCALAR
-  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.scalar, "/scalar0");
-    #endif  // BASIC_SCALAR
-
-    #ifdef DUST
-  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.dust_density, "/dust_density");
-    #endif  // DUST
-
-    #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
-      #ifdef COSMOLOGY
-  if (P.nfile > 0) {
-      #endif  // COSMOLOGY
-    Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.HI_density, "/HI_density");
-    Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.HII_density, "/HII_density");
-    Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.HeI_density, "/HeI_density");
-    Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.HeII_density, "/HeII_density");
-    Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.HeIII_density, "/HeIII_density");
-    Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.e_density, "/e_density");
-      #ifdef GRACKLE_METALS
-    Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.metal_density, "/metal_density");
-      #endif  // GRACKLE_METALS
-      #ifdef COSMOLOGY
-  } else {
-    // Initialize the density field
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        for (i = 0; i < H.nx_real; i++) {
-          id                  = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-          buf_id              = k + j * (H.nz_real) + i * (H.nz_real) * (H.ny_real);
-          C.HI_density[id]    = INITIAL_FRACTION_HI * C.density[id];
-          C.HII_density[id]   = INITIAL_FRACTION_HII * C.density[id];
-          C.HeI_density[id]   = INITIAL_FRACTION_HEI * C.density[id];
-          C.HeII_density[id]  = INITIAL_FRACTION_HEII * C.density[id];
-          C.HeIII_density[id] = INITIAL_FRACTION_HEIII * C.density[id];
-          C.e_density[id]     = INITIAL_FRACTION_ELECTRON * C.density[id];
-        }
-      }
+  // try to load all of the scalars (that aren't within skip_loading_scalar)
+  for (int field_id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
+    Real *dest_ptr         = &C.host[field_id * H.n_cells];
+    std::string field_name = field_info.field_name(field_id).value();
+    if (skip_loading_scalar.find(field_name) != skip_loading_scalar.end()) {
+      continue;
     }
+    std::string dset_name = "/" + field_name;
+    Read_Grid_HDF5_Field(file_id, dataset_buffer, H, dest_ptr, dset_name.c_str());
   }
-      #endif  // COSMOLOGY
-    #endif    // COOLING_GRACKLE , CHEMISTRY_GPU
-  #endif      // SCALAR
 
   // MHD only valid in 3D case
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) {
