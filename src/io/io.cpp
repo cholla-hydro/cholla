@@ -10,6 +10,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <unordered_set>
 #ifdef HDF5
   #include <hdf5.h>
 #endif  // HDF5
@@ -2529,6 +2530,38 @@ void Grid3D::Print_Grid_Stats(void)
 }
   #endif  // PRINT_INITIAL_STATS and COSMOLOGY
 
+// this should work whether Cholla is configured with COOLING_GRACKLE or CHEMISTRY_GPU
+// - earlier versions of this logic wouldn't work with Grackle
+static void cosmo_init_chemical_species_(const Header &H, const FieldInfo &field_info, Real *host_field_ptr)
+{
+  if (!field_info.field_id("HI_density").has_value()) {
+    CHOLLA_ERROR("This function has been erroneously executed. There are no chemical species");
+  }
+
+  Real *density       = &host_field_ptr[H.n_cells * field_info.field_id("density").value()];
+  Real *HI_density    = &host_field_ptr[H.n_cells * field_info.field_id("HI_density").value()];
+  Real *HII_density   = &host_field_ptr[H.n_cells * field_info.field_id("HII_density").value()];
+  Real *HeI_density   = &host_field_ptr[H.n_cells * field_info.field_id("HeI_density").value()];
+  Real *HeII_density  = &host_field_ptr[H.n_cells * field_info.field_id("HeII_density").value()];
+  Real *HeIII_density = &host_field_ptr[H.n_cells * field_info.field_id("HeIII_density").value()];
+  Real *e_density     = &host_field_ptr[H.n_cells * field_info.field_id("e_density").value()];
+
+  for (int k = 0; k < H.nz_real; k++) {
+    for (int j = 0; j < H.ny_real; j++) {
+      for (int i = 0; i < H.nx_real; i++) {
+        int id            = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
+        int buf_id        = k + j * (H.nz_real) + i * (H.nz_real) * (H.ny_real);
+        HI_density[id]    = INITIAL_FRACTION_HI * density[id];
+        HII_density[id]   = INITIAL_FRACTION_HII * density[id];
+        HeI_density[id]   = INITIAL_FRACTION_HEI * density[id];
+        HeII_density[id]  = INITIAL_FRACTION_HEII * density[id];
+        HeIII_density[id] = INITIAL_FRACTION_HEIII * density[id];
+        e_density[id]     = INITIAL_FRACTION_ELECTRON * density[id];
+      }
+    }
+  }
+}
+
 /*! \fn void Read_Grid_HDF5(hid_t file_id)
  *  \brief Read in grid data from an hdf5 file. */
 void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
@@ -2555,59 +2588,36 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
   dataset_buffer = (Real *)malloc((H.nz_real) * (H.ny_real) * (H.nx_real) * sizeof(Real));
   #endif
 
-  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.density, "/density");
-  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.momentum_x, "/momentum_x");
-  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.momentum_y, "/momentum_y");
-  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.momentum_z, "/momentum_z");
-  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.Energy, "/Energy");
-  #ifdef DE
-  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.GasEnergy, "/GasEnergy");
+  // load all of the hydro fields (include GasEnergy if using dual-energy formalism)
+  for (int field_id : field_info.get_id_range(field::Kind::HYDRO)) {
+    Real *dest_ptr        = &C.host[field_id * H.n_cells];
+    std::string dset_name = "/" + field_info.field_name(field_id).value();
+    Read_Grid_HDF5_Field(file_id, dataset_buffer, H, dest_ptr, dset_name.c_str());
+  }
+
+  // initialize a set of scalar fields that we want to skip
+  std::unordered_set<std::string> skip_loading_scalar;
+  #if (defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)) && defined(COSMOLOGY)
+  if (P.nfile == 0) {
+    // overwrite skip_loading_scalar
+    // -> we skip all primordial species fields, they're initialized in cosmo_init_chemical_species_
+    // -> we also skip metal_density (presumably the field is set to 0 elsewhere?)
+    skip_loading_scalar = {"HI_density",    "HII_density", "HeI_density",  "HeII_density",
+                           "HeIII_density", "e_density",   "metal_density"};
+    cosmo_init_chemical_species_(H, field_info, C.host);
+  }
   #endif
 
-  #ifdef SCALAR
-
-    #ifdef BASIC_SCALAR
-  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.scalar, "/scalar0");
-    #endif  // BASIC_SCALAR
-
-    #ifdef DUST
-  Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.dust_density, "/dust_density");
-    #endif  // DUST
-
-    #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
-      #ifdef COSMOLOGY
-  if (P.nfile > 0) {
-      #endif  // COSMOLOGY
-    Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.HI_density, "/HI_density");
-    Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.HII_density, "/HII_density");
-    Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.HeI_density, "/HeI_density");
-    Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.HeII_density, "/HeII_density");
-    Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.HeIII_density, "/HeIII_density");
-    Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.e_density, "/e_density");
-      #ifdef GRACKLE_METALS
-    Read_Grid_HDF5_Field(file_id, dataset_buffer, H, C.metal_density, "/metal_density");
-      #endif  // GRACKLE_METALS
-      #ifdef COSMOLOGY
-  } else {
-    // Initialize the density field
-    for (k = 0; k < H.nz_real; k++) {
-      for (j = 0; j < H.ny_real; j++) {
-        for (i = 0; i < H.nx_real; i++) {
-          id                  = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-          buf_id              = k + j * (H.nz_real) + i * (H.nz_real) * (H.ny_real);
-          C.HI_density[id]    = INITIAL_FRACTION_HI * C.density[id];
-          C.HII_density[id]   = INITIAL_FRACTION_HII * C.density[id];
-          C.HeI_density[id]   = INITIAL_FRACTION_HEI * C.density[id];
-          C.HeII_density[id]  = INITIAL_FRACTION_HEII * C.density[id];
-          C.HeIII_density[id] = INITIAL_FRACTION_HEIII * C.density[id];
-          C.e_density[id]     = INITIAL_FRACTION_ELECTRON * C.density[id];
-        }
-      }
+  // try to load all of the scalars (that aren't within skip_loading_scalar)
+  for (int field_id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
+    Real *dest_ptr         = &C.host[field_id * H.n_cells];
+    std::string field_name = field_info.field_name(field_id).value();
+    if (skip_loading_scalar.find(field_name) != skip_loading_scalar.end()) {
+      continue;
     }
+    std::string dset_name = "/" + field_name;
+    Read_Grid_HDF5_Field(file_id, dataset_buffer, H, dest_ptr, dset_name.c_str());
   }
-      #endif  // COSMOLOGY
-    #endif    // COOLING_GRACKLE , CHEMISTRY_GPU
-  #endif      // SCALAR
 
   // MHD only valid in 3D case
   if (H.nx > 1 && H.ny > 1 && H.nz > 1) {
