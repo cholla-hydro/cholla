@@ -47,9 +47,7 @@ std::string FnameTemplate::format_fname(int nfile, int file_proc_id, std::string
           : outdir_;
 
   // get the file extension
-#if defined BINARY
-  const char *extension = ".bin";
-#elif defined HDF5
+#ifdef HDF5
   const char *extension = ".h5";
 #else
   const char *extension = ".txt";

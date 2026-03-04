@@ -759,11 +759,6 @@ void Grid3D::OutputData_Particles(struct Parameters P, int nfile, const FnameTem
   FILE *out;
   std::string filename = fname_template.format_fname(nfile, "_particles");
 
-  // a binary file is created for each process
-  #if defined BINARY
-  chprintf("\nERROR: Particles only support HDF5 outputs\n") return;
-  #endif
-
   #if defined HDF5
   hid_t file_id;
   herr_t status;
