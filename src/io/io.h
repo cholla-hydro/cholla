@@ -1,3 +1,7 @@
+/*! \file
+ *  \brief Declares logic pertaining to reading and writing data.
+ */
+
 #pragma once
 
 #include <iomanip>
@@ -8,27 +12,25 @@
 #include "../grid/grid3D.h"
 #include "../io/FieldWriter.h"
 #include "../io/FnameTemplate.h"
+#include "../io/RotatedProjWriter.h"  // io::Rotation
 #include "../io/WriterManager.h"
 
-/* Local function that designates whether we are using a root-process. It gives
- *  * gives a sensible result regardless of whether we are using MPI */
-static inline bool Is_Root_Proc()
-{
-#ifdef MPI_CHOLLA
-  return procID == root;
-#else
-  return true;
-#endif
-}
+/*! Local function that designates whether we are using a root-process. It gives
+ *  a sensible result regardless of whether we are using MPI
+ */
+inline bool Is_Root_Proc() { return procID == root; }
 
 /* Compute stats for a grid. */
 void Print_Stats(Grid3D& G);
 
-/* Write the data */
+/*! Write all data files
+ *
+ *  \param G the grid object
+ *  \param P the parameter struct
+ *  \param nfile the index corresponding to the current output
+ *  \param writer_manager Manages the data writers.
+ */
 void Write_Data(Grid3D& G, struct Parameters P, int nfile, const io::WriterManager& write_manager);
-
-/* Output a rotated projection of the grid data to file. */
-void Output_Rotated_Projected_Data(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);
 
 /* Output xy, xz, and yz slices of the grid data to file. */
 void Output_Slices(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);

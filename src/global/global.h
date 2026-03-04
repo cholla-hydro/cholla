@@ -279,19 +279,6 @@ struct Parameters {
   char sw_filename[MAXLEN];
   #endif
 #endif
-#ifdef ROTATED_PROJECTION
-  // initialize rotation parameters to zero
-  int nxr;
-  int nzr;
-  Real delta = 0;
-  Real theta = 0;
-  Real phi   = 0;
-  Real Lx;
-  Real Lz;
-  int n_delta    = 0;
-  Real ddelta_dt = 0;
-  int flag_delta = 0;
-#endif /*ROTATED_PROJECTION*/
 #ifdef COSMOLOGY
   Real H0;
   Real Omega_M;

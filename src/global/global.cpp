@@ -263,28 +263,6 @@ bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameter
   } else if (strcmp(name, "prng_seed") == 0) {
     parms->prng_seed = atoi(value);
 #endif  // PARTICLES
-#ifdef ROTATED_PROJECTION
-  } else if (strcmp(name, "nxr") == 0) {
-    parms->nxr = atoi(value);
-  } else if (strcmp(name, "nzr") == 0) {
-    parms->nzr = atoi(value);
-  } else if (strcmp(name, "delta") == 0) {
-    parms->delta = atof(value);
-  } else if (strcmp(name, "theta") == 0) {
-    parms->theta = atof(value);
-  } else if (strcmp(name, "phi") == 0) {
-    parms->phi = atof(value);
-  } else if (strcmp(name, "Lx") == 0) {
-    parms->Lx = atof(value);
-  } else if (strcmp(name, "Lz") == 0) {
-    parms->Lz = atof(value);
-  } else if (strcmp(name, "n_delta") == 0) {
-    parms->n_delta = atoi(value);
-  } else if (strcmp(name, "ddelta_dt") == 0) {
-    parms->ddelta_dt = atof(value);
-  } else if (strcmp(name, "flag_delta") == 0) {
-    parms->flag_delta = atoi(value);
-#endif /*ROTATED_PROJECTION*/
 #ifdef TILED_INITIAL_CONDITIONS
   } else if (strcmp(name, "tile_length") == 0) {
     parms->tile_length = atof(value);
