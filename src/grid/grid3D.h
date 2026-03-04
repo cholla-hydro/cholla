@@ -429,14 +429,6 @@ class Grid3D
    *  \brief Write the grid to a file, at the current simulation time. */
   void Write_Grid_Text(FILE *fp);
 
-  /*! \fn void Write_Header_Binary(FILE *fp)
-   *  \brief Write the relevant header info to a binary output file. */
-  void Write_Header_Binary(FILE *fp);
-
-  /*! \fn void Write_Grid_Binary(FILE *fp)
-   *  \brief Write the grid to a file, at the current simulation time. */
-  void Write_Grid_Binary(FILE *fp);
-
 #ifdef HDF5
   /*! \fn void Write_Header_HDF5(hid_t file_id)
    *  \brief Write the relevant header info to the HDF5 file. */
@@ -473,10 +465,6 @@ class Grid3D
   /*! \fn void Read_Grid_Cat(struct Parameters P)
    *  \brief Read in grid data from a single concatenated output file. */
   void Read_Grid_Cat(struct Parameters P);
-
-  /*! \fn Read_Grid_Binary(FILE *fp)
-   *  \brief Read in grid data from a binary file. */
-  void Read_Grid_Binary(FILE *fp);
 
 #ifdef HDF5
   /*! \fn void Read_Grid_HDF5(hid_t file_id)
