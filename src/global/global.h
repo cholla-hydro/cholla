@@ -5,6 +5,7 @@
 #define GLOBAL_H
 
 #include "../grid/grid_enum.h"  // defines NSCALARS
+#include "cholla_config.h"
 
 #ifdef PARTICLES
   #include <cstdint>
