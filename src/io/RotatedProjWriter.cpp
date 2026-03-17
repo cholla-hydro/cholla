@@ -192,6 +192,82 @@ void Write_Rotated_Projection_HDF5_(const Grid3D &G, hid_t file_id, const io::Ro
 #endif  // HDF5
 }
 
+/*! Write the relevant header info to the HDF5 file for rotated projection.
+ *
+ *  \todo Make G a const argument to ensure we don't mutate it
+ */
+void Write_Header_Rotated_(Grid3D &G, hid_t file_id, io::Rotation &R)
+{
+#ifndef HDF5
+  CHOLLA_ERROR("this function must not get called when compiled without hdf5")
+#else
+  const Header &H = G.H;
+  G.Write_Header_HDF5(file_id, true);
+  Real delta, theta, phi;
+
+  #ifdef MPI_CHOLLA
+  // determine the size of the projection to output for this subvolume
+  Real x, y, z, xp, yp, zp;
+  Real alpha, beta;
+  int ix, iz;
+  R.nx_min = R.nx;
+  R.nx_max = 0;
+  R.nz_min = R.nz;
+  R.nz_max = 0;
+  for (int i = 0; i < 2; i++) {
+    for (int j = 0; j < 2; j++) {
+      for (int k = 0; k < 2; k++) {
+        // find the corners of this domain in the rotated position
+        G.Get_Position(H.n_ghost + i * (H.nx - 2 * H.n_ghost), H.n_ghost + j * (H.ny - 2 * H.n_ghost),
+                       H.n_ghost + k * (H.nz - 2 * H.n_ghost), &x, &y, &z);
+        // rotate cell position
+        Rotate_Point(x, y, z, R.delta, R.phi, R.theta, &xp, &yp, &zp);
+        // find projected location
+        // assumes box centered at [0,0,0]
+        alpha    = (R.nx * (xp + 0.5 * R.Lx) / R.Lx);
+        beta     = (R.nz * (zp + 0.5 * R.Lz) / R.Lz);
+        ix       = (int)round(alpha);
+        iz       = (int)round(beta);
+        R.nx_min = std::min(ix, R.nx_min);
+        R.nx_max = std::max(ix, R.nx_max);
+        R.nz_min = std::min(iz, R.nz_min);
+        R.nz_max = std::max(iz, R.nz_max);
+      }
+    }
+  }
+  // if the corners aren't within the chosen projection area
+  // take the input projection edge as the edge of this piece of the projection
+  R.nx_min = std::max(R.nx_min, 0);
+  R.nx_max = std::min(R.nx_max, R.nx);
+  R.nz_min = std::max(R.nz_min, 0);
+  R.nz_max = std::min(R.nz_max, R.nz);
+  #endif
+
+  H5AttrRecorder attr_recorder(file_id);
+
+  // Rotation data
+  attr_recorder.record("nxr", R.nx);
+  attr_recorder.record("nzr", R.nz);
+  attr_recorder.record("nx_min", R.nx_min);
+  attr_recorder.record("nz_min", R.nz_min);
+  attr_recorder.record("nx_max", R.nx_max);
+  attr_recorder.record("nz_max", R.nz_max);
+  delta = 180. * R.delta / M_PI;
+  attr_recorder.record("delta", delta);
+  theta = 180. * R.theta / M_PI;
+  attr_recorder.record("theta", theta);
+  phi = 180. * R.phi / M_PI;
+  attr_recorder.record("phi", phi);
+  attr_recorder.record("Lx", R.Lx);
+  attr_recorder.record("Lz", R.Lz);
+
+  chprintf(
+      "Outputting rotation data with delta = %e, theta = %e, phi = %e, Lx = "
+      "%f, Lz = %f\n",
+      R.delta, R.theta, R.phi, R.Lx, R.Lz);
+#endif  // HDF5
+}
+
 }  // anonymous namespace
 
 io::Rotation::Rotation(ParameterMap &pmap)
@@ -278,7 +354,7 @@ void io::RotatedProjWriter::operator()(Grid3D &G, Parameters P, int nfile, const
         file_id = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
         // Write header (file attributes)
-        G.Write_Header_Rotated_HDF5(file_id, this->rot_info_);
+        Write_Header_Rotated_(G, file_id, this->rot_info_);
 
         // Write the density and temperature projections to the output file
         Write_Rotated_Projection_HDF5_(G, file_id, this->rot_info_);
@@ -304,7 +380,7 @@ void io::RotatedProjWriter::operator()(Grid3D &G, Parameters P, int nfile, const
       file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
       // Write header (file attributes)
-      G.Write_Header_Rotated_HDF5(file_id, this->rot_info_);
+      Write_Header_Rotated_(G, file_id, this->rot_info_);
 
       // Write the density and temperature projections to the output file
       Write_Rotated_Projection_HDF5_(G, file_id, this->rot_info_);
@@ -321,7 +397,7 @@ void io::RotatedProjWriter::operator()(Grid3D &G, Parameters P, int nfile, const
       file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
       // Write header (file attributes)
-      G.Write_Header_Rotated_HDF5(file_id, this->rot_info_);
+      Write_Header_Rotated_(G, file_id, this->rot_info_);
 
       // Write the density and temperature projections to the output file
       Write_Rotated_Projection_HDF5_(G, file_id, this->rot_info_);
