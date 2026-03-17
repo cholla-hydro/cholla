@@ -485,46 +485,20 @@ void Particles3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct Para
  *  \brief Write the relevant header info to the HDF5 file. */
 void Grid3D::Write_Particles_Header_HDF5(hid_t file_id)
 {
-  hid_t attribute_id, dataspace_id;
-  herr_t status;
-  hsize_t attr_dims;
-  int int_data[3];
-  Real Real_data[3];
+  H5AttrRecorder attr_recorder(file_id);
 
-  // Single attributes first
-  attr_dims = 1;
-  // Create the data space for the attribute
-  dataspace_id = H5Screate_simple(1, &attr_dims, NULL);
-  // Create a group attribute
-  attribute_id = H5Acreate(file_id, "t_particles", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  // Write the attribute data
-  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Particles.t);
-  // Close the attribute
-  status       = H5Aclose(attribute_id);
-  attribute_id = H5Acreate(file_id, "dt_particles", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Particles.dt);
-  status       = H5Aclose(attribute_id);
-  attribute_id = H5Acreate(file_id, "n_particles_local", H5T_STD_I64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_LONG, &Particles.n_local);
-  status       = H5Aclose(attribute_id);
+  attr_recorder.record("t_particles", Particles.t);
+  attr_recorder.record("dt_particles", Particles.dt);
+  attr_recorder.record("n_particles_local", Particles.n_local);
 
     #ifdef SINGLE_PARTICLE_MASS
-  attribute_id = H5Acreate(file_id, "particle_mass", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Particles.particle_mass);
-  status       = H5Aclose(attribute_id);
+  attr_recorder.record("particle_mass", Particles.particle_mass);
     #endif
 
     #ifdef COSMOLOGY
-  attribute_id = H5Acreate(file_id, "current_z", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.current_z);
-  status       = H5Aclose(attribute_id);
-
-  attribute_id = H5Acreate(file_id, "current_a", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.current_a);
-  status       = H5Aclose(attribute_id);
+  attr_recorder.record("current_z", Cosmo.current_z);
+  attr_recorder.record("current_a", Cosmo.current_a);
     #endif
-
-  status = H5Sclose(dataspace_id);
 }
 
 void Grid3D::Write_Particles_Data_HDF5(hid_t file_id)
