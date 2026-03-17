@@ -936,9 +936,10 @@ void Grid3D::Write_Grid_HDF5(hid_t file_id, const io::DatasetSpec &h5_dataset_sp
         (h5_dataset_spec.mhd_condition.value() == io::WriteCond::ALWAYS || H.Output_Complete_Data)) {
       const char *dset_names[3] = {"/magnetic_x", "/magnetic_y", "/magnetic_z"};
       for (int i = 0; i < 3; i++) {
-        int real_shape[3]      = {H.nx_real + (i == 0), H.ny_real + (i == 1), H.nz_real + (i == 2)};
-        const char *field_name = dset_names[i] + 1;
-        Real *ptr              = &C.device[H.n_cells * field_info.field_id(field_name).value()];
+        int real_shape[3]                 = {H.nx_real + (i == 0), H.ny_real + (i == 1), H.nz_real + (i == 2)};
+        const char *field_name            = dset_names[i] + 1;
+        std::optional<int> maybe_field_id = field_info.field_id(field_name);
+        Real *ptr                         = &C.device[H.n_cells * get_or_abort(maybe_field_id)];
         Write_HDF5_Field_3D(H.nx, H.ny, real_shape[0], real_shape[1], real_shape[2], H.n_ghost, file_id, dataset_buffer,
                             device_dataset_vector.data(), ptr, dset_names[i], i);
       }

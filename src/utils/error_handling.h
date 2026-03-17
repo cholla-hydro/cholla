@@ -2,6 +2,8 @@
 #define ERROR_HANDLING_CHOLLA_H
 #include <stdlib.h>
 
+#include <optional>
+
 #include "../global/global.h"
 [[noreturn]] void chexit(int code);
 
@@ -67,5 +69,24 @@ void Check_Configuration(Parameters const& P);
   if (not(cond)) { /* NOLINT */                                               \
     Abort_With_Err_(__CHOLLA_PRETTY_FUNC__, __FILE__, __LINE__, __VA_ARGS__); \
   }
+
+/*! \brief Unwrap the provided optional or abort with an error
+ *
+ *  This is basically a glorified version of std::optional<T>'s value method,
+ *  but it's explicit about the fact that the program will abort if the
+ *  optional doesn't contain a value.
+ *
+ *  \note
+ *  The creation of this function was promptly motivated by the existence of a
+ *  clang-tidy lint
+ */
+template <typename T>
+[[gnu::always_inline]] inline T& get_or_abort(std::optional<T>& optional)
+{
+  if (optional.has_value()) {
+    return optional.value();
+  }
+  CHOLLA_ERROR("the optional is empty");
+}
 
 #endif /*ERROR_HANDLING_CHOLLA_H*/

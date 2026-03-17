@@ -14,17 +14,36 @@
 #include "../io/ParameterMap.h"       // define ParameterMap
 #include "../io/RotatedProjWriter.h"  // RotatedProjWriter
 #include "../io/io.h"
+#include "../utils/error_handling.h"
 
 io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const FieldInfo& field_info)
     : fname_template_(P)
 {
+  int ndim;
+  if ((P.nx > 1) and (P.ny > 1) and (P.nz > 1)) {
+    ndim = 3;
+  } else if ((P.nx > 1) and (P.ny > 1) and (P.nz == 1)) {
+    ndim = 2;
+  } else if ((P.nx > 1) and (P.ny == 1) and (P.nz == 1)) {
+    ndim = 1;
+  } else {
+    CHOLLA_ERROR("Parameter file had unexpected dimensions");
+  }
+
   // in the future, the goal is to read directly from ParameterMap (so we can stop storing
   // some of the relevant variables in Parameters)
   const int n_hydro = pmap.value_or("n_hydro", 1);
 
 #ifndef ONLY_PARTICLES
-  // setup the data output routine for Hydro data
-  packs_.push_back(io::detail::WriterPack{"hydro", n_hydro, {io::FieldWriter(pmap, field_info)}});
+  {
+    // setup the data output routine for Hydro data
+    std::pair<io::WriterFn, std::string> rslt = io::FieldWriter::try_create(ndim, pmap, field_info);
+    if (rslt.first) {
+      packs_.push_back(io::detail::WriterPack{"hydro", n_hydro, rslt.first});
+    } else {
+      chprintf("WARNING: %s\n", rslt.second.c_str());
+    }
+  }
 #endif
 
   // This function does other checks to make sure it is valid (3D only)
