@@ -518,22 +518,6 @@ void H5AttrRecorder::record_arr(const char *name, const long *arr, int length)
   }
 }
 
-herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, double *attribute, const char *name)
-{
-  hid_t attribute_id = H5Acreate(file_id, name, H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  herr_t status      = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, attribute);
-  status             = H5Aclose(attribute_id);
-  return status;
-}
-
-herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, int *attribute, const char *name)
-{
-  hid_t attribute_id = H5Acreate(file_id, name, H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  herr_t status      = H5Awrite(attribute_id, H5T_NATIVE_INT, attribute);
-  status             = H5Aclose(attribute_id);
-  return status;
-}
-
 herr_t Read_HDF5_Dataset(hid_t file_id, double *dataset_buffer, const char *name)
 {
   hid_t dataset_id = H5Dopen(file_id, name, H5P_DEFAULT);

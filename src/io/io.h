@@ -153,9 +153,6 @@ class H5AttrRecorder
   void record_arr(const char* name, const long* arr, int length);
 };
 
-herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, double* attribute, const char* name);
-herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, int* attribute, const char* name);
-
 herr_t Read_HDF5_Dataset(hid_t file_id, double* dataset_buffer, const char* name);
 herr_t Read_HDF5_Dataset(hid_t file_id, float* dataset_buffer, const char* name);
 
