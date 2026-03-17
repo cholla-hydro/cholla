@@ -284,7 +284,8 @@ void Write_Header_Rotated_(const Grid3D &G, hid_t file_id, io::Rotation &R)
   R.nz_max = std::min(R.nz_max, R.nz);
   #endif
 
-  H5AttrRecorder attr_recorder(file_id);
+  H5AttrRecorder adaptor(file_id);
+  AttrRecorderInterface &attr_recorder = adaptor;
 
   // Rotation data
   attr_recorder.record("nxr", R.nx);

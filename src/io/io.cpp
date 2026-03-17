@@ -238,11 +238,30 @@ void Grid3D::Write_Header_Text(FILE *fp) const
   fprintf(fp, "t: %f\n", H.t);
 }
 
-#ifdef HDF5
-// TODO: consider removing only_record_common
-void Grid3D::Write_Header_HDF5(hid_t file_id, bool only_record_common) const
+/*! records the relevant file header information
+ *
+ *  This has been written so that the logic can be used for both text outputs and HDF5
+ *  outputs. By employing inheritance, there is minor runtime overhead (from using
+ *  virtual functions) when we record each item to the output
+ *
+ *  \note
+ *  It would probably be a good idea if we converted this to an instance method of
+ *  \ref Grid3D to replace both \ref Grid3D::Write_Header_Text and
+ *  \ref Grid3D::Write_Header_HDF5. We may want to wait until after we merge
+ *  PRs 469 and 476 (to minmize merge conflicts)
+ *
+ *  \param G the grid object holding data that is serialized
+ *  \param attr_recorder Attribute recorder implementing the interface specified by
+ *      the \ref AttrRecorderInterface
+ *  \param only_record_common When true, only a subset of info is written (the subset
+ *      that was also historically written by \ref Grid3D::Write_Header_Rotated_HDF5)
+ *
+ *  \todo consider removing the \p only_record_common argument. The consequence is that
+ *      more header attributes would be saved while making a rotated projection
+ */
+static void Write_Header_(const Grid3D &G, AttrRecorderInterface &attr_recorder, bool only_record_common)
 {
-  H5AttrRecorder attr_recorder(file_id);
+  const Header &H = G.H;
 
   // Single attributes first
   attr_recorder.record("gamma", gama);
@@ -266,37 +285,37 @@ void Grid3D::Write_Header_HDF5(hid_t file_id, bool only_record_common) const
     attr_recorder.record("density_unit", double{DENSITY_UNIT});
     attr_recorder.record("energy_unit", double{ENERGY_UNIT});
 
-  #ifdef MHD
+#ifdef MHD
     double magnetic_field_unit = MAGNETIC_FIELD_UNIT;
     attr_recorder.record("magnetic_field_unit", magnetic_field_unit);
-  #endif  // MHD
+#endif  // MHD
 
-  #ifdef COSMOLOGY
+#ifdef COSMOLOGY
     attr_recorder.record("H0", Cosmo.H0);
     attr_recorder.record("Omega_M", Cosmo.Omega_M);
     attr_recorder.record("Omega_L", Cosmo.Omega_L);
     attr_recorder.record("Current_z", Cosmo.current_z);
     attr_recorder.record("Current_a", Cosmo.current_a);
-  #endif
+#endif
   }
 
   // Now, do 3-element attributes
 
   // todo: we should stop narrowing the datatype from ptrdiff_t to int
   int dims[3];
-  #ifndef MPI_CHOLLA
+#ifndef MPI_CHOLLA
   dims[0] = H.nx_real;
   dims[1] = H.ny_real;
   dims[2] = H.nz_real;
-  #else
+#else
   dims[0] = nx_global;
   dims[1] = ny_global;
   dims[2] = nz_global;
-  #endif
+#endif
 
   attr_recorder.record_arr("dims", dims, 3);
 
-  #ifdef MPI_CHOLLA
+#ifdef MPI_CHOLLA
   attr_recorder.record_triple("dims_local", H.nx_real, H.ny_real, H.nz_real);
 
   // todo: we should stop narrowing the datatype from ptrdiff_t to int
@@ -310,13 +329,19 @@ void Grid3D::Write_Header_HDF5(hid_t file_id, bool only_record_common) const
   if (not only_record_common) {
     attr_recorder.record_triple("nprocs", nproc_x, nproc_y, nproc_z);
   }
-  #endif
+#endif
 
   attr_recorder.record_triple("bounds", H.xbound, H.ybound, H.zbound);
   attr_recorder.record_triple("domain", H.xdglobal, H.ydglobal, H.zdglobal);
   attr_recorder.record_triple("dx", H.dx, H.dy, H.dz);
 }
 
+#ifdef HDF5
+void Grid3D::Write_Header_HDF5(hid_t file_id, bool only_record_common) const
+{
+  H5AttrRecorder attr_recorder(file_id);
+  Write_Header_(*this, attr_recorder, only_record_common);
+}
 #endif  // HDF5
 
 #ifdef HDF5

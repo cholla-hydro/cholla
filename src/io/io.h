@@ -72,6 +72,40 @@ void Write_Debug(Real* Value, const char* fname, int nValues, int iProc);
  */
 void Ensure_Dir_Exists(std::string dir_path);
 
+/*! Provides a nice interface for recording file header information */
+class AttrRecorderInterface
+{
+ public:
+  virtual ~AttrRecorderInterface() {}
+
+  // declare the core recording methods
+  // -> none of these provide default implementations
+  virtual void record_arr(const char* name, const double* arr, int length) = 0;
+  virtual void record_arr(const char* name, const int* arr, int length)    = 0;
+  virtual void record_arr(const char* name, const long* arr, int length)   = 0;
+  virtual void record(const char* name, const char* value)                 = 0;
+
+  // declare and define all non-virtual methods
+  // (these are all derived from the virtual methods)
+  void record(const char* name, double value) { this->record_arr(name, &value, 1); }
+  void record(const char* name, int value) { this->record_arr(name, &value, 1); }
+  void record(const char* name, long value) { this->record_arr(name, &value, 1); }
+
+  // convenience method that comes up frequently
+  void record_triple(const char* name, double a, double b, double c)
+  {
+    double tmp[3] = {a, b, c};
+    this->record_arr(name, tmp, 3);
+  }
+
+  // convenience method that comes up frequently
+  void record_triple(const char* name, int a, int b, int c)
+  {
+    int tmp[3] = {a, b, c};
+    this->record_arr(name, tmp, 3);
+  }
+};
+
 #ifdef HDF5
 // From io/io.cpp
 
@@ -109,7 +143,7 @@ class H5Space1D
 /*! Provides a nice wrapper around an hdf5 file handle for the purpose of recording
  *  attributes
  */
-class H5AttrRecorder
+class H5AttrRecorder : public AttrRecorderInterface
 {
   hid_t file_id_;
   hid_t stringType_;
@@ -127,30 +161,12 @@ class H5AttrRecorder
     CHOLLA_ASSERT(H5Tset_size(this->stringType_, H5T_VARIABLE) >= 0, "error creating the string type");
   }
 
-  ~H5AttrRecorder() { H5Tclose(this->stringType_); }
+  ~H5AttrRecorder() override { H5Tclose(this->stringType_); }
 
-  void record(const char* name, const char* value);
-  void record(const char* name, double value) { this->record_arr(name, &value, 1); }
-  void record(const char* name, int value) { this->record_arr(name, &value, 1); }
-  void record(const char* name, long value) { this->record_arr(name, &value, 1); }
-
-  // convenience method that comes up frequently
-  void record_triple(const char* name, double a, double b, double c)
-  {
-    double tmp[3] = {a, b, c};
-    this->record_arr(name, tmp, 3);
-  }
-
-  // convenience method that comes up frequently
-  void record_triple(const char* name, int a, int b, int c)
-  {
-    int tmp[3] = {a, b, c};
-    this->record_arr(name, tmp, 3);
-  }
-
-  void record_arr(const char* name, const double* arr, int length);
-  void record_arr(const char* name, const int* arr, int length);
-  void record_arr(const char* name, const long* arr, int length);
+  void record_arr(const char* name, const double* arr, int length) override;
+  void record_arr(const char* name, const int* arr, int length) override;
+  void record_arr(const char* name, const long* arr, int length) override;
+  void record(const char* name, const char* value) override;
 };
 
 herr_t Read_HDF5_Dataset(hid_t file_id, double* dataset_buffer, const char* name);
