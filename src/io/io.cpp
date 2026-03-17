@@ -19,7 +19,6 @@
   #include <hdf5.h>
 #endif  // HDF5
 #include "../grid/grid3D.h"
-#include "../io/FieldWriter.h"
 #include "../io/WriterManager.h"
 #include "../io/io.h"
 #include "../utils/cuda_utilities.h"
@@ -149,55 +148,6 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
 
 #ifdef MPI_CHOLLA
   MPI_Barrier(world);
-#endif
-}
-
-void io::FieldWriter::operator()(Grid3D &G, Parameters P, int nfile, const FnameTemplate &fname_template) const
-{
-  // create the filename
-  std::string filename = fname_template.format_fname(nfile, "");
-
-// open the file for binary writes
-#ifdef HDF5
-  hid_t file_id; /* file identifier */
-  herr_t status;
-
-  // Create a new file using default properties.
-  file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-
-  // Write the header (file attributes)
-  G.Write_Header_HDF5(file_id);
-
-  // write the conserved variables to the output file
-  G.Write_Grid_HDF5(file_id, h5_dataset_spec_);
-
-  // close the file
-  status = H5Fclose(file_id);
-
-  if (status < 0) {
-    printf("File write failed.\n");
-    exit(-1);
-  }
-
-#else
-
-  if (G.H.nx * G.H.ny * G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
-  // open the file for txt writes
-  FILE *out;
-  out = fopen(filename.data(), "w");
-  if (out == NULL) {
-    printf("Error opening output file.\n");
-    exit(-1);
-  }
-
-  // write the header to the output file
-  G.Write_Header_Text(out);
-
-  // write the conserved variables to the output file
-  G.Write_Grid_Text(out);
-
-  // close the output file
-  fclose(out);
 #endif
 }
 
@@ -700,132 +650,6 @@ void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id, io::Rotation &R)
       R.delta, R.theta, R.phi, R.Lx, R.Lz);
 }
 #endif  // HDF5
-
-/*! \fn void Write_Grid_Text(FILE *fp)
- *  \brief Write the conserved quantities to a text output file. */
-void Grid3D::Write_Grid_Text(FILE *fp)
-{
-  int id, i, j, k;
-
-  // Write the conserved quantities to the output file
-
-  // 1D case
-  if (H.nx > 1 && H.ny == 1 && H.nz == 1) {
-    fprintf(fp, "id\trho\tmx\tmy\tmz\tE");
-#ifdef MHD
-    fprintf(fp, "\tmagX\tmagY\tmagZ");
-#endif  // MHD
-#ifdef DE
-    fprintf(fp, "\tge");
-#endif
-    fprintf(fp, "\n");
-    for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
-      id = i;
-      fprintf(fp, "%d\t%f\t%f\t%f\t%f\t%f", i - H.n_ghost, C.density[id], C.momentum_x[id], C.momentum_y[id],
-              C.momentum_z[id], C.Energy[id]);
-#ifdef MHD
-      fprintf(fp, "\t%f\t%f\t%f", C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
-#endif  // MHD
-#ifdef DE
-      fprintf(fp, "\t%f", C.GasEnergy[id]);
-#endif  // DE
-      fprintf(fp, "\n");
-    }
-#ifdef MHD
-    // Save the last line of magnetic fields
-    id = H.nx - H.n_ghost;
-    fprintf(fp, "%d\tNan\tNan\tNan\tNan\tNan\t%f\t%f\t%f", id, C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
-  #ifdef DE
-    fprintf(fp, "\tNan");
-  #endif  // DE
-    fprintf(fp, "\n");
-#endif  // MHD
-  }
-
-  // 2D case
-  else if (H.nx > 1 && H.ny > 1 && H.nz == 1) {
-    fprintf(fp, "idx\tidy\trho\tmx\tmy\tmz\tE");
-#ifdef MHD
-    fprintf(fp, "\tmagX\tmagY\tmagZ");
-#endif  // MHD
-#ifdef DE
-    fprintf(fp, "\tge");
-#endif
-    fprintf(fp, "\n");
-    for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
-      for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
-        id = i + j * H.nx;
-        fprintf(fp, "%d\t%d\t%f\t%f\t%f\t%f\t%f", i - H.n_ghost, j - H.n_ghost, C.density[id], C.momentum_x[id],
-                C.momentum_y[id], C.momentum_z[id], C.Energy[id]);
-#ifdef MHD
-        fprintf(fp, "\t%f\t%f\t%f", C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
-#endif  // MHD
-#ifdef DE
-        fprintf(fp, "\t%f", C.GasEnergy[id]);
-#endif  // DE
-        fprintf(fp, "\n");
-      }
-#ifdef MHD
-      // Save the last line of magnetic fields
-      id = i + (H.ny - H.n_ghost) * H.nx;
-      fprintf(fp, "%d\t%d\tNan\tNan\tNan\tNan\tNan\t%f\t%f\t%f", i - H.n_ghost, H.ny - 2 * H.n_ghost, C.magnetic_x[id],
-              C.magnetic_y[id], C.magnetic_z[id]);
-  #ifdef DE
-      fprintf(fp, "\tNan");
-  #endif  // DE
-      fprintf(fp, "\n");
-#endif  // MHD
-    }
-#ifdef MHD
-    // Save the last line of magnetic fields
-    id = H.nx - H.n_ghost + (H.ny - H.n_ghost) * H.nx;
-    fprintf(fp, "%d\t%d\tNan\tNan\tNan\tNan\tNan\t%f\t%f\t%f", H.nx - 2 * H.n_ghost, H.ny - 2 * H.n_ghost,
-            C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
-  #ifdef DE
-    fprintf(fp, "\tNan");
-  #endif  // DE
-    fprintf(fp, "\n");
-#endif  // MHD
-  }
-
-  // 3D case
-  else {
-    fprintf(fp, "idx\tidy\tidz\trho\tmx\tmy\tmz\tE");
-#ifdef DE
-    fprintf(fp, "\tge");
-#endif
-#ifdef MHD
-    fprintf(fp, "\tmagX\tmagY\tmagZ");
-#endif  // MHD
-    fprintf(fp, "\n");
-    for (i = H.n_ghost - 1; i < H.nx - H.n_ghost; i++) {
-      for (j = H.n_ghost - 1; j < H.ny - H.n_ghost; j++) {
-        for (k = H.n_ghost - 1; k < H.nz - H.n_ghost; k++) {
-          id = i + j * H.nx + k * H.nx * H.ny;
-
-          // Exclude the rightmost ghost cell on the "left" side for the hydro
-          // variables
-          if ((i >= H.n_ghost) and (j >= H.n_ghost) and (k >= H.n_ghost)) {
-            fprintf(fp, "%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f", i - H.n_ghost, j - H.n_ghost, k - H.n_ghost, C.density[id],
-                    C.momentum_x[id], C.momentum_y[id], C.momentum_z[id], C.Energy[id]);
-#ifdef DE
-            fprintf(fp, "\t%f", C.GasEnergy[id]);
-#endif  // DE
-          } else {
-            fprintf(fp, "%d\t%d\t%d\tn/a\tn/a\tn/a\tn/a\tn/a", i - H.n_ghost, j - H.n_ghost, k - H.n_ghost);
-#ifdef DE
-            fprintf(fp, "\tn/a");
-#endif  // DE
-          }
-#ifdef MHD
-          fprintf(fp, "\t%f\t%f\t%f", C.magnetic_x[id], C.magnetic_y[id], C.magnetic_z[id]);
-#endif  // MHD
-          fprintf(fp, "\n");
-        }
-      }
-    }
-  }
-}
 
 #ifdef HDF5
 herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, double *attribute, const char *name)

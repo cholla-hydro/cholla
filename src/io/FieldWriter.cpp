@@ -5,6 +5,10 @@
 
 #include "../io/FieldWriter.h"
 
+#include <cmath>
+#include <cstdio>
+#include <limits>
+#include <map>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -90,6 +94,126 @@ FieldWriter::FieldWriter(ParameterMap& pmap, const FieldInfo& field_info)
 
   // For now, I'm intentionally ignoring the remaining assorted outputs (e.g.
   // temperature, gravitational potential). That stuff is still handled very manually)
+}
+
+/*! Write the conserved quantities to a text output file */
+static void Write_Grid_Text_(FILE* fp, const Grid3D& G)
+{
+  const Header& H             = G.H;
+  const Grid3D::Conserved& C  = G.C;
+  const FieldInfo& field_info = G.field_info;
+
+  // Write the conserved quantities to the output file
+  bool is_1D = (H.nx > 1 && H.ny == 1 && H.nz == 1);
+
+  if (not is_1D) {
+    chprintf("Warning: can only write Fields to text files for 1D datasets\n");
+    return;
+  }
+
+  constexpr int MAX_FIELDS = 20;  // <- make this bigger, if necessary
+  const int n_fields       = field_info.n_fields();
+  CHOLLA_ASSERT(n_fields > 0, "n_names must be positive");
+  CHOLLA_ASSERT(n_fields <= MAX_FIELDS, "n_fields %d exceeds MAX_FIELDS, %d", n_fields, MAX_FIELDS);
+  // collect info about each field
+  const Real* ptr_arr[MAX_FIELDS];
+  bool is_cell_centered[MAX_FIELDS];
+  bool all_cell_centered = true;
+  for (int field_id = 0; field_id < n_fields; field_id++) {
+    ptr_arr[field_id]          = &G.C.host[field_id * G.H.n_cells];
+    is_cell_centered[field_id] = field_info.is_cell_centered(field_id).value();
+    all_cell_centered          = all_cell_centered and is_cell_centered[field_id];
+  }
+
+  // these are historical short names that we have traditionally used
+  // -> if a field name isn't in here, we will reuse the field name
+  const std::map<std::string, std::string> name_map{
+      {"density", "rho"},  {"momentum_x", "mx"},   {"momentum_y", "my"},   {"momentum_z", "mz"},  {"Energy", "E"},
+      {"GasEnergy", "ge"}, {"magnetic_x", "magX"}, {"magnetic_y", "magY"}, {"magnetic_z", "magZ"}};
+
+  // write the very first line of the output table
+  std::fprintf(fp, "id");
+  for (int field_id = 0; field_id < n_fields; field_id++) {
+    // determin the column name
+    std::string field_name      = field_info.field_name(field_id).value();
+    auto search                 = name_map.find(field_name);
+    const std::string& col_name = (search == name_map.end()) ? field_name : search->second;
+    std::fprintf(fp, "\t%s", col_name.c_str());
+  }
+  std::fputc('\n', fp);
+
+  // write all normal rows
+  for (int i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+    std::fprintf(fp, "%d", i - H.n_ghost);
+    for (int field_idx = 0; field_idx < n_fields; field_idx++) {
+      std::fprintf(fp, "\t%f", ptr_arr[field_idx][i]);
+    }
+    std::fputc('\n', fp);
+  }
+
+  // if any fields are not cell-centered (i.e. the magnetic fields), we need to write
+  // an extra table row
+  if (not all_cell_centered) {
+    int i = H.nx - H.n_ghost;
+    std::fprintf(fp, "%d", i - H.n_ghost);
+    for (int field_idx = 0; field_idx < n_fields; field_idx++) {
+      if (is_cell_centered[field_idx]) {
+        std::fprintf(fp, "\tNaN");
+      } else {
+        std::fprintf(fp, "\t%f", ptr_arr[field_idx][i]);
+      }
+    }
+    std::fputc('\n', fp);
+  }
+}
+
+void FieldWriter::operator()(Grid3D& G, Parameters P, int nfile, const FnameTemplate& fname_template) const
+{
+  // create the filename
+  std::string filename = fname_template.format_fname(nfile, "");
+
+// open the file for binary writes
+#ifdef HDF5
+  hid_t file_id; /* file identifier */
+  herr_t status;
+
+  // Create a new file using default properties.
+  file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
+  // Write the header (file attributes)
+  G.Write_Header_HDF5(file_id);
+
+  // write the conserved variables to the output file
+  G.Write_Grid_HDF5(file_id, h5_dataset_spec_);
+
+  // close the file
+  status = H5Fclose(file_id);
+
+  if (status < 0) {
+    printf("File write failed.\n");
+    exit(-1);
+  }
+
+#else
+
+  if (G.H.nx * G.H.ny * G.H.nz > 1000) printf("Ascii outputs only recommended for small problems!\n");
+  // open the file for txt writes
+  FILE* out;
+  out = fopen(filename.data(), "w");
+  if (out == NULL) {
+    printf("Error opening output file.\n");
+    exit(-1);
+  }
+
+  // write the header to the output file
+  G.Write_Header_Text(out);
+
+  // write the conserved variables to the output file
+  Write_Grid_Text_(out, G);
+
+  // close the output file
+  fclose(out);
+#endif
 }
 
 }  // namespace io
