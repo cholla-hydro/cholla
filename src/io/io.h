@@ -72,33 +72,59 @@ void Write_Debug(Real* Value, const char* fname, int nValues, int iProc);
  */
 void Ensure_Dir_Exists(std::string dir_path);
 
-/*! Provides a nice interface for recording file header information */
+/*! Abstract class that provides the interface for recording file header information
+ *
+ *  The expectation is that logic for serializing Attribute information to different
+ *  formats will be organized into different subclasses. For example, we might define
+ *  an HDF5 class and a Text class.
+ *
+ *  \note
+ *  For less experienced C++ devs:
+ *  - virtual methods can be overridden by subclasses
+ *  - a pure virtual method doesn't provide a default implementation. If you try to
+ *    initialize a subclass that doesn't override the methods, the program won't compile
+ *  - virtual methods with default implementations don't need to be overriden (in the
+ *    context of this class, they may be implemented in terms of other virtual methods)
+ */
 class AttrRecorderInterface
 {
  public:
+  // I don't anticipate that we'll need the virtual destructor, but we're
+  // including it just in case. I'm concerned that if we don't declare it to
+  // be virtual a future change could make it necessary and people may be
+  // confused about failure since inheritance is EXTREMELY rare in this
+  // codebase
   virtual ~AttrRecorderInterface() {}
 
-  // declare the core recording methods
-  // -> none of these provide default implementations
+  // declare the recording methods for arrays of values
+  ///@{
+  /*! record a 1d array of values */
   virtual void record_arr(const char* name, const double* arr, int length) = 0;
   virtual void record_arr(const char* name, const int* arr, int length)    = 0;
   virtual void record_arr(const char* name, const long* arr, int length)   = 0;
-  virtual void record(const char* name, const char* value)                 = 0;
+  ///@}
 
-  // declare and define all non-virtual methods
-  // (these are all derived from the virtual methods)
-  void record(const char* name, double value) { this->record_arr(name, &value, 1); }
-  void record(const char* name, int value) { this->record_arr(name, &value, 1); }
-  void record(const char* name, long value) { this->record_arr(name, &value, 1); }
+  // the following member group consists of member functions for recording scalar
+  // attributes. The overload for writing a string is the only pure virtual member.
+  // Every other member function has a default implementation that treats the scalar
+  // as a 1 element array
 
-  // convenience method that comes up frequently
+  ///@{
+  /*! record a scalar attribute */
+  virtual void record(const char* name, const char* val) = 0;
+  virtual void record(const char* name, double val)      = 0;
+  virtual void record(const char* name, int val)         = 0;
+  virtual void record(const char* name, long val)        = 0;
+  ///@}
+
+  /*! A convenience method for recording 3 doubles */
   void record_triple(const char* name, double a, double b, double c)
   {
     double tmp[3] = {a, b, c};
     this->record_arr(name, tmp, 3);
   }
 
-  // convenience method that comes up frequently
+  /* A convenience method for recording 3 ints */
   void record_triple(const char* name, int a, int b, int c)
   {
     int tmp[3] = {a, b, c};
@@ -166,7 +192,12 @@ class H5AttrRecorder : public AttrRecorderInterface
   void record_arr(const char* name, const double* arr, int length) override;
   void record_arr(const char* name, const int* arr, int length) override;
   void record_arr(const char* name, const long* arr, int length) override;
-  void record(const char* name, const char* value) override;
+  void record(const char* name, const char* val) override;
+
+  // for historical consistency scalar arithmetic values are saved as 1-element arrays
+  void record(const char* name, double val) override { this->record_arr(name, &val, 1); }
+  void record(const char* name, int val) override { this->record_arr(name, &val, 1); }
+  void record(const char* name, long val) override { this->record_arr(name, &val, 1); }
 };
 
 herr_t Read_HDF5_Dataset(hid_t file_id, double* dataset_buffer, const char* name);
