@@ -21,6 +21,50 @@
 namespace
 {  // contents of an anonymous namespace are local to current translation unit
 
+/*! function used to rotate points about an axis in 3D for the rotated projection
+ *  output routine */
+void Rotate_Point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp)
+{
+  Real cd, sd, cp, sp, ct, st;  // sines and cosines
+  Real a00, a01, a02;           // rotation matrix elements
+  Real a10, a11, a12;
+  Real a20, a21, a22;
+
+  // compute trig functions of rotation angles
+  cd = cos(delta);
+  sd = sin(delta);
+  cp = cos(phi);
+  sp = sin(phi);
+  ct = cos(theta);
+  st = sin(theta);
+
+  // compute the rotation matrix elements
+  /*a00 =       cosp*cosd - sinp*cost*sind;
+  a01 = -1.0*(cosp*sind + sinp*cost*cosd);
+  a02 =       sinp*sint;
+
+  a10 =       sinp*cosd + cosp*cost*sind;
+  a11 =      (cosp*cost*cosd - sint*sind);
+  a12 = -1.0* cosp*sint;
+
+  a20 =       sint*sind;
+  a21 =       sint*cosd;
+  a22 =       cost;*/
+  a00 = (cp * cd - sp * ct * sd);
+  a01 = -1.0 * (cp * sd + sp * ct * cd);
+  a02 = sp * st;
+  a10 = (sp * cd + cp * ct * sd);
+  a11 = (cp * ct * cd - st * sd);
+  a12 = cp * st;
+  a20 = st * sd;
+  a21 = st * cd;
+  a22 = ct;
+
+  *xp = a00 * x + a01 * y + a02 * z;
+  *yp = a10 * x + a11 * y + a12 * z;
+  *zp = a20 * x + a21 * y + a22 * z;
+}
+
 /*! \brief Write rotated projected data to a file, at the current simulation */
 void Write_Rotated_Projection_HDF5_(const Grid3D &G, hid_t file_id, const io::Rotation &R)
 {

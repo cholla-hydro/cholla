@@ -1826,48 +1826,6 @@ int chprintf(const char *__restrict sdata, ...)  // NOLINT(cert-dcl50-cpp)
   return code;
 }
 
-void Rotate_Point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp)
-{
-  Real cd, sd, cp, sp, ct, st;  // sines and cosines
-  Real a00, a01, a02;           // rotation matrix elements
-  Real a10, a11, a12;
-  Real a20, a21, a22;
-
-  // compute trig functions of rotation angles
-  cd = cos(delta);
-  sd = sin(delta);
-  cp = cos(phi);
-  sp = sin(phi);
-  ct = cos(theta);
-  st = sin(theta);
-
-  // compute the rotation matrix elements
-  /*a00 =       cosp*cosd - sinp*cost*sind;
-  a01 = -1.0*(cosp*sind + sinp*cost*cosd);
-  a02 =       sinp*sint;
-
-  a10 =       sinp*cosd + cosp*cost*sind;
-  a11 =      (cosp*cost*cosd - sint*sind);
-  a12 = -1.0* cosp*sint;
-
-  a20 =       sint*sind;
-  a21 =       sint*cosd;
-  a22 =       cost;*/
-  a00 = (cp * cd - sp * ct * sd);
-  a01 = -1.0 * (cp * sd + sp * ct * cd);
-  a02 = sp * st;
-  a10 = (sp * cd + cp * ct * sd);
-  a11 = (cp * ct * cd - st * sd);
-  a12 = cp * st;
-  a20 = st * sd;
-  a21 = st * cd;
-  a22 = ct;
-
-  *xp = a00 * x + a01 * y + a02 * z;
-  *yp = a10 * x + a11 * y + a12 * z;
-  *zp = a20 * x + a21 * y + a22 * z;
-}
-
 void Write_Debug(Real *Value, const char *fname, int nValues, int iProc)
 {
   char fn[1024];

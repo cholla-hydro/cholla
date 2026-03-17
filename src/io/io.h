@@ -72,10 +72,6 @@ void Write_Debug(Real* Value, const char* fname, int nValues, int iProc);
  */
 void Ensure_Dir_Exists(std::string dir_path);
 
-/*! function used to rotate points about an axis in 3D for the rotated projection
- *  output routine */
-void Rotate_Point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real* xp, Real* yp, Real* zp);
-
 #ifdef HDF5
 // From io/io.cpp
 

@@ -14,6 +14,11 @@ namespace io
 {
 
 /*! Tracks rotation information for creating Rotated Projections
+ *
+ *  \note
+ *  The reason that the members of this struct aren't direct members of
+ *  @ref RotatedProjWriter is purely historical. At this point, there is nothing
+ *  stopping us from doing this
  */
 struct Rotation {
   // the default constructor would put the instance in an invalid state
@@ -70,8 +75,8 @@ struct Rotation {
 
 /*! \brief A callable that writes rotated projections
  *
- *  \note
- *  The initial skeleton is basically a placeholder
+ *  For more context, a "callable" object is sometimes called a "functor." Essentially
+ *  a "callable" object carries around state and can be called like a function.
  */
 class RotatedProjWriter
 {
@@ -82,7 +87,13 @@ class RotatedProjWriter
   RotatedProjWriter() = delete;
   RotatedProjWriter(ParameterMap &pmap) : rot_info_(pmap) {}
 
-  /*! A callable method that writes a rotated projection of the grid data to file.
+  /*! Writes the rotated project to disk.
+   *
+   *  \note
+   *  In case you are unaware, this overloads the "function call operator". If we have
+   *  an instance, `obj`, then you call this method by invoking
+   *  `obj(G, P, nfile, fname_template)`. In python, this method would be named
+   *  `__call__`.
    */
   void operator()(Grid3D &G, Parameters P, int nfile, const FnameTemplate &fname_template);
 };

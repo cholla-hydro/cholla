@@ -51,11 +51,6 @@
   #include "../analysis/analysis.h"
 #endif
 
-namespace io
-{
-struct Rotation;
-}  // namespace io
-
 struct Header {
   /*! \var n_cells
    *  \brief Total number of cells in the grid (including ghost cells) */
