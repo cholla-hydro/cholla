@@ -247,135 +247,73 @@ void Grid3D::Write_Header_Text(FILE *fp) const
  *  \brief Write the relevant header info to the HDF5 file. */
 void Grid3D::Write_Header_HDF5(hid_t file_id)
 {
-  hid_t attribute_id, dataspace_id;
-  herr_t status;
-  hsize_t attr_dims;
-  int int_data[3];
-  Real Real_data[3];
+  H5AttrRecorder attr_recorder(file_id);
 
   // Single attributes first
-  attr_dims = 1;
-  // Create the data space for the attribute
-  dataspace_id = H5Screate_simple(1, &attr_dims, NULL);
-  // Create a group attribute
-  attribute_id = H5Acreate(file_id, "gamma", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  // Write the attribute data
-  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &gama);
-  // Close the attribute
-  status = H5Aclose(attribute_id);
+  attr_recorder.record("gamma", gama);
 
-  // String attributes
-  hid_t stringType = H5Tcopy(H5T_C_S1);
-  H5Tset_size(stringType, H5T_VARIABLE);
-
-  attribute_id        = H5Acreate(file_id, "Git Commit Hash", stringType, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  const char *gitHash = GIT_HASH;
-  status              = H5Awrite(attribute_id, stringType, &gitHash);
-  H5Aclose(attribute_id);
-
-  attribute_id           = H5Acreate(file_id, "Macro Flags", stringType, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  const char *macroFlags = MACRO_FLAGS;
-  status                 = H5Awrite(attribute_id, stringType, &macroFlags);
-  H5Aclose(attribute_id);
-
-  // attribute to help yt differentiate cholla outputs from outputs produced by other codes
-  attribute_id         = H5Acreate(file_id, "cholla", stringType, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  const char *dummyStr = "";  // this doesn't really matter right now
-  status               = H5Awrite(attribute_id, stringType, &dummyStr);
-  H5Aclose(attribute_id);
+  attr_recorder.record("Git Commit Hash", GIT_HASH);
+  attr_recorder.record("Macro Flags", MACRO_FLAGS);
+  attr_recorder.record("cholla", "");  // <- helps yt identify cholla outputs
 
   // Numeric Attributes
-  status               = Write_HDF5_Attribute(file_id, dataspace_id, &H.t, "t");
-  status               = Write_HDF5_Attribute(file_id, dataspace_id, &H.dt, "dt");
-  status               = Write_HDF5_Attribute(file_id, dataspace_id, &H.n_step, "n_step");
-  status               = Write_HDF5_Attribute(file_id, dataspace_id, &H.n_fields, "n_fields");
-  double time_unit     = TIME_UNIT;
-  status               = Write_HDF5_Attribute(file_id, dataspace_id, &time_unit, "time_unit");
-  double length_unit   = LENGTH_UNIT;
-  status               = Write_HDF5_Attribute(file_id, dataspace_id, &length_unit, "length_unit");
-  double mass_unit     = MASS_UNIT;
-  status               = Write_HDF5_Attribute(file_id, dataspace_id, &mass_unit, "mass_unit");
-  double velocity_unit = VELOCITY_UNIT;
-  status               = Write_HDF5_Attribute(file_id, dataspace_id, &velocity_unit, "velocity_unit");
-  double density_unit  = DENSITY_UNIT;
-  status               = Write_HDF5_Attribute(file_id, dataspace_id, &density_unit, "density_unit");
-  double energy_unit   = ENERGY_UNIT;
-  status               = Write_HDF5_Attribute(file_id, dataspace_id, &energy_unit, "energy_unit");
+  attr_recorder.record("t", H.t);
+  attr_recorder.record("dt", H.dt);
+  attr_recorder.record("n_step", H.n_step);
+  attr_recorder.record("n_fields", H.n_fields);
+  attr_recorder.record("time_unit", double{TIME_UNIT});
+  attr_recorder.record("length_unit", double{LENGTH_UNIT});
+  attr_recorder.record("mass_unit", double{MASS_UNIT});
+  attr_recorder.record("velocity_unit", double{VELOCITY_UNIT});
+  attr_recorder.record("density_unit", double{DENSITY_UNIT});
+  attr_recorder.record("energy_unit", double{ENERGY_UNIT});
 
   #ifdef MHD
   double magnetic_field_unit = MAGNETIC_FIELD_UNIT;
-  status                     = Write_HDF5_Attribute(file_id, dataspace_id, &magnetic_field_unit, "magnetic_field_unit");
+  attr_recorder.record("magnetic_field_unit", magnetic_field_unit);
   #endif  // MHD
 
   #ifdef COSMOLOGY
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &Cosmo.H0, "H0");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &Cosmo.Omega_M, "Omega_M");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &Cosmo.Omega_L, "Omega_L");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &Cosmo.current_z, "Current_z");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &Cosmo.current_a, "Current_a");
+  attr_recorder.record("H0", Cosmo.H0);
+  attr_recorder.record("Omega_M", Cosmo.Omega_M);
+  attr_recorder.record("Omega_L", Cosmo.Omega_L);
+  attr_recorder.record("Current_z", Cosmo.current_z);
+  attr_recorder.record("Current_a", Cosmo.current_a);
   #endif
 
-  // Close the dataspace
-  status = H5Sclose(dataspace_id);
+  // Now, do 3-element attributes
 
-  // Now 3D attributes
-  attr_dims = 3;
-  // Create the data space for the attribute
-  dataspace_id = H5Screate_simple(1, &attr_dims, NULL);
-
+  // todo: we should stop narrowing the datatype from ptrdiff_t to int
+  int dims[3];
   #ifndef MPI_CHOLLA
-  int_data[0] = H.nx_real;
-  int_data[1] = H.ny_real;
-  int_data[2] = H.nz_real;
+  dims[0] = H.nx_real;
+  dims[1] = H.ny_real;
+  dims[2] = H.nz_real;
+  #else
+  dims[0] = nx_global;
+  dims[1] = ny_global;
+  dims[2] = nz_global;
   #endif
+
+  attr_recorder.record_arr("dims", dims, 3);
+
   #ifdef MPI_CHOLLA
-  int_data[0] = nx_global;
-  int_data[1] = ny_global;
-  int_data[2] = nz_global;
+  attr_recorder.record_triple("dims_local", H.nx_real, H.ny_real, H.nz_real);
+
+  // todo: we should stop narrowing the datatype from ptrdiff_t to int
+  int offset[3];
+  offset[0] = nx_local_start;
+  offset[1] = ny_local_start;
+  offset[2] = nz_local_start;
+
+  attr_recorder.record_arr("offset", offset, 3);
+
+  attr_recorder.record_triple("nprocs", nproc_x, nproc_y, nproc_z);
   #endif
 
-  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims");
-
-  #ifdef MPI_CHOLLA
-  int_data[0] = H.nx_real;
-  int_data[1] = H.ny_real;
-  int_data[2] = H.nz_real;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims_local");
-
-  int_data[0] = nx_local_start;
-  int_data[1] = ny_local_start;
-  int_data[2] = nz_local_start;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "offset");
-
-  int_data[0] = nproc_x;
-  int_data[1] = nproc_y;
-  int_data[2] = nproc_z;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "nprocs");
-  #endif
-
-  Real_data[0] = H.xbound;
-  Real_data[1] = H.ybound;
-  Real_data[2] = H.zbound;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "bounds");
-
-  Real_data[0] = H.xdglobal;
-  Real_data[1] = H.ydglobal;
-  Real_data[2] = H.zdglobal;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "domain");
-
-  Real_data[0] = H.dx;
-  Real_data[1] = H.dy;
-  Real_data[2] = H.dz;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "dx");
-
-  // Close the dataspace
-  status = H5Sclose(dataspace_id);
+  attr_recorder.record_triple("bounds", H.xbound, H.ybound, H.zbound);
+  attr_recorder.record_triple("domain", H.xdglobal, H.ydglobal, H.zdglobal);
+  attr_recorder.record_triple("dx", H.dx, H.dy, H.dz);
 }
 
 /*! \fn void Write_Header_Rotated_HDF5(hid_t file_id)
@@ -383,11 +321,6 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
  * projection. */
 void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id, io::Rotation &R)
 {
-  hid_t attribute_id, dataspace_id;
-  herr_t status;
-  hsize_t attr_dims;
-  int int_data[3];
-  Real Real_data[3];
   Real delta, theta, phi;
 
   #ifdef MPI_CHOLLA
@@ -428,107 +361,64 @@ void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id, io::Rotation &R)
   R.nz_max = std::min(R.nz_max, R.nz);
   #endif
 
-  // Single attributes first
-  attr_dims = 1;
-  // Create the data space for the attribute
-  dataspace_id = H5Screate_simple(1, &attr_dims, NULL);
-  // Create a group attribute
-  attribute_id = H5Acreate(file_id, "gamma", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  // Write the attribute data
-  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &gama);
-  // Close the attribute
-  status = H5Aclose(attribute_id);
+  H5AttrRecorder attr_recorder(file_id);
+  attr_recorder.record("gamma", gama);
 
-  // String attributes
-  hid_t stringType = H5Tcopy(H5T_C_S1);
-  H5Tset_size(stringType, H5T_VARIABLE);
-
-  attribute_id        = H5Acreate(file_id, "Git Commit Hash", stringType, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  const char *gitHash = GIT_HASH;
-  status              = H5Awrite(attribute_id, stringType, &gitHash);
-  H5Aclose(attribute_id);
-
-  attribute_id           = H5Acreate(file_id, "Macro Flags", stringType, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  const char *macroFlags = MACRO_FLAGS;
-  status                 = H5Awrite(attribute_id, stringType, &macroFlags);
-  H5Aclose(attribute_id);
+  attr_recorder.record("Git Commit Hash", GIT_HASH);
+  attr_recorder.record("Macro Flags", MACRO_FLAGS);
 
   // Numeric Attributes
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &H.t, "t");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &H.dt, "dt");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &H.n_step, "n_step");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &H.n_fields, "n_fields");
+  attr_recorder.record("t", H.t);
+  attr_recorder.record("dt", H.dt);
+  attr_recorder.record("n_step", H.n_step);
+  attr_recorder.record("n_fields", H.n_fields);
 
   // Rotation data
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.nx, "nxr");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.nz, "nzr");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.nx_min, "nx_min");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.nz_min, "nz_min");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.nx_max, "nx_max");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.nz_max, "nz_max");
-  delta  = 180. * R.delta / M_PI;
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &delta, "delta");
-  theta  = 180. * R.theta / M_PI;
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &theta, "theta");
-  phi    = 180. * R.phi / M_PI;
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &phi, "phi");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.Lx, "Lx");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.Lz, "Lz");
-  // Close the dataspace
-  status = H5Sclose(dataspace_id);
+  attr_recorder.record("nxr", R.nx);
+  attr_recorder.record("nzr", R.nz);
+  attr_recorder.record("nx_min", R.nx_min);
+  attr_recorder.record("nz_min", R.nz_min);
+  attr_recorder.record("nx_max", R.nx_max);
+  attr_recorder.record("nz_max", R.nz_max);
+  delta = 180. * R.delta / M_PI;
+  attr_recorder.record("delta", delta);
+  theta = 180. * R.theta / M_PI;
+  attr_recorder.record("theta", theta);
+  phi = 180. * R.phi / M_PI;
+  attr_recorder.record("phi", phi);
+  attr_recorder.record("Lx", R.Lx);
+  attr_recorder.record("Lz", R.Lz);
 
-  // Now 3D attributes
-  attr_dims = 3;
-  // Create the data space for the attribute
-  dataspace_id = H5Screate_simple(1, &attr_dims, NULL);
+  // Now, do 3-element attributes
 
+  int dims[3];
   #ifndef MPI_CHOLLA
-  int_data[0] = H.nx_real;
-  int_data[1] = H.ny_real;
-  int_data[2] = H.nz_real;
+  dims[0] = H.nx_real;
+  dims[1] = H.ny_real;
+  dims[2] = H.nz_real;
+  #else
+  dims[0] = nx_global;
+  dims[1] = ny_global;
+  dims[2] = nz_global;
   #endif
+
+  attr_recorder.record_arr("dims", dims, 3);
+
   #ifdef MPI_CHOLLA
-  int_data[0] = nx_global;
-  int_data[1] = ny_global;
-  int_data[2] = nz_global;
+  attr_recorder.record_triple("dims_local", H.nx_real, H.ny_real, H.nz_real);
+
+  // todo: we should stop narrowing the datatype from ptrdiff_t to int
+  int offset[3];
+  offset[0] = nx_local_start;
+  offset[1] = ny_local_start;
+  offset[2] = nz_local_start;
+
+  attr_recorder.record_arr("offset", offset, 3);
   #endif
 
-  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims");
-
-  #ifdef MPI_CHOLLA
-  int_data[0] = H.nx_real;
-  int_data[1] = H.ny_real;
-  int_data[2] = H.nz_real;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims_local");
-
-  int_data[0] = nx_local_start;
-  int_data[1] = ny_local_start;
-  int_data[2] = nz_local_start;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "offset");
-  #endif
-
-  Real_data[0] = H.xbound;
-  Real_data[1] = H.ybound;
-  Real_data[2] = H.zbound;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "bounds");
-
-  Real_data[0] = H.xdglobal;
-  Real_data[1] = H.ydglobal;
-  Real_data[2] = H.zdglobal;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "domain");
-
-  Real_data[0] = H.dx;
-  Real_data[1] = H.dy;
-  Real_data[2] = H.dz;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "dx");
-
-  // Close the dataspace
-  status = H5Sclose(dataspace_id);
+  attr_recorder.record_triple("bounds", H.xbound, H.ybound, H.zbound);
+  attr_recorder.record_triple("domain", H.xdglobal, H.ydglobal, H.zdglobal);
+  attr_recorder.record_triple("dx", H.dx, H.dy, H.dz);
 
   chprintf(
       "Outputting rotation data with delta = %e, theta = %e, phi = %e, Lx = "

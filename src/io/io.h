@@ -6,7 +6,9 @@
 
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <sstream>
+#include <utility>  // std::swap, std::move
 
 #include "../global/global.h"
 #include "../grid/grid3D.h"
@@ -72,6 +74,145 @@ void Ensure_Dir_Exists(std::string dir_path);
 
 #ifdef HDF5
 // From io/io.cpp
+
+/*! Encapsulates a simple 1D H5 dataspace
+ *
+ *  After a LOT of debugging, it turns out that we need to preserve the pointer used
+ *  used to call @ref H5Screate_simple. This class does that for us in a convenient way
+ *  for implementing @ref H5AttrRecorder
+ */
+class H5Space1D
+{
+  std::unique_ptr<hsize_t> dim_;
+  hid_t id_;
+
+ public:
+  H5Space1D() : dim_(nullptr), id_{H5I_INVALID_HID} {}
+  H5Space1D(hsize_t dim) : H5Space1D() { this->ensure_dim(dim); }
+  H5Space1D(H5Space1D&& other) noexcept : H5Space1D() { *this = std::move(other); }
+
+  /*! Move Assignment */
+  H5Space1D& operator=(H5Space1D&& other) noexcept
+  {
+    std::swap(this->dim_, other.dim_);
+    std::swap(this->id_, other.id_);
+    return *this;
+  }
+
+  ~H5Space1D()
+  {
+    if (this->id_ != H5I_INVALID_HID) H5Sclose(this->id_);
+  }
+
+  /*! get the dataspace id */
+  hid_t id() const { return this->id_; }
+
+  /*! ensure that the underlying dataspace dimension is `dim` (dataspace id may change) */
+  H5Space1D& ensure_dim(hsize_t dim)
+  {
+    if (this->id_ == H5I_INVALID_HID) {  // <- first time setting dim
+      this->dim_ = std::unique_ptr<hsize_t>(new hsize_t{dim});
+    } else if (*this->dim_ == dim) {  // <- dim isn't changing
+      return *this;
+    } else {
+      H5Sclose(this->id_);
+      *this->dim_ = dim;
+    }
+    this->id_ = H5Screate_simple(1, this->dim_.get(), nullptr);
+    CHOLLA_ASSERT(this->id_ != H5I_INVALID_HID, "dataspace init error");
+    return *this;
+  }
+};
+
+class H5AttrRecorder
+{
+  hid_t file_id_;
+  hid_t stringType_;
+  H5Space1D cached_dataspace_;
+
+  hid_t make_attr_1d_(const char* name, hid_t type_id, hsize_t n_elem)
+  {
+    hid_t dataspace_id = this->cached_dataspace_.ensure_dim(n_elem).id();
+    CHOLLA_ASSERT(name != nullptr, "name must not be a nullptr");
+    hid_t attribute_id = H5Acreate(this->file_id_, name, type_id, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    CHOLLA_ASSERT(attribute_id != H5I_INVALID_HID, "error creating attribute");
+    return attribute_id;
+  }
+
+ public:
+  H5AttrRecorder() = delete;
+
+  explicit H5AttrRecorder(hid_t file_id)
+  {
+    this->file_id_    = file_id;
+    this->stringType_ = H5Tcopy(H5T_C_S1);
+    CHOLLA_ASSERT(H5Tset_size(this->stringType_, H5T_VARIABLE) >= 0, "error creating the string type");
+  }
+
+  ~H5AttrRecorder() { H5Tclose(this->stringType_); }
+
+  void record(const char* name, const char* value)
+  {
+    CHOLLA_ASSERT(value != nullptr, "value can't be a nullptr");
+    hid_t type_id      = this->stringType_;
+    hid_t attribute_id = this->make_attr_1d_(name, type_id, 1);
+    if (H5Awrite(attribute_id, type_id, &value) < 0) {
+      CHOLLA_ERROR("error writing \"%s\" attribute", name);
+    }
+    if (H5Aclose(attribute_id) < 0) {
+      CHOLLA_ERROR("error closing the \"%s\" attribute", name);
+    }
+  }
+
+  void record(const char* name, double value) { this->record_arr(name, &value, 1); }
+
+  void record(const char* name, int value) { this->record_arr(name, &value, 1); }
+
+  // convenience method that comes up frequently
+  void record_triple(const char* name, Real a, Real b, Real c)
+  {
+    double tmp[3] = {a, b, c};
+    this->record_arr(name, tmp, 3);
+  }
+
+  // convenience method that comes up frequently
+  void record_triple(const char* name, int a, int b, int c)
+  {
+    int tmp[3] = {a, b, c};
+    this->record_arr(name, tmp, 3);
+  }
+
+  void record_arr(const char* name, const double* arr, int length)
+  {
+    hid_t type_id = H5T_NATIVE_DOUBLE;
+    // is there a compelling reason why this is big endian?
+    hid_t dest_type_id = H5T_IEEE_F64BE;
+    hid_t attribute_id = this->make_attr_1d_(name, dest_type_id, length);
+    if (H5Awrite(attribute_id, type_id, arr) < 0) {
+      CHOLLA_ERROR("error writing \"%s\" attribute", name);
+    }
+    if (H5Aclose(attribute_id) < 0) {
+      CHOLLA_ERROR("error closing the \"%s\" attribute", name);
+    }
+  }
+
+  void record_arr(const char* name, const int* arr, int length)
+  {
+    hid_t type_id = H5T_NATIVE_INT;
+    // the following was picked for historical consistency
+    // -> in reality, we probably want to make sure the output size is at least
+    //    as big as the native int (yes, it's usually 32-bit, but not guaranteed)
+    // -> is there a compelling reason why this is big endian?
+    hid_t dest_type_id = H5T_STD_I32BE;
+    hid_t attribute_id = this->make_attr_1d_(name, dest_type_id, length);
+    if (H5Awrite(attribute_id, type_id, arr) < 0) {
+      CHOLLA_ERROR("error writing \"%s\" attribute", name);
+    }
+    if (H5Aclose(attribute_id) < 0) {
+      CHOLLA_ERROR("error closing the \"%s\" attribute", name);
+    }
+  }
+};
 
 herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, double* attribute, const char* name);
 herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, int* attribute, const char* name);
