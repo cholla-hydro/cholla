@@ -132,6 +132,7 @@ class H5AttrRecorder
   void record(const char* name, const char* value);
   void record(const char* name, double value) { this->record_arr(name, &value, 1); }
   void record(const char* name, int value) { this->record_arr(name, &value, 1); }
+  void record(const char* name, long value) { this->record_arr(name, &value, 1); }
 
   // convenience method that comes up frequently
   void record_triple(const char* name, double a, double b, double c)
@@ -149,6 +150,7 @@ class H5AttrRecorder
 
   void record_arr(const char* name, const double* arr, int length);
   void record_arr(const char* name, const int* arr, int length);
+  void record_arr(const char* name, const long* arr, int length);
 };
 
 herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, double* attribute, const char* name);
