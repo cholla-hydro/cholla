@@ -22,8 +22,14 @@ namespace
 {  // contents of an anonymous namespace are local to current translation unit
 
 /*! function used to rotate points about an axis in 3D for the rotated projection
- *  output routine */
-void Rotate_Point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp)
+ *  output routine
+ *
+ *  \note
+ *  The `maybe_unused` attribute is present to ensure there are no compiler warnings
+ *  when Cholla isn't linked against HDF5 (in that case, the function is never called)
+ */
+[[maybe_unused]] void Rotate_Point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp,
+                                   Real *zp)
 {
   Real cd, sd, cp, sp, ct, st;  // sines and cosines
   Real a00, a01, a02;           // rotation matrix elements
@@ -65,12 +71,11 @@ void Rotate_Point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real
   *zp = a20 * x + a21 * y + a22 * z;
 }
 
+#ifdef HDF5
+
 /*! \brief Write rotated projected data to a file, at the current simulation */
 void Write_Rotated_Projection_HDF5_(const Grid3D &G, hid_t file_id, const io::Rotation &R)
 {
-#ifndef HDF5
-  CHOLLA_ERROR("this function must not get called when compiled without hdf5")
-#else
   const Header &H = G.H;
   bool is_3D      = H.nx > 1 && H.ny > 1 && H.nz > 1;
   if (not is_3D) {
@@ -232,19 +237,11 @@ void Write_Rotated_Projection_HDF5_(const Grid3D &G, hid_t file_id, const io::Ro
   } else {
     chprintf("Rotated projection write only implemented for 3D data.\n");
   }
-
-#endif  // HDF5
 }
 
-/*! Write the relevant header info to the HDF5 file for rotated projection.
- *
- *  \todo Make G a const argument to ensure we don't mutate it
- */
-void Write_Header_Rotated_(Grid3D &G, hid_t file_id, io::Rotation &R)
+/*! Write the relevant header info to the HDF5 file for rotated projection. */
+void Write_Header_Rotated_(const Grid3D &G, hid_t file_id, io::Rotation &R)
 {
-#ifndef HDF5
-  CHOLLA_ERROR("this function must not get called when compiled without hdf5")
-#else
   const Header &H = G.H;
   G.Write_Header_HDF5(file_id, true);
   Real delta, theta, phi;
@@ -309,8 +306,8 @@ void Write_Header_Rotated_(Grid3D &G, hid_t file_id, io::Rotation &R)
       "Outputting rotation data with delta = %e, theta = %e, phi = %e, Lx = "
       "%f, Lz = %f\n",
       R.delta, R.theta, R.phi, R.Lx, R.Lz);
-#endif  // HDF5
 }
+#endif  // HDF5
 
 }  // anonymous namespace
 
@@ -457,6 +454,8 @@ void io::RotatedProjWriter::operator()(Grid3D &G, Parameters P, int nfile, const
   CHOLLA_ASSERT(status >= 0, "Rotated Projection: File write failed. ProcID: %d\n", procID);
 
 #else
-  printf("Output_Rotated_Projected_Data only defined for HDF5 writes.\n");
+  CHOLLA_ERROR(
+      "the rotated projection writer shouldn't be configurable when Cholla "
+      "isn't compiled with HDF5 support");
 #endif
 }

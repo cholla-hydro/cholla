@@ -425,7 +425,7 @@ class Grid3D
    *  \param only_record_common When true, only a subset of info is written (the subset
    *      that was also historically written by @ref Write_Header_Rotated_HDF5)
    */
-  void Write_Header_HDF5(hid_t file_id, bool only_record_common = false);
+  void Write_Header_HDF5(hid_t file_id, bool only_record_common = false) const;
 
   /*! \fn void Write_Projection_HDF5(hid_t file_id)
    *  \brief Write projected density and temperature data to a file. */

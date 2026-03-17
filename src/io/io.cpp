@@ -240,7 +240,7 @@ void Grid3D::Write_Header_Text(FILE *fp) const
 
 #ifdef HDF5
 // TODO: consider removing only_record_common
-void Grid3D::Write_Header_HDF5(hid_t file_id, bool only_record_common)
+void Grid3D::Write_Header_HDF5(hid_t file_id, bool only_record_common) const
 {
   H5AttrRecorder attr_recorder(file_id);
 
