@@ -13,7 +13,186 @@
 #include "../global/global.h"  // Parameters
 #include "../grid/grid3D.h"
 #include "../io/io.h"
+#include "../utils/cuda_utilities.h"
 #include "../utils/error_handling.h"
+#include "../utils/hydro_utilities.h"
+#include "../utils/mhd_utilities.h"
+
+namespace
+{  // contents of an anonymous namespace are local to current translation unit
+
+/*! \brief Write rotated projected data to a file, at the current simulation */
+void Write_Rotated_Projection_HDF5_(const Grid3D &G, hid_t file_id, const io::Rotation &R)
+{
+#ifndef HDF5
+  CHOLLA_ERROR("this function must not get called when compiled without hdf5")
+#else
+  const Header &H = G.H;
+  bool is_3D      = H.nx > 1 && H.ny > 1 && H.nz > 1;
+  if (not is_3D) {
+    chprintf("Slice write only works for 3D data.\n");
+    return;
+  }
+
+  const FieldInfo &field_info = G.field_info;
+  const Grid3D::Conserved &C  = G.C;
+  hid_t dataset_id, dataspace_xzr_id;
+  Real *dataset_buffer_dxzr;
+  Real *dataset_buffer_Txzr;
+  Real *dataset_buffer_vxxzr;
+  Real *dataset_buffer_vyxzr;
+  Real *dataset_buffer_vzxzr;
+
+  herr_t status;
+  Real dxy, dxz, Txy, Txz;
+  Real d, vx, vy, vz;
+
+  Real x, y, z;      // cell positions
+  Real xp, yp, zp;   // rotated positions
+  Real alpha, beta;  // projected positions
+  int ix, iz;        // projected index positions
+
+  Real mu = 0.6;
+
+  srand(137);      // initialize a random number
+  Real eps = 0.1;  // randomize cell centers slightly to combat aliasing
+
+  // 3D
+  if (H.nx > 1 && H.ny > 1 && H.nz > 1) {
+    Real Lx     = R.Lx;  // projected box size in x dir
+    Real Lz     = R.Lz;  // projected box size in z dir
+    int nx_dset = R.nx;
+    int nz_dset = R.nz;
+
+    if (R.nx * R.nz == 0) {
+      chprintf(
+          "WARNING: compiled with -DROTATED_PROJECTION but input parameters "
+          "nxr or nzr = 0\n");
+      return;
+    }
+
+    // set the projected dataset size for this process to capture
+    // this piece of the simulation volume
+    // min and max values were set in the header write
+    int nx_min, nx_max, nz_min, nz_max;
+    nx_min  = R.nx_min;
+    nx_max  = R.nx_max;
+    nz_min  = R.nz_min;
+    nz_max  = R.nz_max;
+    nx_dset = nx_max - nx_min;
+    nz_dset = nz_max - nz_min;
+
+    hsize_t dims[2];
+
+    // allocate the buffers for the projected dataset
+    // and initialize to zero
+    dataset_buffer_dxzr  = (Real *)calloc(nx_dset * nz_dset, sizeof(Real));
+    dataset_buffer_Txzr  = (Real *)calloc(nx_dset * nz_dset, sizeof(Real));
+    dataset_buffer_vxxzr = (Real *)calloc(nx_dset * nz_dset, sizeof(Real));
+    dataset_buffer_vyxzr = (Real *)calloc(nx_dset * nz_dset, sizeof(Real));
+    dataset_buffer_vzxzr = (Real *)calloc(nx_dset * nz_dset, sizeof(Real));
+
+    // Create the data space for the datasets
+    dims[0]          = nx_dset;
+    dims[1]          = nz_dset;
+    dataspace_xzr_id = H5Screate_simple(2, dims, NULL);
+
+    // Copy the xz rotated projection to the memory buffer
+    for (int k = 0; k < H.nz_real; k++) {
+      for (int i = 0; i < H.nx_real; i++) {
+        for (int j = 0; j < H.ny_real; j++) {
+          // get cell index
+          int const xid = i + H.n_ghost;
+          int const yid = j + H.n_ghost;
+          int const zid = k + H.n_ghost;
+          int const id  = cuda_utilities::compute1DIndex(xid, yid, zid, H.nx, H.ny);
+
+          // get cell positions
+          G.Get_Position(i + H.n_ghost, j + H.n_ghost, k + H.n_ghost, &x, &y, &z);
+
+          // add very slight noise to locations
+          x += eps * H.dx * (drand48() - 0.5);
+          y += eps * H.dy * (drand48() - 0.5);
+          z += eps * H.dz * (drand48() - 0.5);
+
+          // rotate cell positions
+          Rotate_Point(x, y, z, R.delta, R.phi, R.theta, &xp, &yp, &zp);
+
+          // find projected locations
+          // assumes box centered at [0,0,0]
+          alpha = (R.nx * (xp + 0.5 * R.Lx) / R.Lx);
+          beta  = (R.nz * (zp + 0.5 * R.Lz) / R.Lz);
+          ix    = (int)round(alpha);
+          iz    = (int)round(beta);
+  #ifdef MPI_CHOLLA
+          ix = ix - nx_min;
+          iz = iz - nz_min;
+  #endif
+
+          if ((ix >= 0) && (ix < nx_dset) && (iz >= 0) && (iz < nz_dset)) {
+            int const buf_id = iz + ix * nz_dset;
+            d                = C.density[id];
+            // project density
+            dataset_buffer_dxzr[buf_id] += d * H.dy;
+            // calculate number density
+            Real const n = d * DENSITY_UNIT / (mu * MP);
+
+  // calculate temperature
+  #ifdef DE
+            Real const T = hydro_utilities::Calc_Temp_DE(C.GasEnergy[id], gama, n);
+  #else  // DE is not defined
+            Real const mx = C.momentum_x[id];
+            Real const my = C.momentum_y[id];
+            Real const mz = C.momentum_z[id];
+            Real const E  = C.Energy[id];
+
+    #ifdef MHD
+            auto const magnetic_centered =
+                mhd::utils::cellCenteredMagneticFields(C.host, id, xid, yid, zid, H.n_cells, H.nx, H.ny);
+            Real const T = hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n, magnetic_centered.x(),
+                                                                magnetic_centered.y(), magnetic_centered.z());
+    #else   // MHD is not defined
+            Real const T = hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n);
+    #endif  // MHD
+  #endif    // DE
+
+            Txz = T * d * H.dy;
+            dataset_buffer_Txzr[buf_id] += Txz;
+
+            // compute velocities
+            dataset_buffer_vxxzr[buf_id] += C.momentum_x[id] * H.dy;
+            dataset_buffer_vyxzr[buf_id] += C.momentum_y[id] * H.dy;
+            dataset_buffer_vzxzr[buf_id] += C.momentum_z[id] * H.dy;
+          }
+        }
+      }
+    }
+
+    // Write projected d,T,vx,vy,vz
+    status = Write_HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_dxzr, "/d_xzr");
+    status = Write_HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_Txzr, "/T_xzr");
+    status = Write_HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_vxxzr, "/vx_xzr");
+    status = Write_HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_vyxzr, "/vy_xzr");
+    status = Write_HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_vzxzr, "/vz_xzr");
+
+    // Free the dataspace id
+    status = H5Sclose(dataspace_xzr_id);
+
+    // free the data
+    free(dataset_buffer_dxzr);
+    free(dataset_buffer_Txzr);
+    free(dataset_buffer_vxxzr);
+    free(dataset_buffer_vyxzr);
+    free(dataset_buffer_vzxzr);
+
+  } else {
+    chprintf("Rotated projection write only implemented for 3D data.\n");
+  }
+
+#endif  // HDF5
+}
+
+}  // anonymous namespace
 
 io::Rotation::Rotation(ParameterMap &pmap)
 {
@@ -102,7 +281,7 @@ void io::RotatedProjWriter::operator()(Grid3D &G, Parameters P, int nfile, const
         G.Write_Header_Rotated_HDF5(file_id, this->rot_info_);
 
         // Write the density and temperature projections to the output file
-        G.Write_Rotated_Projection_HDF5(file_id, this->rot_info_);
+        Write_Rotated_Projection_HDF5_(G, file_id, this->rot_info_);
 
         // Close the file
         status = H5Fclose(file_id);
@@ -128,7 +307,7 @@ void io::RotatedProjWriter::operator()(Grid3D &G, Parameters P, int nfile, const
       G.Write_Header_Rotated_HDF5(file_id, this->rot_info_);
 
       // Write the density and temperature projections to the output file
-      G.Write_Rotated_Projection_HDF5(file_id, this->rot_info_);
+      Write_Rotated_Projection_HDF5_(G, file_id, this->rot_info_);
 
       // Close the file
       status = H5Fclose(file_id);
@@ -145,7 +324,7 @@ void io::RotatedProjWriter::operator()(Grid3D &G, Parameters P, int nfile, const
       G.Write_Header_Rotated_HDF5(file_id, this->rot_info_);
 
       // Write the density and temperature projections to the output file
-      G.Write_Rotated_Projection_HDF5(file_id, this->rot_info_);
+      Write_Rotated_Projection_HDF5_(G, file_id, this->rot_info_);
 
       // Close the file
       status = H5Fclose(file_id);

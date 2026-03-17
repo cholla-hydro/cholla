@@ -437,11 +437,6 @@ class Grid3D
    * projection. */
   void Write_Header_Rotated_HDF5(hid_t file_id, io::Rotation &R);
 
-  /*! \fn void Write_Rotated_Projection_HDF5(hid_t file_id)
-   *  \brief Write rotated projected data to a file, at the current simulation
-   * time. */
-  void Write_Rotated_Projection_HDF5(hid_t file_id, const io::Rotation &R);
-
   /*! \fn void Write_Slices_HDF5(hid_t file_id)
    *  \brief Write xy, xz, and yz slices of all data to a file. */
   void Write_Slices_HDF5(hid_t file_id);
