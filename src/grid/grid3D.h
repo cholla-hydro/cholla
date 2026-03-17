@@ -424,9 +424,13 @@ class Grid3D
   void Write_Header_Text(FILE *fp) const;
 
 #ifdef HDF5
-  /*! \fn void Write_Header_HDF5(hid_t file_id)
-   *  \brief Write the relevant header info to the HDF5 file. */
-  void Write_Header_HDF5(hid_t file_id);
+  /*! \brief Write the relevant header info to the HDF5 file.
+   *
+   *  \param file_id Specifies the file to write the header info to
+   *  \param only_record_common When true, only a subset of info is written (the subset
+   *      that was also historically written by @ref Write_Header_Rotated_HDF5)
+   */
+  void Write_Header_HDF5(hid_t file_id, bool only_record_common = false);
 
   /*! \fn void Write_Projection_HDF5(hid_t file_id)
    *  \brief Write projected density and temperature data to a file. */
