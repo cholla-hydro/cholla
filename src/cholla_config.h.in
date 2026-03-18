@@ -192,6 +192,5 @@
 #configurefile_define COUPLE_GRAVITATIONAL_WORK
 #configurefile_define CUDA_ERROR_CHECK
 #configurefile_define CUFFT
-#configurefile_define PFFT
 #configurefile_define DYNAMIC_GPU_ALLOC
 

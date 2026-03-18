@@ -1,4 +1,3 @@
-#POISSON_SOLVER ?= -DPFFT
 #DFLAGS += $(POISSON_SOLVER)
 
 #To use MPI, DFLAGS must include -DMPI_CHOLLA
