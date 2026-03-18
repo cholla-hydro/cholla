@@ -2,7 +2,7 @@
 # Build-Time Configuration
 
 This page provides a developer guide for build-time configuration.
-The full list of options can be found [here](#MakefileParameters)
+The full list of options can be found {ref}`here <makefile-parameters>`
 
 ## How Config Parameters are Communicated to the Source Code
 
@@ -15,7 +15,7 @@ In more detail:
 Originally, the build system made the source code aware of the configuration options by passing all the tokens in ``DFLAGS`` directly as arguments to the compiler.
 More recently, we have adopted a new strategy.
 
-At present, the build-system uses the [configure_file.py tool](#about-configure-file) to communicate the configuration parameters.
+At present, the build-system uses the {ref}`configure_file.py tool <about-configure-file>` to communicate the configuration parameters.
 Specifically, the build system passes all the tokens in ``DFLAGS`` as arguments to ``configure_file.py`` to generate a file called ``cholla_config.h`` from {repository-file}`src/cholla_config.h.in`.
 Then the compiler is passed the option ``-include cholla_config.h``, which tells the compiler to act like ``#include "cholla_config.h"`` is the first line of every source file.
 
@@ -41,7 +41,7 @@ Your code contribution may not be merged until you convert it to a runtime param
 
 To add a new parameter, you need to both:
 1. add the option to a Makefile
-2. need to add an appropriate line into {repository-file}`src/cholla_config.h.in`
+2. add an appropriate line into {repository-file}`src/cholla_config.h.in`
 
 If you forget to do the second step, then the ``configure_file.py`` tool will fail (and the entire build will fail).
 This behavior is a FEATURE -- it makes the build fail if an option is mispelled when modifying a Makefile.

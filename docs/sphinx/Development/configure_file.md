@@ -18,7 +18,7 @@ The snippet illustrates that the tool recieves 3 kinds of information:
 3. A variable number of options for specifying configuration variables.
    ``-D<var>`` defines a configuration variable ``<var>`` without a value while ``-D<var>=<value>`` associates the variable with the value ``<value>`` 
 
-> Aside: a complete overview of all available options is provided [later](#detailed-configure-file-help)
+> Aside: a complete overview of all available options is provided {ref}`later <detailed-configure-file-help>`
 
 Essentially, the tool reads template file, performs transformations based upon configuration variables and write out the result.
 
