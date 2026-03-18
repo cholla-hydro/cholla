@@ -87,11 +87,7 @@ struct DatasetSpecEntry {
 #endif
 };
 
-/*! Temporary type for tracking field-writer configuration
- *
- *  \note
- *  In PR#469, we'll store the members of this struct directly within @ref FieldWriter
- */
+/*! Tracks core field-writer configuration details */
 struct DatasetSpec {
   /// describes properties about dataset creation for ordinary cell-centered fields
   std::vector<DatasetSpecEntry> cc_dataset_entries;

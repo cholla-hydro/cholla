@@ -23,10 +23,8 @@
 #include "../utils/math_utilities.h"
 #include "../utils/mhd_utilities.h"
 
-/*! \fn void Set_Initial_Conditions(Parameters P )
- *  \brief Set the initial conditions based on info in the parameters structure.
- */
-void Grid3D::Set_Initial_Conditions(Parameters P)
+/*! Set the initial conditions based on info in the parameters structure. */
+void Grid3D::Set_Initial_Conditions(Parameters P, const ParameterMap &pmap)
 {
   Set_Domain_Properties(P);
   Set_Gammas(P.gamma);
