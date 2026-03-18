@@ -170,7 +170,6 @@
 #configurefile_define OUTPUT_SKEWERS
 #configurefile_define OUTPUT_TEMPERATURE
 #configurefile_define PROJECTION
-#configurefile_define PROJECTIONS
 #configurefile_define ROTATED_PROJECTION
 #configurefile_define SLICES
 #configurefile_define N_OUTPUT_COMPLETE
