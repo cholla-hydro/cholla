@@ -799,6 +799,34 @@ class Grid3D
   void Advance_Particles_KDK_Cosmo_Step1_GPU();
   void Advance_Particles_KDK_Cosmo_Step2_GPU();
   #endif  // PARTICLES_GPU
+
+  void Generate_Cosmo_Phi_Init(struct Parameters *P);
+  void Allocate_Cosmo_Potential_Memory();
+  void Free_Cosmo_Potential_Memory();
+  struct Cosmo_Potentials {
+
+    /*! number of cosmo potential fields */
+    int n_fields;
+
+    /*! pointer to potentials on host */
+    Real *host;
+
+    /*! pointer to first potential */
+    Real *phi_1;
+
+    /*! pointer to second potential */
+    Real *phi_2;
+
+    /*! pointer to potentials on device */
+    Real *device;
+
+    /*! pointer to first potential on device */
+    Real *d_phi_1;
+
+    /*! pointer to second potential on device */
+    Real *d_phi_2;
+
+  } CP;
 #endif    // COSMOLOGY
 
 #ifdef COOLING_GRACKLE
