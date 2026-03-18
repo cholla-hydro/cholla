@@ -19,7 +19,7 @@ struct FnameTemplate;
 namespace io
 {
 
-/*! \brief A callable object that writes slice data
+/*! \brief A callable object that writes projection data
  *
  *  Specifically, the object writes xy and xz cell-cenetered projections of the grid
  *  data.
@@ -37,7 +37,7 @@ class ProjectionWriter
  public:
   ProjectionWriter() = default;
 
-  /*! Implements the a callable method that writes slice data
+  /*! Implements the a callable method that writes projection data
    *
    *  \note
    *  For less experienced C++ developers: this overloads the "function call operator".
