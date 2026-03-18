@@ -78,5 +78,5 @@ The analogous transformations in CMake and Meson replace lines that start with `
 (detailed-configure-file-help)=
 ## Detailed Help Output
 
-:::{include-cli-help} ../../tools/configure_file.py
+:::{include-cli-help} ../../../tools/configure_file.py
 :::
