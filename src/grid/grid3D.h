@@ -426,15 +426,6 @@ class Grid3D
    *      that was also historically written by @ref Write_Header_Rotated_HDF5)
    */
   void Write_Header_HDF5(hid_t file_id, bool only_record_common = false) const;
-
-  /*! \fn void Write_Projection_HDF5(hid_t file_id)
-   *  \brief Write projected density and temperature data to a file. */
-  void Write_Projection_HDF5(hid_t file_id);
-
-  /*! \fn void Write_Slices_HDF5(hid_t file_id)
-   *  \brief Write xy, xz, and yz slices of all data to a file. */
-  void Write_Slices_HDF5(hid_t file_id);
-
 #endif
 
   /*! \fn void Read_Grid(struct Parameters P)
