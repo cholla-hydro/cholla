@@ -428,10 +428,6 @@ class Grid3D
    *  \brief Write the relevant header info to the HDF5 file. */
   void Write_Header_HDF5(hid_t file_id);
 
-  /*! \fn void Write_Projection_HDF5(hid_t file_id)
-   *  \brief Write projected density and temperature data to a file. */
-  void Write_Projection_HDF5(hid_t file_id);
-
   /*! \fn void Write_Header_Rotated_HDF5(hid_t file_id)
    *  \brief Write the relevant header info to the HDF5 file for rotated
    * projection. */
