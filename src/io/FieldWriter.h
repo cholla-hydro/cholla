@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <optional>
+#include <memory>
 #include <string>
 #include <utility>  // std::pair
 #include <vector>
@@ -13,7 +13,8 @@
 #include "../global/global.h"
 #include "../grid/field_info.h"
 #include "../grid/grid3D.h"
-#include "../io/FnameTemplate.h"     // define FnameTemplate
+#include "../io/FnameTemplate.h"  // define FnameTemplate
+#include "../io/LazyScratchBuf.h"
 #include "../io/ParameterMap.h"      // define ParameterMap
 #include "../io/WriterManager.h"     // declare WriterFn
 #include "../utils/basic_structs.h"  // VectorXYZ
@@ -21,7 +22,7 @@
 namespace io
 {
 
-enum struct FileFormat { TEXT, H5_NATIVE_PRECISION };
+enum struct FileFormat { TEXT, H5_NATIVE_PRECISION, H5_F32 };
 
 /*! Specifies the condition for writing data to disk. */
 enum struct WriteCond { ALWAYS, REQUIRE_COMPLETE_DATA };
@@ -54,11 +55,7 @@ struct DatasetSpecEntry {
 #endif
 };
 
-/*! Temporary type for tracking field-writer configuration
- *
- *  \note
- *  In PR#469, we'll store the members of this struct directly within @ref FieldWriter
- */
+/*! Tracks core field-writer configuration details */
 struct DatasetSpec {
   /// describes properties about dataset creation for ordinary cell-centered fields
   std::vector<DatasetSpecEntry> cc_dataset_entries;
@@ -66,7 +63,7 @@ struct DatasetSpec {
   ///
   /// \note Ideally, we would handle these a little more uniformly with other fields,
   /// but that's a task for another time
-  std::optional<WriteCond> mhd_condition;
+  hydro_utilities::VectorXYZ<bool> write_mag = {false, false, false};
 };
 
 /*! \brief A callable type that writes general grid data
@@ -78,6 +75,13 @@ class FieldWriter
 {
   FileFormat file_format_;
   DatasetSpec dataset_spec_;
+  /*! this is tracked in a pointer so we can mutate the buffer even in const methods
+   *
+   *  \note
+   *  I'm not thrilled that this is a shared pointer, but that seems to be the only
+   *  viable solution since std::function requires that this class is copy-constructible
+   */
+  std::shared_ptr<LazyScratchBuf> lazy_scratch_buf_;
 
   // this has been made private to force the usage of the factory method
   FieldWriter(FileFormat file_format, ParameterMap &pmap, const FieldInfo &field_info);
@@ -95,22 +99,28 @@ class FieldWriter
    *  method actually gets call. Consequently, the callsite needs to make the judgement
    *  on whether or how to report errors. (We can address this in the future)
    */
-  static std::pair<WriterFn, std::string> try_create(int ndim, ParameterMap &pmap, const FieldInfo &field_info)
+  static std::pair<WriterFn, std::string> try_create(int ndim, ParameterMap &pmap, const FieldInfo &field_info,
+                                                     bool write_h5_f32)
   {
+    // construct a payload denoting an error
+    auto prep_err = [](const std::string &msg) -> std::pair<WriterFn, std::string> {
+      return std::pair<WriterFn, std::string>{WriterFn(), msg};
+    };
+
 #ifdef HDF5
-    FileFormat file_format = FileFormat::H5_NATIVE_PRECISION;
+    FileFormat file_format = (write_h5_f32) ? FileFormat::H5_F32 : FileFormat::H5_NATIVE_PRECISION;
 #else
+    if (write_h5_f32) return prep_err("h5_f32 outputs require compilation with hdf5");
     FileFormat file_format = FileFormat::TEXT;
 #endif
 
-    std::pair<WriterFn, std::string> out;
     if (file_format == FileFormat::TEXT and ndim != 1) {
-      out.second = std::string("can only write Fields to text files for 1D datasets");
-      return out;
-    } else {
-      out.first = WriterFn(FieldWriter(file_format, pmap, field_info));
-      return out;
+      return prep_err("can only write Fields to text files for 1D simulations");
+    } else if (file_format == FileFormat::H5_F32 and ndim != 3) {
+      return prep_err("can only write Fields to h5_f32 files for 3D simulations");
     }
+    std::pair<WriterFn, std::string> out{WriterFn(FieldWriter(file_format, pmap, field_info)), ""};
+    return out;
   }
 
   /*! Writes the field data to disk.

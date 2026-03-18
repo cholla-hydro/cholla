@@ -151,118 +151,6 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
 #endif
 }
 
-void Output_Float32(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate &fname_template)
-{
-#ifdef HDF5
-  Header H = G.H;
-  // Do nothing in 1-D and 2-D case
-  if (H.ny_real == 1) {
-    return;
-  }
-  if (H.nz_real == 1) {
-    return;
-  }
-  // Do nothing if nfile is not multiple of n_out_float32
-  if (nfile % P.n_out_float32 != 0) {
-    return;
-  }
-
-  // create the filename
-  std::string filename = fname_template.format_fname(nfile, ".float32");
-
-  // create hdf5 file
-  hid_t file_id; /* file identifier */
-  herr_t status;
-
-  // Create a new file using default properties.
-  file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-
-  // Write the header (file attributes)
-  G.Write_Header_HDF5(file_id);
-
-  // write the conserved variables to the output file
-
-  // 3-D Case
-  if (H.nx > 1 && H.ny > 1 && H.nz > 1) {
-    int nx_dset = H.nx_real;
-    int ny_dset = H.ny_real;
-    int nz_dset = H.nz_real;
-    size_t buffer_size;
-    // Need a larger device buffer for MHD. In the future, if other fields need
-    // a larger device buffer, choose the maximum of the sizes. If the buffer is
-    // too large, it does not cause bugs (Oct 6 2022)
-  #ifdef MHD
-    buffer_size = (nx_dset + 1) * (ny_dset + 1) * (nz_dset + 1);
-  #else
-    buffer_size = nx_dset * ny_dset * nz_dset;
-  #endif  // MHD
-
-    // Using static DeviceVector here automatically allocates the buffer the
-    // first time it is needed It persists until program exit, and then calls
-    // Free upon destruction
-    cuda_utilities::DeviceVector<float> static device_dataset_vector{buffer_size};
-    auto *dataset_buffer = (float *)malloc(buffer_size * sizeof(float));
-
-    if (P.out_float32_density > 0) {
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_density, "/density");
-    }
-    if (P.out_float32_momentum_x > 0) {
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_momentum_x, "/momentum_x");
-    }
-    if (P.out_float32_momentum_y > 0) {
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_momentum_y, "/momentum_y");
-    }
-    if (P.out_float32_momentum_z > 0) {
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_momentum_z, "/momentum_z");
-    }
-    if (P.out_float32_Energy > 0) {
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_Energy, "/Energy");
-    }
-  #ifdef DE
-    if (P.out_float32_GasEnergy > 0) {
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_GasEnergy, "/GasEnergy");
-    }
-  #endif  // DE
-  #ifdef MHD
-
-    // TODO (by Alwin, for anyone) : Repair output format if needed and remove these chprintfs when appropriate
-    if (P.out_float32_magnetic_x > 0) {
-      chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_magnetic_x, "/magnetic_x");
-    }
-    if (P.out_float32_magnetic_y > 0) {
-      chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_magnetic_y, "/magnetic_y");
-    }
-    if (P.out_float32_magnetic_z > 0) {
-      chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, dataset_buffer,
-                          device_dataset_vector.data(), G.C.d_magnetic_z, "/magnetic_z");
-    }
-
-  #endif  // MHD
-
-    free(dataset_buffer);
-
-    if (status < 0) {
-      printf("File write failed.\n");
-      exit(-1);
-    }
-  }  // 3-D case
-
-  // close the file
-  status = H5Fclose(file_id);
-#endif  // HDF5
-}
-
 /* Output a projection of the grid data to file. */
 void Output_Projected_Data(Grid3D &G, struct Parameters P, int nfile, const FnameTemplate &fname_template)
 {
@@ -341,9 +229,7 @@ void Output_Slices(Grid3D &G, struct Parameters P, int nfile, const FnameTemplat
 #endif    // HDF5
 }
 
-/*! \fn void Write_Header_Text(FILE *fp)
- *  \brief Write some relevant header info to a text output file. */
-void Grid3D::Write_Header_Text(FILE *fp)
+void Grid3D::Write_Header_Text(FILE *fp) const
 {
   // Write the header info to the output file
   fprintf(fp, "Header Information\n");
@@ -878,75 +764,6 @@ void Write_Generic_HDF5_Field_GPU(int nx, int ny, int nz, int nx_real, int ny_re
   Fill_HDF5_Buffer_From_Grid_GPU(nx, ny, nz, nx_real, ny_real, nz_real, n_ghost, dataset_buffer, device_hdf5_buffer,
                                  source_buffer);
   Write_HDF5_Dataset_Grid(nx, ny, nz, nx_real, ny_real, nz_real, file_id, dataset_buffer, name);
-}
-
-/*! \fn void Write_Grid_HDF5(hid_t file_id)
- *  \brief Write the grid to a file, at the current simulation time. */
-void Grid3D::Write_Grid_HDF5(hid_t file_id, const io::DatasetSpec &h5_dataset_spec)
-{
-  int i, j, k, id, buf_id;
-  hid_t dataset_id, dataspace_id;
-  hid_t dataset_id_full, dataspace_id_full;
-  Real *dataset_buffer;
-  herr_t status;
-
-  // Allocate necessary buffers
-  int nx_dset = H.nx_real;
-  int ny_dset = H.ny_real;
-  int nz_dset = H.nz_real;
-  #ifdef MHD
-  size_t buffer_size = (nx_dset + 1) * (ny_dset + 1) * (nz_dset + 1);
-  #else
-  size_t buffer_size = nx_dset * ny_dset * nz_dset;
-  #endif
-  cuda_utilities::DeviceVector<Real> static device_dataset_vector{buffer_size};
-  dataset_buffer = (Real *)malloc(buffer_size * sizeof(Real));
-
-  // Start writing fields
-  for (const io::DatasetSpecEntry &cur_spec : h5_dataset_spec.cc_dataset_entries) {
-    if (!H.Output_Complete_Data && cur_spec.condition == io::WriteCond::REQUIRE_COMPLETE_DATA) {
-      continue;
-    }
-    if (cur_spec.io_buf == field::IOBuf::HOST) {
-      Real *ptr = &C.host[cur_spec.field_id * H.n_cells];
-      Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, ptr, cur_spec.name.c_str());
-    } else {
-      Real *ptr = &C.device[cur_spec.field_id * H.n_cells];
-      Write_Grid_HDF5_Field_GPU(H, file_id, dataset_buffer, device_dataset_vector.data(), ptr, cur_spec.name.c_str());
-    }
-  }
-
-  #if defined(OUTPUT_TEMPERATURE) && defined(CHEMISTRY_GPU)
-  Compute_Gas_Temperature(Chem.Fields.temperature_h, false);
-  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Chem.Fields.temperature_h, "/temperature");
-  #elif defined(OUTPUT_TEMPERATURE) && defined(COOLING_GRACKLE)
-  Write_Grid_HDF5_Field_CPU(H, file_id, dataset_buffer, Cool.temperature, "/temperature");
-  #endif
-
-  // 3D case
-  if (H.nx > 1 && H.ny > 1 && H.nz > 1) {
-  #if defined(GRAVITY) && defined(OUTPUT_POTENTIAL)
-    Write_Generic_HDF5_Field_GPU(Grav.nx_local + 2 * N_GHOST_POTENTIAL, Grav.ny_local + 2 * N_GHOST_POTENTIAL,
-                                 Grav.nz_local + 2 * N_GHOST_POTENTIAL, Grav.nx_local, Grav.ny_local, Grav.nz_local,
-                                 N_GHOST_POTENTIAL, file_id, dataset_buffer, device_dataset_vector.data(),
-                                 Grav.F.potential_d, "/grav_potential");
-  #endif  // GRAVITY and OUTPUT_POTENTIAL
-
-    if (h5_dataset_spec.mhd_condition.has_value() &&
-        (h5_dataset_spec.mhd_condition.value() == io::WriteCond::ALWAYS || H.Output_Complete_Data)) {
-      const char *dset_names[3] = {"/magnetic_x", "/magnetic_y", "/magnetic_z"};
-      for (int i = 0; i < 3; i++) {
-        int real_shape[3]                 = {H.nx_real + (i == 0), H.ny_real + (i == 1), H.nz_real + (i == 2)};
-        const char *field_name            = dset_names[i] + 1;
-        std::optional<int> maybe_field_id = field_info.field_id(field_name);
-        Real *ptr                         = &C.device[H.n_cells * get_or_abort(maybe_field_id)];
-        Write_HDF5_Field_3D(H.nx, H.ny, real_shape[0], real_shape[1], real_shape[2], H.n_ghost, file_id, dataset_buffer,
-                            device_dataset_vector.data(), ptr, dset_names[i], i);
-      }
-    }
-  }
-
-  free(dataset_buffer);
 }
 #endif  // HDF5
 

@@ -51,10 +51,8 @@
   #include "../analysis/analysis.h"
 #endif
 
-// forward-declare the DatasetSpec and Rotation structs
 namespace io
 {
-struct DatasetSpec;
 struct Rotation;
 }  // namespace io
 
@@ -423,16 +421,12 @@ class Grid3D
   void Update_Time();
   /*! \fn void Write_Header_Text(FILE *fp)
    *  \brief Write the relevant header info to a text output file. */
-  void Write_Header_Text(FILE *fp);
+  void Write_Header_Text(FILE *fp) const;
 
 #ifdef HDF5
   /*! \fn void Write_Header_HDF5(hid_t file_id)
    *  \brief Write the relevant header info to the HDF5 file. */
   void Write_Header_HDF5(hid_t file_id);
-
-  /*! \fn void Write_Grid_HDF5(hid_t file_id)
-   *  \brief Write the grid to a file, at the current simulation time. */
-  void Write_Grid_HDF5(hid_t file_id, const io::DatasetSpec &h5_dataset_spec);
 
   /*! \fn void Write_Projection_HDF5(hid_t file_id)
    *  \brief Write projected density and temperature data to a file. */

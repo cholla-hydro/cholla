@@ -32,9 +32,6 @@ void Print_Stats(Grid3D& G);
  */
 void Write_Data(Grid3D& G, struct Parameters P, int nfile, const io::WriterManager& write_manager);
 
-/* Output the grid data to file as 32-bit floats. */
-void Output_Float32(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);
-
 /* Output a projection of the grid data to file. */
 void Output_Projected_Data(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);
 
@@ -88,6 +85,13 @@ herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id, float* dataset_buff
 /* \brief After HDF5 reads data into a buffer, remap and write to grid buffer. */
 void Fill_Grid_From_HDF5_Buffer(int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, int n_ghost,
                                 Real* hdf5_buffer, Real* grid_buffer);
+
+/*! Data moves from host grid_buffer to dataset_buffer to hdf5 file */
+void Write_Grid_HDF5_Field_CPU(Header H, hid_t file_id, Real* dataset_buffer, Real* grid_buffer, const char* name);
+
+/*! Data moves from device_grid_buffer to device_hdf5_buffer to dataset_buffer to hdf5 file */
+void Write_Grid_HDF5_Field_GPU(Header H, hid_t file_id, Real* dataset_buffer, Real* device_hdf5_buffer,
+                               Real* device_grid_buffer, const char* name);
 
 // From io/io_gpu.cu
 // Use GPU to pack source -> device_buffer, then copy device_buffer -> buffer,
