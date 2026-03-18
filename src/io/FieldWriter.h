@@ -22,6 +22,38 @@
 namespace io
 {
 
+/*! Lookup the shortened output name
+ *
+ *  \param field_name the ordinary field name
+ *  \param for_text_file When true, we return the legacy column names used in text file
+ *       outputs. Otherwise, we return the name used for recording slices.
+ *
+ *  \note
+ *  Earlier versions of the text output function were designed to shorten
+ *  "magnetic_[xyz]" to "mag[XYZ]." But, as far as I can tell, this was never really
+ *  used. Consequently, we don't shorten these field names.
+ */
+inline std::optional<std::string> lookup_legacy_short_name_(std::string_view field_name, bool for_text_file = true)
+{
+  if (field_name == "density") {
+    const char *name = for_text_file ? "rho" : "d";
+    return {std::string(name)};
+  } else if (field_name == "momentum_x") {
+    return {std::string("mx")};
+  } else if (field_name == "momentum_y") {
+    return {std::string("my")};
+  } else if (field_name == "momentum_z") {
+    return {std::string("mz")};
+  } else if (field_name == "Energy") {
+    return {std::string("E")};
+  } else if (field_name == "GasEnergy") {
+    const char *name = for_text_file ? "ge" : "GE";
+    return {std::string(name)};
+  } else {
+    return std::nullopt;
+  }
+}
+
 enum struct FileFormat { TEXT, H5_NATIVE_PRECISION, H5_F32 };
 
 /*! Specifies the condition for writing data to disk. */
@@ -55,11 +87,7 @@ struct DatasetSpecEntry {
 #endif
 };
 
-/*! Temporary type for tracking field-writer configuration
- *
- *  \note
- *  In PR#469, we'll store the members of this struct directly within @ref FieldWriter
- */
+/*! Tracks core field-writer configuration details */
 struct DatasetSpec {
   /// describes properties about dataset creation for ordinary cell-centered fields
   std::vector<DatasetSpecEntry> cc_dataset_entries;

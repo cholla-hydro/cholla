@@ -12,7 +12,7 @@
 
 #include <functional>
 
-#include "../global/global.h"
+#include "../global/global.h"  // declares Parameter and forward-declares ParameterMap
 #include "../global/global_cuda.h"
 #include "../grid/field_info.h"
 #include "../io/FnameTemplate.h"
@@ -380,10 +380,10 @@ class Grid3D
    *  \brief Allocate memory for the d, m, E arrays. */
   void AllocateMemory(void);
 
-  /*! \fn void Set_Initial_Conditions(Parameters P )
-   *  \brief Set the initial conditions based on info in the parameters
-   * structure. */
-  void Set_Initial_Conditions(Parameters P);
+  /*! Set the initial conditions based on already-parsed parameter info in the
+   *  \ref Parameters arg or unparsed parameter-info in the \ref ParameterMap arg
+   */
+  void Set_Initial_Conditions(Parameters P, const ParameterMap &pmap);
 
   /*! \fn void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real
    * *zpos) \brief Get the cell-centered position based on cell index */
@@ -437,10 +437,6 @@ class Grid3D
    *  \brief Write rotated projected data to a file, at the current simulation
    * time. */
   void Write_Rotated_Projection_HDF5(hid_t file_id, const io::Rotation &R);
-
-  /*! \fn void Write_Slices_HDF5(hid_t file_id)
-   *  \brief Write xy, xz, and yz slices of all data to a file. */
-  void Write_Slices_HDF5(hid_t file_id);
 
 #endif
 
