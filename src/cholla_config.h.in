@@ -189,6 +189,5 @@
 //    from the all of the configuration files
 #configurefile_define COUPLE_DELTA_E_KINETIC
 #configurefile_define COUPLE_GRAVITATIONAL_WORK
-#configurefile_define CUFFT
 #configurefile_define DYNAMIC_GPU_ALLOC
 
