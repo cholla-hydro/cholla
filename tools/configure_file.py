@@ -1,34 +1,21 @@
 #!/usr/bin/env python3
 """
-A simple tool for configuring template files.
+A simple tool for configuring template files. It is modelled after the functions with
+the same name in CMake and Meson.
 
-This tool reads the input template file and creates an output file by
-copying the template file's contents and performing variable substitutions
-using information from user-specified specified configuration information. Any
-text enclosed within a pair of @ symbols is identified as a target for
-substitution.
-
-Equivalent functionality is implemented by various build systems such as
-autotools, CMake, and Meson.
-
-For example, suppose this tool was launched with the configuration information
-indicating that VERSION_STR=3.1.0, and it processes a template file with the
-contents:
-```
-#define VERSION_NUMBER "@VERSION_STR@"
-```
-The output file will have the contents:
-```
-#define VERSION_NUMBER "3.1.0"
-```
+Detailed documentation is maintained at
+https://cholla.readthedocs.io/en/latest/Development/configure_file.html.
 """
-# this script was originally written to be used with Grackle
-# (it has gone through a fair amount of evolution since then)
+
+# If you modify the behavior of this tool, PLEASE make sure that change is reflected in
+# the source file.
+#
+# this script was originally written to be used with Grackle (it has gone through a fair
+# amount of evolution since then)
 
 import argparse
 import os
 import re
-import string
 import sys
 from typing import (
     Container, Dict, Iterator, List, Optional, Sequence, Set, Tuple
@@ -284,11 +271,7 @@ def main(arg_sequence: Optional[Sequence[str]] = None):
     return 0
 
 
-parser = argparse.ArgumentParser(
-    description=__doc__.rstrip(),
-    formatter_class=argparse.RawDescriptionHelpFormatter,
-    allow_abbrev=False
-)
+parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
 parser.add_argument(
     "--variable-use-file-contents",
     action="append",

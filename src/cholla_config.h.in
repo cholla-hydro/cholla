@@ -7,6 +7,10 @@
  *     file using configure_file.py
  *
  *  NEVER directly mutate the generated file
+ *
+ *  Before you add or modify any entries in this file, make sure you familiarize
+ *  yourself with the best-practices described within
+ *  https://cholla.readthedocs.io/en/latest/Development/build-time-config.html
  */
 
 #pragma once

@@ -77,8 +77,12 @@ GPUFLAGS          += $(GPUFLAGS_$(BUILD))
 
 #-- Add flags and libraries as needed
 
-CXXFLAGS += -I./src
-GPUFLAGS += -I./src
+# by passing `-include cholla_config.h` to the compiler, the C preprocessor
+# acts as if the very first line of the source is `#include "cholla_config.h"`
+#
+# this is bad practice
+CXXFLAGS += -I./src -include cholla_config.h
+GPUFLAGS += -I./src -include cholla_config.h
 
 ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
   ifdef HIPCONFIG
