@@ -204,7 +204,7 @@ struct Header {
 #endif
 
 #ifdef COSMOLOGY
-  bool OUTPUT_SCALE_FACOR;
+  bool OUTPUT_SCALE_FACTOR;
 #endif
 
   /*! \var Output_Now
