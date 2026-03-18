@@ -17,9 +17,7 @@ import argparse
 import os
 import re
 import sys
-from typing import (
-    Container, Dict, Iterator, List, Optional, Sequence, Set, Tuple
-)
+from typing import Container, Dict, Iterator, List, Optional, Sequence, Set, Tuple
 
 if sys.version_info < (3, 6):
     # for added context, we use fstrings, which were introduced in python 3.6
@@ -39,9 +37,9 @@ _VALID_VARNAME_DESCR = (
 def is_valid_varname(
     s: str, start: Optional[int] = None, stop: Optional[str] = None
 ) -> bool:
-    """Returns whether ``s[slice(start,stop)] is a valid variable name
-    """
+    """Returns whether ``s[slice(start,stop)] is a valid variable name"""
     return re.fullmatch(_VALID_VARNAME_STR, s[slice(start, stop)]) is not None
+
 
 class Substituter:
     """Performs variable substitution"""
@@ -58,7 +56,7 @@ class Substituter:
         self.used_variable_set = set()
         self._variable_map = variable_map
 
-    def _replace_at_signs(self, line: str, line_num:int) -> Tuple[bool, str]:
+    def _replace_at_signs(self, line: str, line_num: int) -> Tuple[bool, str]:
         """
         Returns a version of ``line`` after performing all (if any) @-sign substitutions
         """
@@ -68,7 +66,7 @@ class Substituter:
         chunks = []
         for matchobj in _PATTERN.finditer(line):
             # append text between prev_pos and match.start
-            chunks.append(line[prev_pos:matchobj.start()])
+            chunks.append(line[prev_pos : matchobj.start()])
 
             # append the replacement
             if matchobj.lastindex != 1:
@@ -126,7 +124,7 @@ class Substituter:
             )
             return False, err_msg
         elif (m is not None) and m.group(0)[-1].isspace():
-            tmp = line[m.end():].rstrip().split()
+            tmp = line[m.end() :].rstrip().split()
             if len(tmp) != 1:  # we can't have `#configurefile_define <var> <more...>
                 return False, f"line {line_num}, `{line}`, has an invalid format"
             varname = tmp[0]
@@ -141,11 +139,12 @@ class Substituter:
         else:
             return self._replace_at_signs(line, line_num)
 
+
 def configure_file(
     lines: Iterator[str],
     variable_map: Dict[str, Optional[str]],
     out_fname: str,
-    literal_linenos: Container[str]
+    literal_linenos: Container[str],
 ):
     """
     Writes a new file to out_fname, line-by-line, while performing variable
@@ -183,7 +182,7 @@ def configure_file(
 def _parse_variables(
     dict_to_update: Dict[str, Optional[str]],
     var_val_assignment_str_l: List[str],
-    val_is_file_path: bool=False
+    val_is_file_path: bool = False,
 ):
     for var_val_assignment_str in var_val_assignment_str_l:
         stripped_str = var_val_assignment_str.strip()  # for safety
