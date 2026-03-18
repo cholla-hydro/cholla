@@ -194,8 +194,7 @@ void Grid3D::Initialize(struct Parameters *P)
   // Set output to true when data has to be written to file;
   H.Output_Now = false;
 
-  // allocate memory
-  AllocateMemory();
+
 
 // Values for lower limit for density and temperature
 #ifdef TEMPERATURE_FLOOR
@@ -221,11 +220,14 @@ void Grid3D::Initialize(struct Parameters *P)
 #endif
 
   H.Output_Initial = true;
+
+  // allocate memory
+  AllocateMemory();
 }
 
 /*! \fn void AllocateMemory(void)
  *  \brief Allocate memory for the arrays. */
-void Grid3D::AllocateMemory(void)
+void Grid3D::AllocateMemory(void) 
 {
   // allocate memory for the conserved variable arrays
   // allocate all the memory to density, to insure contiguous memory
