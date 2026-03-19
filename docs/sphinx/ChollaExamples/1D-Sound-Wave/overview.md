@@ -57,9 +57,9 @@ A=1e-4
 gamma=1.666666666666667
 
 ```
-Upon completion, you should obtain five output files. By changing the outstep to 0.005, we can obtain the evolution of the density, pressure, and velocity (here at 4 fps).  Examples of how to extract and plot data can be found in the [General 1D Plotting Example](../../PythonExamples/1D-plotting.md).  
+Upon completion, you should obtain five output files. By changing the outstep to 1, we can obtain the evolution of the density, pressure, and velocity.  Examples of how to extract and plot data can be found in the [General 1D Plotting Example](../../PythonExamples/1D-plotting.md).  
 
-:::{video} soundwave-new.mp4
+:::{video} new_soundwave_2.mp4
     :width: 700
     :height: 500
     :align: center

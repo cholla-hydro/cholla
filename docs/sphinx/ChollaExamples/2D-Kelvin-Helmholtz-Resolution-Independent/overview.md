@@ -53,7 +53,7 @@ Upon completion, you should obtain 201 output files. The initial and final densi
 The solution does appear to be independent of resolution. We can also compare the time evolution of the density at the above resolutions.
 
 128X128
-:::{video} khri-128.mp4
+:::{video} khri_128.mp4
     :width: 700
     :height: 500
     :align: center
@@ -62,7 +62,7 @@ The solution does appear to be independent of resolution. We can also compare th
 :::
 
 256X256
-:::{video} khri-256.mp4
+:::{video} khri_256.mp4
     :width: 700
     :height: 500
     :align: center
