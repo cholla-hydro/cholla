@@ -5,6 +5,7 @@
   #include "../grid/grid3D.h"
   #include "../grid/grid_enum.h"
   #include "../io/io.h"
+	#include "rng.h"
 
 
 /*! \fn void Generate_Cosmo_Phi_Init(void)
@@ -29,6 +30,9 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	// set the number of fields
 	CP.n_fields = 1;	
 
+	// initialize the RNG properties
+	Initialize_Cosmo_Potential_RNG();
+
 	// Allocate the memory needed for the potentials
 	Allocate_Cosmo_Potential_Memory();
 
@@ -51,6 +55,25 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
 	// step 3.5) rescale by growth factor(a)/a
 
+}
+
+/*! \fn void Initialize_Cosmo_Potential_RNG(void)
+ *  \brief Initialize the RNG for cosmological ICs potentials */
+void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
+{
+	// Initialize the parameters for the Philox RNG
+
+	// Record the RNG seed from the parameter file
+	CP.rng_seed = (unsigned long long) P->seed;
+
+	// Set the RNG subsequence to be the global MPI Rank + 1
+	CP.rng_subsequence = (unsigned long long) ();
+
+	// Initialize the RNG offset to be zero
+	CP.rng_offset = 0;
+
+	// Call the RNG initialization function on the GPUs
+	RNG_Init(CP.rng_seed, CP.rng_subsequence, CP.rng_offset, rng_parallel_state_t)
 }
 
 
@@ -90,12 +113,19 @@ void Grid3D::Free_Cosmo_Potential_Memory(void)
 }
 
 
-/*! \fn void Generate_Normal_Random_Field(int N, struct Parameters *P)
+/*! \fn void Generate_Normal_Random_Field(Real *d_field)
  *  \brief Create a Gaussian random field on a grid */
-void Grid3D::Generate_Normal_Random_Field(Real *d_field, struct Parameters *P)
+void Grid3D::Generate_Normal_Random_Field(Real *d_field)
 {
 	// Here, d_field has been pre-allocated on the device
+	RNG_Normal_Field_GPU(d_field, H.n_cells, H.n_ghost, rng_parallel_state_t);
+}
 
-	
-
+/*! \fn void Rescale_Field(Real *d_x, Real A)
+ *  \brief Rescale a field by a constant multiplicative factor. */
+void Grid3D::Rescale_Field(Real *d_x, Real A)
+{
+	// Here, d_x has been pre-allocated on the device
+	// Rescale the field by a multiplicative factor.
+	Rescale_Field_GPU(d_x, A, H.n_cells, H.n_ghost);
 }

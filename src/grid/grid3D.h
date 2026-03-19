@@ -801,12 +801,23 @@ class Grid3D
   #endif  // PARTICLES_GPU
 
   void Generate_Cosmo_Phi_Init(struct Parameters *P);
+  void Initialize_Cosmo_Potential_RNG(struct Parameters *P);
   void Allocate_Cosmo_Potential_Memory();
   void Free_Cosmo_Potential_Memory();
+  void Rescale_Field(Real *d_x, Real A);
   struct Cosmo_Potentials {
 
     /*! number of cosmo potential fields */
     int n_fields;
+
+    /*! RNG seed */
+    unsigned long long rng_seed;
+
+    /*! RNG subsequence */
+    unsigned long long rng_subsequence;
+
+    /*! RNG offset */
+    unsigned long long rng_offset;
 
     /*! pointer to potentials on host */
     Real *host;
