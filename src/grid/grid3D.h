@@ -845,6 +845,10 @@ class Grid3D
   } CP;
 #endif    // COSMOLOGY
 
+#ifdef FFT
+  FFT_3D FFT;
+#endif 
+
 #ifdef COOLING_GRACKLE
   void Initialize_Grackle(struct Parameters *P);
   void Allocate_Memory_Grackle();

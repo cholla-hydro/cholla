@@ -24,6 +24,25 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 		return;
 	}
 
+  int i, j, k, id;
+  int istart, jstart, kstart, iend, jend, kend;
+  istart = H.n_ghost;
+  iend   = H.nx - H.n_ghost;
+  if (H.ny > 1) {
+    jstart = H.n_ghost;
+    jend   = H.ny - H.n_ghost;
+  } else {
+    jstart = 0;
+    jend   = H.ny;
+  }
+  if (H.nz > 1) {
+    kstart = H.n_ghost;
+    kend   = H.nz - H.n_ghost;
+  } else {
+    kstart = 0;
+    kend   = H.nz;
+  }
+
 	// OK, let's proceed
 	chprintf("Generating potentials for cosmological ICs.");
 
@@ -33,6 +52,11 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	// initialize the RNG properties
 	Initialize_Cosmo_Potential_RNG();
 
+	// Initialize the FFT as well
+	chprintf("Initializing the FFT system")
+	FFT.Initialize( H.xdglobal, H.ydglobal, H.zdglobal, H.xblocal, H.yblocal, H.zblocal,
+		              P->nx, P->ny, P->nz, H.nx_real, H.ny_real, H.nz_real, H.dx, H.dy, H.dz );
+
 	// Allocate the memory needed for the potentials
 	Allocate_Cosmo_Potential_Memory();
 
@@ -41,25 +65,49 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	// step 1) sample xi(m) by generating independent
 	//         zero-mean normal deviates with variance N**d at 
 	//         each spatial point
-	Generate_Normal_Random_Field(d_field);
-	Rescale_Field(d_field, H.nx*H.ny*H.nz);
+	Generate_Normal_Random_Field(CP.d_phi_1);
+	Rescale_Field(CP.d_phi_1, H.nx*H.ny*H.nz);
+
+	// copy memory
+	cudaMemcpy(CP.phi_1, CP.d_phi_1, CP.n_fields * H.n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+	Real phi_sum = 0;
+  // set initial values of conserved variables
+  for (k = kstart - 1; k < kend; k++) {
+    for (j = jstart - 1; j < jend; j++) {
+      for (i = istart - 1; i < iend; i++) {
+        // get cell index
+        id = i + j * H.nx + k * H.nx * H.ny;
+
+        phi_sum += CP.phi_1[id]; // perform a local reduction
+      }
+    }
+  }
+  printf('Before FFT procID %d phi_sum %e',procID,phi_sum);
+
 
 	// step 2) Take the fourier transform
 	//         xi(k) = N**-d \sum_m exp( -(2 pi i / M) * kappa \dot m) * xi(m)
-	Rescale_FFT_Field(d_xi_k, 1./(H.nx*H.ny*H.nz));
+	//Rescale_FFT_Field(d_xi_k, 1./(H.nx*H.ny*H.nz));
+
+	FFT.Filter_identity(CP.phi_1,CP.phi_1,True);
 	
+  printf('After FFT procID %d phi_sum %e',procID,phi_sum);
+
 	// step 2.5) create k vectors
-	Populate_Wavevectors(d_kx, d_ky, d_kz, d_kk);
+	//Populate_Wavevectors(d_kx, d_ky, d_kz, d_kk);
 
 	// step 3) Multiply xi(k) by the transfer function 
 	//         T(k) \equiv [(2 \pi / L)**3 P(k)]^{1/2}
 	//         note T(k) is computed at z=0
 
 	// step 3.1) divide by k^2 to take inverse laplacian
-	FFT_Field_Reverse_Laplacian(d_xi_k, d_kk);
+	//FFT_Field_Inverse_Laplacian(d_xi_k, d_kk);
 
 	// step 3.5) rescale by growth factor(a)/a
-	Rescale_FFT_Field(d_xi_k, Daa);
+	//Rescale_FFT_Field(d_xi_k, Daa);
+
+	// step 4) Reset the FFT system, free memory
+	FFT.Reset();
 }
 
 /*! \fn void Initialize_Cosmo_Potential_RNG(void)
@@ -147,7 +195,7 @@ void Grid3D::Field_Elementwise_Product(Real *d_x, Real *d_y)
 
 /*! \fn void Field_Elemetwise_Product(Real *d_x, Real A)
  *  \brief Multiply one field elementwise by another. */
-void Grid3D::FFT_Field_Reverse_Laplacian(Real *d_x_k, Real *d_kk)
+void Grid3D::FFT_Field_Inverse_Laplacian(Real *d_x_k, Real *d_kk)
 {
 	// Here, d_x and d_y
 	// Rescale the field by a multiplicative factor.
