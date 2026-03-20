@@ -1,4 +1,4 @@
-#ifdef defined(PARIS) && defined(FFT) 
+#if defined(PARIS) && defined(FFT) 
 
 
 #include "fft_3D.h"
@@ -43,9 +43,9 @@ void FFT_3D::Filter_rescale_by_k_k2( double *input, double *output, bool in_devi
   const size_t bytes = minBytes_;
 
   if ( in_device ){
-    CHECK( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyDeviceToDevice));
+    GPU_Error_Check( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyDeviceToDevice));
   } else {
-    CHECK( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyHostToDevice));
+    GPU_Error_Check( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyHostToDevice));
   } 
 
   // Provide FFT filter with a lambda that multiplies by k / k^2 / D
@@ -76,9 +76,9 @@ void FFT_3D::Filter_rescale_by_k_k2( double *input, double *output, bool in_devi
     });
     
     if ( in_device ){
-      CHECK( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToDevice));
+      GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToDevice));
     } else {
-      CHECK( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToHost));
+      GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToHost));
     } 
 }
 
@@ -90,9 +90,9 @@ void FFT_3D::Filter_rescale_by_power_spectrum( double *input, double *output, bo
   const size_t bytes = minBytes_;
   
   if ( in_device ){
-    CHECK( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyDeviceToDevice));
+    GPU_Error_Check( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyDeviceToDevice));
   } else {
-    CHECK( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyHostToDevice));
+    GPU_Error_Check( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyHostToDevice));
   } 
   
   // Provide FFT filter with a lambda that multiplies by P(k)
@@ -119,9 +119,9 @@ void FFT_3D::Filter_rescale_by_power_spectrum( double *input, double *output, bo
     });
     
     if ( in_device ){
-      CHECK( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToDevice));
+      GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToDevice));
     } else {
-      CHECK( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToHost));
+      GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToHost));
     } 
     
 }
@@ -134,57 +134,23 @@ void FFT_3D::Filter_inv_k2( double *const input, double *const output, bool in_d
   const size_t bytes = minBytes_;
   
   if ( in_device ){
-    CHECK( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyDeviceToDevice));
+    GPU_Error_Check( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyDeviceToDevice));
   } else {
-    CHECK( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyHostToDevice));
+    GPU_Error_Check( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyHostToDevice));
   } 
-    
-  // Provide FFT filter with a lambda that does 1/k^2 solve in frequency space
-  henry_->filter(bytes, db_, da_,
-    [=] __device__ (const int i, const int j, const int k, const cufftDoubleComplex b) {
-      if (i || j || k) {
-  #ifdef PARIS_3PT
-        const double i2 = Sqr(sin(double(min(i, ni - i)) * si) * ddi);
-        const double j2 = Sqr(sin(double(min(j, nj - j)) * sj) * ddj);
-        const double k2 = Sqr(sin(double(k) * sk) * ddk);
-  #elif defined PARIS_5PT
-        const double ci = cos(double(min(i, ni - i)) * si);
-        const double cj = cos(double(min(j, nj - j)) * sj);
-        const double ck = cos(double(k) * sk);
-        const double i2 = ddi * (2.0 * ci * ci - 16.0 * ci + 14.0);
-        const double j2 = ddj * (2.0 * cj * cj - 16.0 * cj + 14.0);
-        const double k2 = ddk * (2.0 * ck * ck - 16.0 * ck + 14.0);
-  #else
-        const double i2 = Sqr(double(min(i, ni - i)) * ddi);
-        const double j2 = Sqr(double(min(j, nj - j)) * ddj);
-        const double k2 = Sqr(double(k) * ddk);
-  #endif
-        const double d = -1.0/(i2+j2+k2);
-        return cufftDoubleComplex{d*b.x,d*b.y};
-      } else {
-        return cufftDoubleComplex{0.0,0.0};
-      }
-    });
-    
-  if ( in_device ){
-    CHECK( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToDevice));
-  } else {
-    CHECK( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToHost));
-  } 
-}
 
-void FFT_3D::Filter_inv_k2( double *const input, double *const output, bool in_device ) const
-{
-  // Local copies of members for lambda capture
-  const int ni = ni_, nj = nj_;
-  const double ddi = ddi_, ddj = ddj_, ddk = ddk_;
-  const size_t bytes = minBytes_;
-  
-  if ( in_device ){
-    CHECK( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyDeviceToDevice));
-  } else {
-    CHECK( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyHostToDevice));
-  } 
+  // Poisson-solve constants that depend on divergence-operator approximation
+  #ifdef PARIS_3PT
+  const int nk    = nk_;
+  const double si = M_PI / double(ni);
+  const double sj = M_PI / double(nj);
+  const double sk = M_PI / double(nk);
+  #elif defined PARIS_5PT
+  const int nk    = nk_;
+  const double si = 2.0 * M_PI / double(ni);
+  const double sj = 2.0 * M_PI / double(nj);
+  const double sk = 2.0 * M_PI / double(nk);
+  #endif
     
   // Provide FFT filter with a lambda that does 1/k^2 solve in frequency space
   henry_->filter(bytes, db_, da_,
@@ -214,9 +180,9 @@ void FFT_3D::Filter_inv_k2( double *const input, double *const output, bool in_d
     });
     
   if ( in_device ){
-    CHECK( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToDevice));
+    GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToDevice));
   } else {
-    CHECK( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToHost));
+    GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToHost));
   } 
 }
 
@@ -232,9 +198,9 @@ void FFT_3D::Filter_identity( double *const input, double *const output, bool in
 
   // copy input into byte array
   if ( in_device ){
-    CHECK( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyDeviceToDevice));
+    GPU_Error_Check( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyDeviceToDevice));
   } else {
-    CHECK( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyHostToDevice));
+    GPU_Error_Check( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyHostToDevice));
   } 
   
   // Provide FFT filter that does nothing
@@ -245,12 +211,11 @@ void FFT_3D::Filter_identity( double *const input, double *const output, bool in
 
   // copy results to output
   if ( in_device ){
-    CHECK( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToDevice));
+    GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToDevice));
   } else {
-    CHECK( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToHost));
+    GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToHost));
   } 
 }
 
 
 #endif
-

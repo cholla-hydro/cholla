@@ -1,4 +1,4 @@
-#ifdef defined(PARIS) && defined(FFT) 
+#if defined(PARIS) && defined(FFT) 
 
 
 #include "fft_3D.h"
@@ -21,6 +21,8 @@ FFT_3D::FFT_3D():
   da_(nullptr),
   db_(nullptr)
 {}
+
+__host__ __device__ static inline double Sqr(const double x) { return x * x; }
 
   
 /*! \fn void Initialize(const Real lx, const Real ly, const Real lz, const Real xMin, const Real yMin, const Real zMin, 
@@ -66,17 +68,17 @@ void FFT_3D::Initialize(const Real lx, const Real ly, const Real lz, const Real 
   nj_ = n[1];
   nk_ = n[2];
   #ifdef PARIS_3PT
-      ddi_(2.0 * double(n[0] - 1) / (hi[0] - lo[0])),
-      ddj_(2.0 * double(n[1] - 1) / (hi[1] - lo[1])),
-      ddk_(2.0 * double(n[2] - 1) / (hi[2] - lo[2])),
+      ddi_=(2.0 * double(n[0] - 1) / (hi[0] - lo[0]_));
+      ddj_=(2.0 * double(n[1] - 1) / (hi[1] - lo[1]_));
+      ddk_=(2.0 * double(n[2] - 1) / (hi[2] - lo[2]_));
   #elif defined PARIS_5PT
-      ddi_(Sqr(double(n[0] - 1) / (hi[0] - lo[0])) / 6.0),
-      ddj_(Sqr(double(n[1] - 1) / (hi[1] - lo[1])) / 6.0),
-      ddk_(Sqr(double(n[2] - 1) / (hi[2] - lo[2])) / 6.0),
+      ddi_=(Sqr(double(n[0] - 1) / (hi[0] - lo_[0])) / 6.0);
+      ddj_=(Sqr(double(n[1] - 1) / (hi[1] - lo_[1])) / 6.0);
+      ddk_=(Sqr(double(n[2] - 1) / (hi[2] - lo_[2])) / 6.0);
   #else
-      ddi_{2.0 * M_PI * double(n[0] - 1) / (double(n[0]) * (hi[0] - lo[0]))},
-      ddj_{2.0 * M_PI * double(n[1] - 1) / (double(n[1]) * (hi[1] - lo[1]))},
-      ddk_{2.0 * M_PI * double(n[2] - 1) / (double(n[2]) * (hi[2] - lo[2]))},
+      ddi_=(2.0 * M_PI * double(n[0] - 1) / (double(n[0]) * (hi[0] - lo_[0])));
+      ddj_=(2.0 * M_PI * double(n[1] - 1) / (double(n[1]) * (hi[1] - lo_[1])));
+      ddk_=(2.0 * M_PI * double(n[2] - 1) / (double(n[2]) * (hi[2] - lo_[2])));
   #endif
   
   // printf( " delta_k:  x: %e   y: %e   z: %e  \n", ddi_, ddj_, ddk_ );
@@ -91,10 +93,10 @@ void FFT_3D::Initialize(const Real lx, const Real ly, const Real lz, const Real 
   const long gg = 0;
   outputBytes_ = long(sizeof(Real))*(dn_[0]+gg)*(dn_[1]+gg)*(dn_[2]+gg);
   
-  CHECK(cudaMalloc(reinterpret_cast<void **>(&da_),std::max(minBytes_,inputBytes_)));
+  GPU_Error_Check(cudaMalloc(reinterpret_cast<void **>(&da_),std::max(minBytes_,inputBytes_)));
   assert(da_);
   
-  CHECK(cudaMalloc(reinterpret_cast<void **>(&db_),std::max(minBytes_,outputBytes_)));
+  GPU_Error_Check(cudaMalloc(reinterpret_cast<void **>(&db_),std::max(minBytes_,outputBytes_)));
   assert(db_);
 }  
 
@@ -102,10 +104,10 @@ void FFT_3D::Initialize(const Real lx, const Real ly, const Real lz, const Real 
  *  \brief Free FFT_3D memory and reset*/
 void FFT_3D::Reset()
 {
-  if (db_) CHECK(cudaFree(db_));
+  if (db_) GPU_Error_Check(cudaFree(db_));
   db_ = nullptr;
 
-  if (da_) CHECK(cudaFree(da_));
+  if (da_) GPU_Error_Check(cudaFree(da_));
   da_ = nullptr;
 
   outputBytes_ = inputBytes_ = minBytes_ = 0;

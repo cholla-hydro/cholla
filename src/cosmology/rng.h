@@ -6,6 +6,8 @@
   #include <curand.h>
   #include <curand_kernel.h>
 #endif  // O_HIP
+#include "../global/global.h"
+
 
 typedef curandStatePhilox4_32_10_t rng_parallel_state_t;
 
@@ -17,5 +19,5 @@ typedef curandStatePhilox4_32_10_t rng_parallel_state_t;
 #endif
 
 
-__device__ void RNG_Init_GPU(unsigned long long seed, unsigned long long subsequence, unsigned long long offset, curandStatePhilox4_32_10_t *state);
-inline __device__ void RNG_Normal_Field_GPU(Real *d_field, int n_cells, int n_ghost, curandStatePhilox4_32_10_t *state);
+__device__ void RNG_Init_GPU(unsigned long long seed, unsigned long long subsequence, unsigned long long offset, rng_parallel_state_t *state);
+__device__ void RNG_Normal_Field_GPU(Real *d_field, int n_cells, int n_ghost, rng_parallel_state_t *state);

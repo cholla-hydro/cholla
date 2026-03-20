@@ -1,5 +1,5 @@
 #pragma once
-#ifdef defined(PARIS) && defined(FFT) 
+#if defined(PARIS) && defined(FFT) 
 
 #ifndef FFT_H
 #define FFT_H

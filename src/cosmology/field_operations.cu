@@ -3,7 +3,7 @@
 
 /*! \fn void void Rescale_Field_GPU(Real *d_x, Real A, )
  *  \brief Multiply one field a multiplicative constant */
-inline __device__ void Rescale_Field_GPU(Real *d_x, Real A, )
+__device__ void Rescale_Field_GPU(Real *d_x, Real A, int n_cells, int n_ghost)
 {
 	// Rescale a field by a multiplicative constant
 
@@ -22,9 +22,9 @@ inline __device__ void Rescale_Field_GPU(Real *d_x, Real A, )
 }
 
 
-/*! \fn void Field_Elementwise_Product_GPU(Real *d_x, Real *d_y, int H.n_cells, int H.n_ghost)
+/*! \fn void Field_Elementwise_Product_GPU(Real *d_x, Real *d_y, int n_cells, int n_ghost)
  *  \brief Multiply one field elementwise by another */
-inline __device__ void Field_Elementwise_Product_GPU(Real *d_x, Real *d_y, int H.n_cells, int H.n_ghost)
+inline __device__ void Field_Elementwise_Product_GPU(Real *d_x, Real *d_y, int n_cells, int n_ghost)
 {
 	// determine the cell location
 	int id;

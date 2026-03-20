@@ -33,6 +33,11 @@
 
 #ifdef COSMOLOGY
   #include "../cosmology/cosmology.h"
+  #include "../cosmology/rng.h"
+#endif
+
+#ifdef FFT
+  #include "../fft/fft_3D.h"
 #endif
 
 #ifdef COOLING_GRACKLE
@@ -808,6 +813,7 @@ class Grid3D
   void Field_Elementwise_Product(Real *d_x, Real *d_y);
   void FFT_Populate_Wavevectors(Real *d_kx, Real *d_ky, Real *d_kz, Real *d_kk);
   void FFT_Field_Reverse_Laplacian(Real *d_x_k, Real *d_kk);
+  void Generate_Normal_Random_Field(Real *d_field, rng_parallel_state_t *state);
 
 
   struct Cosmo_Potentials {
@@ -823,6 +829,9 @@ class Grid3D
 
     /*! RNG offset */
     unsigned long long rng_offset;
+
+    /*! RNG state */
+    rng_parallel_state_t rng_state;
 
     /*! pointer to potentials on host */
     Real *host;
@@ -846,7 +855,7 @@ class Grid3D
 #endif    // COSMOLOGY
 
 #ifdef FFT
-  FFT_3D FFT;
+  FFT_3D fft;
 #endif 
 
 #ifdef COOLING_GRACKLE
