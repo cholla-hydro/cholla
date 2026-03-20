@@ -290,6 +290,10 @@ struct Parameters {
   Real Init_redshift;
   Real End_redshift;
 
+  #ifdef DYNAMICAL_DE_TABLE
+  char wDE_file[MAXLEN]; // File with equation of state as function of redshift
+  #endif
+
   // File for the scale_factor output values for cosmological simulations
   char scale_outputs_file[MAXLEN];
   #define EXPANSION_HISTORY_FILE_NAME "expansion_history.txt"

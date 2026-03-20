@@ -23,6 +23,14 @@ class Cosmology
   Real w0;
   Real wa;
 
+  #ifdef DYNAMICAL_DE_TABLE
+  float *dynamicalDE_table_z; 
+  float *dynamicalDE_table_w;
+  int n_wDE_samples;
+  void Load_DynamicalDE_EquationOfState(struct Parameters *P);
+  #endif
+
+
   Real cosmo_G;
   Real cosmo_h;
   Real current_z;

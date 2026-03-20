@@ -87,4 +87,67 @@ void Cosmology::Set_Next_Scale_Output()
   }
 }
 
+#ifdef DYNAMICAL_DE_TABLE
+void Cosmology::Load_DynamicalDE_EquationOfState(struct Parameters *P)
+{
+  if (P->wDE_file[0] == '\0') {
+	chprintf("wDE_file not found in parameter file \n");
+	exit(1);
+  }
+
+  char wDE_filename[MAXLEN];
+  strcpy(wDE_filename, P->wDE_file);
+
+  std::fstream in(wDE_filename);
+  std::string line;
+  std::vector<std::vector<float>> v;
+  int i = 0;
+  if (in.is_open()) {
+    while (std::getline(in, line)) {
+      if (line.find("#") == 0) continue;
+
+      float value;
+      std::stringstream ss(line);
+      v.push_back(std::vector<float>());
+
+      while (ss >> value) {
+        v[i].push_back(value);
+      }
+      i += 1;
+    }
+    in.close();
+  } else {
+    chprintf(" Error: Unable to open DE equation of state file: %s\n", wDE_filename);
+    exit(1);
+  }
+  int n_lines = i;
+
+  dynamicalDE_table_z         = (float *)malloc(sizeof(float) * n_lines);
+  dynamicalDE_table_w         = (float *)malloc(sizeof(float) * n_lines);
+
+  for (i = 0; i < n_lines; i++) {
+    dynamicalDE_table_z[i]         = v[i][0];
+    dynamicalDE_table_w[i]         = v[i][1];
+  }
+
+  for (i = 0; i < n_lines - 1; i++) {
+    if (dynamicalDE_table_z[i] > dynamicalDE_table_z[i + 1]) {
+      chprintf(
+          " ERROR: equation of state must be ordered such that redshift is increasing "
+          "as the rows increase in the file\n",
+          wDE_filename);
+      exit(2);
+    }
+  }
+
+  n_wDE_samples = n_lines;
+  chprintf(" Loaded DE equation of state file : \n");
+  chprintf("  N redshift values: %d \n", n_wDE_samples);
+  chprintf("  z_min = %f    z_max = %f \n", dynamicalDE_table_z[0], dynamicalDE_table_z[n_wDE_samples - 1]);
+  chprintf("  w(z_min) = %f    w(z_max) = %f \n", dynamicalDE_table_w[0], dynamicalDE_table_w[n_wDE_samples - 1]);
+
+
+}
+#endif // DYNAMICAL_DE_TABLE
+
 #endif

@@ -20,6 +20,9 @@ void Cosmology::Initialize(struct Parameters *P, Grav3D &Grav, Particles3D &Part
   Omega_b = P->Omega_b;
   w0      = P->w0;
   wa      = P->wa;
+  #ifdef DYNAMICAL_DE_TABLE
+  Load_DynamicalDE_EquationOfState(P);
+  #endif
 
   if (strcmp(P->init, "Read_Grid") == 0) {
     // Read scale factor value from Particles
