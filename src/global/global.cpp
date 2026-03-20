@@ -392,6 +392,7 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   parms->Omega_R       = pmap.value_or("Omega_R", 0.0);
   parms->w0            = pmap.value_or("w0", -1.0);
   parms->wa            = pmap.value_or("wa", 0.0);
+  parms->seed          = pmap.value_or("seed", 1337);
 #endif  // COSMOLOGY
 
 #if defined(CHEMISTRY_GPU) || defined(COOLING_GRACKLE)

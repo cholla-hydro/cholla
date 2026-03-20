@@ -3,7 +3,7 @@
 
 /*! \fn void void Rescale_Field_GPU(Real *d_x, Real A, )
  *  \brief Multiply one field a multiplicative constant */
-__device__ void Rescale_Field_GPU(Real *d_x, Real A, int n_cells, int n_ghost)
+__global__ void Rescale_Field_GPU(Real *d_x, Real A, int n_cells, int n_ghost)
 {
 	// Rescale a field by a multiplicative constant
 

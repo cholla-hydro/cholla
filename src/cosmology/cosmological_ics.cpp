@@ -48,7 +48,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   }
 
 	// OK, let's proceed
-	chprintf("Generating potentials for cosmological ICs.");
+	chprintf("Generating potentials for cosmological ICs.\n");
 
 	// set the number of fields
 	CP.n_fields = 1;	
@@ -57,9 +57,9 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	Initialize_Cosmo_Potential_RNG(P);
 
 	// Initialize the FFT as well
-	chprintf("Initializing the FFT system");
-	fft.Initialize( H.xdglobal, H.ydglobal, H.zdglobal, H.xblocal, H.yblocal, H.zblocal,
-		              P->nx, P->ny, P->nz, H.nx_real, H.ny_real, H.nz_real, H.dx, H.dy, H.dz );
+	chprintf("Initializing the FFT system\n");
+	//fft.Initialize( H.xdglobal, H.ydglobal, H.zdglobal, H.xblocal, H.yblocal, H.zblocal,
+	//	              P->nx, P->ny, P->nz, H.nx_real, H.ny_real, H.nz_real, H.dx, H.dy, H.dz );
 
 	// Allocate the memory needed for the potentials
 	Allocate_Cosmo_Potential_Memory();
@@ -69,7 +69,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	// step 1) sample xi(m) by generating independent
 	//         zero-mean normal deviates with variance N**d at 
 	//         each spatial point
-	Generate_Normal_Random_Field(CP.d_phi_1,&CP.rng_state);
+	Generate_Normal_Random_Field(CP.d_phi_1,rng_states);
 	Rescale_Field(CP.d_phi_1, H.nx*H.ny*H.nz);
 
 	// copy memory
@@ -89,14 +89,14 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
       }
     }
   }
-  printf("Before FFT procID %d phi_sum %e",procID,phi_sum);
+  printf("Before FFT procID %d phi_sum %e\n",procID,phi_sum);
 
 
 	// step 2) Take the fourier transform
 	//         xi(k) = N**-d \sum_m exp( -(2 pi i / M) * kappa \dot m) * xi(m)
 	//Rescale_FFT_Field(d_xi_k, 1./(H.nx*H.ny*H.nz));
 
-	fft.Filter_identity(CP.phi_1,CP.phi_1,true);
+	//fft.Filter_identity(CP.phi_1,CP.phi_1,true);
 
 	// copy memory
 	cudaMemcpy(CP.phi_1, CP.d_phi_1, CP.n_fields * H.n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
@@ -115,7 +115,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
       }
     }
   }
-  printf("After FFT procID %d phi_sum %e",procID,phi_sum);
+  printf("After FFT procID %d phi_sum %e\n",procID,phi_sum);
 
 	// step 2.5) create k vectors
 	//Populate_Wavevectors(d_kx, d_ky, d_kz, d_kk);
@@ -131,7 +131,8 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	//Rescale_FFT_Field(d_xi_k, Daa);
 
 	// step 4) Reset the FFT system, free memory
-	fft.Reset();
+	//fft.Reset();
+	chexit(0);
 }
 
 /*! \fn void Initialize_Cosmo_Potential_RNG(void)
@@ -142,15 +143,24 @@ void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
 
 	// Record the RNG seed from the parameter file
 	CP.rng_seed = P->seed;
+	printf("procID %d rng_seed %lld\n",procID,CP.rng_seed);
 
 	// Set the RNG subsequence to be the global MPI Rank + 1
 	CP.rng_subsequence = (unsigned long long) (procID);
+	printf("procID %d rng_subsequence %lld\n",procID,CP.rng_subsequence);
 
 	// Initialize the RNG offset to be zero
 	CP.rng_offset = 0;
+	printf("procID %d rng_offset %lld\n",procID,CP.rng_offset);
 
 	// Call the RNG initialization function on the GPUs
-	RNG_Init_GPU(CP.rng_seed, CP.rng_subsequence, CP.rng_offset, &CP.rng_state);
+	GPU_Error_Check(cudaMalloc((void **)&rng_states, H.n_cells * sizeof(rng_parallel_state_t)));
+
+	printf("Allocated rng states on procID %d\n",procID);
+	fflush(stdout);
+	RNG_Init_GPU(H.n_cells,H.n_ghost,CP.rng_seed, CP.rng_subsequence, CP.rng_offset, rng_states);
+	printf("Initialized rng states on procID %d\n",procID);
+	fflush(stdout);
 }
 
 
@@ -162,12 +172,15 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
   // allocate all the memory to phi_1, to insure contiguous memory
   GPU_Error_Check(cudaHostAlloc((void **)&CP.host, CP.n_fields * H.n_cells * sizeof(Real), cudaHostAllocDefault));
 
+  printf("Memory for host allocated for procID %d\n",procID);
+
   // point potential variables to the appropriate locations on host
   CP.phi_1    = CP.host;
 
   // allocate memory for the conserved variable arrays on the device
   GPU_Error_Check(cudaMalloc((void **)&CP.device, CP.n_fields * H.n_cells * sizeof(Real)));
-  cuda_utilities::initGpuMemory(C.device, H.n_fields * H.n_cells * sizeof(Real));
+  cuda_utilities::initGpuMemory(CP.device, CP.n_fields * H.n_cells * sizeof(Real));
+  printf("Memory for device allocated for procID %d\n",procID);
 
   // point potential variables to the appropriate locations on the device
   CP.d_phi_1  = CP.device;

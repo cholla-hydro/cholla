@@ -620,6 +620,8 @@ class Grid3D
 
   void Adiabatic_Expansion(struct Parameters P);
 
+  void Cosmological_ICs(struct Parameters P);
+
   void Chemistry_Test(struct Parameters P);
 
 #ifdef MHD
@@ -830,9 +832,6 @@ class Grid3D
     /*! RNG offset */
     unsigned long long rng_offset;
 
-    /*! RNG state */
-    rng_parallel_state_t rng_state;
-
     /*! pointer to potentials on host */
     Real *host;
 
@@ -852,6 +851,8 @@ class Grid3D
     Real *d_phi_2;
 
   } CP;
+  /*! RNG state */
+  rng_parallel_state_t *rng_states;
 #endif    // COSMOLOGY
 
 #ifdef FFT

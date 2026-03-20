@@ -221,6 +221,10 @@ void Grid3D::Initialize(struct Parameters *P)
 
   H.Output_Initial = true;
 
+#ifdef COSMOLOGY
+  Generate_Cosmo_Phi_Init(P); // memory intensive -- before grid allocation
+#endif
+
   // allocate memory
   AllocateMemory();
 }

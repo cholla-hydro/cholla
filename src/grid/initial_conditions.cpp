@@ -82,6 +82,8 @@ void Grid3D::Set_Initial_Conditions(Parameters P, const ParameterMap &pmap)
     Zeldovich_Pancake(P);
   } else if (strcmp(P.init, "Adiabatic_Expansion") == 0) {
     Adiabatic_Expansion(P);
+  } else if (strcmp(P.init, "Cosmological_ICs") == 0) {
+    Cosmological_ICs(P);
   } else if (strcmp(P.init, "Chemistry_Test") == 0) {
     Chemistry_Test(P);
 #ifdef MHD
@@ -1647,6 +1649,42 @@ void Grid3D::Adiabatic_Expansion(struct Parameters P)
 
 #endif  // COSMOLOGY
 }
+
+void Grid3D::Cosmological_ICs(struct Parameters P)
+{
+#ifndef COSMOLOGY
+  chprintf("To run a Cosmological ICs simulation, COSMOLOGY has to be turned ON \n");
+  exit(-1);
+#else
+
+  int i, j, k, id;
+  Real x_pos, y_pos, z_pos;
+  Real H0, h, Omega_M, rho_0, G, z_zeldovich, z_init, x_center, T_init, k_x;
+
+  chprintf("Setting Cosmological initial conditions...\n");
+  H0      = P.H0;
+  h       = H0 / 100;
+  Omega_M = P.Omega_M;
+
+  chprintf(" h = %f \n", h);
+  chprintf(" Omega_M = %f \n", Omega_M);
+
+  H0 /= 1000;  //[km/s / kpc]
+  G      = G_COSMO;
+  rho_0  = 3 * H0 * H0 / (8 * M_PI * G) * Omega_M / h / h;
+  z_init = P.Init_redshift;
+  chprintf(" rho_0 = %f \n", rho_0);
+  chprintf(" z_init = %f \n", z_init);
+
+  T_init = 100;
+  chprintf(" T initial = %f \n", T_init);
+
+  k_x = 2 * M_PI / H.xdglobal;
+
+  // Further Initialization performed elsehwere .... perhaps move here
+#endif  // COSMOLOGY
+}
+
 
 void Grid3D::Chemistry_Test(struct Parameters P)
 {
