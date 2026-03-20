@@ -92,34 +92,6 @@ struct DsetSpecListBuilder {
   }
 };
 
-/*! Lookup the shortened output name that was historically used in text outputs
- *
- *  \todo Can we reuse this for a similar purpose when recording slices?
- *
- *  \note
- *  Earlier versions of the text output function were designed to shorten
- *  "magnetic_[xyz]" to "mag[XYZ]." But, as far as I can tell, this was never really
- *  used. Consequently, we don't shorten these field names.
- */
-std::optional<std::string> lookup_legacy_short_name_(std::string_view field_name)
-{
-  if (field_name == "density") {
-    return {std::string("rho")};
-  } else if (field_name == "momentum_x") {
-    return {std::string("mx")};
-  } else if (field_name == "momentum_y") {
-    return {std::string("my")};
-  } else if (field_name == "momentum_z") {
-    return {std::string("mz")};
-  } else if (field_name == "Energy") {
-    return {std::string("E")};
-  } else if (field_name == "GasEnergy") {
-    return {std::string("ge")};
-  } else {
-    return std::nullopt;
-  }
-}
-
 int bfield_name_to_012_(std::string_view field_name)
 {
   if (field_name == "magnetic_x") {

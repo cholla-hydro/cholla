@@ -34,12 +34,6 @@ void Print_Stats(Grid3D& G);
  */
 void Write_Data(Grid3D& G, struct Parameters P, int nfile, const io::WriterManager& write_manager);
 
-/* Output a projection of the grid data to file. */
-void Output_Projected_Data(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);
-
-/* Output xy, xz, and yz slices of the grid data to file. */
-void Output_Slices(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);
-
 /* MPI-safe printf routine */
 int chprintf(const char* __restrict sdata, ...);
 
