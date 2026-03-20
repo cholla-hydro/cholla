@@ -41,20 +41,25 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	// step 1) sample xi(m) by generating independent
 	//         zero-mean normal deviates with variance N**d at 
 	//         each spatial point
-	//
+	Generate_Normal_Random_Field(d_field);
+	Rescale_Field(d_field, H.nx*H.ny*H.nz);
+
 	// step 2) Take the fourier transform
 	//         xi(k) = N**-d \sum_m exp( -(2 pi i / M) * kappa \dot m) * xi(m)
-	//
+	Rescale_FFT_Field(d_xi_k, 1./(H.nx*H.ny*H.nz));
+	
 	// step 2.5) create k vectors
+	Populate_Wavevectors(d_kx, d_ky, d_kz, d_kk);
 
 	// step 3) Multiply xi(k) by the transfer function 
 	//         T(k) \equiv [(2 \pi / L)**3 P(k)]^{1/2}
 	//         note T(k) is computed at z=0
 
 	// step 3.1) divide by k^2 to take inverse laplacian
+	FFT_Field_Reverse_Laplacian(d_xi_k, d_kk);
 
 	// step 3.5) rescale by growth factor(a)/a
-
+	Rescale_FFT_Field(d_xi_k, Daa);
 }
 
 /*! \fn void Initialize_Cosmo_Potential_RNG(void)
@@ -73,7 +78,7 @@ void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
 	CP.rng_offset = 0;
 
 	// Call the RNG initialization function on the GPUs
-	RNG_Init(CP.rng_seed, CP.rng_subsequence, CP.rng_offset, rng_parallel_state_t)
+	RNG_Init_GPU(CP.rng_seed, CP.rng_subsequence, CP.rng_offset, rng_parallel_state_t);
 }
 
 
@@ -128,4 +133,32 @@ void Grid3D::Rescale_Field(Real *d_x, Real A)
 	// Here, d_x has been pre-allocated on the device
 	// Rescale the field by a multiplicative factor.
 	Rescale_Field_GPU(d_x, A, H.n_cells, H.n_ghost);
+}
+
+
+/*! \fn void Field_Elementwise_Product(Real *d_x, Real *d_y)
+ *  \brief Multiply one field elementwise by another. */
+void Grid3D::Field_Elementwise_Product(Real *d_x, Real *d_y)
+{
+	// Here, d_x and d_y
+	// Rescale the field by a multiplicative factor.
+	Field_Elemetwise_Product_GPU(d_x, d_y, H.n_cells, H.n_ghost);
+}
+
+/*! \fn void Field_Elemetwise_Product(Real *d_x, Real A)
+ *  \brief Multiply one field elementwise by another. */
+void Grid3D::FFT_Field_Reverse_Laplacian(Real *d_x_k, Real *d_kk)
+{
+	// Here, d_x and d_y
+	// Rescale the field by a multiplicative factor.
+	FFT_Field_Elementwise_Ratio_Power_GPU(d_x, d_y, H.n_cells, H.n_ghost);
+}
+
+
+/*! \fn void FFT_Populate_Wavevectors(Real *d_kx, Real *d_ky, Real *d_kz, Real *d_kk)
+ *  \brief Initialize the wavevector arrays for an FFT grid */
+void Grid3D::FFT_Populate_Wavevectors(Real *d_kx, Real *d_ky, Real *d_kz, Real *d_kk)
+{
+	// Populate wavevectors for an FFT grid
+	FFT_Populate_Wavevectors_GPU(d_kx, d_ky, d_kz, d_kk, H.n_cells, H.n_ghost);
 }
