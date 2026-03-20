@@ -243,7 +243,9 @@ void Write_Rotated_Projection_HDF5_(const Grid3D &G, hid_t file_id, const io::Ro
 void Write_Header_Rotated_(const Grid3D &G, hid_t file_id, io::Rotation &R)
 {
   const Header &H = G.H;
-  G.Write_Header_HDF5(file_id);
+  H5AttrRecorder adaptor(file_id);
+  AttrRecorderInterface &attr_recorder = adaptor;
+  G.Write_Header(attr_recorder);
   Real delta, theta, phi;
 
   #ifdef MPI_CHOLLA
@@ -283,9 +285,6 @@ void Write_Header_Rotated_(const Grid3D &G, hid_t file_id, io::Rotation &R)
   R.nz_min = std::max(R.nz_min, 0);
   R.nz_max = std::min(R.nz_max, R.nz);
   #endif
-
-  H5AttrRecorder adaptor(file_id);
-  AttrRecorderInterface &attr_recorder = adaptor;
 
   // Rotation data
   attr_recorder.record("nxr", R.nx);

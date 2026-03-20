@@ -51,6 +51,8 @@
   #include "../analysis/analysis.h"
 #endif
 
+class AttrRecorderInterface;
+
 struct Header {
   /*! \var n_cells
    *  \brief Total number of cells in the grid (including ghost cells) */
@@ -418,13 +420,16 @@ class Grid3D
    *  \brief Write the relevant header info to a text output file. */
   void Write_Header_Text(FILE *fp) const;
 
-#ifdef HDF5
-  /*! \brief Write the relevant header info to the HDF5 file.
+  /*! records the relevant file header information
    *
-   *  \param file_id Specifies the file to write the header info to
+   *  This has been written so that the logic can be used for both text outputs and HDF5
+   *  outputs. By employing inheritance, there is minor runtime overhead (from using
+   *  virtual functions) when we record each item to the output
+   *
+   *  \param attr_recorder Attribute recorder implementing the interface specified by
+   *      the \ref AttrRecorderInterface
    */
-  void Write_Header_HDF5(hid_t file_id) const;
-#endif
+  void Write_Header(AttrRecorderInterface &attr_recorder) const;
 
   /*! \fn void Read_Grid(struct Parameters P)
    *  \brief Read in grid data from 1-per-process output files. */

@@ -176,10 +176,8 @@ void Grid3D::Write_Header_Text(FILE *fp) const
  *  \param attr_recorder Attribute recorder implementing the interface specified by
  *      the \ref AttrRecorderInterface
  */
-static void Write_Header_(const Grid3D &G, AttrRecorderInterface &attr_recorder)
+void Grid3D::Write_Header(AttrRecorderInterface &attr_recorder) const
 {
-  const Header &H = G.H;
-
   // Single attributes first
   attr_recorder.record("gamma", gama);
 
@@ -199,17 +197,17 @@ static void Write_Header_(const Grid3D &G, AttrRecorderInterface &attr_recorder)
   attr_recorder.record("density_unit", double{DENSITY_UNIT});
   attr_recorder.record("energy_unit", double{ENERGY_UNIT});
 
-  #ifdef MHD
+#ifdef MHD
   attr_recorder.record("magnetic_field_unit", double{MAGNETIC_FIELD_UNIT});
-  #endif  // MHD
+#endif  // MHD
 
-  #ifdef COSMOLOGY
+#ifdef COSMOLOGY
   attr_recorder.record("H0", Cosmo.H0);
   attr_recorder.record("Omega_M", Cosmo.Omega_M);
   attr_recorder.record("Omega_L", Cosmo.Omega_L);
   attr_recorder.record("Current_z", Cosmo.current_z);
   attr_recorder.record("Current_a", Cosmo.current_a);
-  #endif
+#endif
 
   // Now, do 3-element attributes
 
@@ -239,20 +237,12 @@ static void Write_Header_(const Grid3D &G, AttrRecorderInterface &attr_recorder)
   attr_recorder.record_arr("offset", offset, 3);
 
   attr_recorder.record_triple("nprocs", nproc_x, nproc_y, nproc_z);
-  #endif
+#endif
 
   attr_recorder.record_triple("bounds", H.xbound, H.ybound, H.zbound);
   attr_recorder.record_triple("domain", H.xdglobal, H.ydglobal, H.zdglobal);
   attr_recorder.record_triple("dx", H.dx, H.dy, H.dz);
 }
-
-#ifdef HDF5
-void Grid3D::Write_Header_HDF5(hid_t file_id) const
-{
-  H5AttrRecorder attr_recorder(file_id);
-  Write_Header_(*this, attr_recorder);
-}
-#endif  // HDF5
 
 #ifdef HDF5
 

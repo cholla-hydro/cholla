@@ -282,7 +282,8 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
   hid_t file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   // Write the header (file attributes)
-  G.Write_Header_HDF5(file_id);
+  H5AttrRecorder attr_recorder(file_id);
+  G.Write_Header(attr_recorder);
 
   // Allocate necessary buffers
   int nx_dset = H.nx_real;
