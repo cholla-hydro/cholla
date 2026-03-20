@@ -243,7 +243,7 @@ void Write_Rotated_Projection_HDF5_(const Grid3D &G, hid_t file_id, const io::Ro
 void Write_Header_Rotated_(const Grid3D &G, hid_t file_id, io::Rotation &R)
 {
   const Header &H = G.H;
-  G.Write_Header_HDF5(file_id, true);
+  G.Write_Header_HDF5(file_id);
   Real delta, theta, phi;
 
   #ifdef MPI_CHOLLA

@@ -175,13 +175,8 @@ void Grid3D::Write_Header_Text(FILE *fp) const
  *  \param G the grid object holding data that is serialized
  *  \param attr_recorder Attribute recorder implementing the interface specified by
  *      the \ref AttrRecorderInterface
- *  \param only_record_common When true, only a subset of info is written (the subset
- *      that was also historically written by \ref Grid3D::Write_Header_Rotated_HDF5)
- *
- *  \todo consider removing the \p only_record_common argument. The consequence is that
- *      more header attributes would be saved while making a rotated projection
  */
-static void Write_Header_(const Grid3D &G, AttrRecorderInterface &attr_recorder, bool only_record_common)
+static void Write_Header_(const Grid3D &G, AttrRecorderInterface &attr_recorder)
 {
   const Header &H = G.H;
 
@@ -190,36 +185,31 @@ static void Write_Header_(const Grid3D &G, AttrRecorderInterface &attr_recorder,
 
   attr_recorder.record("Git Commit Hash", GIT_HASH);
   attr_recorder.record("Macro Flags", MACRO_FLAGS);
-  if (not only_record_common) {
-    attr_recorder.record("cholla", "");  // <- helps yt identify cholla outputs
-  }
+  attr_recorder.record("cholla", "");  // <- helps yt identify cholla outputs
 
   // Numeric Attributes
   attr_recorder.record("t", H.t);
   attr_recorder.record("dt", H.dt);
   attr_recorder.record("n_step", H.n_step);
   attr_recorder.record("n_fields", H.n_fields);
-  if (not only_record_common) {
-    attr_recorder.record("time_unit", double{TIME_UNIT});
-    attr_recorder.record("length_unit", double{LENGTH_UNIT});
-    attr_recorder.record("mass_unit", double{MASS_UNIT});
-    attr_recorder.record("velocity_unit", double{VELOCITY_UNIT});
-    attr_recorder.record("density_unit", double{DENSITY_UNIT});
-    attr_recorder.record("energy_unit", double{ENERGY_UNIT});
+  attr_recorder.record("time_unit", double{TIME_UNIT});
+  attr_recorder.record("length_unit", double{LENGTH_UNIT});
+  attr_recorder.record("mass_unit", double{MASS_UNIT});
+  attr_recorder.record("velocity_unit", double{VELOCITY_UNIT});
+  attr_recorder.record("density_unit", double{DENSITY_UNIT});
+  attr_recorder.record("energy_unit", double{ENERGY_UNIT});
 
-#ifdef MHD
-    double magnetic_field_unit = MAGNETIC_FIELD_UNIT;
-    attr_recorder.record("magnetic_field_unit", magnetic_field_unit);
-#endif  // MHD
+  #ifdef MHD
+  attr_recorder.record("magnetic_field_unit", double{MAGNETIC_FIELD_UNIT});
+  #endif  // MHD
 
-#ifdef COSMOLOGY
-    attr_recorder.record("H0", Cosmo.H0);
-    attr_recorder.record("Omega_M", Cosmo.Omega_M);
-    attr_recorder.record("Omega_L", Cosmo.Omega_L);
-    attr_recorder.record("Current_z", Cosmo.current_z);
-    attr_recorder.record("Current_a", Cosmo.current_a);
-#endif
-  }
+  #ifdef COSMOLOGY
+  attr_recorder.record("H0", Cosmo.H0);
+  attr_recorder.record("Omega_M", Cosmo.Omega_M);
+  attr_recorder.record("Omega_L", Cosmo.Omega_L);
+  attr_recorder.record("Current_z", Cosmo.current_z);
+  attr_recorder.record("Current_a", Cosmo.current_a);
+  #endif
 
   // Now, do 3-element attributes
 
@@ -248,10 +238,8 @@ static void Write_Header_(const Grid3D &G, AttrRecorderInterface &attr_recorder,
 
   attr_recorder.record_arr("offset", offset, 3);
 
-  if (not only_record_common) {
-    attr_recorder.record_triple("nprocs", nproc_x, nproc_y, nproc_z);
-  }
-#endif
+  attr_recorder.record_triple("nprocs", nproc_x, nproc_y, nproc_z);
+  #endif
 
   attr_recorder.record_triple("bounds", H.xbound, H.ybound, H.zbound);
   attr_recorder.record_triple("domain", H.xdglobal, H.ydglobal, H.zdglobal);
@@ -259,10 +247,10 @@ static void Write_Header_(const Grid3D &G, AttrRecorderInterface &attr_recorder,
 }
 
 #ifdef HDF5
-void Grid3D::Write_Header_HDF5(hid_t file_id, bool only_record_common) const
+void Grid3D::Write_Header_HDF5(hid_t file_id) const
 {
   H5AttrRecorder attr_recorder(file_id);
-  Write_Header_(*this, attr_recorder, only_record_common);
+  Write_Header_(*this, attr_recorder);
 }
 #endif  // HDF5
 
