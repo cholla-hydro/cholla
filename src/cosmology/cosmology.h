@@ -28,6 +28,7 @@ class Cosmology
   float *dynamicalDE_table_w;
   int n_wDE_samples;
   void Load_DynamicalDE_EquationOfState(struct Parameters *P);
+  Real Get_wDE_from_a(Real a);
   #endif
 
 

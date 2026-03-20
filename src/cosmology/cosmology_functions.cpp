@@ -24,6 +24,35 @@ void Grid3D::Initialize_Cosmology(struct Parameters *P)
   chprintf("Cosmology Successfully Initialized. \n\n");
 }
 
+/* Interpolate to get wDE */
+Real Cosmology::Get_wDE_from_a(Real a)
+{
+  Real z_low, z_high;
+  Real wDE_low, wDE_high, wDE_interp;
+  Real lin_slope;
+  Real z = (1. / a) - 1.;
+
+  z_high = -1.;
+  int i = 0;
+  while (z_high < z)
+  {
+    z_high = dynamicalDE_table_z[i];
+    wDE_high = dynamicalDE_table_w[i];
+    i++;
+  }
+  z_low = dynamicalDE_table_z[i - 2];
+  wDE_low = dynamicalDE_table_w[i - 2];
+
+  lin_slope = (wDE_low - wDE_high) / (z_low - z_high);
+  wDE_interp = lin_slope * (z - z_low) + wDE_low;
+
+  chprintf("current z=%f bounded by zlow %f and zhigh %f \n", z, z_low, z_high);
+  chprintf("    where wDE(zlow) = %f and wDE(zhigh) = %f \n", wDE_low, wDE_high);
+  chprintf("    we find wDE(z) = %f \n", wDE_interp);
+
+  return wDE_interp.;
+}
+
 /* Computes dt/da * da */
 Real Cosmology::dtda_cosmo(Real da, Real a)
 {
