@@ -34,6 +34,11 @@ Real Cosmology::Get_wDE_from_a(Real a)
   Real lin_slope;
   Real z = (1. / a) - 1.;
 
+  if (a == 1.){
+    chprintf("for z=0 we have wDE(z=0) = %f \n", dynamicalDE_table_w[0]);
+    return dynamicalDE_table_w[0];
+  }
+
   z_high = -1.;
   int i = 0;
   while (z_high < z)
@@ -54,6 +59,43 @@ Real Cosmology::Get_wDE_from_a(Real a)
 
   return wDE_interp;
 }
+
+/* Interpolate to get rhoDE(z) / rhoDE(z=0) */
+Real Cosmology::Get_DynamicalDE_Density_from_a(Real a)
+{ 
+  Real z_low, z_high;
+  Real dynDE_density_low, dynDE_density_high, dynDE_density_interp;
+  Real lin_slope;
+  Real z = (1. / a) - 1.;
+
+  if (a == 1.){
+    chprintf("for z=0 we have rhoDE(z)/rhoDE(z=0) = %f \n", dynamicalDE_table_density[0]);
+    return dynamicalDE_table_density[0];
+  }
+  
+  z_high = -1.;
+  int i = 0;
+  while (z_high < z)
+  { 
+    z_high = dynamicalDE_table_z[i];
+    dynDE_density_high = dynamicalDE_table_density[i];
+    i++;
+  } 
+  // since z_high=-1 and expect a!=0, will iterate at least twice. would like to change
+
+  z_low = dynamicalDE_table_z[i - 2];
+  dynDE_density_low = dynamicalDE_table_density[i - 2];
+  
+  lin_slope = (dynDE_density_low - dynDE_density_high) / (z_low - z_high);
+  dynDE_density_interp = lin_slope * (z - z_low) + dynDE_density_low;
+  
+  chprintf("current z=%f bounded by zlow %f and zhigh %f \n", z, z_low, z_high);
+  chprintf("    where rhoDE(zlow)/rhoDE(z=0) = %f and rhoDE(zhigh)/rhoDE(z=0) = %f \n", dynDE_density_low, dynDE_density_high);
+  chprintf("    we find rhoDE(z)/rhoDE(z=0) = %f \n", dynDE_density_interp);
+  
+  return dynDE_density_interp;
+}
+
 
 /* Calculate dark energy density normalized to z=0 */
 void Cosmology::Set_DynamicalDE_Density()

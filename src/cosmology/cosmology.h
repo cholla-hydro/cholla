@@ -32,6 +32,7 @@ class Cosmology
   void Load_DynamicalDE_EquationOfState(struct Parameters *P);
   Real Get_wDE_from_a(Real a);
   void Set_DynamicalDE_Density();
+  Real Get_DynamicalDE_Density_from_a(Real a);
   #endif
 
 
