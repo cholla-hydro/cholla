@@ -146,6 +146,10 @@ void Cosmology::Load_DynamicalDE_EquationOfState(struct Parameters *P)
   chprintf("  z_min = %f    z_max = %f \n", dynamicalDE_table_z[0], dynamicalDE_table_z[n_wDE_samples - 1]);
   chprintf("  w(z_min) = %f    w(z_max) = %f \n", dynamicalDE_table_w[0], dynamicalDE_table_w[n_wDE_samples - 1]);
 
+  if (dynamicalDE_table_z[0] != 0.){
+    chprintf("We require z_min = 0 so that w(z=0) is well defined \n");
+    exit(1);
+  }
 
 }
 #endif // DYNAMICAL_DE_TABLE

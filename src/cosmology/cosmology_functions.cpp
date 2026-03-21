@@ -24,6 +24,8 @@ void Grid3D::Initialize_Cosmology(struct Parameters *P)
   chprintf("Cosmology Successfully Initialized. \n\n");
 }
 
+#ifdef DYNAMICAL_DE_TABLE
+
 /* Interpolate to get wDE */
 Real Cosmology::Get_wDE_from_a(Real a)
 {
@@ -50,8 +52,54 @@ Real Cosmology::Get_wDE_from_a(Real a)
   chprintf("    where wDE(zlow) = %f and wDE(zhigh) = %f \n", wDE_low, wDE_high);
   chprintf("    we find wDE(z) = %f \n", wDE_interp);
 
-  return wDE_interp.;
+  return wDE_interp;
 }
+
+/* Calculate dark energy density normalized to z=0 */
+void Cosmology::Set_DynamicalDE_Density()
+{
+  Real integrand_prev, integrand;
+  Real prev_integral_sum, my_integral, integral;
+  Real z_prev, onez_prev;
+  Real z, onez, onez_2, onez_3;
+  Real wDE_prev, wDE;
+
+  int i;
+  double integral_sum_arr[n_wDE_samples];
+  dynamicalDE_table_density         = (float *)malloc(sizeof(float) * (n_wDE_samples));
+
+  integral_sum_arr[0] = 0.;
+  dynamicalDE_table_density[0] = 1.; // set rhoDE(z)/rhoDE(z=0) = 1 at z=0
+
+  for (int i = 1; i < n_wDE_samples; i++){
+    z_prev = dynamicalDE_table_z[i - 1];
+    z = dynamicalDE_table_z[i];
+
+    onez_prev = 1. + z_prev;
+    onez = 1. + z;
+    onez_2 = onez * onez;
+    onez_3 = onez_2 * onez;
+
+    wDE_prev = dynamicalDE_table_w[i - 1];
+    wDE = dynamicalDE_table_w[i];
+
+    integrand_prev = wDE_prev / onez_prev;
+    integrand = wDE / onez;
+
+    // mid-point rectangle integral
+    my_integral = ((integrand_prev + integrand) / 2.) * (z - z_prev);
+
+    prev_integral_sum = integral_sum_arr[i - 1];
+    integral = prev_integral_sum + my_integral;
+
+    integral_sum_arr[i] = integral;
+
+    dynamicalDE_table_density[i] =  onez_3 * exp(3. * integral);
+    chprintf("\t rhoDE(z=%.8f) / rhoDE(z=0) = %.8f \n", z, dynamicalDE_table_density[i]);
+  }
+}
+
+#endif // DYNAMICAL_DE_TABLE
 
 /* Computes dt/da * da */
 Real Cosmology::dtda_cosmo(Real da, Real a)

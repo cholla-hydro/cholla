@@ -22,6 +22,7 @@ void Cosmology::Initialize(struct Parameters *P, Grav3D &Grav, Particles3D &Part
   wa      = P->wa;
   #ifdef DYNAMICAL_DE_TABLE
   Load_DynamicalDE_EquationOfState(P);
+  Set_DynamicalDE_Density();
   #endif
 
   if (strcmp(P->init, "Read_Grid") == 0) {
