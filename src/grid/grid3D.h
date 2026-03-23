@@ -416,9 +416,6 @@ class Grid3D
   Real Update_Hydro_Grid(std::function<void(Grid3D &)> &chemistry_callback);
 
   void Update_Time();
-  /*! \fn void Write_Header_Text(FILE *fp)
-   *  \brief Write the relevant header info to a text output file. */
-  void Write_Header_Text(FILE *fp) const;
 
   /*! records the relevant file header information
    *

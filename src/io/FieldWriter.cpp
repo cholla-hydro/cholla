@@ -476,7 +476,8 @@ void Write_Grid_Text_(const std::string& filename, const Grid3D& G, const Datase
   }
 
   // write the header to the output file
-  G.Write_Header_Text(fp);
+  TextAttrRecorder attr_recorder(fp);
+  G.Write_Header(attr_recorder);
 
   // Part 2: collect info about each field & write the initial header for the text file
   // ----------------------------------------------------------------------------------

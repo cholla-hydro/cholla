@@ -147,22 +147,6 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
 #endif
 }
 
-/*! records the relevant file header information
- *
- *  This has been written so that the logic can be used for both text outputs and HDF5
- *  outputs. By employing inheritance, there is minor runtime overhead (from using
- *  virtual functions) when we record each item to the output
- *
- *  \note
- *  It would probably be a good idea if we converted this to an instance method of
- *  \ref Grid3D to replace both \ref Grid3D::Write_Header_Text and
- *  \ref Grid3D::Write_Header_HDF5. We may want to wait until after we merge
- *  PRs 469 and 476 (to minmize merge conflicts)
- *
- *  \param G the grid object holding data that is serialized
- *  \param attr_recorder Attribute recorder implementing the interface specified by
- *      the \ref AttrRecorderInterface
- */
 void Grid3D::Write_Header(AttrRecorderInterface &attr_recorder) const
 {
   // Single attributes first
@@ -229,12 +213,6 @@ void Grid3D::Write_Header(AttrRecorderInterface &attr_recorder) const
   attr_recorder.record_triple("bounds", H.xbound, H.ybound, H.zbound);
   attr_recorder.record_triple("domain", H.xdglobal, H.ydglobal, H.zdglobal);
   attr_recorder.record_triple("dx", H.dx, H.dy, H.dz);
-}
-
-void Grid3D::Write_Header_Text(FILE *fp) const
-{
-  TextAttrRecorder attr_recorder(fp);
-  this->Write_Header(attr_recorder);
 }
 
 #ifdef HDF5
