@@ -11,10 +11,13 @@
  */
 
 #include <cstdio>  // std::FILE
+#include <string>
+
+#include "../utils/error_handling.h"
 
 /*! Abstract class that provides the interface for recording file header information
  *
- *  The expectation is that logic for serializing Attribute information to different
+ *  The expectation is that logic for serializing attribute information to different
  *  formats will be organized into different subclasses. For example, we might define
  *  an HDF5 class and a Text class.
  *
@@ -72,28 +75,39 @@ class AttrRecorderInterface
   }
 };
 
+namespace io_detail
+{
+
+/*! Write the toml key to file (performing any escaping if necessary) */
+void write_toml_key(const char* key, std::FILE* fp);
+/*! Write the toml string value key to file (performing any escaping if necessary) */
+void write_toml_str(const char* s, std::FILE* fp);
+
+}  // namespace io_detail
+
 /*! Provides a nice wrapper around an text file pointer for the purpose of recording
  *  attributes
  *
  *  We intentionally target TOML Formatting so that users can use a toml parser (like
  *  python's built-in tomllib module) to read in the header values. Users would do that
  *  that for all contents between `BEGIN-HEADER` and `END-HEADER`.
+ *
+ *  \note
+ *  Rather than having this simply be an ephemeral class that temporarily wraps a
+ *  previously created ``std::FILE`` pointer, it might be more robust if this was
+ *  slightly extended so that this wrapped all operations related to serializing
+ *  simulation data to a text file.
+ *  - this change would involve moving a bunch of logic from @ref Write_Grid_Text_
+ *    into a method of this class and renaming this class to something like
+ *    ``TextRecorder``
+ *  - the benefit of this change is we wouldn't need to worry about explictly calling
+ *    this class's @ref ensure_closed method
  */
 class TextAttrRecorder : public AttrRecorderInterface
 {
   std::FILE* fp_;
-
-  // checks if a string needs escaping
-  // this is quick and dirty
-  bool key_needs_escaping_(const char* s) const
-  {
-    int i = 0;
-    while (true) {
-      if (s[i] == '\0') return false;
-      if ((s[i] == ' ') or (s[i] == '\t')) return true;
-      i++;
-    }
-  }
+  /// records whether the header recorder is closed
+  bool is_closed_;
 
   template <typename T>
   void write_val_(T val)
@@ -105,11 +119,7 @@ class TextAttrRecorder : public AttrRecorderInterface
     } else if constexpr (std::is_same_v<T, double>) {
       std::fprintf(this->fp_, "%.17g", val);
     } else if constexpr (std::is_same_v<T, const char*>) {
-      if (val[0] == '\0') {
-        std::fputs("\"\"", this->fp_);
-      } else {
-        std::fprintf(this->fp_, "'''%s'''", val);
-      }
+      io_detail::write_toml_str(val, this->fp_);
     } else {
       static_assert(always_false<T>, "unexpected type");
     }
@@ -118,12 +128,10 @@ class TextAttrRecorder : public AttrRecorderInterface
   template <typename T>
   void record_(const char* name, const T* val, int length)
   {
-    if (this->key_needs_escaping_(name)) {
-      // this isn't fully escaped (but good enough to start)
-      std::fprintf(this->fp_, "'%s'", name);
-    } else {
-      std::fprintf(this->fp_, "%s", name);
+    if (is_closed_) {
+      CHOLLA_ERROR("can't record any more header attributes after closing the recorder");
     }
+    io_detail::write_toml_key(name, this->fp_);
     std::fputs(" = ", this->fp_);
     if (length < 0) {  // denotes a scalar
       this->write_val_<T>(*val);
@@ -144,15 +152,31 @@ class TextAttrRecorder : public AttrRecorderInterface
  public:
   TextAttrRecorder() = delete;
 
-  explicit TextAttrRecorder(std::FILE* fp) : fp_{fp}
+  explicit TextAttrRecorder(std::FILE* fp) : fp_{fp}, is_closed_(false)
   {
     CHOLLA_ASSERT(fp != nullptr, "received nullptr");
     std::fputs("BEGIN-HEADER\n", this->fp_);
   }
 
+  /*! Ensure this attribute recorder is closed.
+   *
+   *  This is needed for the text header recorder (rather than simply handling this
+   *  stuff in the destructor) because:
+   *  1. we enclose the header header information b/t BEGIN-HEADER and END-HEADER
+   *  2. we need to make sure we write END-HEADER before we start writing actual field
+   *     data and the we may not have the control over exactly when the descructor runs
+   */
+  void ensure_closed()
+  {
+    if (not this->is_closed_) {
+      std::fputs("END-HEADER\n", this->fp_);
+      this->is_closed_ = true;
+    }
+  }
+
   // the destructor does NOT call `std::fclose(this->fp_)` since instances of this type
   // are intended to be temporary wrappers
-  ~TextAttrRecorder() override { std::fputs("END-HEADER\n", this->fp_); }
+  ~TextAttrRecorder() override { this->ensure_closed(); }
 
   void record_arr(const char* name, const double* arr, int length) override { this->record_(name, arr, length); }
 
