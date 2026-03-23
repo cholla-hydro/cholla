@@ -481,12 +481,8 @@ void Particles3D::Load_Particles_Data_HDF5(hid_t file_id, int nfile, struct Para
     #endif
 }
 
-/*! \fn void Write_Header_HDF5(hid_t file_id)
- *  \brief Write the relevant header info to the HDF5 file. */
-void Grid3D::Write_Particles_Header_HDF5(hid_t file_id)
+void Grid3D::Write_Particles_Header(AttrRecorderInterface &attr_recorder)
 {
-  H5AttrRecorder attr_recorder(file_id);
-
   attr_recorder.record("t_particles", Particles.t);
   attr_recorder.record("dt_particles", Particles.dt);
   attr_recorder.record("n_particles_local", Particles.n_local);
@@ -741,8 +737,9 @@ void Grid3D::OutputData_Particles(struct Parameters P, int nfile, const FnameTem
   file_id = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   // Write header (file attributes)
-  Write_Header_HDF5(file_id);
-  Write_Particles_Header_HDF5(file_id);
+  H5AttrRecorder attr_recorder(file_id);
+  Write_Header(attr_recorder);
+  Write_Particles_Header(attr_recorder);
   Write_Particles_Data_HDF5(file_id);
 
   // Close the file

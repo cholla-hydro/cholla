@@ -737,7 +737,13 @@ class Grid3D
   void OutputData_Particles(struct Parameters P, int nfile, const FnameTemplate &fname_template);
   void Load_Particles_Data(struct Parameters P);
   #ifdef HDF5
-  void Write_Particles_Header_HDF5(hid_t file_id);
+
+  /*! records the relevant file header information
+   *
+   *  \param attr_recorder Attribute recorder implementing the interface specified by
+   *      the \ref AttrRecorderInterface
+   */
+  void Write_Particles_Header(AttrRecorderInterface &attr_recorder);
   void Write_Particles_Data_HDF5(hid_t file_id);
   void Load_Particles_Data_HDF5(hid_t file_id, int nfile);
   #endif  // HDF5
