@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
 
   // Create the Writer Manager, which is in charge of calling of trigger the various
   // functions that dump data (e.g. snapshots, slices, projections)
-  io::WriterManager writer_manager(P, pmap);
+  io::WriterManager writer_manager(P, pmap, G.field_info);
 
   if (is_restart) {
     chprintf("Input directory:  %s\n", P.indir);
@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
 
   // Set initial conditions
   chprintf("Setting initial conditions...\n");
-  G.Set_Initial_Conditions(P);
+  G.Set_Initial_Conditions(P, pmap);
   chprintf("Initial conditions set.\n");
   // set main variables for Read_Grid and Read_Grid_Cat initial conditions
   if (is_restart) {

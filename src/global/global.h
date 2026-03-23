@@ -191,30 +191,17 @@ struct Parameters {
   Real gamma;
   char init[MAXLEN];
   int nfile;
-  int n_hydro                = 1;
-  int n_particle             = 1;
-  int n_projection           = 1;
-  int n_rotated_projection   = 1;
-  int n_slice                = 1;
-  int n_out_float32          = 0;
-  int out_float32_density    = 0;
-  int out_float32_momentum_x = 0;
-  int out_float32_momentum_y = 0;
-  int out_float32_momentum_z = 0;
-  int out_float32_Energy     = 0;
-#ifdef DE
-  int out_float32_GasEnergy = 0;
-#endif
-  bool output_always      = false;
-  bool legacy_flat_outdir = false;
-  int n_steps_limit       = -1;  // Note that negative values indicate that there is no limit
+  int n_hydro              = 1;
+  int n_particle           = 1;
+  int n_projection         = 1;
+  int n_rotated_projection = 1;
+  int n_slice              = 1;
+  int n_out_float32        = 0;
+  bool output_always       = false;
+  bool legacy_flat_outdir  = false;
+  int n_steps_limit        = -1;  // Note that negative values indicate that there is no limit
 #ifdef STATIC_GRAV
   int custom_grav = 0;  // flag to set specific static gravity field
-#endif
-#ifdef MHD
-  int out_float32_magnetic_x = 0;
-  int out_float32_magnetic_y = 0;
-  int out_float32_magnetic_z = 0;
 #endif
   Real xmin;
   Real ymin;
@@ -292,19 +279,6 @@ struct Parameters {
   char sw_filename[MAXLEN];
   #endif
 #endif
-#ifdef ROTATED_PROJECTION
-  // initialize rotation parameters to zero
-  int nxr;
-  int nzr;
-  Real delta = 0;
-  Real theta = 0;
-  Real phi   = 0;
-  Real Lx;
-  Real Lz;
-  int n_delta    = 0;
-  Real ddelta_dt = 0;
-  int flag_delta = 0;
-#endif /*ROTATED_PROJECTION*/
 #ifdef COSMOLOGY
   Real H0;
   Real Omega_M;

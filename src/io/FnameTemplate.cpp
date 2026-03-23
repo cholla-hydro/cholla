@@ -5,6 +5,8 @@
 #include "../io/FnameTemplate.h"
 
 #include <filesystem>
+#include <sstream>
+#include <string>
 
 std::string FnameTemplate::effective_output_dir_path(int nfile) const noexcept
 {
@@ -24,18 +26,19 @@ std::string FnameTemplate::effective_output_dir_path(int nfile) const noexcept
   }
 }
 
-std::string FnameTemplate::format_fname(int nfile, const std::string &pre_extension_suffix) const noexcept
+std::string FnameTemplate::format_fname(int nfile, std::string_view pre_extension_suffix,
+                                        std::optional<std::string_view> post_extension_suffix) const noexcept
 {
 #ifdef MPI_CHOLLA
   int file_proc_id = procID;
 #else
   int file_proc_id = 0;
 #endif
-  return format_fname(nfile, file_proc_id, pre_extension_suffix);
+  return format_fname(nfile, file_proc_id, pre_extension_suffix, post_extension_suffix);
 }
 
-std::string FnameTemplate::format_fname(int nfile, int file_proc_id,
-                                        const std::string &pre_extension_suffix) const noexcept
+std::string FnameTemplate::format_fname(int nfile, int file_proc_id, std::string_view pre_extension_suffix,
+                                        std::optional<std::string_view> post_extension_suffix) const noexcept
 {
   // get the leading section of the string
   const std::string path_prefix =
@@ -44,15 +47,18 @@ std::string FnameTemplate::format_fname(int nfile, int file_proc_id,
           : outdir_;
 
   // get the file extension
-#if defined BINARY
-  const char *extension = ".bin";
-#elif defined HDF5
+#ifdef HDF5
   const char *extension = ".h5";
 #else
   const char *extension = ".txt";
 #endif
 
-  std::string procID_part = "." + std::to_string(file_proc_id);  // initialized to empty string
+  std::stringstream s;
 
-  return path_prefix + std::to_string(nfile) + pre_extension_suffix + extension + procID_part;
+  s << path_prefix << std::to_string(nfile) << pre_extension_suffix << extension;
+  if (post_extension_suffix.has_value()) {
+    s << '.' << *post_extension_suffix;
+  }
+  s << '.' << std::to_string(file_proc_id);
+  return s.str();
 }

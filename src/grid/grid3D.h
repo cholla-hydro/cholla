@@ -12,8 +12,9 @@
 
 #include <functional>
 
-#include "../global/global.h"
+#include "../global/global.h"  // declares Parameter and forward-declares ParameterMap
 #include "../global/global_cuda.h"
+#include "../grid/field_info.h"
 #include "../io/FnameTemplate.h"
 
 #ifdef HDF5
@@ -50,67 +51,10 @@
   #include "../analysis/analysis.h"
 #endif
 
-struct Rotation {
-  /*! \var nx
-   *   \brief Number of pixels in x-dir of rotated, projected image*/
-  int nx;
-
-  /*! \var nz
-   *   \brief Number of pixels in z-dir of rotated, projected image*/
-  int nz;
-
-  /*! \var nx_min
-   *   \brief Left most point in the projected image for this subvolume*/
-  int nx_min;
-
-  /*! \var nx_max
-   *   \brief Right most point in the projected image for this subvolume*/
-  int nx_max;
-
-  /*! \var nz_min
-   *   \brief Bottom most point in the projected image for this subvolume*/
-  int nz_min;
-
-  /*! \var nz_max
-   *   \brief Top most point in the projected image for this subvolume*/
-  int nz_max;
-
-  /*! \var delta
-   *   \brief Rotation angle about z axis in simulation frame*/
-  Real delta;
-
-  /*! \var theta
-   *   \brief Rotation angle about x axis in simulation frame*/
-  Real theta;
-
-  /*! \var phi
-   *   \brief Rotation angle about y axis in simulation frame*/
-  Real phi;
-
-  /*! \var Lx
-   *   \brief Physical x-dir size of projected image*/
-  Real Lx;
-
-  /*! \var Lz
-   *   \brief Physical z-dir size of projected image*/
-  Real Lz;
-
-  /*! \var i_delta
-   *   \brief number of output projection for delta rotation*/
-  int i_delta;
-
-  /*! \var n_delta
-   *   \brief total number of output projection for delta rotation*/
-  Real n_delta;
-
-  /*! \var ddelta_dt
-   *   \brief rate of delta rotation*/
-  Real ddelta_dt;
-
-  /*! \var flag_delta
-   *  \brief output mode for box rotation*/
-  int flag_delta;
-};
+namespace io
+{
+struct Rotation;
+}  // namespace io
 
 struct Header {
   /*! \var n_cells
@@ -293,9 +237,8 @@ class Grid3D
    *  \brief Header for the grid */
   struct Header H;
 
-  /*! \var struct Rotation R
-   *  \brief Rotation struct for data projections */
-  struct Rotation R;
+  /*! Describes the mapping between field names and field indices */
+  FieldInfo field_info;
 
 #ifdef GRAVITY
   // Object that contains data for gravity
@@ -437,10 +380,10 @@ class Grid3D
    *  \brief Allocate memory for the d, m, E arrays. */
   void AllocateMemory(void);
 
-  /*! \fn void Set_Initial_Conditions(Parameters P )
-   *  \brief Set the initial conditions based on info in the parameters
-   * structure. */
-  void Set_Initial_Conditions(Parameters P);
+  /*! Set the initial conditions based on already-parsed parameter info in the
+   *  \ref Parameters arg or unparsed parameter-info in the \ref ParameterMap arg
+   */
+  void Set_Initial_Conditions(Parameters P, const ParameterMap &pmap);
 
   /*! \fn void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real
    * *zpos) \brief Get the cell-centered position based on cell index */
@@ -478,46 +421,22 @@ class Grid3D
   void Update_Time();
   /*! \fn void Write_Header_Text(FILE *fp)
    *  \brief Write the relevant header info to a text output file. */
-  void Write_Header_Text(FILE *fp);
-
-  /*! \fn void Write_Grid_Text(FILE *fp)
-   *  \brief Write the grid to a file, at the current simulation time. */
-  void Write_Grid_Text(FILE *fp);
-
-  /*! \fn void Write_Header_Binary(FILE *fp)
-   *  \brief Write the relevant header info to a binary output file. */
-  void Write_Header_Binary(FILE *fp);
-
-  /*! \fn void Write_Grid_Binary(FILE *fp)
-   *  \brief Write the grid to a file, at the current simulation time. */
-  void Write_Grid_Binary(FILE *fp);
+  void Write_Header_Text(FILE *fp) const;
 
 #ifdef HDF5
   /*! \fn void Write_Header_HDF5(hid_t file_id)
    *  \brief Write the relevant header info to the HDF5 file. */
   void Write_Header_HDF5(hid_t file_id);
 
-  /*! \fn void Write_Grid_HDF5(hid_t file_id)
-   *  \brief Write the grid to a file, at the current simulation time. */
-  void Write_Grid_HDF5(hid_t file_id);
-
-  /*! \fn void Write_Projection_HDF5(hid_t file_id)
-   *  \brief Write projected density and temperature data to a file. */
-  void Write_Projection_HDF5(hid_t file_id);
-
   /*! \fn void Write_Header_Rotated_HDF5(hid_t file_id)
    *  \brief Write the relevant header info to the HDF5 file for rotated
    * projection. */
-  void Write_Header_Rotated_HDF5(hid_t file_id);
+  void Write_Header_Rotated_HDF5(hid_t file_id, io::Rotation &R);
 
   /*! \fn void Write_Rotated_Projection_HDF5(hid_t file_id)
    *  \brief Write rotated projected data to a file, at the current simulation
    * time. */
-  void Write_Rotated_Projection_HDF5(hid_t file_id);
-
-  /*! \fn void Write_Slices_HDF5(hid_t file_id)
-   *  \brief Write xy, xz, and yz slices of all data to a file. */
-  void Write_Slices_HDF5(hid_t file_id);
+  void Write_Rotated_Projection_HDF5(hid_t file_id, const io::Rotation &R);
 
 #endif
 
@@ -528,10 +447,6 @@ class Grid3D
   /*! \fn void Read_Grid_Cat(struct Parameters P)
    *  \brief Read in grid data from a single concatenated output file. */
   void Read_Grid_Cat(struct Parameters P);
-
-  /*! \fn Read_Grid_Binary(FILE *fp)
-   *  \brief Read in grid data from a binary file. */
-  void Read_Grid_Binary(FILE *fp);
 
 #ifdef HDF5
   /*! \fn void Read_Grid_HDF5(hid_t file_id)
