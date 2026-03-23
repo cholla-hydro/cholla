@@ -147,19 +147,6 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
 #endif
 }
 
-void Grid3D::Write_Header_Text(FILE *fp) const
-{
-  // Write the header info to the output file
-  fprintf(fp, "Header Information\n");
-  fprintf(fp, "Git Commit Hash = %s\n", GIT_HASH);
-  fprintf(fp, "Macro Flags     = %s\n", MACRO_FLAGS);
-  fprintf(fp, "n_step: %d  sim t: %f  sim dt: %f\n", H.n_step, H.t, H.dt);
-  fprintf(fp, "mass unit: %e  length unit: %e  time unit: %e\n", MASS_UNIT, LENGTH_UNIT, TIME_UNIT);
-  fprintf(fp, "nx: %d  ny: %d  nz: %d\n", H.nx, H.ny, H.nz);
-  fprintf(fp, "xmin: %f  ymin: %f  zmin: %f\n", H.xbound, H.ybound, H.zbound);
-  fprintf(fp, "t: %f\n", H.t);
-}
-
 /*! records the relevant file header information
  *
  *  This has been written so that the logic can be used for both text outputs and HDF5
@@ -242,6 +229,12 @@ void Grid3D::Write_Header(AttrRecorderInterface &attr_recorder) const
   attr_recorder.record_triple("bounds", H.xbound, H.ybound, H.zbound);
   attr_recorder.record_triple("domain", H.xdglobal, H.ydglobal, H.zdglobal);
   attr_recorder.record_triple("dx", H.dx, H.dy, H.dz);
+}
+
+void Grid3D::Write_Header_Text(FILE *fp) const
+{
+  TextAttrRecorder attr_recorder(fp);
+  this->Write_Header(attr_recorder);
 }
 
 #ifdef HDF5
