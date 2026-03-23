@@ -21,3 +21,4 @@ typedef curandStatePhilox4_32_10_t rng_parallel_state_t;
 
 __global__ void RNG_Init_GPU(int n_cells, int n_ghost, unsigned long long seed, unsigned long long subsequence, unsigned long long offset, rng_parallel_state_t *states);
 __global__ void RNG_Normal_Field_GPU(Real *d_field, int n_cells, int n_ghost, rng_parallel_state_t *states);
+//__global__ void Calc_dt_1D(Real *dev_conserved, Real *dev_dti, Real gamma, int n_ghost, int nx, Real dx)
