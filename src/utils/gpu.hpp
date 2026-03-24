@@ -338,38 +338,26 @@ __global__ __launch_bounds__(GPU_MAX_THREADS) void gpuRun3x0(const int n2, const
 
 /*! Calls \p f at every specified index
  *
- *  \param n0, n1, n2 The dimensions of the for-loop. In general, \p n0 corresponds to
+ *  \param n0, n1, n2 The dimensions of the for-loop. In general, \p n2 corresponds to
  *      the tightly increasing axis (we expand on this below).
  *  \param f The callable that will be called on the device that accepts 3 arguments.
- *      See the warning at the end of this docstring for a discussion about argument
- *      order (it's a little unintuitive!).
-
- *  \warning
- *  The relationship between argument ordering passed to this function (``gpuFor``) and
- *  the callable \p f, is more than a little confusing
- *  - Suppose the signature of \p f looks like ``f(int argA, int argB, int argC)``.
- *  - These arguments are reversed compared to the order of \p n0, \p n1, and \p n2.
- *  - In other words, the maximum value passed to ``argA`` is ``(n2-1)`` and the maximum
- *    value passed to ``argC`` is ``(n0-1)``
+ *      If the signature looks like ``f(int i0, int i1, int i2)``, then the max value
+ *      passed to ``i0`` is ``(n0-1)`` and the max value passed to ``i2`` is ``(n2-1)``.
  *
  *  \par More about ``f``
  *  \p f is commonly a lambda function that has been specially declared so that it is
  *  executed on device. The easiest way to declare \p f is with the \ref GPU_LAMBDA
  *  macro. Alternatively, \p f can be a full blown callable type. For less experience
  *  C++ devs, this means that \p f would be a struct/class with a member function of
- *  the form ``__device__ void operator()(int argA, int argB, int argC)``.
+ *  the form ``__device__ void operator()(int i0, int i1, int i2)``.
  *
  *  \par More about dimensions
- *  If you are iterating over a 3D grid of values, \p n0 should specify the length
+ *  If you are iterating over a 3D grid of values, \p n2 should specify the length
  *  along the contiguous axis. Consider a pair of threads with identical values of
  *  ``blockIdx``, ``threadIdx.z``, and ``threadIdx.y``. If the difference in
  *  ``threadIdx.x`` values between the threads is exactly 1, then the pair of threads
- *  will be accessing adjacent indices along the axis of length \p n0. Loads will be
+ *  will be accessing adjacent indices along the axis of length \p n2. Loads will be
  *  coalesced if memory is contiguous along this axis
- *
- *  \todo
- *  Should we try to make the order of \p n0 , \p n1 , and \p n2 consistent with the
- *  arguments passed to \p f ?
  */
 template <typename F>
 void gpuFor(const int n0, const int n1, const int n2, const F f)
