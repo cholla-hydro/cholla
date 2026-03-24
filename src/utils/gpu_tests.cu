@@ -25,7 +25,7 @@ struct MaskFiller {
 
   __host__ __device__ void operator()(int argA, int argB, int argC) const
   {
-    printf("{%d, %d, %d}, {%d, %d, %d}\n", threadIdx.x, threadIdx.y, threadIdx.z, argA, argB, argC);
+    // printf("{%d, %d, %d}, {%d, %d, %d}\n", threadIdx.x, threadIdx.y, threadIdx.z, argA, argB, argC);
     switch (choice) {
       case 0:
         if (argB == 0 and argC == 0) {
