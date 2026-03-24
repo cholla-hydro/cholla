@@ -810,6 +810,7 @@ class Grid3D
   void Generate_Cosmo_Phi_Init(struct Parameters *P);
   void Initialize_Cosmo_Potential_RNG(struct Parameters *P);
   void Load_Cosmo_Power_Spectrum(struct Parameters *P);
+  void Free_Cosmo_Power_Spectrum(struct Parameters *P);
   void Allocate_Cosmo_Potential_Memory();
   void Free_Cosmo_Potential_Memory();
   void Rescale_Field(Real *d_x, Real A);
@@ -850,6 +851,24 @@ class Grid3D
 
     /*! pointer to second potential on device */
     Real *d_phi_2;
+
+    /*! number of power spectrum entries */
+    int n_pk;
+    int *d_n_pk;
+
+    /*! pointer to array of p(k) wavenumbers*/
+    Real *k_array;
+
+    /*! pointer to array of p(k) spectrum*/
+    Real *pk_dm_array;
+    Real *pk_gas_array;
+
+    /*! pointer to array of p(k) wavenumbers on device*/
+    Real *d_k_array;
+
+    /*! pointer to array of p(k) spectrum on device*/
+    Real *d_pk_dm_array;
+    Real *d_pk_gas_array;
 
   } CP;
   /*! RNG state */
