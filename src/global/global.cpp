@@ -149,10 +149,6 @@ bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameter
     // NOLINTNEXTLINE(readability-simplify-boolean-expr)
     CHOLLA_ASSERT((tmp == 0) or (tmp == 1), "output_always must be 1 or 0.");
     parms->output_always = tmp;
-  } else if (strcmp(name, "legacy_flat_outdir") == 0) {
-    int tmp = atoi(value);
-    CHOLLA_ASSERT((tmp == 0) or (tmp == 1), "legacy_flat_outdir must be 1 or 0.");
-    parms->legacy_flat_outdir = tmp;
   } else if (strcmp(name, "n_steps_limit") == 0) {
     parms->n_steps_limit = atof(value);
   } else if (strcmp(name, "xmin") == 0) {
@@ -350,7 +346,6 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   // stored the values as std::string values)
   Load_String_Param_Into_Char_Buffer(pmap, "init", parms->init, "");
   Load_String_Param_Into_Char_Buffer(pmap, "custom_bcnd", parms->custom_bcnd, "");
-  Load_String_Param_Into_Char_Buffer(pmap, "outdir", parms->outdir, "");
   Load_String_Param_Into_Char_Buffer(pmap, "indir", parms->indir, "");
 
   // in the future, the feedback module will read in its own parameters (the global Parameter struct won't

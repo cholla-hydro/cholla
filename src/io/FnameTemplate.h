@@ -10,6 +10,7 @@
 #include <string_view>
 
 #include "../io/ParameterMap.h"
+#include "../utils/error_handling.h"
 
 /*! Lightweight object designed to centralize the file-naming logic (& any associated configuration).
  *
@@ -48,7 +49,19 @@ class FnameTemplate
   {
   }
 
-  explicit FnameTemplate(const Parameters& P) : FnameTemplate(not P.legacy_flat_outdir, P.outdir) {}
+  static FnameTemplate from_pmap(ParameterMap& pmap)
+  {
+    bool legacy_flat_outdir;
+    int uncoerced = pmap.value_or("legacy_flat_outdir", 0);
+    if (uncoerced == 0) {
+      legacy_flat_outdir = false;
+    } else if (uncoerced == 1) {
+      legacy_flat_outdir = true;
+    } else {
+      CHOLLA_ERROR("legacy_flat_outdir parameter must be 1 or 0.");
+    }
+    return FnameTemplate(not legacy_flat_outdir, pmap.value_or("outdir", ""));
+  }
 
   /*! Specifies whether separate cycles are written to separate directories */
   bool separate_cycle_dirs() const noexcept { return separate_cycle_dirs_; }
