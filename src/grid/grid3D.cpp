@@ -221,6 +221,10 @@ void Grid3D::Initialize(struct Parameters *P)
 
   H.Output_Initial = true;
 
+
+  Set_Domain_Properties(*P); // move the domain info forward
+
+
 #ifdef COSMOLOGY
   Generate_Cosmo_Phi_Init(P); // memory intensive -- before grid allocation
 #endif

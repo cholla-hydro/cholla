@@ -1,7 +1,7 @@
 
 #include "field_operations.h"
 
-/*! \fn void void Rescale_Field_GPU(Real *d_x, Real A, )
+/*! \fn void Rescale_Field_GPU(Real *d_x, Real A, int n_cells, int n_ghost)
  *  \brief Multiply one field a multiplicative constant */
 __global__ void Rescale_Field_GPU(Real *d_x, Real A, int n_cells, int n_ghost)
 {

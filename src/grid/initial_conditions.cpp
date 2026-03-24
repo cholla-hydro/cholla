@@ -26,7 +26,7 @@
 /*! Set the initial conditions based on info in the parameters structure. */
 void Grid3D::Set_Initial_Conditions(Parameters P, const ParameterMap &pmap)
 {
-  Set_Domain_Properties(P);
+  //Set_Domain_Properties(P);
   Set_Gammas(P.gamma);
 
   if (strcmp(P.init, "Constant") == 0 or strcmp(P.init, "Isolated_Stellar_Cluster") == 0) {
