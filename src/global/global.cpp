@@ -127,6 +127,7 @@ void Parse_Params(ParameterMap &pmap, struct Parameters *parms)
 
   // the plan is to eventually, use the new parsing functions from Parse_Param like the following
   Init_Param_Struct_Members(pmap, parms);
+
 }
 
 void Warn_Unused_Params(ParameterMap &pmap) { pmap.warn_unused_parameters(optionalParams); }
@@ -393,6 +394,10 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   parms->w0            = pmap.value_or("w0", -1.0);
   parms->wa            = pmap.value_or("wa", 0.0);
   parms->seed          = pmap.value_or("seed", 1337);
+  if (not pmap.has_param("cosmo_ics_pk_file")) {
+    CHOLLA_ERROR("Cosmology sims must specify a power spectrum");
+  }
+  Load_String_Param_Into_Char_Buffer(pmap, "cosmo_ics_pk_file", parms->cosmo_ics_pk_file, "Pk.txt");
 #endif  // COSMOLOGY
 
 #if defined(CHEMISTRY_GPU) || defined(COOLING_GRACKLE)

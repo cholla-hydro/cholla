@@ -289,7 +289,8 @@ struct Parameters {
   Real wa;
   Real Init_redshift;
   Real End_redshift;
-  unsigned long long seed;
+  unsigned long long seed; //Cosmological ICs seed
+  char cosmo_ics_pk_file[MAXLEN];
 
   // File for the scale_factor output values for cosmological simulations
   char scale_outputs_file[MAXLEN];

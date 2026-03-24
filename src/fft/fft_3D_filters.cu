@@ -34,11 +34,11 @@ __device__ Real linear_interpolation( Real x, Real *x_vals, Real *y_vals, int N 
 
 __device__ Real log_log_interpolation( Real x, Real *x_vals, Real *y_vals, int N ){
   if ( x <= x_vals[0] ){
-    printf(" x: %f  outside of interplation range.\n", x );
+    printf(" x: %f  outside of interplation range (xv0 = %f).\n", x, x_vals[0] );
     return y_vals[0];
   }
   if ( x >= x_vals[N-1] ){
-    printf(" x: %f  outside of interplation range.\n", x );
+    printf(" x: %f  outside of interplation range (xvn-1 = %f). \n", x, x_vals[N-1] );
     return y_vals[N-1];
   }
   int indx = 0;

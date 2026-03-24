@@ -434,8 +434,6 @@ void DomainDecompositionBLOCK(struct Parameters *P, struct Header *H, int nx_gin
   source[4] = tiling[ix[procID]][iy[procID]][source[4]];
   source[5] = tiling[ix[procID]][iy[procID]][source[5]];
 
-  chprintf("nproc_x %d nproc_y %d nproc_z %d\n", nproc_x, nproc_y, nproc_z);
-
   // free the tiling
   deallocate_three_dimensional_int_array(tiling, nproc_x, nproc_y, nproc_z);
 

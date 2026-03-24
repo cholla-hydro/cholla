@@ -810,7 +810,7 @@ class Grid3D
   void Generate_Cosmo_Phi_Init(struct Parameters *P);
   void Initialize_Cosmo_Potential_RNG(struct Parameters *P);
   void Load_Cosmo_Power_Spectrum(struct Parameters *P);
-  void Free_Cosmo_Power_Spectrum(struct Parameters *P);
+  void Free_Cosmo_Power_Spectrum();
   void Allocate_Cosmo_Potential_Memory();
   void Free_Cosmo_Potential_Memory();
   void Rescale_Field(Real *d_x, Real A);
