@@ -1681,7 +1681,17 @@ void Grid3D::Cosmological_ICs(struct Parameters P)
 
   k_x = 2 * M_PI / H.xdglobal;
 
+
+  // write potential to file
+  chprintf("Writing cosmological potential to file...\n");
+  Save_Cosmo_Potential(&P);
+
+  // free potential memory
+  chprintf("Free cosmological potential memory...\n");
+  Free_Cosmo_Potential_Memory();
+
   // Further Initialization performed elsehwere .... perhaps move here
+  chexit(0);
 #endif  // COSMOLOGY
 }
 

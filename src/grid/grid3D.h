@@ -808,6 +808,7 @@ class Grid3D
   #endif  // PARTICLES_GPU
 
   void Generate_Cosmo_Phi_Init(struct Parameters *P);
+  void Save_Cosmo_Potential(struct Parameters *P);
   void Initialize_Cosmo_Potential_RNG(struct Parameters *P);
   void Load_Cosmo_Power_Spectrum(struct Parameters *P);
   void Free_Cosmo_Power_Spectrum();
