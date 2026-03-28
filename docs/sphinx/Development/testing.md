@@ -57,8 +57,7 @@ flag.
    machine. E.g. go to `cholla/builds/make.host.MACHINE_NAME` and assign
    `GOOGLETEST_ROOT` to be the path to your installation of GoogleTest.
    - An example can be found in {repository-file}`builds/make.host.summit`
-3. Build Cholla as normal using whichever make type you want. See
-   [Building on the CAAR branch](Building-on-the-CAAR-branch) for details.
+3. Build Cholla as normal using whichever make type you want.
    This executable will be used to run system tests
    - Example: `make -j TYPE=hydro` builds the hydro make type.
 4. Build the tests executable by running `make` again but now with the `TEST`
