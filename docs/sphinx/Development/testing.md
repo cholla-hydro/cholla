@@ -28,8 +28,7 @@ The tests have three dependencies:
 
 ### Building & Launching with the Included Script
 
-If you are on a supported machine, the simplest way to build and run tests is with the script
-[`cholla/builds/scripts/run_tests.sh`](../blob/CAAR/builds/scripts/run_tests.sh).
+If you are on a supported machine, the simplest way to build and run tests is with the script {repository-file}`builds/scripts/run_tests.sh`.
 That script contains functions to clean, source setup scripts, optionally
 build GoogleTest, build Cholla, build the tests, and launch the tests. For example, using the script to build with GCC and run all hydro tests:
 
@@ -57,7 +56,7 @@ flag.
 2. Check that the `GOOGLETEST_ROOT` variable is set in the Makefile for you
    machine. E.g. go to `cholla/builds/make.host.MACHINE_NAME` and assign
    `GOOGLETEST_ROOT` to be the path to your installation of GoogleTest.
-   - An example can be found in [`cholla/builds/make.host.summit`](../blob/CAAR/builds/make.host.summit)
+   - An example can be found in {repository-file}`builds/make.host.summit`
 3. Build Cholla as normal using whichever make type you want. See
    [Building on the CAAR branch](Building-on-the-CAAR-branch) for details.
    This executable will be used to run system tests
@@ -76,7 +75,7 @@ flag.
      directory. A relative path *might* work but that is untested and
      unverified.
    - `--build-type` - The make type used, e.g. `hydro`, `gravity`, etc.
-   - `--machine` - The machine used. Must match the name returned by [`cholla/builds/machine.sh`](../blob/CAAR/builds/machine.sh)
+   - `--machine` - The machine used. Must match the name returned by {repository-file}`builds/machine.sh`
    - A full launch command that runs all the hydro tests looks like:
      - `{chollaRoot}/bin/cholla.type.machine.tests --cholla-root {chollaRoot} --build-type hydro --machine spock --gtest_filter=*tHYDRO*`
    - A full launch command that runs only hydro system tests looks like:
@@ -178,15 +177,15 @@ Floating point comparisons are notoriously tricky and GoogleTest's default
 floating point comparison tools are to restrictive for our needs. As such we've
 written a more sophisticated tool for comparing double precision (FP64) numbers
 in the `testingUtilities` namespace declared in
-[`cholla/src/utils/testing_utilities.h`](../blob/CAAR/src/utils/testing_utilities.h).
+{repository-file}`src/utils/testing_utilities.h`.
 There's two relevant functions there, `ulpsDistanceDbl` which computes the
 [ULP distance](https://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/)
 between two FP64 numbers and the `nearlyEqualDbl` function which checks if two
 FP64 numbers are within an absolute margin or a ULP margin. Details can be found
 in the doxygen documentation in
-[`testing_utilities.h`](../blob/CAAR/src/utils/testing_utilities.h) and a usage
+{repository-file}`src/utils/testing_utilities.h` and a usage
 example can be found at
-[`cholla/src/riemann_solvers/hllc_cuda_test.cu`](../blob/CAAR/src/riemann_solvers/hllc_cuda_tests.cu).
+{repository-file}`src/riemann_solvers/hllc_cuda_test.cu`.
 If required in the future FP32, or any other precision, versions of
 `nearlyEqualDbl` and `ulpsDistanceDbl` can be added easily.
 
@@ -197,10 +196,10 @@ GoogleTest API calls and should be named and located according to the guidelines
 in [Naming Scheme](#naming-scheme). Details on the functionality of GoogleTest
 can be found in the [GoogleTest Docs](https://google.github.io/googletest/primer.html).
 There are many excellent guides on what should be tested, how to test it, and
-how to write quality tests. Some of those resources can be found in the
-[Useful Links & Guides](#useful-links--guides) section. Below are some basics to get
-you started, and an example test can be found in
-[`cholla/src/riemann_solvers/hllc_cuda_test.cu`](../blob/CAAR/src/riemann_solvers/hllc_cuda_tests.cu):
+how to write quality tests.
+Some of those resources can be found in the {ref}`testing-useful-links-guides` section.
+Below are some basics to get you started, and an example test can be found in
+{repository-file}`src/riemann_solvers/hllc_cuda_test.cu`:
 
 ### Testing Strategies
 
@@ -240,16 +239,16 @@ later examination if needed.
 
 An example of a system test with a fiducial HDF5 file can be found
 in
-[`cholla/src/system_tests/hydro_system_tests.cpp`](../blob/CAAR/src/system_tests/hydro_system_tests.cpp).
+{repository-file}`src/system_tests/hydro_system_tests.cpp`.
 Here are detailed instructions:
 
 1. If it doesn't already exist, create a file called `makeType_system_tests.cpp`
    in `cholla/src/system_tests` where `makeType` is the make type of that system
    test (e.g. hydro, particle, gravity, etc).
-2. Include both GoogleTest and the `cholla/src/system_tests/system_tester.h`
+2. Include both GoogleTest and the {repository-file}`src/system_tests/system_tester.h`
    header.
 3. Name your new system test according to the conventions in the
-   [Naming Scheme](#-naming-scheme) section. Instantiate a
+   [Naming Scheme](#naming-scheme) section. Instantiate a
    `systemTest::SystemTestRunner` object, then call the `runTest` method. Naming
    the test according to convention is very important since the
    `systemTest::SystemTestRunner` class uses the test name to find the settings
@@ -343,9 +342,7 @@ systemTest::SystemTestRunner particleOnly(true, false);
 If you want to generate the fiducial data on the fly or have finer control over
 the system test then the `systemTest::SystemTestRunner` class has a selection of
 methods to help you do that. Full details for each method are found within
-doxygen comments in the
-[`cholla/src/system_tests/system_tester.h`](../blob/CAAR/src/system_tests/system_tester.h)
-header.
+doxygen comments in the {repository-file}`src/system_tests/system_tester.h` header.
 
 - `Constructor`: When initializing the object make sure to pass the appropriate
   booleans to indicate if you're using particle data, hydro data, a fiducial
@@ -353,8 +350,7 @@ header.
   particle data, and use both a fiducial data file and a input file
 - `runTest`: Runs the system test as set up
 - `chollaLaunchParams`: A `std::string` of Cholla settings overrides to
-  use when launching Cholla. Details in
-  [this PR](https://github.com/cholla-hydro/cholla/pull/87)
+  use when launching Cholla. Details in {gh-pr}`87`.
 - `numMpiRanks`: A member variable that indicates how many MPI ranks of Cholla
   to run, defaults to 1.
 - Various getters for path variables, all return std::string objects:
@@ -501,7 +497,7 @@ Here are some examples of full test names to refer to:
 - System tests for a given make type should all be in the
   `TypeName_system_tests.cpp` file within `cholla/src/system_tests`.
   - Example: All the system tests for the `hydro` make type should be in the
-    [`cholla/src/system_tests/hydro_system_tests.cpp`](../blob/CAAR/src/system_tests/hydro_system_tests.cpp)
+    {repository-file}`src/system_tests/hydro_system_tests.cpp`
     file.
 - System test settings and fiducial data files should be named according to the
   requirements in the [Writing New System Tests](#writing-new-system-tests)
@@ -555,7 +551,7 @@ Here are some examples of full test names to refer to:
 All the NIVIDIA builds are build and testing on Pitt CRC hardware using Jenkins on each pull request. Additionally, as part of the Jenkins pipeline, clang-tidy is run on each build type.
 
 To test the AMD builds a GitHub Actions matrix job has been setup in
-[`cholla/.github/workflows/build_tests.yml`](../blob/CAAR/.github/workflows/build_tests.yml)
+{repository-file}`.github/workflows/build_tests.yml`
 that builds every make type of Cholla against HIP+Clang. Note that
 this GitHub Actions workflow *does not* actually run the tests, it just builds
 Cholla and the tests to make sure that everything compiles.
@@ -603,6 +599,7 @@ The glossary below provides the meaning of various terms used on this page:
   that will be tested. This can be done as part of the design phase to make sure
   the end product matches all the requirements.
 
+(testing-useful-links-guides)=
 ## Useful Links & Guides
 
 - *Note that a lot of these links lead to specific companies who are selling
