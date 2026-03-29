@@ -63,9 +63,6 @@ class ParamArgListBuilder
     return update_(name, val);
   }
   ///@}
-
-  /*! Append the specified string-segment to the argument list */
-  void append(std::string_view segment) { s_.append(segment); }
 };
 
 /*!
