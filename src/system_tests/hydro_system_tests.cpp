@@ -183,42 +183,45 @@ class tHYDROtMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithPa
     double const tOut   = 2 * domain / waveSpeed;
 
     // Settings
-    waveTest.chollaLaunchParams.append(" nx=" + to_string_exact<double>(2 * N));
-    waveTest.chollaLaunchParams.append(" ny=" + to_string_exact<double>(N));
-    waveTest.chollaLaunchParams.append(" nz=" + to_string_exact<double>(N));
-    waveTest.chollaLaunchParams.append(" tout=" + to_string_exact<double>(tOut));
-    waveTest.chollaLaunchParams.append(" outstep=" + to_string_exact<double>(tOut));
-    waveTest.chollaLaunchParams.append(" init=Linear_Wave");
-    waveTest.chollaLaunchParams.append(" xmin=0.0");
-    waveTest.chollaLaunchParams.append(" ymin=0.0");
-    waveTest.chollaLaunchParams.append(" zmin=0.0");
-    waveTest.chollaLaunchParams.append(" xlen=" + to_string_exact<double>(2 * domain));
-    waveTest.chollaLaunchParams.append(" ylen=" + to_string_exact<double>(domain));
-    waveTest.chollaLaunchParams.append(" zlen=" + to_string_exact<double>(domain));
-    waveTest.chollaLaunchParams.append(" xl_bcnd=1");
-    waveTest.chollaLaunchParams.append(" xu_bcnd=1");
-    waveTest.chollaLaunchParams.append(" yl_bcnd=1");
-    waveTest.chollaLaunchParams.append(" yu_bcnd=1");
-    waveTest.chollaLaunchParams.append(" zl_bcnd=1");
-    waveTest.chollaLaunchParams.append(" zu_bcnd=1");
-    waveTest.chollaLaunchParams.append(" rho=1.0");
-    waveTest.chollaLaunchParams.append(" vx=" + to_string_exact<double>(vx));
-    waveTest.chollaLaunchParams.append(" vy=0");
-    waveTest.chollaLaunchParams.append(" vz=0");
-    waveTest.chollaLaunchParams.append(" P=" + to_string_exact<double>(1 / gamma));
-    waveTest.chollaLaunchParams.append(" Bx=0");
-    waveTest.chollaLaunchParams.append(" By=0");
-    waveTest.chollaLaunchParams.append(" Bz=0");
-    waveTest.chollaLaunchParams.append(" A='1e-6'");
-    waveTest.chollaLaunchParams.append(" gamma=" + to_string_exact<double>(gamma));
-    waveTest.chollaLaunchParams.append(" rEigenVec_rho=" + to_string_exact<double>(rEigenVec_rho));
-    waveTest.chollaLaunchParams.append(" rEigenVec_MomentumX=" + to_string_exact<double>(rEigenVec_MomentumX));
-    waveTest.chollaLaunchParams.append(" rEigenVec_MomentumY=" + to_string_exact<double>(rEigenVec_MomentumY));
-    waveTest.chollaLaunchParams.append(" rEigenVec_MomentumZ=" + to_string_exact<double>(rEigenVec_MomentumZ));
-    waveTest.chollaLaunchParams.append(" rEigenVec_E=" + to_string_exact<double>(rEigenVec_E));
-    waveTest.chollaLaunchParams.append(" rEigenVec_Bx=0");
-    waveTest.chollaLaunchParams.append(" rEigenVec_By=0");
-    waveTest.chollaLaunchParams.append(" rEigenVec_Bz=0");
+
+    // why are we casting grid shape to double-precision? Shouldn't these always be integers?
+    waveTest.chollaLaunchParams.param("nx", static_cast<double>(2 * N));
+    waveTest.chollaLaunchParams.param("ny", static_cast<double>(N));
+    waveTest.chollaLaunchParams.param("nz", static_cast<double>(N));
+    // record everything else
+    waveTest.chollaLaunchParams.param("tout", tOut);
+    waveTest.chollaLaunchParams.param("outstep", tOut);
+    waveTest.chollaLaunchParams.param("init", "Linear_Wave");
+    waveTest.chollaLaunchParams.param("xmin", 0.0);
+    waveTest.chollaLaunchParams.param("ymin", 0.0);
+    waveTest.chollaLaunchParams.param("zmin", 0.0);
+    waveTest.chollaLaunchParams.param("xlen", 2 * domain);
+    waveTest.chollaLaunchParams.param("ylen", domain);
+    waveTest.chollaLaunchParams.param("zlen", domain);
+    waveTest.chollaLaunchParams.param("xl_bcnd", 1);
+    waveTest.chollaLaunchParams.param("xu_bcnd", 1);
+    waveTest.chollaLaunchParams.param("yl_bcnd", 1);
+    waveTest.chollaLaunchParams.param("yu_bcnd", 1);
+    waveTest.chollaLaunchParams.param("zl_bcnd", 1);
+    waveTest.chollaLaunchParams.param("zu_bcnd", 1);
+    waveTest.chollaLaunchParams.param("rho", 1.0);
+    waveTest.chollaLaunchParams.param("vx", vx);
+    waveTest.chollaLaunchParams.param("vy", 0.0);
+    waveTest.chollaLaunchParams.param("vz", 0.0);
+    waveTest.chollaLaunchParams.param("P", 1 / gamma);
+    waveTest.chollaLaunchParams.param("Bx", 0.0);
+    waveTest.chollaLaunchParams.param("By", 0.0);
+    waveTest.chollaLaunchParams.param("Bz", 0.0);
+    waveTest.chollaLaunchParams.param("A", 1e-6);
+    waveTest.chollaLaunchParams.param("gamma", gamma);
+    waveTest.chollaLaunchParams.param("rEigenVec_rho", rEigenVec_rho);
+    waveTest.chollaLaunchParams.param("rEigenVec_MomentumX", rEigenVec_MomentumX);
+    waveTest.chollaLaunchParams.param("rEigenVec_MomentumY", rEigenVec_MomentumY);
+    waveTest.chollaLaunchParams.param("rEigenVec_MomentumZ", rEigenVec_MomentumZ);
+    waveTest.chollaLaunchParams.param("rEigenVec_E", rEigenVec_E);
+    waveTest.chollaLaunchParams.param("rEigenVec_Bx", 0.0);
+    waveTest.chollaLaunchParams.param("rEigenVec_By", 0.0);
+    waveTest.chollaLaunchParams.param("rEigenVec_Bz", 0.0);
   }
 };
 
