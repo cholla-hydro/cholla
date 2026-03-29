@@ -54,6 +54,7 @@ class ParamArgListBuilder
    *  A reference to `*this` is returned to facillitate method chaining
    */
   ParamArgListBuilder &param(std::string_view name, int val) { return update_(name, std::to_string(val)); }
+  ParamArgListBuilder &param(std::string_view name, size_t val) { return update_(name, std::to_string(val)); }
   ParamArgListBuilder &param(std::string_view name, float val) { return update_(name, to_string_exact(val)); }
   ParamArgListBuilder &param(std::string_view name, double val) { return update_(name, to_string_exact(val)); }
   ParamArgListBuilder &param(std::string_view name, std::string_view val)
