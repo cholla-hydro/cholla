@@ -126,6 +126,10 @@ par_separator = "."
 _GITHUB_BASE = 'https://github.com/cholla-hydro/cholla'
 extlinks = {
     'repository-file': (f'{_GITHUB_BASE}/tree/dev/' + '%s', '%s'),
+    # repository-dir indeed looks the same as repository file, but it makes
+    # sense to differentiate (just in case we ever want to do more
+    # sophisticated formatting or move away from github)
+    'repository-dir': (f'{_GITHUB_BASE}/tree/dev/' + '%s', '%s'),
     'gh-issue' : (_GITHUB_BASE + '/issues/%s', 'gh-issue#%s'),
     'gh-pr' : (_GITHUB_BASE + '/pull/%s', 'gh-pr#%s')
 }
