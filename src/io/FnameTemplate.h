@@ -60,7 +60,7 @@ class FnameTemplate
     } else {
       CHOLLA_ERROR("legacy_flat_outdir parameter must be 1 or 0.");
     }
-    return FnameTemplate(not legacy_flat_outdir, pmap.value_or("outdir", ""));
+    return {not legacy_flat_outdir, pmap.value_or("outdir", "")};
   }
 
   /*! Specifies whether separate cycles are written to separate directories */
