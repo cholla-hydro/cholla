@@ -18,6 +18,8 @@
 // External Libraries and Headers
 #include <H5Cpp.h>
 
+#include "../io/io.h"  // to_string_exact
+
 /*!
  * \brief This namespace defines \ref SystemTestRunner (and all relevant machinery).
  */
@@ -30,9 +32,36 @@ class ParamArgListBuilder
   /// The string that is built up
   std::string s_;
 
+  /*! called by @ref param to update @ref s_ after the value is stringified */
+  ParamArgListBuilder &update_(std::string_view name, std::string_view val)
+  {
+    s_.reserve(s_.size() + 2 + name.size() + val.size());
+    s_ += ' ';
+    s_ += name;
+    s_ += '=';
+    s_ += val;
+    return *this;
+  }
+
  public:
   /*! Return the argument list that has been built up */
   const std::string &getCombinedArgList() const { return s_; }
+
+  // we may need to add more overloads over time
+  ///@{
+  /*! Add a parameter
+   *
+   *  A reference to `*this` is returned to facillitate method chaining
+   */
+  ParamArgListBuilder &param(std::string_view name, int val) { return update_(name, std::to_string(val)); }
+  ParamArgListBuilder &param(std::string_view name, float val) { return update_(name, to_string_exact(val)); }
+  ParamArgListBuilder &param(std::string_view name, double val) { return update_(name, to_string_exact(val)); }
+  ParamArgListBuilder &param(std::string_view name, std::string_view val)
+  {
+    // for now, this is simple. This will get more complex if we require strings to be quoted
+    return update_(name, val);
+  }
+  ///@}
 
   /*! Append the specified string-segment to the argument list */
   void append(std::string_view segment) { s_.append(segment); }
