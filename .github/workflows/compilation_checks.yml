@@ -62,7 +62,7 @@ jobs:
       - name: Cholla setup
         run: |
           make clobber
-          source builds/run_tests.sh
+          source config/run_tests.sh
           setupTests -c gcc
           echo "CHOLLA_ROOT           = ${CHOLLA_ROOT}"
           echo "CHOLLA_LAUNCH_COMMAND = ${CHOLLA_LAUNCH_COMMAND}"
@@ -72,9 +72,9 @@ jobs:
           echo "CHOLLA_ENVSET=${CHOLLA_ENVSET}"                 >> $GITHUB_ENV
       - name: Build Cholla
         run: |
-          source builds/run_tests.sh
+          source config/run_tests.sh
           buildCholla OPTIMIZE
       - name: Build Tests
         run: |
-          source builds/run_tests.sh
+          source config/run_tests.sh
           buildChollaTests

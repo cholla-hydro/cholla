@@ -1,10 +1,10 @@
 SHELL = /usr/bin/env bash
 #-- Set default include makefile
-MACHINE ?= $(shell builds/machine.sh)
+MACHINE ?= $(shell config/machine.sh)
 TYPE    ?= hydro
 
-include builds/make.host.$(MACHINE)
-include builds/make.type.$(TYPE)
+include config/make.host.$(MACHINE)
+include config/make.type.$(TYPE)
 
 # CUDA_ARCH defaults to sm_70 if not set in make.host
 CUDA_ARCH ?= sm_70
@@ -249,6 +249,6 @@ clobber: clean
 	rm -rf bin/cholla.*tests*.xml
 
 prereq-build:
-	builds/prereq.sh build $(MACHINE)
+	config/prereq.sh build $(MACHINE)
 prereq-run:
-	builds/prereq.sh run $(MACHINE)
+	config/prereq.sh run $(MACHINE)
