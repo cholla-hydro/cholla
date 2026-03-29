@@ -11,6 +11,7 @@
 // STL includes
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -18,11 +19,25 @@
 #include <H5Cpp.h>
 
 /*!
- * \brief This namespace contains one class, SystemTestRunner, whose
- * purpose is to (as you might expect) run system tests.
+ * \brief This namespace defines \ref SystemTestRunner (and all relevant machinery).
  */
 namespace system_test
 {
+
+/*! Build up a string that builds up the parameter specified as command line args */
+class ParamArgListBuilder
+{
+  /// The string that is built up
+  std::string s_;
+
+ public:
+  /*! Return the argument list that has been built up */
+  const std::string &getCombinedArgList() const { return s_; }
+
+  /*! Append the specified string-segment to the argument list */
+  void append(std::string_view segment) { s_.append(segment); }
+};
+
 /*!
  * \brief Runs a system test using the full test name to determine all
  * paths.
@@ -64,7 +79,7 @@ class system_test::SystemTestRunner
    * Cholla's standard launch paramters work except `outdir` as that is
    * reserved for usage in the system_test::SystemTestRunner.runTest() method
    */
-  std::string chollaLaunchParams;
+  system_test::ParamArgListBuilder chollaLaunchParams;
 
   /*!
    * \brief Run the system test that has been set up

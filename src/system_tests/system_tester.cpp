@@ -359,8 +359,9 @@ void system_test::SystemTestRunner::launchCholla()
   // Launch Cholla. Note that this dumps all console output to the console
   // log file as requested by the user.
   std::string const chollaRunCommand = globalMpiLauncher.getString() + " " + std::to_string(numMpiRanks) + " " +
-                                       _chollaPath + " " + _chollaSettingsPath + " " + chollaLaunchParams + " " +
-                                       "outdir=" + _outputDirectory + "/" + " >> " + _consoleOutputPath + " 2>&1 ";
+                                       _chollaPath + " " + _chollaSettingsPath + " " +
+                                       chollaLaunchParams.getCombinedArgList() + " " + "outdir=" + _outputDirectory +
+                                       "/" + " >> " + _consoleOutputPath + " 2>&1 ";
   auto returnEcho   = system(("echo Launch Command: " + chollaRunCommand + " >> " + _consoleOutputPath).c_str());
   auto returnLaunch = system((chollaRunCommand).c_str());
   EXPECT_EQ(returnEcho, 0) << "Warning: Echoing the launch command to the console output file "
