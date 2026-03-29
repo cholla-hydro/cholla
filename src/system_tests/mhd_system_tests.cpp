@@ -79,9 +79,9 @@ class tMHDSYSTEMLinearWavesParameterizedAngle : public ::testing::TestWithParam<
     }
 
     // Settings
-    waveTest.chollaLaunchParams.append(" nx=" + to_string_exact<int>(nx));
-    waveTest.chollaLaunchParams.append(" ny=" + to_string_exact<int>(ny));
-    waveTest.chollaLaunchParams.append(" nz=" + to_string_exact<int>(nz));
+    waveTest.chollaLaunchParams.param("nx", nx);
+    waveTest.chollaLaunchParams.param("ny", ny);
+    waveTest.chollaLaunchParams.param("nz", nz);
     waveTest.chollaLaunchParams.append(" tout=" + to_string_exact<double>(tOut));
     waveTest.chollaLaunchParams.append(" outstep=" + to_string_exact<double>(tOut));
     waveTest.chollaLaunchParams.append(" init=Linear_Wave");
@@ -91,12 +91,12 @@ class tMHDSYSTEMLinearWavesParameterizedAngle : public ::testing::TestWithParam<
     waveTest.chollaLaunchParams.append(" xlen=" + to_string_exact<double>(x_len));
     waveTest.chollaLaunchParams.append(" ylen=" + to_string_exact<double>(y_len));
     waveTest.chollaLaunchParams.append(" zlen=" + to_string_exact<double>(z_len));
-    waveTest.chollaLaunchParams.append(" xl_bcnd=1");
-    waveTest.chollaLaunchParams.append(" xu_bcnd=1");
-    waveTest.chollaLaunchParams.append(" yl_bcnd=1");
-    waveTest.chollaLaunchParams.append(" yu_bcnd=1");
-    waveTest.chollaLaunchParams.append(" zl_bcnd=1");
-    waveTest.chollaLaunchParams.append(" zu_bcnd=1");
+    waveTest.chollaLaunchParams.param("xl_bcnd", 1);
+    waveTest.chollaLaunchParams.param("xu_bcnd", 1);
+    waveTest.chollaLaunchParams.param("yl_bcnd", 1);
+    waveTest.chollaLaunchParams.param("yu_bcnd", 1);
+    waveTest.chollaLaunchParams.param("zl_bcnd", 1);
+    waveTest.chollaLaunchParams.param("zu_bcnd", 1);
     waveTest.chollaLaunchParams.append(" rho=1.0");
     waveTest.chollaLaunchParams.append(" vx=" + to_string_exact<double>(vx_rot));
     waveTest.chollaLaunchParams.append(" vy=" + to_string_exact<double>(vy_rot));
@@ -572,9 +572,9 @@ class tMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithParam<in
     double const tOut   = 2 * domain / waveSpeed;
 
     // Settings
-    waveTest.chollaLaunchParams.append(" nx=" + to_string_exact<int>(2 * N));
-    waveTest.chollaLaunchParams.append(" ny=" + to_string_exact<int>(N));
-    waveTest.chollaLaunchParams.append(" nz=" + to_string_exact<int>(N));
+    waveTest.chollaLaunchParams.param("nx", 2 * N);
+    waveTest.chollaLaunchParams.param("ny", N);
+    waveTest.chollaLaunchParams.param("nz", N);
     waveTest.chollaLaunchParams.append(" tout=" + to_string_exact<double>(tOut));
     waveTest.chollaLaunchParams.append(" outstep=" + to_string_exact<double>(tOut));
     waveTest.chollaLaunchParams.append(" init=Linear_Wave");
@@ -584,20 +584,20 @@ class tMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithParam<in
     waveTest.chollaLaunchParams.append(" xlen=" + to_string_exact<double>(2 * domain));
     waveTest.chollaLaunchParams.append(" ylen=" + to_string_exact<double>(domain));
     waveTest.chollaLaunchParams.append(" zlen=" + to_string_exact<double>(domain));
-    waveTest.chollaLaunchParams.append(" xl_bcnd=1");
-    waveTest.chollaLaunchParams.append(" xu_bcnd=1");
-    waveTest.chollaLaunchParams.append(" yl_bcnd=1");
-    waveTest.chollaLaunchParams.append(" yu_bcnd=1");
-    waveTest.chollaLaunchParams.append(" zl_bcnd=1");
-    waveTest.chollaLaunchParams.append(" zu_bcnd=1");
+    waveTest.chollaLaunchParams.param("xl_bcnd", 1);
+    waveTest.chollaLaunchParams.param("xu_bcnd", 1);
+    waveTest.chollaLaunchParams.param("yl_bcnd", 1);
+    waveTest.chollaLaunchParams.param("yu_bcnd", 1);
+    waveTest.chollaLaunchParams.param("zl_bcnd", 1);
+    waveTest.chollaLaunchParams.param("zu_bcnd", 1);
     waveTest.chollaLaunchParams.append(" rho=1.0");
-    waveTest.chollaLaunchParams.append(" vx=0");
-    waveTest.chollaLaunchParams.append(" vy=0");
-    waveTest.chollaLaunchParams.append(" vz=0");
+    waveTest.chollaLaunchParams.param("vx", 0);
+    waveTest.chollaLaunchParams.param("vy", 0);
+    waveTest.chollaLaunchParams.param("vz", 0);
     waveTest.chollaLaunchParams.append(" P=" + to_string_exact<double>(1 / gamma));
-    waveTest.chollaLaunchParams.append(" Bx=1");
+    waveTest.chollaLaunchParams.param("Bx", 1);
     waveTest.chollaLaunchParams.append(" By=1.5");
-    waveTest.chollaLaunchParams.append(" Bz=0");
+    waveTest.chollaLaunchParams.param("Bz", 0);
     waveTest.chollaLaunchParams.append(" A='1e-6'");
     waveTest.chollaLaunchParams.append(" gamma=" + to_string_exact<double>(gamma));
     waveTest.chollaLaunchParams.append(" rEigenVec_rho=" + to_string_exact<double>(rEigenVec_rho));
@@ -822,9 +822,9 @@ class tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization : public 
     int const nx = 2 * N, ny = N, nz = N;
 
     // Settings
-    cpawTest.chollaLaunchParams.append(" nx=" + to_string_exact<int>(nx));
-    cpawTest.chollaLaunchParams.append(" ny=" + to_string_exact<int>(ny));
-    cpawTest.chollaLaunchParams.append(" nz=" + to_string_exact<int>(nz));
+    cpawTest.chollaLaunchParams.param("nx", nx);
+    cpawTest.chollaLaunchParams.param("ny", ny);
+    cpawTest.chollaLaunchParams.param("nz", nz);
     cpawTest.chollaLaunchParams.append(" tout=" + to_string_exact<double>(tOut));
     cpawTest.chollaLaunchParams.append(" outstep=" + to_string_exact<double>(tOut));
     cpawTest.chollaLaunchParams.append(" init=Circularly_Polarized_Alfven_Wave");
@@ -834,12 +834,12 @@ class tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization : public 
     cpawTest.chollaLaunchParams.append(" xlen=" + to_string_exact<double>(x_len));
     cpawTest.chollaLaunchParams.append(" ylen=" + to_string_exact<double>(y_len));
     cpawTest.chollaLaunchParams.append(" zlen=" + to_string_exact<double>(z_len));
-    cpawTest.chollaLaunchParams.append(" xl_bcnd=1");
-    cpawTest.chollaLaunchParams.append(" xu_bcnd=1");
-    cpawTest.chollaLaunchParams.append(" yl_bcnd=1");
-    cpawTest.chollaLaunchParams.append(" yu_bcnd=1");
-    cpawTest.chollaLaunchParams.append(" zl_bcnd=1");
-    cpawTest.chollaLaunchParams.append(" zu_bcnd=1");
+    cpawTest.chollaLaunchParams.param("xl_bcnd", 1);
+    cpawTest.chollaLaunchParams.param("xu_bcnd", 1);
+    cpawTest.chollaLaunchParams.param("yl_bcnd", 1);
+    cpawTest.chollaLaunchParams.param("yu_bcnd", 1);
+    cpawTest.chollaLaunchParams.param("zl_bcnd", 1);
+    cpawTest.chollaLaunchParams.param("zu_bcnd", 1);
     cpawTest.chollaLaunchParams.append(" polarization=" + to_string_exact<double>(polarization));
     cpawTest.chollaLaunchParams.append(" vx=" + to_string_exact<double>(vx));
     cpawTest.chollaLaunchParams.append(" gamma=" + to_string_exact<double>(gamma));
