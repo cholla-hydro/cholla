@@ -134,7 +134,7 @@ extlinks = {
     'gh-pr' : (_GITHUB_BASE + '/pull/%s', 'gh-pr#%s')
 }
 # As an example, if you write
-#   {repository-file}`builds/make.type.hydro`
+#   {repository-file}`config/make.type.hydro`
 # it should be converted to a link (displaying the specified path) that links
 # to the GitHub Page for make.type.hydro
 
