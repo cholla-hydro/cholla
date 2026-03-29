@@ -183,12 +183,9 @@ class tHYDROtMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithPa
     double const tOut   = 2 * domain / waveSpeed;
 
     // Settings
-
-    // why are we casting grid shape to double-precision? Shouldn't these always be integers?
-    waveTest.chollaLaunchParams.param("nx", static_cast<double>(2 * N));
-    waveTest.chollaLaunchParams.param("ny", static_cast<double>(N));
-    waveTest.chollaLaunchParams.param("nz", static_cast<double>(N));
-    // record everything else
+    waveTest.chollaLaunchParams.param("nx", 2 * N);
+    waveTest.chollaLaunchParams.param("ny", N);
+    waveTest.chollaLaunchParams.param("nz", N);
     waveTest.chollaLaunchParams.param("tout", tOut);
     waveTest.chollaLaunchParams.param("outstep", tOut);
     waveTest.chollaLaunchParams.param("init", "Linear_Wave");
