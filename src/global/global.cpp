@@ -129,8 +129,10 @@ static void Load_String_Param_Into_Char_Buffer(ParameterMap &pmap, const std::st
   strncpy(dest_buffer, tmp.c_str(), MAXLEN);
 }
 
-void Parse_Params(ParameterMap &pmap, struct Parameters *parms)
+Parameters::Parameters(ParameterMap &pmap)
 {
+  Parameters *parms = this;  // <- this is a minor hack to avoid making an enormous diff
+
   // load the domain dimensions (abort with an error if one of these is missing)
   parms->nx = pmap.value<int>("nx");
   parms->ny = pmap.value<int>("ny");
