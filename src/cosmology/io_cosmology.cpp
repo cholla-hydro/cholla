@@ -95,6 +95,8 @@ void Cosmology::Load_DynamicalDE_EquationOfState(struct Parameters *P)
 	exit(1);
   }
 
+  chprintf("Loading wDE info... \n");
+
   char wDE_filename[MAXLEN];
   strcpy(wDE_filename, P->wDE_file);
 
