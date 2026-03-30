@@ -181,6 +181,39 @@ extern int root;   /*rank of root process*/
  */
 void Init_Global_Parallel_Vars_No_MPI();
 
+/*! A collection of assorted parameter values.
+ *
+ *  The existence of this type is largely a historical artifact. The plan is to
+ *  gradually remove data members from this type.
+ *
+ *  \note
+ *  Before removing a parameter from this type, check if that parameter is parsed
+ *  within \ref Old_Style_Parse_Param. PRs 489, 493, 494, and 495 seek to remove all
+ *  of the parameters from that function. Thus, you may want to merge in the work from
+ *  the branch where the parameter parsing logic has been moved **BEFORE** you start to
+ *  relocate logic. (Otherwise, you are going to encounter some merge conflicts)
+ *
+ *  Guidelines for Removing Parameters
+ *  ----------------------------------
+ *  In the vast majority of cases, a parameter value is temporarily stored here and
+ *  then they are only referenced one subsequent time (while the simulation is being
+ *  initialized).
+ *   - for example, a bunch of parameters are only ever read while initializing
+ *     \ref Cosmology, \ref Gravity, \ref Header, \ref Particles, etc.
+ *   - some parameters, are only read once while setting up initial conditions.
+ *   - in all these cases, we can just read the data directly from \ref ParameterMap
+ *     rather than temporarily storing the values here.
+ *
+ *  When relocating other parameters, be mindful that a single execution of Cholla
+ *  should **NEVER** read a parameter's value from \ref ParameterMap more than once
+ *  - in this scenario, it would be extremely easy for different parts of the code
+ *    to accidentally start using different default values, which would introduce
+ *    lots of hard to debug issues
+ *  - while there are some potential workarounds to this, I think they might
+ *    produce some undesired long-term behavior (plus, they are imperfect)
+ *  - if this situation arises, it's probably a sign that you should make a new struct
+ *    (maybe a "Model" type?) where a value can be persistently stored
+ */
 struct Parameters {
   int nx;
   int ny;
