@@ -151,86 +151,6 @@ bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameter
     parms->output_always = tmp;
   } else if (strcmp(name, "n_steps_limit") == 0) {
     parms->n_steps_limit = atof(value);
-  } else if (strcmp(name, "rho") == 0) {
-    parms->rho = atof(value);
-  } else if (strcmp(name, "vx") == 0) {
-    parms->vx = atof(value);
-  } else if (strcmp(name, "vy") == 0) {
-    parms->vy = atof(value);
-  } else if (strcmp(name, "vz") == 0) {
-    parms->vz = atof(value);
-  } else if (strcmp(name, "P") == 0) {
-    parms->P = atof(value);
-  } else if (strcmp(name, "Bx") == 0) {
-    parms->Bx = atof(value);
-  } else if (strcmp(name, "By") == 0) {
-    parms->By = atof(value);
-  } else if (strcmp(name, "Bz") == 0) {
-    parms->Bz = atof(value);
-  } else if (strcmp(name, "A") == 0) {
-    parms->A = atof(value);
-  } else if (strcmp(name, "rho_l") == 0) {
-    parms->rho_l = atof(value);
-  } else if (strcmp(name, "vx_l") == 0) {
-    parms->vx_l = atof(value);
-  } else if (strcmp(name, "vy_l") == 0) {
-    parms->vy_l = atof(value);
-  } else if (strcmp(name, "vz_l") == 0) {
-    parms->vz_l = atof(value);
-  } else if (strcmp(name, "P_l") == 0) {
-    parms->P_l = atof(value);
-  } else if (strcmp(name, "Bx_l") == 0) {
-    parms->Bx_l = atof(value);
-  } else if (strcmp(name, "By_l") == 0) {
-    parms->By_l = atof(value);
-  } else if (strcmp(name, "Bz_l") == 0) {
-    parms->Bz_l = atof(value);
-  } else if (strcmp(name, "rho_r") == 0) {
-    parms->rho_r = atof(value);
-  } else if (strcmp(name, "vx_r") == 0) {
-    parms->vx_r = atof(value);
-  } else if (strcmp(name, "vy_r") == 0) {
-    parms->vy_r = atof(value);
-  } else if (strcmp(name, "vz_r") == 0) {
-    parms->vz_r = atof(value);
-  } else if (strcmp(name, "P_r") == 0) {
-    parms->P_r = atof(value);
-  } else if (strcmp(name, "Bx_r") == 0) {
-    parms->Bx_r = atof(value);
-  } else if (strcmp(name, "By_r") == 0) {
-    parms->By_r = atof(value);
-  } else if (strcmp(name, "Bz_r") == 0) {
-    parms->Bz_r = atof(value);
-  } else if (strcmp(name, "diaph") == 0) {
-    parms->diaph = atof(value);
-  } else if (strcmp(name, "rEigenVec_rho") == 0) {
-    parms->rEigenVec_rho = atof(value);
-  } else if (strcmp(name, "rEigenVec_MomentumX") == 0) {
-    parms->rEigenVec_MomentumX = atof(value);
-  } else if (strcmp(name, "rEigenVec_MomentumY") == 0) {
-    parms->rEigenVec_MomentumY = atof(value);
-  } else if (strcmp(name, "rEigenVec_MomentumZ") == 0) {
-    parms->rEigenVec_MomentumZ = atof(value);
-  } else if (strcmp(name, "rEigenVec_E") == 0) {
-    parms->rEigenVec_E = atof(value);
-  } else if (strcmp(name, "rEigenVec_Bx") == 0) {
-    parms->rEigenVec_Bx = atof(value);
-  } else if (strcmp(name, "rEigenVec_By") == 0) {
-    parms->rEigenVec_By = atof(value);
-  } else if (strcmp(name, "rEigenVec_Bz") == 0) {
-    parms->rEigenVec_Bz = atof(value);
-  } else if (strcmp(name, "pitch") == 0) {
-    parms->pitch = atof(value);
-  } else if (strcmp(name, "yaw") == 0) {
-    parms->yaw = atof(value);
-  } else if (strcmp(name, "polarization") == 0) {
-    parms->polarization = atof(value);
-  } else if (strcmp(name, "radius") == 0) {
-    parms->radius = atof(value);
-  } else if (strcmp(name, "P_blast") == 0) {
-    parms->P_blast = atof(value);
-  } else if (strcmp(name, "wave_length") == 0) {
-    parms->wave_length = atof(value);
 #ifdef PARTICLES
   } else if (strcmp(name, "prng_seed") == 0) {
     parms->prng_seed = atoi(value);
@@ -343,6 +263,69 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   Load_String_Param_Into_Char_Buffer(pmap, "init", parms->init, "");
   Load_String_Param_Into_Char_Buffer(pmap, "custom_bcnd", parms->custom_bcnd, "");
   Load_String_Param_Into_Char_Buffer(pmap, "indir", parms->indir, "");
+
+  // load in values related to initial conditions
+  //
+  // In the future, we **REALLY**, want to only load the values when/where we use them.
+  // - This usually (maybe always?) means, within the initial-condition method of Grid3D
+  // - The benefit of doing this: we will be able to warn if a parameter is specified
+  //   but not used (this is REALLY easy to accidentally do)
+  //
+  // We need to keep 2 things in mind while doing that:
+  // 1. We want to be EXTREMELY sure that a single execution of Cholla never reads a
+  //    parameter more than once
+  //    - in this scenario, it would be extremely easy for different parts of the code
+  //      to accidentally start using different default values, which would introduce
+  //      lots of hard to debug issues
+  //    - while there are some potential workarounds to this, I think they might
+  //      produce some undesired long-term behavior (plus, they are imperfect)
+  // 2. We may want to consider renaming the parameters. For example, maybe
+  //    Grid3D::Sound_Wave should read in "IC.Sound_Wave.rho" instead of just "rho".
+  //    This is useful in 2 regards:
+  //    a) this helps us avoid situations where we accidentally read in a parameter
+  //       more than once
+  //    b) we can reduce the number of parameters with extremely generic names in the
+  //       parameter file
+  parms->rho                 = pmap.value_or("rho", 0.0);
+  parms->vx                  = pmap.value_or("vx", 0.0);
+  parms->vy                  = pmap.value_or("vy", 0.0);
+  parms->vz                  = pmap.value_or("vz", 0.0);
+  parms->P                   = pmap.value_or("P", 0.0);
+  parms->Bx                  = pmap.value_or("Bx", 0.0);
+  parms->By                  = pmap.value_or("By", 0.0);
+  parms->Bz                  = pmap.value_or("Bz", 0.0);
+  parms->A                   = pmap.value_or("A", 0.0);
+  parms->rho_l               = pmap.value_or("rho_l", 0.0);
+  parms->vx_l                = pmap.value_or("vx_l", 0.0);
+  parms->vy_l                = pmap.value_or("vy_l", 0.0);
+  parms->vz_l                = pmap.value_or("vz_l", 0.0);
+  parms->P_l                 = pmap.value_or("P_l", 0.0);
+  parms->Bx_l                = pmap.value_or("Bx_l", 0.0);
+  parms->By_l                = pmap.value_or("By_l", 0.0);
+  parms->Bz_l                = pmap.value_or("Bz_l", 0.0);
+  parms->rho_r               = pmap.value_or("rho_r", 0.0);
+  parms->vx_r                = pmap.value_or("vx_r", 0.0);
+  parms->vy_r                = pmap.value_or("vy_r", 0.0);
+  parms->vz_r                = pmap.value_or("vz_r", 0.0);
+  parms->P_r                 = pmap.value_or("P_r", 0.0);
+  parms->Bx_r                = pmap.value_or("Bx_r", 0.0);
+  parms->By_r                = pmap.value_or("By_r", 0.0);
+  parms->Bz_r                = pmap.value_or("Bz_r", 0.0);
+  parms->diaph               = pmap.value_or("diaph", 0.0);
+  parms->rEigenVec_rho       = pmap.value_or("rEigenVec_rho", 0.0);
+  parms->rEigenVec_MomentumX = pmap.value_or("rEigenVec_MomentumX", 0.0);
+  parms->rEigenVec_MomentumY = pmap.value_or("rEigenVec_MomentumY", 0.0);
+  parms->rEigenVec_MomentumZ = pmap.value_or("rEigenVec_MomentumZ", 0.0);
+  parms->rEigenVec_E         = pmap.value_or("rEigenVec_E", 0.0);
+  parms->rEigenVec_Bx        = pmap.value_or("rEigenVec_Bx", 0.0);
+  parms->rEigenVec_By        = pmap.value_or("rEigenVec_By", 0.0);
+  parms->rEigenVec_Bz        = pmap.value_or("rEigenVec_Bz", 0.0);
+  parms->pitch               = pmap.value_or("pitch", 0.0);
+  parms->yaw                 = pmap.value_or("yaw", 0.0);
+  parms->polarization        = pmap.value_or("polarization", 0.0);
+  parms->radius              = pmap.value_or("radius", 0.0);
+  parms->P_blast             = pmap.value_or("P_blast", 0.0);
+  parms->wave_length         = pmap.value_or("wave_length", 1.0);
 
   // in the future, the feedback module will read in its own parameters (the global Parameter struct won't
   // know anything about it)
