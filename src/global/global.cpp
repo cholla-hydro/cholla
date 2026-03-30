@@ -108,19 +108,6 @@ const std::set<std::string> optionalParams = {"flag_delta",   "ddelta_dt",  "n_d
                                               "Omega_L",      "Omega_R",    "Omega_K", "w0",  "wa", "Init_redshift",
                                               "End_redshift", "tile_length"};  // NOLINT
 
-void Init_Param_Struct_Members(ParameterMap &param, struct Parameters *parms);
-
-void Parse_Params(ParameterMap &pmap, struct Parameters *parms)
-{
-#ifdef COSMOLOGY
-  // Initialize file name as an empty string
-  parms->scale_outputs_file[0] = '\0';
-#endif
-
-  // the plan is to eventually, use the new parsing functions from Parse_Param like the following
-  Init_Param_Struct_Members(pmap, parms);
-}
-
 void Warn_Unused_Params(ParameterMap &pmap) { pmap.warn_unused_parameters(optionalParams); }
 
 /*! \brief this would be entirely unnecessary if the Parameters struct directly stored a std::string
@@ -142,11 +129,7 @@ static void Load_String_Param_Into_Char_Buffer(ParameterMap &pmap, const std::st
   strncpy(dest_buffer, tmp.c_str(), MAXLEN);
 }
 
-/*! \brief Parses and sets a bunch of members of parms from pmap.
- *
- *  The goal is eventually get rid of the old-style function
- */
-void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
+void Parse_Params(ParameterMap &pmap, struct Parameters *parms)
 {
   // load the domain dimensions (abort with an error if one of these is missing)
   parms->nx = pmap.value<int>("nx");
@@ -328,6 +311,7 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   // were specified (& there were no default values). Now cosmological simulations will loudly fail if a user forgets
   // parameters like H0, Omega_M, Omega_L, Omega_b, etc.
 #ifdef COSMOLOGY
+  parms->scale_outputs_file[0] = '\0';  // <- unclear how necessary this is
   if (not pmap.has_param("End_redshift") and not pmap.has_param("scale_outputs_file")) {
     CHOLLA_ERROR("either the scale_outputs_file or End_redshift parameter must be provided in Cosmology sims");
   } else {
