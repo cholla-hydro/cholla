@@ -35,12 +35,9 @@ Real Cosmology::Get_wDE_from_a(Real a)
   Real z = (1. / a) - 1.;
 
   if (a == 1.){
-    chprintf("for z=0 we have wDE(z=0) = %f \n", dynamicalDE_table_w[0]);
     return dynamicalDE_table_w[0];
   }
   if (z > dynamicalDE_table_z[n_wDE_samples - 1]){
-    chprintf("z=%.6f is greater than z_max=%.6f for our dynamicalDE table, so we have wDE(z=%.6f)=wDE(z=zmax)=%.6f \n", 
-				z, dynamicalDE_table_z[n_wDE_samples-1], z, dynamicalDE_table_w[n_wDE_samples-1]);
     return dynamicalDE_table_w[n_wDE_samples-1];
   }
 
@@ -58,10 +55,6 @@ Real Cosmology::Get_wDE_from_a(Real a)
   lin_slope = (wDE_low - wDE_high) / (z_low - z_high);
   wDE_interp = lin_slope * (z - z_low) + wDE_low;
 
-  chprintf("current z=%f bounded by zlow %f and zhigh %f \n", z, z_low, z_high);
-  chprintf("    where wDE(zlow) = %f and wDE(zhigh) = %f \n", wDE_low, wDE_high);
-  chprintf("    we find wDE(z) = %f \n", wDE_interp);
-
   return wDE_interp;
 }
 
@@ -74,12 +67,9 @@ Real Cosmology::Get_DynamicalDE_Density_from_a(Real a)
   Real z = (1. / a) - 1.;
 
   if (a == 1.){
-    chprintf("for z=0 we have rhoDE(z)/rhoDE(z=0) = %f \n", dynamicalDE_table_density[0]);
     return dynamicalDE_table_density[0];
   }
   if (z > dynamicalDE_table_z[n_wDE_samples - 1]){
-    chprintf("z=%.6f is greater than z_max=%.6f for our dynamicalDE table, so we have rhoDE(z=%.6f)/rho(z=0)=rhoDE(z=zmax)/rhoDE(z=0)=%.6f \n",
-                z, dynamicalDE_table_z[n_wDE_samples-1], z, dynamicalDE_table_density[n_wDE_samples-1]);
     return dynamicalDE_table_density[n_wDE_samples-1];
   }
 
@@ -98,10 +88,6 @@ Real Cosmology::Get_DynamicalDE_Density_from_a(Real a)
   
   lin_slope = (dynDE_density_low - dynDE_density_high) / (z_low - z_high);
   dynDE_density_interp = lin_slope * (z - z_low) + dynDE_density_low;
-  
-  chprintf("current z=%f bounded by zlow %f and zhigh %f \n", z, z_low, z_high);
-  chprintf("    where rhoDE(zlow)/rhoDE(z=0) = %f and rhoDE(zhigh)/rhoDE(z=0) = %f \n", dynDE_density_low, dynDE_density_high);
-  chprintf("    we find rhoDE(z)/rhoDE(z=0) = %f \n", dynDE_density_interp);
   
   return dynDE_density_interp;
 }
@@ -147,7 +133,6 @@ void Cosmology::Set_DynamicalDE_Density()
     integral_sum_arr[i] = integral;
 
     dynamicalDE_table_density[i] =  onez_3 * exp(3. * integral);
-    chprintf("\t rhoDE(z=%.8f) / rhoDE(z=0) = %.8f \n", z, dynamicalDE_table_density[i]);
   }
 }
 
@@ -160,8 +145,6 @@ Real Cosmology::dtda_cosmo(Real da, Real a)
   Real fac_de;
   
   #if DYNAMICAL_DE_TABLE
-  //fac_de = pow(a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - a));
-  //chprintf("getting DE for dt at a=%.8f z=%.8f \n", a, (1./a)-1.);
   fac_de = Get_DynamicalDE_Density_from_a(a);
   #else
   fac_de = pow(a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - a));
