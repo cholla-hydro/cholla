@@ -186,13 +186,6 @@ void Init_Global_Parallel_Vars_No_MPI();
  *  The existence of this type is largely a historical artifact. The plan is to
  *  gradually remove data members from this type.
  *
- *  \note
- *  Before removing a parameter from this type, check if that parameter is parsed
- *  within \ref Old_Style_Parse_Param. PR 495 seeks to remove all
- *  of the parameters from that function. Thus, you may want to merge in the work from
- *  the branch where the parameter parsing logic has been moved **BEFORE** you start to
- *  relocate logic. (Otherwise, you are going to encounter some merge conflicts)
- *
  *  Guidelines for Removing Parameters
  *  ----------------------------------
  *  In the vast majority of cases, a parameter value is temporarily stored here and

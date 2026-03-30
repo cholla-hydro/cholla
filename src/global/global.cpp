@@ -136,36 +136,7 @@ void Warn_Unused_Params(ParameterMap &pmap) { pmap.warn_unused_parameters(option
  *
  *  \returns true if the parameter was actually used. false otherwise.
  */
-bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameters *parms)
-{
-  /* Copy into correct entry in parameters struct */
-  if (strcmp(name, "output_always") == 0) {
-    int tmp = atoi(value);
-    // In this case the CHOLLA_ASSERT macro runs into issuse with the readability-simplify-boolean-expr clang-tidy check
-    // due to some weird macro expansion stuff. That check has been disabled here for now but in clang-tidy 18 the
-    // IgnoreMacro option should be used instead.
-    // NOLINTNEXTLINE(readability-simplify-boolean-expr)
-    CHOLLA_ASSERT((tmp == 0) or (tmp == 1), "output_always must be 1 or 0.");
-    parms->output_always = tmp;
-  } else if (strcmp(name, "n_steps_limit") == 0) {
-    parms->n_steps_limit = atof(value);
-#ifdef PARTICLES
-  } else if (strcmp(name, "prng_seed") == 0) {
-    parms->prng_seed = atoi(value);
-#endif  // PARTICLES
-  } else if (strcmp(name, "bc_potential_type") == 0) {
-    parms->bc_potential_type = atoi(value);
-#ifdef SCALAR
-  #ifdef DUST
-  } else if (strcmp(name, "grain_radius") == 0) {
-    parms->grain_radius = atoi(value);
-  #endif
-#endif
-  } else {
-    return false;
-  }
-  return true;
-}
+bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameters *parms) { return false; }
 
 /*! \brief this would be entirely unnecessary if the Parameters struct directly stored a std::string
  */
@@ -326,6 +297,29 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
 #ifdef TILED_INITIAL_CONDITIONS
   parms->tile_length = pmap.value<double>("tile_length");
 #endif  // TILED_INITIAL_CONDITIONS
+
+  // parse some assorted values (we should parse them only where we need them)
+  {
+    int tmp = pmap.value_or("output_always", 0);
+    CHOLLA_ASSERT((tmp == 0) or (tmp == 1), "output_always must be 1 or 0.");
+    parms->output_always = tmp;
+  }
+
+  parms->n_steps_limit = pmap.value_or("n_steps_limit", -1);
+
+#ifdef PARTICLES
+  parms->prng_seed = pmap.value_or("prng_seed", 0);
+#endif  // PARTICLES
+
+#ifdef GRAVITY
+  parms->bc_potential_type = pmap.value<int>("bc_potential_type");
+#endif  // GRAVITY
+
+#if defined(SCALAR) && defined(DUST)
+  // we are assuming that this is an integer for historical consistency... But it sure
+  // seems like this should be a double
+  parms->grain_radius = pmap.value<int>("grain_radius");
+#endif  // defined(SCALAR) && defined(DUST)
 
   // in the future, the feedback module will read in its own parameters (the global Parameter struct won't
   // know anything about it)
