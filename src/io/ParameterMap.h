@@ -188,20 +188,6 @@ class ParameterMap
   int warn_unused_parameters(const std::set<std::string>& ignore_params, bool abort_on_warning = false,
                              bool suppress_warning_msg = false) const;
 
-  /* This is a temporary function to help ease the transition to the new parsing approach. */
-  template <typename LegacyParseParamFn>
-  void pass_entries_to_legacy_parse_param(LegacyParseParamFn& f)
-  {
-    for (auto& kv_pair : entries_) {
-      const char* name  = kv_pair.first.c_str();
-      const char* value = (kv_pair.second).param_str.c_str();
-
-      // pass the parameter name and (unparsed) value to the legacy function. Record if used.
-      bool rslt = f(name, value);
-      if (rslt) (kv_pair.second).accessed = true;
-    }
-  }
-
   /*! Aborts with an error message if one or more of the parameters in the specified table has been used or has not
    *  been used. The precise details depend on the `expect_unused` argument.
    *

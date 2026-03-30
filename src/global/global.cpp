@@ -108,8 +108,6 @@ const std::set<std::string> optionalParams = {"flag_delta",   "ddelta_dt",  "n_d
                                               "Omega_L",      "Omega_R",    "Omega_K", "w0",  "wa", "Init_redshift",
                                               "End_redshift", "tile_length"};  // NOLINT
 
-bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameters *parms);
-
 void Init_Param_Struct_Members(ParameterMap &param, struct Parameters *parms);
 
 void Parse_Params(ParameterMap &pmap, struct Parameters *parms)
@@ -119,24 +117,11 @@ void Parse_Params(ParameterMap &pmap, struct Parameters *parms)
   parms->scale_outputs_file[0] = '\0';
 #endif
 
-  // the plan is eventually replace Old_Style_Parse_Param entirely with
-  // Init_Param_Struct_Members.
-  auto fn = [&](const char *name, const char *value) -> bool { return Old_Style_Parse_Param(name, value, parms); };
-
-  pmap.pass_entries_to_legacy_parse_param(fn);
-
   // the plan is to eventually, use the new parsing functions from Parse_Param like the following
   Init_Param_Struct_Members(pmap, parms);
 }
 
 void Warn_Unused_Params(ParameterMap &pmap) { pmap.warn_unused_parameters(optionalParams); }
-
-/*! \fn void Parse_Param(char *name,char *value, struct Parameters *parms);
- *  \brief Parses and sets a single param based on name and value.
- *
- *  \returns true if the parameter was actually used. false otherwise.
- */
-bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameters *parms) { return false; }
 
 /*! \brief this would be entirely unnecessary if the Parameters struct directly stored a std::string
  */
