@@ -364,12 +364,17 @@ struct Parameters {
 
 class ParameterMap;
 
-/*! \brief Reads the from the ParameterMap into the primary Parameters structure.
+/*! \brief Initializes \p parms using values from \p pmap
  *
- *  \note
- *  We opt to pass in an existing ParamterMap (by reference), rather than having this
- *  function return a ParameterMap, so that we can get away with simply forward-declaring
- *  ParameterMap (rather than including the full definition)
+ *  \param[in] pmap The map of all parsed parameters. Reminder: the only reason this
+ *      isn't marked ``const`` is to reflect the fact that the type internally tracks
+ *      each parameter that is accessed.
+ *  \param[out] parms The object being initialized
+ *
+ *  \todo
+ *  This should probably be converted so that it is a constructor of \ref Parameters
+ *  (or we should change the function name), but we are waiting until after PR #495
+ *  to actually do that
  */
 void Parse_Params(ParameterMap &pmap, struct Parameters *parms);
 
