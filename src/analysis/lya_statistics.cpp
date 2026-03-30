@@ -689,8 +689,8 @@ void AnalysisModule::Reduce_Lya_Mean_Flux_Global()
 {
   n_skewers_processed = n_skewers_processed_x + n_skewers_processed_y + n_skewers_processed_z;
   Flux_mean_HI        = (Flux_mean_HI_x * n_skewers_processed_x + Flux_mean_HI_y * n_skewers_processed_y +
-                  Flux_mean_HI_z * n_skewers_processed_z) /
-                 n_skewers_processed;
+                         Flux_mean_HI_z * n_skewers_processed_z) /
+                        n_skewers_processed;
   ;
   Flux_mean_HeII = (Flux_mean_HeII_x * n_skewers_processed_x + Flux_mean_HeII_y * n_skewers_processed_y +
                     Flux_mean_HeII_z * n_skewers_processed_z) /
