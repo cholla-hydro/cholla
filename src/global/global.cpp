@@ -151,18 +151,6 @@ bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameter
     parms->output_always = tmp;
   } else if (strcmp(name, "n_steps_limit") == 0) {
     parms->n_steps_limit = atof(value);
-  } else if (strcmp(name, "xl_bcnd") == 0) {
-    parms->xl_bcnd = atoi(value);
-  } else if (strcmp(name, "xu_bcnd") == 0) {
-    parms->xu_bcnd = atoi(value);
-  } else if (strcmp(name, "yl_bcnd") == 0) {
-    parms->yl_bcnd = atoi(value);
-  } else if (strcmp(name, "yu_bcnd") == 0) {
-    parms->yu_bcnd = atoi(value);
-  } else if (strcmp(name, "zl_bcnd") == 0) {
-    parms->zl_bcnd = atoi(value);
-  } else if (strcmp(name, "zu_bcnd") == 0) {
-    parms->zu_bcnd = atoi(value);
   } else if (strcmp(name, "rho") == 0) {
     parms->rho = atof(value);
   } else if (strcmp(name, "vx") == 0) {
@@ -327,6 +315,14 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
     parms->n_proc_y = 0;
     parms->n_proc_z = 0;
   }
+
+  // load boundary conditions
+  parms->xl_bcnd = pmap.value<int>("xl_bcnd");
+  parms->xu_bcnd = pmap.value<int>("xu_bcnd");
+  parms->yl_bcnd = pmap.value<int>("yl_bcnd");
+  parms->yu_bcnd = pmap.value<int>("yu_bcnd");
+  parms->zl_bcnd = pmap.value<int>("zl_bcnd");
+  parms->zu_bcnd = pmap.value<int>("zu_bcnd");
 
 #ifdef STATIC_GRAV
   parms->custom_grav = pmap.value_or("custom_grav", 0);
