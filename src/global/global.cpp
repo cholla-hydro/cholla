@@ -139,9 +139,7 @@ void Warn_Unused_Params(ParameterMap &pmap) { pmap.warn_unused_parameters(option
 bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameters *parms)
 {
   /* Copy into correct entry in parameters struct */
-  if (strcmp(name, "nfile") == 0) {
-    parms->nfile = atoi(value);
-  } else if (strcmp(name, "output_always") == 0) {
+  if (strcmp(name, "output_always") == 0) {
     int tmp = atoi(value);
     // In this case the CHOLLA_ASSERT macro runs into issuse with the readability-simplify-boolean-expr clang-tidy check
     // due to some weird macro expansion stuff. That check has been disabled here for now but in clang-tidy 18 the
@@ -155,11 +153,6 @@ bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameter
   } else if (strcmp(name, "prng_seed") == 0) {
     parms->prng_seed = atoi(value);
 #endif  // PARTICLES
-#ifdef TILED_INITIAL_CONDITIONS
-  } else if (strcmp(name, "tile_length") == 0) {
-    parms->tile_length = atof(value);
-#endif  // TILED_INITIAL_CONDITIONS
-
   } else if (strcmp(name, "bc_potential_type") == 0) {
     parms->bc_potential_type = atoi(value);
 #ifdef SCALAR
@@ -264,6 +257,9 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   Load_String_Param_Into_Char_Buffer(pmap, "custom_bcnd", parms->custom_bcnd, "");
   Load_String_Param_Into_Char_Buffer(pmap, "indir", parms->indir, "");
 
+  // ideally, we would only try to parse this for certain values of parms->init
+  parms->nfile = pmap.value_or("nfile", 0);
+
   // load in values related to initial conditions
   //
   // In the future, we **REALLY**, want to only load the values when/where we use them.
@@ -326,6 +322,10 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   parms->radius              = pmap.value_or("radius", 0.0);
   parms->P_blast             = pmap.value_or("P_blast", 0.0);
   parms->wave_length         = pmap.value_or("wave_length", 1.0);
+
+#ifdef TILED_INITIAL_CONDITIONS
+  parms->tile_length = pmap.value<double>("tile_length");
+#endif  // TILED_INITIAL_CONDITIONS
 
   // in the future, the feedback module will read in its own parameters (the global Parameter struct won't
   // know anything about it)

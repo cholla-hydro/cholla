@@ -188,7 +188,7 @@ void Init_Global_Parallel_Vars_No_MPI();
  *
  *  \note
  *  Before removing a parameter from this type, check if that parameter is parsed
- *  within \ref Old_Style_Parse_Param. PRs 494 and 495 seek to remove all
+ *  within \ref Old_Style_Parse_Param. PR 495 seeks to remove all
  *  of the parameters from that function. Thus, you may want to merge in the work from
  *  the branch where the parameter parsing logic has been moved **BEFORE** you start to
  *  relocate logic. (Otherwise, you are going to encounter some merge conflicts)
