@@ -144,6 +144,14 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	// copy memory back to host
 	cudaMemcpy(CP.phi_1, CP.d_phi_1, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
+  // free the P(k)
+  Free_Cosmo_Power_Spectrum();
+
+  // At this stage, the cosmological potential(s) phi_ini
+  // has/have been computed. These can be used to set
+  // the remaining initial conditions in the ICs generation
+  // locations of the code
+
 	// step 2.5) create k vectors
 	//Populate_Wavevectors(d_kx, d_ky, d_kz, d_kk);
 
@@ -156,13 +164,11 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	// step 4) Reset the FFT system, free memory
 	//fft.Reset();
 
-  // free the P(k)
-  Free_Cosmo_Power_Spectrum();
 
   // exit
 
-  Save_Cosmo_Potential(P);
-	chexit(0);
+  //Save_Cosmo_Potential(P);
+	//chexit(0);
 }
 
 /*! \fn void Save_Cosmo_Potential(struct Parameters *P)
@@ -179,10 +185,10 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters *P)
   int attr_size[3];
   int attr_ghost[3];
   herr_t status;
-
-  sprintf(fname,"phi_ini.%d.h5",procID);
-
   Real *phi_out; // output cosmological potential
+
+  //Create a file name for each hdf5 output
+  sprintf(fname,"%s0/phi_ini.h5.%d",P->outdir,procID);
 
   // create a file
   f_id = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -424,7 +430,7 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
   int n_cells = nx_local*ny_local*nz_local;
   GPU_Error_Check(cudaHostAlloc((void **)&CP.host, CP.n_fields * n_cells * sizeof(Real), cudaHostAllocDefault));
 
-  chprintf("Host memory allocated for cosmological ICs initial potential.");
+  chprintf("Host memory allocated for cosmological ICs initial potential.\n");
 
   // point potential variables to the appropriate locations on host
   CP.phi_1    = CP.host;
@@ -433,7 +439,7 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
   GPU_Error_Check(cudaMalloc((void **)&CP.device, CP.n_fields * n_cells * sizeof(Real)));
   cuda_utilities::initGpuMemory(CP.device, CP.n_fields * n_cells * sizeof(Real));
 
-  chprintf("Device memory allocated for cosmological ICs initial potential.");
+  chprintf("Device memory allocated for cosmological ICs initial potential.\n");
 
   // point potential variables to the appropriate locations on the device
   CP.d_phi_1  = CP.device;

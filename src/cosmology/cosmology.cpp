@@ -101,6 +101,10 @@ void Cosmology::Initialize(struct Parameters *P, Grav3D &Grav, Particles3D &Part
   chprintf(" Max delta_a: %f \n", MAX_DELTA_A);
 
   Set_Scale_Outputs(P);
+
+
+  // Stop here for now
+  chexit(0);
 }
 
 #endif

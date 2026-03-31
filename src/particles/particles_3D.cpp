@@ -216,6 +216,8 @@ void Particles3D::Initialize(Parameters *P, const SpatialDomainProps &spatial_pr
     Initialize_Zeldovich_Pancake(P);
   } else if (strcmp(P->init, "Adiabatic_Expansion") == 0) {
     Initialize_Adiabatic_Expansion(P);
+  } else if (strcmp(P->init, "Cosmological_ICs") == 0) {
+    Initialize_Cosmological_ICs_Particles(P);
   } else if (strcmp(P->init, "Read_Grid") == 0) {
     Load_Particles_Data(P);
   } else if (strcmp(P->init, "Isolated_Stellar_Cluster") == 0) {
@@ -1150,6 +1152,17 @@ void Particles3D::Initialize_Adiabatic_Expansion(struct Parameters *P)
   n_local = 0;
 
   chprintf(" Particles Adiabatic Expansion initialized, n_local: %lu\n", n_local);
+}
+
+/* void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P)
+ * \brief create the lagrangian particle positions */
+void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P)
+{
+  chprintf("Setting Cosmological ICs Lagrangian particle positions...\n");
+
+  // The first set of particles are initialzed at Lagrangian
+  // locations on the grid
+  Initialize_Uniform_Particles();
 }
 
 void Grid3D::Initialize_Uniform_Particles()

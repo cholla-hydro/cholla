@@ -1691,7 +1691,7 @@ void Grid3D::Cosmological_ICs(struct Parameters P)
   Free_Cosmo_Potential_Memory();
 
   // Further Initialization performed elsehwere .... perhaps move here
-  chexit(0);
+  //chexit(0);
 #endif  // COSMOLOGY
 }
 
