@@ -1260,9 +1260,9 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P)
 
       #ifdef PARTICLES_GPU
         // Copy the particle data to the temporary Host Buffers
-        temp_pos_x[pID] = pPos_x;
-        temp_pos_y[pID] = pPos_y;
-        temp_pos_z[pID] = pPos_z;
+        temp_pos_x[pID] = x_pos;
+        temp_pos_y[pID] = y_pos;
+        temp_pos_z[pID] = z_pos;
         temp_vel_x[pID] = 0.0;
         temp_vel_y[pID] = 0.0;
         temp_vel_z[pID] = 0.0;
