@@ -67,6 +67,10 @@ void FFT_3D::Initialize(const Real lx, const Real ly, const Real lz, const Real 
   ni_ = n[0];
   nj_ = n[1];
   nk_ = n[2];
+
+  // note that we may need these differentials for derivatives
+  // keeping them here
+  /* 
   #ifdef PARIS_3PT
       ddi_=(2.0 * double(n[0] - 1) / (hi[0] - lo_[0]));
       ddj_=(2.0 * double(n[1] - 1) / (hi[1] - lo_[1]));
@@ -79,7 +83,7 @@ void FFT_3D::Initialize(const Real lx, const Real ly, const Real lz, const Real 
       ddi_=(2.0 * M_PI * double(n[0] - 1) / (double(n[0]) * (hi[0] - lo_[0])));
       ddj_=(2.0 * M_PI * double(n[1] - 1) / (double(n[1]) * (hi[1] - lo_[1])));
       ddk_=(2.0 * M_PI * double(n[2] - 1) / (double(n[2]) * (hi[2] - lo_[2])));
-  #endif
+  #endif*/
 
   // for fft
   ddi_ = 2.0*M_PI*double(n[0]-1)/(double(n[0])*(hi[0]-lo_[0]));
@@ -88,17 +92,15 @@ void FFT_3D::Initialize(const Real lx, const Real ly, const Real lz, const Real 
 
   chprintf( " delta_k:  x: %e   y: %e   z: %e  \n", ddi_, ddj_, ddk_ );
   chprintf( " 0 hi %e lo %e 1 hi %e lo %e 2 hi %e lo %e\n",hi[0],lo_[0],hi[1],lo_[1],hi[2],lo_[2]);
-  //chexit(0);
-  
+
+  // create an instance of Henry  
   henry_ = new HenryPeriodic(n,lo_,hi,m,id);
   assert(henry_);
-  // pp_ = new ParisPeriodic(n,lo_,hi,m,id);
-  // assert(pp_);
   minBytes_ = henry_->bytes();
   inputBytes_ = long(sizeof(Real))*dn_[0]*dn_[1]*dn_[2];
-  // const long gg = N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
-  const long gg = 0;
-  //const long gg = 8; //HERE
+
+
+  const long gg = 0; //note we assume inputs have no ghost cells
   outputBytes_ = long(sizeof(Real))*(dn_[0]+gg)*(dn_[1]+gg)*(dn_[2]+gg);
   
   GPU_Error_Check(cudaMalloc(reinterpret_cast<void **>(&da_),std::max(minBytes_,inputBytes_)));

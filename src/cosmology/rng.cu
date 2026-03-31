@@ -49,10 +49,9 @@ __global__ void RNG_Normal_Field_GPU(Real *d_field, int nx, int ny, int nz, int 
       zid < nz - n_ghost) {
 
 	  rng_parallel_state_t localState = states[threadId];
+	
 		// pull a gaussian random variate for each cell
-		//d_field[id] = curand_normal_double(&localState);
-		d_field[threadId] = curand_normal(&localState);
-		//d_field[threadId] = 1.0;
+		d_field[threadId] = gpurand_normal(&localState); // precision-aware wrapper
 
 	  states[threadId] = localState;
 	}

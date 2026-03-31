@@ -22,7 +22,6 @@ __device__ Real linear_interpolation( Real x, Real *x_vals, Real *y_vals, int N 
   }
   int indx = 0;
   while( x_vals[indx] < x ) indx +=1;
-  // printf( "%d \n", indx );
   Real xl, xr, yl, yr;
   xl = x_vals[indx-1];
   xr = x_vals[indx];
@@ -43,7 +42,6 @@ __device__ Real log_log_interpolation( Real x, Real *x_vals, Real *y_vals, int N
   }
   int indx = 0;
   while( x_vals[indx] < x ) indx +=1;
-  // printf( "%d \n", indx );
   Real xl, xr, yl, yr;
   xl = log(x_vals[indx-1]);
   xr = log(x_vals[indx]);
@@ -101,7 +99,8 @@ void FFT_3D::Filter_rescale_by_k_k2( double *input, double *output, bool in_devi
       GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToHost));
     } 
 }
-
+/*! void FFT_3D::Filter_rescale_by_power_spectrum( double *input, double *output, bool in_device, int size, double *dev_k, double *dev_pk ) const
+ *  \brief Filter that rescales by a scale-dependent power spectrum */
 void FFT_3D::Filter_rescale_by_power_spectrum( double *input, double *output, bool in_device, int size, double *dev_k, double *dev_pk ) const
 {
   // Local copies of members for lambda capture
@@ -129,9 +128,8 @@ void FFT_3D::Filter_rescale_by_power_spectrum( double *input, double *output, bo
         double kx = id_k * ddk;  
         // Compute the magnitude of k 
         const double k_mag = sqrt( kx*kx + ky*ky + kz*kz );
-        //double pk = linear_interpolation( k_mag, dev_k, dev_pk, size );
-        double pk = log_log_interpolation( k_mag, dev_k, dev_pk, size );
-        // if ( i==1 && j==1 && k==1 ) printf("###### kx: %e  ky: %e  kz: %e  k_mag: %e  pk: %e \n", kx, ky, kz, k_mag, pk );  
+        //double pk = linear_interpolation( k_mag, dev_k, dev_pk, size ); // linear interp of P(k)
+        double pk = log_log_interpolation( k_mag, dev_k, dev_pk, size );  // log log interp of P(k)
         pk = sqrt(pk);
         return cufftDoubleComplex{pk*b.x,pk*b.y};
       } else {
@@ -240,7 +238,6 @@ void FFT_3D::Filter_identity( double *const input, double *output, bool in_devic
 
 /*! void FFT_3D::Filter_rescale( const size_t bytes, double *const input, double A, double *const output) const
  *  \brief A filter that rescales the grid in Fourier space*/
-//void FFT_3D::Filter_rescale( double *const input, double A, double *const output, bool in_device ) const
 void FFT_3D::Filter_rescale( double *const input, double A, double *output, bool in_device ) const
 {
   // Local copies of members for lambda capture
