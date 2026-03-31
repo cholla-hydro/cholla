@@ -1,20 +1,24 @@
 
 #include "field_operations.h"
 
-/*! \fn void Rescale_Field_GPU(Real *d_x, Real A, int n_cells, int n_ghost)
+/*! \fn void Rescale_Field_GPU(Real *d_x, Real A, int nx, int ny, int nz, int n_ghost)
  *  \brief Multiply one field a multiplicative constant */
-__global__ void Rescale_Field_GPU(Real *d_x, Real A, int n_cells, int n_ghost)
+__global__ void Rescale_Field_GPU(Real *d_x, const Real A, int nx, int ny, int nz, int n_ghost)
 {
 	// Rescale a field by a multiplicative constant
 
-	// determine the cell location
-	int id;
+  // determine the cell location
+  int id, xid, yid, zid;
 
-	// get a global thread ID
-	id = threadIdx.x + blockIdx.x * blockDim.x;
+  // get a global thread ID
+  id  = threadIdx.x + blockIdx.x * blockDim.x;
+  zid = id / (nx * ny);
+  yid = (id - zid * nx * ny) / nx;
+  xid = id - zid * nx * ny - yid * nx;
 
-	// only real cells participate
-	if (id > n_ghost - 1 && id < n_cells - n_ghost) {
+  // only real cells participate
+  if (xid > n_ghost - 1 && xid < nx - n_ghost && yid > n_ghost - 1 && yid < ny - n_ghost && zid > n_ghost - 1 &&
+      zid < nz - n_ghost) {
 
 		// rescale the field
 		d_x[id] *= A;
@@ -22,18 +26,22 @@ __global__ void Rescale_Field_GPU(Real *d_x, Real A, int n_cells, int n_ghost)
 }
 
 
-/*! \fn void Field_Elementwise_Product_GPU(Real *d_x, Real *d_y, int n_cells, int n_ghost)
+/*! \fn void Field_Elementwise_Product_GPU(Real *d_x, Real *d_y, int nx, int ny, int nz, int n_ghost)
  *  \brief Multiply one field elementwise by another */
-inline __device__ void Field_Elementwise_Product_GPU(Real *d_x, Real *d_y, int n_cells, int n_ghost)
+inline __device__ void Field_Elementwise_Product_GPU(Real *d_x, Real *d_y, int nx, int ny, int nz, int n_ghost)
 {
-	// determine the cell location
-	int id;
+  // determine the cell location
+  int id, xid, yid, zid;
 
-	// get a global thread ID
-	id = threadIdx.x + blockIdx.x * blockDim.x;
+  // get a global thread ID
+  id  = threadIdx.x + blockIdx.x * blockDim.x;
+  zid = id / (nx * ny);
+  yid = (id - zid * nx * ny) / nx;
+  xid = id - zid * nx * ny - yid * nx;
 
-	// only real cells participate
-	if (id > n_ghost - 1 && id < n_cells - n_ghost) {
+  // only real cells participate
+  if (xid > n_ghost - 1 && xid < nx - n_ghost && yid > n_ghost - 1 && yid < ny - n_ghost && zid > n_ghost - 1 &&
+      zid < nz - n_ghost) {
 
 		// rescale x by y
 		d_x[id] *= d_y[id];

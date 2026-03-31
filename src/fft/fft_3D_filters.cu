@@ -210,7 +210,7 @@ void FFT_3D::Filter_inv_k2( double *const input, double *const output, bool in_d
 
 /*! void FFT_3D::Filter_identity( const size_t bytes, double *const input, double *const output) const
  *  \brief The identity function filter */
-void FFT_3D::Filter_identity( double *const input, double *const output, bool in_device ) const
+void FFT_3D::Filter_identity( double *const input, double *output, bool in_device ) const
 {
   // Local copies of members for lambda capture
   const int ni = ni_, nj = nj_;
@@ -240,7 +240,8 @@ void FFT_3D::Filter_identity( double *const input, double *const output, bool in
 
 /*! void FFT_3D::Filter_rescale( const size_t bytes, double *const input, double A, double *const output) const
  *  \brief A filter that rescales the grid in Fourier space*/
-void FFT_3D::Filter_rescale( double *const input, double A, double *const output, bool in_device ) const
+//void FFT_3D::Filter_rescale( double *const input, double A, double *const output, bool in_device ) const
+void FFT_3D::Filter_rescale( double *const input, double A, double *output, bool in_device ) const
 {
   // Local copies of members for lambda capture
   const int ni = ni_, nj = nj_;
@@ -257,8 +258,12 @@ void FFT_3D::Filter_rescale( double *const input, double A, double *const output
   // Provide FFT filter that does nothing
   henry_->filter(bytes, db_, da_,
     [=] __device__ (const int i, const int j, const int k, const cufftDoubleComplex b) {
+      if (i || j || k) {
         return cufftDoubleComplex{A*b.x,A*b.y};
-      });
+      } else {
+        return cufftDoubleComplex{0.0,0.0};
+      }
+    });
 
   // copy results to output
   if ( in_device ){

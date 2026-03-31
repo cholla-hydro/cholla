@@ -93,6 +93,7 @@ void FFT_3D::Initialize(const Real lx, const Real ly, const Real lz, const Real 
   inputBytes_ = long(sizeof(Real))*dn_[0]*dn_[1]*dn_[2];
   // const long gg = N_GHOST_POTENTIAL+N_GHOST_POTENTIAL;
   const long gg = 0;
+  //const long gg = 8; //HERE
   outputBytes_ = long(sizeof(Real))*(dn_[0]+gg)*(dn_[1]+gg)*(dn_[2]+gg);
   
   GPU_Error_Check(cudaMalloc(reinterpret_cast<void **>(&da_),std::max(minBytes_,inputBytes_)));

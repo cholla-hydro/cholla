@@ -23,10 +23,11 @@ class FFT_3D
     void Filter_rescale_by_k_k2( double *input, double *output, bool in_device, int direction, double D ) const;
 
     // An identity filter that does nothing, with Paris-like calling API
-    void Filter_identity( double *const input, double *const output, bool in_device ) const;
+    void Filter_identity( double *const input, double *output, bool in_device ) const;
 
     // An filter that simply rescales the grid in Fourier space, with Paris-like calling API
-    void Filter_rescale( double *const input, double A, double *const output, bool in_device ) const;
+    //void Filter_rescale( double *const input, double A, double *const output, bool in_device ) const;
+    void Filter_rescale( double *const input, double A, double *output, bool in_device ) const;
     
   protected:
     int dn_[3];
