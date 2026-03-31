@@ -41,16 +41,17 @@ Real Cosmology::Get_wDE_from_a(Real a)
     return dynamicalDE_table_w[n_wDE_samples-1];
   }
 
-  z_high = -1.;
-  int i = 0;
+  int i = 1;
+  z_high = dynamicalDE_table_z[i];
   while (z_high < z)
   {
-    z_high = dynamicalDE_table_z[i];
-    wDE_high = dynamicalDE_table_w[i];
     i++;
+    z_high = dynamicalDE_table_z[i];
   }
-  z_low = dynamicalDE_table_z[i - 2];
-  wDE_low = dynamicalDE_table_w[i - 2];
+  wDE_high = dynamicalDE_table_w[i];
+
+  z_low = dynamicalDE_table_z[i - 1];
+  wDE_low = dynamicalDE_table_w[i - 1];
 
   lin_slope = (wDE_low - wDE_high) / (z_low - z_high);
   wDE_interp = lin_slope * (z - z_low) + wDE_low;
@@ -73,21 +74,21 @@ Real Cosmology::Get_DynamicalDE_Density_from_a(Real a)
     return dynamicalDE_table_density[n_wDE_samples-1];
   }
 
-  z_high = -1.;
-  int i = 0;
+  int i = 1;
+  z_high = dynamicalDE_table_z[i];
   while (z_high < z)
   { 
-    z_high = dynamicalDE_table_z[i];
-    dynDE_density_high = dynamicalDE_table_density[i];
     i++;
+    z_high = dynamicalDE_table_z[i];
   } 
-  // since z_high=-1 and expect a!=0, will iterate at least twice. would like to change
+  dynDE_density_high = dynamicalDE_table_density[i];
 
-  z_low = dynamicalDE_table_z[i - 2];
-  dynDE_density_low = dynamicalDE_table_density[i - 2];
+  z_low = dynamicalDE_table_z[i - 1];
+  dynDE_density_low = dynamicalDE_table_density[i - 1];
   
   lin_slope = (dynDE_density_low - dynDE_density_high) / (z_low - z_high);
   dynDE_density_interp = lin_slope * (z - z_low) + dynDE_density_low;
+
   
   return dynDE_density_interp;
 }
