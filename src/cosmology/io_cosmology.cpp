@@ -87,12 +87,12 @@ void Cosmology::Set_Next_Scale_Output()
   }
 }
 
-#ifdef DYNAMICAL_DE_TABLE
+  #ifdef DYNAMICAL_DE_TABLE
 void Cosmology::Load_DynamicalDE_EquationOfState(struct Parameters *P)
 {
   if (P->wDE_file[0] == '\0') {
-	chprintf("wDE_file not found in parameter file \n");
-	exit(1);
+    chprintf("wDE_file not found in parameter file \n");
+    exit(1);
   }
 
   chprintf("Loading wDE info... \n");
@@ -124,12 +124,12 @@ void Cosmology::Load_DynamicalDE_EquationOfState(struct Parameters *P)
   }
   int n_lines = i;
 
-  dynamicalDE_table_z         = (float *)malloc(sizeof(float) * n_lines);
-  dynamicalDE_table_w         = (float *)malloc(sizeof(float) * n_lines);
+  dynamicalDE_table_z = (float *)malloc(sizeof(float) * n_lines);
+  dynamicalDE_table_w = (float *)malloc(sizeof(float) * n_lines);
 
   for (i = 0; i < n_lines; i++) {
-    dynamicalDE_table_z[i]         = v[i][0];
-    dynamicalDE_table_w[i]         = v[i][1];
+    dynamicalDE_table_z[i] = v[i][0];
+    dynamicalDE_table_w[i] = v[i][1];
   }
 
   for (i = 0; i < n_lines - 1; i++) {
@@ -148,12 +148,11 @@ void Cosmology::Load_DynamicalDE_EquationOfState(struct Parameters *P)
   chprintf("  z_min = %f    z_max = %f \n", dynamicalDE_table_z[0], dynamicalDE_table_z[n_wDE_samples - 1]);
   chprintf("  w(z_min) = %f    w(z_max) = %f \n", dynamicalDE_table_w[0], dynamicalDE_table_w[n_wDE_samples - 1]);
 
-  if (dynamicalDE_table_z[0] != 0.){
+  if (dynamicalDE_table_z[0] != 0.) {
     chprintf("We require z_min = 0 so that w(z=0) is well defined \n");
     exit(1);
   }
-
 }
-#endif // DYNAMICAL_DE_TABLE
+  #endif  // DYNAMICAL_DE_TABLE
 
 #endif

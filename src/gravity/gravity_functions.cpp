@@ -133,7 +133,6 @@ void Grid3D::set_dt_Gravity()
   Cosmo.t_secs += Cosmo.dt_secs;
   Particles.dt = dt_physical;
 
-
     #else  // Not Cosmology
   // If NOT using COSMOLOGY
 

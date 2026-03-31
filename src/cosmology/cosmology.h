@@ -23,18 +23,17 @@ class Cosmology
   Real w0;
   Real wa;
 
-  #ifdef DYNAMICAL_DE_TABLE
-  float *dynamicalDE_table_z; 
+    #ifdef DYNAMICAL_DE_TABLE
+  float *dynamicalDE_table_z;
   float *dynamicalDE_table_w;
   // dark energy energy density normalized to the present-date rho_DE(z) / rho_DE(z=0)
-  float *dynamicalDE_table_density; 
+  float *dynamicalDE_table_density;
   int n_wDE_samples;
   void Load_DynamicalDE_EquationOfState(struct Parameters *P);
   Real Get_wDE_from_a(Real a);
   void Set_DynamicalDE_Density();
   Real Get_DynamicalDE_Density_from_a(Real a);
-  #endif
-
+    #endif
 
   Real cosmo_G;
   Real cosmo_h;

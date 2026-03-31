@@ -24,7 +24,7 @@ void Grid3D::Initialize_Cosmology(struct Parameters *P)
   chprintf("Cosmology Successfully Initialized. \n\n");
 }
 
-#ifdef DYNAMICAL_DE_TABLE
+  #ifdef DYNAMICAL_DE_TABLE
 
 /* Interpolate to get wDE */
 Real Cosmology::Get_wDE_from_a(Real a)
@@ -34,26 +34,25 @@ Real Cosmology::Get_wDE_from_a(Real a)
   Real lin_slope;
   Real z = (1. / a) - 1.;
 
-  if (a == 1.){
+  if (a == 1.) {
     return dynamicalDE_table_w[0];
   }
-  if (z > dynamicalDE_table_z[n_wDE_samples - 1]){
-    return dynamicalDE_table_w[n_wDE_samples-1];
+  if (z > dynamicalDE_table_z[n_wDE_samples - 1]) {
+    return dynamicalDE_table_w[n_wDE_samples - 1];
   }
 
-  int i = 1;
+  int i  = 1;
   z_high = dynamicalDE_table_z[i];
-  while (z_high < z)
-  {
+  while (z_high < z) {
     i++;
     z_high = dynamicalDE_table_z[i];
   }
   wDE_high = dynamicalDE_table_w[i];
 
-  z_low = dynamicalDE_table_z[i - 1];
+  z_low   = dynamicalDE_table_z[i - 1];
   wDE_low = dynamicalDE_table_w[i - 1];
 
-  lin_slope = (wDE_low - wDE_high) / (z_low - z_high);
+  lin_slope  = (wDE_low - wDE_high) / (z_low - z_high);
   wDE_interp = lin_slope * (z - z_low) + wDE_low;
 
   return wDE_interp;
@@ -61,38 +60,35 @@ Real Cosmology::Get_wDE_from_a(Real a)
 
 /* Interpolate to get rhoDE(z) / rhoDE(z=0) */
 Real Cosmology::Get_DynamicalDE_Density_from_a(Real a)
-{ 
+{
   Real z_low, z_high;
   Real dynDE_density_low, dynDE_density_high, dynDE_density_interp;
   Real lin_slope;
   Real z = (1. / a) - 1.;
 
-  if (a == 1.){
+  if (a == 1.) {
     return dynamicalDE_table_density[0];
   }
-  if (z > dynamicalDE_table_z[n_wDE_samples - 1]){
-    return dynamicalDE_table_density[n_wDE_samples-1];
+  if (z > dynamicalDE_table_z[n_wDE_samples - 1]) {
+    return dynamicalDE_table_density[n_wDE_samples - 1];
   }
 
-  int i = 1;
+  int i  = 1;
   z_high = dynamicalDE_table_z[i];
-  while (z_high < z)
-  { 
+  while (z_high < z) {
     i++;
     z_high = dynamicalDE_table_z[i];
-  } 
+  }
   dynDE_density_high = dynamicalDE_table_density[i];
 
-  z_low = dynamicalDE_table_z[i - 1];
+  z_low             = dynamicalDE_table_z[i - 1];
   dynDE_density_low = dynamicalDE_table_density[i - 1];
-  
-  lin_slope = (dynDE_density_low - dynDE_density_high) / (z_low - z_high);
+
+  lin_slope            = (dynDE_density_low - dynDE_density_high) / (z_low - z_high);
   dynDE_density_interp = lin_slope * (z - z_low) + dynDE_density_low;
 
-  
   return dynDE_density_interp;
 }
-
 
 /* Calculate dark energy density normalized to z=0 */
 void Cosmology::Set_DynamicalDE_Density()
@@ -105,53 +101,53 @@ void Cosmology::Set_DynamicalDE_Density()
 
   int i;
   double integral_sum_arr[n_wDE_samples];
-  dynamicalDE_table_density         = (float *)malloc(sizeof(Real) * (n_wDE_samples));
+  dynamicalDE_table_density = (float *)malloc(sizeof(Real) * (n_wDE_samples));
 
-  integral_sum_arr[0] = 0.;
-  dynamicalDE_table_density[0] = 1.; // set rhoDE(z)/rhoDE(z=0) = 1 at z=0
+  integral_sum_arr[0]          = 0.;
+  dynamicalDE_table_density[0] = 1.;  // set rhoDE(z)/rhoDE(z=0) = 1 at z=0
 
-  for (int i = 1; i < n_wDE_samples; i++){
+  for (int i = 1; i < n_wDE_samples; i++) {
     z_prev = dynamicalDE_table_z[i - 1];
-    z = dynamicalDE_table_z[i];
+    z      = dynamicalDE_table_z[i];
 
     onez_prev = 1. + z_prev;
-    onez = 1. + z;
-    onez_2 = onez * onez;
-    onez_3 = onez_2 * onez;
+    onez      = 1. + z;
+    onez_2    = onez * onez;
+    onez_3    = onez_2 * onez;
 
     wDE_prev = dynamicalDE_table_w[i - 1];
-    wDE = dynamicalDE_table_w[i];
+    wDE      = dynamicalDE_table_w[i];
 
     integrand_prev = wDE_prev / onez_prev;
-    integrand = wDE / onez;
+    integrand      = wDE / onez;
 
     // mid-point rectangle integral
     my_integral = ((integrand_prev + integrand) / 2.) * (z - z_prev);
 
     prev_integral_sum = integral_sum_arr[i - 1];
-    integral = prev_integral_sum + my_integral;
+    integral          = prev_integral_sum + my_integral;
 
     integral_sum_arr[i] = integral;
 
-    dynamicalDE_table_density[i] =  onez_3 * exp(3. * integral);
+    dynamicalDE_table_density[i] = onez_3 * exp(3. * integral);
   }
 }
 
-#endif // DYNAMICAL_DE_TABLE
+  #endif  // DYNAMICAL_DE_TABLE
 
 /* Computes dt/da * da */
 Real Cosmology::dtda_cosmo(Real da, Real a)
 {
-  Real a2     = a * a;
+  Real a2 = a * a;
   Real fac_de;
-  
+
   #if DYNAMICAL_DE_TABLE
   fac_de = Get_DynamicalDE_Density_from_a(a);
   #else
   fac_de = pow(a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - a));
-  #endif // DYNAMICAL_DE_TABLE
+  #endif  // DYNAMICAL_DE_TABLE
 
-  Real a_dot  = sqrt(Omega_R / a2 + Omega_M / a + a2 * Omega_L * fac_de + Omega_K) * H0;
+  Real a_dot = sqrt(Omega_R / a2 + Omega_M / a + a2 * Omega_L * fac_de + Omega_K) * H0;
   return da / a_dot;
 }
 
@@ -182,16 +178,16 @@ Real Cosmology::Get_dt_from_da_rk(Real da, Real a)
 
 Real Cosmology::Get_da_from_dt(Real dt)
 {
-  Real a2     = current_a * current_a;
+  Real a2 = current_a * current_a;
   Real fac_de;
 
   #if DYNAMICAL_DE_TABLE
   fac_de = Get_DynamicalDE_Density_from_a(current_a);
   #else
   fac_de = pow(current_a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - current_a));
-  #endif // DYNAMICAL_DE_TABLE
+  #endif  // DYNAMICAL_DE_TABLE
 
-  Real a_dot  = sqrt(Omega_R / a2 + Omega_M / current_a + a2 * Omega_L * fac_de + Omega_K) * H0;
+  Real a_dot = sqrt(Omega_R / a2 + Omega_M / current_a + a2 * Omega_L * fac_de + Omega_K) * H0;
   return a_dot * dt;
 }
 
@@ -212,16 +208,16 @@ Real Cosmology::Get_dt_from_da(Real da, Real a)
 
 Real Cosmology::Get_Hubble_Parameter(Real a)
 {
-  Real a2     = a * a;
-  Real a3     = a2 * a;
-  Real a4     = a2 * a2;
+  Real a2 = a * a;
+  Real a3 = a2 * a;
+  Real a4 = a2 * a2;
   Real fac_de;
 
   #if DYNAMICAL_DE_TABLE
   fac_de = Get_DynamicalDE_Density_from_a(a);
   #else
   fac_de = pow(a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - a));
-  #endif // DYNAMICAL_DE_TABLE
+  #endif  // DYNAMICAL_DE_TABLE
   Real factor = (Omega_R / a4 + Omega_M / a3 + Omega_K / a2 + Omega_L * fac_de);
   return H0 * sqrt(factor);
 }

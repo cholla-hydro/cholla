@@ -291,7 +291,7 @@ struct Parameters {
   Real End_redshift;
 
   #ifdef DYNAMICAL_DE_TABLE
-  char wDE_file[MAXLEN]; // File with equation of state as function of redshift
+  char wDE_file[MAXLEN];  // File with equation of state as function of redshift
   #endif
 
   // File for the scale_factor output values for cosmological simulations
