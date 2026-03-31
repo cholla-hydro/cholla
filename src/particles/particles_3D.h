@@ -317,7 +317,7 @@ class Particles3D
 
   void Initialize_Adiabatic_Expansion(struct Parameters *P);
 
-  void Initialize_Cosmological_ICs(struct Parameters *P);
+  void Initialize_Cosmological_ICs_Particles(struct Parameters *P);
 
   void Load_Particles_Data(struct Parameters *P);
 
