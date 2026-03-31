@@ -10,6 +10,8 @@
  *  class is instead implemented in close proximity to other HDF5 logic.
  */
 
+#pragma once
+
 #include <cstdio>  // std::FILE
 #include <string>
 
