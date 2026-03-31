@@ -14,6 +14,7 @@
 
 #include <cstdio>  // std::FILE
 #include <string>
+#include <string_view>
 
 #include "../utils/error_handling.h"
 
@@ -80,11 +81,17 @@ class AttrRecorderInterface
 namespace io_detail
 {
 
-/*! Write the toml key to file (performing any escaping if necessary) */
-void write_toml_key(const char* key, std::FILE* fp);
-/*! Write the toml string value key to file (performing any escaping if necessary) */
-void write_toml_str(const char* s, std::FILE* fp);
+/*! Construct the proper toml representation of the specified key
+ *
+ *  This performs any necessary escaping.
+ */
+std::string encode_toml_key(std::string_view key);
 
+/*! Construct the proper toml representation of the specified string
+ *
+ *  This performs any necessary escaping.
+ */
+std::string encode_toml_str(std::string_view s);
 }  // namespace io_detail
 
 /*! Provides a nice wrapper around an text file pointer for the purpose of recording
@@ -121,7 +128,8 @@ class TextAttrRecorder : public AttrRecorderInterface
     } else if constexpr (std::is_same_v<T, double>) {
       std::fprintf(this->fp_, "%.17g", val);
     } else if constexpr (std::is_same_v<T, const char*>) {
-      io_detail::write_toml_str(val, this->fp_);
+      std::string tmp = io_detail::encode_toml_str(val);
+      std::fputs(tmp.c_str(), this->fp_);
     } else {
       static_assert(always_false<T>, "unexpected type");
     }
@@ -133,8 +141,8 @@ class TextAttrRecorder : public AttrRecorderInterface
     if (is_closed_) {
       CHOLLA_ERROR("can't record any more header attributes after closing the recorder");
     }
-    io_detail::write_toml_key(name, this->fp_);
-    std::fputs(" = ", this->fp_);
+    std::string key = io_detail::encode_toml_key(name);
+    std::fprintf(this->fp_, "%s = ", key.c_str());
     if (length < 0) {  // denotes a scalar
       this->write_val_<T>(*val);
     } else {  // recording an array

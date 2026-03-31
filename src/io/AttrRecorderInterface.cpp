@@ -1,6 +1,6 @@
 #include "AttrRecorderInterface.h"
 
-#include <cstring>
+#include <string_view>
 #include <utility>
 
 namespace io_detail
@@ -19,32 +19,33 @@ static constexpr std::pair<char, char> backslash_escape_pairs_[]{
     {'\\', '\\'},  // <- backslash
 };
 
-// write out the '\0'-terminated string, `s`, to a toml file.
-//
-// This variant of the function is passed the length, ``len``. It excludes the trailing
-// '\0' (but it is definitely present)
+// construct a std::string holding the properly toml-encoding of the specified
+// '\0'-terminated string, `s`.
 //
 // NOTE: this certainly isn't the fastest implementation, but my hope is that we'll
 //       eventually start using something like toml++
-static void write_toml_str_(const char* s, std::size_t len, std::FILE* fp)
+std::string encode_toml_str(std::string_view s)
 {
-  std::fputc('"', fp);
-
   // check if we need to escape any character
+  std::size_t size                = s.size();
   std::size_t n_requires_escaping = 0;
-  for (std::size_t i = 0; i < len; i++) {
+  for (std::size_t i = 0; i < size; i++) {
     char chr = s[i];
     for (const std::pair<char, char>& pair : backslash_escape_pairs_) {
       n_requires_escaping += (chr == pair.second);
     }
   }
 
-  if (len == 0) {
+  std::string out;
+  out.reserve(2 + n_requires_escaping + size);
+  out.push_back('"');
+
+  if (size == 0) {
     // do nothing
   } else if (n_requires_escaping == 0) {
-    std::fputs(s, fp);
+    out.append(s);
   } else {
-    for (std::size_t i = 0; i < len; i++) {
+    for (std::size_t i = 0; i < size; i++) {
       char chr                = s[i];
       char post_backslash_chr = '\0';
       for (const std::pair<char, char>& pair : backslash_escape_pairs_) {
@@ -54,23 +55,20 @@ static void write_toml_str_(const char* s, std::size_t len, std::FILE* fp)
         }
       }
       if (post_backslash_chr == '\0') {
-        std::fputc(chr, fp);
+        out.push_back(chr);
       } else {
-        std::fputc('\\', fp);
-        std::fputc(post_backslash_chr, fp);
+        out.push_back('\\');
+        out.push_back(post_backslash_chr);
       }
     }
   }
-  std::fputc('"', fp);
+  out.push_back('"');
+  return out;
 }
 
-void write_toml_str(const char* s, std::FILE* fp) { write_toml_str_(s, std::strlen(s), fp); }
-
-/*! Write the toml key to file (performing any escaping if necessary) */
-void write_toml_key(const char* key, std::FILE* fp)
+std::string encode_toml_key(std::string_view key)
 {
-  // get the size (excluding the trailing '\0')
-  const std::size_t size = std::strlen(key);
+  const std::size_t size = key.size();
 
   // determine whether we can write a bare key (i.e. without enclosing quotes)
   // -> we can do this if each character matches one of A-Za-z0-9_-
@@ -92,11 +90,7 @@ void write_toml_key(const char* key, std::FILE* fp)
     }
   }
 
-  if (allow_bare_key) {
-    std::fputs(key, fp);
-  } else {
-    write_toml_str_(key, size, fp);
-  }
+  return allow_bare_key ? std::string(key) : encode_toml_str(key);
 }
 
 }  // namespace io_detail
