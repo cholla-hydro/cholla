@@ -32,6 +32,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
   int i, j, k, id;
   int istart, jstart, kstart, iend, jend, kend;
+  int n_cells = nx_local*ny_local*nz_local;
   istart = H.n_ghost;
   iend   = H.nx - H.n_ghost;
   if (H.ny > 1) {
@@ -81,22 +82,28 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	Generate_Normal_Random_Field(CP.d_phi_1,rng_states);
 
 
-	//Rescale_Field(CP.d_phi_1, nx_global*ny_global*nz_global);
+	Rescale_Field(CP.d_phi_1, nx_global*ny_global*nz_global);
 
 
 	// copy memory
 	//cudaMemcpy(CP.phi_1, CP.d_phi_1, CP.n_fields * H.n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
-	cudaMemcpy(CP.phi_1, CP.d_phi_1, H.n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+	//cudaMemcpy(CP.phi_1, CP.d_phi_1, H.n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+	cudaMemcpy(CP.phi_1, CP.d_phi_1, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+
 
   // reduce the grid values
 	Real phi_sum = 0;
 	Real phi_ave = 0;
-  for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
-    for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
-      for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+  //for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
+  //  for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
+  //    for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
+    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
+      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
 
         // get cell index
-        id = i + j * H.nx + k * H.nx * H.ny;
+        //id = i + j * H.nx + k * H.nx * H.ny;
+        id = i + j * nx_local + k * nx_local * ny_local;
 
         phi_sum += CP.phi_1[id]; // perform a local reduction
       }
@@ -113,13 +120,16 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
 
   // reduce the grid values
-  for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
-    for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
-      for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
-        id = i + j * H.nx + k * H.nx * H.ny;
+  //for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
+  //  for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
+  //    for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
+    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
+      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
 
         // get cell index
-        id = i + j * H.nx + k * H.nx * H.ny;
+        //id = i + j * H.nx + k * H.nx * H.ny;
+        id = i + j * nx_local + k * nx_local * ny_local;
 
         CP.phi_1[id] -= phi_ave; // remove global average
       }
@@ -129,14 +139,17 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
 	// copy mean zero phi back to GPU
 	//cudaMemcpy(CP.phi_1, CP.d_phi_1, CP.n_fields * H.n_cells * sizeof(Real), cudaMemcpyHostToDevice);
-	cudaMemcpy(CP.phi_1, CP.d_phi_1, H.n_cells * sizeof(Real), cudaMemcpyHostToDevice);
+	//cudaMemcpy(CP.phi_1, CP.d_phi_1, H.n_cells * sizeof(Real), cudaMemcpyHostToDevice);
+	cudaMemcpy(CP.phi_1, CP.d_phi_1, n_cells * sizeof(Real), cudaMemcpyHostToDevice);
 
 
 	// step 2) Take the fourier transform
 	//         xi(k) = N**-d \sum_m exp( -(2 pi i / M) * kappa \dot m) * xi(m)
-	//fft.Filter_rescale(CP.d_phi_1,1./(nx_global*ny_global*nz_global),CP.d_phi_1,true);
+	fft.Filter_rescale(CP.d_phi_1,1./(nx_global*ny_global*nz_global),CP.d_phi_1,true);
 	//fft.Filter_rescale(CP.d_phi_1,10,CP.d_phi_1,true);
-	fft.Filter_rescale(CP.d_phi_1,0,CP.d_phi_1,true);
+	//fft.Filter_identity(CP.d_phi_1,CP.d_phi_1,true);
+	//fft.Filter_rescale(CP.d_phi_1,0,CP.d_phi_1,true);
+	//fft.Filter_rescale(CP.d_phi_1,1,CP.d_phi_1,true);
 	//Rescale_Field(CP.d_phi_1, 1./(nx_global*ny_global*nz_global)); //HERE
 
 	// step 3) Multiply xi(k) by the transfer function 
@@ -144,6 +157,8 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	//         note T(k) is computed at z=0
   //         also note  the [(2 \pi / L)**3 ]^{1/2} factor is handled
   //         when the power spectrum is loaded
+  // apply power spectrum
+  fft.Filter_rescale_by_power_spectrum(CP.d_phi_1,CP.d_phi_1,true,CP.n_pk,CP.d_k_array,CP.d_pk_dm_array);
 
   /*for(i=0;i<CP.n_pk;i++)
   {
@@ -151,12 +166,11 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   }*/
   //chexit(0);
 
-  // apply power spectrum
-  //fft.Filter_rescale_by_power_spectrum(CP.d_phi_1,CP.d_phi_1,true,CP.n_pk,CP.d_k_array,CP.d_pk_dm_array);
 
 	// copy memory
 	//cudaMemcpy(CP.phi_1, CP.d_phi_1, CP.n_fields * H.n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
-	cudaMemcpy(CP.phi_1, CP.d_phi_1, H.n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+	//cudaMemcpy(CP.phi_1, CP.d_phi_1, H.n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+	cudaMemcpy(CP.phi_1, CP.d_phi_1, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
 /*
 	phi_sum = 0;
@@ -304,16 +318,23 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters *P)
 
   int i, j, k, id;
   int ii,jj,kk, idx;
-  for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
-    for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
-      for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+  //for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
+  //  for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
+  //    for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
+    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
+      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
 
         // get cell index
-        id = i + j * H.nx + k * H.nx * H.ny;
+        //id = i + j * H.nx + k * H.nx * H.ny;
+        id = i + j * nx_local + k * nx_local * ny_local;
 
-        ii = i-H.n_ghost;
-        jj = j-H.n_ghost;
-        kk = k-H.n_ghost;
+        //ii = i-H.n_ghost;
+        //jj = j-H.n_ghost;
+        //kk = k-H.n_ghost;
+        ii = i;
+        jj = j;
+        kk = k;
         idx = ii*(nz_local*ny_local) + jj*nz_local + kk;
         //idx = ii + jj*nx_local + kk * nx_local * ny_local;
         phi_out[idx] = CP.phi_1[id]; // perform a local reduction
@@ -347,6 +368,7 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters *P)
 void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
 {
 	// Initialize the parameters for the Philox RNG
+  int n_cells = nx_local*ny_local*nz_local;
 
 	// Record the RNG seed from the parameter file
 	CP.rng_seed = P->seed;
@@ -361,8 +383,10 @@ void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
 	printf("procID %d rng_offset %lld\n",procID,CP.rng_offset);
 
 	// Call the RNG initialization function on the GPUs
-  printf("procID %d number of cells %d\n",procID, H.n_cells);
-	GPU_Error_Check(cudaMalloc((void **)&rng_states, H.n_cells * sizeof(rng_parallel_state_t)));
+  printf("procID %d number of cells %d\n",procID, n_cells);
+  //printf("procID %d number of cells %d\n",procID, H.n_cells);
+	//GPU_Error_Check(cudaMalloc((void **)&rng_states, H.n_cells * sizeof(rng_parallel_state_t)));
+	GPU_Error_Check(cudaMalloc((void **)&rng_states, n_cells * sizeof(rng_parallel_state_t)));
 
 	printf("Allocated rng states on procID %d\n",procID);
 	fflush(stdout);
@@ -377,9 +401,12 @@ void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
 //  __global__ void Calc_dt_3D(Real *dev_conserved, Real *dev_dti, Real gamma, int n_ghost, int n_fields, int nx, int ny,
 //                           int nz, Real dx, Real dy, Real dz)
   
-  cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Init_GPU, H.n_cells);
+  //cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Init_GPU, H.n_cells);
+  cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Init_GPU, n_cells);
   hipLaunchKernelGGL(RNG_Init_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
-                     H.nx,H.ny,H.nz,H.n_ghost,CP.rng_seed, CP.rng_subsequence, CP.rng_offset, rng_states);
+                     nx_local,ny_local,nz_local,0,CP.rng_seed, CP.rng_subsequence, CP.rng_offset, rng_states);
+                     //nx_local,ny_local,nz_local,H.n_ghost,CP.rng_seed, CP.rng_subsequence, CP.rng_offset, rng_states);
+                     //H.nx,H.ny,H.nz,H.n_ghost,CP.rng_seed, CP.rng_subsequence, CP.rng_offset, rng_states);
 
   GPU_Error_Check();
                      
@@ -460,14 +487,17 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
   chprintf( "Lbox = %f %f %f  n_grid = %d %d %d\n", P->xlen, P->ylen, P->zlen, P->nx, P->ny, P->nz );
   
   Real dx = P->xlen / P->nx; 
-  Real pk_factor = (2.0*M_PI/P->xlen)*(2.0*M_PI/P->ylen)*(2.0*M_PI/P->zlen);
+  Real pk_factor = (2.0*M_PI/(1.0e-3*P->xlen))*(2.0*M_PI/(1.0e-3*P->ylen))*(2.0*M_PI/(1.0e-3*P->zlen));
+  // note the pk_factor is supposed to remove the volume element from 
+  // the normalization of P(k), and needs to be in the units of the original P(k)
+  // We are assuming P(k) has units of (Mpc/h)^3 and xlen, ylen, zlen are in kpc/h
   
   for (i=0; i<n_lines; i++ ){
     CP.k_array[i]      = v[i][0] * 1e-3;       //Convert from 1/(Mpc/h) to  1/(kpc/h)
     CP.pk_dm_array[i]  = v[i][1] * pk_factor;  // moving P(k) rescaling here
     if(j==3)
     {
-      CP.pk_gas_array[i] = v[i][1] * pk_factor;  // moving P(k) rescaling here
+      CP.pk_gas_array[i] = v[i][2] * pk_factor;  // moving P(k) rescaling here
     }else{
       CP.pk_gas_array[i] = v[i][1] * pk_factor;  // moving P(k) rescaling here
     }
@@ -493,7 +523,9 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
 {
   // allocate memory for the phi arrays
   // allocate all the memory to phi_1, to insure contiguous memory
-  GPU_Error_Check(cudaHostAlloc((void **)&CP.host, CP.n_fields * H.n_cells * sizeof(Real), cudaHostAllocDefault));
+  int n_cells = nx_local*ny_local*nz_local;
+  //GPU_Error_Check(cudaHostAlloc((void **)&CP.host, CP.n_fields * H.n_cells * sizeof(Real), cudaHostAllocDefault));
+  GPU_Error_Check(cudaHostAlloc((void **)&CP.host, CP.n_fields * n_cells * sizeof(Real), cudaHostAllocDefault));
 
   printf("Memory for host allocated for procID %d\n",procID);
 
@@ -501,15 +533,18 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
   CP.phi_1    = CP.host;
 
   // allocate memory for the conserved variable arrays on the device
-  GPU_Error_Check(cudaMalloc((void **)&CP.device, CP.n_fields * H.n_cells * sizeof(Real)));
-  cuda_utilities::initGpuMemory(CP.device, CP.n_fields * H.n_cells * sizeof(Real));
+  //GPU_Error_Check(cudaMalloc((void **)&CP.device, CP.n_fields * H.n_cells * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void **)&CP.device, CP.n_fields * n_cells * sizeof(Real)));
+  //cuda_utilities::initGpuMemory(CP.device, CP.n_fields * H.n_cells * sizeof(Real));
+  cuda_utilities::initGpuMemory(CP.device, CP.n_fields * n_cells * sizeof(Real));
   printf("Memory for device allocated for procID %d\n",procID);
 
   // point potential variables to the appropriate locations on the device
   CP.d_phi_1  = CP.device;
 
   // initialize host array
-  for (int i = 0; i < CP.n_fields * H.n_cells; i++) {
+  //for (int i = 0; i < CP.n_fields * H.n_cells; i++) {
+  for (int i = 0; i < CP.n_fields * n_cells; i++) {
     CP.host[i] = 0.0;
   }
 }
@@ -531,9 +566,12 @@ void Grid3D::Free_Cosmo_Potential_Memory(void)
 void Grid3D::Generate_Normal_Random_Field(Real *d_field, rng_parallel_state_t *state)
 {
 	// Here, d_field has been pre-allocated on the device
-  cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Normal_Field_GPU, H.n_cells);
+  int n_cells = nx_local*ny_local*nz_local;
+  cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Normal_Field_GPU, n_cells);
+  //cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Normal_Field_GPU, H.n_cells);
   hipLaunchKernelGGL(RNG_Normal_Field_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
-                     d_field, H.nx, H.ny, H.nz, H.n_ghost, state);
+                     d_field, nx_local, ny_local, nz_local, 0, state);
+                     //d_field, H.nx, H.ny, H.nz, H.n_ghost, state);
 }
 
 /*! \fn void Rescale_Field(Real *d_x, Real A)
@@ -542,9 +580,12 @@ void Grid3D::Rescale_Field(Real *d_x, Real A)
 {
 	// Here, d_x has been pre-allocated on the device
 	// Rescale the field by a multiplicative factor.
-  cuda_utilities::AutomaticLaunchParams static const launchParams(Rescale_Field_GPU, H.n_cells);
+  int n_cells = nx_local*ny_local*nz_local;
+  //cuda_utilities::AutomaticLaunchParams static const launchParams(Rescale_Field_GPU, H.n_cells);
+  cuda_utilities::AutomaticLaunchParams static const launchParams(Rescale_Field_GPU, n_cells);
   hipLaunchKernelGGL(Rescale_Field_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
-                     d_x, A, H.nx, H.ny, H.nz, H.n_ghost);
+                     d_x, A, nx_local, ny_local, nz_local, 0);
+                     //d_x, A, H.nx, H.ny, H.nz, H.n_ghost);
 }
 
 
