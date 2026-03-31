@@ -1,9 +1,9 @@
-#include "AttrRecorderInterface.h"
+#include "to_from_string.h"
 
 #include <string_view>
 #include <utility>
 
-namespace io_detail
+namespace io
 {
 
 // this lists all compact escape sequences known to TOML
@@ -93,4 +93,4 @@ std::string encode_toml_key(std::string_view key)
   return allow_bare_key ? std::string(key) : encode_toml_str(key);
 }
 
-}  // namespace io_detail
+}  // namespace io
