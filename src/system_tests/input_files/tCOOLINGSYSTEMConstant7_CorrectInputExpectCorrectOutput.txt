@@ -54,3 +54,6 @@ gamma=1.666666667
 # Choose rho so that pressure (cholla units) = temperature / e13 (Kelvin) 
 # T = p * (6.9e13)/d
 # T/e13 = p * (6.9)/d
+
+[chemistry]
+kind=piecewise-cie
