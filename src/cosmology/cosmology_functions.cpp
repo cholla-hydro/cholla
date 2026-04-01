@@ -131,8 +131,6 @@ void Cosmology::Set_DynamicalDE_Density()
   }
 }
 
-  #endif  // DYNAMICAL_DE_TABLE
-
 /* Computes dt/da * da */
 Real Cosmology::dtda_cosmo(Real da, Real a)
 {
