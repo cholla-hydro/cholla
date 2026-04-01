@@ -166,7 +166,7 @@ std::pair<std::size_t, std::string> try_parse_param_str(std::string_view s, std:
     }
     CHOLLA_ERROR("the raw-string doesn't have a closing '");
 
-  } else if (nchr_geq_2 and s[pos] != '"') {  // <- basic-string
+  } else if (nchr_geq_2 and s[pos] == '"') {  // <- basic-string
     pos++;
     std::string out;  // <- initialized to empty string
     while (pos < size) {
@@ -192,6 +192,7 @@ std::pair<std::size_t, std::string> try_parse_param_str(std::string_view s, std:
       } else {
         Abort_Bad_Char_Err_(c, "basic-string");
       }
+      pos++;
     }
     CHOLLA_ERROR("the basic-string doesn't have a closing \"");
 
