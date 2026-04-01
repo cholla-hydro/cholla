@@ -32,8 +32,11 @@
       r = "out of range";
       break;
   }
-  CHOLLA_ERROR("error interpretting \"%s\", the value of the \"%s\" parameter, as a %s: %s", str.c_str(), param.c_str(),
-               dtype.c_str(), r.c_str());
+  const char* msg =
+      ("error interpretting the value associated with the \"%s\" parameter\n"
+       "%s\n"
+       "as a %s: %s");
+  CHOLLA_ERROR(msg, param.c_str(), str.c_str(), dtype.c_str(), r.c_str());
 }
 
 param_details::TypeErr param_details::try_bool_(const std::string& str, bool& val)
@@ -89,10 +92,13 @@ param_details::TypeErr param_details::try_double_(const std::string& str, double
 
 param_details::TypeErr param_details::try_string_(const std::string& str, std::string& val)
 {
-  std::pair<std::size_t, std::string> rslt = io::try_parse_param_str(val);
+  // printf("trying to parse: %s\n", str.c_str());
+  std::pair<std::size_t, std::string> rslt = io::try_parse_param_str(str);
+  // printf("-> pos = %d, (actual size = %d)\n", (int)rslt.first, (int)str.size());
+  // printf("-> parsed val:%s\n", rslt.second.c_str());
   if (rslt.first == 0) {  // <- it simply wasn't a valid string
     return param_details::TypeErr::generic;
-  } else if (rslt.first != val.size()) {
+  } else if (rslt.first != str.size()) {
     // in this scenario, val could look like
     // > 'hi'there
     // and rslt.second holds "hi"
