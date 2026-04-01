@@ -98,7 +98,7 @@ void Cosmology::Set_DynamicalDE_Density()
   Real wDE_prev, wDE;
 
   int i;
-  double integral_sum_arr[n_wDE_samples];
+  std::vector<double> integral_sum_arr(n_wDE_samples);
   dynamicalDE_table_density = (float *)malloc(sizeof(Real) * (n_wDE_samples));
 
   integral_sum_arr[0]          = 0.;
