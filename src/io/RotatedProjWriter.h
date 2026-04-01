@@ -87,7 +87,7 @@ class RotatedProjWriter
   RotatedProjWriter() = delete;
   RotatedProjWriter(ParameterMap &pmap) : rot_info_(pmap) {}
 
-  /*! Writes the rotated project to disk.
+  /*! Writes the rotated projection to disk.
    *
    *  \note
    *  In case you are unaware, this overloads the "function call operator". If we have
