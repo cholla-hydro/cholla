@@ -20,10 +20,16 @@ void Cosmology::Initialize(struct Parameters *P, Grav3D &Grav, Particles3D &Part
   Omega_b = P->Omega_b;
   w0      = P->w0;
   wa      = P->wa;
-  #ifdef DYNAMICAL_DE_TABLE
-  Load_DynamicalDE_EquationOfState(P);
-  Set_DynamicalDE_Density();
-  #endif
+  
+  // set default values pertaining to DynamicalDE EOS table
+  dynamicalDE_table_z = nullptr;
+  dynamicalDE_table_w = nullptr;
+  dynamicalDE_table_density = nullptr;
+  n_wDE_samples = 0;
+  if (std::strlen(P.wDE_file) != 0) {
+    Load_DynamicalDE_EquationOfState(P);
+    Set_DynamicalDE_Density();
+  }
 
   if (strcmp(P->init, "Read_Grid") == 0) {
     // Read scale factor value from Particles
