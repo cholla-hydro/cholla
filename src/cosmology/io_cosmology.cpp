@@ -152,6 +152,4 @@ void Cosmology::Load_DynamicalDE_EquationOfState(struct Parameters *P)
     exit(1);
   }
 }
-  #endif  // DYNAMICAL_DE_TABLE
-
 #endif
