@@ -391,6 +391,7 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   parms->Omega_L       = pmap.value<double>("Omega_L");
   parms->Omega_b       = pmap.value<double>("Omega_b");
   parms->Omega_R       = pmap.value_or("Omega_R", 0.0);
+  parms->T_init        = pmap.value_or("T_init", -1.0);
   parms->w0            = pmap.value_or("w0", -1.0);
   parms->wa            = pmap.value_or("wa", 0.0);
   parms->seed          = pmap.value_or("seed", 1337);
@@ -398,6 +399,7 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
     CHOLLA_ERROR("Cosmology sims must specify a power spectrum");
   }
   Load_String_Param_Into_Char_Buffer(pmap, "cosmo_ics_pk_file", parms->cosmo_ics_pk_file, "Pk.txt");
+  chprintf("Power spectrum file: %s\n",parms->cosmo_ics_pk_file);
 #endif  // COSMOLOGY
 
 #if defined(CHEMISTRY_GPU) || defined(COOLING_GRACKLE)

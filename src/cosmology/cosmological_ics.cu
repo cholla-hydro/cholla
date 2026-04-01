@@ -55,6 +55,9 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
 	// set the number of fields
 	CP.n_fields = 1;	
+#ifndef ONLY_PARTICLES
+	CP.n_fields += 1;	// add a baryon field
+#endif 
 
 	// initialize the RNG properties
 	Initialize_Cosmo_Potential_RNG(P);
@@ -69,7 +72,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   chprintf("nx_local %d %d %d\n",nx_local, ny_local, nz_local);
   chprintf("nx_global %d ny_global %d nz_global %d\n",nx_global,ny_global,nz_global);
 	fft.Initialize( H.xdglobal, H.ydglobal, H.zdglobal, H.xblocal, H.yblocal, H.zblocal,
-		              P->nx, P->ny, P->nz, nx_local, ny_local, nz_local, H.dx, H.dy, H.dz );
+		              nx_global, ny_global, nz_global, nx_local, ny_local, nz_local, H.dx, H.dy, H.dz );
 
 	// Allocate the memory needed for the potentials
 	Allocate_Cosmo_Potential_Memory();
@@ -134,15 +137,27 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	//         xi(k) = N**-d \sum_m exp( -(2 pi i / M) * kappa \dot m) * xi(m)
 	fft.Filter_rescale(CP.d_phi_1,1./(nx_global*ny_global*nz_global),CP.d_phi_1,true);
 
+
+#ifndef ONLY_PARTICLES
+  // step 2.5) Copy random field to baryonic field
+	cudaMemcpy(CP.d_phi_1b, CP.d_phi_1, n_cells * sizeof(Real), cudaMemcpyDeviceToDevice);
+#endif 
+
 	// step 3) Multiply xi(k) by the transfer function 
 	//         T(k) \equiv [(2 \pi / L)**3 P(k)]^{1/2}
 	//         note T(k) is computed at z=0
   //         also note  the [(2 \pi / L)**3 ]^{1/2} factor is handled
   //         when the power spectrum is loaded, so this just applies sqrt(P(k))
   fft.Filter_rescale_by_power_spectrum(CP.d_phi_1,CP.d_phi_1,true,CP.n_pk,CP.d_k_array,CP.d_pk_dm_array);
+#ifndef ONLY_PARTICLES
+  //fft.Filter_rescale_by_power_spectrum(CP.d_phi_1b,CP.d_phi_1b,true,CP.n_pk,CP.d_k_array,CP.d_pk_gas_array);
+#endif 
 
 	// copy memory back to host
 	cudaMemcpy(CP.phi_1, CP.d_phi_1, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+#ifndef ONLY_PARTICLES
+	cudaMemcpy(CP.phi_1b, CP.d_phi_1b, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+#endif 
 
   // free the P(k)
   Free_Cosmo_Power_Spectrum();
@@ -173,7 +188,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
 /*! \fn void Save_Cosmo_Potential(struct Parameters *P)
  *  \brief Write out the cosmological potential field to hdf5 files*/
-void Grid3D::Save_Cosmo_Potential(struct Parameters *P)
+void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
 {
   char fname[200];
   hid_t f_id, d_id, a0_id, a1_id, a2_id, a3_id;
@@ -323,7 +338,7 @@ void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
 
 
 /*! \fn void Free_Cosmo_Power_Spectrum()
- *  \brief Allocate memory and load cosmological power spectrum*/
+ *  \brief Free memory for cosmological power spectrum*/
 void Grid3D::Free_Cosmo_Power_Spectrum()
 {
   // free host P(k) info
@@ -434,6 +449,9 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
 
   // point potential variables to the appropriate locations on host
   CP.phi_1    = CP.host;
+#ifndef ONLY_PARTICLES
+  CP.phi_1b   = &(CP.host[n_cells]);
+#endif
 
   // allocate memory for the conserved variable arrays on the device
   GPU_Error_Check(cudaMalloc((void **)&CP.device, CP.n_fields * n_cells * sizeof(Real)));
@@ -442,7 +460,10 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
   chprintf("Device memory allocated for cosmological ICs initial potential.\n");
 
   // point potential variables to the appropriate locations on the device
-  CP.d_phi_1  = CP.device;
+  CP.d_phi_1   = CP.device;
+#ifndef ONLY_PARTICLES
+  CP.d_phi_1b  = &(CP.device[n_cells]);
+#endif
 
   // initialize host array
   for (int i = 0; i < CP.n_fields * n_cells; i++) {

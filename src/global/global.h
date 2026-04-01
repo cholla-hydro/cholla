@@ -289,6 +289,7 @@ struct Parameters {
   Real wa;
   Real Init_redshift;
   Real End_redshift;
+  Real T_init;
   unsigned long long seed; //Cosmological ICs seed
   char cosmo_ics_pk_file[MAXLEN];
 

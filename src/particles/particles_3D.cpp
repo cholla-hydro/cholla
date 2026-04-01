@@ -217,7 +217,7 @@ void Particles3D::Initialize(Parameters *P, const SpatialDomainProps &spatial_pr
   } else if (strcmp(P->init, "Adiabatic_Expansion") == 0) {
     Initialize_Adiabatic_Expansion(P);
   } else if (strcmp(P->init, "Cosmological_ICs") == 0) {
-    Initialize_Cosmological_ICs_Particles(P);
+    Initialize_Cosmological_ICs_Particles(P,xbound,ybound,zbound,xdglobal,ydglobal,zdglobal);
   } else if (strcmp(P->init, "Read_Grid") == 0) {
     Load_Particles_Data(P);
   } else if (strcmp(P->init, "Isolated_Stellar_Cluster") == 0) {
@@ -1156,7 +1156,8 @@ void Particles3D::Initialize_Adiabatic_Expansion(struct Parameters *P)
 
 /* void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P)
  * \brief create the lagrangian particle positions */
-void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P)
+void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Real xbound, Real ybound, Real zbound,
+                                                        Real xdglobal, Real ydglobal, Real zdglobal)
 {
   chprintf("Setting Cosmological ICs Lagrangian particle positions...\n");
 
@@ -1173,7 +1174,7 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P)
   // Set the particle mass
   Real H0      = P->H0;
   Real cosmo_h = H0 / 100;
-  Real H0 /= 1000;  //[km/s / kpc]
+  H0 /= 1000;  //[km/s / kpc]
   Real Omega_M = P->Omega_M;
   Real Omega_L = P->Omega_L;
   Real Omega_R = P->Omega_R;
@@ -1181,10 +1182,10 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P)
   Real Omega_b = P->Omega_b;
   Real w0      = P->w0;
   Real wa      = P->wa;
-  Real G       = G_COSMO;
-  Real rho_cdm = 3 * H0 * H0 / (8 * M_PI * G) * (Omega_M-Omega_b) / h / h;
-  Real Mvol    = rho_cdm * G.xdglobal * G.ydglobal * G.zdglobal;
-  Real Mparticle = M_vol / n_particles_total;
+  Real G_n     = G_COSMO;
+  Real rho_cdm = 3 * H0 * H0 / (8 * M_PI * G_n) * (Omega_M-Omega_b) / cosmo_h / cosmo_h;
+  Real Mvol    = rho_cdm * xdglobal * ydglobal * zdglobal;
+  Real Mparticle = Mvol / n_particles_total;
 
   #ifdef SINGLE_PARTICLE_MASS
   particle_mass = Mparticle;
@@ -1232,12 +1233,14 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P)
   part_int_t pID = 0;
   Real x_pos, y_pos, z_pos;
 
-  for (k = G.n_ghost; k < G.nz_local + G.n_ghost; k++) {
-    for (j = G.n_ghost; j < G.ny_local + G.n_ghost; j++) {
-      for (i = G.n_ghost; i < G.nx_local - G.n_ghost; i++) {
+  for (k = 0; k < G.nz_local; k++) {
+    for (j = 0; j < G.ny_local; j++) {
+      for (i = 0; i < G.nx_local; i++) {
 
         // // get the centered cell positions at (i,j,k)
-        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+        x_pos = G.xMin + G.dx * i + 0.5 * G.dx;
+        y_pos = G.yMin + G.dy * j + 0.5 * G.dy;
+        z_pos = G.zMin + G.dz * k + 0.5 * G.dz;
 
       #ifdef PARTICLES_CPU
         // Copy the particle data to the particles vectors
@@ -1332,135 +1335,6 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P)
   #endif  // PARTICLES_GPU
 
   chprintf(" Cosmological ICs lagrangian positions initialized, n_local: %lu\n", n_local);
-}
-
-/* Actualy handles the initialization of stellar cluster particles based on their properties
- *
- * \note
- * Depending on how Cholla is compiled, it may mutate the real_props and int_props arguments.
- */
-void Particles3D::Initialize_Stellar_Clusters_Helper_(std::map<std::string, real_vector_t> &real_props,
-                                                      std::map<std::string, int_vector_t> &int_props)
-{
-  // come up with a list of expected particle-property names. We opt to store this in a std::map
-  // (the keys denote the property name and the value denotes whether it is Real)
-  const std::map<std::string, bool> expected_prop_map = {
-  #ifdef PARTICLE_AGE
-      {"age", true},
-  #endif
-  #ifndef SINGLE_PARTICLE_MASS
-      {"mass", true},
-  #endif
-  #ifdef PARTICLE_IDS
-      {"id", false},
-  #endif
-      {"pos_x", true}, {"pos_y", true},  {"pos_z", true},  {"vel_x", true}, {"vel_y", true},
-      {"vel_z", true}, {"grav_x", true}, {"grav_y", true}, {"grav_z", true}};
-
-  // Here, we do some self-consistency checks!
-  auto query_prop_len = [](const auto &prop_map, const std::string &name) -> part_int_t {
-    auto rslt = prop_map.find(name);
-    if (rslt == prop_map.end()) return -1;
-    return part_int_t((rslt->second).size());
-  };
-
-  n_local = real_props.at("pos_x").size();
-
-  std::size_t expected_real_prop_count = 0;
-  std::size_t expected_int_prop_count  = 0;
-
-  // self-consistency checks 1 & 2: confirm that all of expected keys are present in the provided
-  //                                prop_maps & that all entries of prop_maps share a common length
-  for (const auto &[name, is_real_prop] : expected_prop_map) {
-    part_int_t cur_size = 0;
-    if (is_real_prop) {
-      expected_real_prop_count++;
-      cur_size = query_prop_len(real_props, name);
-    } else {
-      expected_int_prop_count++;
-      cur_size = query_prop_len(int_props, name);
-    }
-
-    if (cur_size < 0) {
-      std::string type_string = (is_real_prop) ? "Real" : "int";
-      CHOLLA_ERROR("Expected the %s property to be specified as a %s-type property", name.c_str(), type_string.c_str());
-    } else if (cur_size != n_local) {
-      CHOLLA_ERROR("the %s property has a length of %lld. Other properties have a length of %lld", name.c_str(),
-                   (long long)(cur_size), (long long)(n_local));
-    }
-  }
-
-  // self-consistency checks 3: confirm that the provided prop_maps don't provide unexpected keys
-  if ((expected_int_prop_count != int_props.size()) or (expected_real_prop_count != real_props.size())) {
-    for (const auto &[name, dummy] : int_props) {
-      auto rslt = expected_prop_map.find(name);
-      // recall: `rslt->second` encodes whether the property is expected to be a `Real` or an `int`
-      CHOLLA_ASSERT((rslt != expected_prop_map.end()) and (not rslt->second),
-                    "Current configuration not equipped to handle an int property called %s", name.c_str());
-    }
-    for (const auto &[name, dummy] : real_props) {
-      auto rslt = expected_prop_map.find(name);
-      // recall: `rslt->second` encodes whether the property is expected to be a `Real` or an `int`
-      CHOLLA_ASSERT((rslt != expected_prop_map.end()) and rslt->second,
-                    "Current configuration not equipped to handle a Real property called %s", name.c_str());
-    }
-  }
-
-  #ifdef PARTICLES_CPU
-    // maybe use std::move in this cases to avoid the heap-allocation
-    #ifdef(PARTICLE_AGE)
-  this->age = real_props.at("age");
-    #endif
-    #ifndef SINGLE_PARTICLE_MASS
-  this->mass = real_props.at("mass");
-    #endif
-    #ifdef PARTICLE_IDS
-  this->partIDs = int_props.at("id");
-    #endif
-  this->pos_x  = real_props.at("pos_x");
-  this->pos_y  = real_props.at("pos_y");
-  this->pos_z  = real_props.at("pos_z");
-  this->vel_x  = real_props.at("vel_x");
-  this->vel_y  = real_props.at("vel_y");
-  this->vel_z  = real_props.at("vel_z");
-  this->grav_x = real_props.at("grav_x");
-  this->grav_y = real_props.at("grav_y");
-  this->grav_z = real_props.at("grav_z");
-  #endif  // PARTICLES_CPU
-
-  #ifdef PARTICLES_GPU
-  particles_array_size = Compute_Particles_GPU_Array_Size(n_local);
-    #ifdef PARTICLE_AGE
-  Allocate_Particles_GPU_Array_Real(&age_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(real_props.at("age").data(), age_dev, n_local);
-    #endif  // PARTICLE_AGE
-    #ifndef SINGLE_PARTICLE_MASS
-  Allocate_Particles_GPU_Array_Real(&mass_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(real_props.at("mass").data(), mass_dev, n_local);
-    #endif  // SINGLE_PARTICLE_MASS
-    #ifdef PARTICLE_IDS
-  Allocate_Particles_GPU_Array_Part_Int(&partIDs_dev, particles_array_size);
-  Copy_Particles_Array_Int_Host_to_Device(int_props.at("id").data(), partIDs_dev, n_local);
-    #endif  // PARTICLE_IDS
-  Allocate_Particles_GPU_Array_Real(&pos_x_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(real_props.at("pos_x").data(), pos_x_dev, n_local);
-  Allocate_Particles_GPU_Array_Real(&pos_y_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(real_props.at("pos_y").data(), pos_y_dev, n_local);
-  Allocate_Particles_GPU_Array_Real(&pos_z_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(real_props.at("pos_z").data(), pos_z_dev, n_local);
-  Allocate_Particles_GPU_Array_Real(&vel_x_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(real_props.at("vel_x").data(), vel_x_dev, n_local);
-  Allocate_Particles_GPU_Array_Real(&vel_y_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(real_props.at("vel_y").data(), vel_y_dev, n_local);
-  Allocate_Particles_GPU_Array_Real(&vel_z_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(real_props.at("vel_z").data(), vel_z_dev, n_local);
-  Allocate_Particles_GPU_Array_Real(&grav_x_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(real_props.at("grav_x").data(), grav_x_dev, n_local);
-  Allocate_Particles_GPU_Array_Real(&grav_y_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(real_props.at("grav_y").data(), grav_y_dev, n_local);
-  Allocate_Particles_GPU_Array_Real(&grav_z_dev, particles_array_size);
-  Copy_Particles_Array_Real_Host_to_Device(real_props.at("grav_z").data(), grav_z_dev, n_local);
-  #endif  // PARTICLES_GPU
 }
 
 void Grid3D::Initialize_Uniform_Particles()

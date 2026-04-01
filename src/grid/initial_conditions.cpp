@@ -1650,36 +1650,87 @@ void Grid3D::Adiabatic_Expansion(struct Parameters P)
 #endif  // COSMOLOGY
 }
 
-void Grid3D::Cosmological_ICs(struct Parameters P)
+void Grid3D::Cosmological_ICs(struct Parameters const P)
 {
 #ifndef COSMOLOGY
   chprintf("To run a Cosmological ICs simulation, COSMOLOGY has to be turned ON \n");
   exit(-1);
 #else
 
+
+  chprintf("Setting Cosmological initial conditions (eventually)...\n");
+
   int i, j, k, id;
   Real x_pos, y_pos, z_pos;
   Real H0, h, Omega_M, rho_0, G, z_zeldovich, z_init, x_center, T_init, k_x;
+  Real gamma;
 
-  chprintf("Setting Cosmological initial conditions...\n");
   H0      = P.H0;
   h       = H0 / 100;
-  Omega_M = P.Omega_M;
+  G       = G_COSMO;
+  Real Omega_b = P.Omega_b;
+  Real rho_b   = 3 * H0 * H0 / (8 * M_PI * G) * Omega_b / h / h;
+  z_init = P.Init_redshift;
+  gamma = P.gamma;
+
+  if(P.T_init==-1) {
+    T_init = 2.72548 * pow(1.0 + z_init, 3); // set to CMB
+  }else{
+    T_init = P.T_init; // set to precomputed gas temperature
+  }
+  chprintf(" T initial = %f \n", T_init);
+
+
+  /*
 
   chprintf(" h = %f \n", h);
   chprintf(" Omega_M = %f \n", Omega_M);
 
   H0 /= 1000;  //[km/s / kpc]
-  G      = G_COSMO;
-  rho_0  = 3 * H0 * H0 / (8 * M_PI * G) * Omega_M / h / h;
-  z_init = P.Init_redshift;
   chprintf(" rho_0 = %f \n", rho_0);
   chprintf(" z_init = %f \n", z_init);
 
-  T_init = 100;
-  chprintf(" T initial = %f \n", T_init);
 
   k_x = 2 * M_PI / H.xdglobal;
+  */
+
+
+  // create gas 
+
+#ifndef ONLY_PARTICLES
+  int index;
+  int ii, jj, kk;
+  Real dens, vel, U, E; 
+  // set the initial values of the conserved variables
+  for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
+    for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
+      for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+        id = i + j * H.nx + k * H.nx * H.ny;
+
+        kk = k - H.n_ghost;
+        jj = j - H.n_ghost;
+        ii = i - H.n_ghost;
+        index =  ii + jj * nx_local + kk * nx_local * ny_local;
+
+        dens = rho_b * (1 + CP.phi_1b[index]); // rho_b * (1+delta_gas)
+        vel  = 0;
+        U    = T_init / (gamma - 1) / MP * KB * 1e-10 * dens;
+        E    = U;
+
+        C.density[id]    = dens; // density fluctuations are >> 1 check
+        C.momentum_x[id] = dens * vel;
+        C.momentum_y[id] = 0;
+        C.momentum_z[id] = 0;
+        C.Energy[id]     = E;
+
+  #ifdef DE
+        C.GasEnergy[id] = U;
+  #endif
+      }
+    }
+  }
+#endif 
+
 
 
   // write potential to file
@@ -1687,8 +1738,10 @@ void Grid3D::Cosmological_ICs(struct Parameters P)
   Save_Cosmo_Potential(&P);
 
   // free potential memory
-  chprintf("Free cosmological potential memory...\n");
-  Free_Cosmo_Potential_Memory();
+  // well, we still need it until after the particles
+  // have been generated
+  //chprintf("Free cosmological potential memory...\n");
+  //Free_Cosmo_Potential_Memory();
 
   // Further Initialization performed elsehwere .... perhaps move here
   //chexit(0);

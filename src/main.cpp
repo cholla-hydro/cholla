@@ -128,8 +128,10 @@ int main(int argc, char *argv[])
 
   // Set initial conditions
   chprintf("Setting initial conditions...\n");
+  //chprintf("bsic nx/ny/nz %d/%d/%d\n",P.nx,P.ny,P.nz);
   G.Set_Initial_Conditions(P, pmap);
   chprintf("Initial conditions set.\n");
+  //chprintf("asic nx/ny/nz %d/%d/%d\n",P.nx,P.ny,P.nz);
   // set main variables for Read_Grid and Read_Grid_Cat initial conditions
   if (is_restart) {
     outtime += G.H.t;

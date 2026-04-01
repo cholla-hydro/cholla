@@ -620,7 +620,7 @@ class Grid3D
 
   void Adiabatic_Expansion(struct Parameters P);
 
-  void Cosmological_ICs(struct Parameters P);
+  void Cosmological_ICs(struct Parameters const P);
 
   void Chemistry_Test(struct Parameters P);
 
@@ -808,7 +808,7 @@ class Grid3D
   #endif  // PARTICLES_GPU
 
   void Generate_Cosmo_Phi_Init(struct Parameters *P);
-  void Save_Cosmo_Potential(struct Parameters *P);
+  void Save_Cosmo_Potential(struct Parameters const *P);
   void Initialize_Cosmo_Potential_RNG(struct Parameters *P);
   void Load_Cosmo_Power_Spectrum(struct Parameters *P);
   void Free_Cosmo_Power_Spectrum();
@@ -840,6 +840,9 @@ class Grid3D
 
     /*! pointer to first potential */
     Real *phi_1;
+#ifndef ONLY_PARTICLES
+    Real *phi_1b;
+#endif 
 
     /*! pointer to second potential */
     Real *phi_2;
@@ -849,6 +852,10 @@ class Grid3D
 
     /*! pointer to first potential on device */
     Real *d_phi_1;
+
+#ifndef ONLY_PARTICLES
+    Real *d_phi_1b;
+#endif
 
     /*! pointer to second potential on device */
     Real *d_phi_2;

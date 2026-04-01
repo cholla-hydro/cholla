@@ -21,6 +21,8 @@ void Grid3D::Initialize_Cosmology(struct Parameters *P)
     H.Output_Now = true;
   }
 
+  // Finalize cosmological ICs HERE
+
   chprintf("Cosmology Successfully Initialized. \n\n");
 }
 
@@ -99,7 +101,7 @@ void Grid3D::Change_Cosmological_Frame_System(bool forward)
     chprintf(" Converting to Cosmological Physical System\n");
   }
 
-  Change_DM_Frame_System(forward);
+  Change_DM_Frame_System(forward); //does nothing
   #ifndef ONLY_PARTICLES
 
   Change_GAS_Frame_System_GPU(forward);
