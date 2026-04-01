@@ -23,7 +23,6 @@ class Cosmology
   Real w0;
   Real wa;
 
-    #ifdef DYNAMICAL_DE_TABLE
   float *dynamicalDE_table_z;
   float *dynamicalDE_table_w;
   // dark energy energy density normalized to the present-date rho_DE(z) / rho_DE(z=0)
@@ -33,7 +32,9 @@ class Cosmology
   Real Get_wDE_from_a(Real a);
   void Set_DynamicalDE_Density();
   Real Get_DynamicalDE_Density_from_a(Real a);
-    #endif
+
+  /*! Indicate whether the simulation is configured to use a DynamicalDE EOS table */
+  bool Using_DynamicalDE_Table() { return n_wDE_samples != 0; }
 
   Real cosmo_G;
   Real cosmo_h;
