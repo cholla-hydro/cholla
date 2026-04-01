@@ -15,7 +15,7 @@
 
 #define COOL_RHO 6.9498489284711
 
-TEST(tCOOLINGSYSTEMConstant5, CorrectInputExpectCorrectOutput)
+TEST(tHYDROtMHDSYSTEMCoolingConstant5, CorrectInputExpectCorrectOutput)
 {
   // dt = 0.3
   // rho = COOL_RHO*1e5
@@ -36,7 +36,7 @@ TEST(tCOOLINGSYSTEMConstant5, CorrectInputExpectCorrectOutput)
   testing_utilities::analyticConstant(testObject, "Energy", energy);
 }
 
-TEST(tCOOLINGSYSTEMConstant7, CorrectInputExpectCorrectOutput)
+TEST(tHYDROtMHDSYSTEMCoolingConstant7, CorrectInputExpectCorrectOutput)
 {
   // dt = 100
   // rho = COOL_RHO*1e5
@@ -55,7 +55,7 @@ TEST(tCOOLINGSYSTEMConstant7, CorrectInputExpectCorrectOutput)
   testing_utilities::analyticConstant(testObject, "Energy", energy);
 }
 
-TEST(tCOOLINGSYSTEMConstant8, CorrectInputExpectCorrectOutput)
+TEST(tHYDROtMHDSYSTEMCoolingConstant8, CorrectInputExpectCorrectOutput)
 {
   // dt = 90
   // rho = COOL_RHO*1e5
