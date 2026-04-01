@@ -73,7 +73,7 @@ namespace
 
 #ifdef HDF5
 
-/*! \brief Write rotated projected data to a file, at the current simulation */
+/*! \brief Write rotated projected data to a file, at the current simulation time */
 void Write_Rotated_Projection_HDF5_(const Grid3D &G, hid_t file_id, const io::Rotation &R)
 {
   const Header &H = G.H;
