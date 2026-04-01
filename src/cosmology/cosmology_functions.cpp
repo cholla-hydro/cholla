@@ -177,11 +177,11 @@ Real Cosmology::Get_da_from_dt(Real dt)
   Real a2 = current_a * current_a;
   Real fac_de;
 
-  #if DYNAMICAL_DE_TABLE
-  fac_de = Get_DynamicalDE_Density_from_a(current_a);
-  #else
-  fac_de = pow(current_a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - current_a));
-  #endif  // DYNAMICAL_DE_TABLE
+  if (Using_DynamicalDE_Table()) {
+    fac_de = Get_DynamicalDE_Density_from_a(current_a);
+  } else {
+    fac_de = pow(current_a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - current_a));
+  }
 
   Real a_dot = sqrt(Omega_R / a2 + Omega_M / current_a + a2 * Omega_L * fac_de + Omega_K) * H0;
   return a_dot * dt;
