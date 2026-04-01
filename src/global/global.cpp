@@ -393,10 +393,8 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   parms->w0            = pmap.value_or("w0", -1.0);
   parms->wa            = pmap.value_or("wa", 0.0);
 
-  #ifdef DYNAMICAL_DE_TABLE
-  // using macro to let compiler know whether to declare wDE table
-  Load_String_Param_Into_Char_Buffer(pmap, "wDE_file", parms->wDE_file, nullptr);
-  #endif
+  // if the wDE table isn't provided, store an empty string
+  Load_String_Param_Into_Char_Buffer(pmap, "wDE_file", parms->wDE_file, "");
 
 #endif  // COSMOLOGY
 
