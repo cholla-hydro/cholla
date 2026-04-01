@@ -48,3 +48,6 @@ zu_bcnd=1
 # path to output directory
 outdir=./
 prng_seed=41
+
+[chemistry]
+kind=piecewise-cie

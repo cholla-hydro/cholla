@@ -51,3 +51,6 @@ ddelta_dt=-0.001
 # path to output directory
 outdir=./
 prng_seed=41
+
+[chemistry]
+kind=piecewise-cie
