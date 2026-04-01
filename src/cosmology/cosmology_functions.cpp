@@ -1,6 +1,7 @@
 #ifdef COSMOLOGY
   #include <fstream>
 
+  #include <vector>
   #include "../global/global.h"
   #include "../grid/grid3D.h"
   #include "../grid/grid_enum.h"
