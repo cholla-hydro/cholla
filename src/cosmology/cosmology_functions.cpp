@@ -137,11 +137,11 @@ Real Cosmology::dtda_cosmo(Real da, Real a)
   Real a2 = a * a;
   Real fac_de;
 
-  #if DYNAMICAL_DE_TABLE
-  fac_de = Get_DynamicalDE_Density_from_a(a);
-  #else
-  fac_de = pow(a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - a));
-  #endif  // DYNAMICAL_DE_TABLE
+  if (Using_DynamicalDE_Table()) {
+    fac_de = Get_DynamicalDE_Density_from_a(a);
+  } else {
+    fac_de = pow(a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - a));
+  }
 
   Real a_dot = sqrt(Omega_R / a2 + Omega_M / a + a2 * Omega_L * fac_de + Omega_K) * H0;
   return da / a_dot;
