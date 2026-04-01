@@ -264,8 +264,7 @@ void H5AttrRecorder::record(const char *name, const char *value)
 void H5AttrRecorder::record_arr(const char *name, const double *arr, int length)
 {
   hid_t type_id = H5T_NATIVE_DOUBLE;
-  // is there a compelling reason why this is big endian?
-  hid_t dest_type_id = H5T_IEEE_F64BE;
+  hid_t dest_type_id = H5T_IEEE_F64LE;
   hid_t attribute_id = this->make_attr_1d_(name, dest_type_id, length);
   if (H5Awrite(attribute_id, type_id, arr) < 0) {
     CHOLLA_ERROR("error writing \"%s\" attribute", name);
@@ -282,7 +281,7 @@ void H5AttrRecorder::record_arr(const char *name, const int *arr, int length)
   // -> in reality, we probably want to make sure the output size is at least
   //    as big as the native int (yes, it's usually 32-bit, but not guaranteed)
   // -> is there a compelling reason why this is big endian?
-  hid_t dest_type_id = H5T_STD_I32BE;
+  hid_t dest_type_id = H5T_STD_I32LE;
   hid_t attribute_id = this->make_attr_1d_(name, dest_type_id, length);
   if (H5Awrite(attribute_id, type_id, arr) < 0) {
     CHOLLA_ERROR("error writing \"%s\" attribute", name);
@@ -295,8 +294,7 @@ void H5AttrRecorder::record_arr(const char *name, const int *arr, int length)
 void H5AttrRecorder::record_arr(const char *name, const long *arr, int length)
 {
   hid_t type_id = H5T_NATIVE_INT;
-  // is there a compelling reason why this is big endian?
-  hid_t dest_type_id = H5T_STD_I64BE;
+  hid_t dest_type_id = H5T_STD_I64LE;
   hid_t attribute_id = this->make_attr_1d_(name, dest_type_id, length);
   if (H5Awrite(attribute_id, type_id, arr) < 0) {
     CHOLLA_ERROR("error writing \"%s\" attribute", name);
