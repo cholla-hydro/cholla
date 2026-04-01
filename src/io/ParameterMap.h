@@ -56,10 +56,12 @@ inline param_details::TypeErr try_int_(const std::string& str, int& val)
  * However, the class is not entirely immutable; internally it tracks whether parameters have been
  * accessed.
  *
- * In contrast to formats like TOML, JSON, & YAML, the parameter files don't have syntactic typing
- * (i.e. where the syntax determines formatting). In this sense, the format is more like ini files.
- * As a consequence, we internally store the parameters as strings. The access API explicitly
- * converts them to the user-specified type.
+ * Historically, parameters didn't have syntactic typing (i.e. the fact that you can
+ * explicitly infer the type from the way in which the value is written). As a
+ * consequence, we internally store the parameters as raw strings and don't tell the
+ * user whether the value was totally invalid until the access API explicitly tries to
+ * convert them to the user-specified type. (Now that we do have syntactic typing, this
+ * should definitely change!).
  *
  * \note
  * We primarily support 4 datatypes: ``bool``, ``std::int64_t``, ``double``, ``std::string``.

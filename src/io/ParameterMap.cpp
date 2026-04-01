@@ -8,8 +8,9 @@
 #include <string_view>
 #include <vector>
 
-#include "../global/global.h"  // MAXLEN
-#include "../io/io.h"          // chprintf
+#include "../global/global.h"      // MAXLEN
+#include "../io/io.h"              // chprintf
+#include "../io/to_from_string.h"  // io::try_parse_param_str
 #include "../utils/error_handling.h"
 
 [[noreturn]] void param_details::Report_TypeErr_(const std::string& param, const std::string& str,
@@ -88,9 +89,16 @@ param_details::TypeErr param_details::try_double_(const std::string& str, double
 
 param_details::TypeErr param_details::try_string_(const std::string& str, std::string& val)
 {
-  // mostly just exists for consistency (every parameter can be considered a string)
-  // note: we may want to consider removing surrounding quotation marks in the future
-  val = str;  // we make a copy for the sake of consistency
+  std::pair<std::size_t, std::string> rslt = io::try_parse_param_str(val);
+  if (rslt.first == 0) {  // <- it simply wasn't a valid string
+    return param_details::TypeErr::generic;
+  } else if (rslt.first != val.size()) {
+    // in this scenario, val could look like
+    // > 'hi'there
+    // and rslt.second holds "hi"
+    return param_details::TypeErr::generic;
+  }
+  val = rslt.second;
   return param_details::TypeErr::none;
 }
 
