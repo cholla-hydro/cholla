@@ -99,9 +99,6 @@
 // ===============================
 
 #configurefile_define CHEMISTRY_GPU
-#configurefile_define CLOUDY_COOL
-#configurefile_define CLOUDY_COOLING
-#configurefile_define COOLING_GPU
 #configurefile_define COOLING_GRACKLE
 
 #configurefile_define GRACKLE_METALS
