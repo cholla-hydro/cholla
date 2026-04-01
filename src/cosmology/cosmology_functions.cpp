@@ -24,8 +24,6 @@ void Grid3D::Initialize_Cosmology(struct Parameters *P)
   chprintf("Cosmology Successfully Initialized. \n\n");
 }
 
-  #ifdef DYNAMICAL_DE_TABLE
-
 /* Interpolate to get wDE */
 Real Cosmology::Get_wDE_from_a(Real a)
 {
