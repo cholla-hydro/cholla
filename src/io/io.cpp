@@ -263,7 +263,7 @@ void H5AttrRecorder::record(const char *name, const char *value)
 
 void H5AttrRecorder::record_arr(const char *name, const double *arr, int length)
 {
-  hid_t type_id = H5T_NATIVE_DOUBLE;
+  hid_t type_id      = H5T_NATIVE_DOUBLE;
   hid_t dest_type_id = H5T_IEEE_F64LE;
   hid_t attribute_id = this->make_attr_1d_(name, dest_type_id, length);
   if (H5Awrite(attribute_id, type_id, arr) < 0) {
@@ -293,7 +293,7 @@ void H5AttrRecorder::record_arr(const char *name, const int *arr, int length)
 
 void H5AttrRecorder::record_arr(const char *name, const long *arr, int length)
 {
-  hid_t type_id = H5T_NATIVE_INT;
+  hid_t type_id      = H5T_NATIVE_INT;
   hid_t dest_type_id = H5T_STD_I64LE;
   hid_t attribute_id = this->make_attr_1d_(name, dest_type_id, length);
   if (H5Awrite(attribute_id, type_id, arr) < 0) {
