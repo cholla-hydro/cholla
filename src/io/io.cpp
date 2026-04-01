@@ -35,10 +35,6 @@
   #include "../cosmology/cosmology.h"
 #endif  // COSMOLOGY
 
-/* function used to rotate points about an axis in 3D for the rotated projection
- * output routine */
-void Rotate_Point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp);
-
 /* Generate the log output file */
 void Create_Log_File(struct Parameters P)
 {
@@ -165,9 +161,8 @@ void Grid3D::Write_Header_Text(FILE *fp) const
 }
 
 #ifdef HDF5
-/*! \fn void Write_Header_HDF5(hid_t file_id)
- *  \brief Write the relevant header info to the HDF5 file. */
-void Grid3D::Write_Header_HDF5(hid_t file_id)
+// TODO: consider removing only_record_common
+void Grid3D::Write_Header_HDF5(hid_t file_id) const
 {
   H5AttrRecorder attr_recorder(file_id);
 
@@ -191,8 +186,7 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
   attr_recorder.record("energy_unit", double{ENERGY_UNIT});
 
   #ifdef MHD
-  double magnetic_field_unit = MAGNETIC_FIELD_UNIT;
-  attr_recorder.record("magnetic_field_unit", magnetic_field_unit);
+  attr_recorder.record("magnetic_field_unit", double{MAGNETIC_FIELD_UNIT});
   #endif  // MHD
 
   #ifdef COSMOLOGY
@@ -238,115 +232,6 @@ void Grid3D::Write_Header_HDF5(hid_t file_id)
   attr_recorder.record_triple("dx", H.dx, H.dy, H.dz);
 }
 
-/*! \fn void Write_Header_Rotated_HDF5(hid_t file_id)
- *  \brief Write the relevant header info to the HDF5 file for rotated
- * projection. */
-void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id, io::Rotation &R)
-{
-  Real delta, theta, phi;
-
-  #ifdef MPI_CHOLLA
-  // determine the size of the projection to output for this subvolume
-  Real x, y, z, xp, yp, zp;
-  Real alpha, beta;
-  int ix, iz;
-  R.nx_min = R.nx;
-  R.nx_max = 0;
-  R.nz_min = R.nz;
-  R.nz_max = 0;
-  for (int i = 0; i < 2; i++) {
-    for (int j = 0; j < 2; j++) {
-      for (int k = 0; k < 2; k++) {
-        // find the corners of this domain in the rotated position
-        Get_Position(H.n_ghost + i * (H.nx - 2 * H.n_ghost), H.n_ghost + j * (H.ny - 2 * H.n_ghost),
-                     H.n_ghost + k * (H.nz - 2 * H.n_ghost), &x, &y, &z);
-        // rotate cell position
-        Rotate_Point(x, y, z, R.delta, R.phi, R.theta, &xp, &yp, &zp);
-        // find projected location
-        // assumes box centered at [0,0,0]
-        alpha    = (R.nx * (xp + 0.5 * R.Lx) / R.Lx);
-        beta     = (R.nz * (zp + 0.5 * R.Lz) / R.Lz);
-        ix       = (int)round(alpha);
-        iz       = (int)round(beta);
-        R.nx_min = std::min(ix, R.nx_min);
-        R.nx_max = std::max(ix, R.nx_max);
-        R.nz_min = std::min(iz, R.nz_min);
-        R.nz_max = std::max(iz, R.nz_max);
-      }
-    }
-  }
-  // if the corners aren't within the chosen projection area
-  // take the input projection edge as the edge of this piece of the projection
-  R.nx_min = std::max(R.nx_min, 0);
-  R.nx_max = std::min(R.nx_max, R.nx);
-  R.nz_min = std::max(R.nz_min, 0);
-  R.nz_max = std::min(R.nz_max, R.nz);
-  #endif
-
-  H5AttrRecorder attr_recorder(file_id);
-  attr_recorder.record("gamma", gama);
-
-  attr_recorder.record("Git Commit Hash", GIT_HASH);
-  attr_recorder.record("Macro Flags", MACRO_FLAGS);
-
-  // Numeric Attributes
-  attr_recorder.record("t", H.t);
-  attr_recorder.record("dt", H.dt);
-  attr_recorder.record("n_step", H.n_step);
-  attr_recorder.record("n_fields", H.n_fields);
-
-  // Rotation data
-  attr_recorder.record("nxr", R.nx);
-  attr_recorder.record("nzr", R.nz);
-  attr_recorder.record("nx_min", R.nx_min);
-  attr_recorder.record("nz_min", R.nz_min);
-  attr_recorder.record("nx_max", R.nx_max);
-  attr_recorder.record("nz_max", R.nz_max);
-  delta = 180. * R.delta / M_PI;
-  attr_recorder.record("delta", delta);
-  theta = 180. * R.theta / M_PI;
-  attr_recorder.record("theta", theta);
-  phi = 180. * R.phi / M_PI;
-  attr_recorder.record("phi", phi);
-  attr_recorder.record("Lx", R.Lx);
-  attr_recorder.record("Lz", R.Lz);
-
-  // Now, do 3-element attributes
-
-  int dims[3];
-  #ifndef MPI_CHOLLA
-  dims[0] = H.nx_real;
-  dims[1] = H.ny_real;
-  dims[2] = H.nz_real;
-  #else
-  dims[0] = nx_global;
-  dims[1] = ny_global;
-  dims[2] = nz_global;
-  #endif
-
-  attr_recorder.record_arr("dims", dims, 3);
-
-  #ifdef MPI_CHOLLA
-  attr_recorder.record_triple("dims_local", H.nx_real, H.ny_real, H.nz_real);
-
-  // todo: we should stop narrowing the datatype from ptrdiff_t to int
-  int offset[3];
-  offset[0] = nx_local_start;
-  offset[1] = ny_local_start;
-  offset[2] = nz_local_start;
-
-  attr_recorder.record_arr("offset", offset, 3);
-  #endif
-
-  attr_recorder.record_triple("bounds", H.xbound, H.ybound, H.zbound);
-  attr_recorder.record_triple("domain", H.xdglobal, H.ydglobal, H.zdglobal);
-  attr_recorder.record_triple("dx", H.dx, H.dy, H.dz);
-
-  chprintf(
-      "Outputting rotation data with delta = %e, theta = %e, phi = %e, Lx = "
-      "%f, Lz = %f\n",
-      R.delta, R.theta, R.phi, R.Lx, R.Lz);
-}
 #endif  // HDF5
 
 #ifdef HDF5
@@ -650,167 +535,6 @@ void Write_Generic_HDF5_Field_GPU(int nx, int ny, int nz, int nx_real, int ny_re
   Fill_HDF5_Buffer_From_Grid_GPU(nx, ny, nz, nx_real, ny_real, nz_real, n_ghost, dataset_buffer, device_hdf5_buffer,
                                  source_buffer);
   Write_HDF5_Dataset_Grid(nx, ny, nz, nx_real, ny_real, nz_real, file_id, dataset_buffer, name);
-}
-#endif  // HDF5
-
-#ifdef HDF5
-/*! \fn void Write_Rotated_Projection_HDF5(hid_t file_id)
- *  \brief Write rotated projected data to a file, at the current simulation
- * time. */
-void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id, const io::Rotation &R)
-{
-  hid_t dataset_id, dataspace_xzr_id;
-  Real *dataset_buffer_dxzr;
-  Real *dataset_buffer_Txzr;
-  Real *dataset_buffer_vxxzr;
-  Real *dataset_buffer_vyxzr;
-  Real *dataset_buffer_vzxzr;
-
-  herr_t status;
-  Real dxy, dxz, Txy, Txz;
-  Real d, vx, vy, vz;
-
-  Real x, y, z;      // cell positions
-  Real xp, yp, zp;   // rotated positions
-  Real alpha, beta;  // projected positions
-  int ix, iz;        // projected index positions
-
-  Real mu = 0.6;
-
-  srand(137);      // initialize a random number
-  Real eps = 0.1;  // randomize cell centers slightly to combat aliasing
-
-  // 3D
-  if (H.nx > 1 && H.ny > 1 && H.nz > 1) {
-    Real Lx     = R.Lx;  // projected box size in x dir
-    Real Lz     = R.Lz;  // projected box size in z dir
-    int nx_dset = R.nx;
-    int nz_dset = R.nz;
-
-    if (R.nx * R.nz == 0) {
-      chprintf(
-          "WARNING: compiled with -DROTATED_PROJECTION but input parameters "
-          "nxr or nzr = 0\n");
-      return;
-    }
-
-    // set the projected dataset size for this process to capture
-    // this piece of the simulation volume
-    // min and max values were set in the header write
-    int nx_min, nx_max, nz_min, nz_max;
-    nx_min  = R.nx_min;
-    nx_max  = R.nx_max;
-    nz_min  = R.nz_min;
-    nz_max  = R.nz_max;
-    nx_dset = nx_max - nx_min;
-    nz_dset = nz_max - nz_min;
-
-    hsize_t dims[2];
-
-    // allocate the buffers for the projected dataset
-    // and initialize to zero
-    dataset_buffer_dxzr  = (Real *)calloc(nx_dset * nz_dset, sizeof(Real));
-    dataset_buffer_Txzr  = (Real *)calloc(nx_dset * nz_dset, sizeof(Real));
-    dataset_buffer_vxxzr = (Real *)calloc(nx_dset * nz_dset, sizeof(Real));
-    dataset_buffer_vyxzr = (Real *)calloc(nx_dset * nz_dset, sizeof(Real));
-    dataset_buffer_vzxzr = (Real *)calloc(nx_dset * nz_dset, sizeof(Real));
-
-    // Create the data space for the datasets
-    dims[0]          = nx_dset;
-    dims[1]          = nz_dset;
-    dataspace_xzr_id = H5Screate_simple(2, dims, NULL);
-
-    // Copy the xz rotated projection to the memory buffer
-    for (int k = 0; k < H.nz_real; k++) {
-      for (int i = 0; i < H.nx_real; i++) {
-        for (int j = 0; j < H.ny_real; j++) {
-          // get cell index
-          int const xid = i + H.n_ghost;
-          int const yid = j + H.n_ghost;
-          int const zid = k + H.n_ghost;
-          int const id  = cuda_utilities::compute1DIndex(xid, yid, zid, H.nx, H.ny);
-
-          // get cell positions
-          Get_Position(i + H.n_ghost, j + H.n_ghost, k + H.n_ghost, &x, &y, &z);
-
-          // add very slight noise to locations
-          x += eps * H.dx * (drand48() - 0.5);
-          y += eps * H.dy * (drand48() - 0.5);
-          z += eps * H.dz * (drand48() - 0.5);
-
-          // rotate cell positions
-          Rotate_Point(x, y, z, R.delta, R.phi, R.theta, &xp, &yp, &zp);
-
-          // find projected locations
-          // assumes box centered at [0,0,0]
-          alpha = (R.nx * (xp + 0.5 * R.Lx) / R.Lx);
-          beta  = (R.nz * (zp + 0.5 * R.Lz) / R.Lz);
-          ix    = (int)round(alpha);
-          iz    = (int)round(beta);
-  #ifdef MPI_CHOLLA
-          ix = ix - nx_min;
-          iz = iz - nz_min;
-  #endif
-
-          if ((ix >= 0) && (ix < nx_dset) && (iz >= 0) && (iz < nz_dset)) {
-            int const buf_id = iz + ix * nz_dset;
-            d                = C.density[id];
-            // project density
-            dataset_buffer_dxzr[buf_id] += d * H.dy;
-            // calculate number density
-            Real const n = d * DENSITY_UNIT / (mu * MP);
-
-  // calculate temperature
-  #ifdef DE
-            Real const T = hydro_utilities::Calc_Temp_DE(C.GasEnergy[id], gama, n);
-  #else  // DE is not defined
-            Real const mx = C.momentum_x[id];
-            Real const my = C.momentum_y[id];
-            Real const mz = C.momentum_z[id];
-            Real const E  = C.Energy[id];
-
-    #ifdef MHD
-            auto const magnetic_centered =
-                mhd::utils::cellCenteredMagneticFields(C.host, id, xid, yid, zid, H.n_cells, H.nx, H.ny);
-            Real const T = hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n, magnetic_centered.x(),
-                                                                magnetic_centered.y(), magnetic_centered.z());
-    #else   // MHD is not defined
-            Real const T = hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n);
-    #endif  // MHD
-  #endif    // DE
-
-            Txz = T * d * H.dy;
-            dataset_buffer_Txzr[buf_id] += Txz;
-
-            // compute velocities
-            dataset_buffer_vxxzr[buf_id] += C.momentum_x[id] * H.dy;
-            dataset_buffer_vyxzr[buf_id] += C.momentum_y[id] * H.dy;
-            dataset_buffer_vzxzr[buf_id] += C.momentum_z[id] * H.dy;
-          }
-        }
-      }
-    }
-
-    // Write projected d,T,vx,vy,vz
-    status = Write_HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_dxzr, "/d_xzr");
-    status = Write_HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_Txzr, "/T_xzr");
-    status = Write_HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_vxxzr, "/vx_xzr");
-    status = Write_HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_vyxzr, "/vy_xzr");
-    status = Write_HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_vzxzr, "/vz_xzr");
-
-    // Free the dataspace id
-    status = H5Sclose(dataspace_xzr_id);
-
-    // free the data
-    free(dataset_buffer_dxzr);
-    free(dataset_buffer_Txzr);
-    free(dataset_buffer_vxxzr);
-    free(dataset_buffer_vyxzr);
-    free(dataset_buffer_vzxzr);
-
-  } else {
-    chprintf("Rotated projection write only implemented for 3D data.\n");
-  }
 }
 #endif  // HDF5
 
@@ -1421,48 +1145,6 @@ int chprintf(const char *__restrict sdata, ...)  // NOLINT(cert-dcl50-cpp)
   }
 
   return code;
-}
-
-void Rotate_Point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp)
-{
-  Real cd, sd, cp, sp, ct, st;  // sines and cosines
-  Real a00, a01, a02;           // rotation matrix elements
-  Real a10, a11, a12;
-  Real a20, a21, a22;
-
-  // compute trig functions of rotation angles
-  cd = cos(delta);
-  sd = sin(delta);
-  cp = cos(phi);
-  sp = sin(phi);
-  ct = cos(theta);
-  st = sin(theta);
-
-  // compute the rotation matrix elements
-  /*a00 =       cosp*cosd - sinp*cost*sind;
-  a01 = -1.0*(cosp*sind + sinp*cost*cosd);
-  a02 =       sinp*sint;
-
-  a10 =       sinp*cosd + cosp*cost*sind;
-  a11 =      (cosp*cost*cosd - sint*sind);
-  a12 = -1.0* cosp*sint;
-
-  a20 =       sint*sind;
-  a21 =       sint*cosd;
-  a22 =       cost;*/
-  a00 = (cp * cd - sp * ct * sd);
-  a01 = -1.0 * (cp * sd + sp * ct * cd);
-  a02 = sp * st;
-  a10 = (sp * cd + cp * ct * sd);
-  a11 = (cp * ct * cd - st * sd);
-  a12 = cp * st;
-  a20 = st * sd;
-  a21 = st * cd;
-  a22 = ct;
-
-  *xp = a00 * x + a01 * y + a02 * z;
-  *yp = a10 * x + a11 * y + a12 * z;
-  *zp = a20 * x + a21 * y + a22 * z;
 }
 
 void Write_Debug(Real *Value, const char *fname, int nValues, int iProc)
