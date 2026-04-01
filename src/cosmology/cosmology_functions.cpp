@@ -209,11 +209,11 @@ Real Cosmology::Get_Hubble_Parameter(Real a)
   Real a4 = a2 * a2;
   Real fac_de;
 
-  #if DYNAMICAL_DE_TABLE
-  fac_de = Get_DynamicalDE_Density_from_a(a);
-  #else
-  fac_de = pow(a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - a));
-  #endif  // DYNAMICAL_DE_TABLE
+  if (Using_DynamicalDE_Table()) {
+    fac_de = Get_DynamicalDE_Density_from_a(a);
+  } else {
+    fac_de = pow(a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - a));
+  }
   Real factor = (Omega_R / a4 + Omega_M / a3 + Omega_K / a2 + Omega_L * fac_de);
   return H0 * sqrt(factor);
 }
