@@ -183,6 +183,24 @@ TEST(tALLParameterMap, Methodvalueor)
   EXPECT_EQ(original_size, pmap.size());
 }
 
+TEST(tALLParameterMap, VariousStringFormats)
+{
+  const char* CONTENTS = R"LITERAL(
+# My sample parameters
+key_a="Hello World"
+key_b="Hello\nWorld"
+key_c='Hello World'
+key_d='Hello\nWorld'
+)LITERAL";
+  DummyFile dummy      = DummyFile(CONTENTS);
+  ParameterMap pmap    = ParameterMap(dummy.fp, 0, nullptr);
+
+  EXPECT_EQ(pmap.value<std::string>("key_a"), std::string("Hello World"));
+  EXPECT_EQ(pmap.value<std::string>("key_b"), std::string("Hello\nWorld"));
+  EXPECT_EQ(pmap.value<std::string>("key_c"), std::string("Hello World"));
+  EXPECT_EQ(pmap.value<std::string>("key_d"), std::string("Hello\\nWorld"));
+}
+
 TEST(tALLParameterMap, Methodwarnunusedparameters)
 {
   const char* CONTENTS = R"LITERAL(
