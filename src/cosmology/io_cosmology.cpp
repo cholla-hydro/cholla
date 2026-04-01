@@ -87,7 +87,6 @@ void Cosmology::Set_Next_Scale_Output()
   }
 }
 
-  #ifdef DYNAMICAL_DE_TABLE
 void Cosmology::Load_DynamicalDE_EquationOfState(struct Parameters *P)
 {
   if (P->wDE_file[0] == '\0') {
