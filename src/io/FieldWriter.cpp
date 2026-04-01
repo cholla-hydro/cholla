@@ -344,7 +344,7 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
   // handle all of the weird special cases
   if constexpr (not ForceF32Output) {
   #if defined(OUTPUT_TEMPERATURE) && defined(CHEMISTRY_GPU)
-    Compute_Gas_Temperature(G.Chem.Fields.temperature_h, false);
+    G.Compute_Gas_Temperature(G.Chem.Fields.temperature_h, false);
     Write_Grid_HDF5_Field_CPU(H, file_id, host_dataset_buf, G.Chem.Fields.temperature_h, "/temperature");
   #elif defined(OUTPUT_TEMPERATURE) && defined(COOLING_GRACKLE)
     Write_Grid_HDF5_Field_CPU(H, file_id, host_dataset_buf, G.Cool.temperature, "/temperature");
