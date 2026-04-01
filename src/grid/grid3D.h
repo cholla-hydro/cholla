@@ -51,11 +51,6 @@
   #include "../analysis/analysis.h"
 #endif
 
-namespace io
-{
-struct Rotation;
-}  // namespace io
-
 struct Header {
   /*! \var n_cells
    *  \brief Total number of cells in the grid (including ghost cells) */
@@ -424,20 +419,11 @@ class Grid3D
   void Write_Header_Text(FILE *fp) const;
 
 #ifdef HDF5
-  /*! \fn void Write_Header_HDF5(hid_t file_id)
-   *  \brief Write the relevant header info to the HDF5 file. */
-  void Write_Header_HDF5(hid_t file_id);
-
-  /*! \fn void Write_Header_Rotated_HDF5(hid_t file_id)
-   *  \brief Write the relevant header info to the HDF5 file for rotated
-   * projection. */
-  void Write_Header_Rotated_HDF5(hid_t file_id, io::Rotation &R);
-
-  /*! \fn void Write_Rotated_Projection_HDF5(hid_t file_id)
-   *  \brief Write rotated projected data to a file, at the current simulation
-   * time. */
-  void Write_Rotated_Projection_HDF5(hid_t file_id, const io::Rotation &R);
-
+  /*! \brief Write the relevant header info to the HDF5 file.
+   *
+   *  \param file_id Specifies the file to write the header info to
+   */
+  void Write_Header_HDF5(hid_t file_id) const;
 #endif
 
   /*! \fn void Read_Grid(struct Parameters P)
