@@ -24,10 +24,10 @@ The following table summarizes the available choices (and the conditions where t
   - N/A
 * - "tabulated-cloudy"
   - path to data file used by "tabulated-cooling" solver
-  - `COOLING_GPU` && `CLOUDY_COOL`
+  - N/A
 * - "piecewise-cie"
   - piecewise-parabolic fit to a collisional ionization equilibrium (CIE)
-  - `COOLING_GPU` **without** `CLOUDY_COOL`
+  - N/A
 * - "piecewise-ti"
   - Analytic cooling/heating recipe that roughly matches the "TI" cooling runs shown in
  in [Kim & Ostriker 2015](https://ui.adsabs.harvard.edu/abs/2015ApJ...802...99K/abstract)

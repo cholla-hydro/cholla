@@ -26,9 +26,6 @@ Supported options include:
 ### Selecting your solver
 
 The choice of simple-solver is specified through the {par:param}`chemistry.kind` parameter.
-For backwards compatibility, we set the default based on the presence of Makefile parameters.
-When no Makefile parameters are provided, the parameter defaults to "none."
-The following table summarizes the available choices (and the conditions where they become defaults):
 
 :::{list-table}
 :widths: auto
@@ -36,24 +33,15 @@ The following table summarizes the available choices (and the conditions where t
 
 * - Name
   - Meaning
-  - Macros that make this the default
 * - "none"
-  - No chemistry or cooling
-  - N/A
+  - No chemistry or cooling (this is the default)
 * - "tabulated-cloudy"
   - path to data file used by "tabulated-cooling" solver
-  - `COOLING_GPU` && `CLOUDY_COOL`
 * - "piecewise-cie"
   - piecewise-parabolic fit to a collisional ionization equilibrium (CIE)
-  - `COOLING_GPU` **without** `CLOUDY_COOL`
 * - "piecewise-ti"
   - Analytic cooling/heating recipe that roughly matches the "TI" cooling runs shown in
  in [Kim & Ostriker 2015](https://ui.adsabs.harvard.edu/abs/2015ApJ...802...99K/abstract)
-  - N/A
-:::
-
-:::{important}
-We are planning to phase out the `COOLING_GPU` && `CLOUDY_COOL` Makefile parameters.
 :::
 
 ### More about the solvers
