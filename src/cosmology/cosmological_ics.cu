@@ -150,7 +150,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   //         when the power spectrum is loaded, so this just applies sqrt(P(k))
   fft.Filter_rescale_by_power_spectrum(CP.d_phi_1,CP.d_phi_1,true,CP.n_pk,CP.d_k_array,CP.d_pk_dm_array);
 #ifndef ONLY_PARTICLES
-  //fft.Filter_rescale_by_power_spectrum(CP.d_phi_1b,CP.d_phi_1b,true,CP.n_pk,CP.d_k_array,CP.d_pk_gas_array);
+  fft.Filter_rescale_by_power_spectrum(CP.d_phi_1b,CP.d_phi_1b,true,CP.n_pk,CP.d_k_array,CP.d_pk_gas_array);
 #endif 
 
 	// copy memory back to host
