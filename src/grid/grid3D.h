@@ -839,9 +839,12 @@ class Grid3D
     Real *host;
 
     /*! pointer to first potential */
-    Real *phi_1;
+    Real *phi_1; // initial potential sourced by total overdensity
+
+    Real *delta_c; // CDM overdensity
+
 #ifndef ONLY_PARTICLES
-    Real *phi_1b;
+    Real *delta_b; // baryon overdensity
 #endif 
 
     /*! pointer to second potential */
@@ -853,8 +856,11 @@ class Grid3D
     /*! pointer to first potential on device */
     Real *d_phi_1;
 
+    /*! pointer to first potential on device */
+    Real *d_delta_c;
+
 #ifndef ONLY_PARTICLES
-    Real *d_phi_1b;
+    Real *d_delta_b;
 #endif
 
     /*! pointer to second potential on device */
