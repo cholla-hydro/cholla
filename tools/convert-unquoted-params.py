@@ -66,7 +66,7 @@ def read_lines(f: IO[str]) -> Iterator[LineInfo]:
             _param_name, equal, rhs = line.partition("=")
 
             if equal == "":  # <- there is no equal sign
-                raise DecodeError(f"invalid line: {_table_name}", src, lineno)
+                raise DecodeError(f"invalid line: {line}", src, lineno)
             elif "." in _param_name or "" == _param_name:
                 _msg = "parameter names in parameter files can't contain a '.'"
                 raise DecodeError(_msg, src, lineno)
@@ -184,29 +184,39 @@ def _drive_work(f_in: IO[str], f_out: IO[str], skip_full_precheck: bool = False)
 
 
 def main(args: argparse.Namespace) -> int:
+    output = args.path if args.inplace else args.output
     with open(args.path, "r") as f_in:
-        cm = NamedTemporaryFile() if (args.output != "-") else nullcontext(sys.stdout)
+        cm = (
+            NamedTemporaryFile(mode="w+")
+            if (output != "-")
+            else nullcontext(sys.stdout)
+        )
         with cm as f_out:
             _drive_work(f_in, f_out, args.skip_full_precheck)
             f_out.flush()
             if f_out is not sys.stdout:
-                shutil.copy(src=f_out.name, dst=args.output)
+                shutil.copy(src=f_out.name, dst=output)
     return 0
 
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("path", help="path to file that will be read")
 parser.add_argument(
+    "--skip-full-precheck",
+    action="store_true",
+    help="skip the full check for whether the file contains quoted values",
+)
+group = parser.add_mutually_exclusive_group()
+group.add_argument(
     "-o",
     "--output",
     default="-",
     help="specifies path to output file (writes to stdout by default)",
 )
-parser.add_argument(
-    "--skip-full-precheck",
+group.add_argument(
+    "--inplace",
     action="store_true",
-    help="skip the full check for whether the file contains quoted values",
+    help="when specify, overwrite the file in-place (barring any errors)",
 )
-
 if __name__ == "__main__":
     sys.exit(main(parser.parse_args()))
