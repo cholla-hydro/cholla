@@ -54,7 +54,7 @@ indir=ics/
 outdir=./
 ```
   
-Upon completion, you should obtain two output files. The final density, velocity, and temperature in physical units are shown below. 
+Upon completion, you should obtain two output files. The final density, velocity, and temperature in physical units are shown below. Examples of how to plot projections and slices can be found in the [General 2D plotting example](../../PythonExamples/2D-plotting.md). 
 :::{figure} adiabatic_expansion.png
 Adiabatic Expansion test solution from Cholla.
 ::: 
