@@ -12,14 +12,14 @@ namespace io
 // this lists all compact escape sequences known to TOML
 // (for now, we ignore the sequence for escaping arbitrary unicode characters)
 static constexpr std::pair<char, char> backslash_escape_pairs_[]{
-    {'b', '\b'},   // <- backspace
-    {'t', '\t'},   // <- tab
-    {'n', '\n'},   // <- linefeed
-    {'f', '\f'},   // <- form feed
-    {'r', '\r'},   // <- carriage return
-    {'e', '\e'},   // <- escape
-    {'"', '"'},    // <- quote
-    {'\\', '\\'},  // <- backslash
+    {'b', '\b'},    // <- backspace
+    {'t', '\t'},    // <- tab
+    {'n', '\n'},    // <- linefeed
+    {'f', '\f'},    // <- form feed
+    {'r', '\r'},    // <- carriage return
+    {'e', '\x1b'},  // <- escape ('\e' isn't in C++ standard, but is understood by gcc)
+    {'"', '"'},     // <- quote
+    {'\\', '\\'},   // <- backslash
 };
 
 std::optional<char> Lookup_From_Post_Backslash_(char c)
