@@ -18,7 +18,9 @@
 // External Libraries and Headers
 #include <H5Cpp.h>
 
-#include "../io/io.h"  // to_string_exact
+#include "../io/io.h"              // to_string_exact
+#include "../io/to_from_string.h"  // io::encode_toml_str
+#include "../utils/error_handling.h"
 
 /*!
  * \brief This namespace defines \ref SystemTestRunner (and all relevant machinery).
@@ -52,6 +54,15 @@ class ParamArgListBuilder
   /*! Add a parameter
    *
    *  A reference to `*this` is returned to facillitate method chaining
+   *
+   *  \param name The name of the parameter
+   *  \param val The value to be passed
+   *
+   *  \note
+   *  Pass a \p name that contains characters other than
+   *    A-Za-z0-9_-
+   *  currently produces undefined behavior. For context, these are the characters that
+   *  TOML allows in "bare" keys (aka unquoted keys).
    */
   ParamArgListBuilder &param(std::string_view name, int val) { return update_(name, std::to_string(val)); }
   ParamArgListBuilder &param(std::string_view name, size_t val) { return update_(name, std::to_string(val)); }
@@ -59,8 +70,38 @@ class ParamArgListBuilder
   ParamArgListBuilder &param(std::string_view name, double val) { return update_(name, to_string_exact(val)); }
   ParamArgListBuilder &param(std::string_view name, std::string_view val)
   {
-    // for now, this is simple. This will get more complex if we require strings to be quoted
-    return update_(name, val);
+    // That we launch Cholla via `system`, makes this messy. In more detail,
+    // - POSIX specifies that `system(<arg>)` passes `<arg>` to the `sh` command. For
+    //   context `sh`, nominally refers to a POSIX-compliant shell. (The precise details
+    //   about which shell is used are implementation-defined)
+    // - consequently, `<arg>` is subject to the quoting rules of `sh`
+    // - cholla also expects string values to adhere to TOML's quoting rules (and
+    //   character escaping)
+    // - thus, we need to honor both sets of quoting/escaping rules (this can be
+    //   annoying when it comes to backslashes)
+    //
+    // We implement a "good-enough" strategy that will work as long as `val` doesn't
+    // include a single-quote (it would also be a problem if there's a single-quote
+    // in `name`, but that's not allowed in any overload of param)
+    //
+    // ASIDE: the "optimal" strategy is to bypass the shell when launching Cholla (see
+    // comments in the definition of `SystemTestRunner::launchCholla()` for details)
+
+    if (val.find('\'') != std::string_view::npos) {
+      CHOLLA_ERROR("can't handle a string that contains a ' character");
+    }
+
+    std::string tmp = io::encode_toml_str(val);
+    // we enclose the whole key-value pair to within a pair of single-quotes to ensure
+    // that all occurences of `"` are preserved.
+    s_.reserve(s_.size() + 4 + name.size() + tmp.size());
+    s_.push_back(' ');
+    s_.push_back('\'');
+    s_.append(name);
+    s_.push_back('=');
+    s_.append(tmp);
+    s_.push_back('\'');
+    return *this;
   }
   ///@}
 };
