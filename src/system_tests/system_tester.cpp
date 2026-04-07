@@ -372,10 +372,12 @@ void system_test::SystemTestRunner::launchCholla()
   // The choice between `posix_spawn`/`posix_spawnp` OR `execv`/`execvp` is based on
   // whether `this->globalMPILauncher` is a command that needs to be found by searching
   // through PATH or is a full path to an executable.
+
+  std::string outdir_pair            = ParamArgListBuilder::format_key_str_val_pair("outdir", _outputDirectory + "/");
   std::string const chollaRunCommand = globalMpiLauncher.getString() + " " + std::to_string(numMpiRanks) + " " +
                                        _chollaPath + " " + _chollaSettingsPath + " " +
-                                       chollaLaunchParams.getCombinedArgList() + " " + "outdir=" + _outputDirectory +
-                                       "/" + " >> " + _consoleOutputPath + " 2>&1 ";
+                                       chollaLaunchParams.getCombinedArgList() + " " + outdir_pair + +" >> " +
+                                       _consoleOutputPath + " 2>&1 ";
   auto returnEcho   = system(("echo Launch Command: " + chollaRunCommand + " >> " + _consoleOutputPath).c_str());
   auto returnLaunch = system((chollaRunCommand).c_str());
   EXPECT_EQ(returnEcho, 0) << "Warning: Echoing the launch command to the console output file "

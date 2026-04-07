@@ -49,26 +49,15 @@ class ParamArgListBuilder
   /*! Return the argument list that has been built up */
   const std::string &getCombinedArgList() const { return s_; }
 
-  // we may need to add more overloads over time
-  ///@{
-  /*! Add a parameter
-   *
-   *  A reference to `*this` is returned to facillitate method chaining
-   *
-   *  \param name The name of the parameter
-   *  \param val The value to be passed
+  /*! Static method that implements the core logic for setting up key-value pairs
+   *  (when the value is a string) when launching Cholla
    *
    *  \note
-   *  Pass a \p name that contains characters other than
-   *    A-Za-z0-9_-
-   *  currently produces undefined behavior. For context, these are the characters that
-   *  TOML allows in "bare" keys (aka unquoted keys).
+   *  This has been implemented as a static method (rather than directly as part of
+   *  the appropriate overload of \ref param), because we need it to determine the
+   *  outdir override, which is handled outside of this class
    */
-  ParamArgListBuilder &param(std::string_view name, int val) { return update_(name, std::to_string(val)); }
-  ParamArgListBuilder &param(std::string_view name, size_t val) { return update_(name, std::to_string(val)); }
-  ParamArgListBuilder &param(std::string_view name, float val) { return update_(name, to_string_exact(val)); }
-  ParamArgListBuilder &param(std::string_view name, double val) { return update_(name, to_string_exact(val)); }
-  ParamArgListBuilder &param(std::string_view name, std::string_view val)
+  static std::string format_key_str_val_pair(std::string_view name, std::string_view val)
   {
     // That we launch Cholla via `system`, makes this messy. In more detail,
     // - POSIX specifies that `system(<arg>)` passes `<arg>` to the `sh` command. For
@@ -94,13 +83,41 @@ class ParamArgListBuilder
     std::string tmp = io::encode_toml_str(val);
     // we enclose the whole key-value pair to within a pair of single-quotes to ensure
     // that all occurences of `"` are preserved.
-    s_.reserve(s_.size() + 4 + name.size() + tmp.size());
+    std::string out;
+    out.reserve(3 + name.size() + tmp.size());
+    out.push_back('\'');
+    out.append(name);
+    out.push_back('=');
+    out.append(tmp);
+    out.push_back('\'');
+    return out;
+  }
+
+  // we may need to add more overloads over time
+  ///@{
+  /*! Add a parameter
+   *
+   *  A reference to `*this` is returned to facillitate method chaining
+   *
+   *  \param name The name of the parameter
+   *  \param val The value to be passed
+   *
+   *  \note
+   *  Pass a \p name that contains characters other than
+   *    A-Za-z0-9_-
+   *  currently produces undefined behavior. For context, these are the characters that
+   *  TOML allows in "bare" keys (aka unquoted keys).
+   */
+  ParamArgListBuilder &param(std::string_view name, int val) { return update_(name, std::to_string(val)); }
+  ParamArgListBuilder &param(std::string_view name, size_t val) { return update_(name, std::to_string(val)); }
+  ParamArgListBuilder &param(std::string_view name, float val) { return update_(name, to_string_exact(val)); }
+  ParamArgListBuilder &param(std::string_view name, double val) { return update_(name, to_string_exact(val)); }
+  ParamArgListBuilder &param(std::string_view name, std::string_view val)
+  {
+    std::string tmp = format_key_str_val_pair(name, val);
+    s_.reserve(s_.size() + 1 + tmp.size());
     s_.push_back(' ');
-    s_.push_back('\'');
-    s_.append(name);
-    s_.push_back('=');
     s_.append(tmp);
-    s_.push_back('\'');
     return *this;
   }
   ///@}
