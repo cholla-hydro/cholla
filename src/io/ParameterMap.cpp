@@ -111,33 +111,6 @@ param_details::TypeErr param_details::try_string_(const std::string& str, std::s
 namespace
 {  // stuff inside an anonymous namespace is local to this file
 
-/*! Helper class that specifes the parts of a string correspond to the key and the value */
-struct KeyValueViews {
-  std::string_view key;
-  std::string_view value;
-};
-
-/*! \brief Try to extract the parts of nul-terminated c-string that refers to a parameter name
- *  and a parameter value. If there are any issues, views will be empty optional is returned. */
-KeyValueViews Try_Extract_Key_Value_View(const char* buffer)
-{
-  // create a view that wraps the full buffer (there aren't any allocations)
-  std::string_view full_view(buffer);
-
-  // we explicitly mimic the old behavior
-
-  // find the position of the equal sign
-  std::size_t pos = full_view.find('=');
-
-  // handle the edge-cases (where we can't parse a key-value pair)
-  if ((pos == 0) or                       // '=' sign is the first character
-      ((pos + 1) == full_view.size()) or  // '=' sign is the last character
-      (pos == std::string_view::npos)) {  // there is no '=' sign
-    return {std::string_view(), std::string_view()};
-  }
-  return {full_view.substr(0, pos), full_view.substr(pos + 1)};
-}
-
 void rstrip(std::string_view& s)
 {
   std::size_t cur_len = s.size();
@@ -163,6 +136,41 @@ void my_trim(std::string_view& s)
   if (start > 0) s = s.substr(start);
 
   rstrip(s);
+}
+
+/*! Helper class that specifes the parts of a string correspond to the key and the value */
+struct KeyValueExtraction {
+  std::string key;
+  std::string value;
+  int n_key_segments;
+  std::string error_msg;
+};
+
+/*! \brief Try to extract the parts of buffer that refers to a parameter name and an
+ *  unparsed parameter value. If there are any issues, `n_key_segments` is `0` and
+ *  `error_msg` holds an error message.
+ */
+KeyValueExtraction Try_Extract_Key_Value_View(std::string_view full_view)
+{
+  std::size_t pos                 = 0;
+  io::KeyParseRslt key_parse_rslt = io::try_parse_param_key(full_view, pos);
+  if (key_parse_rslt.n_segments == 0) {
+    return {"", "", 0, key_parse_rslt.val};
+  }
+  pos = key_parse_rslt.pos;
+
+  // explicitly mimic the old behavior (forbid a space between the key & '=' character)
+  if (full_view.size() == pos or full_view[pos] != '=') {
+    return {"", "", 0, "key should be immediately followed by a '=' character"};
+  } else if (pos + 1 == full_view.size()) {
+    return {"", "", 0, "'=' is the last character on a line"};
+  }
+  pos++;
+  std::string_view value_view = full_view.substr(pos);
+  my_trim(value_view);
+
+  // in the future, this is where we'll try to eagerly parse the string in value_view
+  return {key_parse_rslt.val, std::string(value_view), key_parse_rslt.n_segments, ""};
 }
 
 /*! \brief Object used to read in lines from a `FILE*`
@@ -242,6 +250,19 @@ struct CliLineStream {
     this->s = *this->next_arg;
     this->next_arg++;
     return true;
+  }
+
+  // formats a slightly more generic error
+  [[noreturn]] void error(std::string reason) const
+  {
+    std::string msg = "parameter assignment parsing problem\n";
+    // specify the location
+    msg += "   from cli arg: ";
+    msg += s;
+    // include the reason
+    msg += "   err: ";
+    msg += reason;
+    throw std::runtime_error(msg);
   }
 
   [[noreturn]] void error(std::string reason, std::string full_name, bool is_table_header) const
@@ -378,31 +399,32 @@ ParameterMap::ParameterMap(std::FILE* fp, int argc, char** argv, bool close_fp)
       all_tables[cur_table_header] = true;
 
     } else {  // Parse name/value pair from line
-      KeyValueViews kv_pair = Try_Extract_Key_Value_View(buff);
-      if (kv_pair.key.empty()) {
-        file_line_stream.warn("skipping line due to invalid format (this may become an error in the future)");
-        continue;
-      }
-      my_trim(kv_pair.value);
-
-      if (kv_pair.key.find('.') != std::string_view::npos) {
+      KeyValueExtraction kv_pair = Try_Extract_Key_Value_View(buff);
+      if (kv_pair.n_key_segments == 0) {
+        // file_line_stream.warn("skipping line due to invalid format (this may become an error in the future)");
+        // continue;
+        file_line_stream.error(kv_pair.error_msg);
+      } else if (kv_pair.n_key_segments != 1) {
         file_line_stream.error("parameter-names in the parameter-file aren't currently allowed to contain a '.'");
       }
+
       std::string full_param_name = (not cur_table_header.empty()) ? (cur_table_header + '.') : std::string{};
-      full_param_name += std::string(kv_pair.key);
+      full_param_name += kv_pair.key;
 
       std::string msg = Process_Full_Name(full_param_name, all_tables, this->entries_);
       if (not msg.empty()) file_line_stream.error(msg, full_param_name, false);
-      entries_[full_param_name] = {std::string(kv_pair.value), false};
+      entries_[full_param_name] = {kv_pair.value, false};
     }
   }
 
   // Parse overriding args from command line
   while (cli_line_stream.next()) {
     // try to parse the argument
-    KeyValueViews kv_pair = Try_Extract_Key_Value_View(cli_line_stream.s);
-    if (kv_pair.key.empty()) continue;
-    my_trim(kv_pair.value);
+    KeyValueExtraction kv_pair = Try_Extract_Key_Value_View(cli_line_stream.s);
+    if (kv_pair.n_key_segments == 0) {
+      // continue;
+      cli_line_stream.error(kv_pair.error_msg);
+    }
     std::string key_str(kv_pair.key);
     std::string msg = Process_Full_Name(key_str, all_tables, this->entries_);
     if (not msg.empty()) cli_line_stream.error(msg, key_str, false);

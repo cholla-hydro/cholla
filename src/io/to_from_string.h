@@ -9,14 +9,44 @@
 #include <string_view>
 #include <utility>
 
+#include "../utils/error_handling.h"
+
 namespace io
 {
 
-/*! Construct the proper toml representation of the specified key
+struct KeyParseRslt {
+  std::size_t pos;
+  std::string val;
+  int n_segments;
+};
+
+/*! Try to extract a parameter key from \p s
  *
- *  This performs any necessary escaping.
+ *  \param s The string segment to attempt to parse
+ *  \param pos Position at which to attempt to start parsing
+ *
+ *  At this, all parameter keys understood by Cholla are valid TOML keys, but not all
+ *  TOML keys are valid. We currently restrict parameter keys to be either:
+ *  - a "bare key"
+ *  - a "dotted key", where each segment in the sequence is a "bare key".
+ *
+ *  At this time, we expressly forbid TOML's quoted keys. We refer the reader to
+ *  https://toml.io/en/v1.1.0#string for formal definitions.
+ *
+ *  \note
+ *  At this point, parsing TOML's "quoted key" is easy (we can just use
+ *  \p try_parse_param_str ). But, that involves changing how \ref ParameterMap
+ *  tracks keys.
  */
-std::string encode_toml_key(std::string_view key);
+KeyParseRslt try_parse_param_key(std::string_view s, std::size_t pos = 0);
+
+/*! Construct the proper toml representation of the specified key.
+ *
+ *  For some added context,
+ *  This performs any necessary escaping. We assume that occurences of the '.'
+ *  character should be escaped.
+ */
+std::string encode_toml_key(std::string_view undotted_key);
 
 /*! Construct the proper toml representation of the specified string
  *
