@@ -87,7 +87,7 @@ void Cosmology::Set_Next_Scale_Output()
   }
 }
 
-void Cosmology::Load_DynamicalDE_EquationOfState(struct Parameters *P)
+void Cosmology::Setup_DynamicalDE_EquationOfState_(struct Parameters *P)
 {
   if (P->wDE_file[0] == '\0') {
     chprintf("wDE_file not found in parameter file \n");
