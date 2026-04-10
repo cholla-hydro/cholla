@@ -1,7 +1,6 @@
 #ifdef COSMOLOGY
   #include <fstream>
 
-  #include <vector>
   #include "../global/global.h"
   #include "../grid/grid3D.h"
   #include "../grid/grid_enum.h"
@@ -25,84 +24,13 @@ void Grid3D::Initialize_Cosmology(struct Parameters *P)
   chprintf("Cosmology Successfully Initialized. \n\n");
 }
 
-
-/* Interpolate to get rhoDE(z) / rhoDE(z=0) */
-Real Cosmology::Get_DynamicalDE_Density_from_a(Real a)
-{
-  Real z_low, z_high;
-  Real dynDE_density_low, dynDE_density_high, dynDE_density_interp;
-  Real lin_slope;
-  Real z = (1. / a) - 1.;
-
-  if (a == 1.) {
-	return dynamicalDE_table_density.front();
-  }
-  if (z > dynamicalDE_table_z.back()) {
-    return dynamicalDE_table_density.back();
-  }
-
-  int i  = 1;
-  z_high = dynamicalDE_table_z[i];
-  while (z_high < z) {
-    i++;
-    z_high = dynamicalDE_table_z[i];
-  }
-  dynDE_density_high = dynamicalDE_table_density[i];
-
-  z_low             = dynamicalDE_table_z[i - 1];
-  dynDE_density_low = dynamicalDE_table_density[i - 1];
-
-  lin_slope            = (dynDE_density_low - dynDE_density_high) / (z_low - z_high);
-  dynDE_density_interp = lin_slope * (z - z_low) + dynDE_density_low;
-
-  return dynDE_density_interp;
-}
-
 /* Calculate rhoDE(z) / rhoDE(z=0) */
 Real Cosmology::Get_DE_Density_from_a(Real a)
 { 
   if (Using_DynamicalDE_Table()) {
-    return Get_DynamicalDE_Density_from_a(a);
+    return tab_dynamicalDE_EoS.Get_DynamicalDE_Density_from_a(a);
   } else { 
     return pow(a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - a));
-  }
-}
-
-/* Calculate dark energy density normalized to z=0 */
-void Cosmology::Set_DynamicalDE_Density()
-{
-  Real integrand_prev, integrand;
-  Real prev_integral_sum, my_integral, integral;
-  Real z_prev, onez_prev;
-  Real z, onez, onez_2, onez_3;
-  Real wDE_prev, wDE;
-
-  int i;
-  Real cumulative_integral = 0.;
-  dynamicalDE_table_density.push_back(1.);
-
-  for (int i = 1; i < dynamicalDE_table_z.size(); i++) {
-    z_prev = dynamicalDE_table_z[i - 1];
-    z      = dynamicalDE_table_z[i];
-
-    onez_prev = 1. + z_prev;
-    onez      = 1. + z;
-    onez_2    = onez * onez;
-    onez_3    = onez_2 * onez;
-
-    wDE_prev = dynamicalDE_table_w[i - 1];
-    wDE      = dynamicalDE_table_w[i];
-
-    integrand_prev = wDE_prev / onez_prev;
-    integrand      = wDE / onez;
-
-    // mid-point rectangle integral
-    my_integral = ((integrand_prev + integrand) / 2.) * (z - z_prev);
-
-	// add i-th contribution to cumulative sum
-    cumulative_integral += my_integral;
-
-    dynamicalDE_table_density.push_back(onez_3 * exp(3. * cumulative_integral));
   }
 }
 

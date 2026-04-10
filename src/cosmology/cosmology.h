@@ -10,6 +10,7 @@
     #include "../global/global.h"
     #include "../gravity/grav3D.h"
     #include "../particles/particles_3D.h"
+    #include "dynamical_dark_energy.h"
 
 class Cosmology
 {
@@ -23,25 +24,15 @@ class Cosmology
   Real w0;
   Real wa;
 
-  std::vector<float> dynamicalDE_table_z;
-  std::vector<float> dynamicalDE_table_w;
-  // dynamical dark energy energy density normalized to the present-date rho_DE(z) / rho_DE(z=0)
-  std::vector<float> dynamicalDE_table_density;
-
-  /*! Load redshift and dark energy equation of state table z, wDE(z), only called once to setup dynamical DE case */
-  void Setup_DynamicalDE_EquationOfState_(struct Parameters *P);
-
-  /*! Calculate dark energy density normalized to z=0, populate dynamicalDE_table_density */
-  void Set_DynamicalDE_Density();
-
-  /*! Interpolate dynamicalDE_table_density to find rhoDE(z) / rhoDE(z=0) at z=1/a - 1 */
-  Real Get_DynamicalDE_Density_from_a(Real a);
-
-  /*! Indicate whether the simulation is configured to use a DynamicalDE EOS table */
-  bool Using_DynamicalDE_Table() { return dynamicalDE_table_z.size() != 0; }
 
   /*! Calculate rho_DE(z) / rho_DE(z=0) at some scale factor */
   Real Get_DE_Density_from_a(Real a);
+
+  /*! Declare dynamical DE equation of state table class */
+  TabulatedDynamicalDarkEnergyEoS tab_dynamicalDE_EoS;
+
+  /*! Indicate whether the simulation is configured to use a DynamicalDE EOS table */
+  bool Using_DynamicalDE_Table() { return tab_dynamicalDE_EoS.dynamicalDE_table_z.size() != 0; }
 
   Real cosmo_G;
   Real cosmo_h;
