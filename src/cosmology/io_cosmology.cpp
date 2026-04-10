@@ -138,11 +138,10 @@ void Cosmology::Load_DynamicalDE_EquationOfState(struct Parameters *P)
     }
   }
 
-  n_wDE_samples = n_lines;
   chprintf(" Loaded DE equation of state file : \n");
-  chprintf("  N redshift values: %d \n", n_wDE_samples);
-  chprintf("  z_min = %f    z_max = %f \n", dynamicalDE_table_z[0], dynamicalDE_table_z[n_wDE_samples - 1]);
-  chprintf("  w(z_min) = %f    w(z_max) = %f \n", dynamicalDE_table_w[0], dynamicalDE_table_w[n_wDE_samples - 1]);
+  chprintf("  N redshift values: %d \n", dynamicalDE_table_z.size());
+  chprintf("  z_min = %f    z_max = %f \n", dynamicalDE_table_z.front(), dynamicalDE_table_z.back());
+  chprintf("  w(z_min) = %f    w(z_max) = %f \n", dynamicalDE_table_w.front(), dynamicalDE_table_w.back());
 
   if (dynamicalDE_table_z[0] != 0.) {
     chprintf("We require z_min = 0 so that w(z=0) is well defined \n");

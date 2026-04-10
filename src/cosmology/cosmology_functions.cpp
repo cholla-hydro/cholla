@@ -35,10 +35,10 @@ Real Cosmology::Get_DynamicalDE_Density_from_a(Real a)
   Real z = (1. / a) - 1.;
 
   if (a == 1.) {
-    return dynamicalDE_table_density[0];
+	return dynamicalDE_table_density.front();
   }
-  if (z > dynamicalDE_table_z[n_wDE_samples - 1]) {
-    return dynamicalDE_table_density[n_wDE_samples - 1];
+  if (z > dynamicalDE_table_z.back()) {
+    return dynamicalDE_table_density.back();
   }
 
   int i  = 1;
@@ -68,12 +68,12 @@ void Cosmology::Set_DynamicalDE_Density()
   Real wDE_prev, wDE;
 
   int i;
-  std::vector<double> integral_sum_arr(n_wDE_samples);
+  std::vector<double> integral_sum_arr(dynamicalDE_table_z.size());
 
   integral_sum_arr[0]          = 0.;
   dynamicalDE_table_density.push_back(1.);
 
-  for (int i = 1; i < n_wDE_samples; i++) {
+  for (int i = 1; i < dynamicalDE_table_z.size(); i++) {
     z_prev = dynamicalDE_table_z[i - 1];
     z      = dynamicalDE_table_z[i];
 

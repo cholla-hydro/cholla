@@ -27,13 +27,12 @@ class Cosmology
   std::vector<float> dynamicalDE_table_w;
   // dark energy energy density normalized to the present-date rho_DE(z) / rho_DE(z=0)
   std::vector<float> dynamicalDE_table_density;
-  int n_wDE_samples;
   void Load_DynamicalDE_EquationOfState(struct Parameters *P);
   void Set_DynamicalDE_Density();
   Real Get_DynamicalDE_Density_from_a(Real a);
 
   /*! Indicate whether the simulation is configured to use a DynamicalDE EOS table */
-  bool Using_DynamicalDE_Table() { return n_wDE_samples != 0; }
+  bool Using_DynamicalDE_Table() { return dynamicalDE_table_z.size() != 0; }
 
   Real cosmo_G;
   Real cosmo_h;
