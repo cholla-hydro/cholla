@@ -68,9 +68,7 @@ void Cosmology::Set_DynamicalDE_Density()
   Real wDE_prev, wDE;
 
   int i;
-  std::vector<double> integral_sum_arr(dynamicalDE_table_z.size());
-
-  integral_sum_arr[0]          = 0.;
+  Real cumulative_integral = 0.;
   dynamicalDE_table_density.push_back(1.);
 
   for (int i = 1; i < dynamicalDE_table_z.size(); i++) {
@@ -91,12 +89,10 @@ void Cosmology::Set_DynamicalDE_Density()
     // mid-point rectangle integral
     my_integral = ((integrand_prev + integrand) / 2.) * (z - z_prev);
 
-    prev_integral_sum = integral_sum_arr[i - 1];
-    integral          = prev_integral_sum + my_integral;
+	// add i-th contribution to cumulative sum
+    cumulative_integral += my_integral;
 
-    integral_sum_arr[i] = integral;
-
-    dynamicalDE_table_density.push_back(onez_3 * exp(3. * integral));
+    dynamicalDE_table_density.push_back(onez_3 * exp(3. * cumulative_integral));
   }
 }
 
