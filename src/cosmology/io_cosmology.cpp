@@ -123,12 +123,9 @@ void Cosmology::Load_DynamicalDE_EquationOfState(struct Parameters *P)
   }
   int n_lines = i;
 
-  dynamicalDE_table_z = (float *)malloc(sizeof(float) * n_lines);
-  dynamicalDE_table_w = (float *)malloc(sizeof(float) * n_lines);
-
   for (i = 0; i < n_lines; i++) {
-    dynamicalDE_table_z[i] = v[i][0];
-    dynamicalDE_table_w[i] = v[i][1];
+    dynamicalDE_table_z.push_back(v[i][0]);
+	dynamicalDE_table_w.push_back(v[i][1]);
   }
 
   for (i = 0; i < n_lines - 1; i++) {

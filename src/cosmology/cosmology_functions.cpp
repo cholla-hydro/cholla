@@ -69,10 +69,9 @@ void Cosmology::Set_DynamicalDE_Density()
 
   int i;
   std::vector<double> integral_sum_arr(n_wDE_samples);
-  dynamicalDE_table_density = (float *)malloc(sizeof(Real) * (n_wDE_samples));
 
   integral_sum_arr[0]          = 0.;
-  dynamicalDE_table_density[0] = 1.;  // set rhoDE(z)/rhoDE(z=0) = 1 at z=0
+  dynamicalDE_table_density.push_back(1.);
 
   for (int i = 1; i < n_wDE_samples; i++) {
     z_prev = dynamicalDE_table_z[i - 1];
@@ -97,7 +96,7 @@ void Cosmology::Set_DynamicalDE_Density()
 
     integral_sum_arr[i] = integral;
 
-    dynamicalDE_table_density[i] = onez_3 * exp(3. * integral);
+    dynamicalDE_table_density.push_back(onez_3 * exp(3. * integral));
   }
 }
 
