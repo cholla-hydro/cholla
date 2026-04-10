@@ -34,6 +34,8 @@ class Cosmology
   /*! Indicate whether the simulation is configured to use a DynamicalDE EOS table */
   bool Using_DynamicalDE_Table() { return dynamicalDE_table_z.size() != 0; }
 
+  Real Get_DE_Density_from_a(Real a);
+
   Real cosmo_G;
   Real cosmo_h;
   Real current_z;
