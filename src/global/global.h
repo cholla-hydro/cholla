@@ -4,6 +4,7 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
+#include <string> 
 #include "../grid/grid_enum.h"  // defines NSCALARS
 
 #ifdef PARTICLES
@@ -290,7 +291,7 @@ struct Parameters {
   Real Init_redshift;
   Real End_redshift;
 
-  char wDE_file[MAXLEN];  // File with equation of state as function of redshift
+  std::string wDE_file; // File with equation of state as function of redshift
 
   // File for the scale_factor output values for cosmological simulations
   char scale_outputs_file[MAXLEN];

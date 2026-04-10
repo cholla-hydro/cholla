@@ -394,7 +394,7 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   parms->wa            = pmap.value_or("wa", 0.0);
 
   // if the wDE table isn't provided, store an empty string
-  Load_String_Param_Into_Char_Buffer(pmap, "wDE_file", parms->wDE_file, "");
+  parms->wDE_file = pmap.value_or("wDE_file", "");
 
 #endif  // COSMOLOGY
 

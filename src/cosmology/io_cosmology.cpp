@@ -89,17 +89,14 @@ void Cosmology::Set_Next_Scale_Output()
 
 void Cosmology::Setup_DynamicalDE_EquationOfState_(struct Parameters *P)
 {
-  if (P->wDE_file[0] == '\0') {
+  if (P->wDE_file.empty()) {
     chprintf("wDE_file not found in parameter file \n");
     exit(1);
   }
 
   chprintf("Loading wDE info... \n");
 
-  char wDE_filename[MAXLEN];
-  strcpy(wDE_filename, P->wDE_file);
-
-  std::fstream in(wDE_filename);
+  std::fstream in(P->wDE_file);
   std::string line;
   std::vector<std::vector<float>> v;
   int i = 0;
@@ -118,7 +115,7 @@ void Cosmology::Setup_DynamicalDE_EquationOfState_(struct Parameters *P)
     }
     in.close();
   } else {
-    chprintf(" Error: Unable to open DE equation of state file: %s\n", wDE_filename);
+    chprintf(" Error: Unable to open DE equation of state file: %s\n", P->wDE_file);
     exit(1);
   }
   int n_lines = i;
@@ -133,7 +130,7 @@ void Cosmology::Setup_DynamicalDE_EquationOfState_(struct Parameters *P)
       chprintf(
           " ERROR: equation of state must be ordered such that redshift is increasing "
           "as the rows increase in the file\n",
-          wDE_filename);
+          P->wDE_file);
       exit(2);
     }
   }
