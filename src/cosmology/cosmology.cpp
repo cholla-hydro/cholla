@@ -20,7 +20,7 @@ void Cosmology::Initialize(struct Parameters *P, Grav3D &Grav, Particles3D &Part
   Omega_b = P->Omega_b;
   w0      = P->w0;
   wa      = P->wa;
-  
+
   // set default values pertaining to DynamicalDE EOS table
   if (P->wDE_file.length() != 0) {
     tab_dynamicalDE_EoS.Setup_DynamicalDE_EquationOfState_(P);

@@ -1,8 +1,9 @@
 #ifdef COSMOLOGY
 
-  #include <vector>
   #include <fstream>
   #include <iostream>
+  #include <vector>
+
   #include "../io/io.h"
 
 Real TabulatedDynamicalDarkEnergyEoS::Get_DynamicalDE_Density_from_a(Real a)
@@ -65,7 +66,7 @@ void TabulatedDynamicalDarkEnergyEoS::Set_DynamicalDE_Density()
 
     // mid-point rectangle integral
     my_integral = ((integrand_prev + integrand) / 2.) * (z - z_prev);
-    
+
     // add i-th contribution to cumulative sum
     cumulative_integral += my_integral;
 

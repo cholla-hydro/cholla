@@ -24,7 +24,6 @@ class Cosmology
   Real w0;
   Real wa;
 
-
   /*! Calculate rho_DE(z) / rho_DE(z=0) at some scale factor */
   Real Get_DE_Density_from_a(Real a);
 
