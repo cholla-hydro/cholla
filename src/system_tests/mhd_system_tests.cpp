@@ -30,7 +30,7 @@
 class tMHDSYSTEMLinearWavesParameterizedAngle : public ::testing::TestWithParam<std::tuple<double, double, double, int>>
 {
  public:
-  tMHDSYSTEMLinearWavesParameterizedAngle() : waveTest(false, true, false, false){};
+  tMHDSYSTEMLinearWavesParameterizedAngle() : waveTest(false, true, false, false) {};
 
  protected:
   system_test::SystemTestRunner waveTest;
@@ -555,7 +555,7 @@ INSTANTIATE_TEST_SUITE_P(, tMHDSYSTEMLinearWavesParameterizedAngle,
 class tMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithParam<int>
 {
  public:
-  tMHDSYSTEMLinearWavesParameterizedMpi() : waveTest(false, true, false, false){};
+  tMHDSYSTEMLinearWavesParameterizedMpi() : waveTest(false, true, false, false) {};
 
  protected:
   system_test::SystemTestRunner waveTest;
@@ -800,7 +800,7 @@ TEST_P(tMHDSYSTEMParameterizedMpi, OrszagTangVortexCorrectInputExpectCorrectOutp
 class tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization : public ::testing::TestWithParam<double>
 {
  public:
-  tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization() : cpawTest(false, true, false, false){};
+  tMHDSYSTEMCircularlyPolarizedAlfvenWaveParameterizedPolarization() : cpawTest(false, true, false, false) {};
 
  protected:
   system_test::SystemTestRunner cpawTest;
