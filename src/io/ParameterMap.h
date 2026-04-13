@@ -84,16 +84,21 @@ class ParameterMap
   std::map<std::string, ParamEntry> entries_;
 
  public:  // interface methods
-  /* Reads parameters from a parameter file and arguments.
+  /*! Reads parameters from a parameter file and arguments.
    *
-   * \note
-   * We pass in a ``std::FILE`` object rather than a filename-string because that makes testing
-   * easier.
+   *  \param fp The file that is read from
+   *  \param n_param_override_args The number of elements in \p param_override_args
+   *  \param param_override_args An array of parameter-override command line arguments
+   *  \param close_fp Indicates whether to close \p fp on completion
+   *
+   *  \note
+   *  We pass in a ``std::FILE`` object rather than a filename-string because that makes testing
+   *  easier.
    */
-  ParameterMap(std::FILE* fp, int argc, char** argv, bool close_fp = false);
+  ParameterMap(std::FILE* fp, int n_param_override_args, char** param_override_args, bool close_fp = false);
 
-  /* An overload for the constructor */
-  ParameterMap(const std::string& fname, int argc, char** argv);
+  /*! An overload for the primary constructor */
+  ParameterMap(const std::string& fname, int n_param_override_args, char** param_override_args);
 
   /* queries the number of parameters (mostly for testing purposes) */
   std::size_t size() { return entries_.size(); }

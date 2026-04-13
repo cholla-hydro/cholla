@@ -242,7 +242,8 @@ struct CliLineStream {
   char** stop;
   char* s;
 
-  CliLineStream(int argc, char** argv) : next_arg{argv}, stop{argv + argc}, s{nullptr} {};
+  CliLineStream(int n_param_override_args, char** param_override_args)
+      : next_arg{param_override_args}, stop{param_override_args + n_param_override_args}, s{nullptr} {};
 
   bool next()
   {
@@ -341,11 +342,11 @@ std::string Process_Full_Name(std::string full_name, std::map<std::string, bool,
 
 }  // anonymous namespace
 
-ParameterMap::ParameterMap(std::FILE* fp, int argc, char** argv, bool close_fp)
+ParameterMap::ParameterMap(std::FILE* fp, int n_param_override_args, char** param_override_args, bool close_fp)
 {
   CHOLLA_ASSERT(fp != nullptr, "ParameterMap was passed a nullptr rather than an actual file object");
   FileLineStream file_line_stream(fp);
-  CliLineStream cli_line_stream(argc, argv);
+  CliLineStream cli_line_stream(n_param_override_args, param_override_args);
 
   // to provide consistent table-related behavior to TOML, we need to track the names of tables to ensure that:
   //  1. no table is explicitly defined more than once
