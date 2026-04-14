@@ -2,7 +2,8 @@
 * This file defines \ref TabulatedDynamicalDarkEnergyEoS
 */
 
-#include <cmath>
+#include "../global/global.h"
+#include <vector>
 
 class TabulatedDynamicalDarkEnergyEoS
 {
