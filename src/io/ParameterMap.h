@@ -4,11 +4,13 @@
 #include <climits>
 #include <cstdint>
 #include <cstdio>
+#include <limits>
 #include <map>
 #include <optional>
 #include <set>
 #include <string>
 #include <type_traits>
+#include <variant>
 
 #include "../utils/error_handling.h"
 
@@ -16,43 +18,93 @@
 namespace param_details
 {
 
-/* defining a construct like this is a common workaround used to raise a compile-time error in the
- * else-branch of a constexpr-if statement. This is used to implement ``ParameterMap::try_get_``
- */
-template <class>
-inline constexpr bool dummy_false_v_ = false;
+/*! Kinds of errors from parsing */
+enum class ParseErr { none, generic, out_of_range };
 
-/* Kinds of errors from converting parameters to a type */
-enum class TypeErr { none, generic, boolean, out_of_range };
+/*! function used to actually format/report the error message specified by the ParseErr enum */
+[[noreturn]] void Report_ParseErr_(const std::string& param, const std::string& str, const std::string& dtype,
+                                   ParseErr parse_err);
 
-/* function used to actually format/report the error message specified by the TypeErr enum */
-[[noreturn]] void Report_TypeErr_(const std::string& param, const std::string& str, const std::string& dtype,
-                                  TypeErr type_convert_err);
+/*! Represents the parameter value. */
+struct Value {
+  /*! This is a type-safe union holding the value.
+   *
+   *  \note
+   *  We wrap the Variant inside a class for 2 reasons: (i) to try to make an eventual
+   *  transition to toml++ easier and (ii) because working directly directly with
+   *  std::variant can be tricky for less experienced C++ devs
+   */
+  using Variant = std::variant<std::string, bool, int64_t, double>;
 
-/* @{
- * helper functions that try to interpret a string as a given type.
- *
- * This returns the associated value if it has the specified type. If ``type_mismatch_is_err`` is
- * true, then the program aborts with an error if the string is the wrong type. When
- * ``type_mismatch_is_err``, this simply returns an empty result.
- */
-param_details::TypeErr try_int64_(const std::string& str, std::int64_t& val);
-param_details::TypeErr try_double_(const std::string& str, double& val);
-param_details::TypeErr try_bool_(const std::string& str, bool& val);
-param_details::TypeErr try_string_(const std::string& str, std::string& val);
+ private:
+  Variant v_;
 
-// special case to make people's lives easier
-inline param_details::TypeErr try_int_(const std::string& str, int& val)
-{
-  std::int64_t tmp;
-  TypeErr err = try_int64_(str, tmp);
-  if ((err == param_details::TypeErr::none) and (INT_MIN <= tmp) && (tmp <= INT_MAX)) {
-    val = int(tmp);
-    return TypeErr::none;
+ public:
+  Value() = default;
+  explicit Value(Variant v) : v_(v) {}
+
+  /// \name Type checks
+  ///@{
+  bool is_string() const noexcept { return std::holds_alternative<std::string>(v_); }
+  bool is_integer() const noexcept { return std::holds_alternative<int64_t>(v_); }
+  bool is_floating_point() const noexcept { return std::holds_alternative<double>(v_); }
+  bool is_boolean() const noexcept { return std::holds_alternative<bool>(v_); }
+  ///@}
+
+  /*! Return the toml representation of the value
+   *
+   *  This primarily exists to help implement \ref ParameterMap::pass_entries_to_legacy_parse_param
+   *  (which will be deleted in PR #495). We also use it for writing error messages/warnings.
+   */
+  std::string toml_repr() const;
+
+  template <typename T>
+  std::optional<T> value_exact() const
+  {
+    const T* tmp = std::get_if<T>(&v_);
+    if (tmp == nullptr) return std::nullopt;
+    return {*tmp};
   }
-  return (err == TypeErr::none) ? TypeErr::out_of_range : err;
+
+  const char* type_name() const noexcept
+  {
+    return std::visit(
+        [](auto&& arg) -> const char* {
+          using T = std::decay_t<decltype(arg)>;
+          if constexpr (std::is_same_v<T, int64_t>) {
+            return "integer";
+          } else if constexpr (std::is_same_v<T, double>) {
+            return "floating point";
+          } else if constexpr (std::is_same_v<T, std::string>) {
+            return "string";
+          } else if constexpr (std::is_same_v<T, bool>) {
+            return "boolean";
+          } else {
+            static_assert(always_false<T>, "unexpected type.");
+          }
+          return nullptr;  // <- this should not be necessary...
+        },
+        v_);
+  }
+};
+
+template <typename T>
+constexpr bool support_lossless_conversion_(int64_t v)
+{
+  int64_t lower, upper;
+  if constexpr (std::is_floating_point_v<T>) {
+    int64_t n_mantissa_digits_plus_one = int64_t{std::numeric_limits<T>::digits};
+    // calclate 2^n_mantissa_digits_plus_one (https://stackoverflow.com/a/3793950)
+    upper = int64_t{2} << n_mantissa_digits_plus_one;
+    lower = -1 * upper;
+  } else if constexpr (std::is_integral_v<T> and std::is_signed_v<T> and (sizeof(int64_t) >= sizeof(T))) {
+    upper = int64_t{std::numeric_limits<T>::max()};
+    lower = int64_t{std::numeric_limits<T>::min()};
+  } else {
+    static_assert(always_false<T>, "template has unexpected type.");
+  }
+  return (lower <= v) and (v <= upper);
 }
-/* @} */
 }  // namespace param_details
 
 /*!
@@ -61,11 +113,6 @@ inline param_details::TypeErr try_int_(const std::string& str, int& val)
  * After construction, the collection of parameters and associated values can not be mutated.
  * However, the class is not entirely immutable; internally it tracks whether parameters have been
  * accessed.
- *
- * In contrast to formats like TOML, JSON, & YAML, the parameter files don't have syntactic typing
- * (i.e. where the syntax determines formatting). In this sense, the format is more like ini files.
- * As a consequence, we internally store the parameters as strings. The access API explicitly
- * converts them to the user-specified type.
  *
  * \note
  * We primarily support 4 datatypes: ``bool``, ``std::int64_t``, ``double``, ``std::string``.
@@ -80,7 +127,7 @@ class ParameterMap
 {
  public:
   struct ParamEntry {
-    std::string param_str;
+    param_details::Value val;
     bool accessed;
   };
 
@@ -88,16 +135,21 @@ class ParameterMap
   std::map<std::string, ParamEntry> entries_;
 
  public:  // interface methods
-  /* Reads parameters from a parameter file and arguments.
+  /*! Reads parameters from a parameter file and arguments.
    *
-   * \note
-   * We pass in a ``std::FILE`` object rather than a filename-string because that makes testing
-   * easier.
+   *  \param fp The file that is read from
+   *  \param n_param_override_args The number of elements in \p param_override_args
+   *  \param param_override_args An array of parameter-override command line arguments
+   *  \param close_fp Indicates whether to close \p fp on completion
+   *
+   *  \note
+   *  We pass in a ``std::FILE`` object rather than a filename-string because that makes testing
+   *  easier.
    */
-  ParameterMap(std::FILE* fp, int argc, char** argv, bool close_fp = false);
+  ParameterMap(std::FILE* fp, int n_param_override_args, char** param_override_args, bool close_fp = false);
 
-  /* An overload for the constructor */
-  ParameterMap(const std::string& fname, int argc, char** argv);
+  /*! An overload for the primary constructor */
+  ParameterMap(const std::string& fname, int n_param_override_args, char** param_override_args);
 
   /* queries the number of parameters (mostly for testing purposes) */
   std::size_t size() { return entries_.size(); }
@@ -188,16 +240,19 @@ class ParameterMap
   int warn_unused_parameters(const std::set<std::string>& ignore_params, bool abort_on_warning = false,
                              bool suppress_warning_msg = false) const;
 
-  /* This is a temporary function to help ease the transition to the new parsing approach. */
+  /*! This is a temporary function to help ease the transition to the new parsing approach.
+   *
+   *  \note This will be deleted in PR #495
+   */
   template <typename LegacyParseParamFn>
   void pass_entries_to_legacy_parse_param(LegacyParseParamFn& f)
   {
     for (auto& kv_pair : entries_) {
-      const char* name  = kv_pair.first.c_str();
-      const char* value = (kv_pair.second).param_str.c_str();
+      const std::string& name = kv_pair.first;
+      std::string value       = (kv_pair.second).val.toml_repr();
 
       // pass the parameter name and (unparsed) value to the legacy function. Record if used.
-      bool rslt = f(name, value);
+      bool rslt = f(name.c_str(), value.c_str());
       if (rslt) (kv_pair.second).accessed = true;
     }
   }
@@ -227,43 +282,62 @@ std::optional<T> ParameterMap::try_get_(const std::string& param, bool is_type_c
   auto keyvalue_pair = entries_.find(param);
   if (keyvalue_pair == entries_.end()) return {};  // return emtpy option
 
-  const std::string& str = (keyvalue_pair->second).param_str;  // string associate with param
+  const param_details::Value& param_val = (keyvalue_pair->second).val;
 
-  // convert the string to the specified type and store it in out
-  T val{};                       // default constructed
-  param_details::TypeErr err{};  // reports errors
-  const char* dtype_name;        // used for formatting errors (we use a const char* rather than a
-                                 // std::string so we can hold string-literals)
+  // try to extract the underlying value
+  std::optional<T> out{};  // default constructed
+  bool out_of_range = false;
+  const char* dtype_name;  // used for formatting errors (we use a const char* rather than a
+                           // std::string so we can hold string-literals)
 
   // The branch of the following if-statement is picked at compile-time
   if constexpr (std::is_same_v<T, bool>) {
-    err        = param_details::try_bool_(str, val);
+    out        = param_val.value_exact<bool>();
     dtype_name = "bool";
+  } else if constexpr (std::is_same_v<T, std::string>) {
+    out        = param_val.value_exact<std::string>();
+    dtype_name = "string";
   } else if constexpr (std::is_same_v<T, std::int64_t>) {
-    err        = param_details::try_int64_(str, val);
+    out        = param_val.value_exact<int64_t>();
     dtype_name = "int64_t";
   } else if constexpr (std::is_same_v<T, double>) {
-    err        = param_details::try_double_(str, val);
+    out = param_val.value_exact<double>();
+    if (not out.has_value()) {
+      std::optional<int64_t> tmp = param_val.value_exact<int64_t>();
+      if (tmp.has_value()) {
+        if (param_details::support_lossless_conversion_<T>(*tmp)) {
+          out = static_cast<double>(*tmp);
+        } else {
+          out_of_range = true;
+        }
+      }
+    }
     dtype_name = "double";
-  } else if constexpr (std::is_same_v<T, std::string>) {
-    err        = param_details::try_string_(str, val);
-    dtype_name = "string";
   } else if constexpr (std::is_same_v<T, int>) {
-    err        = param_details::try_int_(str, val);
+    std::optional<int64_t> tmp = param_val.value_exact<int64_t>();
+    if (tmp.has_value()) {
+      if (param_details::support_lossless_conversion_<T>(*tmp)) {
+        out = {static_cast<int>(*tmp)};
+      } else {
+        out_of_range = true;
+      }
+    }
     dtype_name = "int";
   } else {
-    static_assert(param_details::dummy_false_v_<T>,
-                  "template type can only be bool, int, std::int64_t, double, or std::string.");
+    static_assert(always_false<T>, "template type can only be bool, int, std::int64_t, double, or std::string.");
   }
 
   // now do err-handling/value return
-  if (err != param_details::TypeErr::none) {
-    if (is_type_check) return {};  // return empty option
-    param_details::Report_TypeErr_(param, str, dtype_name, err);
+  if (not out.has_value()) {
+    if (is_type_check) return std::nullopt;  // return empty option
+    const char* val_type = param_val.type_name();
+    const char* reason   = out_of_range ? "out of range" : "invalid conversion";
+    CHOLLA_ERROR("error interpretting the %s value associated with the \"%s\" as a %s value: %s\n", val_type,
+                 param.c_str(), dtype_name, reason);
   }
 
   if (not is_type_check) (keyvalue_pair->second).accessed = true;  // record parameter-access
-  return {val};
+  return out;
 }
 
 #endif /* PARAMETERMAP_H */

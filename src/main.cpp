@@ -34,7 +34,7 @@
 
 #include "grid/grid_enum.h"
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   // timing variables
   double start_total, stop_total, start_step, stop_step;
@@ -60,7 +60,6 @@ int main(int argc, char *argv[])
   Real dti = 0;  // inverse time step, 1.0 / dt
 
   // input parameter variables
-  char *param_file;
   struct Parameters P;
   int nfile    = 0;  // number of output files
   Real outtime = 0;  // current output time
@@ -71,15 +70,17 @@ int main(int argc, char *argv[])
     chprintf("Git Commit Hash = %s\n", GIT_HASH);
     chprintf("Macro Flags     = %s\n", MACRO_FLAGS);
     chexit(-1);
-  } else {
-    param_file = argv[1];
   }
+
+  const char* param_file = argv[1];
+  char** param_overrides = argv + 2;
+  int n_param_overrides  = argc - 2;
 
   // create the grid
   Grid3D G;
 
   // read in contents from the parameter file
-  ParameterMap pmap(param_file, argc, argv);
+  ParameterMap pmap(param_file, n_param_overrides, param_overrides);
 
   // use this parameter information to populate the Parameter object
   Parse_Params(pmap, &P);
@@ -160,7 +161,7 @@ int main(int argc, char *argv[])
 
   // in the future, we plan to consolidate COOLING_GRACKLE and CHEMISTRY_GPU
   // within chemistry_callback
-  std::function<void(Grid3D &)> chemistry_callback = configure_chemistry_callback(pmap);
+  std::function<void(Grid3D&)> chemistry_callback = configure_chemistry_callback(pmap);
 
 #ifdef COOLING_GRACKLE
   G.Initialize_Grackle(&P);

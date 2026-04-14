@@ -358,9 +358,26 @@ void system_test::SystemTestRunner::launchCholla()
 {
   // Launch Cholla. Note that this dumps all console output to the console
   // log file as requested by the user.
+  //
+  // As we've highlighted in the implementation of `ParamArgListBuilder::param` (for
+  // strings), the choice to launch Cholla by calling the system function is quite
+  // messy since the argument to `system` is executed by the shell (this leads to
+  // messy) argument quoting. A more robust is to bypass the shell.
+  //
+  // There are 2 ways to do this:
+  // * the modern approach is to use `posix_spawn` (or `posix_spawnp`)
+  // * the classic approach is to call `fork` & then `execv` (or `execvp`)
+  //   https://en.wikipedia.org/wiki/Fork%E2%80%93exec
+  //
+  // The choice between `posix_spawn`/`posix_spawnp` OR `execv`/`execvp` is based on
+  // whether `this->globalMPILauncher` is a command that needs to be found by searching
+  // through PATH or is a full path to an executable.
+
+  std::string outdir_pair            = ParamArgListBuilder::format_key_str_val_pair("outdir", _outputDirectory + "/");
   std::string const chollaRunCommand = globalMpiLauncher.getString() + " " + std::to_string(numMpiRanks) + " " +
-                                       _chollaPath + " " + _chollaSettingsPath + " " + chollaLaunchParams + " " +
-                                       "outdir=" + _outputDirectory + "/" + " >> " + _consoleOutputPath + " 2>&1 ";
+                                       _chollaPath + " " + _chollaSettingsPath + " " +
+                                       chollaLaunchParams.getCombinedArgList() + " " + outdir_pair + +" >> " +
+                                       _consoleOutputPath + " 2>&1 ";
   auto returnEcho   = system(("echo Launch Command: " + chollaRunCommand + " >> " + _consoleOutputPath).c_str());
   auto returnLaunch = system((chollaRunCommand).c_str());
   EXPECT_EQ(returnEcho, 0) << "Warning: Echoing the launch command to the console output file "
@@ -370,7 +387,12 @@ void system_test::SystemTestRunner::launchCholla()
                              << "failed to launch. Please see the log files" << std::endl;
 
   // Move the output files to the correct spots
-  std::filesystem::rename(::globalChollaRoot.getString() + "/run_output.log", _outputDirectory + "/run_output.log");
+  try {
+    std::filesystem::rename(::globalChollaRoot.getString() + "/run_output.log", _outputDirectory + "/run_output.log");
+  } catch (const std::filesystem::filesystem_error &error) {
+    ADD_FAILURE() << "the simulation failed before it even produced a log file\n"
+                  << "For context, the Launch command is: `" << chollaRunCommand << '`';
+  }
   try {
     std::filesystem::rename(::globalChollaRoot.getString() + "/run_timing.log", _outputDirectory + "/run_timing.log");
   } catch (const std::filesystem::filesystem_error &error) {

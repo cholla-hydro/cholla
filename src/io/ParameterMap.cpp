@@ -8,121 +8,127 @@
 #include <string_view>
 #include <vector>
 
-#include "../global/global.h"  // MAXLEN
-#include "../io/io.h"          // chprintf
+#include "../global/global.h"      // MAXLEN
+#include "../io/io.h"              // chprintf, to_string_exact
+#include "../io/to_from_string.h"  // io::try_parse_param_str, io::encode_toml_str
 #include "../utils/error_handling.h"
 
-[[noreturn]] void param_details::Report_TypeErr_(const std::string& param, const std::string& str,
-                                                 const std::string& dtype, param_details::TypeErr type_convert_err)
+namespace param_details
 {
-  std::string r;
-  using param_details::TypeErr;
-  switch (type_convert_err) {
-    case TypeErr::none:
-      r = "";
-      break;  // this shouldn't happen
-    case TypeErr::generic:
-      r = "invalid value";
-      break;
-    case TypeErr::boolean:
-      r = R"(boolean values must be "true" or "false")";
-      break;
-    case TypeErr::out_of_range:
-      r = "out of range";
-      break;
-  }
-  CHOLLA_ERROR("error interpretting \"%s\", the value of the \"%s\" parameter, as a %s: %s", str.c_str(), param.c_str(),
-               dtype.c_str(), r.c_str());
+
+std::string Value::toml_repr() const
+{
+  return std::visit(
+      [](auto&& arg) -> std::string {
+        using T = std::decay_t<decltype(arg)>;
+        if constexpr (std::is_same_v<T, int64_t>) {
+          return std::to_string(static_cast<long long>(arg));
+        } else if constexpr (std::is_same_v<T, double>) {
+          return to_string_exact(arg);
+        } else if constexpr (std::is_same_v<T, std::string>) {
+          return io::encode_toml_str(arg);
+        } else if constexpr (std::is_same_v<T, bool>) {
+          return arg ? "true" : "false";
+        } else {
+          static_assert(always_false<T>, "unexpected type.");
+        }
+        return {};  // <- this should not be necessary...
+      },
+      v_);
 }
 
-param_details::TypeErr param_details::try_bool_(const std::string& str, bool& val)
+static std::optional<Value> try_parse_number_(std::string str, bool& range_err)
 {
-  if (str == "true") {
-    val = true;
-  } else if (str == "false") {
-    val = false;
-  } else {
-    return param_details::TypeErr::boolean;
-  }
-  return param_details::TypeErr::none;
-}
+  // first, try to parse str as a string
+  char* ptr_end    = nullptr;
+  errno            = 0;  // reset errno to 0 (prior library calls could have set it to an arbitrary value)
+  long long tmp_ll = std::strtoll(str.data(), &ptr_end, 10);  // the last arg specifies base-10
 
-param_details::TypeErr param_details::try_int64_(const std::string& str, std::int64_t& val)
-{
-  char* ptr_end{};
-  errno         = 0;  // reset errno to 0 (prior library calls could have set it to an arbitrary value)
-  long long tmp = std::strtoll(str.data(), &ptr_end, 10);  // the last arg specifies base-10
+  // before doing anything else, cache the value of errno (so we don't accidentally overwrite it)
+  // - non-zero vals other than ERANGE are implementation-defined (plus, the info is redundant)
+  bool ERANGE_ll = (errno == ERANGE);
 
-  if (errno == ERANGE) {  // deal with errno first, so we don't accidentally overwrite it
-    // - non-zero vals other than ERANGE are implementation-defined (plus, the info is redundant)
-    return param_details::TypeErr::out_of_range;
-  } else if ((str.data() + str.size()) != ptr_end) {
-    // when str.data() == ptr_end, then no conversion was performed.
-    // when (str.data() + str.size()) != ptr_end, str could hold a float or look like "123abc"
-    return param_details::TypeErr::generic;
+  // check whether the full string was parsed. For context:
+  // - when str.data() == ptr_end, then no conversion was performed.
+  // - when (str.data() + str.size()) != ptr_end, str could hold a float or look like "123abc"
+  if ((str.data() + str.size()) == ptr_end) {
+    if (ERANGE_ll) {
+      range_err = true;
+      return {};
 #if (LLONG_MIN != INT64_MIN) || (LLONG_MAX != INT64_MAX)
-  } else if ((tmp < INT64_MIN) and (tmp > INT64_MAX)) {
-    return param_details::TypeErr::out_of_range;
+    } else if ((tmp_ll < INT64_MIN) and (tmp_ll > INT64_MAX)) {
+      range_err = true;
+      return {};
 #endif
+    } else {
+      range_err = false;
+      Value::Variant variant{std::int64_t(tmp_ll)};
+      return {Value(variant)};
+    }
   }
-  val = std::int64_t(tmp);
-  return param_details::TypeErr::none;
-}
 
-param_details::TypeErr param_details::try_double_(const std::string& str, double& val)
-{
-  char* ptr_end{};
-  errno = 0;  // reset errno to 0 (prior library calls could have set it to an arbitrary value)
-  val   = std::strtod(str.data(), &ptr_end);
+  // next, lets try to parse as a double (it's important we do this second!)
+  ptr_end       = nullptr;
+  errno         = 0;  // reset errno to 0 (prior library calls could have set it to an arbitrary value)
+  double tmp_fp = std::strtod(str.data(), &ptr_end);
 
-  if (errno == ERANGE) {  // deal with errno first, so we don't accidentally overwrite it
-    // - non-zero vals other than ERANGE are implementation-defined (plus, the info is redundant)
-    return param_details::TypeErr::out_of_range;
-  } else if ((str.data() + str.size()) != ptr_end) {
-    // when str.data() == ptr_end, then no conversion was performed.
-    // when (str.data() + str.size()) != ptr_end, str could look like "123abc"
-    return param_details::TypeErr::generic;
+  // before doing anything else, cache the value of errno (so we don't accidentally overwrite it)
+  // - non-zero vals other than ERANGE are implementation-defined (plus, the info is redundant)
+  bool ERANGE_fp = (errno == ERANGE);
+
+  // check whether the full string was parsed. For context:
+  // - when str.data() == ptr_end, then no conversion was performed.
+  // - when (str.data() + str.size()) != ptr_end, str could hold a float or look like "123abc"
+  if ((str.data() + str.size()) == ptr_end) {
+    if (ERANGE_fp) {
+      range_err = true;
+      return {};
+    } else {
+      range_err = false;
+      Value::Variant variant{tmp_fp};
+      return {Value(variant)};
+    }
   }
-  return param_details::TypeErr::none;
+
+  // the string doesn't hold a number
+  range_err = false;
+  return {};
 }
 
-param_details::TypeErr param_details::try_string_(const std::string& str, std::string& val)
+static std::optional<Value> try_parse_val_(std::string buf, bool& range_err)
 {
-  // mostly just exists for consistency (every parameter can be considered a string)
-  // note: we may want to consider removing surrounding quotation marks in the future
-  val = str;  // we make a copy for the sake of consistency
-  return param_details::TypeErr::none;
+  std::size_t buf_size = buf.size();
+
+  range_err = false;
+  if (buf_size == 0) return {};
+
+  // try to parse as a boolean
+  if (buf == "true") {
+    Value::Variant tmp{true};
+    return {Value(tmp)};
+  } else if (buf == "false") {
+    Value::Variant tmp{false};
+    return {Value(tmp)};
+  }
+
+  // try to parse buf as a string
+  std::pair<std::size_t, std::string> str_rslt = io::try_parse_param_str(buf);
+  if (str_rslt.first == buf.size()) {
+    // the if statement avoids the scenario where buf looks like
+    // > 'hi'there
+    // and rslt.second holds "hi"
+    Value::Variant tmp{str_rslt.second};
+    return {Value(tmp)};
+  }
+
+  // finally, try to parse buf as a number
+  return try_parse_number_(buf, range_err);
 }
+
+}  // namespace param_details
 
 namespace
 {  // stuff inside an anonymous namespace is local to this file
-
-/*! Helper class that specifes the parts of a string correspond to the key and the value */
-struct KeyValueViews {
-  std::string_view key;
-  std::string_view value;
-};
-
-/*! \brief Try to extract the parts of nul-terminated c-string that refers to a parameter name
- *  and a parameter value. If there are any issues, views will be empty optional is returned. */
-KeyValueViews Try_Extract_Key_Value_View(const char* buffer)
-{
-  // create a view that wraps the full buffer (there aren't any allocations)
-  std::string_view full_view(buffer);
-
-  // we explicitly mimic the old behavior
-
-  // find the position of the equal sign
-  std::size_t pos = full_view.find('=');
-
-  // handle the edge-cases (where we can't parse a key-value pair)
-  if ((pos == 0) or                       // '=' sign is the first character
-      ((pos + 1) == full_view.size()) or  // '=' sign is the last character
-      (pos == std::string_view::npos)) {  // there is no '=' sign
-    return {std::string_view(), std::string_view()};
-  }
-  return {full_view.substr(0, pos), full_view.substr(pos + 1)};
-}
 
 void rstrip(std::string_view& s)
 {
@@ -149,6 +155,53 @@ void my_trim(std::string_view& s)
   if (start > 0) s = s.substr(start);
 
   rstrip(s);
+}
+
+/*! Aggregates information about the key-value pair parsed by \ref Try_Extract_Key_Value.
+ *
+ *  When there is an error, \ref maybe_value is empty, \ref n_key_segments is `0`, and
+ *  \ref error_msg holds an error message.
+ */
+struct KeyValueExtraction {
+  std::string key;
+  std::optional<param_details::Value> maybe_value;
+  int n_key_segments;
+  std::string error_msg;
+};
+
+/*! \brief Try to extract the parts of buffer that refers to a parameter name and the
+ *  associated parameter value.
+ */
+KeyValueExtraction Try_Extract_Key_Value(std::string_view full_view)
+{
+  std::size_t pos                 = 0;
+  io::KeyParseRslt key_parse_rslt = io::try_parse_param_key(full_view, pos);
+  if (key_parse_rslt.n_segments == 0) {
+    return {"", {}, 0, key_parse_rslt.val};
+  }
+  pos = key_parse_rslt.pos;
+
+  // explicitly mimic the old behavior (forbid a space between the key & '=' character)
+  if (full_view.size() == pos or full_view[pos] != '=') {
+    return {"", {}, 0, "key should be immediately followed by a '=' character"};
+  } else if (pos + 1 == full_view.size()) {
+    return {"", {}, 0, "'=' is the last character on a line"};
+  }
+  pos++;
+  std::string_view value_view = full_view.substr(pos);
+  my_trim(value_view);
+  std::string value_string(value_view);
+
+  // let's try to explicitly parse the parameter
+  bool range_err                                  = false;
+  std::optional<param_details::Value> maybe_value = param_details::try_parse_val_(value_string, range_err);
+
+  std::string error_msg;
+  if (not maybe_value.has_value()) {
+    error_msg = "error interpretting the value associated with the " + key_parse_rslt.val + " parameter";
+    if (range_err) error_msg += ": value is out of range";
+  }
+  return {key_parse_rslt.val, maybe_value, key_parse_rslt.n_segments, error_msg};
 }
 
 /*! \brief Object used to read in lines from a `FILE*`
@@ -220,7 +273,8 @@ struct CliLineStream {
   char** stop;
   char* s;
 
-  CliLineStream(int argc, char** argv) : next_arg{argv}, stop{argv + argc}, s{nullptr} {};
+  CliLineStream(int n_param_override_args, char** param_override_args)
+      : next_arg{param_override_args}, stop{param_override_args + n_param_override_args}, s{nullptr} {};
 
   bool next()
   {
@@ -228,6 +282,19 @@ struct CliLineStream {
     this->s = *this->next_arg;
     this->next_arg++;
     return true;
+  }
+
+  // formats a slightly more generic error
+  [[noreturn]] void error(std::string reason) const
+  {
+    std::string msg = "parameter assignment parsing problem\n";
+    // specify the location
+    msg += "   from cli arg: ";
+    msg += s;
+    // include the reason
+    msg += "   err: ";
+    msg += reason;
+    throw std::runtime_error(msg);
   }
 
   [[noreturn]] void error(std::string reason, std::string full_name, bool is_table_header) const
@@ -306,11 +373,11 @@ std::string Process_Full_Name(std::string full_name, std::map<std::string, bool,
 
 }  // anonymous namespace
 
-ParameterMap::ParameterMap(std::FILE* fp, int argc, char** argv, bool close_fp)
+ParameterMap::ParameterMap(std::FILE* fp, int n_param_override_args, char** param_override_args, bool close_fp)
 {
   CHOLLA_ASSERT(fp != nullptr, "ParameterMap was passed a nullptr rather than an actual file object");
   FileLineStream file_line_stream(fp);
-  CliLineStream cli_line_stream(argc, argv);
+  CliLineStream cli_line_stream(n_param_override_args, param_override_args);
 
   // to provide consistent table-related behavior to TOML, we need to track the names of tables to ensure that:
   //  1. no table is explicitly defined more than once
@@ -364,37 +431,40 @@ ParameterMap::ParameterMap(std::FILE* fp, int argc, char** argv, bool close_fp)
       all_tables[cur_table_header] = true;
 
     } else {  // Parse name/value pair from line
-      KeyValueViews kv_pair = Try_Extract_Key_Value_View(buff);
-      if (kv_pair.key.empty()) {
-        file_line_stream.warn("skipping line due to invalid format (this may become an error in the future)");
-        continue;
-      }
-      my_trim(kv_pair.value);
-
-      if (kv_pair.key.find('.') != std::string_view::npos) {
+      KeyValueExtraction kv_pair = Try_Extract_Key_Value(buff);
+      if (not kv_pair.maybe_value.has_value()) {
+        // file_line_stream.warn("skipping line due to invalid format (this may become an error in the future)");
+        // continue;
+        file_line_stream.error(kv_pair.error_msg);
+      } else if (kv_pair.n_key_segments != 1) {
         file_line_stream.error("parameter-names in the parameter-file aren't currently allowed to contain a '.'");
-      }
-      std::string full_param_name = (not cur_table_header.empty()) ? (cur_table_header + '.') : std::string{};
-      full_param_name += std::string(kv_pair.key);
+      } else {
+        std::string full_param_name = (not cur_table_header.empty()) ? (cur_table_header + '.') : std::string{};
+        full_param_name += kv_pair.key;
+        param_details::Value& value = kv_pair.maybe_value.value();
 
-      std::string msg = Process_Full_Name(full_param_name, all_tables, this->entries_);
-      if (not msg.empty()) file_line_stream.error(msg, full_param_name, false);
-      entries_[full_param_name] = {std::string(kv_pair.value), false};
+        std::string msg = Process_Full_Name(full_param_name, all_tables, this->entries_);
+        if (not msg.empty()) file_line_stream.error(msg, full_param_name, false);
+        entries_[full_param_name] = {value, false};
+      }
     }
   }
 
   // Parse overriding args from command line
   while (cli_line_stream.next()) {
     // try to parse the argument
-    KeyValueViews kv_pair = Try_Extract_Key_Value_View(cli_line_stream.s);
-    if (kv_pair.key.empty()) continue;
-    my_trim(kv_pair.value);
-    std::string key_str(kv_pair.key);
-    std::string msg = Process_Full_Name(key_str, all_tables, this->entries_);
-    if (not msg.empty()) cli_line_stream.error(msg, key_str, false);
-    std::string value_str(kv_pair.value);
-    chprintf("Override with %s=%s\n", key_str.c_str(), value_str.c_str());
-    entries_[key_str] = {value_str, false};
+    KeyValueExtraction kv_pair = Try_Extract_Key_Value(cli_line_stream.s);
+    if (not kv_pair.maybe_value.has_value()) {
+      cli_line_stream.error(kv_pair.error_msg);
+    } else {
+      std::string key_str(kv_pair.key);
+      param_details::Value& value = kv_pair.maybe_value.value();
+      std::string msg             = Process_Full_Name(key_str, all_tables, this->entries_);
+      if (not msg.empty()) cli_line_stream.error(msg, key_str, false);
+      std::string value_str_ = value.toml_repr();
+      chprintf("Override with %s=%s\n", key_str.c_str(), value_str_.c_str());
+      entries_[key_str] = {value, false};
+    }
   }
 
   if (close_fp) std::fclose(fp);
@@ -423,7 +493,7 @@ int ParameterMap::warn_unused_parameters(const std::set<std::string>& ignore_par
 
     if ((not param_entry.accessed) and (ignore_params.find(name) == ignore_params.end())) {
       unused_params++;
-      const std::string& value = param_entry.param_str;
+      const std::string& value = param_entry.val.toml_repr();
       if (abort_on_warning) {
         CHOLLA_ERROR("%s/%s:  Unknown parameter/value pair!", name.c_str(), value.c_str());
       } else if (not suppress_warning_msg) {
