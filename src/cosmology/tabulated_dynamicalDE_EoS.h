@@ -1,5 +1,8 @@
-#ifdef COSMOLOGY
-  #include <cmath>
+/*! \file
+* This file defines \ref TabulatedDynamicalDarkEnergyEoS
+*/
+
+#include <cmath>
 
 class TabulatedDynamicalDarkEnergyEoS
 {
@@ -19,4 +22,3 @@ class TabulatedDynamicalDarkEnergyEoS
   Real Get_DynamicalDE_Density_from_a(Real a);
 };
 
-#endif
