@@ -10,7 +10,7 @@
     #include "../global/global.h"
     #include "../gravity/grav3D.h"
     #include "../particles/particles_3D.h"
-    #include "dynamical_dark_energy.h"
+    #include "tabulated_dynamicalDE_EoS.h"
 
 class Cosmology
 {
