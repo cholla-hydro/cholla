@@ -8,14 +8,16 @@
 #include <iostream>
 #include <memory>
 #include <sstream>
-#include <utility>  // std::swap, std::move
+#include <type_traits>  // std::is_same
+#include <utility>      // std::swap, std::move
 
 #include "../global/global.h"
 #include "../grid/grid3D.h"
+#include "../io/AttrRecorderInterface.h"
 #include "../io/FieldWriter.h"
 #include "../io/FnameTemplate.h"
-#include "../io/RotatedProjWriter.h"  // io::Rotation
 #include "../io/WriterManager.h"
+#include "../utils/error_handling.h"
 
 /*! Local function that designates whether we are using a root-process. It gives
  *  a sensible result regardless of whether we are using MPI
@@ -103,7 +105,7 @@ class H5Space1D
 /*! Provides a nice wrapper around an hdf5 file handle for the purpose of recording
  *  attributes
  */
-class H5AttrRecorder
+class H5AttrRecorder : public AttrRecorderInterface
 {
   hid_t file_id_;
   hid_t stringType_;
@@ -121,30 +123,17 @@ class H5AttrRecorder
     CHOLLA_ASSERT(H5Tset_size(this->stringType_, H5T_VARIABLE) >= 0, "error creating the string type");
   }
 
-  ~H5AttrRecorder() { H5Tclose(this->stringType_); }
+  ~H5AttrRecorder() override { H5Tclose(this->stringType_); }
 
-  void record(const char* name, const char* value);
-  void record(const char* name, double value) { this->record_arr(name, &value, 1); }
-  void record(const char* name, int value) { this->record_arr(name, &value, 1); }
-  void record(const char* name, long value) { this->record_arr(name, &value, 1); }
+  void record_arr(const char* name, const double* arr, int length) override;
+  void record_arr(const char* name, const int* arr, int length) override;
+  void record_arr(const char* name, const long* arr, int length) override;
+  void record(const char* name, const char* val) override;
 
-  // convenience method that comes up frequently
-  void record_triple(const char* name, double a, double b, double c)
-  {
-    double tmp[3] = {a, b, c};
-    this->record_arr(name, tmp, 3);
-  }
-
-  // convenience method that comes up frequently
-  void record_triple(const char* name, int a, int b, int c)
-  {
-    int tmp[3] = {a, b, c};
-    this->record_arr(name, tmp, 3);
-  }
-
-  void record_arr(const char* name, const double* arr, int length);
-  void record_arr(const char* name, const int* arr, int length);
-  void record_arr(const char* name, const long* arr, int length);
+  // for historical consistency scalar arithmetic values are saved as 1-element arrays
+  void record(const char* name, double val) override { this->record_arr(name, &val, 1); }
+  void record(const char* name, int val) override { this->record_arr(name, &val, 1); }
+  void record(const char* name, long val) override { this->record_arr(name, &val, 1); }
 };
 
 herr_t Read_HDF5_Dataset(hid_t file_id, double* dataset_buffer, const char* name);
