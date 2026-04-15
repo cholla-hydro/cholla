@@ -336,6 +336,29 @@ __global__ __launch_bounds__(GPU_MAX_THREADS) void gpuRun3x0(const int n2, const
   }
 }
 
+/*! Calls \p f at every specified index
+ *
+ *  \param n0, n1, n2 The dimensions of the for-loop. In general, \p n2 corresponds to
+ *      the tightly increasing axis (we expand on this below).
+ *  \param f The callable that will be called on the device that accepts 3 arguments.
+ *      If the signature looks like ``f(int i0, int i1, int i2)``, then the max value
+ *      passed to ``i0`` is ``(n0-1)`` and the max value passed to ``i2`` is ``(n2-1)``.
+ *
+ *  \par More about ``f``
+ *  \p f is commonly a lambda function that has been specially declared so that it is
+ *  executed on device. The easiest way to declare \p f is with the \ref GPU_LAMBDA
+ *  macro. Alternatively, \p f can be a full blown callable type. For less experience
+ *  C++ devs, this means that \p f would be a struct/class with a member function of
+ *  the form ``__device__ void operator()(int i0, int i1, int i2)``.
+ *
+ *  \par More about dimensions
+ *  If you are iterating over a 3D grid of values, \p n2 should specify the length
+ *  along the contiguous axis. Consider a pair of threads with identical values of
+ *  ``blockIdx``, ``threadIdx.z``, and ``threadIdx.y``. If the difference in
+ *  ``threadIdx.x`` values between the threads is exactly 1, then the pair of threads
+ *  will be accessing adjacent indices along the axis of length \p n2. Loads will be
+ *  coalesced if memory is contiguous along this axis
+ */
 template <typename F>
 void gpuFor(const int n0, const int n1, const int n2, const F f)
 {
@@ -514,6 +537,19 @@ void gpuFor(const int n0, const int n1, const int n2, const int n3, const int n4
   }
 }
 
+  /*! Used to define a lambda function that is only executed on device
+   *
+   *  An example usage is shown below:
+   *  \code{C++}
+   *  void double_values(const double* ptr_in, double* ptr_out, int n){
+   *    gpuFor(n, GPU_LAMBDA(int i) { ptr_out[i] = 2 * ptr_in[i]; })
+   *  }
+   *  \endcode
+   *
+   *  \note
+   *  Be aware, that a lambda declared with this macro explicitly can't be called on
+   *  the host.
+   */
   #define GPU_LAMBDA [=] __device__
 
 #endif

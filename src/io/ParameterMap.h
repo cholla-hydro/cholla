@@ -16,12 +16,6 @@
 namespace param_details
 {
 
-/* defining a construct like this is a common workaround used to raise a compile-time error in the
- * else-branch of a constexpr-if statement. This is used to implement ``ParameterMap::try_get_``
- */
-template <class>
-inline constexpr bool dummy_false_v_ = false;
-
 /* Kinds of errors from converting parameters to a type */
 enum class TypeErr { none, generic, boolean, out_of_range };
 
@@ -238,8 +232,7 @@ std::optional<T> ParameterMap::try_get_(const std::string& param, bool is_type_c
     err        = param_details::try_int_(str, val);
     dtype_name = "int";
   } else {
-    static_assert(param_details::dummy_false_v_<T>,
-                  "template type can only be bool, int, std::int64_t, double, or std::string.");
+    static_assert(always_false<T>, "template type can only be bool, int, std::int64_t, double, or std::string.");
   }
 
   // now do err-handling/value return

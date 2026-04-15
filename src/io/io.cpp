@@ -35,10 +35,6 @@
   #include "../cosmology/cosmology.h"
 #endif  // COSMOLOGY
 
-/* function used to rotate points about an axis in 3D for the rotated projection
- * output routine */
-void Rotate_Point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp);
-
 /* Generate the log output file */
 void Create_Log_File(struct Parameters P)
 {
@@ -151,329 +147,163 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
 #endif
 }
 
-void Grid3D::Write_Header_Text(FILE *fp) const
+void Grid3D::Write_Header(AttrRecorderInterface &attr_recorder) const
 {
-  // Write the header info to the output file
-  fprintf(fp, "Header Information\n");
-  fprintf(fp, "Git Commit Hash = %s\n", GIT_HASH);
-  fprintf(fp, "Macro Flags     = %s\n", MACRO_FLAGS);
-  fprintf(fp, "n_step: %d  sim t: %f  sim dt: %f\n", H.n_step, H.t, H.dt);
-  fprintf(fp, "mass unit: %e  length unit: %e  time unit: %e\n", MASS_UNIT, LENGTH_UNIT, TIME_UNIT);
-  fprintf(fp, "nx: %d  ny: %d  nz: %d\n", H.nx, H.ny, H.nz);
-  fprintf(fp, "xmin: %f  ymin: %f  zmin: %f\n", H.xbound, H.ybound, H.zbound);
-  fprintf(fp, "t: %f\n", H.t);
+  // Single attributes first
+  attr_recorder.record("gamma", gama);
+
+  attr_recorder.record("Git Commit Hash", GIT_HASH);
+  attr_recorder.record("Macro Flags", MACRO_FLAGS);
+  attr_recorder.record("cholla", "");  // <- helps yt identify cholla outputs
+
+  // Numeric Attributes
+  attr_recorder.record("t", H.t);
+  attr_recorder.record("dt", H.dt);
+  attr_recorder.record("n_step", H.n_step);
+  attr_recorder.record("n_fields", H.n_fields);
+  attr_recorder.record("time_unit", double{TIME_UNIT});
+  attr_recorder.record("length_unit", double{LENGTH_UNIT});
+  attr_recorder.record("mass_unit", double{MASS_UNIT});
+  attr_recorder.record("velocity_unit", double{VELOCITY_UNIT});
+  attr_recorder.record("density_unit", double{DENSITY_UNIT});
+  attr_recorder.record("energy_unit", double{ENERGY_UNIT});
+
+#ifdef MHD
+  attr_recorder.record("magnetic_field_unit", double{MAGNETIC_FIELD_UNIT});
+#endif  // MHD
+
+#ifdef COSMOLOGY
+  attr_recorder.record("H0", Cosmo.H0);
+  attr_recorder.record("Omega_M", Cosmo.Omega_M);
+  attr_recorder.record("Omega_L", Cosmo.Omega_L);
+  attr_recorder.record("Current_z", Cosmo.current_z);
+  attr_recorder.record("Current_a", Cosmo.current_a);
+#endif
+
+  // Now, do 3-element attributes
+
+  // todo: we should stop narrowing the datatype from ptrdiff_t to int
+  int dims[3];
+#ifndef MPI_CHOLLA
+  dims[0] = H.nx_real;
+  dims[1] = H.ny_real;
+  dims[2] = H.nz_real;
+#else
+  dims[0] = nx_global;
+  dims[1] = ny_global;
+  dims[2] = nz_global;
+#endif
+
+  attr_recorder.record_arr("dims", dims, 3);
+
+#ifdef MPI_CHOLLA
+  attr_recorder.record_triple("dims_local", H.nx_real, H.ny_real, H.nz_real);
+
+  // todo: we should stop narrowing the datatype from ptrdiff_t to int
+  int offset[3];
+  offset[0] = nx_local_start;
+  offset[1] = ny_local_start;
+  offset[2] = nz_local_start;
+
+  attr_recorder.record_arr("offset", offset, 3);
+
+  attr_recorder.record_triple("nprocs", nproc_x, nproc_y, nproc_z);
+#endif
+
+  attr_recorder.record_triple("bounds", H.xbound, H.ybound, H.zbound);
+  attr_recorder.record_triple("domain", H.xdglobal, H.ydglobal, H.zdglobal);
+  attr_recorder.record_triple("dx", H.dx, H.dy, H.dz);
 }
 
 #ifdef HDF5
-/*! \fn void Write_Header_HDF5(hid_t file_id)
- *  \brief Write the relevant header info to the HDF5 file. */
-void Grid3D::Write_Header_HDF5(hid_t file_id)
+
+H5Space1D &H5Space1D::operator=(H5Space1D &&other) noexcept
 {
-  hid_t attribute_id, dataspace_id;
-  herr_t status;
-  hsize_t attr_dims;
-  int int_data[3];
-  Real Real_data[3];
-
-  // Single attributes first
-  attr_dims = 1;
-  // Create the data space for the attribute
-  dataspace_id = H5Screate_simple(1, &attr_dims, NULL);
-  // Create a group attribute
-  attribute_id = H5Acreate(file_id, "gamma", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  // Write the attribute data
-  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &gama);
-  // Close the attribute
-  status = H5Aclose(attribute_id);
-
-  // String attributes
-  hid_t stringType = H5Tcopy(H5T_C_S1);
-  H5Tset_size(stringType, H5T_VARIABLE);
-
-  attribute_id        = H5Acreate(file_id, "Git Commit Hash", stringType, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  const char *gitHash = GIT_HASH;
-  status              = H5Awrite(attribute_id, stringType, &gitHash);
-  H5Aclose(attribute_id);
-
-  attribute_id           = H5Acreate(file_id, "Macro Flags", stringType, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  const char *macroFlags = MACRO_FLAGS;
-  status                 = H5Awrite(attribute_id, stringType, &macroFlags);
-  H5Aclose(attribute_id);
-
-  // attribute to help yt differentiate cholla outputs from outputs produced by other codes
-  attribute_id         = H5Acreate(file_id, "cholla", stringType, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  const char *dummyStr = "";  // this doesn't really matter right now
-  status               = H5Awrite(attribute_id, stringType, &dummyStr);
-  H5Aclose(attribute_id);
-
-  // Numeric Attributes
-  status               = Write_HDF5_Attribute(file_id, dataspace_id, &H.t, "t");
-  status               = Write_HDF5_Attribute(file_id, dataspace_id, &H.dt, "dt");
-  status               = Write_HDF5_Attribute(file_id, dataspace_id, &H.n_step, "n_step");
-  status               = Write_HDF5_Attribute(file_id, dataspace_id, &H.n_fields, "n_fields");
-  double time_unit     = TIME_UNIT;
-  status               = Write_HDF5_Attribute(file_id, dataspace_id, &time_unit, "time_unit");
-  double length_unit   = LENGTH_UNIT;
-  status               = Write_HDF5_Attribute(file_id, dataspace_id, &length_unit, "length_unit");
-  double mass_unit     = MASS_UNIT;
-  status               = Write_HDF5_Attribute(file_id, dataspace_id, &mass_unit, "mass_unit");
-  double velocity_unit = VELOCITY_UNIT;
-  status               = Write_HDF5_Attribute(file_id, dataspace_id, &velocity_unit, "velocity_unit");
-  double density_unit  = DENSITY_UNIT;
-  status               = Write_HDF5_Attribute(file_id, dataspace_id, &density_unit, "density_unit");
-  double energy_unit   = ENERGY_UNIT;
-  status               = Write_HDF5_Attribute(file_id, dataspace_id, &energy_unit, "energy_unit");
-
-  #ifdef MHD
-  double magnetic_field_unit = MAGNETIC_FIELD_UNIT;
-  status                     = Write_HDF5_Attribute(file_id, dataspace_id, &magnetic_field_unit, "magnetic_field_unit");
-  #endif  // MHD
-
-  #ifdef COSMOLOGY
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &Cosmo.H0, "H0");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &Cosmo.Omega_M, "Omega_M");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &Cosmo.Omega_L, "Omega_L");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &Cosmo.current_z, "Current_z");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &Cosmo.current_a, "Current_a");
-  #endif
-
-  // Close the dataspace
-  status = H5Sclose(dataspace_id);
-
-  // Now 3D attributes
-  attr_dims = 3;
-  // Create the data space for the attribute
-  dataspace_id = H5Screate_simple(1, &attr_dims, NULL);
-
-  #ifndef MPI_CHOLLA
-  int_data[0] = H.nx_real;
-  int_data[1] = H.ny_real;
-  int_data[2] = H.nz_real;
-  #endif
-  #ifdef MPI_CHOLLA
-  int_data[0] = nx_global;
-  int_data[1] = ny_global;
-  int_data[2] = nz_global;
-  #endif
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims");
-
-  #ifdef MPI_CHOLLA
-  int_data[0] = H.nx_real;
-  int_data[1] = H.ny_real;
-  int_data[2] = H.nz_real;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims_local");
-
-  int_data[0] = nx_local_start;
-  int_data[1] = ny_local_start;
-  int_data[2] = nz_local_start;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "offset");
-
-  int_data[0] = nproc_x;
-  int_data[1] = nproc_y;
-  int_data[2] = nproc_z;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "nprocs");
-  #endif
-
-  Real_data[0] = H.xbound;
-  Real_data[1] = H.ybound;
-  Real_data[2] = H.zbound;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "bounds");
-
-  Real_data[0] = H.xdglobal;
-  Real_data[1] = H.ydglobal;
-  Real_data[2] = H.zdglobal;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "domain");
-
-  Real_data[0] = H.dx;
-  Real_data[1] = H.dy;
-  Real_data[2] = H.dz;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "dx");
-
-  // Close the dataspace
-  status = H5Sclose(dataspace_id);
+  std::swap(this->dim_, other.dim_);
+  std::swap(this->id_, other.id_);
+  return *this;
 }
 
-/*! \fn void Write_Header_Rotated_HDF5(hid_t file_id)
- *  \brief Write the relevant header info to the HDF5 file for rotated
- * projection. */
-void Grid3D::Write_Header_Rotated_HDF5(hid_t file_id, io::Rotation &R)
+H5Space1D &H5Space1D::ensure_dim(hsize_t dim)
 {
-  hid_t attribute_id, dataspace_id;
-  herr_t status;
-  hsize_t attr_dims;
-  int int_data[3];
-  Real Real_data[3];
-  Real delta, theta, phi;
-
-  #ifdef MPI_CHOLLA
-  // determine the size of the projection to output for this subvolume
-  Real x, y, z, xp, yp, zp;
-  Real alpha, beta;
-  int ix, iz;
-  R.nx_min = R.nx;
-  R.nx_max = 0;
-  R.nz_min = R.nz;
-  R.nz_max = 0;
-  for (int i = 0; i < 2; i++) {
-    for (int j = 0; j < 2; j++) {
-      for (int k = 0; k < 2; k++) {
-        // find the corners of this domain in the rotated position
-        Get_Position(H.n_ghost + i * (H.nx - 2 * H.n_ghost), H.n_ghost + j * (H.ny - 2 * H.n_ghost),
-                     H.n_ghost + k * (H.nz - 2 * H.n_ghost), &x, &y, &z);
-        // rotate cell position
-        Rotate_Point(x, y, z, R.delta, R.phi, R.theta, &xp, &yp, &zp);
-        // find projected location
-        // assumes box centered at [0,0,0]
-        alpha    = (R.nx * (xp + 0.5 * R.Lx) / R.Lx);
-        beta     = (R.nz * (zp + 0.5 * R.Lz) / R.Lz);
-        ix       = (int)round(alpha);
-        iz       = (int)round(beta);
-        R.nx_min = std::min(ix, R.nx_min);
-        R.nx_max = std::max(ix, R.nx_max);
-        R.nz_min = std::min(iz, R.nz_min);
-        R.nz_max = std::max(iz, R.nz_max);
-      }
-    }
+  if (this->id_ == H5I_INVALID_HID) {  // <- first time setting dim
+    this->dim_ = std::unique_ptr<hsize_t>(new hsize_t{dim});
+  } else if (*this->dim_ == dim) {  // <- dim isn't changing
+    return *this;
+  } else {
+    H5Sclose(this->id_);
+    *this->dim_ = dim;
   }
-  // if the corners aren't within the chosen projection area
-  // take the input projection edge as the edge of this piece of the projection
-  R.nx_min = std::max(R.nx_min, 0);
-  R.nx_max = std::min(R.nx_max, R.nx);
-  R.nz_min = std::max(R.nz_min, 0);
-  R.nz_max = std::min(R.nz_max, R.nz);
-  #endif
-
-  // Single attributes first
-  attr_dims = 1;
-  // Create the data space for the attribute
-  dataspace_id = H5Screate_simple(1, &attr_dims, NULL);
-  // Create a group attribute
-  attribute_id = H5Acreate(file_id, "gamma", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  // Write the attribute data
-  status = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &gama);
-  // Close the attribute
-  status = H5Aclose(attribute_id);
-
-  // String attributes
-  hid_t stringType = H5Tcopy(H5T_C_S1);
-  H5Tset_size(stringType, H5T_VARIABLE);
-
-  attribute_id        = H5Acreate(file_id, "Git Commit Hash", stringType, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  const char *gitHash = GIT_HASH;
-  status              = H5Awrite(attribute_id, stringType, &gitHash);
-  H5Aclose(attribute_id);
-
-  attribute_id           = H5Acreate(file_id, "Macro Flags", stringType, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  const char *macroFlags = MACRO_FLAGS;
-  status                 = H5Awrite(attribute_id, stringType, &macroFlags);
-  H5Aclose(attribute_id);
-
-  // Numeric Attributes
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &H.t, "t");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &H.dt, "dt");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &H.n_step, "n_step");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &H.n_fields, "n_fields");
-
-  // Rotation data
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.nx, "nxr");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.nz, "nzr");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.nx_min, "nx_min");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.nz_min, "nz_min");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.nx_max, "nx_max");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.nz_max, "nz_max");
-  delta  = 180. * R.delta / M_PI;
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &delta, "delta");
-  theta  = 180. * R.theta / M_PI;
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &theta, "theta");
-  phi    = 180. * R.phi / M_PI;
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &phi, "phi");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.Lx, "Lx");
-  status = Write_HDF5_Attribute(file_id, dataspace_id, &R.Lz, "Lz");
-  // Close the dataspace
-  status = H5Sclose(dataspace_id);
-
-  // Now 3D attributes
-  attr_dims = 3;
-  // Create the data space for the attribute
-  dataspace_id = H5Screate_simple(1, &attr_dims, NULL);
-
-  #ifndef MPI_CHOLLA
-  int_data[0] = H.nx_real;
-  int_data[1] = H.ny_real;
-  int_data[2] = H.nz_real;
-  #endif
-  #ifdef MPI_CHOLLA
-  int_data[0] = nx_global;
-  int_data[1] = ny_global;
-  int_data[2] = nz_global;
-  #endif
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims");
-
-  #ifdef MPI_CHOLLA
-  int_data[0] = H.nx_real;
-  int_data[1] = H.ny_real;
-  int_data[2] = H.nz_real;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims_local");
-
-  int_data[0] = nx_local_start;
-  int_data[1] = ny_local_start;
-  int_data[2] = nz_local_start;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "offset");
-  #endif
-
-  Real_data[0] = H.xbound;
-  Real_data[1] = H.ybound;
-  Real_data[2] = H.zbound;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "bounds");
-
-  Real_data[0] = H.xdglobal;
-  Real_data[1] = H.ydglobal;
-  Real_data[2] = H.zdglobal;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "domain");
-
-  Real_data[0] = H.dx;
-  Real_data[1] = H.dy;
-  Real_data[2] = H.dz;
-
-  status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "dx");
-
-  // Close the dataspace
-  status = H5Sclose(dataspace_id);
-
-  chprintf(
-      "Outputting rotation data with delta = %e, theta = %e, phi = %e, Lx = "
-      "%f, Lz = %f\n",
-      R.delta, R.theta, R.phi, R.Lx, R.Lz);
-}
-#endif  // HDF5
-
-#ifdef HDF5
-herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, double *attribute, const char *name)
-{
-  hid_t attribute_id = H5Acreate(file_id, name, H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  herr_t status      = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, attribute);
-  status             = H5Aclose(attribute_id);
-  return status;
+  this->id_ = H5Screate_simple(1, this->dim_.get(), nullptr);
+  CHOLLA_ASSERT(this->id_ != H5I_INVALID_HID, "dataspace init error");
+  return *this;
 }
 
-herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, int *attribute, const char *name)
+hid_t H5AttrRecorder::make_attr_1d_(const char *name, hid_t type_id, hsize_t n_elem)
 {
-  hid_t attribute_id = H5Acreate(file_id, name, H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  herr_t status      = H5Awrite(attribute_id, H5T_NATIVE_INT, attribute);
-  status             = H5Aclose(attribute_id);
-  return status;
+  hid_t dataspace_id = this->cached_dataspace_.ensure_dim(n_elem).id();
+  CHOLLA_ASSERT(name != nullptr, "name must not be a nullptr");
+  hid_t attribute_id = H5Acreate(this->file_id_, name, type_id, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  CHOLLA_ASSERT(attribute_id != H5I_INVALID_HID, "error creating attribute");
+  return attribute_id;
+}
+
+void H5AttrRecorder::record(const char *name, const char *value)
+{
+  CHOLLA_ASSERT(value != nullptr, "value can't be a nullptr");
+  hid_t type_id      = this->stringType_;
+  hid_t attribute_id = this->make_attr_1d_(name, type_id, 1);
+  if (H5Awrite(attribute_id, type_id, &value) < 0) {
+    CHOLLA_ERROR("error writing \"%s\" attribute", name);
+  }
+  if (H5Aclose(attribute_id) < 0) {
+    CHOLLA_ERROR("error closing the \"%s\" attribute", name);
+  }
+}
+
+void H5AttrRecorder::record_arr(const char *name, const double *arr, int length)
+{
+  hid_t type_id = H5T_NATIVE_DOUBLE;
+  // is there a compelling reason why this is big endian?
+  hid_t dest_type_id = H5T_IEEE_F64BE;
+  hid_t attribute_id = this->make_attr_1d_(name, dest_type_id, length);
+  if (H5Awrite(attribute_id, type_id, arr) < 0) {
+    CHOLLA_ERROR("error writing \"%s\" attribute", name);
+  }
+  if (H5Aclose(attribute_id) < 0) {
+    CHOLLA_ERROR("error closing the \"%s\" attribute", name);
+  }
+}
+
+void H5AttrRecorder::record_arr(const char *name, const int *arr, int length)
+{
+  hid_t type_id = H5T_NATIVE_INT;
+  // the following was picked for historical consistency
+  // -> in reality, we probably want to make sure the output size is at least
+  //    as big as the native int (yes, it's usually 32-bit, but not guaranteed)
+  // -> is there a compelling reason why this is big endian?
+  hid_t dest_type_id = H5T_STD_I32BE;
+  hid_t attribute_id = this->make_attr_1d_(name, dest_type_id, length);
+  if (H5Awrite(attribute_id, type_id, arr) < 0) {
+    CHOLLA_ERROR("error writing \"%s\" attribute", name);
+  }
+  if (H5Aclose(attribute_id) < 0) {
+    CHOLLA_ERROR("error closing the \"%s\" attribute", name);
+  }
+}
+
+void H5AttrRecorder::record_arr(const char *name, const long *arr, int length)
+{
+  hid_t type_id = H5T_NATIVE_INT;
+  // is there a compelling reason why this is big endian?
+  hid_t dest_type_id = H5T_STD_I64BE;
+  hid_t attribute_id = this->make_attr_1d_(name, dest_type_id, length);
+  if (H5Awrite(attribute_id, type_id, arr) < 0) {
+    CHOLLA_ERROR("error writing \"%s\" attribute", name);
+  }
+  if (H5Aclose(attribute_id) < 0) {
+    CHOLLA_ERROR("error closing the \"%s\" attribute", name);
+  }
 }
 
 herr_t Read_HDF5_Dataset(hid_t file_id, double *dataset_buffer, const char *name)
@@ -686,167 +516,6 @@ void Write_Generic_HDF5_Field_GPU(int nx, int ny, int nz, int nx_real, int ny_re
   Fill_HDF5_Buffer_From_Grid_GPU(nx, ny, nz, nx_real, ny_real, nz_real, n_ghost, dataset_buffer, device_hdf5_buffer,
                                  source_buffer);
   Write_HDF5_Dataset_Grid(nx, ny, nz, nx_real, ny_real, nz_real, file_id, dataset_buffer, name);
-}
-#endif  // HDF5
-
-#ifdef HDF5
-/*! \fn void Write_Rotated_Projection_HDF5(hid_t file_id)
- *  \brief Write rotated projected data to a file, at the current simulation
- * time. */
-void Grid3D::Write_Rotated_Projection_HDF5(hid_t file_id, const io::Rotation &R)
-{
-  hid_t dataset_id, dataspace_xzr_id;
-  Real *dataset_buffer_dxzr;
-  Real *dataset_buffer_Txzr;
-  Real *dataset_buffer_vxxzr;
-  Real *dataset_buffer_vyxzr;
-  Real *dataset_buffer_vzxzr;
-
-  herr_t status;
-  Real dxy, dxz, Txy, Txz;
-  Real d, vx, vy, vz;
-
-  Real x, y, z;      // cell positions
-  Real xp, yp, zp;   // rotated positions
-  Real alpha, beta;  // projected positions
-  int ix, iz;        // projected index positions
-
-  Real mu = 0.6;
-
-  srand(137);      // initialize a random number
-  Real eps = 0.1;  // randomize cell centers slightly to combat aliasing
-
-  // 3D
-  if (H.nx > 1 && H.ny > 1 && H.nz > 1) {
-    Real Lx     = R.Lx;  // projected box size in x dir
-    Real Lz     = R.Lz;  // projected box size in z dir
-    int nx_dset = R.nx;
-    int nz_dset = R.nz;
-
-    if (R.nx * R.nz == 0) {
-      chprintf(
-          "WARNING: compiled with -DROTATED_PROJECTION but input parameters "
-          "nxr or nzr = 0\n");
-      return;
-    }
-
-    // set the projected dataset size for this process to capture
-    // this piece of the simulation volume
-    // min and max values were set in the header write
-    int nx_min, nx_max, nz_min, nz_max;
-    nx_min  = R.nx_min;
-    nx_max  = R.nx_max;
-    nz_min  = R.nz_min;
-    nz_max  = R.nz_max;
-    nx_dset = nx_max - nx_min;
-    nz_dset = nz_max - nz_min;
-
-    hsize_t dims[2];
-
-    // allocate the buffers for the projected dataset
-    // and initialize to zero
-    dataset_buffer_dxzr  = (Real *)calloc(nx_dset * nz_dset, sizeof(Real));
-    dataset_buffer_Txzr  = (Real *)calloc(nx_dset * nz_dset, sizeof(Real));
-    dataset_buffer_vxxzr = (Real *)calloc(nx_dset * nz_dset, sizeof(Real));
-    dataset_buffer_vyxzr = (Real *)calloc(nx_dset * nz_dset, sizeof(Real));
-    dataset_buffer_vzxzr = (Real *)calloc(nx_dset * nz_dset, sizeof(Real));
-
-    // Create the data space for the datasets
-    dims[0]          = nx_dset;
-    dims[1]          = nz_dset;
-    dataspace_xzr_id = H5Screate_simple(2, dims, NULL);
-
-    // Copy the xz rotated projection to the memory buffer
-    for (int k = 0; k < H.nz_real; k++) {
-      for (int i = 0; i < H.nx_real; i++) {
-        for (int j = 0; j < H.ny_real; j++) {
-          // get cell index
-          int const xid = i + H.n_ghost;
-          int const yid = j + H.n_ghost;
-          int const zid = k + H.n_ghost;
-          int const id  = cuda_utilities::compute1DIndex(xid, yid, zid, H.nx, H.ny);
-
-          // get cell positions
-          Get_Position(i + H.n_ghost, j + H.n_ghost, k + H.n_ghost, &x, &y, &z);
-
-          // add very slight noise to locations
-          x += eps * H.dx * (drand48() - 0.5);
-          y += eps * H.dy * (drand48() - 0.5);
-          z += eps * H.dz * (drand48() - 0.5);
-
-          // rotate cell positions
-          Rotate_Point(x, y, z, R.delta, R.phi, R.theta, &xp, &yp, &zp);
-
-          // find projected locations
-          // assumes box centered at [0,0,0]
-          alpha = (R.nx * (xp + 0.5 * R.Lx) / R.Lx);
-          beta  = (R.nz * (zp + 0.5 * R.Lz) / R.Lz);
-          ix    = (int)round(alpha);
-          iz    = (int)round(beta);
-  #ifdef MPI_CHOLLA
-          ix = ix - nx_min;
-          iz = iz - nz_min;
-  #endif
-
-          if ((ix >= 0) && (ix < nx_dset) && (iz >= 0) && (iz < nz_dset)) {
-            int const buf_id = iz + ix * nz_dset;
-            d                = C.density[id];
-            // project density
-            dataset_buffer_dxzr[buf_id] += d * H.dy;
-            // calculate number density
-            Real const n = d * DENSITY_UNIT / (mu * MP);
-
-  // calculate temperature
-  #ifdef DE
-            Real const T = hydro_utilities::Calc_Temp_DE(C.GasEnergy[id], gama, n);
-  #else  // DE is not defined
-            Real const mx = C.momentum_x[id];
-            Real const my = C.momentum_y[id];
-            Real const mz = C.momentum_z[id];
-            Real const E  = C.Energy[id];
-
-    #ifdef MHD
-            auto const magnetic_centered =
-                mhd::utils::cellCenteredMagneticFields(C.host, id, xid, yid, zid, H.n_cells, H.nx, H.ny);
-            Real const T = hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n, magnetic_centered.x(),
-                                                                magnetic_centered.y(), magnetic_centered.z());
-    #else   // MHD is not defined
-            Real const T = hydro_utilities::Calc_Temp_Conserved(E, d, mx, my, mz, gama, n);
-    #endif  // MHD
-  #endif    // DE
-
-            Txz = T * d * H.dy;
-            dataset_buffer_Txzr[buf_id] += Txz;
-
-            // compute velocities
-            dataset_buffer_vxxzr[buf_id] += C.momentum_x[id] * H.dy;
-            dataset_buffer_vyxzr[buf_id] += C.momentum_y[id] * H.dy;
-            dataset_buffer_vzxzr[buf_id] += C.momentum_z[id] * H.dy;
-          }
-        }
-      }
-    }
-
-    // Write projected d,T,vx,vy,vz
-    status = Write_HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_dxzr, "/d_xzr");
-    status = Write_HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_Txzr, "/T_xzr");
-    status = Write_HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_vxxzr, "/vx_xzr");
-    status = Write_HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_vyxzr, "/vy_xzr");
-    status = Write_HDF5_Dataset(file_id, dataspace_xzr_id, dataset_buffer_vzxzr, "/vz_xzr");
-
-    // Free the dataspace id
-    status = H5Sclose(dataspace_xzr_id);
-
-    // free the data
-    free(dataset_buffer_dxzr);
-    free(dataset_buffer_Txzr);
-    free(dataset_buffer_vxxzr);
-    free(dataset_buffer_vyxzr);
-    free(dataset_buffer_vzxzr);
-
-  } else {
-    chprintf("Rotated projection write only implemented for 3D data.\n");
-  }
 }
 #endif  // HDF5
 
@@ -1457,48 +1126,6 @@ int chprintf(const char *__restrict sdata, ...)  // NOLINT(cert-dcl50-cpp)
   }
 
   return code;
-}
-
-void Rotate_Point(Real x, Real y, Real z, Real delta, Real phi, Real theta, Real *xp, Real *yp, Real *zp)
-{
-  Real cd, sd, cp, sp, ct, st;  // sines and cosines
-  Real a00, a01, a02;           // rotation matrix elements
-  Real a10, a11, a12;
-  Real a20, a21, a22;
-
-  // compute trig functions of rotation angles
-  cd = cos(delta);
-  sd = sin(delta);
-  cp = cos(phi);
-  sp = sin(phi);
-  ct = cos(theta);
-  st = sin(theta);
-
-  // compute the rotation matrix elements
-  /*a00 =       cosp*cosd - sinp*cost*sind;
-  a01 = -1.0*(cosp*sind + sinp*cost*cosd);
-  a02 =       sinp*sint;
-
-  a10 =       sinp*cosd + cosp*cost*sind;
-  a11 =      (cosp*cost*cosd - sint*sind);
-  a12 = -1.0* cosp*sint;
-
-  a20 =       sint*sind;
-  a21 =       sint*cosd;
-  a22 =       cost;*/
-  a00 = (cp * cd - sp * ct * sd);
-  a01 = -1.0 * (cp * sd + sp * ct * cd);
-  a02 = sp * st;
-  a10 = (sp * cd + cp * ct * sd);
-  a11 = (cp * ct * cd - st * sd);
-  a12 = cp * st;
-  a20 = st * sd;
-  a21 = st * cd;
-  a22 = ct;
-
-  *xp = a00 * x + a01 * y + a02 * z;
-  *yp = a10 * x + a11 * y + a12 * z;
-  *zp = a20 * x + a21 * y + a22 * z;
 }
 
 void Write_Debug(Real *Value, const char *fname, int nValues, int iProc)
