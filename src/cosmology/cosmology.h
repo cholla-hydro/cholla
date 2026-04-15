@@ -27,7 +27,7 @@ class Cosmology
   /*! Calculate rho_DE(z) / rho_DE(z=0) at some scale factor */
   Real Get_DE_Density_from_a(Real a);
 
-  /*! Declare dynamical DE equation of state table class */
+  /*! Stores dynamical DE equation of state table class */
   TabulatedDynamicalDarkEnergyEoS tab_dynamicalDE_EoS;
 
   /*! Indicate whether the simulation is configured to use a DynamicalDE EOS table */
