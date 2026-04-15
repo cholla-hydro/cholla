@@ -3,9 +3,37 @@
 #include <stdlib.h>
 
 #include <optional>
+#include <type_traits>  // std::false_type
 
 #include "../global/global.h"
 [[noreturn]] void chexit(int code);
+
+/*! a standard construct used to write `static_assert(false)`
+ *
+ *  This comes up with some frequency in code like the following:
+ *  \code{C++}
+ *    template<typename T>
+ *    void pretty_print(T t) {
+ *      if constexpr (std::is_same_v<T, int>) {
+ *        std::printf("int with value: %d\n", t);
+ *      } else if constexpr (std::is_same_v<T, std::string>) {
+ *        std::printf("string with value: %s\n", t.c_str());
+ *      } else {
+ *        static_assert(always_false<T>, "received unexpected type");
+ *      }
+ *    }
+ *  \endcode
+ *
+ *  \note
+ *  In Feb 2023, the C++ standards committee retroactively revised the standard
+ *  of C++11 to make this unnecessary:
+ *  - https://cplusplus.github.io/CWG/issues/2518.html
+ *  - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2023/p2593r1.html
+ *  Once we are comfortable requiring a new enough compiler, we can delete
+ *  this construct and replace each `always_false<T>` with `false`
+ */
+template <class...>
+constexpr std::false_type always_false{};
 
 /*!
  * \brief Check that the Cholla configuration and parameters don't have any significant errors. Mostly compile time
