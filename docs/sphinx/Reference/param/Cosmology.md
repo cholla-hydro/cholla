@@ -78,7 +78,20 @@ We expect increasing scale factor values in this file
 :Type: {par:typefmt}`str`
 :Default: *None*
 
-We expect increasing redshift values in this file. Each row must have a `z wDE(z)` value with a space delimiter. Table must have an entry at redshift {math}`z=0`. When specified, overrides {par:param}`w0` and {par:param}`wa`.
+We expect increasing redshift values in this file. Each row must have a `z wDE(z)` value with a space delimiter. Table must have an entry at redshift {math}`z=0`. Table should look like
+
+```shell-session
+# output the first five lines of wDE_file
+$ head wDE_file -n 5
+# z, w
+0.000000000000000000e+00 -9.767616499273475972e-01
+6.938631476027579126e-03 -9.769941793369097960e-01
+1.392540755881421788e-02 -9.772263520514015145e-01
+2.096066230604587410e-02 -9.774581369813842846e-01
+```
+
+
+When specified, overrides {par:param}`w0` and {par:param}`wa`.
 :::
 
 ---
