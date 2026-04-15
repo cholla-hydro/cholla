@@ -5,6 +5,7 @@
   #include <vector>
 
   #include "../io/io.h"
+  #include "tabulated_dynamicalDE_EoS.h"
 
 Real TabulatedDynamicalDarkEnergyEoS::Get_DynamicalDE_Density_from_a(Real a)
 {

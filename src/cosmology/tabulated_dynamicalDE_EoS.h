@@ -2,6 +2,8 @@
 * This file defines \ref TabulatedDynamicalDarkEnergyEoS
 */
 
+#pragma once
+
 #include "../global/global.h"
 #include <vector>
 
