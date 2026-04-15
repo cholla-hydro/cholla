@@ -151,30 +151,6 @@ bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameter
     parms->output_always = tmp;
   } else if (strcmp(name, "n_steps_limit") == 0) {
     parms->n_steps_limit = atof(value);
-  } else if (strcmp(name, "xmin") == 0) {
-    parms->xmin = atof(value);
-  } else if (strcmp(name, "ymin") == 0) {
-    parms->ymin = atof(value);
-  } else if (strcmp(name, "zmin") == 0) {
-    parms->zmin = atof(value);
-  } else if (strcmp(name, "xlen") == 0) {
-    parms->xlen = atof(value);
-  } else if (strcmp(name, "ylen") == 0) {
-    parms->ylen = atof(value);
-  } else if (strcmp(name, "zlen") == 0) {
-    parms->zlen = atof(value);
-  } else if (strcmp(name, "xl_bcnd") == 0) {
-    parms->xl_bcnd = atoi(value);
-  } else if (strcmp(name, "xu_bcnd") == 0) {
-    parms->xu_bcnd = atoi(value);
-  } else if (strcmp(name, "yl_bcnd") == 0) {
-    parms->yl_bcnd = atoi(value);
-  } else if (strcmp(name, "yu_bcnd") == 0) {
-    parms->yu_bcnd = atoi(value);
-  } else if (strcmp(name, "zl_bcnd") == 0) {
-    parms->zl_bcnd = atoi(value);
-  } else if (strcmp(name, "zu_bcnd") == 0) {
-    parms->zu_bcnd = atoi(value);
   } else if (strcmp(name, "rho") == 0) {
     parms->rho = atof(value);
   } else if (strcmp(name, "vx") == 0) {
@@ -309,6 +285,18 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   parms->nz = pmap.value<int>("nz");
 
   CHOLLA_ASSERT((parms->nx >= 0) and (parms->ny >= 0) and (parms->nz >= 0), "domain dimensions must be positive");
+
+  // parse the position of the lower left corner of the simulation domain
+  parms->xmin = pmap.value<double>("xmin");
+  parms->ymin = pmap.value<double>("ymin");
+  parms->zmin = pmap.value<double>("zmin");
+
+  // parse the lengths of each domain dimension
+  parms->xlen = pmap.value<double>("xlen");
+  parms->ylen = pmap.value<double>("ylen");
+  parms->zlen = pmap.value<double>("zlen");
+  CHOLLA_ASSERT((parms->xlen > 0) and (parms->ylen > 0) and (parms->zlen > 0), "xlen, ylen, & zlen must be positive");
+
   // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z]
   if (pmap.has_param("n_proc_x") or pmap.has_param("n_proc_y") or pmap.has_param("n_proc_z")) {
     parms->n_proc_x = pmap.value<int>("n_proc_x");
@@ -327,6 +315,14 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
     parms->n_proc_y = 0;
     parms->n_proc_z = 0;
   }
+
+  // load boundary conditions
+  parms->xl_bcnd = pmap.value<int>("xl_bcnd");
+  parms->xu_bcnd = pmap.value<int>("xu_bcnd");
+  parms->yl_bcnd = pmap.value<int>("yl_bcnd");
+  parms->yu_bcnd = pmap.value<int>("yu_bcnd");
+  parms->zl_bcnd = pmap.value<int>("zl_bcnd");
+  parms->zu_bcnd = pmap.value<int>("zu_bcnd");
 
 #ifdef STATIC_GRAV
   parms->custom_grav = pmap.value_or("custom_grav", 0);
