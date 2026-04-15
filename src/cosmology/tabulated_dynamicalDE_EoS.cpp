@@ -1,11 +1,14 @@
-#ifdef COSMOLOGY
+/*! \file
+ * This file implements \ref TabulatedDynamicalDarkEnergyEoS
+ */
 
-  #include <fstream>
-  #include <iostream>
-  #include <vector>
 
-  #include "../io/io.h"
-  #include "tabulated_dynamicalDE_EoS.h"
+#include <fstream>
+#include <iostream>
+#include <vector>
+
+#include "../io/io.h"
+#include "tabulated_dynamicalDE_EoS.h"
 
 Real TabulatedDynamicalDarkEnergyEoS::Get_DynamicalDE_Density_from_a(Real a)
 {
@@ -134,4 +137,3 @@ void TabulatedDynamicalDarkEnergyEoS::Setup_DynamicalDE_EquationOfState_(struct 
   }
 }
 
-#endif
