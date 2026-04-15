@@ -6,7 +6,9 @@
 
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <sstream>
+#include <utility>  // std::swap, std::move
 
 #include "../global/global.h"
 #include "../grid/grid3D.h"
@@ -67,8 +69,83 @@ void Ensure_Dir_Exists(std::string dir_path);
 #ifdef HDF5
 // From io/io.cpp
 
-herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, double* attribute, const char* name);
-herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, int* attribute, const char* name);
+/*! Encapsulates a simple 1D H5 dataspace
+ *
+ *  After a LOT of debugging, it turns out that we need to preserve the pointer used
+ *  used to call @ref H5Screate_simple. This class does that for us in a convenient way
+ *  for implementing @ref H5AttrRecorder
+ */
+class H5Space1D
+{
+  std::unique_ptr<hsize_t> dim_;
+  hid_t id_;
+
+ public:
+  H5Space1D() : dim_(nullptr), id_{H5I_INVALID_HID} {}
+  H5Space1D(hsize_t dim) : H5Space1D() { this->ensure_dim(dim); }
+  H5Space1D(H5Space1D&& other) noexcept : H5Space1D() { *this = std::move(other); }
+
+  /*! Move Assignment */
+  H5Space1D& operator=(H5Space1D&& other) noexcept;
+
+  ~H5Space1D()
+  {
+    if (this->id_ != H5I_INVALID_HID) H5Sclose(this->id_);
+  }
+
+  /*! get the dataspace id */
+  hid_t id() const { return this->id_; }
+
+  /*! ensure that the underlying dataspace dimension is `dim` (dataspace id may change) */
+  H5Space1D& ensure_dim(hsize_t dim);
+};
+
+/*! Provides a nice wrapper around an hdf5 file handle for the purpose of recording
+ *  attributes
+ */
+class H5AttrRecorder
+{
+  hid_t file_id_;
+  hid_t stringType_;
+  H5Space1D cached_dataspace_;
+
+  hid_t make_attr_1d_(const char* name, hid_t type_id, hsize_t n_elem);
+
+ public:
+  H5AttrRecorder() = delete;
+
+  explicit H5AttrRecorder(hid_t file_id)
+  {
+    this->file_id_    = file_id;
+    this->stringType_ = H5Tcopy(H5T_C_S1);
+    CHOLLA_ASSERT(H5Tset_size(this->stringType_, H5T_VARIABLE) >= 0, "error creating the string type");
+  }
+
+  ~H5AttrRecorder() { H5Tclose(this->stringType_); }
+
+  void record(const char* name, const char* value);
+  void record(const char* name, double value) { this->record_arr(name, &value, 1); }
+  void record(const char* name, int value) { this->record_arr(name, &value, 1); }
+  void record(const char* name, long value) { this->record_arr(name, &value, 1); }
+
+  // convenience method that comes up frequently
+  void record_triple(const char* name, double a, double b, double c)
+  {
+    double tmp[3] = {a, b, c};
+    this->record_arr(name, tmp, 3);
+  }
+
+  // convenience method that comes up frequently
+  void record_triple(const char* name, int a, int b, int c)
+  {
+    int tmp[3] = {a, b, c};
+    this->record_arr(name, tmp, 3);
+  }
+
+  void record_arr(const char* name, const double* arr, int length);
+  void record_arr(const char* name, const int* arr, int length);
+  void record_arr(const char* name, const long* arr, int length);
+};
 
 herr_t Read_HDF5_Dataset(hid_t file_id, double* dataset_buffer, const char* name);
 herr_t Read_HDF5_Dataset(hid_t file_id, float* dataset_buffer, const char* name);
