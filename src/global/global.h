@@ -188,7 +188,7 @@ void Init_Global_Parallel_Vars_No_MPI();
  *
  *  \note
  *  Before removing a parameter from this type, check if that parameter is parsed
- *  within \ref Old_Style_Parse_Param. PRs 489, 493, 494, and 495 seek to remove all
+ *  within \ref Old_Style_Parse_Param. PRs 493, 494, and 495 seek to remove all
  *  of the parameters from that function. Thus, you may want to merge in the work from
  *  the branch where the parameter parsing logic has been moved **BEFORE** you start to
  *  relocate logic. (Otherwise, you are going to encounter some merge conflicts)
@@ -224,9 +224,8 @@ struct Parameters {
   Real gamma;
   char init[MAXLEN];
   int nfile;
-  bool output_always      = false;
-  bool legacy_flat_outdir = false;
-  int n_steps_limit       = -1;  // Note that negative values indicate that there is no limit
+  bool output_always = false;
+  int n_steps_limit  = -1;  // Note that negative values indicate that there is no limit
 #ifdef STATIC_GRAV
   int custom_grav = 0;  // flag to set specific static gravity field
 #endif
@@ -251,7 +250,6 @@ struct Parameters {
   int zug_bcnd;
 #endif /*MPI_CHOLLA*/
   char custom_bcnd[MAXLEN];
-  char outdir[MAXLEN];
   char indir[MAXLEN];  // Folder to load Initial conditions from
   Real rho                 = 0;
   Real vx                  = 0;
