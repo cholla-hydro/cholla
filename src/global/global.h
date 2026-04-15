@@ -188,7 +188,7 @@ void Init_Global_Parallel_Vars_No_MPI();
  *
  *  \note
  *  Before removing a parameter from this type, check if that parameter is parsed
- *  within \ref Old_Style_Parse_Param. PRs 494 and 495 seek to remove all
+ *  within \ref Old_Style_Parse_Param. PR 495 seeks to remove all
  *  of the parameters from that function. Thus, you may want to merge in the work from
  *  the branch where the parameter parsing logic has been moved **BEFORE** you start to
  *  relocate logic. (Otherwise, you are going to encounter some merge conflicts)
@@ -251,46 +251,46 @@ struct Parameters {
 #endif /*MPI_CHOLLA*/
   char custom_bcnd[MAXLEN];
   char indir[MAXLEN];  // Folder to load Initial conditions from
-  Real rho                 = 0;
-  Real vx                  = 0;
-  Real vy                  = 0;
-  Real vz                  = 0;
-  Real P                   = 0;
-  Real A                   = 0;
-  Real Bx                  = 0;
-  Real By                  = 0;
-  Real Bz                  = 0;
-  Real rho_l               = 0;
-  Real vx_l                = 0;
-  Real vy_l                = 0;
-  Real vz_l                = 0;
-  Real P_l                 = 0;
-  Real Bx_l                = 0;
-  Real By_l                = 0;
-  Real Bz_l                = 0;
-  Real rho_r               = 0;
-  Real vx_r                = 0;
-  Real vy_r                = 0;
-  Real vz_r                = 0;
-  Real P_r                 = 0;
-  Real Bx_r                = 0;
-  Real By_r                = 0;
-  Real Bz_r                = 0;
-  Real diaph               = 0;
-  Real rEigenVec_rho       = 0;
-  Real rEigenVec_MomentumX = 0;
-  Real rEigenVec_MomentumY = 0;
-  Real rEigenVec_MomentumZ = 0;
-  Real rEigenVec_E         = 0;
-  Real rEigenVec_Bx        = 0;
-  Real rEigenVec_By        = 0;
-  Real rEigenVec_Bz        = 0;
-  Real pitch               = 0;
-  Real yaw                 = 0;
-  Real polarization        = 0;
-  Real radius              = 0;
-  Real P_blast             = 0;
-  Real wave_length         = 1.0;
+  Real rho;
+  Real vx;
+  Real vy;
+  Real vz;
+  Real P;
+  Real A;
+  Real Bx;
+  Real By;
+  Real Bz;
+  Real rho_l;
+  Real vx_l;
+  Real vy_l;
+  Real vz_l;
+  Real P_l;
+  Real Bx_l;
+  Real By_l;
+  Real Bz_l;
+  Real rho_r;
+  Real vx_r;
+  Real vy_r;
+  Real vz_r;
+  Real P_r;
+  Real Bx_r;
+  Real By_r;
+  Real Bz_r;
+  Real diaph;
+  Real rEigenVec_rho;
+  Real rEigenVec_MomentumX;
+  Real rEigenVec_MomentumY;
+  Real rEigenVec_MomentumZ;
+  Real rEigenVec_E;
+  Real rEigenVec_Bx;
+  Real rEigenVec_By;
+  Real rEigenVec_Bz;
+  Real pitch;
+  Real yaw;
+  Real polarization;
+  Real radius;
+  Real P_blast;
+  Real wave_length;
 #ifdef PARTICLES
   // The random seed for particle simulations. With the default of 0 then a
   // machine dependent seed will be generated.
