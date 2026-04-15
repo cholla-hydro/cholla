@@ -147,25 +147,8 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
 #endif
 }
 
-void Grid3D::Write_Header_Text(FILE *fp) const
+void Grid3D::Write_Header(AttrRecorderInterface &attr_recorder) const
 {
-  // Write the header info to the output file
-  fprintf(fp, "Header Information\n");
-  fprintf(fp, "Git Commit Hash = %s\n", GIT_HASH);
-  fprintf(fp, "Macro Flags     = %s\n", MACRO_FLAGS);
-  fprintf(fp, "n_step: %d  sim t: %f  sim dt: %f\n", H.n_step, H.t, H.dt);
-  fprintf(fp, "mass unit: %e  length unit: %e  time unit: %e\n", MASS_UNIT, LENGTH_UNIT, TIME_UNIT);
-  fprintf(fp, "nx: %d  ny: %d  nz: %d\n", H.nx, H.ny, H.nz);
-  fprintf(fp, "xmin: %f  ymin: %f  zmin: %f\n", H.xbound, H.ybound, H.zbound);
-  fprintf(fp, "t: %f\n", H.t);
-}
-
-#ifdef HDF5
-// TODO: consider removing only_record_common
-void Grid3D::Write_Header_HDF5(hid_t file_id) const
-{
-  H5AttrRecorder attr_recorder(file_id);
-
   // Single attributes first
   attr_recorder.record("gamma", gama);
 
@@ -185,35 +168,35 @@ void Grid3D::Write_Header_HDF5(hid_t file_id) const
   attr_recorder.record("density_unit", double{DENSITY_UNIT});
   attr_recorder.record("energy_unit", double{ENERGY_UNIT});
 
-  #ifdef MHD
+#ifdef MHD
   attr_recorder.record("magnetic_field_unit", double{MAGNETIC_FIELD_UNIT});
-  #endif  // MHD
+#endif  // MHD
 
-  #ifdef COSMOLOGY
+#ifdef COSMOLOGY
   attr_recorder.record("H0", Cosmo.H0);
   attr_recorder.record("Omega_M", Cosmo.Omega_M);
   attr_recorder.record("Omega_L", Cosmo.Omega_L);
   attr_recorder.record("Current_z", Cosmo.current_z);
   attr_recorder.record("Current_a", Cosmo.current_a);
-  #endif
+#endif
 
   // Now, do 3-element attributes
 
   // todo: we should stop narrowing the datatype from ptrdiff_t to int
   int dims[3];
-  #ifndef MPI_CHOLLA
+#ifndef MPI_CHOLLA
   dims[0] = H.nx_real;
   dims[1] = H.ny_real;
   dims[2] = H.nz_real;
-  #else
+#else
   dims[0] = nx_global;
   dims[1] = ny_global;
   dims[2] = nz_global;
-  #endif
+#endif
 
   attr_recorder.record_arr("dims", dims, 3);
 
-  #ifdef MPI_CHOLLA
+#ifdef MPI_CHOLLA
   attr_recorder.record_triple("dims_local", H.nx_real, H.ny_real, H.nz_real);
 
   // todo: we should stop narrowing the datatype from ptrdiff_t to int
@@ -225,14 +208,12 @@ void Grid3D::Write_Header_HDF5(hid_t file_id) const
   attr_recorder.record_arr("offset", offset, 3);
 
   attr_recorder.record_triple("nprocs", nproc_x, nproc_y, nproc_z);
-  #endif
+#endif
 
   attr_recorder.record_triple("bounds", H.xbound, H.ybound, H.zbound);
   attr_recorder.record_triple("domain", H.xdglobal, H.ydglobal, H.zdglobal);
   attr_recorder.record_triple("dx", H.dx, H.dy, H.dz);
 }
-
-#endif  // HDF5
 
 #ifdef HDF5
 
