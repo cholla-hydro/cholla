@@ -296,7 +296,8 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   parms->prng_seed = pmap.value_or("prng_seed", 0);
 #endif  // PARTICLES
 
-  parms->bc_potential_type = pmap.value<int>("bc_potential_type");
+  // a negative value means that the parameter wasn't set
+  parms->bc_potential_type = pmap.value_or("bc_potential_type", -1);
 
 #if defined(SCALAR) && defined(DUST)
   // we are assuming that this is an integer for historical consistency... But it sure
