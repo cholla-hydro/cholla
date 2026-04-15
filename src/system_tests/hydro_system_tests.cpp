@@ -379,4 +379,3 @@ TEST(tHYDROtMHDSYSTEMCoolingConstant8, CorrectInputExpectCorrectOutput)
   testing_utilities::analyticConstant(testObject, "momentum_z", 0.0);
   testing_utilities::analyticConstant(testObject, "Energy", energy);
 }
- 
