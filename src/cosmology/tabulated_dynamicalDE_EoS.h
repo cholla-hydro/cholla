@@ -1,11 +1,12 @@
 /*! \file
-* This file defines \ref TabulatedDynamicalDarkEnergyEoS
-*/
+ * This file defines \ref TabulatedDynamicalDarkEnergyEoS
+ */
 
 #pragma once
 
-#include "../global/global.h"
 #include <vector>
+
+#include "../global/global.h"
 
 class TabulatedDynamicalDarkEnergyEoS
 {
@@ -24,4 +25,3 @@ class TabulatedDynamicalDarkEnergyEoS
   /*! Interpolate dynamicalDE_table_density to find rhoDE(z) / rhoDE(z=0) at z=1/a - 1 */
   Real Get_DynamicalDE_Density_from_a(Real a);
 };
-
