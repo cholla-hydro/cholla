@@ -35,6 +35,7 @@ release = '3.0.1-dev'
 extensions = [
     'myst_parser',
     'nbsphinx',
+    'sphinxcontrib.video',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
@@ -54,6 +55,8 @@ extensions = [
     "par",
     "cli_help",
 ]
+
+
 
 source_suffix = [".rst", ".md"]
 
