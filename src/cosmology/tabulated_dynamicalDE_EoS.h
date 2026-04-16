@@ -1,11 +1,12 @@
 /*! \file
-* This file defines \ref TabulatedDynamicalDarkEnergyEoS
-*/
+ * This file defines \ref TabulatedDynamicalDarkEnergyEoS
+ */
 
 #pragma once
 
-#include "../global/global.h"
 #include <vector>
+
+#include "../global/global.h"
 
 class TabulatedDynamicalDarkEnergyEoS
 {
@@ -39,4 +40,3 @@ class TabulatedDynamicalDarkEnergyEoS
     Set_DynamicalDE_Density();
   }
 };
-
