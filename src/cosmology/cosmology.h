@@ -4,6 +4,7 @@
     #define COSMOLOGY_H
 
     #include <stdio.h>
+	#include <memory>
 
     #include <cmath>
 
@@ -27,11 +28,11 @@ class Cosmology
   /*! Calculate rho_DE(z) / rho_DE(z=0) at some scale factor */
   Real Get_DE_Density_from_a(Real a);
 
-  /*! Stores dynamical DE equation of state table class */
-  TabulatedDynamicalDarkEnergyEoS tab_dynamicalDE_EoS;
+  /*! Stores pointer to dynamical DE equation of state table class */
+  std::unique_ptr<TabulatedDynamicalDarkEnergyEoS> tab_dynamicalDE_EoS;
 
   /*! Indicate whether the simulation is configured to use a DynamicalDE EOS table */
-  bool Using_DynamicalDE_Table() { return tab_dynamicalDE_EoS.dynamicalDE_table_z.size() != 0; }
+  bool Using_DynamicalDE_Table() { return tab_dynamicalDE_EoS.get() != nullptr; }
 
   Real cosmo_G;
   Real cosmo_h;

@@ -21,10 +21,9 @@ void Cosmology::Initialize(struct Parameters *P, Grav3D &Grav, Particles3D &Part
   w0      = P->w0;
   wa      = P->wa;
 
-  // set default values pertaining to DynamicalDE EOS table
   if (P->wDE_file.length() != 0) {
-    tab_dynamicalDE_EoS.Setup_DynamicalDE_EquationOfState_(P);
-    tab_dynamicalDE_EoS.Set_DynamicalDE_Density();
+    // set pointer to DynamicalDE EOS
+    tab_dynamicalDE_EoS = std::unique_ptr<TabulatedDynamicalDarkEnergyEoS>( new TabulatedDynamicalDarkEnergyEoS(P) );
   }
 
   if (strcmp(P->init, "Read_Grid") == 0) {

@@ -28,7 +28,7 @@ void Grid3D::Initialize_Cosmology(struct Parameters *P)
 Real Cosmology::Get_DE_Density_from_a(Real a)
 {
   if (Using_DynamicalDE_Table()) {
-    return tab_dynamicalDE_EoS.Get_DynamicalDE_Density_from_a(a);
+    return tab_dynamicalDE_EoS->Get_DynamicalDE_Density_from_a(a);
   } else {
     return pow(a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - a));
   }
