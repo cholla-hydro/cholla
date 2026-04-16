@@ -4,7 +4,7 @@
     #define COSMOLOGY_H
 
     #include <stdio.h>
-	#include <memory>
+    #include <memory>
 
     #include <cmath>
 
