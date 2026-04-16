@@ -301,7 +301,7 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
 
 #if defined(SCALAR) && defined(DUST)
   // seems like this should be a double
-  parms->grain_radius = pmap.value<int>("grain_radius");
+  parms->grain_radius = pmap.value<double>("grain_radius");
 #endif  // defined(SCALAR) && defined(DUST)
 
   // in the future, the feedback module will read in its own parameters (the global Parameter struct won't
