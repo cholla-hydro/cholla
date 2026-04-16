@@ -300,7 +300,6 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   parms->bc_potential_type = pmap.value_or("bc_potential_type", -1);
 
 #if defined(SCALAR) && defined(DUST)
-  // seems like this should be a double
   parms->grain_radius = pmap.value<double>("grain_radius");
 #endif  // defined(SCALAR) && defined(DUST)
 
