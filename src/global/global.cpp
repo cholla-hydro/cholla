@@ -108,8 +108,6 @@ const std::set<std::string> optionalParams = {"flag_delta",   "ddelta_dt",  "n_d
                                               "Omega_L",      "Omega_R",    "Omega_K", "w0",  "wa", "Init_redshift",
                                               "End_redshift", "tile_length"};  // NOLINT
 
-bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameters *parms);
-
 void Init_Param_Struct_Members(ParameterMap &param, struct Parameters *parms);
 
 void Parse_Params(ParameterMap &pmap, struct Parameters *parms)
@@ -119,53 +117,11 @@ void Parse_Params(ParameterMap &pmap, struct Parameters *parms)
   parms->scale_outputs_file[0] = '\0';
 #endif
 
-  // the plan is eventually replace Old_Style_Parse_Param entirely with
-  // Init_Param_Struct_Members.
-  auto fn = [&](const char *name, const char *value) -> bool { return Old_Style_Parse_Param(name, value, parms); };
-
-  pmap.pass_entries_to_legacy_parse_param(fn);
-
   // the plan is to eventually, use the new parsing functions from Parse_Param like the following
   Init_Param_Struct_Members(pmap, parms);
 }
 
 void Warn_Unused_Params(ParameterMap &pmap) { pmap.warn_unused_parameters(optionalParams); }
-
-/*! \fn void Parse_Param(char *name,char *value, struct Parameters *parms);
- *  \brief Parses and sets a single param based on name and value.
- *
- *  \returns true if the parameter was actually used. false otherwise.
- */
-bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameters *parms)
-{
-  /* Copy into correct entry in parameters struct */
-  if (strcmp(name, "output_always") == 0) {
-    int tmp = atoi(value);
-    // In this case the CHOLLA_ASSERT macro runs into issuse with the readability-simplify-boolean-expr clang-tidy check
-    // due to some weird macro expansion stuff. That check has been disabled here for now but in clang-tidy 18 the
-    // IgnoreMacro option should be used instead.
-    // NOLINTNEXTLINE(readability-simplify-boolean-expr)
-    CHOLLA_ASSERT((tmp == 0) or (tmp == 1), "output_always must be 1 or 0.");
-    parms->output_always = tmp;
-  } else if (strcmp(name, "n_steps_limit") == 0) {
-    parms->n_steps_limit = atof(value);
-#ifdef PARTICLES
-  } else if (strcmp(name, "prng_seed") == 0) {
-    parms->prng_seed = atoi(value);
-#endif  // PARTICLES
-  } else if (strcmp(name, "bc_potential_type") == 0) {
-    parms->bc_potential_type = atoi(value);
-#ifdef SCALAR
-  #ifdef DUST
-  } else if (strcmp(name, "grain_radius") == 0) {
-    parms->grain_radius = atoi(value);
-  #endif
-#endif
-  } else {
-    return false;
-  }
-  return true;
-}
 
 /*! \brief this would be entirely unnecessary if the Parameters struct directly stored a std::string
  */
@@ -326,6 +282,26 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
 #ifdef TILED_INITIAL_CONDITIONS
   parms->tile_length = pmap.value<double>("tile_length");
 #endif  // TILED_INITIAL_CONDITIONS
+
+  // parse some assorted values (we should parse them only where we need them)
+  {
+    int tmp = pmap.value_or("output_always", 0);
+    CHOLLA_ASSERT((tmp == 0) or (tmp == 1), "output_always must be 1 or 0.");
+    parms->output_always = tmp;
+  }
+
+  parms->n_steps_limit = pmap.value_or("n_steps_limit", -1);
+
+#ifdef PARTICLES
+  parms->prng_seed = pmap.value_or("prng_seed", 0);
+#endif  // PARTICLES
+
+  // a negative value means that the parameter wasn't set
+  parms->bc_potential_type = pmap.value_or("bc_potential_type", -1);
+
+#if defined(SCALAR) && defined(DUST)
+  parms->grain_radius = pmap.value<double>("grain_radius");
+#endif  // defined(SCALAR) && defined(DUST)
 
   // in the future, the feedback module will read in its own parameters (the global Parameter struct won't
   // know anything about it)

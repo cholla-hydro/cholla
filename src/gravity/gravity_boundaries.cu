@@ -7,6 +7,7 @@
   #include "../io/io.h"
   #include "../model/disk_galaxy.h"
   #include "../model/potentials.h"
+  #include "../utils/error_handling.h"
 
   #if defined(GRAV_ISOLATED_BOUNDARY_X) || defined(GRAV_ISOLATED_BOUNDARY_Y) || defined(GRAV_ISOLATED_BOUNDARY_Z)
 
@@ -14,6 +15,9 @@ void Grid3D::Compute_Potential_Boundaries_Isolated(int dir, struct Parameters *P
 {
   // Set Isolated Boundaries for the ghost cells.
   int bc_potential_type = P->bc_potential_type;
+  CHOLLA_ASSERT(bc_potential_type >= 0,
+                "bc_potential_type must be set to a non-negative value when simulating "
+                "non-periodic boundaries");
   // bc_potential_type = 0 -> Point mass potential GM/r
   if (dir == 0) {
     Compute_Potential_Isolated_Boundary(0, 0, bc_potential_type);
@@ -249,9 +253,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
           r       = sqrt((pos_x * pos_x) + (pos_y * pos_y));
           pot_val = approx_potential.phi_disk_D3D(r, pos_z);
         } else {
-          chprintf(
-              "ERROR: Boundary Potential not set, need to set appropriate "
-              "bc_potential_type \n");
+          CHOLLA_ERROR("Invalid bc_potential_type value: %d", bc_potential_type);
         }
 
         pot_boundary[id] = pot_val;
