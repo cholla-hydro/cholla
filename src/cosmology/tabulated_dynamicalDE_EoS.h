@@ -22,7 +22,7 @@ class TabulatedDynamicalDarkEnergyEoS
   std::vector<float> dynamicalDE_table_density;
 
   /*! Load redshift and dark energy equation of state table z, wDE(z), only called once to setup dynamical DE case */
-  void Setup_DynamicalDE_EquationOfState_(std::istream& in, const std::string& fname);
+  void Setup_DynamicalDE_EquationOfState_(std::istream& in, const std::string& fname, bool silent);
 
   /*! Calculate dark energy density normalized to z=0, populate dynamicalDE_table_density */
   void Set_DynamicalDE_Density();
@@ -45,7 +45,7 @@ class TabulatedDynamicalDarkEnergyEoS
    *  \p path. Otherwise, this function treats \p f as if it's a newly openned stream
    *  associated with \p path (this secondary behavior is useful for testing purposes).
    */
-  explicit TabulatedDynamicalDarkEnergyEoS(const std::string& path, std::istream* f = nullptr)
+  explicit TabulatedDynamicalDarkEnergyEoS(const std::string& path, std::istream* f = nullptr, bool silent = false)
   {
     std::fstream tmp;
     if (f == nullptr) {
@@ -53,7 +53,7 @@ class TabulatedDynamicalDarkEnergyEoS
       CHOLLA_ASSERT(tmp.is_open(), "Unable to open DE equation of state file: %s\n", path.c_str());
       f = dynamic_cast<std::istream*>(&tmp);
     }
-    Setup_DynamicalDE_EquationOfState_(*f, path);
+    Setup_DynamicalDE_EquationOfState_(*f, path, silent);
     Set_DynamicalDE_Density();
   }
 };

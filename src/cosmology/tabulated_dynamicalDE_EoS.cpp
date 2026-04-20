@@ -78,49 +78,67 @@ void TabulatedDynamicalDarkEnergyEoS::Set_DynamicalDE_Density()
   }
 }
 
-void TabulatedDynamicalDarkEnergyEoS::Setup_DynamicalDE_EquationOfState_(std::istream& in, const std::string& path)
+static int count_lines(std::istream& in)
 {
-  chprintf("Loading wDE info... \n");
+  int line_count = 0;
+  std::string line;
+  while (std::getline(in, line)) line_count++;
+  in.clear();   // <- we need to clear the failure state set by final std::getline call
+  in.seekg(0);  // <- rewind the position of in
+  return line_count;
+}
 
+void TabulatedDynamicalDarkEnergyEoS::Setup_DynamicalDE_EquationOfState_(std::istream& in, const std::string& path,
+                                                                         bool silent)
+{
+  if (not silent) chprintf("Loading wDE info... \n");
+
+  int n_lines = count_lines(in);
   std::string line;
   std::vector<std::vector<float>> v;
-  int i = 0;
+  int lineno = 0;
   while (std::getline(in, line)) {
+    lineno++;  // <- increment the line number (it is 1-indexed)
     if (line.find("#") == 0) continue;
+    if (line.empty()) {
+      if (lineno == n_lines) continue;  // <- allow empty final line
+      CHOLLA_ERROR("%s:%d is empty", path.c_str(), lineno);
+    }
 
     float value;
     std::stringstream ss(line);
-    v.push_back(std::vector<float>());
+    std::vector<float>& latest_pack = v.emplace_back();
 
     while (ss >> value) {
-      v[i].push_back(value);
+      latest_pack.push_back(value);
     }
-    i += 1;
+    CHOLLA_ASSERT(latest_pack.size() == 2, "%s:%d doesn't specify 2 elements", path.c_str(), lineno);
   }
-  int n_lines = i;
+  int n_entries = v.size();
+  CHOLLA_ASSERT(n_entries > 0, "%s doesn't contain any data", path.c_str());
 
-  for (i = 0; i < n_lines; i++) {
+  for (int i = 0; i < n_entries; i++) {
     dynamicalDE_table_z.push_back(v[i][0]);
     dynamicalDE_table_w.push_back(v[i][1]);
   }
 
-  for (i = 0; i < n_lines - 1; i++) {
+  for (int i = 0; i < n_entries - 1; i++) {
     if (dynamicalDE_table_z[i] > dynamicalDE_table_z[i + 1]) {
-      chprintf(
+      CHOLLA_ERROR(
           " ERROR: equation of state must be ordered such that redshift is increasing "
           "as the rows increase in the file\n",
           path.c_str());
-      exit(2);
     }
   }
 
-  chprintf(" Loaded DE equation of state file : \n");
-  chprintf("  N redshift values: %d \n", dynamicalDE_table_z.size());
-  chprintf("  z_min = %f    z_max = %f \n", dynamicalDE_table_z.front(), dynamicalDE_table_z.back());
-  chprintf("  w(z_min) = %f    w(z_max) = %f \n", dynamicalDE_table_w.front(), dynamicalDE_table_w.back());
+  if (not silent) {
+    chprintf(" Loaded DE equation of state file : \n");
+    chprintf("  N redshift values: %d \n", dynamicalDE_table_z.size());
+    chprintf("  z_min = %f    z_max = %f \n", dynamicalDE_table_z.front(), dynamicalDE_table_z.back());
+    chprintf("  w(z_min) = %f    w(z_max) = %f \n", dynamicalDE_table_w.front(), dynamicalDE_table_w.back());
+  }
 
   if (dynamicalDE_table_z[0] != 0.) {
-    chprintf("We require z_min = 0 so that w(z=0) is well defined \n");
-    exit(1);
+    CHOLLA_ERROR("We require z_min = 0 so that w(z=0) is well defined \n");
   }
 }
