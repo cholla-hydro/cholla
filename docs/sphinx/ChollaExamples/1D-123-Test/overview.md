@@ -11,8 +11,6 @@ Full initial conditions can be found in {repository-file}`src/grid/initial_condi
 
 ## Parameter file:
 
-This file has been modified from {repository-file}`examples/1D/123.txt` to include y and z boundary conditions = 0
-
 :::{literalinclude} input.txt
 :::
 
@@ -20,7 +18,7 @@ This file has been modified from {repository-file}`examples/1D/123.txt` to inclu
 
 Upon completion, you should obtain 2 output files.
 The initial and final density, pressure, and velocity (in code units) of the solution is shown below (pink dots) plotted over the exact solution (purple line).
-Examples of how to extract and plot data can be found in {repository-file}`python/examples/plot_sod.py`.
+Examples of how to extract and plot data can be found in the [General 1D Plotting Example](../../PythonExamples/1D-plotting.md).  .
 
 :::{figure} 1d123-6panel-density-pressure.png
 :::

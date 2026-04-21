@@ -2,8 +2,38 @@
 #define ERROR_HANDLING_CHOLLA_H
 #include <stdlib.h>
 
+#include <optional>
+#include <type_traits>  // std::false_type
+
 #include "../global/global.h"
 [[noreturn]] void chexit(int code);
+
+/*! a standard construct used to write `static_assert(false)`
+ *
+ *  This comes up with some frequency in code like the following:
+ *  \code{C++}
+ *    template<typename T>
+ *    void pretty_print(T t) {
+ *      if constexpr (std::is_same_v<T, int>) {
+ *        std::printf("int with value: %d\n", t);
+ *      } else if constexpr (std::is_same_v<T, std::string>) {
+ *        std::printf("string with value: %s\n", t.c_str());
+ *      } else {
+ *        static_assert(always_false<T>, "received unexpected type");
+ *      }
+ *    }
+ *  \endcode
+ *
+ *  \note
+ *  In Feb 2023, the C++ standards committee retroactively revised the standard
+ *  of C++11 to make this unnecessary:
+ *  - https://cplusplus.github.io/CWG/issues/2518.html
+ *  - https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2023/p2593r1.html
+ *  Once we are comfortable requiring a new enough compiler, we can delete
+ *  this construct and replace each `always_false<T>` with `false`
+ */
+template <class...>
+constexpr std::false_type always_false{};
 
 /*!
  * \brief Check that the Cholla configuration and parameters don't have any significant errors. Mostly compile time
@@ -67,5 +97,24 @@ void Check_Configuration(Parameters const& P);
   if (not(cond)) { /* NOLINT */                                               \
     Abort_With_Err_(__CHOLLA_PRETTY_FUNC__, __FILE__, __LINE__, __VA_ARGS__); \
   }
+
+/*! \brief Unwrap the provided optional or abort with an error
+ *
+ *  This is basically a glorified version of std::optional<T>'s value method,
+ *  but it's explicit about the fact that the program will abort if the
+ *  optional doesn't contain a value.
+ *
+ *  \note
+ *  The creation of this function was promptly motivated by the existence of a
+ *  clang-tidy lint
+ */
+template <typename T>
+[[gnu::always_inline]] inline T& get_or_abort(std::optional<T>& optional)
+{
+  if (optional.has_value()) {
+    return optional.value();
+  }
+  CHOLLA_ERROR("the optional is empty");
+}
 
 #endif /*ERROR_HANDLING_CHOLLA_H*/

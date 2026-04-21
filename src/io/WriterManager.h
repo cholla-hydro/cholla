@@ -10,12 +10,16 @@
 #include <vector>
 
 #include "../global/global.h"
+#include "../grid/field_info.h"
 #include "../grid/grid3D.h"
 #include "../io/FnameTemplate.h"  // define FnameTemplate
 #include "../io/ParameterMap.h"   // define ParameterMap
 
 namespace io
 {
+
+/*! wraps a function or function-like object for writing outputs */
+using WriterFn = std::function<void(Grid3D &, Parameters, int, const FnameTemplate &)>;
 
 namespace detail
 {
@@ -27,7 +31,7 @@ struct WriterPack {
   /*! specifies the cadence for invoking the writer */
   int cadence;
   /*! specifes the writer-function or function-like object */
-  const std::function<void(Grid3D &, Parameters, int, const FnameTemplate &)> fn;
+  const WriterFn fn;
 };
 
 }  // namespace detail
@@ -44,7 +48,7 @@ class WriterManager
 
  public:
   WriterManager() = delete;
-  WriterManager(const Parameters &P, ParameterMap &pmap);
+  WriterManager(const Parameters &P, ParameterMap &pmap, const FieldInfo &field_info);
 
   /*! get the fname-template */
   const FnameTemplate &fname_template() const noexcept { return fname_template_; }

@@ -7,6 +7,7 @@
   #include <hdf5.h>
 #endif
 #include "../global/global.h"
+#include "../grid/field_info.h"
 #include "../grid/grid3D.h"
 #include "../grid/grid_enum.h"       // provides grid_enum
 #include "../hydro/average_cells.h"  // provides Average_Slow_Cells and SlowCellConditionChecker
@@ -39,7 +40,7 @@
 
 /*! \fn Grid3D(void)
  *  \brief Constructor for the Grid. */
-Grid3D::Grid3D(void)
+Grid3D::Grid3D(void) : field_info(FieldInfo::create())
 {
   // set initialization flag to 0
   flag_init = 0;
@@ -112,24 +113,7 @@ Real Grid3D::Calc_Inverse_Timestep()
  *  \brief Initialize the grid. */
 void Grid3D::Initialize(struct Parameters *P)
 {
-  // number of fields to track (default 5 is # of conserved variables)
-  H.n_fields = 5;
-
-// if including passive scalars increase the number of fields
-#ifdef SCALAR
-  H.n_fields += NSCALARS;
-#endif
-
-// if including magnetic fields increase the number of fields
-#ifdef MHD
-  H.n_fields += 3;
-#endif  // MHD
-
-// if using dual energy formalism must track internal energy - always the last
-// field!
-#ifdef DE
-  H.n_fields++;
-#endif
+  H.n_fields = field_info.n_fields();
 
   int nx_in = P->nx;
   int ny_in = P->ny;
@@ -214,41 +198,6 @@ void Grid3D::Initialize(struct Parameters *P)
 
   // allocate memory
   AllocateMemory();
-
-#ifdef ROTATED_PROJECTION
-  // x-dir pixels in projection
-  R.nx = P->nxr;
-  // z-dir pixels in projection
-  R.nz = P->nzr;
-  // minimum x location to project
-  R.nx_min = 0;
-  // minimum z location to project
-  R.nz_min = 0;
-  // maximum x location to project
-  R.nx_max = R.nx;
-  // maximum z location to project
-  R.nz_max = R.nz;
-  // rotation angle about z direction
-  R.delta = M_PI * (P->delta / 180.);  // convert to radians
-  // rotation angle about x direction
-  R.theta = M_PI * (P->theta / 180.);  // convert to radians
-  // rotation angle about y direction
-  R.phi = M_PI * (P->phi / 180.);  // convert to radians
-  // x-dir physical size of projection
-  R.Lx = P->Lx;
-  // z-dir physical size of projection
-  R.Lz = P->Lz;
-  // initialize a counter for rotated outputs
-  R.i_delta = 0;
-  // number of rotated outputs in a complete revolution
-  R.n_delta = P->n_delta;
-  // rate of rotation between outputs, for an actual simulation
-  R.ddelta_dt = P->ddelta_dt;
-  // are we not rotating about z(0)?
-  // are we outputting multiple rotations(1)? or rotating during a
-  // simulation(2)?
-  R.flag_delta = P->flag_delta;
-#endif /*ROTATED_PROJECTION*/
 
 // Values for lower limit for density and temperature
 #ifdef TEMPERATURE_FLOOR

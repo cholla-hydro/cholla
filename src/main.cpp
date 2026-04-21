@@ -61,7 +61,6 @@ int main(int argc, char *argv[])
 
   // input parameter variables
   char *param_file;
-  struct Parameters P;
   int nfile    = 0;  // number of output files
   Real outtime = 0;  // current output time
 
@@ -81,9 +80,16 @@ int main(int argc, char *argv[])
   // read in contents from the parameter file
   ParameterMap pmap(param_file, argc, argv);
 
-  // use this parameter information to populate the Parameter object
+  // create P, a `Parameters` instance, & initialize it with information from pmap
+  // - `Parameters` is a legacy type that we're phasing out (see docstring for details)
+  // - a highlevel description of the legacy/modern control flows:
+  //   -> legacy: parameter vals are copied from pmap into P, and subsequent code
+  //              initializes the simulation using parameter values from P
+  //   -> modern: code initializes the simulation by getting values directly from pmap
+  Parameters P;
   Parse_Params(pmap, &P);
-  // and output to screen
+
+  // write a description of simulation configuration to console
   chprintf("Git Commit Hash = %s\n", GIT_HASH);
   chprintf("Macro Flags     = %s\n", MACRO_FLAGS);
   chprintf(
@@ -101,7 +107,7 @@ int main(int argc, char *argv[])
 
   // Create the Writer Manager, which is in charge of calling of trigger the various
   // functions that dump data (e.g. snapshots, slices, projections)
-  io::WriterManager writer_manager(P, pmap);
+  io::WriterManager writer_manager(P, pmap, G.field_info);
 
   if (is_restart) {
     chprintf("Input directory:  %s\n", P.indir);
@@ -128,7 +134,7 @@ int main(int argc, char *argv[])
 
   // Set initial conditions
   chprintf("Setting initial conditions...\n");
-  G.Set_Initial_Conditions(P);
+  G.Set_Initial_Conditions(P, pmap);
   chprintf("Initial conditions set.\n");
   // set main variables for Read_Grid and Read_Grid_Cat initial conditions
   if (is_restart) {
