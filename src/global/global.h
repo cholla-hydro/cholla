@@ -225,14 +225,9 @@ struct Parameters {
   int nx;
   int ny;
   int nz;
-  double tout;
-  double outstep;
-  int n_steps_output;
   Real gamma;
   char init[MAXLEN];
   int nfile;
-  bool output_always = false;
-  int n_steps_limit  = -1;  // Note that negative values indicate that there is no limit
 #ifdef STATIC_GRAV
   int custom_grav = 0;  // flag to set specific static gravity field
 #endif
