@@ -93,8 +93,6 @@ int main(int argc, char *argv[])
   const int output_always = pmap.value_or("output_always", 0);
   CHOLLA_ASSERT((output_always == 0) or (output_always == 1), "output_always must be 1 or 0.");
   const int n_steps_limit = pmap.value_or("n_steps_limit", -1);  // negative values indicate that there is no limit
-  // the following is unused (can we remove it?)
-  // const int n_steps_output = pmap.value_or("n_steps_output", 0);
 
   // write a description of simulation configuration to console
   chprintf("Git Commit Hash = %s\n", GIT_HASH);
@@ -364,9 +362,6 @@ int main(int argc, char *argv[])
     sn_analysis.Compute_Gas_Velocity_Dispersion(G);
   #endif
 #endif
-
-    // if ( n_steps_output > 0 && G.H.n_step % n_steps_output == 0)
-    // G.H.Output_Now = true;
 
     if (G.H.t == outtime || G.H.Output_Now) {
 #ifdef OUTPUT
