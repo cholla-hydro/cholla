@@ -78,16 +78,11 @@ void TabulatedDynamicalDarkEnergyEoS::Set_DynamicalDE_Density()
   }
 }
 
-void TabulatedDynamicalDarkEnergyEoS::Setup_DynamicalDE_EquationOfState_(struct Parameters *P)
+void TabulatedDynamicalDarkEnergyEoS::Setup_DynamicalDE_EquationOfState_(const std::string& path)
 {
-  if (P->wDE_file.empty()) {
-    chprintf("wDE_file not found in parameter file \n");
-    exit(1);
-  }
-
   chprintf("Loading wDE info... \n");
 
-  std::fstream in(P->wDE_file);
+  std::fstream in(path);
   std::string line;
   std::vector<std::vector<float>> v;
   int i = 0;
@@ -106,7 +101,7 @@ void TabulatedDynamicalDarkEnergyEoS::Setup_DynamicalDE_EquationOfState_(struct 
     }
     in.close();
   } else {
-    chprintf(" Error: Unable to open DE equation of state file: %s\n", P->wDE_file);
+    chprintf(" Error: Unable to open DE equation of state file: %s\n", path.c_str());
     exit(1);
   }
   int n_lines = i;
@@ -121,7 +116,7 @@ void TabulatedDynamicalDarkEnergyEoS::Setup_DynamicalDE_EquationOfState_(struct 
       chprintf(
           " ERROR: equation of state must be ordered such that redshift is increasing "
           "as the rows increase in the file\n",
-          P->wDE_file);
+          path.c_str());
       exit(2);
     }
   }
