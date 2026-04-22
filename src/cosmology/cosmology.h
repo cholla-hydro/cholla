@@ -4,9 +4,9 @@
     #define COSMOLOGY_H
 
     #include <stdio.h>
-	#include <memory>
 
     #include <cmath>
+    #include <memory>
 
     #include "../global/global.h"
     #include "../gravity/grav3D.h"
