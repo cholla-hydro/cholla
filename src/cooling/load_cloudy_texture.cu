@@ -13,6 +13,7 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../io/io.h"  // provides chprintf
+#include "../utils/error_handling.h"
 
 cudaArray *cuCoolArray;
 cudaArray *cuHeatArray;
@@ -159,13 +160,22 @@ void Load_Cuda_Textures(std::string filename)
   // Test_Cloudy_Speed();
 }
 
+static void Free_Single_Cuda_Texture(cudaTextureObject_t &texObj)
+{
+  // get the handle for the device memory associated with the texture
+  cudaResourceDesc resDesc;
+  cudaGetTextureObjectResourceDesc(&resDesc, texObj);
+  cudaArray *cuArray = resDesc.res.array.array;
+
+  // unbind the cuda textures
+  cudaDestroyTextureObject(texObj);
+
+  // Free the device memory associated with the texture
+  cudaFreeArray(cuArray);
+}
+
 void Free_Cuda_Textures()
 {
-  // unbind the cuda textures
-  cudaDestroyTextureObject(coolTexObj);
-  cudaDestroyTextureObject(heatTexObj);
-
-  // Free the device memory associated with the cuda arrays
-  cudaFreeArray(cuCoolArray);
-  cudaFreeArray(cuHeatArray);
+  Free_Single_Cuda_Texture(coolTexObj);
+  Free_Single_Cuda_Texture(heatTexObj);
 }
