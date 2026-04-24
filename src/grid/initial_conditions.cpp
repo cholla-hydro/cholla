@@ -1674,7 +1674,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   gamma = P.gamma;
 
   if(P.T_init==-1) {
-    T_init = 2.72548 * pow(1.0 + z_init, 3); // set to CMB
+    T_init = 2.72548 * (1.0 + z_init); // set to CMB
   }else{
     T_init = P.T_init; // set to precomputed gas temperature
   }
@@ -1712,7 +1712,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         ii = i - H.n_ghost;
         index =  ii + jj * nx_local + kk * nx_local * ny_local;
 
-        dens = rho_b * (1 + CP.phi_1b[index]); // rho_b * (1+delta_gas)
+        dens = rho_b * (1 + CP.delta_b[index]); // rho_b * (1+delta_gas)
         vel  = 0;
         U    = T_init / (gamma - 1) / MP * KB * 1e-10 * dens;
         E    = U;

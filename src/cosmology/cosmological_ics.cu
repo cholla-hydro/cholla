@@ -451,6 +451,7 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
 
   // point potential variables to the appropriate locations on host
   CP.delta_c    = CP.host;
+  offset += n_cells;
 #ifndef ONLY_PARTICLES
   CP.delta_b   = &(CP.host[offset]);
   offset += n_cells;
@@ -466,6 +467,7 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
 
   // point potential variables to the appropriate locations on the device
   CP.d_delta_c   = CP.device;
+  offset += n_cells;
 #ifndef ONLY_PARTICLES
   CP.d_delta_b  = &(CP.device[offset]);
   offset += n_cells;
