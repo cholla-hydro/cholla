@@ -15,9 +15,6 @@
 #include "../io/io.h"  // provides chprintf
 #include "../utils/error_handling.h"
 
-cudaArray *cuCoolArray;
-cudaArray *cuHeatArray;
-
 void Test_Cloudy_Textures();
 void Test_Cloudy_Speed();
 
@@ -105,9 +102,17 @@ void Load_Cuda_Textures(std::string filename)
   Host_Read_Cooling_Tables(cooling_table, heating_table, filename);
 
   // Allocate CUDA arrays in device memory
+  cudaArray *cuCoolArray;
+  cudaArray *cuHeatArray;
   cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
   GPU_Error_Check(cudaMallocArray(&cuCoolArray, &channelDesc, nx, ny));
   GPU_Error_Check(cudaMallocArray(&cuHeatArray, &channelDesc, nx, ny));
+
+  // note: while we allow cuCoolArray and cuHeatArray to go out of scope in this
+  //       function, references are retained to the underlying memory within the cuda
+  //       data structures associated with the texture objects we will be initializing.
+  //       Thus, when we deallocate the texture objects, we use those references to
+  //       deallocate the memory
 
   // Copy the cooling and heating arrays from host to device
 
@@ -154,10 +159,6 @@ void Load_Cuda_Textures(std::string filename)
   // Free the memory associated with the cooling tables on the host
   GPU_Error_Check(cudaFreeHost(cooling_table));
   GPU_Error_Check(cudaFreeHost(heating_table));
-
-  // Run Test
-  // Test_Cloudy_Textures();
-  // Test_Cloudy_Speed();
 }
 
 static void Free_Single_Cuda_Texture(cudaTextureObject_t &texObj)
