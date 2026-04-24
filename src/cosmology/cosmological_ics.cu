@@ -112,7 +112,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
   // find the average
   delta_ave = delta_sum/(nx_global*ny_global*nz_global);
-  chprintf("Average of random field %e\n",phi_ave);
+  chprintf("Average of random field %e\n",delta_ave);
 
 
   // reduce the grid values
@@ -123,7 +123,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
         // get cell index
         id = i + j * nx_local + k * nx_local * ny_local;
 
-        CP.delta_c[id] -= phi_ave; // remove global average
+        CP.delta_c[id] -= delta_ave; // remove global average
       }
     }
   }
