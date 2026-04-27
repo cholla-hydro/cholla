@@ -100,6 +100,15 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   Chem.H.photo_heat_HeI_rate_d  = Chem.Heat_rates_HeI_d;
   Chem.H.photo_heat_HeII_rate_d = Chem.Heat_rates_HeII_d;
 
+  #ifdef RT
+  Chem.H.dTables[0] = Rad.photoRates->bTables[0];
+  Chem.H.dTables[1] = (Rad.photoRates->bTables.Count() > 1 ? Rad.photoRates->bTables[1] : nullptr);
+  Chem.H.dStretch   = Rad.photoRates->bStretch.DevicePtr();
+
+  Chem.H.unitPhotoHeating    = KB * 1e-10 * Chem.H.time_units * Chem.H.density_units / MH / MH;
+  Chem.H.unitPhotoIonization = Chem.H.time_units;
+  #endif  // RT
+
   chprintf("Allocating Memory. \n\n");
   int n_cells               = H.nx * H.ny * H.nz;
   Chem.Fields.temperature_h = (Real *)malloc(n_cells * sizeof(Real));
@@ -139,7 +148,10 @@ void Chem_GPU::Initialize(struct Parameters *P)
 
   Initialize_Reaction_Rates();
 
+  #ifndef RT
   Initialize_UVB_Ionization_and_Heating_Rates(P);
+  #endif  // RT
+
 }
 
 void Chem_GPU::Initialize_Cooling_Rates()
@@ -232,7 +244,11 @@ void Grid3D::Update_Chemistry()
   Chem.H.current_z = 0;
   #endif
 
-  Do_Chemistry_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, Chem.H);
+  #ifdef RT
+  Do_Chemistry_Update(C.device, Rad.rtFields.dev_rf, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, Chem.H);
+  #else
+  Do_Chemistry_Update(C.device, nullptr, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, Chem.H);
+  #endif
 }
 
 void Grid3D::Compute_Gas_Temperature(Real *temperature, bool convert_cosmo_units)

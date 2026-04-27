@@ -8,6 +8,11 @@
 // Define the type of a generic rate function.
 typedef Real (*Rate_Function_T)(Real, Real);
 
+#ifdef RT
+  #include "../radiation/alt/photo_rates_csi.ANY.h"
+  #include "../radiation/alt/photo_rates_csi_gpu.h"
+#endif
+
 // #define TEXTURES_UVB_INTERPOLATION
 
 struct ChemistryHeader {
@@ -76,6 +81,13 @@ struct ChemistryHeader {
   float *photo_heat_HI_rate_d;
   float *photo_heat_HeI_rate_d;
   float *photo_heat_HeII_rate_d;
+
+#ifdef RT
+  const StaticTableGPU<float, 3, 'x'> *dTables[2];
+  const PhotoRateTableStretchCSI *dStretch;
+  Real unitPhotoHeating;
+  Real unitPhotoIonization;
+#endif
 
   // inherit the temperature floor
   // from Parameters
@@ -155,7 +167,7 @@ n_ghost, int n_fields, Real dt, Real gamma)
 *  \brief When passed an array of conserved variables and a timestep, update the
 ionization fractions of H and He and update the internal energy to account for
 radiative cooling and photoheating from the UV background. */
-void Do_Chemistry_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
+void Do_Chemistry_Update(Real *dev_conserved, const Real *dev_rf,   int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
                          ChemistryHeader &Chem_H);
 
 #endif
