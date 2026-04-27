@@ -33,7 +33,9 @@
 #ifdef PARALLEL_OMP
   #include "../utils/parallel_omp.h"
 #endif
-
+#ifdef RT
+  #include "../radiation/radiation.h"
+#endif
 #ifdef DUST
   #include "../dust/dust_cuda.h"  // provides Dust_Update
 #endif
@@ -41,6 +43,9 @@
 /*! \fn Grid3D(void)
  *  \brief Constructor for the Grid. */
 Grid3D::Grid3D(void) : field_info(FieldInfo::create())
+//#ifdef RT
+//    : Rad(this->H) // need to analyze
+//#endif
 {
   // set initialization flag to 0
   flag_init = 0;
@@ -641,6 +646,10 @@ void Grid3D::FreeMemory(void)
 
 #ifdef COOLING_GRACKLE
   Cool.Free_Memory();
+#endif
+
+#ifdef RT
+  Rad.Free_Memory();
 #endif
 
 #ifdef CHEMISTRY_GPU

@@ -44,6 +44,10 @@
   #include "../cooling_grackle/cool_grackle.h"
 #endif
 
+#ifdef RT
+  #include "../radiation/radiation.h"
+#endif
+
 #ifdef CPU_TIME
   #include "../utils/timing_functions.h"
 #endif
@@ -263,6 +267,11 @@ class Grid3D
 #ifdef COOLING_GRACKLE
   // Object that contains data for Grackle cooling
   Cool_GK Cool;
+#endif
+
+#ifdef RT
+  // Object that contains data for radiative transfer
+  Rad3D Rad;
 #endif
 
 #ifdef CPU_TIME
@@ -908,6 +917,12 @@ class Grid3D
   void Initialize_Chemistry(struct Parameters *P);
   void Compute_Gas_Temperature(Real *temperature, bool convert_cosmo_units);
   void Update_Chemistry();
+#endif
+
+#ifdef RT
+  void Initialize_RT();
+  void Update_RT();
+  int Load_RT_Fields_To_Buffer(int direction, int side, Real *buffer, int buffer_start);
 #endif
 
 #ifdef ANALYSIS
