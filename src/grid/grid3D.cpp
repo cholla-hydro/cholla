@@ -71,11 +71,6 @@ Grid3D::Grid3D(void) : field_info(FieldInfo::create()), Rad(this->H)
   H.n_ghost++;
 #endif  // MHD
 
-
-#ifdef RT
-  Rad(&H); // need to analyze
-#endif
-
 }
 
 /*! \fn void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real
