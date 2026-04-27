@@ -126,6 +126,10 @@ int main(int argc, char *argv[])
   message = "Initializing Simulation";
   Write_Message_To_Log_File(message.c_str());
 
+#ifdef RT
+  G.Rad.Initialize_Start(P);
+#endif
+
   // Set initial conditions
   chprintf("Setting initial conditions...\n");
   //chprintf("bsic nx/ny/nz %d/%d/%d\n",P.nx,P.ny,P.nz);
@@ -137,6 +141,10 @@ int main(int argc, char *argv[])
     outtime += G.H.t;
     nfile = P.nfile;
   }
+
+#ifdef RT
+  G.Rad.Initialize_Finish();
+#endif
 
 #ifdef DE
   chprintf("\nUsing Dual Energy Formalism:\n eta_1: %0.3f   eta_2: %0.4f\n", DE_ETA_1, DE_ETA_2);
@@ -205,6 +213,10 @@ int main(int argc, char *argv[])
 #ifdef GRAVITY
   // Get the gravitational potential for the first timestep
   G.Compute_Gravitational_Potential(&P);
+#ifdef RT
+  G.Rad.ComputeEddingtonTensor(P,G.Grav);
+  G.Rad.rtBoundaries();
+#endif
 #endif
 
   // Set boundary conditions (assign appropriate values to ghost cells) for
@@ -293,6 +305,11 @@ int main(int argc, char *argv[])
     G.Transfer_Particles_Boundaries(P);
 #endif
 
+#ifdef RT
+    // Perform the radiative transfer solve
+    G.Update_RT();
+#endif
+
     // Advance the grid by one timestep
     dti = G.Update_Hydro_Grid(chemistry_callback);
 
@@ -302,6 +319,10 @@ int main(int argc, char *argv[])
 #ifdef GRAVITY
     // Compute Gravitational potential for next step
     G.Compute_Gravitational_Potential(&P);
+#ifdef RT
+    G.Rad.ComputeEddingtonTensor(P,G.Grav);
+    G.Rad.rtBoundaries();
+#endif
 #endif
 
     // add one to the timestep count
