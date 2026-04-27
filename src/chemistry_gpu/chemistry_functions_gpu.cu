@@ -7,6 +7,9 @@
   #include "chemistry_gpu.h"
   #include "rates.cuh"
   #include "rates_Katz95.cuh"
+#ifdef RT
+  #include "../radiation/alt/static_table_gpu.cuh"
+#endif
 
   #define eV_to_K 1.160451812e4
   #define K_to_eV 8.617333263e-5
