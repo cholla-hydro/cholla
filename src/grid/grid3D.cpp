@@ -304,7 +304,7 @@ void Grid3D::AllocateMemory(void)
   C.d_Grav_potential = NULL;
 #endif
 
-#ifdef CHEMISTRY_GPU
+#if defined(RT) || defined(CHEMISTRY_GPU)
   C.HI_density    = &C.host[H.n_cells * grid_enum::HI_density];
   C.HII_density   = &C.host[H.n_cells * grid_enum::HII_density];
   C.HeI_density   = &C.host[H.n_cells * grid_enum::HeI_density];
@@ -497,6 +497,8 @@ Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &chemistry_callback
   Timer.Chemistry.RecordTime(Chem.H.runtime_chemistry_step);
   non_hydro_elapsed_time += Chem.H.runtime_chemistry_step;
   #endif
+#endif
+#if defined(CHEMISTRY_GPU) || defined(RT)
   C.HI_density    = &C.host[H.n_cells * grid_enum::HI_density];
   C.HII_density   = &C.host[H.n_cells * grid_enum::HII_density];
   C.HeI_density   = &C.host[H.n_cells * grid_enum::HeI_density];
