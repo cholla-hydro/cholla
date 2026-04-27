@@ -103,6 +103,13 @@ class Chem_GPU
   int ny;
   int nz;
 
+  //
+  //  0: case A
+  //  1: case B
+  //  2: special case for Iliev1 test
+  //
+  int recombination_case;
+
   bool use_case_B_recombination;
 
   Real scale_factor_UVB_on;

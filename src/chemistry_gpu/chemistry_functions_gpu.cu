@@ -834,6 +834,10 @@ __host__ __device__ Real recomb_HII_rate_case_B(Real T, Real units)
   }
 }
 
+// Special HII recombination rate for Iliev test
+__device__ Real recomb_HII_rate_case_Iliev1(Real T, Real units) { return 2.59e-13 / units; }
+
+
 // Calculation of k5 (HeII + e --> HeIII + 2e)
 //  k5_rate
 __host__ __device__ Real coll_i_HeII_rate(Real T, Real units)
