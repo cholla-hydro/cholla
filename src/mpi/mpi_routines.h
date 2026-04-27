@@ -152,7 +152,7 @@ void InitializeChollaMPI(int *pargc, char **pargv[]);
 /* Perform domain decomposition */
 void DomainDecomposition(struct Parameters *P, struct Header *H, int nx_global, int ny_global, int nz_global);
 
-void DomainDecompositionBLOCK(struct Parameters *P, struct Header *H, int nx_global, int ny_global, int nz_global);
+void DomainDecompositionBLOCK(const struct Parameters *P, struct Header *H, int nx_global, int ny_global, int nz_global);
 
 /*tile MPI processes in a block decomposition*/
 void TileBlockDecomposition(void);
