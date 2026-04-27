@@ -537,7 +537,8 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
     a3        = a2 * current_a;
     d *= density_conv / a3;
     GE *= energy_conv / a2;
-    dt_hydro = dt_hydro / Chem_H.time_units;
+    // BRANT UPDATE
+    //dt_hydro = dt_hydro / Chem_H.time_units; // Nick flagged this as a bug
 
   #ifdef COSMOLOGY
     dt_hydro *= current_a * current_a / Chem_H.H0 * 1000 * KPC;
@@ -592,8 +593,8 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
     // Get the photoheating and photoionization rates at z=current_z
     Get_Current_UVB_Rates(current_z, Chem_H, dev_rf, id, n_cells, photo_i_HI, photo_i_HeI, photo_i_HeII, photo_h_HI, photo_h_HeI,
                           photo_h_HeII, print);
-    //Get_Current_Photo_Rates(Chem_H, dev_rf, id, n_cells, photo_i_HI, photo_i_HeI, photo_i_HeII, photo_h_HI, photo_h_HeI,
-    //                        photo_h_HeII, print);
+    Get_Current_Photo_Rates(Chem_H, dev_rf, id, n_cells, photo_i_HI, photo_i_HeI, photo_i_HeII, photo_h_HI, photo_h_HeI,
+                            photo_h_HeII, print);
 
     HI_dot_prev = 0;
     e_dot_prev  = 0;
