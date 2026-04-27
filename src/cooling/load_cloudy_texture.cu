@@ -15,9 +15,6 @@
 #include "../io/io.h"  // provides chprintf
 #include "../utils/error_handling.h"
 
-void Test_Cloudy_Textures();
-void Test_Cloudy_Speed();
-
 // todo: stop tracking these as globals
 static bool allocated_heating_cooling_textures = false;
 cudaTextureObject_t coolTexObj                 = 0;
