@@ -42,7 +42,11 @@
 
 /*! \fn Grid3D(void)
  *  \brief Constructor for the Grid. */
+#ifndef RT
 Grid3D::Grid3D(void) : field_info(FieldInfo::create())
+#else
+Grid3D::Grid3D(void) : field_info(FieldInfo::create()), Rad(this->H)
+#endif
 {
   // set initialization flag to 0
   flag_init = 0;
