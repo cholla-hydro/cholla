@@ -72,7 +72,7 @@ Grid3D::Grid3D(void) : field_info(FieldInfo::create())
 
 
 #ifdef RT
-  Rad(this->H); // need to analyze
+  Rad(&H); // need to analyze
 #endif
 
 }
