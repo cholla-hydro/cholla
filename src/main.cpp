@@ -391,6 +391,9 @@ int main(int argc, char *argv[])
         if (P.outstep_dexinc != 0) P.outstep *= pow(10.0, P.outstep_dexinc);
 
         outtime += P.outstep;  // update to the next output time
+
+        if(outtime>P.tout)
+          outtime=P.tout;
       }
     }
 
