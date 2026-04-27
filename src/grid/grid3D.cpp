@@ -43,9 +43,9 @@
 /*! \fn Grid3D(void)
  *  \brief Constructor for the Grid. */
 Grid3D::Grid3D(void) : field_info(FieldInfo::create())
-#ifdef RT
-    : Rad(this->H) // need to analyze
-#endif
+//#ifdef RT
+//    : Rad(this->H) // need to analyze
+//#endif
 {
   // set initialization flag to 0
   flag_init = 0;
@@ -69,6 +69,12 @@ Grid3D::Grid3D(void) : field_info(FieldInfo::create())
   // Set the number of ghost cells high enough for MHD. MHD needs one extra for the left most face
   H.n_ghost++;
 #endif  // MHD
+
+
+#ifdef RT
+  Rad(this->H); // need to analyze
+#endif
+
 }
 
 /*! \fn void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real
