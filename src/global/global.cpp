@@ -361,6 +361,8 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   Load_String_Param_Into_Char_Buffer(pmap, "outdir", parms->outdir, "");
   Load_String_Param_Into_Char_Buffer(pmap, "indir", parms->indir, "");
 
+  chprintf("outdir %s\n",parms->outdir);
+
   // in the future, the feedback module will read in its own parameters (the global Parameter struct won't
   // know anything about it)
 #ifdef FEEDBACK
