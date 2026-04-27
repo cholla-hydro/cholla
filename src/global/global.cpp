@@ -125,6 +125,9 @@ void Parse_Params(ParameterMap &pmap, struct Parameters *parms)
 
   pmap.pass_entries_to_legacy_parse_param(fn);
 
+  chprintf("xu_bcnd %d\n",parms->xu_bcnd);
+  chprintf("xl_bcnd %d\n",parms->xl_bcnd);
+
   // the plan is to eventually, use the new parsing functions from Parse_Param like the following
   Init_Param_Struct_Members(pmap, parms);
 
