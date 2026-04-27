@@ -386,7 +386,7 @@ class CoolRecipeCloudy
   cool_component::CloudyHeatAndCool net_cloudy_;
 
  public:
-  __host__ CoolRecipeCloudy(std::string filename) : net_cloudy_(filename) {}
+  __host__ CoolRecipeCloudy(ParameterMap &pmap) : net_cloudy_(pmap) {}
   __device__ Real cool_rate(Real n, Real T) const { return net_cloudy_(n, T); }
 };
 
@@ -430,8 +430,8 @@ class CoolRecipeCloudyAndPhotoHeating
   PhotoelectricHeatingModel photoelectric_fn_;
 
  public:
-  __host__ CoolRecipeCloudyAndPhotoHeating(std::string filename, PhotoelectricHeatingModel photoelectric_fn)
-      : net_cloudy_(filename), photoelectric_fn_{photoelectric_fn}
+  __host__ CoolRecipeCloudyAndPhotoHeating(ParameterMap &pmap, PhotoelectricHeatingModel photoelectric_fn)
+      : net_cloudy_(pmap), photoelectric_fn_{photoelectric_fn}
   {
   }
 
@@ -512,13 +512,12 @@ std::function<void(Grid3D &)> configure_cooling_callback(std::string kind, Param
     // since photoelectric_fn can be configured to be inactive, we could probably just
     // consolidate the definitions of CoolRecipeCloudyAndPhotoHeating and CoolRecipeCloudy
 
-    std::string filename = pmap.value_or("chemistry.data_file", std::string());
     if (photoelectric_fn.is_active()) {
-      CoolRecipeCloudyAndPhotoHeating recipe(filename, photoelectric_fn);
+      CoolRecipeCloudyAndPhotoHeating recipe(pmap, photoelectric_fn);
       CoolingUpdateExecutor<CoolRecipeCloudyAndPhotoHeating> updater(recipe);
       return {updater};
     } else {
-      CoolRecipeCloudy recipe(filename);
+      CoolRecipeCloudy recipe(pmap);
       CoolingUpdateExecutor<CoolRecipeCloudy> updater(recipe);
       return {updater};
     }

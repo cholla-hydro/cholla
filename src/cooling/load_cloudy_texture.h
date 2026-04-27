@@ -8,6 +8,7 @@
 
 #include "../cooling/texture_utilities.h"  // Bilinear_Texture
 #include "../global/global.h"
+#include "../io/ParameterMap.h"
 #include "../utils/shared.h"
 
 /*! \brief Describes cooling components
@@ -78,8 +79,20 @@ class CloudyHeatAndCool
   SharedHandle<cudaTextureObject_t> heatTexObj_;
 
  public:
-  /*! \brief Primary Constructor */
+  /*! \brief Construct an instance from the appropriate file name
+   *
+   *  When passed an empty string, it tries to guess the location of the standard data
+   *  file.
+   *
+   *  \note This constructor is useful for testing
+   */
   __host__ explicit CloudyHeatAndCool(std::string filename);
+
+  /*! \brief Construct an instance from the ParameterMap */
+  __host__ explicit CloudyHeatAndCool(ParameterMap& pmap)
+      : CloudyHeatAndCool(pmap.value_or("chemistry.data_file", ""))  // delegate to other constructor
+  {
+  }
 
   /*! \brief compute the net cooling contribution
    *
