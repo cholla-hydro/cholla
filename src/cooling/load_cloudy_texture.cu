@@ -18,6 +18,11 @@
 void Test_Cloudy_Textures();
 void Test_Cloudy_Speed();
 
+// todo: stop tracking these as globals
+static bool allocated_heating_cooling_textures = false;
+cudaTextureObject_t coolTexObj                 = 0;
+cudaTextureObject_t heatTexObj                 = 0;
+
 /* \fn void Host_Read_Cooling_Tables(float* cooling_table, float* heating_table)
  * \brief Load the Cloudy cooling tables into host (CPU) memory. */
 void Host_Read_Cooling_Tables(float *cooling_table, float *heating_table, std::string filename)
@@ -179,4 +184,18 @@ void Free_Cuda_Textures()
 {
   Free_Single_Cuda_Texture(coolTexObj);
   Free_Single_Cuda_Texture(heatTexObj);
+}
+
+__host__ cool_component::CloudyHeatAndCool::CloudyHeatAndCool(std::string filename)
+{
+  // for now, we simply don't deallocate the textures
+  // -> this is poor form and something that should be fixed...
+  // -> in reality, this won't cause any immediate issues since the textures
+  //    are global and will live for the lifetime of the simulation
+  if (!allocated_heating_cooling_textures) {
+    allocated_heating_cooling_textures = true;
+    Load_Cuda_Textures(filename);
+  }
+  this->coolTexObj_ = coolTexObj;
+  this->heatTexObj_ = heatTexObj;
 }

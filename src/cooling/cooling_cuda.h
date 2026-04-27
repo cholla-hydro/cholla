@@ -13,9 +13,6 @@
 #include "../io/ParameterMap.h"
 #include "../utils/gpu.hpp"
 
-extern cudaTextureObject_t coolTexObj;
-extern cudaTextureObject_t heatTexObj;
-
 /* \fn __device__ Real test_cool(Real n, Real T)
  * \brief Cooling function from Creasey 2011. */
 __device__ Real test_cool(int tid, Real n, Real T);

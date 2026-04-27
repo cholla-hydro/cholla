@@ -40,16 +40,11 @@
 #include <math.h>
 
 #include "../cooling/cooling_cuda.h"
-#include "../cooling/load_cloudy_texture.h"  // provides Load_Cuda_Textures and Free_Cuda_Textures
-#include "../cooling/texture_utilities.h"
+#include "../cooling/load_cloudy_texture.h"  // provides cool_component::CloudyHeatAndCool
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../utils/error_handling.h"
 #include "../utils/gpu.hpp"
-
-static bool allocated_heating_cooling_textures = false;
-cudaTextureObject_t coolTexObj                 = 0;
-cudaTextureObject_t heatTexObj                 = 0;
 
 template <typename CoolingRecipe>
 __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
@@ -388,65 +383,12 @@ struct CoolRecipeCIE {
  *         tables at z = 0 with solar metallicity and an HM05 UV background. */
 class CoolRecipeCloudy
 {
-  cudaTextureObject_t coolTexObj_;
-  cudaTextureObject_t heatTexObj_;
+  cool_component::CloudyHeatAndCool net_cloudy_;
 
  public:
-  __host__ CoolRecipeCloudy(std::string filename)
-  {
-    // for now, we simply don't deallocate the textures
-    // -> this is poor form and something that should be fixed...
-    // -> in reality, this won't cause any immediate issues since the textures
-    //    are global and will live for the lifetime of the simulation
-    if (!allocated_heating_cooling_textures) {
-      allocated_heating_cooling_textures = true;
-      Load_Cuda_Textures(filename);
-    }
-    this->coolTexObj_ = coolTexObj;
-    this->heatTexObj_ = heatTexObj;
-  }
-
-  __device__ Real cool_rate(Real n, Real T) const;
+  __host__ CoolRecipeCloudy(std::string filename) : net_cloudy_(filename) {}
+  __device__ Real cool_rate(Real n, Real T) const { return net_cloudy_(n, T); }
 };
-
-__device__ Real CoolRecipeCloudy::cool_rate(Real n, Real T) const
-{
-  Real lambda  = 0.0;  // log cooling rate, erg s^-1 cm^3
-  Real cooling = 0.0;  // cooling per unit volume, erg /s / cm^3
-  Real heating = 0.0;  // heating per unit volume, erg /s / cm^3
-
-  // To keep texture code simple, we use floats (which have built-in support) as opposed to doubles (which would require
-  // casting)
-  float log_n, log_T;
-  log_n = log10(n);
-  log_T = log10(T);
-
-  // remap coordinates for texture
-  // remapped = (input - TABLE_MIN_VALUE)*(1/TABLE_SPACING)
-  // remapped = (input - TABLE_MIN_VALUE)*(NUM_CELLS_PER_DECADE)
-  const Real remap_log_T = (log_T - 1.0) * 10;
-  const Real remap_log_n = (log_n + 6.0) * 10;
-
-  // Note: although the cloudy table columns are n,T,L,H , T is the fastest
-  // variable so it is treated as "x" This is why the Texture calls are T first,
-  // then n: Bilinear_Texture(tex, remap_log_T, remap_log_n)
-
-  // cloudy cooling tables cut off at 10^9 K, use the CIE analytic fit above
-  // this temp.
-  if (log10(T) > 9.0) {
-    lambda = 0.45 * log10(T) - 26.065;
-  } else if (log10(T) >= 1.0) {
-    lambda       = Bilinear_Texture(this->coolTexObj_, remap_log_T, remap_log_n);
-    const Real H = Bilinear_Texture(this->heatTexObj_, remap_log_T, remap_log_n);
-    heating      = pow(10, H);
-  } else {
-    // Do nothing below 10 K
-    return 0.0;
-  }
-
-  cooling = pow(10, lambda);
-  return n * n * (cooling - heating);
-}
 
 /*! Encapsulates our model and configuration for photoelectric heating
  *
@@ -484,19 +426,16 @@ struct PhotoelectricHeatingModel {
 
 class CoolRecipeCloudyAndPhotoHeating
 {
-  CoolRecipeCloudy pure_cloudy_recipe;
-  PhotoelectricHeatingModel photoelectric_fn;
+  cool_component::CloudyHeatAndCool net_cloudy_;
+  PhotoelectricHeatingModel photoelectric_fn_;
 
  public:
   __host__ CoolRecipeCloudyAndPhotoHeating(std::string filename, PhotoelectricHeatingModel photoelectric_fn)
-      : pure_cloudy_recipe(filename), photoelectric_fn{photoelectric_fn}
+      : net_cloudy_(filename), photoelectric_fn_{photoelectric_fn}
   {
   }
 
-  __device__ Real cool_rate(Real n, Real T) const
-  {
-    return pure_cloudy_recipe.cool_rate(n, T) - photoelectric_fn(n, T);
-  }
+  __device__ Real cool_rate(Real n, Real T) const { return net_cloudy_(n, T) - photoelectric_fn_(n, T); }
 };
 
 /*! \brief Analytic cooling/heating recipe that roughly matches the "TI" cooling runs shown in
