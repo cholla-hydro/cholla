@@ -267,7 +267,7 @@ void DomainDecomposition(struct Parameters *P, struct Header *H, int nx_gin, int
 }
 
 /* Perform domain decomposition */
-void DomainDecompositionBLOCK(const struct Parameters *P, struct Header *H, int nx_gin, int ny_gin, int nz_gin)
+void DomainDecompositionBLOCK(struct Parameters *P, struct Header *H, int nx_gin, int ny_gin, int nz_gin)
 {
   int n;
   int i, j, k;

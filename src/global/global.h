@@ -303,9 +303,9 @@ struct Parameters {
 #endif  // TILED_INITIAL_CONDITIONS
 
   // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z] (if they aren't provided, they are set to 0)
-  int n_proc_x;
-  int n_proc_y;
-  int n_proc_z;
+  int n_proc_x = 0;
+  int n_proc_y = 0;
+  int n_proc_z = 0;
 
   int bc_potential_type;
 #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
