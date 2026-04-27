@@ -1,0 +1,9 @@
+include builds/make.type.gravity
+
+# Turn on Radiative Transfer
+DFLAGS += -DRT -DSCALAR -DCHEMISTRY_GPU
+
+# Output abundances
+DFLAGS += -DOUTPUT_CHEMISTRY
+# Output radiation fields
+DFLAGS += -DOUTPUT_RADIATION
