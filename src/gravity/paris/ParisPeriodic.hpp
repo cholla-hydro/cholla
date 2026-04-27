@@ -43,6 +43,10 @@ class ParisPeriodic
    */
   void solve(size_t bytes, double *density, double *potential) const;
 
+#ifdef RT
+  void solveEddingtonTensor(size_t bytes, double *source, double *tensor, int component) const;
+#endif // RT
+
  private:
   int ni_, nj_;  //!< Number of elements in X and Y dimensions
 #if defined(PARIS_3PT) || defined(PARIS_5PT)
