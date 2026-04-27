@@ -166,7 +166,7 @@ void Grid3D::Initialize(struct Parameters *P)
   /* perform domain decomposition
    * and set grid dimensions
    * and allocate comm buffers */
-  printf("Before DD P nxp %d nyp %d nzp %d\n",:P->n_proc_x,P->n_proc_y,P->n_proc_z);
+  printf("Before DD P nxp %d nyp %d nzp %d\n",P->n_proc_x,P->n_proc_y,P->n_proc_z);
   fflush(stdout);
   DomainDecomposition(P, &H, nx_in, ny_in, nz_in);
 
