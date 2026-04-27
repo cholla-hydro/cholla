@@ -189,7 +189,7 @@ struct Parameters {
   double outstep;
   Real outstep_dexinc = 0;
   int n_steps_output;
-  Real gamma;
+  Real gamma = 1.01;
   char init[MAXLEN];
   int nfile;
   int n_hydro              = 1;

@@ -352,6 +352,7 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   // in the future, maybe we should provide a default value of 5/3 for gamma
   parms->gamma = Real(pmap.value<double>("gamma"));
   CHOLLA_ASSERT(parms->gamma > 1.0, "gamma parameter must be greater than one.");
+  chprintf("Gamma = %f\n",parms->gamma);
 
   // load in a handful of string parameters (this would look a lot more like parsing other parameters if we
   // stored the values as std::string values)
