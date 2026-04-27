@@ -114,12 +114,6 @@ class CloudyHeatAndCool
     log_n = log10(n);
     log_T = log10(T);
 
-    // remap coordinates for texture
-    // remapped = (input - TABLE_MIN_VALUE)*(1/TABLE_SPACING)
-    // remapped = (input - TABLE_MIN_VALUE)*(NUM_CELLS_PER_DECADE)
-    const Real remap_log_T = (log_T - 1.0) * 10;
-    const Real remap_log_n = (log_n + 6.0) * 10;
-
     // Note: although the cloudy table columns are n,T,L,H , T is the fastest
     // variable so it is treated as "x" This is why the Texture calls are T first,
     // then n: Bilinear_Texture(tex, remap_log_T, remap_log_n)
@@ -129,6 +123,12 @@ class CloudyHeatAndCool
     if (log10(T) > 9.0) {
       lambda = 0.45 * log10(T) - 26.065;
     } else if (log10(T) >= 1.0) {
+      // remap coordinates for texture
+      // remapped = (input - TABLE_MIN_VALUE)*(1/TABLE_SPACING)
+      // remapped = (input - TABLE_MIN_VALUE)*(NUM_CELLS_PER_DECADE)
+      const Real remap_log_T = (log_T - 1.0) * 10;
+      const Real remap_log_n = (log_n + 6.0) * 10;
+
       lambda       = Bilinear_Texture(this->coolTexObj_, remap_log_T, remap_log_n);
       const Real H = Bilinear_Texture(this->heatTexObj_, remap_log_T, remap_log_n);
       heating      = pow(10, H);
