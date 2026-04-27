@@ -30,7 +30,7 @@ Rad3D::~Rad3D()
   Physics::AtomicData::Delete();
 }
 
-void Rad3D::Initialize_Start(const parameters& params)
+void Rad3D::Initialize_Start(const Parameters& params)
 {
   num_iterations = params.num_iterations;
 
