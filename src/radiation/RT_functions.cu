@@ -88,7 +88,7 @@ int Load_RT_Fields_To_Buffer(int direction, int side, int nx, int ny, int nz, in
 
   hipLaunchKernelGGL(Load_RT_Buffer_kernel, dim1dGrid, dim1dBlock, 0, 0, direction, side, size_buffer, n_i, n_j, nx_rt,
                      ny_rt, nz_rt, n_ghost_transfer, n_ghost_rt, n_freq, rtFields, buffer);
-  CHECK(cudaDeviceSynchronize());  // Loading Buffer needs to synchronize so it is complete before MPI sends are called
+  GPU_Error_Check(cudaDeviceSynchronize());  // Loading Buffer needs to synchronize so it is complete before MPI sends are called
 
   // printf( "Loaded RT Fields Buffer: Dir %d  side: %d \n", direction, side );
   return size_buffer * 2 * n_freq;
