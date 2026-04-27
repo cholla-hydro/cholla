@@ -406,6 +406,11 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   Load_String_Param_Into_Char_Buffer(pmap, "UVB_rates_file", parms->UVB_rates_file, nullptr);
 #endif
 
+  // number of RT iterations
+#ifdef RT
+  parms->num_iterations = pmap.value_or("num_iterations", 10);
+#endif
+
   // we should probably revisit this section and come up with different default behaviors.
   // -> for right now, we just use dummy defaults (for everything other that skewersdir) to make sure
   //    we won't break things

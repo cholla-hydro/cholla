@@ -311,6 +311,9 @@ struct Parameters {
   char UVB_rates_file[MAXLEN];  // File for the UVB photoheating and
                                 // photoionization rates of HI, HeI and HeII
 #endif
+#ifdef RT
+  int num_iterations = 10;
+#endif
   Real temperature_floor = 0;
   Real density_floor     = 0;
   Real scalar_floor      = 0;

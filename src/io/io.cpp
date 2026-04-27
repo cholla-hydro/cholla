@@ -34,6 +34,9 @@
 #ifdef COSMOLOGY
   #include "../cosmology/cosmology.h"
 #endif  // COSMOLOGY
+#ifdef RT
+  #include "../radiation/radiation.h"
+#endif
 
 /* function used to rotate points about an axis in 3D for the rotated projection
  * output routine */
@@ -91,6 +94,11 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
 
   // ensure the output-directory exists (try to create it if it doesn't exist)
   Ensure_Dir_Exists(write_manager.fname_template().effective_output_dir_path(nfile));
+
+#ifdef RT
+  // copy RT fields to CPU
+  G.Rad.Copy_RT_Fields();
+#endif
 
 #ifdef HDF5
   // Initialize HDF5 interface
