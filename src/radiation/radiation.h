@@ -63,12 +63,12 @@ class Rad3D
   Rad3D(const Header &grid_);
   ~Rad3D();
 
-  void Initialize_Start(const parameters &params);
+  void Initialize_Start(const Parameters &params);
   void Initialize_Finish();
   void Initialize_GPU();
 
 #ifdef GRAVITY
-  void ComputeEddingtonTensor(const parameters &params, Grav3D& G);
+  void ComputeEddingtonTensor(const Parameters &params, Grav3D& G);
 #endif
 
   void Copy_RT_Fields();

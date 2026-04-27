@@ -385,7 +385,7 @@ void Rad3D::rtSolve(Real* dev_scalar)
 
 
 #ifdef GRAVITY
-void Rad3D::ComputeEddingtonTensor(const parameters& P, Grav3D& G)
+void Rad3D::ComputeEddingtonTensor(const Parameters& P, Grav3D& G)
 {
   // Compute the eddington tensor
   Real *rs, *ot, *et[6];
