@@ -53,6 +53,7 @@ void Check_Configuration(Parameters const& P)
 #endif  // Only one integrator check
 
   // Check the boundary conditions
+  printf("Boundaries %d %d %d %d %d %d\n",P.xl_bcnd,P.xu_bcnd,P.yl_bcnd,P.yu_bcnd,P.zl_bcnd,P.zu_bcnd);
   auto Check_Boundary = [](int const& boundary, std::string const& direction) {
     bool is_allowed_bc = boundary >= 0 and boundary <= 4;
     CHOLLA_ASSERT(is_allowed_bc,
@@ -61,6 +62,7 @@ void Check_Configuration(Parameters const& P)
                   "4 (custom), 5 (mpi).",
                   direction.c_str(), boundary);
   };
+
   Check_Boundary(P.xl_bcnd, "xl_bcnd");
   Check_Boundary(P.xu_bcnd, "xu_bcnd");
   Check_Boundary(P.yl_bcnd, "yl_bcnd");
