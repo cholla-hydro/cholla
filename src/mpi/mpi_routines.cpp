@@ -293,8 +293,11 @@ void DomainDecompositionBLOCK(struct Parameters *P, struct Header *H, int nx_gin
   /*tile the MPI processes in blocks*/
   /*this sets nproc_x, nproc_y, nproc_z */
   // chprintf("About to enter tiling block decomp\n");
+  printf("Before TBD P nxp %d nyp %d nzp %d\n",P->n_proc_x,P->n_proc_y,P->n_proc_z);
+
   MPI_Barrier(world);
   TileBlockDecomposition();
+  printf("After TBD P nxp %d nyp %d nzp %d\n",P->n_proc_x,P->n_proc_y,P->n_proc_z);
 
   if (nz_global > nx_global) {
     int tmp;
@@ -302,6 +305,7 @@ void DomainDecompositionBLOCK(struct Parameters *P, struct Header *H, int nx_gin
     nproc_x = nproc_z;
     nproc_z = tmp;
   }
+  printf("Before setting MPI grid P nxp %d nyp %d nzp %d\n",P->n_proc_x,P->n_proc_y,P->n_proc_z);
 
   if ((P->n_proc_x > 0) or (P->n_proc_y > 0) or (P->n_proc_z > 0)) {
     // (in reality all or none of the parameters will be 0)
