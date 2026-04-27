@@ -364,7 +364,7 @@ class Grid3D
      * tracked separately when using  GRAVITY. */
     Real *Grav_potential;
 
-#ifdef CHEMISTRY_GPU
+#if defined(RT) || defined(CHEMISTRY_GPU)
     Real *HI_density;
     Real *HII_density;
     Real *HeI_density;
