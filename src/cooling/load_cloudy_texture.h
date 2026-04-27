@@ -8,15 +8,7 @@
 
 #include "../cooling/texture_utilities.h"  // Bilinear_Texture
 #include "../global/global.h"
-
-/* \fn void Load_Cuda_Textures()
- * \brief Load the Cloudy cooling tables into texture memory on the GPU. */
-void Load_Cuda_Textures(std::string filename);
-
-/* \fn void Free_Cuda_Textures()
- * \brief Unbind the texture memory on the GPU, and free the associated Cuda
- * arrays. */
-void Free_Cuda_Textures();
+#include "../utils/shared.h"
 
 /*! \brief Describes cooling components
  *
@@ -79,8 +71,11 @@ namespace cool_component
  */
 class CloudyHeatAndCool
 {
-  cudaTextureObject_t coolTexObj_;
-  cudaTextureObject_t heatTexObj_;
+  // our usage of SharedHandle allows for the wrapped texture objects to be shared
+  // among multiple owners (i.e. multiple copies of CloudyHeatAndCool) and ensures that
+  // texture objects are properly cleaned up when the number of owners go to 0
+  SharedHandle<cudaTextureObject_t> coolTexObj_;
+  SharedHandle<cudaTextureObject_t> heatTexObj_;
 
  public:
   /*! \brief Primary Constructor */
@@ -120,8 +115,8 @@ class CloudyHeatAndCool
       const Real remap_log_T = (log_T - 1.0) * 10;
       const Real remap_log_n = (log_n + 6.0) * 10;
 
-      lambda       = Bilinear_Texture(this->coolTexObj_, remap_log_T, remap_log_n);
-      const Real H = Bilinear_Texture(this->heatTexObj_, remap_log_T, remap_log_n);
+      lambda       = Bilinear_Texture(this->coolTexObj_.get(), remap_log_T, remap_log_n);
+      const Real H = Bilinear_Texture(this->heatTexObj_.get(), remap_log_T, remap_log_n);
       heating      = pow(10, H);
     } else {
       // Do nothing below 10 K

@@ -15,11 +15,6 @@
 #include "../io/io.h"  // provides chprintf
 #include "../utils/error_handling.h"
 
-// todo: stop tracking these as globals
-static bool allocated_heating_cooling_textures = false;
-cudaTextureObject_t coolTexObj                 = 0;
-cudaTextureObject_t heatTexObj                 = 0;
-
 /* \fn void Host_Read_Cooling_Tables(float* cooling_table, float* heating_table)
  * \brief Load the Cloudy cooling tables into host (CPU) memory. */
 void Host_Read_Cooling_Tables(float *cooling_table, float *heating_table, std::string filename)
@@ -86,9 +81,11 @@ void Host_Read_Cooling_Tables(float *cooling_table, float *heating_table, std::s
   }
 }
 
-/* \fn void Load_Cuda_Textures()
- * \brief Load the Cloudy cooling tables into texture memory on the GPU. */
-void Load_Cuda_Textures(std::string filename)
+/*! \brief Load the Cloudy cooling tables into texture memory on the GPU.
+ *
+ *  We'll probably need to factor out some logic to implement metal tables
+ */
+static void Load_Cuda_Textures_(std::string filename, cudaTextureObject_t &coolTexObj, cudaTextureObject_t &heatTexObj)
 {
   float *cooling_table;
   float *heating_table;
@@ -177,22 +174,16 @@ static void Free_Single_Cuda_Texture(cudaTextureObject_t &texObj)
   cudaFreeArray(cuArray);
 }
 
-void Free_Cuda_Textures()
-{
-  Free_Single_Cuda_Texture(coolTexObj);
-  Free_Single_Cuda_Texture(heatTexObj);
-}
-
 __host__ cool_component::CloudyHeatAndCool::CloudyHeatAndCool(std::string filename)
 {
-  // for now, we simply don't deallocate the textures
-  // -> this is poor form and something that should be fixed...
-  // -> in reality, this won't cause any immediate issues since the textures
-  //    are global and will live for the lifetime of the simulation
-  if (!allocated_heating_cooling_textures) {
-    allocated_heating_cooling_textures = true;
-    Load_Cuda_Textures(filename);
-  }
-  this->coolTexObj_ = coolTexObj;
-  this->heatTexObj_ = heatTexObj;
+  cudaTextureObject_t coolTexObj = 0;
+  cudaTextureObject_t heatTexObj = 0;
+  Load_Cuda_Textures_(filename, coolTexObj, heatTexObj);
+
+  // define the deleter callback
+  auto deleter = [](cudaTextureObject_t &texObj) { Free_Single_Cuda_Texture(texObj); };
+
+  // actually construct the SharedHandles
+  this->coolTexObj_ = SharedHandle<cudaTextureObject_t>(coolTexObj, deleter);
+  this->heatTexObj_ = SharedHandle<cudaTextureObject_t>(heatTexObj, deleter);
 }
