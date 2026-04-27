@@ -137,19 +137,20 @@ __global__ void Test_Cloudy_Textures_Kernel(EvaluationGrid eval_grid,
   }
 }
 
-TEST_F(tALLLoadCloudyTexture, LegacySimple)
-{
-  std::string path = std::string(getRootPath() / "src/cooling/cloudy_coolingcurve.txt");
-  cool_component::CloudyHeatAndCool net_cloudy(path);
-
-  // actually run the test calculation
-  constexpr bool SPEED_MODE = false;
-  EvaluationGrid eval_grid  = setup_grid(SPEED_MODE);
-  dim3 dim1dGrid((eval_grid.num_n * eval_grid.num_T + TPB - 1) / TPB, 1, 1);
-  dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(Test_Cloudy_Textures_Kernel<SPEED_MODE>, dim1dGrid, dim1dBlock, 0, 0, eval_grid, net_cloudy);
-  GPU_Error_Check(cudaDeviceSynchronize());
-}
+// This has been disabled to avoid poluting the test suite result with 1000 lines of output
+// TEST_F(tALLLoadCloudyTexture, LegacySimple)
+// {
+//   std::string path = std::string(getRootPath() / "src/cooling/cloudy_coolingcurve.txt");
+//   cool_component::CloudyHeatAndCool net_cloudy(path);
+//
+//   // actually run the test calculation
+//   constexpr bool SPEED_MODE = false;
+//   EvaluationGrid eval_grid  = setup_grid(SPEED_MODE);
+//   dim3 dim1dGrid((eval_grid.num_n * eval_grid.num_T + TPB - 1) / TPB, 1, 1);
+//   dim3 dim1dBlock(TPB, 1, 1);
+//   hipLaunchKernelGGL(Test_Cloudy_Textures_Kernel<SPEED_MODE>, dim1dGrid, dim1dBlock, 0, 0, eval_grid, net_cloudy);
+//   GPU_Error_Check(cudaDeviceSynchronize());
+// }
 
 TEST_F(tALLLoadCloudyTexture, LegacySpeed)
 {
