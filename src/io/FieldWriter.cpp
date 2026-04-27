@@ -362,6 +362,7 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
 
 
   // Likely needs editing, check device or host array and offset
+  /*
   #if defined(RT) && defined(OUTPUT_RADIATION)
     const Rad3D& Rad = G.Rad;
     // for near and far fields, loop over frequencies
@@ -375,6 +376,7 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
                                    dataset);
     }
   #endif  // RT and OUTPUT_RADIATION
+  */ 
 
   // close the file
   if (H5Fclose(file_id) < 0) {
