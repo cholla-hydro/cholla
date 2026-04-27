@@ -336,6 +336,8 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
     parms->n_proc_z = 0;
   }
 
+  chprintf("n_proc_x %d n_proc_y %d n_proc_z %d\n",parms->n_proc_x,parms->n_proc_y,parms->n_prox_z);
+
 #ifdef STATIC_GRAV
   parms->custom_grav = pmap.value_or("custom_grav", 0);
 #endif
