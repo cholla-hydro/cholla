@@ -341,6 +341,7 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   CHOLLA_ASSERT(parms->tout >= 0.0, "tout parameter must be non-negative");
 
   parms->outstep        = pmap.value<double>("outstep");  // aborts if missing
+  parms->outstep_dexinc = pmap.value_or("outstep_dexinc", 0);
   parms->n_steps_output = pmap.value_or("n_steps_output", 0);
 
   // in the future, maybe we should provide a default value of 5/3 for gamma

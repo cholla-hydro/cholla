@@ -386,6 +386,10 @@ int main(int argc, char *argv[])
       nfile++;
 #endif  // OUTPUT
       if (G.H.t == outtime) {
+        
+        // update to the next output time, for logarithmic stepping
+        if (P.outstep_dexinc != 0) P.outstep *= pow(10.0, P.outstep_dexinc);
+
         outtime += P.outstep;  // update to the next output time
       }
     }

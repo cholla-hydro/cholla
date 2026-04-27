@@ -187,6 +187,7 @@ struct Parameters {
   int nz;
   double tout;
   double outstep;
+  double outstep_dexinc = 0;
   int n_steps_output;
   Real gamma;
   char init[MAXLEN];
