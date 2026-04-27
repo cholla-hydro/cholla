@@ -1905,6 +1905,8 @@ void Grid3D::Iliev0(struct Parameters P)
   chprintf("This requires CHEMISTRY_GPU turned on! \n");
   chexit(-1);
 #endif  // defined(CHEMISTRY_GPU)
+  chprintf("Iliev0 ICs set....\n");
+
 }
 
 
