@@ -9,10 +9,6 @@
 #include "../cooling/texture_utilities.h"  // Bilinear_Texture
 #include "../global/global.h"
 
-// todo: stop tracking these as globals
-extern cudaTextureObject_t coolTexObj;
-extern cudaTextureObject_t heatTexObj;
-
 /* \fn void Load_Cuda_Textures()
  * \brief Load the Cloudy cooling tables into texture memory on the GPU. */
 void Load_Cuda_Textures(std::string filename);
@@ -90,19 +86,20 @@ class CloudyHeatAndCool
   /*! \brief Primary Constructor */
   __host__ explicit CloudyHeatAndCool(std::string filename);
 
-  /*! \brief compute the net cooling/heating rate
-   *
-   *  The docstring of the \ref cool_component namespace provides further context about
-   *  how this method is used and describes some relevant optimization considerations
+  /*! \brief compute the net cooling contribution
    *
    *  \todo Stop hardcoding properties of the interpolation grid
    *
+   *  This primarily exists for testing purposes.
+   *
    *  \note
-   *  In case you are unaware, this overloads the "function call operator". If we have an
-   *  instance, `obj`, then you call this method by invoking `obj(n, T)`. In python,
-   *  this method would be called `__call__`
+   *  Although I haven't explicitly checked that __forceinline__ is necessary there
+   *  isn't any harm since normal operation of Cholla always calls this method through
+   *  the operator()(args) method (the only other time this is invoked is in our tests)
+   *  is only directly invoked in the tests)
    */
-  __device__ Real operator()(Real n, Real T) const
+  template <bool TABLE_ONLY>
+  __forceinline__ __device__ Real calc_contrib_(Real n, Real T) const
   {
     Real lambda  = 0.0;  // log cooling rate, erg s^-1 cm^3
     Real cooling = 0.0;  // cooling per unit volume, erg /s / cm^3
@@ -113,16 +110,10 @@ class CloudyHeatAndCool
     float log_n, log_T;
     log_n = log10(n);
     log_T = log10(T);
-
-    // Note: although the cloudy table columns are n,T,L,H , T is the fastest
-    // variable so it is treated as "x" This is why the Texture calls are T first,
-    // then n: Bilinear_Texture(tex, remap_log_T, remap_log_n)
-
-    // cloudy cooling tables cut off at 10^9 K, use the CIE analytic fit above
     // this temp.
-    if (log10(T) > 9.0) {
+    if ((not TABLE_ONLY) and (log10(T) > 9.0)) {
       lambda = 0.45 * log10(T) - 26.065;
-    } else if (log10(T) >= 1.0) {
+    } else if (TABLE_ONLY or (log10(T) >= 1.0)) {
       // remap coordinates for texture
       // remapped = (input - TABLE_MIN_VALUE)*(1/TABLE_SPACING)
       // remapped = (input - TABLE_MIN_VALUE)*(NUM_CELLS_PER_DECADE)
@@ -140,6 +131,20 @@ class CloudyHeatAndCool
     cooling = pow(10, lambda);
     return n * n * (cooling - heating);
   }
+
+  /*! \brief compute the net cooling/heating rate
+   *
+   *  The docstring of the \ref cool_component namespace provides further context about
+   *  how this method is used and describes some relevant optimization considerations
+   *
+   *  \todo Stop hardcoding properties of the interpolation grid
+   *
+   *  \note
+   *  In case you are unaware, this overloads the "function call operator". If we have an
+   *  instance, `obj`, then you call this method by invoking `obj(n, T)`. In python,
+   *  this method would be called `__call__`
+   */
+  __device__ Real operator()(Real n, Real T) const { return calc_contrib_<false>(n, T); }
 };
 
 }  // namespace cool_component

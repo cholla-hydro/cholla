@@ -118,53 +118,43 @@ using tALLLoadCloudyTexture = ChollaRootFixture;
 /* Consider this function only to be used at the end of Load_Cuda_Textures when
  * testing Evaluate texture on grid of size num_n num_T for variables n,T */
 template <bool SPEED_MODE>
-__global__ void Test_Cloudy_Textures_Kernel(EvaluationGrid eval_grid, cudaTextureObject_t coolTexObj,
-                                            cudaTextureObject_t heatTexObj)
+__global__ void Test_Cloudy_Textures_Kernel(EvaluationGrid eval_grid,
+                                            cool_component::CloudyHeatAndCool net_cloudy_cooling)
 {
-  int id, id_n, id_T;
-  id = threadIdx.x + blockIdx.x * blockDim.x;
-  // Calculate log_T and log_n based on id
-  id_T = id / eval_grid.num_n;
-  id_n = id % eval_grid.num_n;
+  int id = threadIdx.x + blockIdx.x * blockDim.x;
+  // Calculate T and n based on id
+  int id_T = id / eval_grid.num_n;
+  int id_n = id % eval_grid.num_n;
 
-  float log10_T = static_cast<float>(log10(eval_grid.T_vals[id_T]));
-  float log10_n = static_cast<float>(log10(eval_grid.n_vals[id_n]));
-
-  // Remap for texture without normalized coords
-  float rlog_T = (log10_T - 1.0) * 10;
-  float rlog_n = (log10_n + 6.0) * 10;
+  Real T = eval_grid.T_vals[id_T];
+  Real n = eval_grid.n_vals[id_n];
 
   // Evaluate
-  float lambda = Bilinear_Texture(coolTexObj, rlog_T, rlog_n);  // tex2D<float>(coolTexObj, rlog_T, rlog_n);
-  float heat   = Bilinear_Texture(heatTexObj, rlog_T, rlog_n);  // tex2D<float>(heatTexObj, rlog_T, rlog_n);
+  float net_cooling = net_cloudy_cooling.calc_contrib_<true>(n, T);
 
   if constexpr (not SPEED_MODE) {  // Hackfully print it out for processing for correctness
-    printf("TEST_Cloudy: %.17e %.17e %.17e %.17e \n", log10_T, log10_n, lambda, heat);
+    printf("TEST_Cloudy: %.17e %.17e %.17e\n", log10(T), log10(n), net_cooling);
   }
 }
 
 TEST_F(tALLLoadCloudyTexture, LegacySimple)
 {
-  std::filesystem::path path = getRootPath() / "src/cooling/cloudy_coolingcurve.txt";
-  Load_Cuda_Textures(std::string(path));
+  std::string path = std::string(getRootPath() / "src/cooling/cloudy_coolingcurve.txt");
+  cool_component::CloudyHeatAndCool net_cloudy(path);
 
   // actually run the test calculation
   constexpr bool SPEED_MODE = false;
   EvaluationGrid eval_grid  = setup_grid(SPEED_MODE);
   dim3 dim1dGrid((eval_grid.num_n * eval_grid.num_T + TPB - 1) / TPB, 1, 1);
   dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(Test_Cloudy_Textures_Kernel<SPEED_MODE>, dim1dGrid, dim1dBlock, 0, 0, eval_grid, coolTexObj,
-                     heatTexObj);
+  hipLaunchKernelGGL(Test_Cloudy_Textures_Kernel<SPEED_MODE>, dim1dGrid, dim1dBlock, 0, 0, eval_grid, net_cloudy);
   GPU_Error_Check(cudaDeviceSynchronize());
-
-  // perform cleanup
-  Free_Cuda_Textures();
 }
 
 TEST_F(tALLLoadCloudyTexture, LegacySpeed)
 {
-  std::filesystem::path path = getRootPath() / "src/cooling/cloudy_coolingcurve.txt";
-  Load_Cuda_Textures(std::string(path));
+  std::string path = std::string(getRootPath() / "src/cooling/cloudy_coolingcurve.txt");
+  cool_component::CloudyHeatAndCool net_cloudy(path);
 
   // actually run the test calculation
   constexpr bool SPEED_MODE = true;
@@ -174,13 +164,9 @@ TEST_F(tALLLoadCloudyTexture, LegacySpeed)
   GPU_Error_Check(cudaDeviceSynchronize());
   Real time_start = Get_Time();
   for (int i = 0; i < 100; i++) {
-    hipLaunchKernelGGL(Test_Cloudy_Textures_Kernel<SPEED_MODE>, dim1dGrid, dim1dBlock, 0, 0, eval_grid, coolTexObj,
-                       heatTexObj);
+    hipLaunchKernelGGL(Test_Cloudy_Textures_Kernel<SPEED_MODE>, dim1dGrid, dim1dBlock, 0, 0, eval_grid, net_cloudy);
   }
   GPU_Error_Check(cudaDeviceSynchronize());
   Real time_end = Get_Time();
   printf(" Cloudy Test Time %9.4f micro-s \n", (time_end - time_start));
-
-  // perform cleanup
-  Free_Cuda_Textures();
 }
