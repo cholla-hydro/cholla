@@ -227,6 +227,7 @@ void Chem_GPU::Initialize_Reaction_Rates()
 void Chem_GPU::Initialize_UVB_Ionization_and_Heating_Rates(struct Parameters *P)
 {
   chprintf(" Initializing UVB Rates... \n");
+  chprintf("In Initialize_UVB_Ionization_and_Heating_Rates() UVB_rates %s\n",P->UVB_rates_file);
   Load_UVB_Ionization_and_Heating_Rates(P);
 
   Copy_UVB_Rates_to_GPU();
