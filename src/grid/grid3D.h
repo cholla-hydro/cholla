@@ -633,9 +633,9 @@ class Grid3D
 
   void Chemistry_Test(struct Parameters P);
 
-  void Iliev0( struct parameters P);
-  void Iliev15(struct parameters P, int test);
-  void Iliev6( struct parameters P);
+  void Iliev0( struct Parameters P);
+  void Iliev15(struct Parameters P, int test);
+  void Iliev6( struct Parameters P);
 
 #ifdef MHD
   /*!
