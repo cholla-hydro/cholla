@@ -1,7 +1,7 @@
 /*! \file RT_functions.cu
  #  \brief Definitions of functions for the RT solver */
 
-#ifdef CUDA
+//#ifdef CUDA
   #ifdef RT
 
     #include <math.h>
@@ -404,4 +404,4 @@ void Rad3D::ComputeEddingtonTensor(const Parameters& P, Grav3D& G)
 }
 #endif // GRAVITY
 #endif  // RT
-#endif    // CUDA
+//#endif    // CUDA
