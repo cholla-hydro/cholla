@@ -111,15 +111,15 @@ namespace PhotoRatesCSI
 StaticTableGPU<float, 3, 'x'>* CreateTable(float* data, unsigned int numRates, const PhotoRateTableStretchCSI& stretch)
 {
   StaticTableGPU<float, 3, 'x'>* d;
-  CudaSafeCall(cudaMalloc(&d, sizeof(StaticTableGPU<float, 3, 'x'>)));
+  GPU_Error_Check(cudaMalloc(&d, sizeof(StaticTableGPU<float, 3, 'x'>)));
   if (d != nullptr) {
     StaticTableGPU<float, 3, 'x'> h(data, numRates, stretch.size, stretch.xMin, stretch.xMax);
-    CudaSafeCall(cudaMemcpy(d, &h, sizeof(StaticTableGPU<float, 3, 'x'>), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMemcpy(d, &h, sizeof(StaticTableGPU<float, 3, 'x'>), cudaMemcpyHostToDevice));
   }
   return d;
 }
 
-void DeleteTable(StaticTableGPU<float, 3, 'x'>* d) { CudaSafeCall(cudaFree(d)); }
+void DeleteTable(StaticTableGPU<float, 3, 'x'>* d) { GPU_Error_Check(cudaFree(d)); }
 
 void UpdateTable(unsigned int size, unsigned int numRates, const StaticTableGPU<float, 3, 'x'>* dTable,
                  const PhotoRateTableStretchCSI* dStretch, const float* dSpectralShape,

@@ -23,31 +23,31 @@
 void Rad3D::Initialize_GPU()
 {
   // copy over data from CPU fields
-  CudaSafeCall(
+  GPU_Error_Check(
       cudaMemcpy(rtFields.dev_rf, rtFields.rf, (1 + 2 * n_freq) * grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
   // initialize values for the other fields:
   //   if these fields exist on CPU, just copy them
   //   if not, set to 0
   if (rtFields.et != nullptr) {
-    CudaSafeCall(cudaMemcpy(rtFields.dev_et, rtFields.et, 6 * grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMemcpy(rtFields.dev_et, rtFields.et, 6 * grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
   } else {
-    CudaSafeCall(cudaMemset(rtFields.dev_et, 0, 6 * grid.n_cells * sizeof(Real)));
+    GPU_Error_Check(cudaMemset(rtFields.dev_et, 0, 6 * grid.n_cells * sizeof(Real)));
   }
   if (rtFields.rs != nullptr) {
-    CudaSafeCall(cudaMemcpy(rtFields.dev_rs, rtFields.rs, grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMemcpy(rtFields.dev_rs, rtFields.rs, grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
   } else {
-    CudaSafeCall(cudaMemset(rtFields.dev_rs, 0, grid.n_cells * sizeof(Real)));
+    GPU_Error_Check(cudaMemset(rtFields.dev_rs, 0, grid.n_cells * sizeof(Real)));
   }
 }
 
 void Rad3D::Copy_RT_Fields(void)
 {
   // copy data back from GPU to CPU
-  CudaSafeCall(
+  GPU_Error_Check(
       cudaMemcpy(rtFields.rf, rtFields.dev_rf, (1 + 2 * n_freq) * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
 
-  CudaSafeCall(cudaMemcpy(rtFields.et, rtFields.dev_et, 6 * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
+  GPU_Error_Check(cudaMemcpy(rtFields.et, rtFields.dev_et, 6 * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
 }
 
 int Load_RT_Fields_To_Buffer(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_freq,
@@ -234,8 +234,8 @@ void Rad3D::OTVETIteration(void)
     hipLaunchKernelGGL(OTVETIteration_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost,
                        grid.dx, lastIteration, rsFarFactor, rtFields.dev_rs, rtFields.dev_et, rfOT, rfNearOld, rfFarOld,
                        rtFields.dev_abc + freq * grid.n_cells, rfNearNew, rfFarNew, (freq == 0 ? 1 : 0));
-    CudaSafeCall(cudaMemcpyAsync(rfNearOld, rfNearNew, grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
-    CudaSafeCall(cudaMemcpyAsync(rfFarOld, rfFarNew, grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
+    GPU_Error_Check(cudaMemcpyAsync(rfNearOld, rfNearNew, grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
+    GPU_Error_Check(cudaMemcpyAsync(rfFarOld, rfFarNew, grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
   }
 }
 

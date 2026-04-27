@@ -10,10 +10,10 @@ StaticTableGPU<value_t, N, 'x'>* StaticTableMakerGPU<value_t, N, 'x'>::Create(va
                                                                               const value_t* xmin, const value_t* xmax)
 {
   StaticTableGPU<value_t, N, 'x'>* d;
-  CudaSafeCall(cudaMalloc(&d, sizeof(StaticTableGPU<value_t, N, 'x'>)));
+  GPU_Error_Check(cudaMalloc(&d, sizeof(StaticTableGPU<value_t, N, 'x'>)));
   if (d != nullptr) {
     StaticTableGPU<value_t, N, 'x'> h(ys, numVars, size, xmin, xmax);
-    CudaSafeCall(cudaMemcpy(d, &h, sizeof(StaticTableGPU<value_t, N, 'x'>), cudaMemcpyHostToDevice));
+    GPU_Error_Check(cudaMemcpy(d, &h, sizeof(StaticTableGPU<value_t, N, 'x'>), cudaMemcpyHostToDevice));
   }
   return d;
 }
@@ -22,7 +22,7 @@ template <typename value_t, unsigned int N>
 void StaticTableMakerGPU<value_t, N, 'x'>::Delete(StaticTableGPU<value_t, N, 'x'>* d)
 {
   if (d != nullptr) {
-    CudaSafeCall(cudaFree(d));
+    GPU_Error_Check(cudaFree(d));
   }
 }
 

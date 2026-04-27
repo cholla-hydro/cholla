@@ -1861,7 +1861,7 @@ void Grid3D::Chemistry_Test(struct Parameters P)
 
 #include "../chemistry_gpu/chemistry_gpu.h"
 
-void Grid3D::Iliev0(struct parameters P)
+void Grid3D::Iliev0(struct Parameters P)
 {
 #if defined(CHEMISTRY_GPU)
 
@@ -1915,7 +1915,7 @@ void Grid3D::Iliev0(struct parameters P)
 #include "../radiation/alt/spectral_shape.h"
 #endif
 
-void Grid3D::Iliev15(struct parameters P, int test)
+void Grid3D::Iliev15(struct Parameters P, int test)
 {
 #if defined(RT) && defined(CHEMISTRY_GPU)
 
@@ -2023,7 +2023,7 @@ void Grid3D::Iliev15(struct parameters P, int test)
 #endif  // defined(RT) && defined(CHEMISTRY_GPU)
 }
 
-void Grid3D::Iliev6(struct parameters P)
+void Grid3D::Iliev6(struct Parameters P)
 {
 #if defined(RT) && defined(CHEMISTRY_GPU)
 

@@ -59,17 +59,17 @@ void Rad3D::Initialize_Finish()
   // Allocate memory for radiation fields (non-advecting, 2 per frequency plus 1 optically thin field)
   chprintf("Allocating memory for radiation fields. \n");
   // allocate memory on the device
-  CudaSafeCall(cudaMalloc((void**)&rtFields.dev_rf, (1 + 2 * n_freq) * grid.n_cells * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_rf, (1 + 2 * n_freq) * grid.n_cells * sizeof(Real)));
 
   // Allocate memory for Eddington tensor only on device
-  CudaSafeCall(cudaMalloc((void**)&rtFields.dev_et, 6 * grid.n_cells * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_et, 6 * grid.n_cells * sizeof(Real)));
 
   // Allocate memory for radiation source field only on device
-  CudaSafeCall(cudaMalloc((void**)&rtFields.dev_rs, grid.n_cells * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_rs, grid.n_cells * sizeof(Real)));
 
   // Allocate temporary fields on device
-  CudaSafeCall(cudaMalloc((void**)&rtFields.dev_abc, n_freq * grid.n_cells * sizeof(Real)));
-  CudaSafeCall(cudaMalloc((void**)&rtFields.dev_rfNew, 2 * grid.n_cells * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_abc, n_freq * grid.n_cells * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_rfNew, 2 * grid.n_cells * sizeof(Real)));
 
   // Initialize Field values (for now)
   this->Initialize_GPU();
