@@ -91,6 +91,7 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
   cudaMemcpy(G.C.density, G.C.device, G.H.n_fields * G.H.n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
   chprintf("\nSaving Snapshot: %d \n", nfile);
+  chprintf("\nOutdir %s\n",P.outdir);
 
   // ensure the output-directory exists (try to create it if it doesn't exist)
   Ensure_Dir_Exists(write_manager.fname_template().effective_output_dir_path(nfile));
