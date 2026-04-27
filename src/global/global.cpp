@@ -413,7 +413,7 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   // Not all chemistry_gpu will have a rates file
   if(pmap.has_param("UVB_rates_file")) {
     Load_String_Param_Into_Char_Buffer(pmap, "UVB_rates_file", parms->UVB_rates_file, nullptr);
-    chprintf("UVB_rates_file %s\n",UVB_rates_file);
+    chprintf("UVB_rates_file %s\n",parms->UVB_rates_file);
   }
 #endif
 
