@@ -1898,6 +1898,7 @@ void Grid3D::Iliev0(struct Parameters P)
         C.HeI_density[id]   = rho * 1.0e-10;
         C.HeII_density[id]  = rho * 1.0e-10;
         C.HeIII_density[id] = rho * 1.0e-10;
+        C.e_density[id]     = C.HII_density[id] + C.HeII_density[id]/4.0 + C.HeIII_density[id]/2.0;
       }
     }
   }
