@@ -8,14 +8,9 @@ MPI_GPU   ?=
 
 DFLAGS    += -DMPI_CHOLLA
 DFLAGS    += -DPRECISION=2
-DFLAGS    += -DPPMP
+DFLAGS    += -DPLMP
 DFLAGS    += -DHLLC
-
-ifeq ($(findstring cosmology,$(TYPE)),cosmology)
 DFLAGS    += -DSIMPLE
-else
-DFLAGS    += -DVL
-endif
 
 # need this if using Disk_3D
 # DFLAGS += -DDISK_ICS

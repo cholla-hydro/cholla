@@ -127,6 +127,17 @@ __device__ Real Get_Cooling_Rates(Thermal_State &TS, ChemistryHeader &Chem_H, Re
   int temp_indx;
   Real temp, delta_T, U_dot;
   temp = TS.get_temperature(Chem_H.gamma);
+  Real mu   = TS.get_MMW();
+  Real d_HI = TS.d_HI;
+  Real d_HII = TS.d_HII;
+  Real d_HeI = TS.d_HeI;
+  Real d_HeII = TS.d_HeII;
+  Real d_HeIII = TS.d_HeIII;
+  Real d_e = TS.d_e;
+  Real d = TS.d;
+  Real n_tot = d_HI + d_HII + 0.25 * (d_HeI + d_HeII + d_HeIII) + d_e;
+  if (print) printf("TS d: %e d_HI: %e d_HII %e d_HeI %e d_HeII %e d_HeIII %e d_e %e n_tot %e\n",d,d_HI,d_HII,d_HeI,d_HeII,d_HeIII,d_e,n_tot);
+  if (print) printf("before mu: %f temp: %f gamma %f\n",mu,temp,Chem_H.gamma);
   get_temperature_indx(temp, Chem_H, temp_indx, delta_T, temp_prev, print);
   if (print) printf("mu: %f  temp: %f  temp_indx: %d  delta_T: %f  \n", TS.get_MMW(), temp, temp_indx, delta_T);
   U_dot = 0.0;
@@ -176,7 +187,7 @@ __device__ Real Get_Cooling_Rates(Thermal_State &TS, ChemistryHeader &Chem_H, Re
   if (temp <= 1.01 * Chem_H.Temp_start && fabs(U_dot) < 0) U_dot = tiny;
   if (fabs(U_dot) < tiny) U_dot = tiny;
 
-  if (print) printf("HI: %e  \n", TS.d_HI);
+  /*if (print) printf("HI: %e  \n", TS.d_HI);
   if (print) printf("HII: %e  \n", TS.d_HII);
   if (print) printf("HeI: %e  \n", TS.d_HeI);
   if (print) printf("HeII: %e  \n", TS.d_HeII);
@@ -199,7 +210,7 @@ __device__ Real Get_Cooling_Rates(Thermal_State &TS, ChemistryHeader &Chem_H, Re
   if (print) printf("Cooling piHeII: %e rate: %e \n", photo_h_HeII, photo_h_HeII * TS.d_HeII / dens_number_conv * 0.25);
   if (print) printf("Cooling DOM: %e  \n", dens_number_conv);
   if (print) printf("Cooling compton: %e  \n", cool_compton);
-  if (print) printf("Cooling U_dot: %e  \n", U_dot);
+  if (print) printf("Cooling U_dot: %e  \n", U_dot);*/
 
   return U_dot;
 }
@@ -224,7 +235,7 @@ __device__ void Get_Reaction_Rates(Thermal_State &TS, ChemistryHeader &Chem_H, R
   k_recomb_HeII  = interpolate_rate(Chem_H.k_recomb_HeII_d, temp_indx, delta_T);
   k_recomb_HeIII = interpolate_rate(Chem_H.k_recomb_HeIII_d, temp_indx, delta_T);
 
-  if (print) printf("logT: %f   temp_indx: %d\n", log(temp), temp_indx);
+  /*if (print) printf("logT: %f   temp_indx: %d\n", log(temp), temp_indx);
   if (print) printf("k_coll_i_HI: %e \n", k_coll_i_HI);
   if (print) printf("k_coll_i_HeI: %e \n", k_coll_i_HeI);
   if (print) printf("k_coll_i_HeII: %e \n", k_coll_i_HeII);
@@ -232,7 +243,7 @@ __device__ void Get_Reaction_Rates(Thermal_State &TS, ChemistryHeader &Chem_H, R
   if (print) printf("k_coll_i_HI_HeI: %e \n", k_coll_i_HI_HeI);
   if (print) printf("k_recomb_HII: %e \n", k_recomb_HII);
   if (print) printf("k_recomb_HeII: %e \n", k_recomb_HeII);
-  if (print) printf("k_recomb_HeIII: %e \n", k_recomb_HeIII);
+  if (print) printf("k_recomb_HeIII: %e \n", k_recomb_HeIII);*/
 }
 
 __device__ int Binary_Search(int N, Real val, float *data, int indx_l, int indx_r)
@@ -484,6 +495,65 @@ __device__ void Update_Step(Thermal_State &TS, ChemistryHeader &Chem_H, Real dt,
   if (print) printf("Updated U: %e \n", TS.U);
 }
 
+__global__ void Print_Chemistry_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields)
+{
+  int id, xid, yid, zid, n_cells, n_iter;
+  Real d, d_inv, vx, vy, vz;
+  Real GE, E_kin, dt_chem, t_chem;
+  Real current_a, a3, a2;
+  n_cells = nx * ny * nz;
+
+  a3 = 1.;
+
+  // get a global thread ID
+  id  = threadIdx.x + blockIdx.x * blockDim.x;
+  zid = id / (nx * ny);
+  yid = (id - zid * nx * ny) / nx;
+  xid = id - zid * nx * ny - yid * nx;
+  // Initialize the thermal state
+  Thermal_State TS;
+  // threads corresponding to real cells do the calculation
+  bool print = false;
+  if (xid > n_ghost - 1 && xid < nx - n_ghost && yid > n_ghost - 1 && yid < ny - n_ghost && zid > n_ghost - 1 &&
+      zid < nz - n_ghost) {
+
+    if((xid==n_ghost)&&(yid==n_ghost)&&(zid==n_ghost)){
+      print = true;
+    }
+    d     = dev_conserved[id];
+    d_inv = 1.0 / d;
+    vx    = dev_conserved[1 * n_cells + id] * d_inv;
+    vy    = dev_conserved[2 * n_cells + id] * d_inv;
+    vz    = dev_conserved[3 * n_cells + id] * d_inv;
+    E_kin = 0.5 * d * (vx * vx + vy * vy + vz * vz);
+  #ifdef DE
+    GE = dev_conserved[(n_fields - 1) * n_cells + id];
+  #else
+    GE = dev_conserved[4 * n_cells + id] - E_kin;
+  #endif
+    TS.d       = dev_conserved[id] / a3;
+    TS.d_HI    = dev_conserved[id + n_cells * grid_enum::HI_density] / a3;
+    TS.d_HII   = dev_conserved[id + n_cells * grid_enum::HII_density] / a3;
+    TS.d_HeI   = dev_conserved[id + n_cells * grid_enum::HeI_density] / a3;
+    TS.d_HeII  = dev_conserved[id + n_cells * grid_enum::HeII_density] / a3;
+    TS.d_HeIII = dev_conserved[id + n_cells * grid_enum::HeIII_density] / a3;
+    TS.d_e     = dev_conserved[id + n_cells * grid_enum::e_density] / a3;
+    TS.U       = GE * d_inv * 1e-10;
+    if(print) {
+      printf("Print id %d TSPC.density: %e \n",id,         TS.d );
+      printf("Print id %d TSPC.HI_density: %e \n",id,      TS.d_HI );
+      printf("Print id %d TSPC.HII_density: %e \n",id,     TS.d_HII );
+      printf("Print id %d TSPC.HeI_density: %e \n",id,     TS.d_HeI );
+      printf("Print id %d TSPC.HeII_density: %e \n",id,    TS.d_HeII );
+      printf("Print id %d TSPC.HeIII_density: %e \n",id,   TS.d_HeIII );
+      printf("Print id %d TSPC.e_density: %e \n",id,       TS.d_e );
+      printf("Print id %d TSPC.internal_energy: %e \n", id,TS.U );
+      printf("Print id %d TSPC.energy: %e \n", id,TS.U*TS.d );
+    }
+  }
+}
+
+
 __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,  int nx, int ny, int nz, int n_ghost, int n_fields,
                                         Real dt_hydro, ChemistryHeader Chem_H)
 {
@@ -529,7 +599,8 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
   #endif
 
     print = false;
-    // if ( xid == n_ghost && yid == n_ghost && zid == n_ghost ) print = true;
+    //print = true;
+    if ( xid == n_ghost && yid == n_ghost && zid == n_ghost ) print = true;
 
     // Convert to cgs units
     current_a = 1 / (current_z + 1);
@@ -559,6 +630,23 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
     TS.d_HeIII = dev_conserved[id + n_cells * grid_enum::HeIII_density] / a3;
     TS.d_e     = dev_conserved[id + n_cells * grid_enum::e_density] / a3;
     TS.U       = GE * d_inv * 1e-10;
+    if (print) {
+      //printf("density_units: %e\n", Chem_H.density_units );
+      //printf("length_units: %e\n", Chem_H.length_units );
+      //printf("velocity_units: %e\n", Chem_H.velocity_units );
+      //printf("time_units: %e\n", Chem_H.time_units );
+      //printf("dom: %e \n", dens_number_conv );
+      printf("TSBC.density: %e \n",         TS.d );
+      printf("TSBC.HI_density: %e \n",      TS.d_HI );
+      printf("TSBC.HII_density: %e \n",     TS.d_HII );
+      printf("TSBC.HeI_density: %e \n",     TS.d_HeI );
+      printf("TSBC.HeII_density: %e \n",    TS.d_HeII );
+      printf("TSBC.HeIII_density: %e \n",   TS.d_HeIII );
+      printf("TSBC.e_density: %e \n",       TS.d_e );
+      printf("TSBC.internal_energy: %e \n", TS.U );
+      printf("TSBC.energy: %e \n", TS.U*TS.d );
+    }
+
 
     // Ceiling species
     TS.d_HI    = fmax(TS.d_HI, tiny);
@@ -571,24 +659,25 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
     // Compute temperature at first iteration
     temp_prev = TS.get_temperature(Chem_H.gamma);
 
-    // if (print){
-    //   printf("current_z: %f\n", current_z );
-    //   printf("density_units: %e\n", Chem_H.density_units );
-    //   printf("lenght_units: %e\n", Chem_H.length_units );
-    //   printf("velocity_units: %e\n", Chem_H.velocity_units );
-    //   printf("time_units: %e\n", Chem_H.time_units );
-    //   printf("dom: %e \n", dens_number_conv );
-    //   printf("density: %e \n",         TS.d );
-    //   printf("HI_density: %e \n",      TS.d_HI );
-    //   printf("HII_density: %e \n",     TS.d_HII );
-    //   printf("HeI_density: %e \n",     TS.d_HeI );
-    //   printf("HeII_density: %e \n",    TS.d_HeII );
-    //   printf("HeIII_density: %e \n",   TS.d_HeIII );
-    //   printf("e_density: %e \n",       TS.d_e );
-    //   printf("internal_energy: %e \n", TS.U );
-    //   printf("energy: %e \n", TS.U*TS.d );
-    //   printf("dt_hydro: %e \n", dt_hydro / Chem_H.time_units );
-    // }
+    //if (print&&(id==0)){
+    if (print) {
+      printf("current_z: %f\n", current_z );
+      //printf("density_units: %e\n", Chem_H.density_units );
+      //printf("length_units: %e\n", Chem_H.length_units );
+      //printf("velocity_units: %e\n", Chem_H.velocity_units );
+      //printf("time_units: %e\n", Chem_H.time_units );
+      //printf("dom: %e \n", dens_number_conv );
+      printf("TS.density: %e \n",         TS.d );
+      printf("TS.HI_density: %e \n",      TS.d_HI );
+      printf("TS.HII_density: %e \n",     TS.d_HII );
+      printf("TS.HeI_density: %e \n",     TS.d_HeI );
+      printf("TS.HeII_density: %e \n",    TS.d_HeII );
+      printf("TS.HeIII_density: %e \n",   TS.d_HeIII );
+      printf("TS.e_density: %e \n",       TS.d_e );
+      printf("TS.internal_energy: %e \n", TS.U );
+      printf("TS.energy: %e \n", TS.U*TS.d );
+      printf("dt_hydro: %e \n", dt_hydro / Chem_H.time_units );
+    }
 
     // Get the photoheating and photoionization rates at z=current_z
     Get_Current_UVB_Rates(current_z, Chem_H, dev_rf, id, n_cells, photo_i_HI, photo_i_HeI, photo_i_HeII, photo_h_HI, photo_h_HeI,
@@ -650,7 +739,7 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
     dev_conserved[(n_fields - 1) * n_cells + id] = GE;
   #endif
 
-    if (print) printf("###########################################\n");
+    /*if (print&&(id==0)) printf("###########################################\n");
     if (print) printf("Updated HI:  %e\n", TS.d_HI * a3);
     if (print) printf("Updated HII:  %e\n", TS.d_HII * a3);
     if (print) printf("Updated HeI:  %e\n", TS.d_HeI * a3);
@@ -658,7 +747,7 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
     if (print) printf("Updated HeIII:  %e\n", TS.d_HeIII * a3);
     if (print) printf("Updated e:  %e\n", TS.d_e * a3);
     if (print) printf("Updated GE:  %e\n", dev_conserved[(n_fields - 1) * n_cells + id]);
-    if (print) printf("Updated E:   %e\n", dev_conserved[4 * n_cells + id]);
+    if (print) printf("Updated E:   %e\n", dev_conserved[4 * n_cells + id]);*/
   }
 }
 
@@ -674,6 +763,7 @@ void Do_Chemistry_Update(Real *dev_conserved, const Real *dev_rf,  int nx, int n
   int ngrid = (nx * ny * nz - 1) / TPB_CHEM + 1;
   dim3 dim1dGrid(ngrid, 1, 1);
   dim3 dim1dBlock(TPB_CHEM, 1, 1);
+
   hipLaunchKernelGGL(Update_Chemistry_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, dev_rf, nx, ny, nz, n_ghost, n_fields,
                      dt, Chem_H);
 
@@ -682,6 +772,16 @@ void Do_Chemistry_Update(Real *dev_conserved, const Real *dev_rf,  int nx, int n
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&time, start, stop);
   Chem_H.runtime_chemistry_step = (Real)time / 1000;  // (Convert ms to secs )
+}
+
+
+void Do_Print_Chemistry(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields)
+{
+  int ngrid = (nx * ny * nz - 1) / TPB_CHEM + 1;
+  dim3 dim1dGrid(ngrid, 1, 1);
+  dim3 dim1dBlock(TPB_CHEM, 1, 1);
+
+  hipLaunchKernelGGL(Print_Chemistry_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, nx, ny, nz, n_ghost, n_fields);
 }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

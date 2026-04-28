@@ -177,5 +177,6 @@ radiative cooling and photoheating from the UV background. */
 void Do_Chemistry_Update(Real *dev_conserved, const Real *dev_rf,   int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
                          ChemistryHeader &Chem_H);
 
+void Do_Print_Chemistry(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields);
 #endif
 #endif

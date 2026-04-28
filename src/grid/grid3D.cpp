@@ -39,8 +39,12 @@
 #ifdef DUST
   #include "../dust/dust_cuda.h"  // provides Dust_Update
 #endif
+#ifdef CHEMISTRY_GPU
+  #include "../chemistry_gpu/chemistry_gpu.h"  // provides Print_Chemistry_kernel
+#endif
 
 /*! \fn Grid3D(void)
+  iinclude "../utils/gpu.hpp"  // provides HIP call
  *  \brief Constructor for the Grid. */
 #ifndef RT
 Grid3D::Grid3D(void) : field_info(FieldInfo::create())
@@ -415,10 +419,14 @@ void Grid3D::Execute_Hydro_Integrator(void)
                          error_code_buffer.data());
 #endif  // VL
 #ifdef SIMPLE
+    chprintf("Before Simple Execute Hydro Integrator\n");
+    Do_Print_Chemistry(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields);
     Simple_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
                              H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, H.density_floor,
                              C.Grav_potential, SlowCellConditionChecker(1.0 / H.min_dt_slow, H.dx, H.dy, H.dz),
                              error_code_buffer.data());
+    chprintf("Before Simple Execute Hydro Integrator\n");
+    Do_Print_Chemistry(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields);
 #endif  // SIMPLE
   } else {
     chprintf("Error: Grid dimensions nx: %d  ny: %d  nz: %d  not supported.\n", H.nx, H.ny, H.nz);
@@ -451,7 +459,14 @@ Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &chemistry_callback
   Extrapolate_Grav_Potential();
 #endif  // GRAVITY
 
+
+  //chprintf("Before Execute Hydro Integrator\n");
+  //Do_Print_Chemistry(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields);
+
   Execute_Hydro_Integrator();
+
+  //chprintf("After Execute Hydro Integrator\n");
+  //Do_Print_Chemistry(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields);
 
 #ifdef TEMPERATURE_FLOOR
   // Set the lower limit temperature (Internal Energy)
