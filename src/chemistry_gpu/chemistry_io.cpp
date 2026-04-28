@@ -71,8 +71,10 @@ void Chem_GPU::Load_UVB_Ionization_and_Heating_Rates(struct Parameters *P)
     Heat_rates_HeI_h[i]  = v[i][4] * heat_units;
     Ion_rates_HeII_h[i]  = v[i][5] * ion_units;
     Heat_rates_HeII_h[i] = v[i][6] * heat_units;
-    chprintf( " %f  %e  %e  %e   \n", rates_z_h[i], Heat_rates_HI_h[i],Heat_rates_HeI_h[i],  Heat_rates_HeII_h[i]); chprintf( " %f  %f  \n",
-    rates_z_h[i], Heat_rates_HI_h[i] );
+    chprintf( "Heat %f  %e  %e  %e   \n", rates_z_h[i], Heat_rates_HI_h[i],Heat_rates_HeI_h[i],  Heat_rates_HeII_h[i]); 
+    chprintf( "Heat %f  %f  \n", rates_z_h[i], Heat_rates_HI_h[i] );
+    chprintf( "Ion %f  %e  %e  %e   \n", rates_z_h[i], Ion_rates_HI_h[i],Ion_rates_HeI_h[i],Ion_rates_HeII_h[i]); 
+    chprintf( "Ion %f  %f  \n", rates_z_h[i], Ion_rates_HI_h[i] );
   }
 
   for (i = 0; i < n_lines - 1; i++) {
