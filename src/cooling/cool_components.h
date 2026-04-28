@@ -16,6 +16,37 @@
  */
 /** @{ */
 
+/*! \brief Describes cooling components
+ *
+ *  \note Maybe we should call this namespace edot_component? (Since there's heating & cooling)
+ *
+ *  Each cooling recipe is composed of one or more cooling components. A cooling
+ *  component is a "callable" (i.e. it's a function or it's a class that implements
+ *  the appropriate method that let's be called just like a function).
+ *
+ *  Optimization Notes
+ *  ==================
+ *  It's important that that "core-logic" of each cooling component is implemented in a
+ *  header file or in the same source file where a recipe actually invokes the
+ *  "core logic". The "core-logic" includes code paths accessible through function-call
+ *  syntax. To be more explicit,
+ *  - when a cool-component is a regular function, the "core-logic" includes the whole
+ *    function itself and any (user-defined) functions called by that function
+ *  - for a callable class, the "core-logic" includes the definition of the
+ *    `Real operator()(args...)` member function and any (user-defined) functions
+ *    called by that member-function
+ *
+ *  We may also want to consider using ``__forceinline__``. With that said, we should
+ *  only use ``__forceinline__`` if it explicitly provides a performance improvement
+ *  (blindly using ``__forceinline__`` can actually hurt performance)
+ *
+ *  In the future, if most heating and cooling contributiond need ``log10(n)`` and
+ *  ``log10(T)``, we may want to consider pre-computing those values. In this scenario,
+ *  we probably want to continue providing ``n`` and ``T``. This could potentially
+ *  improve performance in recipies using multiple independent contributions since
+ *  ``log10`` and ``pow`` are generally a lot more expensive than most other operations
+ *  relevant for computing heating and cooling
+ */
 namespace cool_component
 {
 
