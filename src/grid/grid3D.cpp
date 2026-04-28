@@ -309,6 +309,7 @@ void Grid3D::AllocateMemory(void)
 #endif
 
 #if defined(RT) || defined(CHEMISTRY_GPU)
+  chprintf(" Setting pointers for: HI, HII, HeI, HeII, HeIII, densities\n");
   C.HI_density    = &C.host[H.n_cells * grid_enum::HI_density];
   C.HII_density   = &C.host[H.n_cells * grid_enum::HII_density];
   C.HeI_density   = &C.host[H.n_cells * grid_enum::HeI_density];
