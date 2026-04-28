@@ -264,11 +264,7 @@ class CoolRecipeCloudyAndPhotoHeating
   cool_component::PhotoelectricHeatingModel photoelectric_fn_;
 
  public:
-  __host__ CoolRecipeCloudyAndPhotoHeating(ParameterMap &pmap,
-                                           cool_component::PhotoelectricHeatingModel photoelectric_fn)
-      : net_cloudy_(pmap), photoelectric_fn_{photoelectric_fn}
-  {
-  }
+  __host__ CoolRecipeCloudyAndPhotoHeating(ParameterMap &pmap) : net_cloudy_(pmap), photoelectric_fn_(pmap) {}
 
   __device__ Real cool_rate(Real n, Real T) const { return net_cloudy_(n, T) - photoelectric_fn_(n, T); }
 };
@@ -311,9 +307,7 @@ class CoolRecipeTI
   }
 
  public:
-  __host__ CoolRecipeTI(cool_component::PhotoelectricHeatingModel photoelectric_fn) : photoelectric_fn{photoelectric_fn}
-  {
-  }
+  explicit __host__ CoolRecipeTI(ParameterMap &pmap) : photoelectric_fn(pmap) {}
 
   __device__ Real cool_rate(Real n, Real T) { return cool_rate_only_(n, T) - photoelectric_fn(n, T); }
 };
@@ -323,34 +317,15 @@ std::function<void(Grid3D &)> configure_cooling_callback(std::string kind, Param
   // the caller of this function will is responsible for raising an error when:
   // - "chemistry.data_file" is set, but we aren't using a recipe that doesn't need a datafile
 
-  // First, we configure an instance of PhotoelectricHeatingModel, based off the parameters
-  // -> to help provide informative error messages, we store the names of the parameters in variables
-  // -> maybe we should only use a single parameter, to just specify the value of n_av_cgs?
-  const char *use_photoelectric_parname  = "chemistry.photoelectric_heating";
-  const char *photoelectric_n_av_parname = "chemistry.photoelectric_n_av_cgs";
-
-  cool_component::PhotoelectricHeatingModel photoelectric_fn;
-  if (pmap.value_or(use_photoelectric_parname, false)) {
-    // In this case, we want to actually use photoelectric heating
-    double n_av_cgs = pmap.value_or(photoelectric_n_av_parname, 100.0);
-    CHOLLA_ASSERT(n_av_cgs > 0.0, "The \"%s\" parameter cannot specify a non-positive value",
-                  photoelectric_n_av_parname);
-    photoelectric_fn = cool_component::PhotoelectricHeatingModel{n_av_cgs};
-  } else {
-    CHOLLA_ASSERT(!pmap.has_param(photoelectric_n_av_parname),
-                  "It is an error to specify the \"%s\" parameter when the \"%s\" hasn't "
-                  "explicitly been set to true.",
-                  photoelectric_n_av_parname, use_photoelectric_parname);
-    photoelectric_fn = cool_component::PhotoelectricHeatingModel{0.0};  // this means that there isn't heating
-  }
+  bool use_photoelectric_heating = cool_component::PhotoelectricHeatingModel::is_specified_by_params(pmap);
 
   // Next, we branch based on the cooling-recipe
   if (kind == "tabulated-cloudy") {
     // since photoelectric_fn can be configured to be inactive, we could probably just
     // consolidate the definitions of CoolRecipeCloudyAndPhotoHeating and CoolRecipeCloudy
 
-    if (photoelectric_fn.is_active()) {
-      CoolRecipeCloudyAndPhotoHeating recipe(pmap, photoelectric_fn);
+    if (use_photoelectric_heating) {
+      CoolRecipeCloudyAndPhotoHeating recipe(pmap);
       CoolingUpdateExecutor<CoolRecipeCloudyAndPhotoHeating> updater(recipe);
       return {updater};
     } else {
@@ -359,13 +334,13 @@ std::function<void(Grid3D &)> configure_cooling_callback(std::string kind, Param
       return {updater};
     }
   } else if (kind == "piecewise-cie") {
-    CHOLLA_ASSERT(not photoelectric_fn.is_active(),
+    CHOLLA_ASSERT(not use_photoelectric_heating,
                   "The \"%s\" cooling recipe is **NOT** compatible with photoelectric heating", kind.c_str());
     CoolRecipeCIE recipe{};
     CoolingUpdateExecutor<CoolRecipeCIE> updater(recipe);
     return {updater};
   } else if (kind == "piecewise-ti") {
-    CoolRecipeTI recipe{photoelectric_fn};
+    CoolRecipeTI recipe(pmap);
     CoolingUpdateExecutor<CoolRecipeTI> updater(recipe);
     return {updater};
   }

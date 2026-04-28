@@ -6,6 +6,8 @@
 #include <cmath>
 
 #include "../global/global.h"
+#include "../io/ParameterMap.h"
+#include "../utils/error_handling.h"
 
 /*! @defgroup coolcomp Cooling Component Logic
  *
@@ -158,7 +160,8 @@ __forceinline__ __device__ Real analytic_cie_lambda(Real log10T)
  *  - If we started to model varying mmw, we could also adopt the TIGRESS strategy to more
  *    smoothly turn off heating at higher temperatures
  */
-struct PhotoelectricHeatingModel {
+class PhotoelectricHeatingModel
+{
   /*! This theoretically represents the mean density in the simulation volume. A value of 0.0
    *  indicates that there is no heating.
    *
@@ -166,15 +169,44 @@ struct PhotoelectricHeatingModel {
    *  I can't remember the precise interpretation, but I think the idea may be that it may be
    *  used because it loosely relates to the rate of star formation...
    */
-  double n_av_cgs = 0.0;
+  double n_av_cgs_;
 
-  bool is_active() const { return n_av_cgs != 0.0; }
+  inline static constexpr const char* use_photoelectric_parname  = "chemistry.photoelectric_heating";
+  inline static constexpr const char* photoelectric_n_av_parname = "chemistry.photoelectric_n_av_cgs";
+
+ public:
+  __host__ static bool is_specified_by_params(ParameterMap& pmap)
+  {
+    return pmap.value_or(PhotoelectricHeatingModel::use_photoelectric_parname, false);
+  }
+
+  __host__ explicit PhotoelectricHeatingModel(ParameterMap& pmap)
+  {
+    // In this case, we want to actually use photoelectric heating
+    if (pmap.value_or(PhotoelectricHeatingModel::use_photoelectric_parname, false)) {
+      double n_av_cgs = pmap.value_or(PhotoelectricHeatingModel::photoelectric_n_av_parname, 100.0);
+      CHOLLA_ASSERT(n_av_cgs > 0.0, "The \"%s\" parameter cannot specify a non-positive value",
+                    PhotoelectricHeatingModel::photoelectric_n_av_parname);
+      n_av_cgs_ = n_av_cgs;
+    } else {
+      // in this case, we initialize an instance that doesn't actually perform any
+      // heating/cooling. We may want to get rid of this branch
+      CHOLLA_ASSERT(!pmap.has_param(photoelectric_n_av_parname),
+                    "It is an error to specify the \"%s\" parameter when the \"%s\" hasn't "
+                    "explicitly been set to true.",
+                    PhotoelectricHeatingModel::photoelectric_n_av_parname,
+                    PhotoelectricHeatingModel::use_photoelectric_parname);
+      n_av_cgs_ = 0.0;  // <- this means that there isn't heating
+    }
+  }
+
+  bool is_active() const { return n_av_cgs_ != 0.0; }
 
   /*! \brief computes the heating rate per unit volume, erg /s / cm^3.
    *
    *  This **NEVER** returns a negative value.
    */
-  __device__ Real operator()(Real n, Real T) const { return (T < 1e4) ? n * n_av_cgs * 1.0e-26 : 0.0; }
+  __device__ Real operator()(Real n, Real T) const { return (T < 1e4) ? n * n_av_cgs_ * 1.0e-26 : 0.0; }
 };
 
 }  // namespace cool_component
