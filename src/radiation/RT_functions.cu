@@ -296,6 +296,9 @@ void Rad3D::rtSolve(Real* dev_scalar)
     // then call OTVET iteration kernel
     OTVETIteration();
 
+    // or call the StepRFi Iteration kernel
+    //StepRFiIteration();
+
     // then call boundaries functions
     rtBoundaries();
   }

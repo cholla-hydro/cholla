@@ -83,7 +83,7 @@ class Rad3D
 
   void OTVETIteration();
 
-  void StepRFiIteration(); // For M1, ported from OTVET
+  void StepRFiIteration(); // For M1, ported from OTVET + Altair
 
   void rtBoundaries();
 
