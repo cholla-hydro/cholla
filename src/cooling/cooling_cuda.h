@@ -13,11 +13,6 @@
 #include "../io/ParameterMap.h"
 #include "../utils/gpu.hpp"
 
-/* \fn __device__ Real primordial_cool(Real n, Real T)
- * \brief Primordial hydrogen/helium cooling curve
-          derived according to Katz et al. 1996. */
-__device__ Real primordial_cool(Real n, Real T);
-
 /*! construct a callback that performs heating/cooling (to approximate the impact of chemistry).
  *
  *  The returned callback can be used as the chemistry_callback */
