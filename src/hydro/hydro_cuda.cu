@@ -385,7 +385,8 @@ __global__ void PostUpdate_Conserved_Correct_Crashed_3D(Real *dev_conserved, int
                                                         int y_off, int z_off, int n_ghost, Real gamma, int n_fields,
                                                         SlowCellConditionChecker slow_check, int *any_error)
 {
-  // int n_cells = nx * ny * nz;
+  // most configuration variables don't need the following variable
+  [[maybe_unused]] int n_cells = nx * ny * nz;
 
   // get a global thread ID
   int id  = threadIdx.x + blockIdx.x * blockDim.x;
