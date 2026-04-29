@@ -212,6 +212,9 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
 /*! \brief Analytic fit to a solar metallicity CIE cooling curve calculated using Cloudy.
  */
 struct CoolRecipeCIE {
+  // this only exists for the sake of consistency
+  explicit __host__ CoolRecipeCIE(ParameterMap &pmap) {}
+
   __device__ static Real cool_rate(Real n, Real T)
   {
     Real lambda = cool_component::analytic_cie_lambda(log10(T));  // cooling rate, erg s^-1 cm^3
@@ -227,7 +230,7 @@ class CoolRecipeCloudy
   cool_component::CloudyHeatAndCool net_cloudy_;
 
  public:
-  __host__ CoolRecipeCloudy(ParameterMap &pmap) : net_cloudy_(pmap) {}
+  explicit __host__ CoolRecipeCloudy(ParameterMap &pmap) : net_cloudy_(pmap) {}
   __device__ Real cool_rate(Real n, Real T) const { return net_cloudy_(n, T); }
 };
 
@@ -237,7 +240,7 @@ class CoolRecipeCloudyAndPhotoHeating
   cool_component::PhotoelectricHeatingModel photoelectric_fn_;
 
  public:
-  __host__ CoolRecipeCloudyAndPhotoHeating(ParameterMap &pmap) : net_cloudy_(pmap), photoelectric_fn_(pmap) {}
+  explicit __host__ CoolRecipeCloudyAndPhotoHeating(ParameterMap &pmap) : net_cloudy_(pmap), photoelectric_fn_(pmap) {}
 
   __device__ Real cool_rate(Real n, Real T) const { return net_cloudy_(n, T) - photoelectric_fn_(n, T); }
 };
@@ -305,7 +308,7 @@ std::function<void(Grid3D &)> configure_cooling_callback(std::string kind, Param
   } else if (kind == "piecewise-cie") {
     CHOLLA_ASSERT(not use_photoelectric_heating,
                   "The \"%s\" cooling recipe is **NOT** compatible with photoelectric heating", kind.c_str());
-    CoolRecipeCIE recipe{};
+    CoolRecipeCIE recipe(pmap);
     CoolingUpdateExecutor<CoolRecipeCIE> updater(recipe);
     return {updater};
   } else if (kind == "piecewise-ti+cie") {
