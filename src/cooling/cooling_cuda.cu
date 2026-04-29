@@ -1,10 +1,9 @@
 /*! \file cooling_cuda.cu
  *  \brief Functions to calculate cooling rate for a given rho, P, dt.
  *
- *  Nearly all of the functionality implemented in this file follow a common
- *  strategy. At this time of writing, there are essentially 2 functions that
- *  deviate from the strategy (`test_cool` and `primordial_cool`), which are
- *  left over from earlier implementations.
+ *  Nearly all of the functionality implemented in this file follow a common strategy. At this time of writing,
+ *  there is essentially 1 functions that deviates from the strategy (`primordial_cool`), which are is left
+ *  over from earlier implementations.
  *
  *  Interface
  *  ---------
@@ -208,32 +207,6 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     dev_conserved[(n_fields - 1) * n_cells + id] = d * ge;
 #endif
   }
-}
-
-/* \fn __device__ Real test_cool(Real n, Real T)
- * \brief Cooling function from Creasey 2011. */
-__device__ Real test_cool(int tid, Real n, Real T)
-{
-  Real T0, T1, lambda, cool;
-  T0   = 10000.0;
-  T1   = 20 * T0;
-  cool = 0.0;
-  // lambda = 5.0e-24; //cooling coefficient, 5e-24 erg cm^3 s^-1
-  lambda = 5.0e-20;  // cooling coefficient, 5e-24 erg cm^3 s^-1
-
-  // constant cooling rate
-  // cool = n*n*lambda;
-
-  // Creasey cooling function
-  if (T >= T0 && T <= 0.5 * (T1 + T0)) {
-    cool = n * n * lambda * (T - T0) / T0;
-  }
-  if (T >= 0.5 * (T1 + T0) && T <= T1) {
-    cool = n * n * lambda * (T1 - T) / T0;
-  }
-
-  // printf("%d %f %f\n", tid, T, cool);
-  return cool;
 }
 
 /*! \brief Analytic fit to a solar metallicity CIE cooling curve calculated using Cloudy.

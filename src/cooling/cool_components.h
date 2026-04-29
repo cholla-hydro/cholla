@@ -149,6 +149,32 @@ inline __device__ Real primordial_cool(Real n, Real T)
   return cool;
 }
 
+/*! \brief Cooling the cooling function from Creasey 2011.
+ *
+ *  This was historically used as a test function (it isn't currently used for anything)
+ *
+ *  \return The cooling rate, lambda, in units of erg s^-1 cm^3 (it is NEVER negative)
+ */
+inline __device__ Real analytic_creasey11_lambda(Real n, Real T)
+{
+  Real T0 = 10000.0;
+  Real T1 = 20 * T0;
+  // Real lambda = 5.0e-24; //cooling coefficient, 5e-24 erg cm^3 s^-1
+  Real lambda = 5.0e-20;  // cooling coefficient, 5e-24 erg cm^3 s^-1
+
+  // constant cooling rate
+  // cool = n*n*lambda;
+
+  // Creasey cooling function
+  if (T >= T0 && T <= 0.5 * (T1 + T0)) {
+    return lambda * (T - T0) / T0;
+  } else if (T >= 0.5 * (T1 + T0) && T <= T1) {
+    return lambda * (T1 - T) / T0;
+  } else {
+    return 0.0;
+  }
+}
+
 /*! \brief computes the cooling rate, based on an analytic fit to a solar metallicity
  *     CIE cooling curve calculated using Cloudy. For log10T, this returns 0
  *
