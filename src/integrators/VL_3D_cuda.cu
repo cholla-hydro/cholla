@@ -386,6 +386,7 @@ __global__ void Update_Conserved_Variables_3D_half(Real *dev_conserved, Real *de
   Real dtody  = dt / dy;
   Real dtodz  = dt / dz;
   int n_cells = nx * ny * nz;
+  (void)n_cells; // Suppress spurious unused variable warning
 
   // get a global thread ID
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
