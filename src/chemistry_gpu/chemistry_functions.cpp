@@ -23,8 +23,11 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
 
   Chem.H.runtime_chemistry_step = 0;
 
-  Chem.recombination_case = 0;
-  Chem.use_case_B_recombination = false;
+  if(Chem.recombination_case==0)
+  {
+    Chem.recombination_case = 0;
+    Chem.use_case_B_recombination = false;
+  }
 
   // Initialize the Chemistry Header
   Chem.H.gamma       = gama;
@@ -32,10 +35,12 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   Chem.H.Temp_start  = 1.0;
   Chem.H.Temp_end    = 1000000000.0;
 
-  Chem.H.H_fraction = INITIAL_FRACTION_HI + INITIAL_FRACTION_HII;
-  #ifdef RT // BRANT ALTER
-  Chem.H.H_fraction = 1.;
-  #endif
+  if(Chem.H.H_fraction==0) {
+    Chem.H.H_fraction = INITIAL_FRACTION_HI + INITIAL_FRACTION_HII;
+  }
+  //#ifdef RT // BRANT ALTER
+  //Chem.H.H_fraction = 1.;
+  //#endif
 
   #ifdef COSMOLOGY
   Chem.H.H0      = P->H0;
@@ -208,7 +213,7 @@ void Chem_GPU::Initialize_Cooling_Rates()
 
 void Chem_GPU::Initialize_Reaction_Rates()
 {
-  chprintf(" Initializing Reaction Rates... \n");
+  chprintf(" Initializing Reaction Rates (rec case = %d)... \n",recombination_case);
   Real units = H.reaction_units;
   Generate_Reaction_Rate_Table(&H.k_coll_i_HI_d, coll_i_HI_rate, units);
   Generate_Reaction_Rate_Table(&H.k_coll_i_HeI_d, coll_i_HeI_rate, units);

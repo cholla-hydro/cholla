@@ -21,7 +21,7 @@ struct ChemistryHeader {
   Real energy_conversion;
   Real current_z;
   Real runtime_chemistry_step;
-  Real H_fraction;
+  Real H_fraction=0;
 
   // Units system
   Real a_value;
@@ -108,9 +108,9 @@ class Chem_GPU
   //  1: case B
   //  2: special case for Iliev1 test
   //
-  int recombination_case;
+  int recombination_case = 0;
 
-  bool use_case_B_recombination;
+  bool use_case_B_recombination = false;
 
   Real scale_factor_UVB_on;
 

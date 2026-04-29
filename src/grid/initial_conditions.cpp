@@ -1941,7 +1941,7 @@ void Grid3D::Iliev15(struct Parameters P, int test)
     }
   }
 
-  chprintf("rho=%g U=%g\n", rho, U);
+  chprintf("rho=%g U=%g recombination_case %d\n", rho, U, Chem.recombination_case);
 
   double xcen[3] = {H.xbound + 0.5 * H.xdglobal, H.ybound + 0.5 * H.ydglobal, H.zbound + 0.5 * H.zdglobal};
   double dx2     = H.dx * H.dx;
