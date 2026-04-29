@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
 
   Real dti = 0;  // inverse time step, 1.0 / dt
 
-  // BRANT limit max time
+  // BRANT limit max time, added for RT tests
   Real dt_max = 0.0;  // maximum allowed time step
 
   // input parameter variables
