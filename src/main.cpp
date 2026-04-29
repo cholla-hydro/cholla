@@ -59,6 +59,9 @@ int main(int argc, char *argv[])
 
   Real dti = 0;  // inverse time step, 1.0 / dt
 
+  // BRANT limit max time
+  Real dt_max = 0.0;  // maximum allowed time step
+
   // input parameter variables
   char *param_file;
   struct Parameters P;
@@ -214,7 +217,9 @@ int main(int argc, char *argv[])
   // Get the gravitational potential for the first timestep
   G.Compute_Gravitational_Potential(&P);
 #ifdef RT
+  chprintf("Setting Eddington Tensor...\n");
   G.Rad.ComputeEddingtonTensor(P,G.Grav);
+  chprintf("Setting RT Boundaries...\n");
   G.Rad.rtBoundaries();
 #endif
 #endif
@@ -277,12 +282,25 @@ int main(int argc, char *argv[])
   // Compute inverse timestep for the first time
   dti = G.Calc_Inverse_Timestep();
 
+  // BRANT
+  if (P.max_timestep != 0) {
+    dt_max = P.max_timestep;
+  }
+
   while (G.H.t < P.tout) {
 // get the start time
 #ifdef CPU_TIME
     G.Timer.Total.Start();
 #endif  // CPU_TIME
     start_step = Get_Time();
+
+    // BRANT
+    // Use log step if it's smaller
+    if (dt_max != 0) {
+      if (dti < 1.0 / dt_max) {
+        dti = 1.0 / dt_max;
+      }
+    }
 
     // calculate the timestep by calling MPI_Allreduce
     G.set_dt(dti);
@@ -292,6 +310,13 @@ int main(int argc, char *argv[])
     if (G.H.t + G.H.dt > next_scheduled_time) {
       G.H.dt = next_scheduled_time - G.H.t;
     }
+
+
+    // update the log timestep // BRANT
+    if (P.max_timestep_dexinc != 0) {
+      dt_max *= pow(10.0, P.max_timestep_dexinc);
+    }
+
 
 #if defined(FEEDBACK) && defined(PARTICLE_AGE)
     feedback::Cluster_Feedback(G, sn_analysis);
@@ -421,6 +446,7 @@ int main(int argc, char *argv[])
     // Check that the magnetic field has zero divergence
     mhd::checkMagneticDivergence(G);
 #endif  // MHD
+
   }     /*end loop over timesteps*/
 
 #ifdef CPU_TIME

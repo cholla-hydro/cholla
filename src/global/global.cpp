@@ -106,7 +106,8 @@ char *Trim(char *s)
 const std::set<std::string> optionalParams = {"flag_delta",   "ddelta_dt",  "n_delta", "Lz",  "Lx", "phi",
                                               "theta",        "delta",      "nzr",     "nxr", "H0", "Omega_M",
                                               "Omega_L",      "Omega_R",    "Omega_K", "w0",  "wa", "Init_redshift",
-                                              "End_redshift", "tile_length", "outstep_dexinc"};  // NOLINT
+                                              "End_redshift", "tile_length", "outstep_dexinc", "max_timestep_dexinc",
+                                              "max_timestep"};  // NOLINT //BRANT
 
 bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameters *parms);
 
@@ -346,7 +347,9 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   CHOLLA_ASSERT(parms->tout >= 0.0, "tout parameter must be non-negative");
 
   parms->outstep        = pmap.value<double>("outstep");  // aborts if missing
-  parms->outstep_dexinc = Real(pmap.value_or("outstep_dexinc",double(0)));
+  parms->outstep_dexinc = Real(pmap.value_or("outstep_dexinc",double(0))); // BRANT
+  parms->max_timestep_dexinc = Real(pmap.value_or("max_timestep_dexinc",double(0))); // BRANT
+  parms->max_timestep        = Real(pmap.value_or("max_timestep",double(0))); // BRANT
   parms->n_steps_output = pmap.value_or("n_steps_output",0);
 
   // in the future, maybe we should provide a default value of 5/3 for gamma

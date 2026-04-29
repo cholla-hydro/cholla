@@ -187,7 +187,9 @@ struct Parameters {
   int nz;
   double tout;
   double outstep;
-  Real outstep_dexinc = 0;
+  Real outstep_dexinc = 0; //BRANT
+  Real max_timestep_dexinc = 0; //BRANT
+  Real max_timestep        = 0; //BRANT
   int n_steps_output;
   Real gamma = 1.01;
   char init[MAXLEN];
