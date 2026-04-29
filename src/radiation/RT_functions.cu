@@ -212,6 +212,16 @@ void __global__ OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real 
                                       const Real* __restrict__ rfOT, const Real* __restrict__ rfNear,
                                       const Real* __restrict__ rfFar, const Real* __restrict__ abc,
                                       Real* __restrict__ rfNearNew, Real* __restrict__ rfFarNew, int deb);
+
+// Function to launch the StepRFiIteration kernel
+// should function the way "LAUNCH" does on slack
+void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real dx, bool lastIteration,
+                                      const Real rsFarFactor, const Real* __restrict__ rs, const Real* __restrict__ et,
+                                      const Real* __restrict__ rfOT, const Real* __restrict__ rfNear,
+                                      const Real* __restrict__ rfFar, const Real* __restrict__ abc,
+                                      Real* __restrict__ rfNearNew, Real* __restrict__ rfFarNew, int deb);
+
+
 void Rad3D::OTVETIteration(void)
 {
   const int numThreadsPerBlock = 256;
@@ -227,11 +237,39 @@ void Rad3D::OTVETIteration(void)
   for (int freq = 0; freq < n_freq; freq++) {
     auto rfOT      = rtFields.dev_rf;
     auto rfNearOld = rtFields.dev_rf + grid.n_cells * (1 + freq);
-    auto rfFarOld  = rtFields.dev_rf + grid.n_cells * (1 + n_freq + freq);
-    auto rfNearNew = rtFields.dev_rfNew + grid.n_cells * 0;
-    auto rfFarNew  = rtFields.dev_rfNew + grid.n_cells * 1;
+    auto rfFarOld  = rtFields.dev_rf + grid.n_cells * (1 + n_freq + freq); // Suspicious -- BRANT, n_fpfreq hiding
+    auto rfNearNew = rtFields.dev_rfNew + grid.n_cells * 0; // Suspicious -- BRANT, n_fpfreq hiding
+    auto rfFarNew  = rtFields.dev_rfNew + grid.n_cells * 1; // Suspicious -- BRANT, n_fpfreq hiding
 
     hipLaunchKernelGGL(OTVETIteration_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost,
+                       grid.dx, lastIteration, rsFarFactor, rtFields.dev_rs, rtFields.dev_et, rfOT, rfNearOld, rfFarOld,
+                       rtFields.dev_abc + freq * grid.n_cells, rfNearNew, rfFarNew, (freq == 0 ? 1 : 0));
+    GPU_Error_Check(cudaMemcpyAsync(rfNearOld, rfNearNew, grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
+    GPU_Error_Check(cudaMemcpyAsync(rfFarOld, rfFarNew, grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
+  }
+}
+
+
+void Rad3D::StepRFiIteration(void)
+{
+  const int numThreadsPerBlock = 256;
+  int ngrid                    = (grid.n_cells + numThreadsPerBlock - 1) / numThreadsPerBlock;
+
+  // set values for GPU kernels
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(numThreadsPerBlock, 1, 1);
+
+  // Launch the kernel for one frequency at a time
+  for (int freq = 0; freq < n_freq; freq++) {
+    auto rfOT      = rtFields.dev_rf;
+    auto rfNearOld = rtFields.dev_rf + grid.n_cells * (1 + freq);
+    auto rfFarOld  = rtFields.dev_rf + grid.n_cells * (1 + n_freq + freq); // Suspicious -- BRANT, n_fpfreq hiding
+    auto rfNearNew = rtFields.dev_rfNew + grid.n_cells * 0; // Suspicious -- BRANT, n_fpfreq hiding
+    auto rfFarNew  = rtFields.dev_rfNew + grid.n_cells * 1; // Suspicious -- BRANT, n_fpfreq hiding
+
+    hipLaunchKernelGGL(StepRFiIteration_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost,
                        grid.dx, lastIteration, rsFarFactor, rtFields.dev_rs, rtFields.dev_et, rfOT, rfNearOld, rfFarOld,
                        rtFields.dev_abc + freq * grid.n_cells, rfNearNew, rfFarNew, (freq == 0 ? 1 : 0));
     GPU_Error_Check(cudaMemcpyAsync(rfNearOld, rfNearNew, grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));

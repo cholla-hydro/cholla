@@ -321,4 +321,83 @@ void __global__ OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real 
   rfFarNew[i + nx * (j + ny * k)]  = (rfv2 < 0 ? 0 : rfv2);
 }
 
+
+
+/*
+  // From Altair
+  template<bool Split> GPU_DEVICE_DECL inline void GLFStepPij(
+      int ic, int jc, int kc,
+      int nw, int nw3, float dx,
+      float cdt2dxRSL, float gamma,
+      const float* GPU_RESTRICT_DECL rs,
+      const float* GPU_RESTRICT_DECL abc,
+      const float* GPU_RESTRICT_DECL pij_,
+      const float* GPU_RESTRICT_DECL qijk_,
+      float* GPU_RESTRICT_DECL pijNew_,
+      int deb)
+*/
+
+void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real dx, bool lastIteration,
+                                      const Real rsFarFactor, const Real* __restrict__ rs, const Real* __restrict__ et,
+                                      const Real* __restrict__ rfOT, const Real* __restrict__ rfNear,
+                                      const Real* __restrict__ rfFar, const Real* __restrict__ abc,
+                                      Real* __restrict__ rfNearNew, Real* __restrict__ rfFarNew, int deb)
+{
+  const int ip = ic + 1;
+  const int im = ic - 1;
+  const int jp = jc + 1;
+  const int jm = jc - 1;
+  const int kp = kc + 1;
+  const int km = kc - 1;
+
+  const float* rf = rfi;
+  const float* fi[3] = { rfi+nw3, rfi+2*nw3, rfi+3*nw3 };
+  const float* pij[6] = { pij_, pij_+nw3, pij_+2*nw3, pij_+3*nw3, pij_+4*nw3, pij_+5*nw3 };
+  float* fiNew[3] = { rfiNew+nw3, rfiNew+2*nw3, rfiNew+3*nw3 };
+
+  const float d = dx*rs[ic+nw*(jc+nw*kc)] + 0.5f*(fi[0][im+nw*(jc+nw*kc)]-fi[0][ip+nw*(jc+nw*kc)]+fi[1][ic+nw*(jm+nw*kc)]-fi[1][ic+nw*(jp+nw*kc)]+fi[2][ic+nw*(jc+nw*km)]-fi[2][ic+nw*(jc+nw*kp)]) + 0.5f*(rf[im+nw*(jc+nw*kc)]+rf[ip+nw*(jc+nw*kc)]+rf[ic+nw*(jm+nw*kc)]+rf[ic+nw*(jp+nw*kc)]+rf[ic+nw*(jc+nw*km)]+rf[ic+nw*(jc+nw*kp)]-6*rf[ic+nw*(jc+nw*kc)]);
+
+  float rf1, cdt2dx, w1, w2;
+  if(Split)
+  {
+      cdt2dx = cdt2dxRSL/(1+cdt2dxRSL*gamma*3);
+      float tau = cdt2dx*abc[ic+nw*(jc+nw*kc)];
+      w1 = expf(-tau);
+      w2 = (tau<0.1f ? 1-0.5f*tau*(1-(1.0f/3.0f)*tau*(1-0.25f*tau)) : (1-w1)/tau);
+
+      rf1 = rf[ic+nw*(jc+nw*kc)]*w1 + cdt2dx*d*w2;
+  }
+  else
+  {
+      cdt2dx = cdt2dxRSL/(1+cdt2dxRSL*gamma*(abc[ic+nw*(jc+nw*kc)]+3));
+
+      rf1 = rf[ic+nw*(jc+nw*kc)] + cdt2dx*(d-abc[ic+nw*(jc+nw*kc)]*rf[ic+nw*(jc+nw*kc)]);
+  }
+
+  ///const bool out = (deb>0 && ic==2 && jc==2 && kc==2);
+  ///if(out) printf("RT-GPU-A    %g -> %g cdt2dx=%g d=%g abc=%g f=%g (%g,%g,%g,%g,%g,%g) w=%g\n",rf[ic+nw*(jc+nw*kc)],rf1,cdt2dx,d,abc[ic+nw*(jc+nw*kc)],0.5f*(fi[0][im+nw*(jc+nw*kc)]-fi[0][ip+nw*(jc+nw*kc)]+fi[1][ic+nw*(jm+nw*kc)]-fi[1][ic+nw*(jp+nw*kc)]+fi[2][ic+nw*(jc+nw*km)]-fi[2][ic+nw*(jc+nw*kp)]),fi[0][im+nw*(jc+nw*kc)],fi[0][ip+nw*(jc+nw*kc)],fi[1][ic+nw*(jm+nw*kc)],fi[1][ic+nw*(jp+nw*kc)],fi[2][ic+nw*(jc+nw*km)],fi[2][ic+nw*(jc+nw*kp)],0.5f*(rf[im+nw*(jc+nw*kc)]+rf[ip+nw*(jc+nw*kc)]+rf[ic+nw*(jm+nw*kc)]+rf[ic+nw*(jp+nw*kc)]+rf[ic+nw*(jc+nw*km)]+rf[ic+nw*(jc+nw*kp)]-6*rf[ic+nw*(jc+nw*kc)]));
+
+  rfiNew[ic+nw*(jc+nw*kc)] = (rf1<0 ? 0 : rf1);
+
+  for(int m=0; m<3; m++)
+  {
+      constexpr int ix[] = { 0, 1, 3 };
+      constexpr int iy[] = { 1, 2, 4 };
+      constexpr int iz[] = { 3, 4, 5 };
+
+      const float df = 0.5f*(pij[ix[m]][im+nw*(jc+nw*kc)]-pij[ix[m]][ip+nw*(jc+nw*kc)]+pij[iy[m]][ic+nw*(jm+nw*kc)]-pij[iy[m]][ic+nw*(jp+nw*kc)]+pij[iz[m]][ic+nw*(jc+nw*km)]-pij[iz[m]][ic+nw*(jc+nw*kp)]) + 0.5f*(fi[m][im+nw*(jc+nw*kc)]+fi[m][ip+nw*(jc+nw*kc)]+fi[m][ic+nw*(jm+nw*kc)]+fi[m][ic+nw*(jp+nw*kc)]+fi[m][ic+nw*(jc+nw*km)]+fi[m][ic+nw*(jc+nw*kp)]-6*fi[m][ic+nw*(jc+nw*kc)]);
+
+      if(Split)
+      {
+          fiNew[m][ic+nw*(jc+nw*kc)] = fi[m][ic+nw*(jc+nw*kc)]*w1 + cdt2dx*df*w2;
+      }
+      else
+      {
+          fiNew[m][ic+nw*(jc+nw*kc)] = fi[m][ic+nw*(jc+nw*kc)] + cdt2dx*(df-abc[ic+nw*(jc+nw*kc)]*fi[m][ic+nw*(jc+nw*kc)]);
+      }
+
+      ///if(out) printf("RT-GPU-B[%d] %g -> %g d=%g f=%g (%g,%g,%g,%g,%g,%g) w=%g\n",m,fi[m][ic+nw*(jc+nw*kc)],fiNew[m][ic+nw*(jc+nw*kc)],df,0.5f*(pij[ix[m]][im+nw*(jc+nw*kc)]-pij[ix[m]][ip+nw*(jc+nw*kc)]+pij[iy[m]][ic+nw*(jm+nw*kc)]-pij[iy[m]][ic+nw*(jp+nw*kc)]+pij[iz[m]][ic+nw*(jc+nw*km)]-pij[iz[m]][ic+nw*(jc+nw*kp)]),pij[ix[m]][im+nw*(jc+nw*kc)],pij[ix[m]][ip+nw*(jc+nw*kc)],pij[iy[m]][ic+nw*(jm+nw*kc)],pij[iy[m]][ic+nw*(jp+nw*kc)],pij[iz[m]][ic+nw*(jc+nw*km)],pij[iz[m]][ic+nw*(jc+nw*kp)],0.5f*(fi[m][im+nw*(jc+nw*kc)]+fi[m][ip+nw*(jc+nw*kc)]+fi[m][ic+nw*(jm+nw*kc)]+fi[m][ic+nw*(jp+nw*kc)]+fi[m][ic+nw*(jc+nw*km)]+fi[m][ic+nw*(jc+nw*kp)]-6*fi[m][ic+nw*(jc+nw*kc)]));
+  }
+}
+
 #endif  // RT

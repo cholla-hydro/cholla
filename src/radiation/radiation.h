@@ -83,6 +83,8 @@ class Rad3D
 
   void OTVETIteration();
 
+  void StepRFiIteration(); // For M1, ported from OTVET
+
   void rtBoundaries();
 
   void Free_Memory();
