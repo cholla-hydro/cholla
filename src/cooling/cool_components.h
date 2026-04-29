@@ -204,10 +204,6 @@ __forceinline__ __device__ Real analytic_cie_lambda(Real log10T)
 
 /*! \brief computes the cooling rate, based on an analytic fit provided in Koyama & Inutsuka (2002)
  *
- *  Historically, this has been used in Cholla to roughly match the cooling curve used in
- *  the "TI" cooling runs shown in
- *  [Kim & Ostriker 2015](https://ui.adsabs.harvard.edu/abs/2015ApJ...802...99K/abstract)
- *
  *  \return The cooling rate, lambda, in units of erg s^-1 cm^3 (it is NEVER negative)
  *
  *  \note
@@ -218,9 +214,43 @@ __forceinline__ __device__ Real analytic_cie_lambda(Real log10T)
  *  The actual formula for the fit is given as equations 4 and 5 in
  *  (Koyama & Inutsuka 2002)[https://ui.adsabs.harvard.edu/abs/2018ApJ...860..135S/abstract].
  */
-__forceinline__ __device__ Real analytic_ti_lambda_component(Real T)
+__forceinline__ __device__ Real analytic_koyama_inutsuka_02_lambda(Real T)
 {
   return 2e-26 * (1e7 * exp(-1.148e5 / (T + 1000.0)) + 1.4e-2 * sqrt(T) * exp(-92.0 / T));
+}
+
+/*! \brief Analytic cooling function recipe that roughly matches the "TI" cooling runs shown in
+ *     in [Kim & Ostriker 2015](https://ui.adsabs.harvard.edu/abs/2015ApJ...802...99K/abstract)
+ *
+ *  For temperatures below 1e4 K:
+ *  - We adopt the same analytic fitting formula as Kim & Ostriker 2015 for T < 1e4 K, which is an
+ *    analytic fit to the results of Koyama & Inutsuka (2002).
+ *  - a description of this fit is provided within
+ *    [Kim+2008](https://ui.adsabs.harvard.edu/abs/2008ApJ...681.1148K/abstract)
+ *  For temperatures above 1e4 K
+ *  - we directly use the exact same analytic CIE fit as CoolRecipeCIE
+ *
+ *  \return The cooling rate, lambda, in units of erg s^-1 cm^3 (it is NEVER negative)
+ *
+ *  \note
+ *  It may not be necessary to use __forceinline__, I just used it to ensure I didn't harm existing
+ *  performance
+ *
+ * \warning
+ * Be aware, that all of our cooling infrastructure probably does not properly account for changes in
+ * mean molecular weights. Historically, we just assumed a fixed mean molecular weight of 0.6 when we
+ * used a CIE analytic fit. In practice, the fit below 1e4 K is intended to be used with a mean
+ * molecular weight fixed to ~1.25
+ */
+__forceinline__ __device__ Real combined_analytic_ti_cie_lambda(Real T)
+{
+  if (T < 10.0) {
+    return 0.0;  // no cooling below 10 K
+  } else if (T >= 10.0 && T < 1e4) {
+    return analytic_koyama_inutsuka_02_lambda(T);
+  } else {
+    return analytic_cie_lambda(log10(T));
+  }
 }
 
 /*! Encapsulates our model and configuration for photoelectric heating

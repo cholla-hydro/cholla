@@ -243,41 +243,41 @@ class CoolRecipeCloudyAndPhotoHeating
 };
 
 /*! \brief Analytic cooling/heating recipe that roughly matches the "TI" cooling runs shown in
- *     in [Kim & Ostriker 2015](https://ui.adsabs.harvard.edu/abs/2015ApJ...802...99K/abstract)
+ *     [Kim & Ostriker 2015](https://ui.adsabs.harvard.edu/abs/2015ApJ...802...99K/abstract)
  *
- *  For temperatures below 1e4 K:
- *  - We adopt the same analytic fitting formula as Kim & Ostriker 2015 for T < 1e4 K, which is an
- *    analytic fit to the results of Koyama & Inutsuka (2002).
- *  - a description of this fit is provided within
- *    [Kim+2008](https://ui.adsabs.harvard.edu/abs/2008ApJ...681.1148K/abstract)
- *  For temperatures above 1e4 K
- *  - we directly use the exact same analytic CIE fit as CoolRecipeCIE
- *
- * \warning
- * Be aware, that all of our cooling infrastructure probably does not properly account for changes in
- * mean molecular weights. Historically, we just assumed a fixed mean molecular weight of 0.6 when we
- * used a CIE analytic fit. In practice, the fit below 1e4 K is intended to be used with a mean
- * molecular weight fixed to ~1.25
+ * See \ref cool_component::combined_analytic_ti_cie_lambda for more details (and warnings)
  */
 class CoolRecipeTIAndCIE
 {
-  cool_component::PhotoelectricHeatingModel photoelectric_fn;
+ public:
+  explicit __host__ CoolRecipeTIAndCIE(ParameterMap &pmap) {}
+
+  __device__ Real cool_rate(Real n, Real T) const
+  {
+    Real lambda = cool_component::combined_analytic_ti_cie_lambda(T);  // cooling rate, erg s^-1 cm^3
+    Real cool   = n * n * lambda;                                      // cooling per unit volume, erg /s / cm^3
+    return cool;
+  }
+};
+
+/*! \brief Analytic cooling/heating recipe that roughly matches the "TI" cooling runs shown in
+ *     in [Kim & Ostriker 2015](https://ui.adsabs.harvard.edu/abs/2015ApJ...802...99K/abstract)
+ *     And that includes constributions from photoelectric Heating
+ *
+ * See \ref cool_component::combined_analytic_ti_cie_lambda for more details (and warnings)
+ */
+class CoolRecipeTIAndCIEAndPhotoHeating
+{
+  cool_component::PhotoelectricHeatingModel photoelectric_fn_;
 
  public:
-  explicit __host__ CoolRecipeTIAndCIE(ParameterMap &pmap) : photoelectric_fn(pmap) {}
+  explicit __host__ CoolRecipeTIAndCIEAndPhotoHeating(ParameterMap &pmap) : photoelectric_fn_(pmap) {}
 
-  __device__ Real cool_rate(Real n, Real T)
+  __device__ Real cool_rate(Real n, Real T) const
   {
-    Real lambda;  // cooling rate, erg s^-1 cm^3
-    if (T < 10.0) {
-      lambda = 0.0;  // no cooling below 10 K
-    } else if (T >= 10.0 && T < 1e4) {
-      lambda = cool_component::analytic_ti_lambda_component(T);  // Koyama & Inutsaka 2002 analytic fit
-    } else {
-      lambda = cool_component::analytic_cie_lambda(log10(T));
-    }
-    Real cooling_rate = n * (n * lambda);  // cooling rate per unit volume, erg /s / cm^3
-    return cooling_rate - photoelectric_fn(n, T);
+    Real lambda = cool_component::combined_analytic_ti_cie_lambda(T);  // cooling rate, erg s^-1 cm^3
+    Real cool   = n * n * lambda;                                      // cooling per unit volume, erg /s / cm^3
+    return cool - photoelectric_fn_(n, T);
   }
 };
 
@@ -309,9 +309,15 @@ std::function<void(Grid3D &)> configure_cooling_callback(std::string kind, Param
     CoolingUpdateExecutor<CoolRecipeCIE> updater(recipe);
     return {updater};
   } else if (kind == "piecewise-ti+cie") {
-    CoolRecipeTIAndCIE recipe(pmap);
-    CoolingUpdateExecutor<CoolRecipeTIAndCIE> updater(recipe);
-    return {updater};
+    if (use_photoelectric_heating) {
+      CoolRecipeTIAndCIEAndPhotoHeating recipe(pmap);
+      CoolingUpdateExecutor<CoolRecipeTIAndCIEAndPhotoHeating> updater(recipe);
+      return {updater};
+    } else {
+      CoolRecipeTIAndCIE recipe(pmap);
+      CoolingUpdateExecutor<CoolRecipeTIAndCIE> updater(recipe);
+      return {updater};
+    }
   }
   return {};
 }
