@@ -1990,6 +1990,11 @@ void Grid3D::Iliev15(struct Parameters P, int test)
         C.HeII_density[id]  = rho * 1.0e-20;
         C.HeIII_density[id] = rho * 1.0e-20;
 
+        //BRANT ALTER
+        C.e_density[id] = C.HII_density[id] + C.HeI_density[id] + 2*C.HeIII_density[id];
+        //BRANT ALTER
+
+
         double x[3] = {H.xblocal + H.dx * (i + 0.5 - H.n_ghost), H.yblocal + H.dy * (j + 0.5 - H.n_ghost),
                        H.zblocal + H.dz * (k + 0.5 - H.n_ghost)};
 

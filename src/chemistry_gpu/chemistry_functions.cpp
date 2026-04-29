@@ -33,6 +33,9 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   Chem.H.Temp_end    = 1000000000.0;
 
   Chem.H.H_fraction = INITIAL_FRACTION_HI + INITIAL_FRACTION_HII;
+  #ifdef RT // BRANT ALTER
+  Chem.H.H_fraction = 1.;
+  #endif
 
   #ifdef COSMOLOGY
   Chem.H.H0      = P->H0;
