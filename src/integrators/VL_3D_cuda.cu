@@ -44,13 +44,14 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   // concatenated into a 1-d array
 
   int n_cells = nx * ny * nz;
-  int ngrid   = (n_cells + TPB - 1) / TPB;
 
-  // set values for GPU kernels
+#ifdef PCM
+  int ngrid   = (n_cells + TPB - 1) / TPB;
   // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block
   dim3 dim1dBlock(TPB, 1, 1);
+#endif
 
   // host_grav_potential is NULL if not using GRAVITY
   temp_potential = host_grav_potential;
