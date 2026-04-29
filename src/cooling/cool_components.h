@@ -176,6 +176,27 @@ __forceinline__ __device__ Real analytic_cie_lambda(Real log10T)
   }
 }
 
+/*! \brief computes the cooling rate, based on an analytic fit provided in Koyama & Inutsuka (2002)
+ *
+ *  Historically, this has been used in Cholla to roughly match the cooling curve used in
+ *  the "TI" cooling runs shown in
+ *  [Kim & Ostriker 2015](https://ui.adsabs.harvard.edu/abs/2015ApJ...802...99K/abstract)
+ *
+ *  \return The cooling rate, lambda, in units of erg s^-1 cm^3 (it is NEVER negative)
+ *
+ *  \note
+ *  It may not be necessary to use __forceinline__, I just used it to ensure I didn't harm existing
+ *  performance
+ *
+ *  \note
+ *  The actual formula for the fit is given as equations 4 and 5 in
+ *  (Koyama & Inutsuka 2002)[https://ui.adsabs.harvard.edu/abs/2018ApJ...860..135S/abstract].
+ */
+__forceinline__ __device__ Real analytic_ti_lambda_component(Real T)
+{
+  return 2e-26 * (1e7 * exp(-1.148e5 / (T + 1000.0)) + 1.4e-2 * sqrt(T) * exp(-92.0 / T));
+}
+
 /*! Encapsulates our model and configuration for photoelectric heating
  *
  *  This implements a very simple model

@@ -290,26 +290,22 @@ class CoolRecipeTIAndCIE
 {
   cool_component::PhotoelectricHeatingModel photoelectric_fn;
 
-  // doesn't include any photoelectric heating!
-  __device__ static Real cool_rate_only_(Real n, Real T)
+ public:
+  explicit __host__ CoolRecipeTIAndCIE(ParameterMap &pmap) : photoelectric_fn(pmap) {}
+
+  __device__ Real cool_rate(Real n, Real T)
   {
     Real lambda;  // cooling rate, erg s^-1 cm^3
     if (T < 10.0) {
       lambda = 0.0;  // no cooling below 10 K
     } else if (T >= 10.0 && T < 1e4) {
-      // Koyama & Inutsaka 2002 analytic fit
-      lambda = 2e-26 * (1e7 * exp(-1.148e5 / (T + 1000.0)) + 1.4e-2 * sqrt(T) * exp(-92.0 / T));
+      lambda = cool_component::analytic_ti_lambda_component(T);  // Koyama & Inutsaka 2002 analytic fit
     } else {
       lambda = cool_component::analytic_cie_lambda(log10(T));
     }
-
-    return n * (n * lambda);  // cooling rate per unit volume, erg /s / cm^3
+    Real cooling_rate = n * (n * lambda);  // cooling rate per unit volume, erg /s / cm^3
+    return cooling_rate - photoelectric_fn(n, T);
   }
-
- public:
-  explicit __host__ CoolRecipeTIAndCIE(ParameterMap &pmap) : photoelectric_fn(pmap) {}
-
-  __device__ Real cool_rate(Real n, Real T) { return cool_rate_only_(n, T) - photoelectric_fn(n, T); }
 };
 
 std::function<void(Grid3D &)> configure_cooling_callback(std::string kind, ParameterMap &pmap)
