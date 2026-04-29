@@ -6,7 +6,7 @@
 
 __host__ __device__ static inline double Sqr(const double x) { return x * x; }
 
-ParisPeriodic::ParisPeriodic(const int n[3], const double lo[3], const double hi[3], const int m[3], const int id[3])
+ParisPeriodic::ParisPeriodic(const int n[3], const double lo[3], const double hi[3], const int m[3], const int id[3], double dx)
     : ni_(n[0]),
       nj_(n[1]),
   #ifdef PARIS_3PT
@@ -24,7 +24,11 @@ ParisPeriodic::ParisPeriodic(const int n[3], const double lo[3], const double hi
       ddj_{2.0 * M_PI * double(n[1] - 1) / (double(n[1]) * (hi[1] - lo[1]))},
       ddk_{2.0 * M_PI * double(n[2] - 1) / (double(n[2]) * (hi[2] - lo[2]))},
   #endif
-      henry(n, lo, hi, m, id)
+      henry(n, lo, hi, m, id),
+      dx_(dx), //RT
+      dd2i_(2.0 * M_PI * double(n[0] - 1) / (double(n[0]) * (hi[0] - lo[0]))), //RT
+      dd2j_(2.0 * M_PI * double(n[1] - 1) / (double(n[1]) * (hi[1] - lo[1]))), //RT
+      dd2k_(2.0 * M_PI * double(n[2] - 1) / (double(n[2]) * (hi[2] - lo[2])))  //RT
 {
 }
 
@@ -129,6 +133,6 @@ void ParisPeriodic::solveEddingtonTensor(size_t bytes, double *source, double *t
                     return gfs[component](dx,ni,nj,dd2i,dd2j,dd2k,i,j,k,b);
                });
 }
-#endif // RT
+#endif //RT
 
 #endif

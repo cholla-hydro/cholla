@@ -116,10 +116,10 @@ void PotentialParis3D::Get_Potential(const Real *const density, Real *const pote
   GPU_Error_Check(cudaMemcpy(potential, db, potentialBytes_, cudaMemcpyDeviceToHost));
   #endif
 }
-
 #ifdef RT
-void Potential_Paris_3D::Get_EddingtonTensor(int nghost, const Real *source, Real **et, Real *ot)
+void PotentialParis3D::Get_EddingtonTensor(int nghost, const Real *source, Real **et, Real *ot)
 {
+/*
   assert(da_);
   Real *const da = da_;
   Real *const db = db_;
@@ -206,9 +206,9 @@ void Potential_Paris_3D::Get_EddingtonTensor(int nghost, const Real *source, Rea
   #else
   #error "Not implemented."
   #endif
+*/
 }
 #endif // RT
-
 void PotentialParis3D::Initialize(const Real lx, const Real ly, const Real lz, const Real xMin, const Real yMin,
                                   const Real zMin, const int nx, const int ny, const int nz, const int nxReal,
                                   const int nyReal, const int nzReal, const Real dx, const Real dy, const Real dz)
@@ -256,7 +256,7 @@ void PotentialParis3D::Initialize(const Real lx, const Real ly, const Real lz, c
   assert(dn_[1] == n[1] / m[1]);
   assert(dn_[2] == n[2] / m[2]);
 
-  pp_ = new ParisPeriodic(n, lo_, hi, m, id);
+  pp_ = new ParisPeriodic(n, lo_, hi, m, id, dx);
   assert(pp_);
   minBytes_       = pp_->bytes();
   densityBytes_   = long(sizeof(Real)) * dn_[0] * dn_[1] * dn_[2];
