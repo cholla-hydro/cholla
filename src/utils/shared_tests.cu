@@ -169,8 +169,12 @@ TYPED_TEST(tALLSharedConstructTest, NonEmptyResetReleaseOwnership)
 TYPED_TEST(tALLSharedConstructTest, CopyConstructEmpty)
 {
   TypeParam empty_shared_resource;
-  ;
-  TypeParam copy(empty_shared_resource);
+
+  // the disabled linter check on the next line is telling us that the code would be
+  // faster if we got rid of the instance named copy and perform all checks directly on
+  // empty_shared_resource (from a performance stand-point it's completely correct as
+  // long as the test that we perform is successful)
+  TypeParam copy(empty_shared_resource);  // NOLINT(performance-unnecessary-copy-initialization)
 
   EXPECT_FALSE(bool(empty_shared_resource)) << "the original should be empty";
   EXPECT_FALSE(bool(copy)) << "the copy also should be empty";
@@ -196,10 +200,13 @@ TYPED_TEST(tALLSharedConstructTest, CopyConstructNonEmpty)
 TYPED_TEST(tALLSharedConstructTest, MoveConstructEmpty)
 {
   TypeParam empty_shared_resource;
-  TypeParam empty_shared_resource2;
-  (std::move(empty_shared_resource));
+  TypeParam empty_shared_resource2(std::move(empty_shared_resource));
 
+  // the next line is validating behavior in the exact circumstance that linting seeks to avoid
+  // NOLINTNEXTLINE(bugprone-use-after-move, hicpp-invalid-access-moved)
   EXPECT_FALSE(bool(empty_shared_resource)) << "the original should be empty";
+
+  // check variable where value was moved to
   EXPECT_FALSE(bool(empty_shared_resource2)) << "the move-constructed instance also should be empty";
 }
 
@@ -208,7 +215,11 @@ TYPED_TEST(tALLSharedConstructTest, MoveConstructNonEmpty)
   TypeParam shared_resource = this->create_nonempty();
   TypeParam shared_resource2(std::move(shared_resource));
 
+  // the next line is validating behavior in the exact circumstance that linting seeks to avoid
+  // NOLINTNEXTLINE(bugprone-use-after-move, hicpp-invalid-access-moved)
   EXPECT_FALSE(bool(shared_resource)) << "original should be empty";
+
+  // check variable where value was moved to
   EXPECT_TRUE(bool(shared_resource2)) << "move constructed instance shouldn't be empty";
 
   // validate that the deleter is only called after there are no remaining owners
@@ -224,8 +235,12 @@ TYPED_TEST(tALLSharedConstructTest, SelfCopyAssign)
   TypeParam shared_resource = this->create_nonempty();
   ASSERT_EQ(this->num_deleted(), 0) << "SANITY CHECK";
 
-  // do the self assign
-  shared_resource = shared_resource;
+  // do the self assign.
+  //
+  // the disabled lint tries to prevent this operation because a self-assign shouldn't
+  // change anything about the instance being self-assigned (i.e. this is the invariant
+  // this test is actually checking) and would just waste CPU cycles
+  shared_resource = shared_resource;  // NOLINT(misc-redundant-expression)
   ASSERT_EQ(this->num_deleted(), 0) << "the internal reference count erroneously hit 0 during the operation";
 
   // now confirm that releasing the resource creates the appropriate result
@@ -283,6 +298,8 @@ TYPED_TEST(tALLSharedConstructTest, MoveAssignEmptyToEmpty)
   // perform move assignment
   empty_2 = std::move(empty_1);
 
+  // the next line is validating behavior in the exact circumstance that linting seeks to avoid
+  // NOLINTNEXTLINE(bugprone-use-after-move, hicpp-invalid-access-moved)
   EXPECT_FALSE(bool(empty_1));
   EXPECT_FALSE(bool(empty_2));
 }
@@ -303,7 +320,11 @@ TYPED_TEST(tALLSharedConstructTest, MoveAssignNonEmpty)
   ASSERT_EQ(this->num_deleted(), 1) << "The deleter should have been invoke for the resource previously tracked by "
                                     << "shared_resource2";
 
+  // the next line is validating behavior in the exact circumstance that linting seeks to avoid
+  // NOLINTNEXTLINE(bugprone-use-after-move, hicpp-invalid-access-moved)
   EXPECT_FALSE(bool(shared_resource_1)) << "shared_resource_1 should be empty";
+
+  // check variable where value was moved to
   EXPECT_TRUE(bool(shared_resource_2)) << "shared_resource_2 shouldn't be empty";
   EXPECT_EQ(shared_resource_2.get(), pre_assign_wrapped_1)
       << "move assignment should transfer ownership from shared_resource_1 to "

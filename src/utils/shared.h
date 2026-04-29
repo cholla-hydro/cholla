@@ -256,6 +256,12 @@ class ControlBlockImpl : public ControlBlock
  *  \param KLASS The name of the class template (i.e. SharedHandle or SharedDevPtr)
  */
 #define DEFINE_COMMON_METHODS(KLASS)                                                                             \
+  /* The lint that we disable just below tells us that we should enclose every occurrence of KLASS within   */   \
+  /* parentheses. Basically, we'd write it as (KLASS). I'm not actually sure that the result of the macro   */   \
+  /* expansion would be valid code and it would certainly make things harder to read. This check is most    */   \
+  /* useful when you would interject a macro call inside a C++ expression like a function. Since this macro */   \
+  /* is used in a fundamentally different way (i.e. to define functions) its okay to disable the check      */   \
+  /* NOLINTBEGIN(bugprone-macro-parentheses) */                                                                  \
                                                                                                                  \
   /* implement the copy constructor */                                                                           \
   template <typename T>                                                                                          \
@@ -278,19 +284,20 @@ class ControlBlockImpl : public ControlBlock
   template <typename T>                                                                                          \
   __host__ __device__ KLASS<T>& KLASS<T>::operator=(const KLASS<T>& other) noexcept                              \
   {                                                                                                              \
-    /* not only is this branch an optimization, it also prevents really bad bugs */                              \
-    /* when `this` and `other` refer to the same instance and that instance is   */                              \
-    /* is the ONLY owner of a resource... (if we decremented the reference count */                              \
-    /* to zero before trying to increment it, that would be very bad)            */                              \
-    if (cb_ != other.cb_) {                                                                                      \
-      if (cb_ != nullptr) {                                                                                      \
-        CALL_DECREMENT_COUNT(cb_);                                                                               \
-      }                                                                                                          \
-      cb_ = other.cb_;                                                                                           \
-      if (cb_ != nullptr) {                                                                                      \
-        CALL_INCREMENT_COUNT(cb_);                                                                               \
-      }                                                                                                          \
-    }                                                                                                            \
+    /* care needs to be taken for self-assignment when `this` is the ONLY owner of a resource (it would be  */   \
+    /* bad if a naive implementation decremented the reference count to zero before trying to increment it) */   \
+    /* -> at the time of writing, the rest of the implementation actually makes this branch unnecessary.    */   \
+    /*    For now, we explicitly handle this case, since its more idiomatic (plus it addresses the          */   \
+    /*    associated clang-tidy warning)                                                                    */   \
+    if (this == &other) return *this;                                                                            \
+                                                                                                                 \
+    /* the different_control_blocks check is a minor optimization. It lets us avoid an unnecessary pair of  */   \
+    /* atomic increments and decrements (the fact they are atomic makes the operation more expensive). This */   \
+    /* is a no-brainer since we already branch based on whether cb_ or other.cb_ are null pointers          */   \
+    bool different_control_blocks = cb_ != other.cb_;                                                            \
+    if (different_control_blocks and (other.cb_ != nullptr)) CALL_INCREMENT_COUNT(other.cb_);                    \
+    if (different_control_blocks and (cb_ != nullptr)) CALL_DECREMENT_COUNT(cb_);                                \
+    cb_      = other.cb_;                                                                                        \
     wrapped_ = other.wrapped_;                                                                                   \
     return *this;                                                                                                \
   }                                                                                                              \
@@ -324,11 +331,14 @@ class ControlBlockImpl : public ControlBlock
     /*      block for this purpose)                                              */                              \
     /*    - calls delete on itself                                               */                              \
     if (cb_ != nullptr) {                                                                                        \
+      /* NOLINTBEGIN(clang-analyzer-unix.DynamicMemoryModeling, clang-analyzer-cplusplus.NewDelete) */           \
       CALL_DECREMENT_COUNT(cb_);                                                                                 \
+      /* NOLINTEND(clang-analyzer-unix.DynamicMemoryModeling, clang-analyzer-cplusplus.NewDelete) */             \
       cb_ = nullptr;                                                                                             \
       set_empty_wrapped_();                                                                                      \
     }                                                                                                            \
-  }
+  }                                                                                                              \
+  /* NOLINTEND(bugprone-macro-parentheses) */
 
 /*! \brief Wraps a handles while providing shared object semantics
  *  \ingroup sharedgrp
@@ -384,6 +394,7 @@ class SharedHandle
    */
   template <typename Deleter>
   __host__ SharedHandle(HandleT handle, Deleter d)
+      // NOLINTNEXTLINE(clang-analyzer-unix.DynamicMemoryModeling, clang-analyzer-cplusplus.NewDelete)
       : wrapped_{handle}, cb_{new detail::ControlBlockImpl<HandleT, Deleter>(handle, d)}
   {
   }
@@ -453,7 +464,9 @@ class SharedDevPtr
    *  behavior
    */
   template <typename Deleter>
-  __host__ SharedDevPtr(T* ptr, Deleter d) : wrapped_{ptr}, cb_{new detail::ControlBlockImpl<T*, Deleter>(ptr, d)}
+  __host__ SharedDevPtr(T* ptr, Deleter d)
+      // NOLINTNEXTLINE(clang-analyzer-unix.DynamicMemoryModeling, clang-analyzer-cplusplus.NewDelete)
+      : wrapped_{ptr}, cb_{new detail::ControlBlockImpl<T*, Deleter>(ptr, d)}
   {
   }
 
