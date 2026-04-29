@@ -24,7 +24,7 @@ void Rad3D::Initialize_GPU()
 {
   // copy over data from CPU fields
   GPU_Error_Check(
-      cudaMemcpy(rtFields.dev_rf, rtFields.rf, (1 + 2 * n_freq) * grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
+      cudaMemcpy(rtFields.dev_rf, rtFields.rf, (1 + n_fpfreq * n_freq) * grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
   // initialize values for the other fields:
   //   if these fields exist on CPU, just copy them
@@ -45,7 +45,7 @@ void Rad3D::Copy_RT_Fields(void)
 {
   // copy data back from GPU to CPU
   GPU_Error_Check(
-      cudaMemcpy(rtFields.rf, rtFields.dev_rf, (1 + 2 * n_freq) * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
+      cudaMemcpy(rtFields.rf, rtFields.dev_rf, (1 + n_fpfreq * n_freq) * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
 
   GPU_Error_Check(cudaMemcpy(rtFields.et, rtFields.dev_et, 6 * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
 }
@@ -91,7 +91,7 @@ int Load_RT_Fields_To_Buffer(int direction, int side, int nx, int ny, int nz, in
   GPU_Error_Check(cudaDeviceSynchronize());  // Loading Buffer needs to synchronize so it is complete before MPI sends are called
 
   // printf( "Loaded RT Fields Buffer: Dir %d  side: %d \n", direction, side );
-  return size_buffer * 2 * n_freq;
+  return size_buffer * n_fpfreq * n_freq;
 }
 
 void Unload_RT_Fields_From_Buffer(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_freq,

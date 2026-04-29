@@ -2017,7 +2017,7 @@ void Grid3D::Iliev15(struct Parameters P, int test)
 
         Rad.rtFields.rs[id] = (r2 < dx2 ? 0.125 / pow(H.dx, 3) : 0);
         Rad.rtFields.rf[id] = 1 / (12.5664 * (eps2ot + r2));
-        for (int ii = 1; ii < 1 + 2 * Rad.n_freq; ii++) Rad.rtFields.rf[id + ii * H.n_cells] = 0;
+        for (int ii = 1; ii < 1 + Rad.n_fpfreq * Rad.n_freq; ii++) Rad.rtFields.rf[id + ii * H.n_cells] = 0;
 
         Rad.rtFields.et[id + 0 * H.n_cells] = (eps2et / 3 + x[0] * x[0]) / (eps2et + r2);
         Rad.rtFields.et[id + 1 * H.n_cells] = (x[1] * x[0]) / (eps2et + r2);
@@ -2107,7 +2107,7 @@ void Grid3D::Iliev6(struct Parameters P)
 
         Rad.rtFields.rs[id] = (r2 < dx2 ? 0.125 / pow(H.dx, 3) : 0);
         Rad.rtFields.rf[id] = 1 / (12.5664 * (eps2ot + r2));
-        for (int ii = 1; ii < 1 + 2 * Rad.n_freq; ii++) Rad.rtFields.rf[id + ii * H.n_cells] = 0;
+        for (int ii = 1; ii < 1 + Rad.n_fpfreq * Rad.n_freq; ii++) Rad.rtFields.rf[id + ii * H.n_cells] = 0;
 
         Rad.rtFields.et[id + 0 * H.n_cells] = (eps2et / 3 + x[0] * x[0]) / (eps2et + r2);
         Rad.rtFields.et[id + 1 * H.n_cells] = (x[1] * x[0]) / (eps2et + r2);

@@ -35,7 +35,7 @@ void Rad3D::Initialize_Start(const Parameters& params)
   num_iterations = params.num_iterations;
 
   // allocate memory on the host
-  rtFields.rf = (Real*)malloc((1 + 2 * n_freq) * grid.n_cells * sizeof(Real));
+  rtFields.rf = (Real*)malloc((1 + n_fpfreq * n_freq) * grid.n_cells * sizeof(Real));
 
   // set boundary flags
   flags[0] = params.xl_bcnd;
@@ -50,6 +50,10 @@ void Rad3D::Initialize_Start(const Parameters& params)
 // function to do various initialization tasks, i.e. allocating memory, etc.
 void Rad3D::Initialize_Finish()
 {
+
+  int eqn_mode = 4; // number of fields per freq
+  //int eqn_mode = 2;  // Updating to 4 
+
   chprintf("Initializing Radiative Transfer...\n");
 
   // Allocate memory for abundances (passive scalars added to the hydro grid)
@@ -58,8 +62,9 @@ void Rad3D::Initialize_Finish()
 
   // Allocate memory for radiation fields (non-advecting, 2 per frequency plus 1 optically thin field)
   chprintf("Allocating memory for radiation fields. \n");
+
   // allocate memory on the device
-  GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_rf, (1 + 2 * n_freq) * grid.n_cells * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_rf, (1 + n_fpfreq * n_freq) * grid.n_cells * sizeof(Real)));
 
   // Allocate memory for Eddington tensor only on device
   GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_et, 6 * grid.n_cells * sizeof(Real)));
@@ -69,7 +74,7 @@ void Rad3D::Initialize_Finish()
 
   // Allocate temporary fields on device
   GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_abc, n_freq * grid.n_cells * sizeof(Real)));
-  GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_rfNew, 2 * grid.n_cells * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_rfNew, n_fpfreq * grid.n_cells * sizeof(Real)));
 
   // Initialize Field values (for now)
   this->Initialize_GPU();

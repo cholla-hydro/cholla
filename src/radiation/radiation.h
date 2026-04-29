@@ -32,6 +32,10 @@ class Rad3D
   // number of frequencies
   const static int n_freq = 3;
 
+  // number of fields per frequency
+  //const static int n_fpfreq = 2; // original OTVET 
+  const static int n_fpfreq = 4; // M1 
+
   // array of boundary flags
   int flags[6] = {0, 0, 0, 0, 0, 0};
 

@@ -366,7 +366,7 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
   #if defined(RT) && defined(OUTPUT_RADIATION)
     const Rad3D& Rad = G.Rad;
     // for near and far fields, loop over frequencies
-    for (int n = 0; n < (1 + 2 * Rad.n_freq); n++) {
+    for (int n = 0; n < (1 + Rad.n_fpfreq * Rad.n_freq); n++) {
       char dataset[100];
       char number[10];
       strcat(dataset, number);
