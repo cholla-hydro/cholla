@@ -286,7 +286,7 @@ class CoolRecipeCloudyAndPhotoHeating
  * used a CIE analytic fit. In practice, the fit below 1e4 K is intended to be used with a mean
  * molecular weight fixed to ~1.25
  */
-class CoolRecipeTI
+class CoolRecipeTIAndCIE
 {
   cool_component::PhotoelectricHeatingModel photoelectric_fn;
 
@@ -307,7 +307,7 @@ class CoolRecipeTI
   }
 
  public:
-  explicit __host__ CoolRecipeTI(ParameterMap &pmap) : photoelectric_fn(pmap) {}
+  explicit __host__ CoolRecipeTIAndCIE(ParameterMap &pmap) : photoelectric_fn(pmap) {}
 
   __device__ Real cool_rate(Real n, Real T) { return cool_rate_only_(n, T) - photoelectric_fn(n, T); }
 };
@@ -339,9 +339,9 @@ std::function<void(Grid3D &)> configure_cooling_callback(std::string kind, Param
     CoolRecipeCIE recipe{};
     CoolingUpdateExecutor<CoolRecipeCIE> updater(recipe);
     return {updater};
-  } else if (kind == "piecewise-ti") {
-    CoolRecipeTI recipe(pmap);
-    CoolingUpdateExecutor<CoolRecipeTI> updater(recipe);
+  } else if (kind == "piecewise-ti+cie") {
+    CoolRecipeTIAndCIE recipe(pmap);
+    CoolingUpdateExecutor<CoolRecipeTIAndCIE> updater(recipe);
     return {updater};
   }
   return {};
