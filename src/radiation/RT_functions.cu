@@ -50,7 +50,7 @@ void Rad3D::Copy_RT_Fields(void)
   GPU_Error_Check(cudaMemcpy(rtFields.et, rtFields.dev_et, 6 * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
 }
 
-int Load_RT_Fields_To_Buffer(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_freq,
+int Load_RT_Fields_To_Buffer(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_fpfreq, int n_freq,
                              struct Rad3D::RT_Fields& rtFields, Real* buffer)
 {
   // printf( "Loading RT Fields Buffer: Dir %d  side: %d \n", direction, side );

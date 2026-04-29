@@ -25,7 +25,7 @@ struct DEVICE_ALIGN_DECL CrossSectionInCU {
   Real HeIIatHeII;
 };
 
-int Load_RT_Fields_To_Buffer(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_freq,
+int Load_RT_Fields_To_Buffer(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_fpfreq, int n_freq,
                              struct Rad3D::RT_Fields& rtFields, Real* buffer);
 
 __global__ void Load_RT_Buffer_kernel(int direction, int side, int size_buffer, int n_i, int n_j, int nx, int ny,

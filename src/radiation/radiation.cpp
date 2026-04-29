@@ -101,7 +101,7 @@ void Rad3D::rtBoundaries(void)
   // Send MPI x-boundaries
   if (flags[0] == 5) {
     buffer_length =
-        Load_RT_Fields_To_Buffer(0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_send_buffer_x0);
+        Load_RT_Fields_To_Buffer(0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields, d_send_buffer_x0);
   #ifndef MPI_GPU
     cudaMemcpy(h_send_buffer_x0, d_send_buffer_x0, xbsize * sizeof(Real), cudaMemcpyDeviceToHost);
   #endif
@@ -126,7 +126,7 @@ void Rad3D::rtBoundaries(void)
 
   if (flags[1] == 5) {
     buffer_length =
-        Load_RT_Fields_To_Buffer(0, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_send_buffer_x1);
+        Load_RT_Fields_To_Buffer(0, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields, d_send_buffer_x1);
   #ifndef MPI_GPU
     cudaMemcpy(h_send_buffer_x1, d_send_buffer_x1, xbsize * sizeof(Real), cudaMemcpyDeviceToHost);
   #endif
@@ -185,7 +185,7 @@ void Rad3D::rtBoundaries(void)
   // Send MPI y-boundaries
   if (flags[2] == 5) {
     buffer_length =
-        Load_RT_Fields_To_Buffer(1, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_send_buffer_y0);
+        Load_RT_Fields_To_Buffer(1, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields, d_send_buffer_y0);
   #ifndef MPI_GPU
     cudaMemcpy(h_send_buffer_y0, d_send_buffer_y0, ybsize * sizeof(Real), cudaMemcpyDeviceToHost);
   #endif
@@ -210,7 +210,7 @@ void Rad3D::rtBoundaries(void)
 
   if (flags[3] == 5) {
     buffer_length =
-        Load_RT_Fields_To_Buffer(1, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_send_buffer_y1);
+        Load_RT_Fields_To_Buffer(1, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields, d_send_buffer_y1);
   #ifndef MPI_GPU
     cudaMemcpy(h_send_buffer_y1, d_send_buffer_y1, ybsize * sizeof(Real), cudaMemcpyDeviceToHost);
   #endif
@@ -269,7 +269,7 @@ void Rad3D::rtBoundaries(void)
   // Send MPI z-boundaries
   if (flags[4] == 5) {
     buffer_length =
-        Load_RT_Fields_To_Buffer(2, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_send_buffer_z0);
+        Load_RT_Fields_To_Buffer(2, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields, d_send_buffer_z0);
     // printf("%d %d\n", buffer_length, zbsize);
   #ifndef MPI_GPU
     cudaMemcpy(h_send_buffer_z0, d_send_buffer_z0, zbsize * sizeof(Real), cudaMemcpyDeviceToHost);
@@ -295,7 +295,7 @@ void Rad3D::rtBoundaries(void)
 
   if (flags[5] == 5) {
     buffer_length =
-        Load_RT_Fields_To_Buffer(2, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_send_buffer_z1);
+        Load_RT_Fields_To_Buffer(2, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields, d_send_buffer_z1);
     // printf("%d %d\n", buffer_length, zbsize);
   #ifndef MPI_GPU
     cudaMemcpy(h_send_buffer_z1, d_send_buffer_z1, zbsize * sizeof(Real), cudaMemcpyDeviceToHost);
