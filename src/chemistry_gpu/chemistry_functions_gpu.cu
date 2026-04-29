@@ -399,7 +399,8 @@ __device__ Real Get_Chemistry_dt(Thermal_State &TS, ChemistryHeader &Chem_H, Rea
   #endif
 
   energy = fmax(TS.U * TS.d, tiny);
-  dt     = fmin(fabs(0.1 * TS.d_HI / HI_dot), fabs(0.1 * TS.d_e / e_dot));
+  dt     = fabs(0.1 * TS.d_HI / HI_dot); //BRANT EDIT
+  //dt     = fmin(fabs(0.1 * TS.d_HI / HI_dot), fabs(0.1 * TS.d_e / e_dot)); //BRANT EDIT
   dt     = fmin(fabs(0.1 * energy / U_dot), dt);
   dt     = fmin(0.5 * dt_hydro, dt);
   dt     = fmin(dt_hydro - t_chem, dt);
@@ -654,7 +655,9 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
     TS.d_HeI   = fmax(TS.d_HeI, tiny);
     TS.d_HeII  = fmax(TS.d_HeII, tiny);
     TS.d_HeIII = fmax(TS.d_HeIII, 1e-5 * tiny);
-    TS.d_e     = fmax(TS.d_e, tiny);
+    //TS.d_e     = fmax(TS.d_e, tiny);
+    // Use charge conservation to determine electron fraction BRANT ALTER
+    TS.d_e = TS.d_HII + TS.d_HeII / 4.0 + TS.d_HeIII / 2.0;
 
     // Compute temperature at first iteration
     temp_prev = TS.get_temperature(Chem_H.gamma);
@@ -722,7 +725,7 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
     TS.d_HeII *= correct_He;
     TS.d_HeIII *= correct_He;
 
-    // Use charge conservation to determine electron fractioan
+    // Use charge conservation to determine electron fraction //BRANT ALTER
     TS.d_e = TS.d_HII + TS.d_HeII / 4.0 + TS.d_HeIII / 2.0;
 
     // Write the Updated Thermal State

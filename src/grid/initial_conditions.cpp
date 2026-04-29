@@ -1956,8 +1956,12 @@ void Grid3D::Iliev15(struct Parameters P, int test)
     //  6.34/5.92 is because the frequency bin at HI threshold has the left edge at Ry, and the bin center is at
     //  Ry*exp(0.5*xiStep) = 1.025*Ry, where the cross section is 5.92e-18, not 6.34e-18.
     //
+    //normal solution
     spectralShape[xs->thresholds[Physics::AtomicData::CrossSection::IonizationHI].idx] =
         5e48 / Constant::c / pow(LENGTH_UNIT, 2) / xs->dxi * 6.34 / 5.92;
+    // BRANT testing
+    //spectralShape[xs->thresholds[Physics::AtomicData::CrossSection::IonizationHI].idx] =
+    //    1e49 / Constant::c / pow(LENGTH_UNIT, 2) / xs->dxi * 6.34 / 5.92;
   } else {
     SpectralShape::BlackBody(1.0e5, spectralShape);
     for (auto &s : spectralShape) {
