@@ -65,7 +65,7 @@ typename SharedConstructT::wrapped_ref_type device_get_(const SharedConstructT& 
 
 // this is used to test common properties of both SharedDevPtr and SharedHandle
 template <typename SharedConstructT>
-class tALLSharedConstructTest : public testing::Test
+class tALLSharedConstructTest : public testing::Test  // NOLINT(readability-identifier-naming)
 {
   long n_deleted_ = 0;
   long n_created_ = 0;
