@@ -50,8 +50,6 @@ void VL_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx, int
   // set values for GPU kernels
   // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);
-  //  number of threads per 1D block
-  // dim3 dim1dBlock(TPB, 1, 1);
 
   // host_grav_potential is NULL if not using GRAVITY
   temp_potential = host_grav_potential;
