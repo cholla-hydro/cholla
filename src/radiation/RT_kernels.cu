@@ -430,32 +430,103 @@ template<bool Split> void __global__ StepRFiIteration_Kernel(int nx, int ny, int
                 }
 */
 
+/* after pij, limit to total flux
+//
+//  Final data copy
+//
+const int nout3 = nout*nout*nout;
+const int orig = (nw-nout)/2; // not offset, this is used for windows of different size
+const int nmax = orig + nout;
+if(ic>=orig && jc>=orig && kc>=orig && ic<nmax && jc<nmax && kc<nmax)
+{
+    const int idx = (ic-orig) + nout*(jc-orig+nout*(kc-orig));
 
-/*
+    rfiOut[idx] = rfi[ic+nw*(jc+nw*kc)];
+    for(int m=0; m<3; m++)
+    {
+        rfiOut[idx+(m+1)*nout3] = fminf(fmaxf(rfi[ic+nw*(jc+nw*kc)+nw3*(m+1)],
+                                             -rfi[ic+nw*(jc+nw*kc)]),
+                                              rfi[ic+nw*(jc+nw*kc)]);
+    }
+}
+}
+*/
 
-                //
-                //  Compute pressure tensor - has to be a separate kernel since
+//
+//  Final data copy
+//
+void __global__ LimitRFi(int nout, int nx, int ny, int nz)
+{
+  const int nout3 = nout*nout*nout;
+  const int origx = (nz-nout)/2; // not offset, this is used for windows of different size
+  const int origy = (ny-nout)/2; // not offset, this is used for windows of different size
+  const int origz = (nz-nout)/2; // not offset, this is used for windows of different size
+
+  const int nmaxx = origx + nout;
+  const int nmaxy = origy + nout;
+  const int nmaxz = origz + nout;
+
+  cont int nw3 = nx*ny*nz;
+
+  if(ic>=origx && jc>=origy && kc>=origx && ic<nmaxx && jc<nmaxy && kc<nmaxz)
+  {
+      const int idx = (ic-origx) + nout*(jc-origy+nout*(kc-origz));
+
+      rfiOut[idx] = rfi[ic+nx*(jc+ny*kc)];
+      for(int m=0; m<3; m++)
+      {
+          rfiOut[idx+(m+1)*nout3] = fminf(fmaxf(rfi[ic+nx*(jc+ny*kc)+nw3*(m+1)],
+                                               -rfi[ic+nx*(jc+ny*kc)]),
+                                                rfi[ic+nx*(jc+ny*kc)]);
+      }
+  }
+}
+
+
+/* From Altair
+
+//
+//  Compute pressure tensor - has to be a separate kernel since
 pij is needed in its entirety for the step
-                //
-                template<class PijFunctor> GPU_KERNEL_DECL void GLFMakeP(
-                    int offset, int nw, int nw3, float dx,
-                    const float* GPU_RESTRICT_DECL rfi,
-                    float* GPU_RESTRICT_DECL pij,
-                    PijFunctor pf,
-                    int deb)
-                {
-                    const int tid = threadIdx.x + blockIdx.x*blockDim.x;
-                    const int nc = nw - 2*offset;
-                    const int jkc = tid/nc;
-                    const int ic = offset + tid%nc;
-                    const int jc = offset + jkc%nc;
-                    const int kc = offset + jkc/nc;
-                    if(kc >= nw-offset) return;
+//
+template<class PijFunctor> GPU_KERNEL_DECL void GLFMakeP(
+    int offset, int nw, int nw3, float dx,
+    const float* GPU_RESTRICT_DECL rfi,
+    float* GPU_RESTRICT_DECL pij,
+    PijFunctor pf,
+    int deb)
+{
+    const int tid = threadIdx.x + blockIdx.x*blockDim.x;
+    const int nc = nw - 2*offset;
+    const int jkc = tid/nc;
+    const int ic = offset + tid%nc;
+    const int jc = offset + jkc%nc;
+    const int kc = offset + jkc/nc;
+    if(kc >= nw-offset) return;
 
-                    pf(offset,nw,nw3,ic,jc,kc,rfi,pij,deb);
-                }
-            };
+    pf(offset,nw,nw3,ic,jc,kc,rfi,pij,deb);
+}
+};
 
 */
+
+
+//  Compute pressure tensor - has to be a separate kernel since
+//  pij is needed in its entirety for the step
+template<class PijFunctor> void __global__ GLFMakeP(int nx, int ny, int nz, int n_ghost, float dx,
+                                                    const float* rfi, float* pij, PijFunctor pf, int deb)
+{
+    const int nw3 = nx*ny*nz;
+    const int tid = threadIdx.x + blockIdx.x*blockDim.x;
+    const int nc = nx - 2*n_ghost;
+    const int jkc = tid/nc;
+    const int ic = n_ghost + tid%nc;
+    const int jc = n_ghost + jkc%nc;
+    const int kc = n_ghost + jkc/nc;
+    if(kc >= nx-n_ghost) return;
+
+    pf(offset,nx,nw3,ic,jc,kc,rfi,pij,deb);
+}
+
 
 #endif  // RT
