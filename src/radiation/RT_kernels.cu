@@ -346,11 +346,14 @@ void __global__ OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real 
 //
 //
 //
-template<bool Split> void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real cdt2dxRSL, Real gamma, bool lastIteration,
-                                      const Real* __restrict__ rs,
-                                      const Real* __restrict__ rfi,
-                                      const Real* __restrict__ abc,
-                                      Real* __restrict__ rfiNew, int deb)
+template<bool Split> void __global__ StepRFiIteration_Kernel( int nx, int ny, int nz, int n_ghost, 
+                                                              Real cdt2dxRSL, Real gamma, bool lastIteration,
+                                                              const Real* __restrict__ rs,
+                                                              const Real* __restrict__ rf0,
+                                                              const Real* __restrict__ rfi,
+                                                              const Real* __restrict__ abc,
+                                                              const Real* __restrict__ pij_,
+                                                              Real* __restrict__ rfiNew, int deb)
 {
   const int ip = ic + 1;
   const int im = ic - 1;

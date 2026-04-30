@@ -278,9 +278,9 @@ __device__ void Get_Current_UVB_Rates(Real current_z, ChemistryHeader &Chem_H,  
 {
   #ifdef RT
   if (rf != nullptr) {
-    const float rfN0    = rf[id + 0 * ncells];
-    const float rfNHI   = rf[id + 1 * ncells];
-    const float rfNHeI  = rf[id + 2 * ncells];
+    const float rfN0    = rf[id + 0 * ncells];  // BRANT: NOTE there are 4 frequencies here
+    const float rfNHI   = rf[id + 1 * ncells];  // so in M1 we need to call this 4 times
+    const float rfNHeI  = rf[id + 2 * ncells];  // and skip the fluxes -- multiply by n_fpfreq? or n_fpfreq-1?
     const float rfNHeII = rf[id + 3 * ncells];
 
     float tauHI   = (rfNHI > rfN0 ? 0 : (rfNHI > 0 ? -log(1.0e-35 + rfNHI / rfN0) : 1001));

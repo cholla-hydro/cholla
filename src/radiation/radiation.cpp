@@ -51,8 +51,14 @@ void Rad3D::Initialize_Start(const Parameters& params)
 void Rad3D::Initialize_Finish()
 {
 
+
+#ifdef OTVET
+  int eqn_mode = 2;  // Updating to 4 
+#endif //OTVET
+
+#ifdef M1
   int eqn_mode = 4; // number of fields per freq
-  //int eqn_mode = 2;  // Updating to 4 
+#endif //M1
 
   chprintf("Initializing Radiative Transfer...\n");
 
@@ -66,14 +72,16 @@ void Rad3D::Initialize_Finish()
   // allocate memory on the device
   GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_rf, (1 + n_fpfreq * n_freq) * grid.n_cells * sizeof(Real)));
 
+#ifdef OTVET
   // Allocate memory for Eddington tensor only on device
   GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_et, 6 * grid.n_cells * sizeof(Real)));
+#endif
 
   // Allocate memory for radiation source field only on device
   GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_rs, grid.n_cells * sizeof(Real)));
 
   // Allocate temporary fields on device
-  GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_abc, n_freq * grid.n_cells * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_abc,   n_freq * grid.n_cells * sizeof(Real)));
   GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_rfNew, n_fpfreq * grid.n_cells * sizeof(Real)));
 
   // Initialize Field values (for now)

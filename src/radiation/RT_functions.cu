@@ -29,11 +29,18 @@ void Rad3D::Initialize_GPU()
   // initialize values for the other fields:
   //   if these fields exist on CPU, just copy them
   //   if not, set to 0
+
+  // eddington tensor for OTVET
+#ifdef OTVET
   if (rtFields.et != nullptr) {
     GPU_Error_Check(cudaMemcpy(rtFields.dev_et, rtFields.et, 6 * grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
   } else {
     GPU_Error_Check(cudaMemset(rtFields.dev_et, 0, 6 * grid.n_cells * sizeof(Real)));
   }
+#endif //OTVET
+
+
+  // source radiation field
   if (rtFields.rs != nullptr) {
     GPU_Error_Check(cudaMemcpy(rtFields.dev_rs, rtFields.rs, grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
   } else {
@@ -47,7 +54,9 @@ void Rad3D::Copy_RT_Fields(void)
   GPU_Error_Check(
       cudaMemcpy(rtFields.rf, rtFields.dev_rf, (1 + n_fpfreq * n_freq) * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
 
+#ifdef OTVET
   GPU_Error_Check(cudaMemcpy(rtFields.et, rtFields.dev_et, 6 * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
+#endif //OTVET
 }
 
 int Load_RT_Fields_To_Buffer(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_fpfreq, int n_freq,
@@ -222,6 +231,10 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
                                       Real* __restrict__ rfNearNew, Real* __restrict__ rfFarNew, int deb);
 
 
+
+// This function performs the OTVET iteration on the GPU
+// and copies the newly updated fields ("New") back onto
+// the old ones
 void Rad3D::OTVETIteration(void)
 {
   const int numThreadsPerBlock = 256;
@@ -255,6 +268,8 @@ void Rad3D::StepRFiIteration(void)
   const int numThreadsPerBlock = 256;
   int ngrid                    = (grid.n_cells + numThreadsPerBlock - 1) / numThreadsPerBlock;
 
+  Read cdt2dxRSL = c * dt / grid.dx; // 
+
   // set values for GPU kernels
   // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);
@@ -262,18 +277,15 @@ void Rad3D::StepRFiIteration(void)
   dim3 dim1dBlock(numThreadsPerBlock, 1, 1);
 
   // Launch the kernel for one frequency at a time
+  auto rf0    = rtFields.dev_rf;
+
   for (int freq = 0; freq < n_freq; freq++) {
-    auto rfOT      = rtFields.dev_rf;
-    auto rfNearOld = rtFields.dev_rf + grid.n_cells * (1 + freq);
-    auto rfFarOld  = rtFields.dev_rf + grid.n_cells * (1 + n_freq + freq); // Suspicious -- BRANT, n_fpfreq hiding
-    auto rfNearNew = rtFields.dev_rfNew + grid.n_cells * 0; // Suspicious -- BRANT, n_fpfreq hiding
-    auto rfFarNew  = rtFields.dev_rfNew + grid.n_cells * 1; // Suspicious -- BRANT, n_fpfreq hiding
+    auto rfOld  = rtFields.dev_rf    + grid.n_cells * (1 + n_fpfreq * freq);
+    auto rfNew  = rtFields.dev_rfNew + grid.n_cells * (n_fpfreq * freq);
 
     hipLaunchKernelGGL(StepRFiIteration_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost,
-                       grid.dx, lastIteration, rsFarFactor, rtFields.dev_rs, rtFields.dev_et, rfOT, rfNearOld, rfFarOld,
-                       rtFields.dev_abc + freq * grid.n_cells, rfNearNew, rfFarNew, (freq == 0 ? 1 : 0));
-    GPU_Error_Check(cudaMemcpyAsync(rfNearOld, rfNearNew, grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
-    GPU_Error_Check(cudaMemcpyAsync(rfFarOld, rfFarNew, grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
+                       cdt2dxRSL, rtFields.dev_rs, rfOld, rtFields.dev_abc + freq * grid.n_cells, rfNew, (freq == 0 ? 1 : 0));
+    GPU_Error_Check(cudaMemcpyAsync(rfOld, rfNew, n_fpfreq * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
   }
 }
 
@@ -293,11 +305,22 @@ void Rad3D::rtSolve(Real* dev_scalar)
   for (int iter = 0; iter < niters; iter++) {
     this->lastIteration = (iter == niters - 1);
 
+
+#ifdef OTVET
     // then call OTVET iteration kernel
     OTVETIteration();
+#endif
 
-    // or call the StepRFi Iteration kernel
-    //StepRFiIteration();
+#ifdef M1
+    // Create the pressure fields
+    CreatePressure();
+    // Call the StepRFi Iteration kernel
+    StepRFiIteration();
+    // Limit the RFi fields
+    StepLimitRFiIteration();
+#endif
+
+
 
     // then call boundaries functions
     rtBoundaries();

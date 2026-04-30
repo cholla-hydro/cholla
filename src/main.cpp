@@ -217,9 +217,18 @@ int main(int argc, char *argv[])
   // Get the gravitational potential for the first timestep
   G.Compute_Gravitational_Potential(&P);
 #ifdef RT
-  chprintf("Setting Eddington Tensor...\n");
+
+#ifdef OTVET 
+  chprintf("RT: Setting Eddington Tensor...\n");
   G.Rad.ComputeEddingtonTensor(P,G.Grav);
-  chprintf("Setting RT Boundaries...\n");
+#endif
+
+#ifdef M1
+  chprintf("RT: Setting Flux and Pressure Tensors...\n");
+  G.Rad.ComputeEddingtonTensor(P,G.Grav);
+#endif 
+
+  chprintf("RT: Setting Boundaries...\n");
   G.Rad.rtBoundaries();
 #endif
 #endif
@@ -344,10 +353,18 @@ int main(int argc, char *argv[])
 #ifdef GRAVITY
     // Compute Gravitational potential for next step
     G.Compute_Gravitational_Potential(&P);
-#ifdef RT
+
+#if defined(RT)&&defined(OTVET)
     G.Rad.ComputeEddingtonTensor(P,G.Grav);
-    G.Rad.rtBoundaries();
 #endif
+#endif
+
+#if defined(RT)&&defined(M1)
+    G.Rad.ComputeEddingtonTensor(P,G.Grav);
+#endif
+
+#ifdef RT
+    G.Rad.rtBoundaries();
 #endif
 
     // add one to the timestep count
