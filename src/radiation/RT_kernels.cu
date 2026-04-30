@@ -337,11 +337,20 @@ void __global__ OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real 
       int deb)
 */
 
-void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real dx, bool lastIteration,
-                                      const Real rsFarFactor, const Real* __restrict__ rs, const Real* __restrict__ et,
-                                      const Real* __restrict__ rfOT, const Real* __restrict__ rfNear,
-                                      const Real* __restrict__ rfFar, const Real* __restrict__ abc,
-                                      Real* __restrict__ rfNearNew, Real* __restrict__ rfFarNew, int deb)
+//
+// cdt2dxRSL is cbar*dt/dx, cbar is the effective spped of light which can be less than c is the reduced speed of light approximation is sued.
+// gamma is the parameter for the semi-implicit scheme:
+// v_1 = v_0 + J*(gamma*v_1+(1-gamma)*v_0), J is the Jacobian
+//
+//  gamma=0 is the Aubert & Teyssier 2008 scheme.
+//
+//
+//
+template<bool Split> void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real cdt2dxRSL, Real gamma, bool lastIteration,
+                                      const Real* __restrict__ rs,
+                                      const Real* __restrict__ rfi,
+                                      const Real* __restrict__ abc,
+                                      Real* __restrict__ rfiNew, int deb)
 {
   const int ip = ic + 1;
   const int im = ic - 1;
@@ -350,34 +359,34 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
   const int kp = kc + 1;
   const int km = kc - 1;
 
+  const int nw3 = nx*ny*nz;
+
   const float* rf = rfi;
   const float* fi[3] = { rfi+nw3, rfi+2*nw3, rfi+3*nw3 };
   const float* pij[6] = { pij_, pij_+nw3, pij_+2*nw3, pij_+3*nw3, pij_+4*nw3, pij_+5*nw3 };
   float* fiNew[3] = { rfiNew+nw3, rfiNew+2*nw3, rfiNew+3*nw3 };
 
-  const float d = dx*rs[ic+nw*(jc+nw*kc)] + 0.5f*(fi[0][im+nw*(jc+nw*kc)]-fi[0][ip+nw*(jc+nw*kc)]+fi[1][ic+nw*(jm+nw*kc)]-fi[1][ic+nw*(jp+nw*kc)]+fi[2][ic+nw*(jc+nw*km)]-fi[2][ic+nw*(jc+nw*kp)]) + 0.5f*(rf[im+nw*(jc+nw*kc)]+rf[ip+nw*(jc+nw*kc)]+rf[ic+nw*(jm+nw*kc)]+rf[ic+nw*(jp+nw*kc)]+rf[ic+nw*(jc+nw*km)]+rf[ic+nw*(jc+nw*kp)]-6*rf[ic+nw*(jc+nw*kc)]);
+  const float d = dx*rs[ic+nx*(jc+ny*kc)] + 0.5f*(fi[0][im+nx*(jc+ny*kc)]-fi[0][ip+nx*(jc+ny*kc)]+fi[1][ic+nx*(jm+ny*kc)]-fi[1][ic+nx*(jp+ny*kc)]+fi[2][ic+nx*(jc+ny*km)]-fi[2][ic+nx*(jc+ny*kp)]) + 0.5f*(rf[im+nx*(jc+ny*kc)]+rf[ip+nx*(jc+ny*kc)]+rf[ic+nx*(jm+ny*kc)]+rf[ic+nx*(jp+ny*kc)]+rf[ic+nx*(jc+ny*km)]+rf[ic+nx*(jc+ny*kp)]-6*rf[ic+nx*(jc+ny*kc)]);
 
   float rf1, cdt2dx, w1, w2;
   if(Split)
   {
       cdt2dx = cdt2dxRSL/(1+cdt2dxRSL*gamma*3);
-      float tau = cdt2dx*abc[ic+nw*(jc+nw*kc)];
+      float tau = cdt2dx*abc[ic+nx*(jc+ny*kc)];
       w1 = expf(-tau);
       w2 = (tau<0.1f ? 1-0.5f*tau*(1-(1.0f/3.0f)*tau*(1-0.25f*tau)) : (1-w1)/tau);
 
-      rf1 = rf[ic+nw*(jc+nw*kc)]*w1 + cdt2dx*d*w2;
+      rf1 = rf[ic+nx*(jc+ny*kc)]*w1 + cdt2dx*d*w2;
   }
   else
   {
-      cdt2dx = cdt2dxRSL/(1+cdt2dxRSL*gamma*(abc[ic+nw*(jc+nw*kc)]+3));
+      cdt2dx = cdt2dxRSL/(1+cdt2dxRSL*gamma*(abc[ic+nx*(jc+ny*kc)]+3));
 
-      rf1 = rf[ic+nw*(jc+nw*kc)] + cdt2dx*(d-abc[ic+nw*(jc+nw*kc)]*rf[ic+nw*(jc+nw*kc)]);
+      rf1 = rf[ic+nx*(jc+ny*kc)] + cdt2dx*(d-abc[ic+nx*(jc+ny*kc)]*rf[ic+nx*(jc+ny*kc)]);
   }
 
-  ///const bool out = (deb>0 && ic==2 && jc==2 && kc==2);
-  ///if(out) printf("RT-GPU-A    %g -> %g cdt2dx=%g d=%g abc=%g f=%g (%g,%g,%g,%g,%g,%g) w=%g\n",rf[ic+nw*(jc+nw*kc)],rf1,cdt2dx,d,abc[ic+nw*(jc+nw*kc)],0.5f*(fi[0][im+nw*(jc+nw*kc)]-fi[0][ip+nw*(jc+nw*kc)]+fi[1][ic+nw*(jm+nw*kc)]-fi[1][ic+nw*(jp+nw*kc)]+fi[2][ic+nw*(jc+nw*km)]-fi[2][ic+nw*(jc+nw*kp)]),fi[0][im+nw*(jc+nw*kc)],fi[0][ip+nw*(jc+nw*kc)],fi[1][ic+nw*(jm+nw*kc)],fi[1][ic+nw*(jp+nw*kc)],fi[2][ic+nw*(jc+nw*km)],fi[2][ic+nw*(jc+nw*kp)],0.5f*(rf[im+nw*(jc+nw*kc)]+rf[ip+nw*(jc+nw*kc)]+rf[ic+nw*(jm+nw*kc)]+rf[ic+nw*(jp+nw*kc)]+rf[ic+nw*(jc+nw*km)]+rf[ic+nw*(jc+nw*kp)]-6*rf[ic+nw*(jc+nw*kc)]));
 
-  rfiNew[ic+nw*(jc+nw*kc)] = (rf1<0 ? 0 : rf1);
+  rfiNew[ic+nx*(jc+ny*kc)] = (rf1<0 ? 0 : rf1);
 
   for(int m=0; m<3; m++)
   {
@@ -385,19 +394,68 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
       constexpr int iy[] = { 1, 2, 4 };
       constexpr int iz[] = { 3, 4, 5 };
 
-      const float df = 0.5f*(pij[ix[m]][im+nw*(jc+nw*kc)]-pij[ix[m]][ip+nw*(jc+nw*kc)]+pij[iy[m]][ic+nw*(jm+nw*kc)]-pij[iy[m]][ic+nw*(jp+nw*kc)]+pij[iz[m]][ic+nw*(jc+nw*km)]-pij[iz[m]][ic+nw*(jc+nw*kp)]) + 0.5f*(fi[m][im+nw*(jc+nw*kc)]+fi[m][ip+nw*(jc+nw*kc)]+fi[m][ic+nw*(jm+nw*kc)]+fi[m][ic+nw*(jp+nw*kc)]+fi[m][ic+nw*(jc+nw*km)]+fi[m][ic+nw*(jc+nw*kp)]-6*fi[m][ic+nw*(jc+nw*kc)]);
+      const float df = 0.5f*(pij[ix[m]][im+nx*(jc+ny*kc)]-pij[ix[m]][ip+nx*(jc+nw*kc)]+pij[iy[m]][ic+nx*(jm+ny*kc)]-pij[iy[m]][ic+nx*(jp+ny*kc)]+pij[iz[m]][ic+nx*(jc+ny*km)]-pij[iz[m]][ic+nx*(jc+ny*kp)]) + 0.5f*(fi[m][im+nx*(jc+ny*kc)]+fi[m][ip+nx*(jc+ny*kc)]+fi[m][ic+nx*(jm+ny*kc)]+fi[m][ic+nx*(jp+ny*kc)]+fi[m][ic+nx*(jc+ny*km)]+fi[m][ic+nx*(jc+ny*kp)]-6*fi[m][ic+nx*(jc+ny*kc)]);
 
       if(Split)
       {
-          fiNew[m][ic+nw*(jc+nw*kc)] = fi[m][ic+nw*(jc+nw*kc)]*w1 + cdt2dx*df*w2;
+          fiNew[m][ic+nx*(jc+ny*kc)] = fi[m][ic+nx*(jc+ny*kc)]*w1 + cdt2dx*df*w2;
       }
       else
       {
-          fiNew[m][ic+nw*(jc+nw*kc)] = fi[m][ic+nw*(jc+nw*kc)] + cdt2dx*(df-abc[ic+nw*(jc+nw*kc)]*fi[m][ic+nw*(jc+nw*kc)]);
+          fiNew[m][ic+nx*(jc+ny*kc)] = fi[m][ic+nx*(jc+ny*kc)] + cdt2dx*(df-abc[ic+nx*(jc+ny*kc)]*fi[m][ic+nx*(jc+ny*kc)]);
       }
-
-      ///if(out) printf("RT-GPU-B[%d] %g -> %g d=%g f=%g (%g,%g,%g,%g,%g,%g) w=%g\n",m,fi[m][ic+nw*(jc+nw*kc)],fiNew[m][ic+nw*(jc+nw*kc)],df,0.5f*(pij[ix[m]][im+nw*(jc+nw*kc)]-pij[ix[m]][ip+nw*(jc+nw*kc)]+pij[iy[m]][ic+nw*(jm+nw*kc)]-pij[iy[m]][ic+nw*(jp+nw*kc)]+pij[iz[m]][ic+nw*(jc+nw*km)]-pij[iz[m]][ic+nw*(jc+nw*kp)]),pij[ix[m]][im+nw*(jc+nw*kc)],pij[ix[m]][ip+nw*(jc+nw*kc)],pij[iy[m]][ic+nw*(jm+nw*kc)],pij[iy[m]][ic+nw*(jp+nw*kc)],pij[iz[m]][ic+nw*(jc+nw*km)],pij[iz[m]][ic+nw*(jc+nw*kp)],0.5f*(fi[m][im+nw*(jc+nw*kc)]+fi[m][ip+nw*(jc+nw*kc)]+fi[m][ic+nw*(jm+nw*kc)]+fi[m][ic+nw*(jp+nw*kc)]+fi[m][ic+nw*(jc+nw*km)]+fi[m][ic+nw*(jc+nw*kp)]-6*fi[m][ic+nw*(jc+nw*kc)]));
   }
 }
+
+
+// pij kernel implementation
+
+/* after pij, limit to total flux
+                    //
+                    //  Final data copy
+                    //
+                    const int nout3 = nout*nout*nout;
+                    const int orig = (nw-nout)/2; // not offset, this is used for windows of different size
+                    const int nmax = orig + nout;
+                    if(ic>=orig && jc>=orig && kc>=orig && ic<nmax && jc<nmax && kc<nmax)
+                    {
+                        const int idx = (ic-orig) + nout*(jc-orig+nout*(kc-orig));
+
+                        rfiOut[idx] = rfi[ic+nw*(jc+nw*kc)];
+                        for(int m=0; m<3; m++)
+                        {
+                            rfiOut[idx+(m+1)*nout3] = fminf(fmaxf(rfi[ic+nw*(jc+nw*kc)+nw3*(m+1)],-rfi[ic+nw*(jc+nw*kc)]),rfi[ic+nw*(jc+nw*kc)]);
+                        }
+                    }
+                }
+*/
+
+
+/*
+
+                //
+                //  Compute pressure tensor - has to be a separate kernel since
+pij is needed in its entirety for the step
+                //
+                template<class PijFunctor> GPU_KERNEL_DECL void GLFMakeP(
+                    int offset, int nw, int nw3, float dx,
+                    const float* GPU_RESTRICT_DECL rfi,
+                    float* GPU_RESTRICT_DECL pij,
+                    PijFunctor pf,
+                    int deb)
+                {
+                    const int tid = threadIdx.x + blockIdx.x*blockDim.x;
+                    const int nc = nw - 2*offset;
+                    const int jkc = tid/nc;
+                    const int ic = offset + tid%nc;
+                    const int jc = offset + jkc%nc;
+                    const int kc = offset + jkc/nc;
+                    if(kc >= nw-offset) return;
+
+                    pf(offset,nw,nw3,ic,jc,kc,rfi,pij,deb);
+                }
+            };
+
+*/
 
 #endif  // RT
