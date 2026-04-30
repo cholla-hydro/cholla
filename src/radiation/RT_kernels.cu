@@ -531,7 +531,7 @@ template<class PijFunctor> void __global__ GLFMakeP(int nx, int ny, int nz, int 
 
 struct DEVICE_ALIGN_DECL PijFunctorM1
 {
-    void operator()(int offset, int nx, int ny, int nz, 
+    GPU_DEVICE_DECL void operator()(int offset, int nx, int ny, int nz, 
                     int ic, int jc, int kc, const float* rfi, float* pij, int deb)
     {
         if(ic<offset || jc<offset || kc<offset || ic>=nx-offset || jc>=ny-offset || kc>=nz-offset) return;
