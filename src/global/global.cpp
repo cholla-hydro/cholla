@@ -285,9 +285,7 @@ Parameters::Parameters(ParameterMap &pmap)
   parms->bc_potential_type = pmap.value_or("bc_potential_type", -1);
 
 #if defined(SCALAR) && defined(DUST)
-  // we are assuming that this is an integer for historical consistency... But it sure
-  // seems like this should be a double
-  parms->grain_radius = pmap.value<int>("grain_radius");
+  parms->grain_radius = pmap.value<double>("grain_radius");
 #endif  // defined(SCALAR) && defined(DUST)
 
   // in the future, the feedback module will read in its own parameters (the global Parameter struct won't
