@@ -338,7 +338,16 @@ void Rad3D::StepRFiIteration(void)
   const int numThreadsPerBlock = 256;
   int ngrid                    = (grid.n_cells + numThreadsPerBlock - 1) / numThreadsPerBlock;
 
+// cdt2dxRSL is cbar*dt/dx, cbar is the effective speed of light which can be less than c 
+// in the reduced speed of light approximation used.
+//
+// gamma is the parameter for the semi-implicit scheme:
+// v_1 = v_0 + J*(gamma*v_1+(1-gamma)*v_0), J is the Jacobian
+//
+//  gamma=0 is the Aubert & Teyssier 2008 scheme.
+
   Real cdt2dxRSL = (3e10/VELOCITY_UNIT) * grid.dt / grid.dx; // 
+  Real gamma_sis = 0.5; // semi-implicit scheme parameter
 
   //PijFunctorM1& pf;
   PijFunctorM1 pf;
@@ -367,7 +376,7 @@ void Rad3D::StepRFiIteration(void)
 
     // Step the radiation fields at this frequency
     hipLaunchKernelGGL(StepRFiIteration_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost,
-                       grid.dx, cdt2dxRSL, gamma, rtFields.dev_rs, rfOld, abc, pij, rfNew, (freq == 0 ? 1 : 0));
+                       grid.dx, cdt2dxRSL, gamma_sis, rtFields.dev_rs, rfOld, abc, pij, rfNew, (freq == 0 ? 1 : 0));
     GPU_Error_Check(cudaMemcpyAsync(rfOld, rfNew, n_fpfreq * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
   }
 
