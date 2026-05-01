@@ -80,14 +80,13 @@ int main(int argc, char *argv[])
   // read in contents from the parameter file
   ParameterMap pmap(param_file, argc, argv);
 
-  // create P, a `Parameters` instance, & initialize it with information from pmap
+  // construct P, a `Parameters` instance, using information from pmap
   // - `Parameters` is a legacy type that we're phasing out (see docstring for details)
   // - a highlevel description of the legacy/modern control flows:
   //   -> legacy: parameter vals are copied from pmap into P, and subsequent code
   //              initializes the simulation using parameter values from P
   //   -> modern: code initializes the simulation by getting values directly from pmap
-  Parameters P;
-  Parse_Params(pmap, &P);
+  Parameters P(pmap);
 
   // write a description of simulation configuration to console
   chprintf("Git Commit Hash = %s\n", GIT_HASH);
