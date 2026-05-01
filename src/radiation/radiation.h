@@ -104,8 +104,10 @@ class Rad3D
   void Calc_Absorption(Real *dev_scalar);
 
   void OTVETIteration();   // original OTVET implementation
+#ifdef M1
   void StepRFiIteration(); // For M1, ported from OTVET + Altair, step the radiation fields
   void ClipRFiIteration();// For M1, limit the radiation fields
+#endif //M1
   
 
   void rtBoundaries();

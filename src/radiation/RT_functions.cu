@@ -267,13 +267,14 @@ void Rad3D::OTVETIteration(void)
 }
 
 
+#ifdef M1
 // Perform the M1 iteration
 void Rad3D::StepRFiIteration(void)
 {
   const int numThreadsPerBlock = 256;
   int ngrid                    = (grid.n_cells + numThreadsPerBlock - 1) / numThreadsPerBlock;
 
-  Read cdt2dxRSL = c * dt / grid.dx; // 
+  Real cdt2dxRSL = (3e10/VELOCITY_UNIT) * dt / grid.dx; // 
 
   // set values for GPU kernels
   // number of blocks per 1D grid
@@ -322,7 +323,7 @@ void Rad3D::ClipRFiIteration(void)
     auto rfi  = rtFields.dev_rf    + grid.n_cells * (n_fpfreq * freq);
     hipLaunchKernelGGL(ClipRFi_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, rfi);
   }
-}
+#endif //M1
 
 
 

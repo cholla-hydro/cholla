@@ -388,6 +388,7 @@ template<bool Split> void __global__ StepRFiIteration_Kernel( int nx, int ny, in
                                                               Real* __restrict__ rfiNew, int deb)
 */
 
+#ifdef M1
 // This is our M1 kernel, which is called
 // for each of 4 frequencies
 void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, 
@@ -398,6 +399,13 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost,
                                         const Real* __restrict__ pij_,
                                         Real* __restrict__ rfiNew, int deb)
 {
+  const int tid = threadIdx.x + blockIdx.x*blockDim.x;
+  const int nc = nx - 2*n_ghost;
+  const int jkc = tid/nc; // May need to be updated for ny and nz separately
+  const int ic = n_ghost + tid%nc;
+  const int jc = n_ghost + jkc%nc;
+  const int kc = n_ghost + jkc/nc;
+
   const bool Split = true; // semi-implicit
   const int ip = ic + 1;
   const int im = ic - 1;
@@ -636,6 +644,7 @@ struct DEVICE_ALIGN_DECL PijFunctorM1
         }
     }
 };
+#endif //M1
 
 
 #endif  // RT

@@ -174,7 +174,7 @@ n_ghost, int n_fields, Real dt, Real gamma)
 *  \brief When passed an array of conserved variables and a timestep, update the
 ionization fractions of H and He and update the internal energy to account for
 radiative cooling and photoheating from the UV background. */
-void Do_Chemistry_Update(Real *dev_conserved, const Real *dev_rf,   int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
+void Do_Chemistry_Update(Real *dev_conserved, const Real *dev_rf, int n_fpfreq, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
                          ChemistryHeader &Chem_H);
 
 void Do_Print_Chemistry(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields);
