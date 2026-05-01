@@ -12,6 +12,7 @@
     #include "../global/global_cuda.h"
     #include "../grid/grid3D.h"
     #include "../utils/gpu.hpp"
+    #include "../io/io.h"
     #include "RT_functions.h"
     #include "RT_functors.h"
     #include "alt/atomic_data.h"
