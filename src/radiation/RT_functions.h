@@ -44,7 +44,7 @@ __global__ void Unload_RT_Buffer_kernel(int direction, int side, int size_buffer
 void Set_RT_Boundaries_Periodic(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_fpfreq,  int n_freq,
                                 struct Rad3D::RT_Fields& rtFields);
 
-
+/*
 //  Compute pressure tensor - has to be a separate kernel since
 //  pij is needed in its entirety for the step
 template<class PijFunctor> void __global__ GLFMakeP_Kernel(int nx, int ny, int nz, int n_ghost, float dx,
@@ -61,6 +61,7 @@ template<class PijFunctor> void __global__ GLFMakeP_Kernel(int nx, int ny, int n
 
     pf(n_ghost,nx,ny,nz,ic,jc,kc,rfi,pij,deb);
 }
+*/
     #endif 
 #endif    // RT
 //#endif      // CUDA

@@ -13,6 +13,7 @@
     #include "../grid/grid3D.h"
     #include "../utils/gpu.hpp"
     #include "RT_functions.h"
+    #include "RT_functors.h"
     #include "alt/atomic_data.h"
     #include "alt/constant.h"
     #include "radiation.h"
