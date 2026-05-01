@@ -29,18 +29,20 @@ int Load_RT_Fields_To_Buffer(int direction, int side, int nx, int ny, int nz, in
                              struct Rad3D::RT_Fields& rtFields, Real* buffer);
 
 __global__ void Load_RT_Buffer_kernel(int direction, int side, int size_buffer, int n_i, int n_j, int nx, int ny,
-                                      int nz, int n_ghost_transfer, int n_ghost_rt, int n_freq,
+                                      int nz, int n_ghost_transfer, int n_ghost_rt, int n_fpfreq,  int n_freq,
                                       struct Rad3D::RT_Fields rtFields, Real* transfer_buffer_d);
 
-void Unload_RT_Fields_From_Buffer(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_freq,
+void Unload_RT_Fields_From_Buffer(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_fpfreq,  int n_freq,
                                   struct Rad3D::RT_Fields& rtFields, Real* buffer);
 
 __global__ void Unload_RT_Buffer_kernel(int direction, int side, int size_buffer, int n_i, int n_j, int nx, int ny,
-                                        int nz, int n_ghost_transfer, int n_ghost_rt, int n_freq,
+                                        int nz, int n_ghost_transfer, int n_ghost_rt, int n_fpfreq,  int n_freq,
                                         struct Rad3D::RT_Fields rtFields, Real* transfer_buffer_d);
 
-void Set_RT_Boundaries_Periodic(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_freq,
+void Set_RT_Boundaries_Periodic(int direction, int side, int nx, int ny, int nz, int n_ghost, int n_fpfreq,  int n_freq,
                                 struct Rad3D::RT_Fields& rtFields);
+
+
 //  Compute pressure tensor - has to be a separate kernel since
 //  pij is needed in its entirety for the step
 template<class PijFunctor> void __global__ GLFMakeP_Kernel(int nx, int ny, int nz, int n_ghost, float dx,

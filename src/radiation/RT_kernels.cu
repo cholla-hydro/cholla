@@ -15,7 +15,7 @@
 
 __global__ void Load_RT_Buffer_kernel(int direction, int side, int size_buffer, 
                                       int n_i, int n_j, int nx, int ny, int nz,
-                                      int n_ghost_transfer, int n_ghost_rt, int n_freq,
+                                      int n_ghost_transfer, int n_ghost_rt, int n_fpfreq, int n_freq,
                                       struct Rad3D::RT_Fields rtFields, Real* transfer_buffer_d)
 {
   // get a global thread ID
@@ -54,15 +54,25 @@ __global__ void Load_RT_Buffer_kernel(int direction, int side, int size_buffer,
   }
 #endif //OTVET
 #ifdef M1
-  for (int i = 0; i < n_freq; i++) { // Suspicious -- BRANT  DEFINITELY NEEDS ALTERATION ERROR
-    transfer_buffer_d[tid_buffer + i * size_buffer]            = rtFields.dev_rf[tid_rf + (1 + i) * n_cells];
-    transfer_buffer_d[tid_buffer + (n_freq + i) * size_buffer] = rtFields.dev_rf[tid_rf + (1 + n_freq + i) * n_cells];
+
+  // WHY IS THIS INDEXED FROM ONE?
+  for (int j = 0; j < n_fpfreq; j++) {
+    for (int i = 0; i < n_freq; i++) { // Need to transfer RF for each field and frequency
+
+      // attempt for m1
+      transfer_buffer_d[tid_buffer + (j*n_freq+i) * size_buffer]            = rtFields.dev_rf[tid_rf + (j*n_freq+i) * n_cells];
+
+
+      // see otvet
+      //transfer_buffer_d[tid_buffer + i * size_buffer]            = rtFields.dev_rf[tid_rf + (1 + i) * n_cells];
+      //transfer_buffer_d[tid_buffer + (n_freq + i) * size_buffer] = rtFields.dev_rf[tid_rf + (1 + n_freq + i) * n_cells];
+    }
   }
 #endif //M1
 }
 
 __global__ void Unload_RT_Buffer_kernel(int direction, int side, int size_buffer, int n_i, int n_j, int nx, int ny,
-                                        int nz, int n_ghost_transfer, int n_ghost_rt, int n_freq,
+                                        int nz, int n_ghost_transfer, int n_ghost_rt, int n_fpfreq,  int n_freq,
                                         struct Rad3D::RT_Fields rtFields, Real* transfer_buffer_d)
 {
   // get a global thread ID
@@ -101,16 +111,29 @@ __global__ void Unload_RT_Buffer_kernel(int direction, int side, int size_buffer
   }
 #endif //OTVET
 #ifdef M1
-  for (int i = 0; i < n_freq; i++) { // Suspicious -- BRANT  DEFINITELY NEEDS ALTERATION ERROR
+
+  // WHY IS THIS INDEXED FROM ONE?
+  /*for (int i = 0; i < n_freq; i++) { // Suspicious -- BRANT  DEFINITELY NEEDS ALTERATION ERROR
     rtFields.dev_rf[tid_rf + (1 + i) * n_cells]          = transfer_buffer_d[tid_buffer + i * size_buffer];
     rtFields.dev_rf[tid_rf + (1 + n_freq + i) * n_cells] = transfer_buffer_d[tid_buffer + (n_freq + i) * size_buffer];
+  }*/
+  for (int j = 0; j < n_fpfreq; j++) {
+    for (int i = 0; i < n_freq; i++) { // Need to transfer RF for each field and frequency
+
+      // attempt for m1
+      rtFields.dev_rf[tid_rf + (j*n_freq+i) * n_cells]          = transfer_buffer_d[tid_buffer + (j*n_freq+i) * size_buffer];
+
+      // see otvet
+      // rtFields.dev_rf[tid_rf + (1 + i) * n_cells]          = transfer_buffer_d[tid_buffer + i * size_buffer];
+      // rtFields.dev_rf[tid_rf + (1 + n_freq + i) * n_cells] = transfer_buffer_d[tid_buffer + (n_freq + i) * size_buffer];
+    }
   }
 #endif //M1
 
 }
 
 __global__ void Set_RT_Boundaries_Periodic_Kernel(int direction, int side, int n_i, int n_j, int nx, int ny, int nz,
-                                                  int n_ghost, int n_freq, struct Rad3D::RT_Fields rtFields)
+                                                  int n_ghost, int n_fpfreq,  int n_freq, struct Rad3D::RT_Fields rtFields)
 {
   int n_cells = nx * ny * nz;
 
@@ -150,9 +173,15 @@ __global__ void Set_RT_Boundaries_Periodic_Kernel(int direction, int side, int n
   }
 #endif //OTVET
 #ifdef M1
-  for (int i = 0; i < n_freq; i++) { // Suspicious -- BRANT  DEFINITELY NEEDS ALTERATION ERROR
+  // WHY IS THIS INDEXED FROM ONE?
+  /*for (int i = 0; i < n_freq; i++) { // Suspicious -- BRANT  DEFINITELY NEEDS ALTERATION ERROR
     rtFields.dev_rf[tid_dst + (1 + i) * n_cells]          = rtFields.dev_rf[tid_src + (1 + i) * n_cells];
     rtFields.dev_rf[tid_dst + (1 + n_freq + i) * n_cells] = rtFields.dev_rf[tid_src + (1 + n_freq + i) * n_cells];
+  }*/
+  for (int j = 0; j < n_fpfreq; j++) {
+    for (int i = 0; i < n_freq; i++) { // Need to transfer RF for each field and frequency
+      rtFields.dev_rf[tid_dst + (j*n_freq+i)* n_cells]          = rtFields.dev_rf[tid_src + (j*n_freq+i) * n_cells];
+    }
   }
 #endif //M1
 }
