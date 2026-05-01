@@ -20,7 +20,7 @@ where
 -  {math}`\Phi_{\rm dm}` corresponds to the dark matter halo  (always a static potential)
 -  {math}`\Phi_{\rm stars,old}` corresponds to older stellar populations in the disk (always a static potential)
 - {math}`\Phi_{\rm stars,young}` corresponds to the younger stellar populations (computed with self-gravity from particles)
-- {math}`\Phi_{\rm gas}` corresponds to the younger stellar populations (computed with self-gravity from particles)
+- {math}`\Phi_{\rm gas}` corresponds to the gas disk (computed with self-gravity from particles)
 
 ### Primer on Radiative Cooling
 
@@ -55,7 +55,7 @@ It is the user's responsibility to ensure that consistent models of the potentia
 :::
 
 2. Normal Self Gravity
-  - use the self-gravity module to model full gravitational potential while updating timesteps.
+  - use the self-gravity module to model the full gravitational potential while updating timesteps.
   - We provide details about assumptions that the gravity-solver makes to compute contributions from self-gravity [down below](#analytic-self-gravity-estimate)
   - approximations for the total potential are used during initial conditions
   - **Purpose:** to model the disk of a galaxy as self-consistently as possible (it's currently unclear whether collapsing gas clouds in simulations without self-consistent star formation are an issue)
@@ -90,7 +90,7 @@ All configurations of the idealized Galaxy Simulations:
 This is **NOT** a concern when using the Self-Gravity module
 :::
 
-Consider the parameterization of the potential of a Miyamoto-Nagai potential (this will be important [again](#analytic-self-gravity-estimate), shortly)
+Consider the parameterization of a Miyamoto-Nagai potential (this will be important [again](#analytic-self-gravity-estimate), shortly)
 
 :::{math}
 \Phi_{\rm MN}(R,z; M,a,b)\equiv \frac{-G M}{\sqrt{R^2 + (a + \sqrt{z^2 + b^2})^2}}.
@@ -134,7 +134,7 @@ The ``"Disk_3D"`` and ``"Disk_3D_particles"`` initial conditions will both initi
 
 Cholla offers machinery to setup an idealized galaxy simulation. Specifically, it initializes properties a gas disk inside of gas halo. The conditions broadly match the description provided by  [Schneider & Robertson 2018](https://ui.adsabs.harvard.edu/abs/2018ApJ...860..135S) (there are some extensions when using self-gravity).
 
-Ideally, we our initial conditions would be in hydrostatic equilibrium (i.e. the properties of a simulation would not change if we hit "go"). For a handful of reasons, we can't actually achieve initial conditions a handful of reasons (related to the gas in the halo and the boundary conditions), but we pick ICs that are stable.
+Ideally, our initial conditions would be in hydrostatic equilibrium (i.e. the properties of a simulation would not change if we hit "go"). For a handful of reasons, we can't actually achieve perfectly hydrostatic initial conditions (related to the gas in the halo and the boundary conditions), but we pick ICs that are stable.
 
 To accomplish this, it is useful to consider gas in the disk and gas in the halo. Let  {math}`\rho_{\rm disk}(R, z)` and {math}`P_{\rm disk}(R,z)` refer to the axis-symmetric profiles for the disk gas. We define {math}`\rho_{\rm halo}(r)` and {math}`P_{\rm halo}(r)` as the spherical profiles for gas in the halo. We will provide precise definitions for these profiles momentarily. To ensure a smooth transition between disk and halo, we define the simulation's initial density and pressure profiles as 
 

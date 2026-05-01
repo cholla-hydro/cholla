@@ -78,7 +78,7 @@ Essentially we walk through 3 increasingly complex scenarios:
 (SNe-Prescription-Descriptions)=
 ## Prescription
 
-This section describe's the actual prescriptions. First we offer some broad background context. Then, we offer a high-level description of the available prescriptions. Subsequently, we provide additional detail about the stencils that are actually used and the magnitudes of the injected quantities.
+This section describes the actual prescriptions. First we offer some broad background context. Then, we offer a high-level description of the available prescriptions. Subsequently, we provide additional detail about the stencils that are actually used and the magnitudes of the injected quantities.
 ### Background Context
 
 Broadly speaking, it's useful to introduce the distinction between a "resolved" prescription that primarily injects thermal energy, and an "unresolved" prescription that primarily injects momentum. In slightly more detail:
