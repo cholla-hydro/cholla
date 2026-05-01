@@ -10,6 +10,8 @@
       #include "../global/global.h"
       #include "alt/decl.h"
       #include "radiation.h"
+      #include "../utils/gpu.hpp"
+
 
 // void rtSolve(Real *dev_scalar, struct Rad3D::RT_Fields &rtFields);
 
