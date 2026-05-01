@@ -364,9 +364,35 @@ void Rad3D::StepRFiIteration(void)
 //
 //  gamma=0 is the Aubert & Teyssier 2008 scheme.
 
+  int scheme_ = 0;
   Real gamma_sis = 0.5; // semi-implicit scheme parameter
-  Real cdt2dxRSL = (3e10/VELOCITY_UNIT) * grid.dt / grid.dx; // look at moments.cpp
-  cdt2dxRSL /= (1 + gamma_sis); // NEEDS EDITING DEBUG
+  Real cdt2dxRSL = 0.5; // default case 1
+  //Real cdt2dxRSL = (3e10/VELOCITY_UNIT) * grid.dt / grid.dx; // look at moments.cpp
+  //cdt2dxRSL /= (1 + gamma_sis); // NEEDS EDITING DEBUG
+
+  switch(scheme_)
+  {
+    case 0: {
+      cdt2dxRSL = 0.25;
+      gamma_sis = 0;
+      break;
+    }
+    case 1: {
+      cdt2dxRSL = 0.5;
+      gamma_sis = 0.5;
+      break;   
+    }
+    case 2: {
+      cdt2dxRSL = 0.75;
+      gamma_sis = 1.0;
+      break;   
+    }
+    default: {
+      cdt2dxRSL = 0.5;
+      gamma_sis = 0.5;
+      break;   
+    }
+  }
 
   //PijFunctorM1& pf;
   PijFunctorM1 pf;
