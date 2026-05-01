@@ -573,6 +573,7 @@ template<class PijFunctor> GPU_KERNEL_DECL void GLFMakeP(
 */
 
 
+/*
 //  Compute pressure tensor - has to be a separate kernel since
 //  pij is needed in its entirety for the step
 template<class PijFunctorM1> void __global__ GLFMakeP_Kernel(int nx, int ny, int nz, int n_ghost, float dx,
@@ -589,6 +590,7 @@ template<class PijFunctorM1> void __global__ GLFMakeP_Kernel(int nx, int ny, int
 
     pf(n_ghost,nx,ny,nz,ic,jc,kc,rfi,pij,deb);
 }
+*/
 
 
 /*
