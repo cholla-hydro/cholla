@@ -366,7 +366,7 @@ void Rad3D::StepRFiIteration(void)
 
   Real gamma_sis = 0.5; // semi-implicit scheme parameter
   Real cdt2dxRSL = (3e10/VELOCITY_UNIT) * grid.dt / grid.dx; // look at moments.cpp
-  cdt2dxRSL /= (1 + gamma_sis); // NEEDS EDITING
+  cdt2dxRSL /= (1 + gamma_sis); // NEEDS EDITING DEBUG
 
   //PijFunctorM1& pf;
   PijFunctorM1 pf;
