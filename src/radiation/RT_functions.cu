@@ -236,7 +236,9 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost,
                                         Real* __restrict__ rfiNew, int deb);
 
 // Function to limit the RF fields after the iteration kernel
-void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* __restrict__ rfi, int nout, Real* __restrict__ rfiOut, int deb);
+//void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* __restrict__ rfi, int nout, Real* __restrict__ rfiOut, int deb);
+void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, 
+                               const Real* __restrict__ rfi, Real* __restrict__ rfiOut, int deb);
 
 // Functor to make the pressure tensor
 //void __global__ GLFMakeP_Kernel(int nx, int ny, int nz, int n_ghost, Real dx, const Real* rfi, Real* pij, PijFunctorM1 pf, int deb);
@@ -364,7 +366,7 @@ void Rad3D::StepRFiIteration(void)
   // Launch the StepRFiIteration kernel for one frequency at a time
   for (int freq = 0; freq < n_freq; freq++) { /// hold -- 4 fields per freq * number of freq in M1
     auto rfOld  = rtFields.dev_rf    + grid.n_cells * (n_fpfreq * freq); // old radiation fields at this frequency
-    auto rfNew  = rtFields.dev_rfNew + grid.n_cells * (n_fpfreq * freq); // updated radiation fields at this frequency
+    auto rfNew  = rtFields.dev_rfNew;                                    // updated radiation fields at this frequency
     auto abc    = rtFields.dev_abc + freq * grid.n_cells;                // absorption coefficients at this frequency
     auto pij    = rtFields.dev_pij;                                      // reuse pressure tensor each frequency
 
@@ -399,10 +401,12 @@ void Rad3D::ClipRFiIteration(void)
   // Launch the kernel for one frequency at a time
   for (int freq = 0; freq < n_freq; freq++) {
     auto rfOld  = rtFields.dev_rf    + grid.n_cells * (n_fpfreq * freq); // old radiation fields at this frequency
-    auto rfNew  = rtFields.dev_rfNew + grid.n_cells * (n_fpfreq * freq); // clipped radiation fields at this frequency
+    auto rfNew  = rtFields.dev_rfNew;                                    // clipped radiation fields at this frequency
 
     // Clip the radiation fields at this frequency
-    hipLaunchKernelGGL(ClipRFi_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, rfOld, nout, rfNew, (freq == 0 ? 1 : 0));
+//    hipLaunchKernelGGL(ClipRFi_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, rfOld, nout, rfNew, (freq == 0 ? 1 : 0));
+    hipLaunchKernelGGL(ClipRFi_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, 
+                       rfOld, rfNew, (freq == 0 ? 1 : 0));
 
     // Copy back the clipped result
     GPU_Error_Check(cudaMemcpyAsync(rfOld, rfNew, n_fpfreq * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));

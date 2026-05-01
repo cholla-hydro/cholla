@@ -510,6 +510,7 @@ if(ic>=orig && jc>=orig && kc>=orig && ic<nmax && jc<nmax && kc<nmax)
 //
 //  This is called ClipRFi in Altair
 //
+//void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* __restrict__ rfi, int nout, Real* __restrict__ rfiOut, int deb)
 void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* __restrict__ rfi, int nout, Real* __restrict__ rfiOut, int deb)
 {
   const int tid = threadIdx.x + blockIdx.x*blockDim.x;
@@ -532,14 +533,18 @@ void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* 
 
   if(ic>=origx && jc>=origy && kc>=origx && ic<nmaxx && jc<nmaxy && kc<nmaxz)
   {
-      const int idx = (ic-origx) + nout*(jc-origy+nout*(kc-origz));
+      //const int idx = (ic-origx) + nout*(jc-origy+nout*(kc-origz));
+      const int idx = ic+nx*(jc+ny*kc);
 
-      rfiOut[idx] = rfi[ic+nx*(jc+ny*kc)];
+      //rfiOut[idx] = rfi[ic+nx*(jc+ny*kc)];
+      rfiOut[idx] = rfi[idx];
+
       for(int m=0; m<3; m++)
       {
-          rfiOut[idx+(m+1)*nout3] = fminf(fmaxf(rfi[ic+nx*(jc+ny*kc)+nw3*(m+1)],
-                                               -rfi[ic+nx*(jc+ny*kc)]),
-                                                rfi[ic+nx*(jc+ny*kc)]);
+//          rfiOut[idx+(m+1)*nout3] = fminf(fmaxf(rfi[ic+nx*(jc+ny*kc)+nw3*(m+1)],
+//                                               -rfi[ic+nx*(jc+ny*kc)]),
+//                                                rfi[ic+nx*(jc+ny*kc)]);
+          rfiOut[idx+nw3*(m+1)] = fminf(fmaxf(rfi[idx+nw3*(m+1)],-rfi[idx]),rfi[idx]);
       }
   }
 }
