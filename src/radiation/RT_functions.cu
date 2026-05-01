@@ -475,12 +475,15 @@ void Rad3D::rtSolve(Real* dev_scalar)
 
   // the following triggers niters=1, need to set correctly
   Real speedOfLightInCodeUnits = 3e10 / VELOCITY_UNIT;
-  int niters2                  = (dt > 0 ? static_cast<int>(1 + speedOfLightInCodeUnits * dt / grid.dx) : niters);
+  /*int niters2                  = (dt > 0 ? static_cast<int>(1 + speedOfLightInCodeUnits * dt / grid.dx) : niters);
   //if (niters > niters2) niters = niters2;
 
 
   chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, niters2: %d, dt: %e, c: %e, dx %e)\n",
             niters,this->num_iterations,niters2,dt,speedOfLightInCodeUnits,grid.dx);
+  */
+  chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, dt: %e, c: %e, dx %e)\n",
+            niters,this->num_iterations,dt,speedOfLightInCodeUnits,grid.dx);
 
   for (int iter = 0; iter < niters; iter++) {
     this->lastIteration = (iter == niters - 1);
