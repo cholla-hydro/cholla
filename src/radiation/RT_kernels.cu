@@ -44,10 +44,21 @@ __global__ void Load_RT_Buffer_kernel(int direction, int side, int size_buffer,
     if (side == 0) tid_rf = (tid_i) + (tid_j)*nx + (n_ghost_rt + tid_k) * nx * ny;
     if (side == 1) tid_rf = (tid_i) + (tid_j)*nx + (nz - n_ghost_rt - n_ghost_transfer + tid_k) * nx * ny;
   }
+
+
+// rewrite once we're confident in the general sizing
+#ifdef OTVET
+  for (int i = 0; i < n_freq; i++) { // Suspicious -- valid only for OTVET
+    transfer_buffer_d[tid_buffer + i * size_buffer]            = rtFields.dev_rf[tid_rf + (1 + i) * n_cells];
+    transfer_buffer_d[tid_buffer + (n_freq + i) * size_buffer] = rtFields.dev_rf[tid_rf + (1 + n_freq + i) * n_cells];
+  }
+#endif //OTVET
+#ifdef M1
   for (int i = 0; i < n_freq; i++) { // Suspicious -- BRANT  DEFINITELY NEEDS ALTERATION ERROR
     transfer_buffer_d[tid_buffer + i * size_buffer]            = rtFields.dev_rf[tid_rf + (1 + i) * n_cells];
     transfer_buffer_d[tid_buffer + (n_freq + i) * size_buffer] = rtFields.dev_rf[tid_rf + (1 + n_freq + i) * n_cells];
   }
+#endif //M1
 }
 
 __global__ void Unload_RT_Buffer_kernel(int direction, int side, int size_buffer, int n_i, int n_j, int nx, int ny,
@@ -81,10 +92,21 @@ __global__ void Unload_RT_Buffer_kernel(int direction, int side, int size_buffer
     if (side == 1) tid_rf = (tid_i) + (tid_j)*nx + (nz - n_ghost_rt + tid_k) * nx * ny;
   }
 
+
+// update after we are confident in the bueffer sizing
+#ifdef OTVET
+  for (int i = 0; i < n_freq; i++) { // Suspicious -- valid only for OTVET
+    rtFields.dev_rf[tid_rf + (1 + i) * n_cells]          = transfer_buffer_d[tid_buffer + i * size_buffer];
+    rtFields.dev_rf[tid_rf + (1 + n_freq + i) * n_cells] = transfer_buffer_d[tid_buffer + (n_freq + i) * size_buffer];
+  }
+#endif //OTVET
+#ifdef M1
   for (int i = 0; i < n_freq; i++) { // Suspicious -- BRANT  DEFINITELY NEEDS ALTERATION ERROR
     rtFields.dev_rf[tid_rf + (1 + i) * n_cells]          = transfer_buffer_d[tid_buffer + i * size_buffer];
     rtFields.dev_rf[tid_rf + (1 + n_freq + i) * n_cells] = transfer_buffer_d[tid_buffer + (n_freq + i) * size_buffer];
   }
+#endif //M1
+
 }
 
 __global__ void Set_RT_Boundaries_Periodic_Kernel(int direction, int side, int n_i, int n_j, int nx, int ny, int nz,
@@ -120,10 +142,19 @@ __global__ void Set_RT_Boundaries_Periodic_Kernel(int direction, int side, int n
     if (side == 1) tid_dst = (tid_i) + (tid_j)*nx + (nz - n_ghost + tid_k) * nx * ny;
   }
 
+// update after we are confident in the bueffer sizing
+#ifdef OTVET
+  for (int i = 0; i < n_freq; i++) { // Suspicious -- valid only for OTVET
+    rtFields.dev_rf[tid_dst + (1 + i) * n_cells]          = rtFields.dev_rf[tid_src + (1 + i) * n_cells];
+    rtFields.dev_rf[tid_dst + (1 + n_freq + i) * n_cells] = rtFields.dev_rf[tid_src + (1 + n_freq + i) * n_cells];
+  }
+#endif //OTVET
+#ifdef M1
   for (int i = 0; i < n_freq; i++) { // Suspicious -- BRANT  DEFINITELY NEEDS ALTERATION ERROR
     rtFields.dev_rf[tid_dst + (1 + i) * n_cells]          = rtFields.dev_rf[tid_src + (1 + i) * n_cells];
     rtFields.dev_rf[tid_dst + (1 + n_freq + i) * n_cells] = rtFields.dev_rf[tid_src + (1 + n_freq + i) * n_cells];
   }
+#endif //M1
 }
 
 void __global__ Calc_Absorption_Kernel(int nx, int ny, int nz, Real dx, CrossSectionInCU xs,
