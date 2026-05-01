@@ -434,6 +434,7 @@ void Rad3D::rtSolve(Real* dev_scalar)
   Calc_Absorption(dev_scalar);
 
   int niters                   = this->num_iterations;
+  Real speedOfLightInCodeUnits = 3e10 / VELOCITY_UNIT;
 
 
 
@@ -441,7 +442,6 @@ void Rad3D::rtSolve(Real* dev_scalar)
 #ifdef OTVET
 
   // original OTVET
-  Real speedOfLightInCodeUnits = 3e10 / VELOCITY_UNIT;
   int niters2                  = (dt > 0 ? static_cast<int>(1 + speedOfLightInCodeUnits * dt / grid.dx) : niters);
   if (niters > niters2) niters = niters2;
 
@@ -492,15 +492,12 @@ void Rad3D::rtSolve(Real* dev_scalar)
     }
   }
 
-  Real speedOfLightInCodeUnits = 3e10 / VELOCITY_UNIT;
-  int niters_cfl = 1 + speedOfLightInCodeUnits * dt / (CFL_RT * dx);
-
+  int niters_cfl = 1 + speedOfLightInCodeUnits * dt / (CFL_RT * grid.dx);
   Real cdt2dxRSL = speedOfLightInCodeUnits * dt/(dx*niters_cfl);
 
   // the following triggers niters=1, need to set correctly
-  Real speedOfLightInCodeUnits = 3e10 / VELOCITY_UNIT;
-  int niters2                  = (dt > 0 ? static_cast<int>(1 + speedOfLightInCodeUnits * dt / grid.dx) : niters);
-  if (niters > niters2) niters = niters2;
+  //int niters2                  = (dt > 0 ? static_cast<int>(1 + speedOfLightInCodeUnits * dt / grid.dx) : niters);
+  //if (niters > niters2) niters = niters2;
 
   //        fs.numSteps = 1 + mRSLFactor*cdt/(mSchemeCFL*dx);
   //        auto cdt2dx = cdt/(dx*fs.numSteps); // numSteps is because cdt2dxRSL is per step, not per update
@@ -510,10 +507,10 @@ void Rad3D::rtSolve(Real* dev_scalar)
             niters,this->num_iterations,niters2,dt,speedOfLightInCodeUnits,grid.dx);
   */
   chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, dt: %e, c: %e, dx %e)\n",
-            niters,this->num_iterations,dt,speedOfLightInCodeUnits,grid.dx);
+            niters_cfl,this->num_iterations,dt,speedOfLightInCodeUnits,grid.dx);
 
   for (int iter = 0; iter < niters_cfl; iter++) {
-    this->lastIteration = (iter == niters - 1);
+    this->lastIteration = (iter == niters_cfl - 1);
     // Call the StepRFi Iteration kernel
     // This must create and destroy the pressure fields
     StepRFiIteration(cdt2dxRSL, gamma_sis);
