@@ -2034,6 +2034,7 @@ void Grid3D::Iliev15(struct Parameters P, int test)
 #endif //M1
       }
     }
+    chprintf("Iliev15 ICs finalized...\n");
   }
 
 #else   // defined(RT) && defined(CHEMISTRY_GPU)
