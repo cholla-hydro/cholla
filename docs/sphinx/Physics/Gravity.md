@@ -41,7 +41,7 @@ As of 10-27-2023 on the main branch, the static gravitational field is hard-code
 In addition to static gravity, Cholla has an FFT-based self gravity solver.
 Only one or the other may be used.
 The self-gravity solver is turned on with the ``GRAVITY`` macro in the makefile.
-The default behavior in the [make.type.gravity](https://github.com/cholla-hydro/cholla/blob/dev/builds/make.type.gravity) build (and builds that depend on it) is also to turn on the ``GRAVITY\_GPU`` macro, which ensures that gravity fields reside on the GPU (required for gpu-based MPI communications), and the ```PARIS``` macro, which specifies that the Poisson solve will be carried out on the GPU by the cuFFT or rocFFT libraries.
+The default behavior in the [make.type.gravity](https://github.com/cholla-hydro/cholla/blob/dev/builds/make.type.gravity) build (and builds that depend on it) is also to turn on the ``GRAVITY_GPU`` macro, which ensures that gravity fields reside on the GPU (required for gpu-based MPI communications), and the 
 Cholla does also have CPU-based gravity solvers, although they are not currently maintained.
 Definitions of other macros options associated with the gravity solver are given below.
 
@@ -108,7 +108,7 @@ Instead of requiring periodic boundaries, this variant requires the following bo
 
 2) **A static estimate for the gravitational potential produced by {math}`\rho_{\rm tot}`**: In more detail, we actually need a static estimate for the density-potential pair
    - Added context: in case you aren't familiar with the concept, every valid gravitational potential profile is associated with a unique density profile. Thus we describe the pair of profiles as a "density-potential" pair [^density-potential-pair]
-   - Let's call refer denote these quantities as {math}`\rho_{\rm estimate}({\bf x})` and {math}`\phi_{\rm estimate}({\bf x})`
+   - Let's call these quantities {math}`\rho_{\rm estimate}({\bf x})` and {math}`\phi_{\rm estimate}({\bf x})`
    - At the time of writing, the solver requires {math}`\rho_{\rm estimate}({\bf x})` and {math}`\phi_{\rm estimate}({\bf x})` to have analytic formulae. (However, the implementation could be generalized to use numerically computed profiles)
 
 ### Tying things together:
@@ -140,9 +140,9 @@ If {math}`{\bf \nabla} \phi_{\rm estimate}` isn't a good estimate for {math}`{\b
 
 ## Support for Problem-types with Non-Periodic Boundaries
 
-Currently, the only scenario that Cholla supports with non-periodic boundaries is idealized Galaxy simulations without.
+Currently, the only scenario that Cholla supports with non-periodic boundaries is idealized Galaxy simulations.
 
-At the time of writing, current density-potential pairs used in these problems currently have some **minor** "flaws:"
+At the time of writing, current density-potential pairs used in these problems have some **minor** "flaws:"
 - they don't account for the gravitational potential from halo gas
 - they don't account for the potential of star particles
 - they make use of density-potential pairs that don't account for disk-truncation
