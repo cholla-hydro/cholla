@@ -472,9 +472,11 @@ void Rad3D::rtSolve(Real* dev_scalar)
   Calc_Absorption(dev_scalar);
 
   int niters                   = this->num_iterations;
+
+  // the following triggers niters=1, need to set correctly
   Real speedOfLightInCodeUnits = 3e10 / VELOCITY_UNIT;
   int niters2                  = (dt > 0 ? static_cast<int>(1 + speedOfLightInCodeUnits * dt / grid.dx) : niters);
-  if (niters > niters2) niters = niters2;
+  //if (niters > niters2) niters = niters2;
 
 
   chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, niters2: %d)\n",niters,this->num_iterations,niters2);
