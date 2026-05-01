@@ -178,10 +178,10 @@ void Rad3D::rtBoundaries(void)
 
   /* Set non-MPI x-boundaries */
   if (flags[0] == 1) { // likely needs editing BRANT for M1
-    Set_RT_Boundaries_Periodic(0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
+    Set_RT_Boundaries_Periodic(0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields);
   }
   if (flags[1] == 1) { // likely needs editing BRANT for M1
-    Set_RT_Boundaries_Periodic(0, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
+    Set_RT_Boundaries_Periodic(0, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq,  n_freq, rtFields);
   }
 
   /* Receive MPI x-boundaries */
@@ -196,9 +196,9 @@ void Rad3D::rtBoundaries(void)
     copyHostToDeviceReceiveBuffer(status.MPI_TAG);
   #endif  // MPI_GPU
     if (status.MPI_TAG == 0) // likely needs editing BRANT for M1
-      Unload_RT_Fields_From_Buffer(0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_recv_buffer_x0);
+      Unload_RT_Fields_From_Buffer(0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq,  n_freq, rtFields, d_recv_buffer_x0);
     if (status.MPI_TAG == 1) // likely needs editing BRANT for M1
-      Unload_RT_Fields_From_Buffer(0, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_recv_buffer_x1);
+      Unload_RT_Fields_From_Buffer(0, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq,  n_freq, rtFields, d_recv_buffer_x1);
   }
 
   // Barrier between directions
@@ -262,10 +262,10 @@ void Rad3D::rtBoundaries(void)
 
   /* Set non-MPI y-boundaries */
   if (flags[2] == 1) { // likely needs editing BRANT for M1
-    Set_RT_Boundaries_Periodic(1, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
+    Set_RT_Boundaries_Periodic(1, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields);
   }
   if (flags[3] == 1) { // likely needs editing BRANT for M1
-    Set_RT_Boundaries_Periodic(1, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
+    Set_RT_Boundaries_Periodic(1, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields);
   }
 
   /* Receive MPI y-boundaries */
@@ -280,9 +280,9 @@ void Rad3D::rtBoundaries(void)
     copyHostToDeviceReceiveBuffer(status.MPI_TAG);
   #endif  // MPI_GPU
     if (status.MPI_TAG == 2) // likely needs editing BRANT for M1
-      Unload_RT_Fields_From_Buffer(1, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_recv_buffer_y0);
+      Unload_RT_Fields_From_Buffer(1, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields, d_recv_buffer_y0);
     if (status.MPI_TAG == 3) // likely needs editing BRANT for M1
-      Unload_RT_Fields_From_Buffer(1, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_recv_buffer_y1);
+      Unload_RT_Fields_From_Buffer(1, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields, d_recv_buffer_y1);
   }
 
   // Barrier between directions
@@ -348,10 +348,10 @@ void Rad3D::rtBoundaries(void)
 
   /* Set non-MPI z-boundaries */
   if (flags[4] == 1) { // likely needs editing BRANT for M1
-    Set_RT_Boundaries_Periodic(2, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
+    Set_RT_Boundaries_Periodic(2, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields);
   }
   if (flags[5] == 1) { // likely needs editing BRANT for M1
-    Set_RT_Boundaries_Periodic(2, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
+    Set_RT_Boundaries_Periodic(2, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields);
   }
 
   /* Receive MPI z-boundaries */
@@ -366,9 +366,9 @@ void Rad3D::rtBoundaries(void)
     copyHostToDeviceReceiveBuffer(status.MPI_TAG);
   #endif  // MPI_GPU
     if (status.MPI_TAG == 4) // likely needs editing BRANT for M1
-      Unload_RT_Fields_From_Buffer(2, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_recv_buffer_z0);
+      Unload_RT_Fields_From_Buffer(2, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields, d_recv_buffer_z0);
     if (status.MPI_TAG == 5) // likely needs editing BRANT for M1
-      Unload_RT_Fields_From_Buffer(2, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_recv_buffer_z1);
+      Unload_RT_Fields_From_Buffer(2, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields, d_recv_buffer_z1);
   }
 }
 
