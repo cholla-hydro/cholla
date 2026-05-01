@@ -279,7 +279,7 @@ void Rad3D::OTVETIteration(void)
 
 struct DEVICE_ALIGN_DECL PijFunctorM1
 {
-    __globa__ void operator()(int offset, int nx, int ny, int nz, 
+    __global__ void operator()(int offset, int nx, int ny, int nz, 
                     int ic, int jc, int kc, const Real* rfi, Real* pij, int deb)
     {
         if(ic<offset || jc<offset || kc<offset || ic>=nx-offset || jc>=ny-offset || kc>=nz-offset) return;
