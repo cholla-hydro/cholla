@@ -392,7 +392,7 @@ template<bool Split> void __global__ StepRFiIteration_Kernel( int nx, int ny, in
 // This is our M1 kernel, which is called
 // for each of 4 frequencies
 void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, 
-                                        Real cdt2dxRSL, Real gamma,
+                                        Real dx, Real cdt2dxRSL, Real gamma,
                                         const Real* __restrict__ rs,
                                         const Real* __restrict__ rfi,
                                         const Real* __restrict__ abc,
@@ -416,18 +416,18 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost,
 
   const int nw3 = nx*ny*nz;
 
-  const float* rf = rfi;
-  const float* fi[3] = { rfi+nw3, rfi+2*nw3, rfi+3*nw3 }; // fluxes
-  const float* pij[6] = { pij_, pij_+nw3, pij_+2*nw3, pij_+3*nw3, pij_+4*nw3, pij_+5*nw3 };
-  float* fiNew[3] = { rfiNew+nw3, rfiNew+2*nw3, rfiNew+3*nw3 };
+  const Real* rf = rfi;
+  const Real* fi[3] = { rfi+nw3, rfi+2*nw3, rfi+3*nw3 }; // fluxes
+  const Real* pij[6] = { pij_, pij_+nw3, pij_+2*nw3, pij_+3*nw3, pij_+4*nw3, pij_+5*nw3 };
+  Real* fiNew[3] = { rfiNew+nw3, rfiNew+2*nw3, rfiNew+3*nw3 };
 
-  const float d = dx*rs[ic+nx*(jc+ny*kc)] + 0.5f*(fi[0][im+nx*(jc+ny*kc)]-fi[0][ip+nx*(jc+ny*kc)]+fi[1][ic+nx*(jm+ny*kc)]-fi[1][ic+nx*(jp+ny*kc)]+fi[2][ic+nx*(jc+ny*km)]-fi[2][ic+nx*(jc+ny*kp)]) + 0.5f*(rf[im+nx*(jc+ny*kc)]+rf[ip+nx*(jc+ny*kc)]+rf[ic+nx*(jm+ny*kc)]+rf[ic+nx*(jp+ny*kc)]+rf[ic+nx*(jc+ny*km)]+rf[ic+nx*(jc+ny*kp)]-6*rf[ic+nx*(jc+ny*kc)]);
+  const Real d = dx*rs[ic+nx*(jc+ny*kc)] + 0.5f*(fi[0][im+nx*(jc+ny*kc)]-fi[0][ip+nx*(jc+ny*kc)]+fi[1][ic+nx*(jm+ny*kc)]-fi[1][ic+nx*(jp+ny*kc)]+fi[2][ic+nx*(jc+ny*km)]-fi[2][ic+nx*(jc+ny*kp)]) + 0.5f*(rf[im+nx*(jc+ny*kc)]+rf[ip+nx*(jc+ny*kc)]+rf[ic+nx*(jm+ny*kc)]+rf[ic+nx*(jp+ny*kc)]+rf[ic+nx*(jc+ny*km)]+rf[ic+nx*(jc+ny*kp)]-6*rf[ic+nx*(jc+ny*kc)]);
 
   float rf1, cdt2dx, w1, w2;
   if(Split)
   {
       cdt2dx = cdt2dxRSL/(1+cdt2dxRSL*gamma*3);
-      float tau = cdt2dx*abc[ic+nx*(jc+ny*kc)];
+      Real tau = cdt2dx*abc[ic+nx*(jc+ny*kc)];
       w1 = expf(-tau);
       w2 = (tau<0.1f ? 1-0.5f*tau*(1-(1.0f/3.0f)*tau*(1-0.25f*tau)) : (1-w1)/tau);
 
@@ -449,7 +449,7 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost,
       constexpr int iy[] = { 1, 2, 4 };
       constexpr int iz[] = { 3, 4, 5 };
 
-      const float df = 0.5f*(pij[ix[m]][im+nx*(jc+ny*kc)]-pij[ix[m]][ip+nx*(jc+nw*kc)]+pij[iy[m]][ic+nx*(jm+ny*kc)]-pij[iy[m]][ic+nx*(jp+ny*kc)]+pij[iz[m]][ic+nx*(jc+ny*km)]-pij[iz[m]][ic+nx*(jc+ny*kp)]) + 0.5f*(fi[m][im+nx*(jc+ny*kc)]+fi[m][ip+nx*(jc+ny*kc)]+fi[m][ic+nx*(jm+ny*kc)]+fi[m][ic+nx*(jp+ny*kc)]+fi[m][ic+nx*(jc+ny*km)]+fi[m][ic+nx*(jc+ny*kp)]-6*fi[m][ic+nx*(jc+ny*kc)]);
+      const Real df = 0.5f*(pij[ix[m]][im+nx*(jc+ny*kc)]-pij[ix[m]][ip+nx*(jc+ny*kc)]+pij[iy[m]][ic+nx*(jm+ny*kc)]-pij[iy[m]][ic+nx*(jp+ny*kc)]+pij[iz[m]][ic+nx*(jc+ny*km)]-pij[iz[m]][ic+nx*(jc+ny*kp)]) + 0.5f*(fi[m][im+nx*(jc+ny*kc)]+fi[m][ip+nx*(jc+ny*kc)]+fi[m][ic+nx*(jm+ny*kc)]+fi[m][ic+nx*(jp+ny*kc)]+fi[m][ic+nx*(jc+ny*km)]+fi[m][ic+nx*(jc+ny*kp)]-6*fi[m][ic+nx*(jc+ny*kc)]);
 
       if(Split)
       {
@@ -510,7 +510,7 @@ if(ic>=orig && jc>=orig && kc>=orig && ic<nmax && jc<nmax && kc<nmax)
 //
 //  This is called ClipRFi in Altair
 //
-void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, Real* __restrict__ rfi)
+void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* __restrict__ rfi, int nout, Real* __restrict__ rfiOut, int deb)
 {
   const int tid = threadIdx.x + blockIdx.x*blockDim.x;
   const int nc = nx - 2*n_ghost;
@@ -528,7 +528,7 @@ void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, Real* __rest
   const int nmaxy = origy + n_ghost;
   const int nmaxz = origz + n_ghost;
 
-  cont int nw3 = nx*ny*nz;
+  const int nw3 = nx*ny*nz;
 
   if(ic>=origx && jc>=origy && kc>=origx && ic<nmaxx && jc<nmaxy && kc<nmaxz)
   {
@@ -575,7 +575,7 @@ template<class PijFunctor> GPU_KERNEL_DECL void GLFMakeP(
 
 //  Compute pressure tensor - has to be a separate kernel since
 //  pij is needed in its entirety for the step
-template<class PijFunctor> void __global__ GLFMakeP(int nx, int ny, int nz, int n_ghost, float dx,
+template<class PijFunctor> void __global__ GLFMakeP_Kernel(int nx, int ny, int nz, int n_ghost, float dx,
                                                     const float* rfi, float* pij, PijFunctor pf, int deb)
 {
     const int nw3 = nx*ny*nz;
@@ -593,7 +593,7 @@ template<class PijFunctor> void __global__ GLFMakeP(int nx, int ny, int nz, int 
 
 struct DEVICE_ALIGN_DECL PijFunctorM1
 {
-    GPU_DEVICE_DECL void operator()(int offset, int nx, int ny, int nz, 
+    __global__ void operator()(int offset, int nx, int ny, int nz, 
                     int ic, int jc, int kc, const Real* rfi, Real* pij, int deb)
     {
         if(ic<offset || jc<offset || kc<offset || ic>=nx-offset || jc>=ny-offset || kc>=nz-offset) return;

@@ -1946,7 +1946,9 @@ void Grid3D::Iliev15(struct Parameters P, int test)
   double xcen[3] = {H.xbound + 0.5 * H.xdglobal, H.ybound + 0.5 * H.ydglobal, H.zbound + 0.5 * H.zdglobal};
   double dx2     = H.dx * H.dx;
 
+#ifdef OTVET
   Rad.rtFields.et = (Real *)malloc(H.n_cells * sizeof(Real) * 6);
+#endif //OTVET
   Rad.rtFields.rs = (Real *)malloc(H.n_cells * sizeof(Real));
 
   auto xs = Physics::AtomicData::CrossSections();
@@ -2019,12 +2021,14 @@ void Grid3D::Iliev15(struct Parameters P, int test)
         Rad.rtFields.rf[id] = 1 / (12.5664 * (eps2ot + r2));
         for (int ii = 1; ii < 1 + Rad.n_fpfreq * Rad.n_freq; ii++) Rad.rtFields.rf[id + ii * H.n_cells] = 0;
 
+#ifdef OTVET
         Rad.rtFields.et[id + 0 * H.n_cells] = (eps2et / 3 + x[0] * x[0]) / (eps2et + r2);
         Rad.rtFields.et[id + 1 * H.n_cells] = (x[1] * x[0]) / (eps2et + r2);
         Rad.rtFields.et[id + 2 * H.n_cells] = (eps2et / 3 + x[1] * x[1]) / (eps2et + r2);
         Rad.rtFields.et[id + 3 * H.n_cells] = (x[2] * x[0]) / (eps2et + r2);
         Rad.rtFields.et[id + 4 * H.n_cells] = (x[2] * x[1]) / (eps2et + r2);
         Rad.rtFields.et[id + 5 * H.n_cells] = (eps2et / 3 + x[2] * x[2]) / (eps2et + r2);
+#endif //OTVET
       }
     }
   }
@@ -2049,7 +2053,9 @@ void Grid3D::Iliev6(struct Parameters P)
   double xcen[3] = {H.xbound + 0.5 * H.xdglobal, H.ybound + 0.5 * H.ydglobal, H.zbound + 0.5 * H.zdglobal};
   double dx2     = H.dx * H.dx;
 
+#ifdef OTVET
   Rad.rtFields.et = (Real *)malloc(H.n_cells * sizeof(Real) * 6);
+#endif //OTVET
   Rad.rtFields.rs = (Real *)malloc(H.n_cells * sizeof(Real));
 
   auto xs = Physics::AtomicData::CrossSections();
@@ -2109,12 +2115,14 @@ void Grid3D::Iliev6(struct Parameters P)
         Rad.rtFields.rf[id] = 1 / (12.5664 * (eps2ot + r2));
         for (int ii = 1; ii < 1 + Rad.n_fpfreq * Rad.n_freq; ii++) Rad.rtFields.rf[id + ii * H.n_cells] = 0;
 
+#ifdef OTVET
         Rad.rtFields.et[id + 0 * H.n_cells] = (eps2et / 3 + x[0] * x[0]) / (eps2et + r2);
         Rad.rtFields.et[id + 1 * H.n_cells] = (x[1] * x[0]) / (eps2et + r2);
         Rad.rtFields.et[id + 2 * H.n_cells] = (eps2et / 3 + x[1] * x[1]) / (eps2et + r2);
         Rad.rtFields.et[id + 3 * H.n_cells] = (x[2] * x[0]) / (eps2et + r2);
         Rad.rtFields.et[id + 4 * H.n_cells] = (x[2] * x[1]) / (eps2et + r2);
         Rad.rtFields.et[id + 5 * H.n_cells] = (eps2et / 3 + x[2] * x[2]) / (eps2et + r2);
+#endif //OTVET
       }
     }
   }

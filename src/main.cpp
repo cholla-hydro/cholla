@@ -216,21 +216,15 @@ int main(int argc, char *argv[])
 #ifdef GRAVITY
   // Get the gravitational potential for the first timestep
   G.Compute_Gravitational_Potential(&P);
-#ifdef RT
-
-#ifdef OTVET 
+#if defined(RT)&&defined(OTVET)
   chprintf("RT: Setting Eddington Tensor...\n");
   G.Rad.ComputeEddingtonTensor(P,G.Grav);
 #endif
+#endif
 
-#ifdef M1
-  chprintf("RT: Setting Flux and Pressure Tensors...\n");
-  G.Rad.ComputeEddingtonTensor(P,G.Grav);
-#endif 
-
+#ifdef RT
   chprintf("RT: Setting Boundaries...\n");
   G.Rad.rtBoundaries();
-#endif
 #endif
 
   // Set boundary conditions (assign appropriate values to ghost cells) for
@@ -357,10 +351,6 @@ int main(int argc, char *argv[])
 #if defined(RT)&&defined(OTVET)
     G.Rad.ComputeEddingtonTensor(P,G.Grav);
 #endif
-#endif
-
-#if defined(RT)&&defined(M1)
-    G.Rad.ComputeEddingtonTensor(P,G.Grav);
 #endif
 
 #ifdef RT
