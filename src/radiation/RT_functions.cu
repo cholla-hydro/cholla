@@ -475,6 +475,9 @@ void Rad3D::rtSolve(Real* dev_scalar)
   int niters2                  = (dt > 0 ? static_cast<int>(1 + speedOfLightInCodeUnits * dt / grid.dx) : niters);
   if (niters > niters2) niters = niters2;
 
+
+  chprintf("Number of RT iterations in rtSolve: %d\n",niters);
+
   for (int iter = 0; iter < niters; iter++) {
     this->lastIteration = (iter == niters - 1);
 
