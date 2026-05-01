@@ -555,10 +555,18 @@ void Allocate_MPI_DeviceBuffers(struct Header *H)
     ybsize = H->n_fields * H->n_ghost * (H->nx) * (H->nz - 2 * H->n_ghost);
     zbsize = H->n_fields * H->n_ghost * (H->nx) * (H->ny);
   #ifdef RT
+  #ifdef OTVET
     // Assuming n_freq = 3
     xbsize = std::max(xbsize, 12 * H->n_ghost * H->ny * H->nz);
     ybsize = std::max(ybsize, 12 * H->n_ghost * H->nx * H->nz);
     zbsize = std::max(zbsize, 12 * H->n_ghost * H->nx * H->ny);
+  #endif //OTVET
+  #ifdef M1
+    // Assuming n_freq = 4, n_fpfreq = 4
+    xbsize = std::max(xbsize, 16 * H->n_ghost * H->ny * H->nz);
+    ybsize = std::max(ybsize, 16 * H->n_ghost * H->nx * H->nz);
+    zbsize = std::max(zbsize, 16 * H->n_ghost * H->nx * H->ny);
+  #endif //M1
   #endif
   } else {
     throw std::runtime_error("MPI buffer size failed to set.");
