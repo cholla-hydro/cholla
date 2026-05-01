@@ -44,7 +44,7 @@ void Set_RT_Boundaries_Periodic(int direction, int side, int nx, int ny, int nz,
 //  Compute pressure tensor - has to be a separate kernel since
 //  pij is needed in its entirety for the step
 template<class PijFunctor> void __global__ GLFMakeP_Kernel(int nx, int ny, int nz, int n_ghost, float dx,
-                                                    const float* rfi, float* pij, PijFunctor pf, int deb)
+                                                    const Real* rfi, Real* pij, PijFunctor pf, int deb)
 {
     const int nw3 = nx*ny*nz;
     const int tid = threadIdx.x + blockIdx.x*blockDim.x;

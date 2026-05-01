@@ -360,7 +360,8 @@ void Rad3D::StepRFiIteration(void)
 
     // Populate the pressure tensor for this frequency
     //GLFMakeP(nx,ny,nz,n_ghost,dx,rfOld,pij,pf,deb); 
-    hipLaunchKernelGGL(GLFMakeP_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, grid.dx,rfOld,pij,pf,(freq == 0 ? 1 : 0));
+    hipLaunchKernelGGL(GLFMakeP_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, 
+                       grid.dx,rfOld,pij,pf,(freq == 0 ? 1 : 0));
 
     // Step the radiation fields at this frequency
     hipLaunchKernelGGL(StepRFiIteration_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost,
