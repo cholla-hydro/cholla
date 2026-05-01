@@ -239,7 +239,7 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost,
 void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* __restrict__ rfi, int nout, Real* __restrict__ rfiOut, int deb);
 
 // Functor to make the pressure tensor
-void __global__ GLFMakeP_Kernel(int nx, int ny, int nz, int n_ghost, float dx, const float* rfi, float* pij, PijFunctor pf, int deb);
+void __global__ GLFMakeP_Kernel(int nx, int ny, int nz, int n_ghost, Real dx, const Real* rfi, Real* pij, PijFunctorM1 pf, int deb);
  
 
 #ifdef OTVET
@@ -284,7 +284,7 @@ void Rad3D::StepRFiIteration(void)
 
   Real cdt2dxRSL = (3e10/VELOCITY_UNIT) * grid.dt / grid.dx; // 
 
-  PijFunctor pf;
+  PijFunctorM1 pf;
 
   // set values for GPU kernels
   // number of blocks per 1D grid
