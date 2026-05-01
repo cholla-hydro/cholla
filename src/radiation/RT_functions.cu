@@ -395,8 +395,10 @@ void Rad3D::StepRFiIteration(void)
     // Step the radiation fields at this frequency
     hipLaunchKernelGGL(StepRFiIteration_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost,
                        grid.dx, cdt2dxRSL, gamma_sis, rtFields.dev_rs, rfOld, abc, pij, rfNew, (freq == 0 ? 1 : 0));
+    GPU_Error_Check(cudaDeviceSynchronize());
     GPU_Error_Check(cudaMemcpyAsync(rfOld, rfNew, n_fpfreq * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
   }
+  GPU_Error_Check(cudaDeviceSynchronize());
 
   // Destroy the pressure tensor by freeing memory on the device
   cudaFree(rtFields.dev_pij);
@@ -426,7 +428,8 @@ void Rad3D::ClipRFiIteration(void)
 
     // Copy back the clipped result
     GPU_Error_Check(cudaMemcpyAsync(rfOld, rfNew, n_fpfreq * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
-  }
+  }  
+  GPU_Error_Check(cudaDeviceSynchronize());
 }
 #endif //M1
 
