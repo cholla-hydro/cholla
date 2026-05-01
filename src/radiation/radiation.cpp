@@ -124,7 +124,7 @@ void Rad3D::rtBoundaries(void)
   MPI_Status status;
 
   // Send MPI x-boundaries
-  if (flags[0] == 5) {
+  if (flags[0] == 5) { // likely needs editing BRANT for M1
     buffer_length =
         Load_RT_Fields_To_Buffer(0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields, d_send_buffer_x0);
   #ifndef MPI_GPU
@@ -149,7 +149,7 @@ void Rad3D::rtBoundaries(void)
     ireq++;
   }
 
-  if (flags[1] == 5) {
+  if (flags[1] == 5) { // likely needs editing BRANT for M1
     buffer_length =
         Load_RT_Fields_To_Buffer(0, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields, d_send_buffer_x1);
   #ifndef MPI_GPU
@@ -177,10 +177,10 @@ void Rad3D::rtBoundaries(void)
   // printf("wait_max: %d\n", wait_max);
 
   /* Set non-MPI x-boundaries */
-  if (flags[0] == 1) {
+  if (flags[0] == 1) { // likely needs editing BRANT for M1
     Set_RT_Boundaries_Periodic(0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
   }
-  if (flags[1] == 1) {
+  if (flags[1] == 1) { // likely needs editing BRANT for M1
     Set_RT_Boundaries_Periodic(0, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
   }
 
@@ -195,9 +195,9 @@ void Rad3D::rtBoundaries(void)
   #ifndef MPI_GPU
     copyHostToDeviceReceiveBuffer(status.MPI_TAG);
   #endif  // MPI_GPU
-    if (status.MPI_TAG == 0)
+    if (status.MPI_TAG == 0) // likely needs editing BRANT for M1
       Unload_RT_Fields_From_Buffer(0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_recv_buffer_x0);
-    if (status.MPI_TAG == 1)
+    if (status.MPI_TAG == 1) // likely needs editing BRANT for M1
       Unload_RT_Fields_From_Buffer(0, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_recv_buffer_x1);
   }
 
@@ -209,7 +209,7 @@ void Rad3D::rtBoundaries(void)
 
   // Send MPI y-boundaries
   if (flags[2] == 5) {
-    buffer_length =
+    buffer_length = // likely needs editing BRANT for M1
         Load_RT_Fields_To_Buffer(1, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields, d_send_buffer_y0);
   #ifndef MPI_GPU
     cudaMemcpy(h_send_buffer_y0, d_send_buffer_y0, ybsize * sizeof(Real), cudaMemcpyDeviceToHost);
@@ -234,7 +234,7 @@ void Rad3D::rtBoundaries(void)
   }
 
   if (flags[3] == 5) {
-    buffer_length =
+    buffer_length = // likely needs editing BRANT for M1
         Load_RT_Fields_To_Buffer(1, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields, d_send_buffer_y1);
   #ifndef MPI_GPU
     cudaMemcpy(h_send_buffer_y1, d_send_buffer_y1, ybsize * sizeof(Real), cudaMemcpyDeviceToHost);
@@ -261,10 +261,10 @@ void Rad3D::rtBoundaries(void)
   // printf("wait_max: %d\n", wait_max);
 
   /* Set non-MPI y-boundaries */
-  if (flags[2] == 1) {
+  if (flags[2] == 1) { // likely needs editing BRANT for M1
     Set_RT_Boundaries_Periodic(1, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
   }
-  if (flags[3] == 1) {
+  if (flags[3] == 1) { // likely needs editing BRANT for M1
     Set_RT_Boundaries_Periodic(1, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
   }
 
@@ -279,9 +279,9 @@ void Rad3D::rtBoundaries(void)
   #ifndef MPI_GPU
     copyHostToDeviceReceiveBuffer(status.MPI_TAG);
   #endif  // MPI_GPU
-    if (status.MPI_TAG == 2)
+    if (status.MPI_TAG == 2) // likely needs editing BRANT for M1
       Unload_RT_Fields_From_Buffer(1, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_recv_buffer_y0);
-    if (status.MPI_TAG == 3)
+    if (status.MPI_TAG == 3) // likely needs editing BRANT for M1
       Unload_RT_Fields_From_Buffer(1, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_recv_buffer_y1);
   }
 
@@ -293,7 +293,7 @@ void Rad3D::rtBoundaries(void)
 
   // Send MPI z-boundaries
   if (flags[4] == 5) {
-    buffer_length =
+    buffer_length = // likely needs editing BRANT for M1
         Load_RT_Fields_To_Buffer(2, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields, d_send_buffer_z0);
     // printf("%d %d\n", buffer_length, zbsize);
   #ifndef MPI_GPU
@@ -318,7 +318,7 @@ void Rad3D::rtBoundaries(void)
     ireq++;
   }
 
-  if (flags[5] == 5) {
+  if (flags[5] == 5) { // likely needs editing BRANT for M1
     buffer_length =
         Load_RT_Fields_To_Buffer(2, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields, d_send_buffer_z1);
     // printf("%d %d\n", buffer_length, zbsize);
@@ -347,10 +347,10 @@ void Rad3D::rtBoundaries(void)
   // printf("wait_max: %d\n", wait_max);
 
   /* Set non-MPI z-boundaries */
-  if (flags[4] == 1) {
+  if (flags[4] == 1) { // likely needs editing BRANT for M1
     Set_RT_Boundaries_Periodic(2, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
   }
-  if (flags[5] == 1) {
+  if (flags[5] == 1) { // likely needs editing BRANT for M1
     Set_RT_Boundaries_Periodic(2, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields);
   }
 
@@ -365,9 +365,9 @@ void Rad3D::rtBoundaries(void)
   #ifndef MPI_GPU
     copyHostToDeviceReceiveBuffer(status.MPI_TAG);
   #endif  // MPI_GPU
-    if (status.MPI_TAG == 4)
+    if (status.MPI_TAG == 4) // likely needs editing BRANT for M1
       Unload_RT_Fields_From_Buffer(2, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_recv_buffer_z0);
-    if (status.MPI_TAG == 5)
+    if (status.MPI_TAG == 5) // likely needs editing BRANT for M1
       Unload_RT_Fields_From_Buffer(2, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_freq, rtFields, d_recv_buffer_z1);
   }
 }
