@@ -511,7 +511,7 @@ if(ic>=orig && jc>=orig && kc>=orig && ic<nmax && jc<nmax && kc<nmax)
 //  This is called ClipRFi in Altair
 //
 //void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* __restrict__ rfi, int nout, Real* __restrict__ rfiOut, int deb)
-void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* __restrict__ rfi, int nout, Real* __restrict__ rfiOut, int deb)
+void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* __restrict__ rfi, Real* __restrict__ rfiOut, int deb)
 {
   const int tid = threadIdx.x + blockIdx.x*blockDim.x;
   const int nc = nx - 2*n_ghost;
