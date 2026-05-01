@@ -13,8 +13,9 @@
 
 #ifdef RT
 
-__global__ void Load_RT_Buffer_kernel(int direction, int side, int size_buffer, int n_i, int n_j, int nx, int ny,
-                                      int nz, int n_ghost_transfer, int n_ghost_rt, int n_freq,
+__global__ void Load_RT_Buffer_kernel(int direction, int side, int size_buffer, 
+                                      int n_i, int n_j, int nx, int ny, int nz,
+                                      int n_ghost_transfer, int n_ghost_rt, int n_freq,
                                       struct Rad3D::RT_Fields rtFields, Real* transfer_buffer_d)
 {
   // get a global thread ID
@@ -43,7 +44,7 @@ __global__ void Load_RT_Buffer_kernel(int direction, int side, int size_buffer, 
     if (side == 0) tid_rf = (tid_i) + (tid_j)*nx + (n_ghost_rt + tid_k) * nx * ny;
     if (side == 1) tid_rf = (tid_i) + (tid_j)*nx + (nz - n_ghost_rt - n_ghost_transfer + tid_k) * nx * ny;
   }
-  for (int i = 0; i < n_freq; i++) { // Suspicious -- BRANT
+  for (int i = 0; i < n_freq; i++) { // Suspicious -- BRANT  DEFINITELY NEEDS ALTERATION ERROR
     transfer_buffer_d[tid_buffer + i * size_buffer]            = rtFields.dev_rf[tid_rf + (1 + i) * n_cells];
     transfer_buffer_d[tid_buffer + (n_freq + i) * size_buffer] = rtFields.dev_rf[tid_rf + (1 + n_freq + i) * n_cells];
   }
@@ -80,7 +81,7 @@ __global__ void Unload_RT_Buffer_kernel(int direction, int side, int size_buffer
     if (side == 1) tid_rf = (tid_i) + (tid_j)*nx + (nz - n_ghost_rt + tid_k) * nx * ny;
   }
 
-  for (int i = 0; i < n_freq; i++) { // Suspicious -- BRANT
+  for (int i = 0; i < n_freq; i++) { // Suspicious -- BRANT  DEFINITELY NEEDS ALTERATION ERROR
     rtFields.dev_rf[tid_rf + (1 + i) * n_cells]          = transfer_buffer_d[tid_buffer + i * size_buffer];
     rtFields.dev_rf[tid_rf + (1 + n_freq + i) * n_cells] = transfer_buffer_d[tid_buffer + (n_freq + i) * size_buffer];
   }
@@ -119,7 +120,7 @@ __global__ void Set_RT_Boundaries_Periodic_Kernel(int direction, int side, int n
     if (side == 1) tid_dst = (tid_i) + (tid_j)*nx + (nz - n_ghost + tid_k) * nx * ny;
   }
 
-  for (int i = 0; i < n_freq; i++) { // Suspicious -- BRANT
+  for (int i = 0; i < n_freq; i++) { // Suspicious -- BRANT  DEFINITELY NEEDS ALTERATION ERROR
     rtFields.dev_rf[tid_dst + (1 + i) * n_cells]          = rtFields.dev_rf[tid_src + (1 + i) * n_cells];
     rtFields.dev_rf[tid_dst + (1 + n_freq + i) * n_cells] = rtFields.dev_rf[tid_src + (1 + n_freq + i) * n_cells];
   }
@@ -346,15 +347,27 @@ void __global__ OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real 
 //
 //
 //
+/* split template
 template<bool Split> void __global__ StepRFiIteration_Kernel( int nx, int ny, int nz, int n_ghost, 
-                                                              Real cdt2dxRSL, Real gamma, bool lastIteration,
+                                                              Real cdt2dxRSL, Real gamma,
                                                               const Real* __restrict__ rs,
-                                                              const Real* __restrict__ rf0,
                                                               const Real* __restrict__ rfi,
                                                               const Real* __restrict__ abc,
                                                               const Real* __restrict__ pij_,
                                                               Real* __restrict__ rfiNew, int deb)
+*/
+
+// This is our M1 kernel, which is called
+// for each of 4 frequencies
+void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, 
+                                        Real cdt2dxRSL, Real gamma,
+                                        const Real* __restrict__ rs,
+                                        const Real* __restrict__ rfi,
+                                        const Real* __restrict__ abc,
+                                        const Real* __restrict__ pij_,
+                                        Real* __restrict__ rfiNew, int deb)
 {
+  const bool Split = true; // semi-implicit
   const int ip = ic + 1;
   const int im = ic - 1;
   const int jp = jc + 1;
@@ -365,7 +378,7 @@ template<bool Split> void __global__ StepRFiIteration_Kernel( int nx, int ny, in
   const int nw3 = nx*ny*nz;
 
   const float* rf = rfi;
-  const float* fi[3] = { rfi+nw3, rfi+2*nw3, rfi+3*nw3 };
+  const float* fi[3] = { rfi+nw3, rfi+2*nw3, rfi+3*nw3 }; // fluxes
   const float* pij[6] = { pij_, pij_+nw3, pij_+2*nw3, pij_+3*nw3, pij_+4*nw3, pij_+5*nw3 };
   float* fiNew[3] = { rfiNew+nw3, rfiNew+2*nw3, rfiNew+3*nw3 };
 
@@ -456,18 +469,25 @@ if(ic>=orig && jc>=orig && kc>=orig && ic<nmax && jc<nmax && kc<nmax)
 */
 
 //
-//  Final data copy
+//  This is called ClipRFi in Altair
 //
-void __global__ LimitRFi(int nout, int nx, int ny, int nz)
+void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, Real* __restrict__ rfi)
 {
-  const int nout3 = nout*nout*nout;
-  const int origx = (nz-nout)/2; // not offset, this is used for windows of different size
-  const int origy = (ny-nout)/2; // not offset, this is used for windows of different size
-  const int origz = (nz-nout)/2; // not offset, this is used for windows of different size
+  const int tid = threadIdx.x + blockIdx.x*blockDim.x;
+  const int nc = nx - 2*n_ghost;
+  const int jkc = tid/nc; // May need to be updated for ny and nz separately
+  const int ic = n_ghost + tid%nc;
+  const int jc = n_ghost + jkc%nc;
+  const int kc = n_ghost + jkc/nc;
+  if(kc >= nz-n_ghost) return;
+  const int nout3 = n_ghost*n_ghost*n_ghost;
+  const int origx = (nz-n_ghost)/2; // not offset, this is used for windows of different size
+  const int origy = (ny-n_ghost)/2; // not offset, this is used for windows of different size
+  const int origz = (nz-n_ghost)/2; // not offset, this is used for windows of different size
 
-  const int nmaxx = origx + nout;
-  const int nmaxy = origy + nout;
-  const int nmaxz = origz + nout;
+  const int nmaxx = origx + n_ghost;
+  const int nmaxy = origy + n_ghost;
+  const int nmaxz = origz + n_ghost;
 
   cont int nw3 = nx*ny*nz;
 
@@ -535,11 +555,11 @@ template<class PijFunctor> void __global__ GLFMakeP(int nx, int ny, int nz, int 
 struct DEVICE_ALIGN_DECL PijFunctorM1
 {
     GPU_DEVICE_DECL void operator()(int offset, int nx, int ny, int nz, 
-                    int ic, int jc, int kc, const float* rfi, float* pij, int deb)
+                    int ic, int jc, int kc, const Real* rfi, Real* pij, int deb)
     {
         if(ic<offset || jc<offset || kc<offset || ic>=nx-offset || jc>=ny-offset || kc>=nz-offset) return;
 
-        const int nw2 = nx*ny*nz;
+        const int nw3 = nx*ny*nz;
         const int idx = ic + nx*(jc+ny*kc);
         const float r =  rfi[idx];
         const float fx = rfi[idx+1*nw3];

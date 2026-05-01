@@ -224,13 +224,17 @@ void __global__ OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real 
 
 // Function to launch the StepRFiIteration kernel
 // should function the way "LAUNCH" does on slack
-void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real dx, bool lastIteration,
-                                      const Real rsFarFactor, const Real* __restrict__ rs, const Real* __restrict__ et,
-                                      const Real* __restrict__ rfOT, const Real* __restrict__ rfNear,
-                                      const Real* __restrict__ rfFar, const Real* __restrict__ abc,
-                                      Real* __restrict__ rfNearNew, Real* __restrict__ rfFarNew, int deb);
+void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, 
+                                        Real cdt2dxRSL, Real gamma,
+                                        const Real* __restrict__ rs,
+                                        const Real* __restrict__ rfi,
+                                        const Real* __restrict__ abc,
+                                        const Real* __restrict__ pij_,
+                                        Real* __restrict__ rfiNew, int deb);
 
 
+// Function to limit the RF fields after the iteration kernel
+void __global__ LimitRFi_Kernel(int nx, int ny, int nz, int n_ghost, Real* __restrict__ rfi);
 
 // This function performs the OTVET iteration on the GPU
 // and copies the newly updated fields ("New") back onto
@@ -251,8 +255,8 @@ void Rad3D::OTVETIteration(void)
     auto rfOT      = rtFields.dev_rf;
     auto rfNearOld = rtFields.dev_rf + grid.n_cells * (1 + freq);
     auto rfFarOld  = rtFields.dev_rf + grid.n_cells * (1 + n_freq + freq); // Suspicious -- BRANT, n_fpfreq hiding
-    auto rfNearNew = rtFields.dev_rfNew + grid.n_cells * 0; // Suspicious -- BRANT, n_fpfreq hiding
-    auto rfFarNew  = rtFields.dev_rfNew + grid.n_cells * 1; // Suspicious -- BRANT, n_fpfreq hiding
+    auto rfNearNew = rtFields.dev_rfNew + grid.n_cells * 0; // Suspicious -- BRANT, n_fpfreq hiding -- OK for OTVET?
+    auto rfFarNew  = rtFields.dev_rfNew + grid.n_cells * 1; // Suspicious -- BRANT, n_fpfreq hiding -- OK for OTVET?
 
     hipLaunchKernelGGL(OTVETIteration_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost,
                        grid.dx, lastIteration, rsFarFactor, rtFields.dev_rs, rtFields.dev_et, rfOT, rfNearOld, rfFarOld,
@@ -263,6 +267,7 @@ void Rad3D::OTVETIteration(void)
 }
 
 
+// Perform the M1 iteration
 void Rad3D::StepRFiIteration(void)
 {
   const int numThreadsPerBlock = 256;
@@ -276,18 +281,50 @@ void Rad3D::StepRFiIteration(void)
   //  number of threads per 1D block
   dim3 dim1dBlock(numThreadsPerBlock, 1, 1);
 
-  // Launch the kernel for one frequency at a time
-  auto rf0    = rtFields.dev_rf;
+  // Create the pressure tensor by allocating memory on the device
+  GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_pij, 6 * grid.n_cells * sizeof(Real)));
 
-  for (int freq = 0; freq < n_freq; freq++) {
-    auto rfOld  = rtFields.dev_rf    + grid.n_cells * (1 + n_fpfreq * freq);
-    auto rfNew  = rtFields.dev_rfNew + grid.n_cells * (n_fpfreq * freq);
+  // Launch the StepRFiIteration kernel for one frequency at a time
+  for (int freq = 0; freq < n_freq; freq++) { /// hold -- 4 fields per freq * number of freq in M1
+    auto rfOld  = rtFields.dev_rf    + grid.n_cells * (n_fpfreq * freq);// old radiation fields at this frequency
+    auto rfNew  = rtFields.dev_rfNew + grid.n_cells * (n_fpfreq * freq);// updated radiation fields at this frequency
+    auto abc    = rtFields_dev_abc + freq * grid.ncells;                // absorption coefficients at this frequency
+    auto pij    = rtFields.dev_pij;                                     // reuse pressure tensor each frequency
 
+
+    // Populate the pressure tensor for this frequency
+    GLFMakeP(nx,ny,nz,n_ghost,dx,rfOld,pij,pf,deb);
+
+    // Step the radiation fields at this frequency
     hipLaunchKernelGGL(StepRFiIteration_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost,
-                       cdt2dxRSL, rtFields.dev_rs, rfOld, rtFields.dev_abc + freq * grid.n_cells, rfNew, (freq == 0 ? 1 : 0));
+                       cdt2dxRSL, gamma, rtFields.dev_rs, rfOld, abc, rfNew, (freq == 0 ? 1 : 0));
     GPU_Error_Check(cudaMemcpyAsync(rfOld, rfNew, n_fpfreq * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
   }
+
+  // Destroy the pressure tensor by freeing memory on the device
+  cudaFree(rtFields.dev_pij);
 }
+
+// Apply the limiter on the RFi after the M1 iteration
+void Rad3D::ClipRFiIteration(void)
+{
+  const int numThreadsPerBlock = 256;
+  int ngrid                    = (grid.n_cells + numThreadsPerBlock - 1) / numThreadsPerBlock;
+
+  // set values for GPU kernels
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(numThreadsPerBlock, 1, 1);
+
+  // Launch the kernel for one frequency at a time
+  for (int freq = 0; freq < n_freq; freq++) {
+    auto rfi  = rtFields.dev_rf    + grid.n_cells * (n_fpfreq * freq);
+    hipLaunchKernelGGL(ClipRFi_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, rfi);
+  }
+}
+
+
 
 // CPU function that calls the GPU-based RT functions
 void Rad3D::rtSolve(Real* dev_scalar)
@@ -312,10 +349,10 @@ void Rad3D::rtSolve(Real* dev_scalar)
 #endif
 
 #ifdef M1
-    // Create the pressure fields
-    CreatePressure();
     // Call the StepRFi Iteration kernel
+    // This must create and destroy the pressure fields
     StepRFiIteration();
+
     // Limit the RFi fields
     StepLimitRFiIteration();
 #endif

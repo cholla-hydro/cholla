@@ -35,7 +35,17 @@ void Rad3D::Initialize_Start(const Parameters& params)
   num_iterations = params.num_iterations;
 
   // allocate memory on the host
+#ifdef OTVET
+  // in otvet n_fpfreq =2, for the near and far field
+  // one for each frequency, plus the 0 field
   rtFields.rf = (Real*)malloc((1 + n_fpfreq * n_freq) * grid.n_cells * sizeof(Real));
+#endif //OTVET
+
+#ifdef M1
+  // in M1, n_fpfreq = 4
+  // note this is 16 fields
+  rtFields.rf = (Real*)malloc((n_fpfreq * n_freq) * grid.n_cells * sizeof(Real));
+#endif //M1
 
   // set boundary flags
   flags[0] = params.xl_bcnd;
@@ -69,13 +79,20 @@ void Rad3D::Initialize_Finish()
   // Allocate memory for radiation fields (non-advecting, 2 per frequency plus 1 optically thin field)
   chprintf("Allocating memory for radiation fields. \n");
 
+
+#ifdef OTVET
   // allocate memory on the device
   GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_rf, (1 + n_fpfreq * n_freq) * grid.n_cells * sizeof(Real)));
 
-#ifdef OTVET
   // Allocate memory for Eddington tensor only on device
   GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_et, 6 * grid.n_cells * sizeof(Real)));
 #endif
+
+#ifdef M1
+  // allocate memory on the device
+  // in M1 this is 16 fields for n_freq = 4
+  GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_rf, (n_fpfreq * n_freq) * grid.n_cells * sizeof(Real)));
+#endif //M1
 
   // Allocate memory for radiation source field only on device
   GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_rs, grid.n_cells * sizeof(Real)));
@@ -358,14 +375,16 @@ void Rad3D::rtBoundaries(void)
 void Rad3D::Free_Memory(void)
 {
   cudaFree(rtFields.dev_rf);
-  cudaFree(rtFields.dev_et);
   cudaFree(rtFields.dev_rs);
   cudaFree(rtFields.dev_abc);
   cudaFree(rtFields.dev_rfNew);
-
-  if (rtFields.et != nullptr) free(rtFields.et);
   if (rtFields.rs != nullptr) free(rtFields.rs);
   free(rtFields.rf);
+
+#ifdef OTVET
+  if (rtFields.et != nullptr) free(rtFields.et);
+  cudaFree(rtFields.dev_et);
+#endif //OTVET
 }
 
 #endif  // RT

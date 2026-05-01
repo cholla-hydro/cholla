@@ -296,7 +296,7 @@ __device__ void Get_Current_UVB_Rates(Real current_z, ChemistryHeader &Chem_H,  
     }
 
     if (Chem_H.dTables[1] != nullptr) {
-      const float rfFHI   = rf[id + 4 * ncells];
+      const float rfFHI   = rf[id + 4 * ncells];  // BRANT: BE CAREFUL HERE TOO FOR M1
       const float rfFHeI  = rf[id + 5 * ncells];
       const float rfFHeII = rf[id + 6 * ncells];
 

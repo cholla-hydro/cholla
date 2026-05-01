@@ -29,12 +29,23 @@ class Rad3D
   // flag for the last iteration
   bool lastIteration = false;
 
+#ifdef OTVET
   // number of frequencies
-  const static int n_freq = 3;
+  const static int n_freq = 3;  // 3 frequencies plus the 0 field is not included
+  
+  // number of fields per frequency
+  const static int n_fpfreq = 2; // original OTVET, near and far
+#endif //OTVET
+
+#ifdef M1
+  // number of frequencies
+  const static int n_freq = 4;  // 3 frequencies plus the 0 field
 
   // number of fields per frequency
-  //const static int n_fpfreq = 2; // original OTVET 
-  const static int n_fpfreq = 4; // M1 
+  const static int n_fpfreq = 4; // M1 has four fields per frequencies
+#endif
+
+
 
   // array of boundary flags
   int flags[6] = {0, 0, 0, 0, 0, 0};
@@ -47,16 +58,25 @@ class Rad3D
     // update)
     Real *rf;
     Real *dev_rf;
+
+#ifdef OTVET
     // Eddington tensor. By default it is not needed on host, but some tests require it.
     Real *et = nullptr;
     Real *dev_et;
+#endif //OTVET
+
     // radiation source field. By default it is not needed on host, but some tests require it.
     Real *rs = nullptr;
     Real *dev_rs;
 
+#ifdef M1
+    Real *dev_pij; // Pressure fields on the device
+#endif //M1
+
     // additional temporary fields
     // absorption coefficient;
     Real *dev_abc;
+
     // updated fields on the device
     Real *dev_rfNew;
   } rtFields;
@@ -81,10 +101,9 @@ class Rad3D
 
   void Calc_Absorption(Real *dev_scalar);
 
-  void OTVETIteration();
-
-  void StepRFiIteration(); // For M1, ported from OTVET + Altair
-  void StepLimitRFiIteration();
+  void OTVETIteration();   // original OTVET implementation
+  void StepRFiIteration(); // For M1, ported from OTVET + Altair, step the radiation fields
+  void ClipRFiIteration();// For M1, limit the radiation fields
   
 
   void rtBoundaries();
