@@ -581,7 +581,7 @@ __global__ void Print_Chemistry_kernel(Real *dev_conserved, int nx, int ny, int 
 }
 
 
-__global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,  int nx, int ny, int nz, int n_ghost, int n_fields,
+__global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf, int n_fpfreq, int nx, int ny, int nz, int n_ghost, int n_fields,
                                         Real dt_hydro, ChemistryHeader Chem_H)
 {
   int id, xid, yid, zid, n_cells, n_iter;
@@ -709,7 +709,7 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
     }
 
     // Get the photoheating and photoionization rates at z=current_z
-    Get_Current_UVB_Rates(current_z, Chem_H, dev_rf, id, n_cells, photo_i_HI, photo_i_HeI, photo_i_HeII, photo_h_HI, photo_h_HeI,
+    Get_Current_UVB_Rates(current_z, Chem_H, dev_rf, n_fpfreq, id, n_cells, photo_i_HI, photo_i_HeI, photo_i_HeII, photo_h_HI, photo_h_HeI,
                           photo_h_HeII, print);
     //Get_Current_Photo_Rates(Chem_H, dev_rf, id, n_cells, photo_i_HI, photo_i_HeI, photo_i_HeII, photo_h_HI, photo_h_HeI,
     //                        photo_h_HeII, print);
@@ -780,7 +780,7 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
   }
 }
 
-void Do_Chemistry_Update(Real *dev_conserved, const Real *dev_rf,  int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
+void Do_Chemistry_Update(Real *dev_conserved, const Real *dev_rf, int n_fpfreq, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
                          ChemistryHeader &Chem_H)
 {
   float time;
@@ -793,7 +793,7 @@ void Do_Chemistry_Update(Real *dev_conserved, const Real *dev_rf,  int nx, int n
   dim3 dim1dGrid(ngrid, 1, 1);
   dim3 dim1dBlock(TPB_CHEM, 1, 1);
 
-  hipLaunchKernelGGL(Update_Chemistry_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, dev_rf, nx, ny, nz, n_ghost, n_fields,
+  hipLaunchKernelGGL(Update_Chemistry_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, dev_rf, n_fpfreq, nx, ny, nz, n_ghost, n_fields,
                      dt, Chem_H);
 
   GPU_Error_Check();

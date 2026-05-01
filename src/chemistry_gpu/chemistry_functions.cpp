@@ -286,9 +286,9 @@ void Grid3D::Update_Chemistry()
   #endif
 
   #ifdef RT
-  Do_Chemistry_Update(C.device, Rad.rtFields.dev_rf, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, Chem.H);
+  Do_Chemistry_Update(C.device, Rad.rtFields.dev_rf, Rad.n_fpfreq, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, Chem.H);
   #else
-  Do_Chemistry_Update(C.device, nullptr, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, Chem.H);
+  Do_Chemistry_Update(C.device, nullptr, 0, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, Chem.H);
   #endif
 }
 
