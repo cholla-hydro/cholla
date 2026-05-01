@@ -279,7 +279,8 @@ void Rad3D::OTVETIteration(void)
 
 struct DEVICE_ALIGN_DECL PijFunctorM1
 {
-    __global__ void operator()(int offset, int nx, int ny, int nz, 
+    //__global__ void operator()(int offset, int nx, int ny, int nz, 
+    __device__ void operator()(int offset, int nx, int ny, int nz, 
                     int ic, int jc, int kc, const Real* rfi, Real* pij, int deb)
     {
         if(ic<offset || jc<offset || kc<offset || ic>=nx-offset || jc>=ny-offset || kc>=nz-offset) return;
@@ -339,7 +340,8 @@ void Rad3D::StepRFiIteration(void)
 
   Real cdt2dxRSL = (3e10/VELOCITY_UNIT) * grid.dt / grid.dx; // 
 
-  PijFunctorM1& pf;
+  //PijFunctorM1& pf;
+  PijFunctorM1 pf;
 
   // set values for GPU kernels
   // number of blocks per 1D grid
