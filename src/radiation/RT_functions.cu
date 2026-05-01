@@ -479,7 +479,8 @@ void Rad3D::rtSolve(Real* dev_scalar)
   //if (niters > niters2) niters = niters2;
 
 
-  chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, niters2: %d)\n",niters,this->num_iterations,niters2);
+  chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, niters2: %d, dt: %e, c: %e, dx %e)\n",
+            niters,this->num_iterations,niters2,dt,speedOfLightInCodeUnits,grid.dx);
 
   for (int iter = 0; iter < niters; iter++) {
     this->lastIteration = (iter == niters - 1);
