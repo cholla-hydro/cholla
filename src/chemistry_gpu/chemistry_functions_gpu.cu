@@ -271,23 +271,44 @@ __device__ Real linear_interpolation(Real delta_x, int indx_l, int indx_r, float
   return v;
 }
 
-__device__ void Get_Current_UVB_Rates(Real current_z, ChemistryHeader &Chem_H,  const Real *rf, int id, int ncells, 
-                                      float &photo_i_HI, float &photo_i_HeI,
-                                      float &photo_i_HeII, float &photo_h_HI, float &photo_h_HeI, float &photo_h_HeII,
-                                      bool print)
+__device__ void Get_Current_UVB_Rates(Real current_z, ChemistryHeader &Chem_H,  const Real *rf, int n_fpfreq,
+                                      int id, int ncells,  float &photo_i_HI, float &photo_i_HeI,
+                                      float &photo_i_HeII, float &photo_h_HI, float &photo_h_HeI,
+                                      float &photo_h_HeII, bool print)
 {
   #ifdef RT
+
+  #ifdef OTVET
+  const int stride_0     = 0; //N0    -- near field
+  const int stride_HI    = 1; //NHI   -- near field HI
+  const int stride_HeI   = 2; //NHeI  -- near field HeI
+  const int stride_HeII  = 3; //NHeII -- near field HeII
+  const int stride_FHI   = 4; //FHI   -- far field HI
+  const int stride_FHeI  = 5; //FHeI  -- far field HeI
+  const int stride_FHeII = 6; //FHeII -- far field HeII
+  #endif //OTVET
+
+  #ifdef M1
+  const int stride_0     = 0;          //0    -- intensity field
+  const int stride_HI    = n_fpfreq;   //HI   -- intensity field
+  const int stride_HeI   = 2*n_fpfreq; //HeI  -- intensity field
+  const int stride_HeII  = 3*n_fpfreq; //HeII -- intensity field
+  #endif //M1
+
+  // This applies to all methods
+  // For OTVET, this is the near field
+  // For M1, this is the intensity field
   if (rf != nullptr) {
-    const float rfN0    = rf[id + 0 * ncells];  // BRANT: NOTE there are 4 frequencies here
-    const float rfNHI   = rf[id + 1 * ncells];  // so in M1 we need to call this 4 times
-    const float rfNHeI  = rf[id + 2 * ncells];  // and skip the fluxes -- multiply by n_fpfreq? or n_fpfreq-1?
-    const float rfNHeII = rf[id + 3 * ncells];
+    const float rfN0    = rf[id + stride_0    * ncells];  // BRANT: NOTE there are 4 frequencies here
+    const float rfNHI   = rf[id + stride_HI   * ncells];  // so in M1 we need to call this 4 times
+    const float rfNHeI  = rf[id + stride_HeI  * ncells];  // and skip the fluxes -- multiply by n_fpfreq? or n_fpfreq-1?
+    const float rfNHeII = rf[id + stride_HeII * ncells];
 
     float tauHI   = (rfNHI > rfN0 ? 0 : (rfNHI > 0 ? -log(1.0e-35 + rfNHI / rfN0) : 1001));
     float tauHeI  = (rfNHeI > rfN0 ? 0 : (rfNHeI > 0 ? -log(1.0e-35 + rfNHeI / rfN0) : 1001));
     float tauHeII = (rfNHeII > rfN0 ? 0 : (rfNHeII > 0 ? -log(1.0e-35 + rfNHeII / rfN0) : 1001));
 
-    float pRates[6];
+    float pRates[6]; // photoionization and photoheating rates (6 quantities)
     float x[3] = {Chem_H.dStretch->tau2x(tauHI), Chem_H.dStretch->tau2x(tauHeI), Chem_H.dStretch->tau2x(tauHeII)};
     Chem_H.dTables[0]->GetValues(x, pRates, 0, 6);
 
@@ -295,10 +316,14 @@ __device__ void Get_Current_UVB_Rates(Real current_z, ChemistryHeader &Chem_H,  
       pRates[i] *= rfN0;
     }
 
+  #ifdef OTVET
+
+    // The following only applies to OTVET
+    // where this computes the far-field contribution
     if (Chem_H.dTables[1] != nullptr) {
-      const float rfFHI   = rf[id + 4 * ncells];  // BRANT: BE CAREFUL HERE TOO FOR M1
-      const float rfFHeI  = rf[id + 5 * ncells];
-      const float rfFHeII = rf[id + 6 * ncells];
+      const float rfFHI   = rf[id + stride_FHI   * ncells];  // BRANT: BE CAREFUL HERE TOO FOR M1
+      const float rfFHeI  = rf[id + stride_FHeI  * ncells];
+      const float rfFHeII = rf[id + stride_FHeII * ncells];
 
       float tauHI   = (rfFHI > 1 ? 0 : (rfFHI > 0 ? -log(1.0e-35 + rfFHI) : 1001));
       float tauHeI  = (rfFHeI > 1 ? 0 : (rfFHeI > 0 ? -log(1.0e-35 + rfFHeI) : 1001));
@@ -315,6 +340,7 @@ __device__ void Get_Current_UVB_Rates(Real current_z, ChemistryHeader &Chem_H,  
         pRates[i] += pRates2[i];
       }
     }
+  #endif //OTVET
 
     photo_i_HI   = pRates[0] * Chem_H.unitPhotoIonization;
     photo_h_HI   = pRates[1] * Chem_H.unitPhotoHeating;
@@ -323,7 +349,7 @@ __device__ void Get_Current_UVB_Rates(Real current_z, ChemistryHeader &Chem_H,  
     photo_i_HeII = pRates[4] * Chem_H.unitPhotoIonization;
     photo_h_HeII = pRates[5] * Chem_H.unitPhotoHeating;
   } else
-  #endif
+  #endif // RT
   {
     if (current_z > Chem_H.uvb_rates_redshift_d[Chem_H.n_uvb_rates_samples - 1]) {
       photo_h_HI   = 0;

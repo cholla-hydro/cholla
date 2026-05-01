@@ -78,7 +78,9 @@ class Rad3D
     Real *dev_abc;
 
     // updated fields on the device
+    // consider making this a temporary allocation
     Real *dev_rfNew;
+
   } rtFields;
 
   PhotoRatesCSI::TableWrapperGPU *photoRates;
