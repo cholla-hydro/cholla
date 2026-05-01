@@ -591,6 +591,7 @@ template<class PijFunctor> void __global__ GLFMakeP_Kernel(int nx, int ny, int n
 }
 
 
+/*
 struct DEVICE_ALIGN_DECL PijFunctorM1
 {
     __global__ void operator()(int offset, int nx, int ny, int nz, 
@@ -644,6 +645,7 @@ struct DEVICE_ALIGN_DECL PijFunctorM1
         }
     }
 };
+*/
 #endif //M1
 
 

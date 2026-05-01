@@ -276,6 +276,61 @@ void Rad3D::OTVETIteration(void)
 
 
 #ifdef M1
+
+struct DEVICE_ALIGN_DECL PijFunctorM1
+{
+    __global__ void operator()(int offset, int nx, int ny, int nz, 
+                    int ic, int jc, int kc, const Real* rfi, Real* pij, int deb)
+    {
+        if(ic<offset || jc<offset || kc<offset || ic>=nx-offset || jc>=ny-offset || kc>=nz-offset) return;
+
+        const int nw3 = nx*ny*nz;
+        const int idx = ic + nx*(jc+ny*kc);
+        const float r =  rfi[idx];
+        const float fx = rfi[idx+1*nw3];
+        const float fy = rfi[idx+2*nw3];
+        const float fz = rfi[idx+3*nw3];
+
+        if(r > 0)
+        {
+            float flux2 = fx*fx + fy*fy + fz*fz;
+            if(flux2 > 0)
+            {
+                float f2 = min(flux2/(r*r),1.0f);
+
+                float alpha = (3+4*f2)/(5+2*sqrt(4-3*f2));
+                float wd = (1-alpha)/2*r;
+                float wn = (3*alpha-1)/2*r/flux2;
+
+                pij[idx+0*nw3] = wn*fx*fx + wd;
+                pij[idx+1*nw3] = wn*fy*fx;
+                pij[idx+2*nw3] = wn*fy*fy + wd;
+                pij[idx+3*nw3] = wn*fz*fx;
+                pij[idx+4*nw3] = wn*fz*fy;
+                pij[idx+5*nw3] = wn*fz*fz + wd;
+            }
+            else
+            {
+                pij[idx+0*nw3] = r/3;
+                pij[idx+1*nw3] = 0;
+                pij[idx+2*nw3] = r/3;
+                pij[idx+3*nw3] = 0;
+                pij[idx+4*nw3] = 0;
+                pij[idx+5*nw3] = r/3;
+            }
+        }
+        else
+        {
+            pij[idx+0*nw3] = 0;
+            pij[idx+1*nw3] = 0;
+            pij[idx+2*nw3] = 0;
+            pij[idx+3*nw3] = 0;
+            pij[idx+4*nw3] = 0;
+            pij[idx+5*nw3] = 0;
+        }
+    }
+};
+
 // Perform the M1 iteration
 void Rad3D::StepRFiIteration(void)
 {
