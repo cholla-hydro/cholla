@@ -105,7 +105,7 @@ class Rad3D
 
   void OTVETIteration();   // original OTVET implementation
 #ifdef M1
-  void StepRFiIteration(); // For M1, ported from OTVET + Altair, step the radiation fields
+  void StepRFiIteration(Real cdt2dxRSL, Real gamma_sis); // For M1, ported from OTVET + Altair, step the radiation fields
   void ClipRFiIteration();// For M1, limit the radiation fields
 #endif //M1
   

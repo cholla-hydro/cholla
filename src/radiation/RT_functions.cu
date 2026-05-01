@@ -352,48 +352,10 @@ struct DEVICE_ALIGN_DECL PijFunctorM1
 };
 
 // Perform the M1 iteration
-void Rad3D::StepRFiIteration(void)
+void Rad3D::StepRFiIteration(Real cdt2dxRSL, Real gamma_sis)
 {
   const int numThreadsPerBlock = 256;
   int ngrid                    = (grid.n_cells + numThreadsPerBlock - 1) / numThreadsPerBlock;
-
-// cdt2dxRSL is cbar*dt/dx, cbar is the effective speed of light which can be less than c 
-// in the reduced speed of light approximation used.
-//
-// gamma is the parameter for the semi-implicit scheme:
-// v_1 = v_0 + J*(gamma*v_1+(1-gamma)*v_0), J is the Jacobian
-//
-//  gamma=0 is the Aubert & Teyssier 2008 scheme.
-
-  int scheme_ = 0;
-  Real gamma_sis = 0.5; // semi-implicit scheme parameter
-  Real cdt2dxRSL = 0.5; // default case 1
-  //Real cdt2dxRSL = (3e10/VELOCITY_UNIT) * grid.dt / grid.dx; // look at moments.cpp
-  //cdt2dxRSL /= (1 + gamma_sis); // NEEDS EDITING DEBUG
-
-  switch(scheme_)
-  {
-    case 0: {
-      cdt2dxRSL = 0.25;
-      gamma_sis = 0;
-      break;
-    }
-    case 1: {
-      cdt2dxRSL = 0.5;
-      gamma_sis = 0.5;
-      break;   
-    }
-    case 2: {
-      cdt2dxRSL = 0.75;
-      gamma_sis = 1.0;
-      break;   
-    }
-    default: {
-      cdt2dxRSL = 0.5;
-      gamma_sis = 0.5;
-      break;   
-    }
-  }
 
   //PijFunctorM1& pf;
   PijFunctorM1 pf;
@@ -473,31 +435,88 @@ void Rad3D::rtSolve(Real* dev_scalar)
 
   int niters                   = this->num_iterations;
 
+
+
+
+#ifdef OTVET
+
+  // original OTVET
+  Real speedOfLightInCodeUnits = 3e10 / VELOCITY_UNIT;
+  int niters2                  = (dt > 0 ? static_cast<int>(1 + speedOfLightInCodeUnits * dt / grid.dx) : niters);
+  if (niters > niters2) niters = niters2;
+
+  for (int iter = 0; iter < niters; iter++) {
+    this->lastIteration = (iter == niters - 1);
+
+    // then call OTVET iteration kernel
+    OTVETIteration();
+#endif
+
+#ifdef M1
+
+  // In M1, the number of iterations per hydro step will be determined
+  // by the speed of light
+  //
+  // cdt2dxRSL is cbar*dt/dx, cbar is the effective speed of light which can be less than c 
+  // in the reduced speed of light approximation used.
+  //
+  // gamma is the parameter for the semi-implicit scheme:
+  // v_1 = v_0 + J*(gamma*v_1+(1-gamma)*v_0), J is the Jacobian
+  //
+  //  gamma=0 is the Aubert & Teyssier 2008 scheme.
+
+  int scheme_ = 0;
+  Real gamma_sis = 0.5; // semi-implicit scheme parameter
+  Real CFL_RT    = 0.5; // default case 1
+  switch(scheme_)
+  {
+    case 0: {
+      CFL_RT = 0.25;
+      gamma_sis = 0;
+      break;
+    }
+    case 1: {
+      CFL_RT = 0.5;
+      gamma_sis = 0.5;
+      break;   
+    }
+    case 2: {
+      CFL_RT = 0.75;
+      gamma_sis = 1.0;
+      break;   
+    }
+    default: {
+      CFL_RT = 0.5;
+      gamma_sis = 0.5;
+      break;   
+    }
+  }
+
+  Real speedOfLightInCodeUnits = 3e10 / VELOCITY_UNIT;
+  int niters_cfl = 1 + speedOfLightInCodeUnits * dt / (CFL_RT * dx);
+
+  Real cdt2dxRSL = speedOfLightInCodeUnits * dt/(dx*niters_cfl);
+
   // the following triggers niters=1, need to set correctly
   Real speedOfLightInCodeUnits = 3e10 / VELOCITY_UNIT;
-  /*int niters2                  = (dt > 0 ? static_cast<int>(1 + speedOfLightInCodeUnits * dt / grid.dx) : niters);
-  //if (niters > niters2) niters = niters2;
+  int niters2                  = (dt > 0 ? static_cast<int>(1 + speedOfLightInCodeUnits * dt / grid.dx) : niters);
+  if (niters > niters2) niters = niters2;
 
+  //        fs.numSteps = 1 + mRSLFactor*cdt/(mSchemeCFL*dx);
+  //        auto cdt2dx = cdt/(dx*fs.numSteps); // numSteps is because cdt2dxRSL is per step, not per update
 
+  /*
   chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, niters2: %d, dt: %e, c: %e, dx %e)\n",
             niters,this->num_iterations,niters2,dt,speedOfLightInCodeUnits,grid.dx);
   */
   chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, dt: %e, c: %e, dx %e)\n",
             niters,this->num_iterations,dt,speedOfLightInCodeUnits,grid.dx);
 
-  for (int iter = 0; iter < niters; iter++) {
+  for (int iter = 0; iter < niters_cfl; iter++) {
     this->lastIteration = (iter == niters - 1);
-
-
-#ifdef OTVET
-    // then call OTVET iteration kernel
-    OTVETIteration();
-#endif
-
-#ifdef M1
     // Call the StepRFi Iteration kernel
     // This must create and destroy the pressure fields
-    StepRFiIteration();
+    StepRFiIteration(cdt2dxRSL, gamma_sis);
 
     // Clip the RFi fields
     ClipRFiIteration();
