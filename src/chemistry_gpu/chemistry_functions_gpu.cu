@@ -431,6 +431,7 @@ __device__ Real Get_Chemistry_dt(Thermal_State &TS, ChemistryHeader &Chem_H, Rea
   dt     = fmin(0.5 * dt_hydro, dt);
   dt     = fmin(dt_hydro - t_chem, dt);
 
+/*
   if (n_iter == Chem_H.max_iter - 1) {
     printf(
         "##### Chem_GPU: dt_hydro: %e   t_chem: %e   dens: %e   temp: %e  GE: "
@@ -438,6 +439,7 @@ __device__ Real Get_Chemistry_dt(Thermal_State &TS, ChemistryHeader &Chem_H, Rea
         dt_hydro, t_chem, TS.d, TS.get_temperature(Chem_H.gamma), energy, U_dot, fabs(0.1 * TS.d_HI / HI_dot),
         fabs(0.1 * TS.d_e / e_dot), fabs(0.1 * TS.U * TS.d / U_dot));
   }
+*/
 
   if (print) printf("HIdot: %e\n", HI_dot);
   if (print) printf("edot: %e\n", e_dot);

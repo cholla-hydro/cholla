@@ -364,8 +364,9 @@ void Rad3D::StepRFiIteration(void)
 //
 //  gamma=0 is the Aubert & Teyssier 2008 scheme.
 
-  Real cdt2dxRSL = (3e10/VELOCITY_UNIT) * grid.dt / grid.dx; // 
   Real gamma_sis = 0.5; // semi-implicit scheme parameter
+  Real cdt2dxRSL = (3e10/VELOCITY_UNIT) * grid.dt / grid.dx; // look at moments.cpp
+  cdt2dxRSL /= (1 + gamma_sis); // NEEDS EDITING
 
   //PijFunctorM1& pf;
   PijFunctorM1 pf;
@@ -392,10 +393,10 @@ void Rad3D::StepRFiIteration(void)
     hipLaunchKernelGGL(GLFMakeP_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, 
                        grid.dx,rfOld,pij,pf,(freq == 0 ? 1 : 0));
 
+// DEBUG
     // Step the radiation fields at this frequency
     hipLaunchKernelGGL(StepRFiIteration_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost,
                        grid.dx, cdt2dxRSL, gamma_sis, rtFields.dev_rs, rfOld, abc, pij, rfNew, (freq == 0 ? 1 : 0));
-    GPU_Error_Check(cudaDeviceSynchronize());
     GPU_Error_Check(cudaMemcpyAsync(rfOld, rfNew, n_fpfreq * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
   }
   GPU_Error_Check(cudaDeviceSynchronize());

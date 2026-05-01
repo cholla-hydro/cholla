@@ -433,7 +433,8 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost,
   const int jkc = tid/nc; // May need to be updated for ny and nz separately
   const int ic = n_ghost + tid%nc;
   const int jc = n_ghost + jkc%nc;
-  const int kc = n_ghost + jkc/nc;
+  const int kc = n_ghost + jkc/nc; //DEBUG
+  if(kc >= nz-n_ghost) return; // try this
 
   const bool Split = true; // semi-implicit
   const int ip = ic + 1;
@@ -452,7 +453,7 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost,
 
   const Real d = dx*rs[ic+nx*(jc+ny*kc)] + 0.5f*(fi[0][im+nx*(jc+ny*kc)]-fi[0][ip+nx*(jc+ny*kc)]+fi[1][ic+nx*(jm+ny*kc)]-fi[1][ic+nx*(jp+ny*kc)]+fi[2][ic+nx*(jc+ny*km)]-fi[2][ic+nx*(jc+ny*kp)]) + 0.5f*(rf[im+nx*(jc+ny*kc)]+rf[ip+nx*(jc+ny*kc)]+rf[ic+nx*(jm+ny*kc)]+rf[ic+nx*(jp+ny*kc)]+rf[ic+nx*(jc+ny*km)]+rf[ic+nx*(jc+ny*kp)]-6*rf[ic+nx*(jc+ny*kc)]);
 
-  float rf1, cdt2dx, w1, w2;
+  Real rf1, cdt2dx, w1, w2;
   if(Split)
   {
       cdt2dx = cdt2dxRSL/(1+cdt2dxRSL*gamma*3);
@@ -470,8 +471,9 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost,
   }
 
 
-  rfiNew[ic+nx*(jc+ny*kc)] = (rf1<0 ? 0 : rf1);
+  rfiNew[ic+nx*(jc+ny*kc)] = (rf1<0 ? 0 : rf1); //ERROR HERE
 
+//DEBUG
   for(int m=0; m<3; m++)
   {
       constexpr int ix[] = { 0, 1, 3 };
@@ -482,11 +484,11 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost,
 
       if(Split)
       {
-          fiNew[m][ic+nx*(jc+ny*kc)] = fi[m][ic+nx*(jc+ny*kc)]*w1 + cdt2dx*df*w2;
+          fiNew[m][ic+nx*(jc+ny*kc)] = fi[m][ic+nx*(jc+ny*kc)]*w1 + cdt2dx*df*w2;  //testing RHS
       }
       else
       {
-          fiNew[m][ic+nx*(jc+ny*kc)] = fi[m][ic+nx*(jc+ny*kc)] + cdt2dx*(df-abc[ic+nx*(jc+ny*kc)]*fi[m][ic+nx*(jc+ny*kc)]);
+          fiNew[m][ic+nx*(jc+ny*kc)] = fi[m][ic+nx*(jc+ny*kc)] + cdt2dx*(df-abc[ic+nx*(jc+ny*kc)]*fi[m][ic+nx*(jc+ny*kc)]); //testing RHS
       }
   }
 }
