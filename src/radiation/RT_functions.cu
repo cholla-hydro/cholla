@@ -509,11 +509,13 @@ void Rad3D::rtSolve(Real* dev_scalar)
   chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, dt: %e, c: %e, dx %e)\n",
             niters_cfl,this->num_iterations,dt,speedOfLightInCodeUnits,grid.dx);
 
+  int n_iters_check = 0;
   for (int iter = 0; iter < niters_cfl; iter++) {
     this->lastIteration = (iter == niters_cfl - 1);
     // Call the StepRFi Iteration kernel
     // This must create and destroy the pressure fields
     StepRFiIteration(cdt2dxRSL, gamma_sis);
+    n_iters_check;
 
     // Clip the RFi fields
     ClipRFiIteration();
@@ -524,6 +526,7 @@ void Rad3D::rtSolve(Real* dev_scalar)
     // then call boundaries functions
     rtBoundaries();
   }
+  chprintf("RT: Number of iterations executed: %d\n",n_iters_check);
   /*
 
   INTRO:
