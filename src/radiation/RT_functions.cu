@@ -493,6 +493,8 @@ void Rad3D::rtSolve(Real* dev_scalar)
   }
 
   int niters_cfl = 1 + speedOfLightInCodeUnits * dt / (CFL_RT * grid.dx);
+  if(niters_cfl<this->num_iterations)
+    niters_cfl = this->num_iterations;
   Real cdt2dxRSL = fminf(CFL_RT,speedOfLightInCodeUnits * dt/(grid.dx*niters_cfl));
 
   // the following triggers niters=1, need to set correctly
