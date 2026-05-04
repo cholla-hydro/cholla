@@ -5,6 +5,7 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../grid/grid3D.h"
+#include "../io/io.h"
 #include "RT_functions.h"
 #include "radiation.h"
 #ifdef MPI_CHOLLA
