@@ -568,6 +568,7 @@ __global__ void Print_Chemistry_kernel(Real *dev_conserved, int nx, int ny, int 
     TS.d_HeIII = dev_conserved[id + n_cells * grid_enum::HeIII_density] / a3;
     TS.d_e     = dev_conserved[id + n_cells * grid_enum::e_density] / a3;
     TS.U       = GE * d_inv * 1e-10;
+    /*
     if(print) {
       printf("Print id %d TSPC.density: %e \n",id,         TS.d );
       printf("Print id %d TSPC.HI_density: %e \n",id,      TS.d_HI );
@@ -579,6 +580,7 @@ __global__ void Print_Chemistry_kernel(Real *dev_conserved, int nx, int ny, int 
       printf("Print id %d TSPC.internal_energy: %e \n", id,TS.U );
       printf("Print id %d TSPC.energy: %e \n", id,TS.U*TS.d );
     }
+    */
   }
 }
 
