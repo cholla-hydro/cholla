@@ -515,7 +515,7 @@ void Rad3D::rtSolve(Real* dev_scalar)
     // Call the StepRFi Iteration kernel
     // This must create and destroy the pressure fields
     StepRFiIteration(cdt2dxRSL, gamma_sis);
-    n_iters_check;
+    n_iters_check++;
 
     // Clip the RFi fields
     ClipRFiIteration();
