@@ -493,7 +493,7 @@ void Rad3D::rtSolve(Real* dev_scalar)
   }
 
   int niters_cfl = 1 + speedOfLightInCodeUnits * dt / (CFL_RT * grid.dx);
-  Real cdt2dxRSL = speedOfLightInCodeUnits * dt/(grid.dx*niters_cfl);
+  Real cdt2dxRSL = fminf(CFL_RT,speedOfLightInCodeUnits * dt/(grid.dx*niters_cfl));
 
   // the following triggers niters=1, need to set correctly
   //int niters2                  = (dt > 0 ? static_cast<int>(1 + speedOfLightInCodeUnits * dt / grid.dx) : niters);
@@ -506,8 +506,8 @@ void Rad3D::rtSolve(Real* dev_scalar)
   chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, niters2: %d, dt: %e, c: %e, dx %e)\n",
             niters,this->num_iterations,niters2,dt,speedOfLightInCodeUnits,grid.dx);
   */
-  chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, dt: %e, c: %e, dx %e)\n",
-            niters_cfl,this->num_iterations,dt,speedOfLightInCodeUnits,grid.dx);
+  chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, dt: %e, c: %e, dx %e, cdt2dxRSL %e)\n",
+            niters_cfl,this->num_iterations,dt,speedOfLightInCodeUnits,grid.dx,cdt2dxRSL);
 
   int n_iters_check = 0;
   for (int iter = 0; iter < niters_cfl; iter++) {
@@ -526,6 +526,9 @@ void Rad3D::rtSolve(Real* dev_scalar)
     // then call boundaries functions
     rtBoundaries();
   }
+
+  // This should match niters_cfl.  Now we need to check that 
+  // the integration over RT steps takes sufficiently small steps.
   chprintf("RT: Number of iterations executed: %d\n",n_iters_check);
   /*
 
