@@ -475,7 +475,7 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost,
   rfiNew[ic+nx*(jc+ny*kc)] = (rf1<0 ? 0 : rf1);
 
   if((ic==nx-n_ghost-1)&&(jc==ny-n_ghost-1)&&(kc==nz-n_ghost-1)) {
-    print("In StepRFi: tid %d rfi %e rfiNew %e\n",tid,rfi[ic+nx*(jc+ny*kc)],rfiNew[ic+nx*(jc+ny*kc)]);
+    printf("In StepRFi: tid %d rfi %e rfiNew %e\n",tid,rfi[ic+nx*(jc+ny*kc)],rfiNew[ic+nx*(jc+ny*kc)]);
   }
 
 //DEBUG
