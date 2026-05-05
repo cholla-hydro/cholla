@@ -59,10 +59,13 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
 {
   H5open();
   hsize_t dims[1];
+  int int_data[3];
+  Real Real_data[3];
+
   std::string filename = fname_template.format_fname(nfile, "_rt");
   hid_t file_id        = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
-  // Write dt_now
+  // Write rt_mode, dims
   hsize_t attr_dims  = 1;
   hid_t dataspace_id = H5Screate_simple(1, &attr_dims, NULL);
 
@@ -79,6 +82,65 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
   herr_t status      = H5Awrite(attribute_id, H5T_NATIVE_INT, &rt_mode);
   status             = H5Aclose(attribute_id);
 
+  status = H5Sclose(dataspace_id);
+
+  // Now 3D attributes
+  attr_dims = 3;
+  // Create the data space for the attribute
+  dataspace_id = H5Screate_simple(1, &attr_dims, NULL);
+
+  #ifndef MPI_CHOLLA
+  int_data[0] = grid.H.nx_real;
+  int_data[1] = grid.H.ny_real;
+  int_data[2] = grid.H.nz_real;
+  #endif
+  #ifdef MPI_CHOLLA
+  int_data[0] = grid.nx_global;
+  int_data[1] = grid.ny_global;
+  int_data[2] = grid.nz_global;
+  #endif
+
+  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims");
+
+  #ifdef MPI_CHOLLA
+  int_data[0] = grid.H.nx_real;
+  int_data[1] = grid.H.ny_real;
+  int_data[2] = grid.H.nz_real;
+
+  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims_local");
+
+  int_data[0] = grid.nx_local_start;
+  int_data[1] = grid.ny_local_start;
+  int_data[2] = grid.nz_local_start;
+
+  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "offset");
+
+  int_data[0] = grid.nproc_x;
+  int_data[1] = grid.nproc_y;
+  int_data[2] = grid.nproc_z;
+
+  status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "nprocs");
+  #endif
+
+  Real_data[0] = grid.H.xbound;
+  Real_data[1] = grid.H.ybound;
+  Real_data[2] = grid.H.zbound;
+
+  status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "bounds");
+
+  Real_data[0] = grid.H.xdglobal;
+  Real_data[1] = grid.H.ydglobal;
+  Real_data[2] = grid.H.zdglobal;
+
+  status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "domain");
+
+  Real_data[0] = grid.H.dx;
+  Real_data[1] = grid.H.dy;
+  Real_data[2] = grid.H.dz;
+
+  status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "dx");
+
+  // Close the dataspace
   status = H5Sclose(dataspace_id);
 
   // Source field
