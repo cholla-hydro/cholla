@@ -90,53 +90,53 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
   dataspace_id = H5Screate_simple(1, &attr_dims, NULL);
 
   #ifndef MPI_CHOLLA
-  int_data[0] = grid.H.nx_real;
-  int_data[1] = grid.H.ny_real;
-  int_data[2] = grid.H.nz_real;
+  int_data[0] = grid.nx_real;
+  int_data[1] = grid.ny_real;
+  int_data[2] = grid.nz_real;
   #endif
   #ifdef MPI_CHOLLA
-  int_data[0] = grid.nx_global;
-  int_data[1] = grid.ny_global;
-  int_data[2] = grid.nz_global;
+  int_data[0] = nx_global;
+  int_data[1] = ny_global;
+  int_data[2] = nz_global;
   #endif
 
   status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims");
 
   #ifdef MPI_CHOLLA
-  int_data[0] = grid.H.nx_real;
-  int_data[1] = grid.H.ny_real;
-  int_data[2] = grid.H.nz_real;
+  int_data[0] = grid.nx_real;
+  int_data[1] = grid.ny_real;
+  int_data[2] = grid.nz_real;
 
   status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "dims_local");
 
-  int_data[0] = grid.nx_local_start;
-  int_data[1] = grid.ny_local_start;
-  int_data[2] = grid.nz_local_start;
+  int_data[0] = nx_local_start;
+  int_data[1] = ny_local_start;
+  int_data[2] = nz_local_start;
 
   status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "offset");
 
-  int_data[0] = grid.nproc_x;
-  int_data[1] = grid.nproc_y;
-  int_data[2] = grid.nproc_z;
+  int_data[0] = nproc_x;
+  int_data[1] = nproc_y;
+  int_data[2] = nproc_z;
 
   status = Write_HDF5_Attribute(file_id, dataspace_id, int_data, "nprocs");
   #endif
 
-  Real_data[0] = grid.H.xbound;
-  Real_data[1] = grid.H.ybound;
-  Real_data[2] = grid.H.zbound;
+  Real_data[0] = grid.xbound;
+  Real_data[1] = grid.ybound;
+  Real_data[2] = grid.zbound;
 
   status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "bounds");
 
-  Real_data[0] = grid.H.xdglobal;
-  Real_data[1] = grid.H.ydglobal;
-  Real_data[2] = grid.H.zdglobal;
+  Real_data[0] = grid.xdglobal;
+  Real_data[1] = grid.ydglobal;
+  Real_data[2] = grid.zdglobal;
 
   status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "domain");
 
-  Real_data[0] = grid.H.dx;
-  Real_data[1] = grid.H.dy;
-  Real_data[2] = grid.H.dz;
+  Real_data[0] = grid.dx;
+  Real_data[1] = grid.dy;
+  Real_data[2] = grid.dz;
 
   status = Write_HDF5_Attribute(file_id, dataspace_id, Real_data, "dx");
 
