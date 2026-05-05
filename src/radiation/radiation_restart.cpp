@@ -24,7 +24,7 @@ void Radiation_Restart_Filename(char* filename, char* dirname, int nfile)
 }
 
 #if defined(RT) && defined(HDF5)
-void Rad3D::Read_Restart_HDF5(struct Parameters* P, int nfile)
+void Rad3D::Read_Restart_HDF5(Parameters* P, int nfile)
 {
   H5open();
   char filename[MAXLEN];
@@ -37,20 +37,20 @@ void Rad3D::Read_Restart_HDF5(struct Parameters* P, int nfile)
   status             = H5Aclose(attribute_id);
 
   // Read source and copy to device
-  Read_HDF5_Dataset(file_id, F.rs, "/source");
-  GPU_Error_Check(cudaMemcpy(F.dev_rs, F.rs, grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
+  Read_HDF5_Dataset(file_id, rtFields.rs, "/source");
+  GPU_Error_Check(cudaMemcpy(rtFields.dev_rs, rtFields.rs, grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
 
   // Read radiation fiels and copy to device
-  Read_HDF5_Dataset(file_id, F.rf, "/source");
-  GPU_Error_Check(cudaMemcpy(F.dev_rf, F.rf, n_rf * grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
+  Read_HDF5_Dataset(file_id, rtFields.rf, "/source");
+  GPU_Error_Check(cudaMemcpy(rtFields.dev_rf, rtFields.rf, n_rf * grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
   H5Fclose(file_id);
   H5close();
 
 }
 
-void Rad3D::Write_Restart_HDF5(struct Parameters* P, int nfile, const FnameTemplate& fname_template)
+void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fname_template)
 {
   H5open();
   hsize_t dims[1];
@@ -100,12 +100,12 @@ void Rad3D::Write_Restart_HDF5(struct Parameters* P, int nfile, const FnameTempl
 
 #elif defined(RT)
 // Do nothing
-void Rad3D::Read_Restart_HDF5(struct Parameters* P, int nfile)
+void Rad3D::Read_Restart_HDF5(Parameters* P, int nfile)
 {
   chprintf("WARNING from file %s line %d: Rad3D::Read_Restart_HDF5 did nothing", __FILE__, __LINE__);
 }
 
-void Rad3D::Write_Restart_HDF5(struct Parameters* P, int nfile)
+void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile)
 {
   chprintf("WARNING from file %s line %d: Rad3D::Write_Restart_HDF5 did nothing", __FILE__, __LINE__);
 }
