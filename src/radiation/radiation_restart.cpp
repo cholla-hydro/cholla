@@ -14,7 +14,7 @@
   #include <hdf5.h>
 #endif
 
-void Radiation_Restart_Filename(char* filename, char* dirname, int nfile)
+void Rad3D::Radiation_Restart_Filename(char* filename, char* dirname, int nfile)
 {
 #ifdef MPI_CHOLLA
   sprintf(filename, "%s%d_rt.h5.%d", dirname, nfile, procID);

@@ -115,7 +115,7 @@ class Rad3D
   
 
   // io
-  //void Radiation_Restart_Filename(char* filename, char* dirname, int nfile);
+  void Radiation_Restart_Filename(char* filename, char* dirname, int nfile);
   void Read_Restart_HDF5( Parameters* P, int nfile);
   void Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fname_template);
 
