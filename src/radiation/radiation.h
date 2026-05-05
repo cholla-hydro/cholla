@@ -26,6 +26,9 @@ class Rad3D
   // computational domain.
   int num_iterations;
 
+  // Number of radiation fields, depends on the method
+  int n_rf;
+
   // flag for the last iteration
   bool lastIteration = false;
 
@@ -109,6 +112,11 @@ class Rad3D
   void ClipRFiIteration();// For M1, limit the radiation fields
 #endif //M1
   
+
+  // io
+  void Radiation_Restart_Filename(char* filename, char* dirname, int nfile);
+  void Read_Restart_HDF5( struct Parameters* P, int nfile);
+  void Write_Restart_HDF5(struct Parameters* P, int nfile);
 
   void rtBoundaries();
 
