@@ -47,7 +47,7 @@ void Rad3D::Read_Restart_HDF5(Parameters* P, int nfile)
 
 
   // Read radiation fiels and copy to device
-  Read_HDF5_Dataset(file_id, rtFields.rf, "/source");
+  Read_HDF5_Dataset(file_id, rtFields.rf, "/radiation");
   GPU_Error_Check(cudaMemcpy(rtFields.dev_rf, rtFields.rf, n_rf * grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
   H5Fclose(file_id);
@@ -119,7 +119,7 @@ void Rad3D::Read_Restart_HDF5(Parameters* P, int nfile)
   chprintf("WARNING from file %s line %d: Rad3D::Read_Restart_HDF5 did nothing", __FILE__, __LINE__);
 }
 
-void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile)
+void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fname_template)
 {
   chprintf("WARNING from file %s line %d: Rad3D::Write_Restart_HDF5 did nothing", __FILE__, __LINE__);
 }
