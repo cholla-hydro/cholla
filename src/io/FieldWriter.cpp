@@ -362,21 +362,30 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
 
 
   // Likely needs editing, check device or host array and offset
-  /*
+
   #if defined(RT) && defined(OUTPUT_RADIATION)
     const Rad3D& Rad = G.Rad;
-    // for near and far fields, loop over frequencies
-    for (int n = 0; n < (1 + Rad.n_fpfreq * Rad.n_freq); n++) {
+
+    // add the rsource field
+    Write_Generic_HDF5_Field_GPU(H.nx_real + 2 * H.n_ghost, H.ny_real + 2 * H.n_ghost,
+                                 H.nz_real + 2 * H.n_ghost, H.nx_real, H.ny_real, H.nz_real,
+                                 H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf, Rad.rtFields.dev_rs,
+                                 dataset);
+
+    // loop over the number of radiation fields
+    for (int n = 0; n < Rad.n_rf; n++) {
       char dataset[100];
       char number[10];
+      sprintf(dataset,"radiation_");
+      sprintf(number,"%d",n);
       strcat(dataset, number);
       Write_Generic_HDF5_Field_GPU(H.nx_real + 2 * H.n_ghost, H.ny_real + 2 * H.n_ghost,
                                    H.nz_real + 2 * H.n_ghost, H.nx_real, H.ny_real, H.nz_real,
-                                   H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf, Rad.rtFields.rf[n * H.n_cells],
+                                   H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf, Rad.rtFields.dev_rf[n * H.n_cells],
                                    dataset);
     }
   #endif  // RT and OUTPUT_RADIATION
-  */ 
+
 
   // close the file
   if (H5Fclose(file_id) < 0) {
