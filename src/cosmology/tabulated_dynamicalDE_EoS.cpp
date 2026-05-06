@@ -92,7 +92,7 @@ void TabulatedDynamicalDarkEnergyEoS::Setup_DynamicalDE_EquationOfState_(const s
 
       float value;
       std::stringstream ss(line);
-	  v.emplace_back();
+      v.emplace_back();
 
       while (ss >> value) {
         v[i].push_back(value);
