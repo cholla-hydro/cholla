@@ -88,11 +88,11 @@ void TabulatedDynamicalDarkEnergyEoS::Setup_DynamicalDE_EquationOfState_(const s
   int i = 0;
   if (in.is_open()) {
     while (std::getline(in, line)) {
-      if (line.find("#") == 0) continue;
+      if (line.find('#') == 0) continue;
 
       float value;
       std::stringstream ss(line);
-      v.push_back(std::vector<float>());
+	  v.emplace_back();
 
       while (ss >> value) {
         v[i].push_back(value);
