@@ -11,18 +11,60 @@
 // STL includes
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
 // External Libraries and Headers
 #include <H5Cpp.h>
 
+#include "../io/io.h"  // to_string_exact
+
 /*!
- * \brief This namespace contains one class, SystemTestRunner, whose
- * purpose is to (as you might expect) run system tests.
+ * \brief This namespace defines \ref SystemTestRunner (and all relevant machinery).
  */
 namespace system_test
 {
+
+/*! Build up a string that builds up the parameter specified as command line args */
+class ParamArgListBuilder
+{
+  /// The string that is built up
+  std::string s_;
+
+  /*! called by @ref param to update @ref s_ after the value is stringified */
+  ParamArgListBuilder &update_(std::string_view name, std::string_view val)
+  {
+    s_.reserve(s_.size() + 2 + name.size() + val.size());
+    s_ += ' ';
+    s_ += name;
+    s_ += '=';
+    s_ += val;
+    return *this;
+  }
+
+ public:
+  /*! Return the argument list that has been built up */
+  const std::string &getCombinedArgList() const { return s_; }
+
+  // we may need to add more overloads over time
+  ///@{
+  /*! Add a parameter
+   *
+   *  A reference to `*this` is returned to facillitate method chaining
+   */
+  ParamArgListBuilder &param(std::string_view name, int val) { return update_(name, std::to_string(val)); }
+  ParamArgListBuilder &param(std::string_view name, size_t val) { return update_(name, std::to_string(val)); }
+  ParamArgListBuilder &param(std::string_view name, float val) { return update_(name, to_string_exact(val)); }
+  ParamArgListBuilder &param(std::string_view name, double val) { return update_(name, to_string_exact(val)); }
+  ParamArgListBuilder &param(std::string_view name, std::string_view val)
+  {
+    // for now, this is simple. This will get more complex if we require strings to be quoted
+    return update_(name, val);
+  }
+  ///@}
+};
+
 /*!
  * \brief Runs a system test using the full test name to determine all
  * paths.
@@ -64,7 +106,7 @@ class system_test::SystemTestRunner
    * Cholla's standard launch paramters work except `outdir` as that is
    * reserved for usage in the system_test::SystemTestRunner.runTest() method
    */
-  std::string chollaLaunchParams;
+  system_test::ParamArgListBuilder chollaLaunchParams;
 
   /*!
    * \brief Run the system test that has been set up
