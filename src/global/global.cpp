@@ -328,6 +328,10 @@ Parameters::Parameters(ParameterMap &pmap)
   parms->Omega_R       = pmap.value_or("Omega_R", 0.0);
   parms->w0            = pmap.value_or("w0", -1.0);
   parms->wa            = pmap.value_or("wa", 0.0);
+
+  // if the wDE table isn't provided, store an empty string
+  parms->wDE_file = pmap.value_or("wDE_file", "");
+
 #endif  // COSMOLOGY
 
 #if defined(CHEMISTRY_GPU) || defined(COOLING_GRACKLE)
