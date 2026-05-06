@@ -437,6 +437,7 @@ void Rad3D::rtSolve(Real* dev_scalar)
   Real speedOfLightInCodeUnits = 3e10 / VELOCITY_UNIT;
 
 
+  int n_iters_check = 0; //check the number of iterations
 
 
 #ifdef OTVET
@@ -511,22 +512,23 @@ void Rad3D::rtSolve(Real* dev_scalar)
   chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, dt: %e, c: %e, dx %e, cdt2dxRSL %e)\n",
             niters_cfl,this->num_iterations,dt,speedOfLightInCodeUnits,grid.dx,cdt2dxRSL);
 
-  int n_iters_check = 0;
   for (int iter = 0; iter < niters_cfl; iter++) {
     this->lastIteration = (iter == niters_cfl - 1);
     // Call the StepRFi Iteration kernel
     // This must create and destroy the pressure fields
     StepRFiIteration(cdt2dxRSL, gamma_sis);
-    n_iters_check++;
 
     // Clip the RFi fields
     ClipRFiIteration();
 #endif
 
 
-
     // then call boundaries functions
     rtBoundaries();
+
+
+    // count the number of RT iterations
+    n_iters_check++;
   }
 
   // This should match niters_cfl.  Now we need to check that 
