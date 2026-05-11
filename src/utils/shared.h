@@ -107,7 +107,8 @@
  *  to build up constructs in a composable manner.
  *
  *  While alternatives are possible, they typically involve either (i) implementing data
- *  structures using semantics like std::unique_ptr, or (ii) using global variables.
+ *  structures using move-semantics (like std::unique_ptr), or (ii) using global
+ *  variables.
  *  - The first option causes problems with wrapping the full command (e.g. modelling
  *    cooling) in a std::function. We could work around this issue by creating an
  *    analogue of C++23's std::move_only_function or creating a custom command base
@@ -125,8 +126,16 @@
  *      routines).
  *  - The second option isn't composable in a manner desired for the cooling routines.
  *    Every time we would want to add support for a different kind of cooling table, we
- *    would need to
- *    (everything is a special case and it makes testing more difficult)
+ *    would need to define a brand new global variable
+ *    - if we want to track a new table tabulated cooling values, we would need to
+ *      create a new global variable to track the new textures (thus every kind of
+ *      cooling is a special case)
+ *    - plus, the current implementations (at the time of writing) that follow this
+ *      kind of strategy, skip deallocation of the underlying memory. This is actually
+ *      fine when running Cholla, but would be problematic if we just wanted to be able
+ *      to write tests. The only robust way to properly deallocate this memory involves
+ *      reference counting (if we're reference counting, we may as well just use
+ *      \ref SharedDevPtr or \ref SharedHandle)
  *
  *  In the future, the internals of \ref SharedDevPtr could be very useful. The View
  *  types adopted in libraries like Kokkos or Raja have the same shared object semantics
