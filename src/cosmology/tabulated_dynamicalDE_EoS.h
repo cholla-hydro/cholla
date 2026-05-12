@@ -30,12 +30,6 @@ class TabulatedDynamicalDarkEnergyEoS
   void Setup_Full(std::istream& in, const std::string& fname) {}
 
  public:
-  // std::vector<float> dynamicalDE_table_z;
-  // std::vector<float> dynamicalDE_table_w;
-
-  // dynamical dark energy energy density normalized to the present-date rho_DE(z) / rho_DE(z=0)
-  // std::vector<float> dynamicalDE_table_density;
-
   /*! Interpolate dynamicalDE_table_density to find rhoDE(z) / rhoDE(z=0) at z=1/a - 1 */
   Real Get_DynamicalDE_Density_from_a(Real a);
 

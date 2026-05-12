@@ -23,8 +23,7 @@ void Cosmology::Initialize(struct Parameters *P, Grav3D &Grav, Particles3D &Part
 
   if (P->wDE_file.length() != 0) {
     // set pointer to DynamicalDE EOS
-    tab_dynamicalDE_EoS =
-        std::unique_ptr<TabulatedDynamicalDarkEnergyEoS>(new TabulatedDynamicalDarkEnergyEoS(P->wDE_file));
+    tab_dynamicalDE_EoS = std::make_unique<TabulatedDynamicalDarkEnergyEoS>(P->wDE_file);
   }
 
   if (strcmp(P->init, "Read_Grid") == 0) {

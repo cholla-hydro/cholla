@@ -32,7 +32,7 @@ class Cosmology
   std::unique_ptr<TabulatedDynamicalDarkEnergyEoS> tab_dynamicalDE_EoS;
 
   /*! Indicate whether the simulation is configured to use a DynamicalDE EOS table */
-  bool Using_DynamicalDE_Table() { return tab_dynamicalDE_EoS.get() != nullptr; }
+  bool Using_DynamicalDE_Table() { return tab_dynamicalDE_EoS != nullptr; }
 
   Real cosmo_G;
   Real cosmo_h;

@@ -108,64 +108,7 @@ const std::set<std::string> optionalParams = {"flag_delta",   "ddelta_dt",  "n_d
                                               "Omega_L",      "Omega_R",    "Omega_K", "w0",  "wa", "Init_redshift",
                                               "End_redshift", "tile_length"};  // NOLINT
 
-bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameters *parms);
-
-void Init_Param_Struct_Members(ParameterMap &param, struct Parameters *parms);
-
-void Parse_Params(ParameterMap &pmap, struct Parameters *parms)
-{
-#ifdef COSMOLOGY
-  // Initialize file name as an empty string
-  parms->scale_outputs_file[0] = '\0';
-#endif
-
-  // the plan is eventually replace Old_Style_Parse_Param entirely with
-  // Init_Param_Struct_Members.
-  auto fn = [&](const char *name, const char *value) -> bool { return Old_Style_Parse_Param(name, value, parms); };
-
-  pmap.pass_entries_to_legacy_parse_param(fn);
-
-  // the plan is to eventually, use the new parsing functions from Parse_Param like the following
-  Init_Param_Struct_Members(pmap, parms);
-}
-
 void Warn_Unused_Params(ParameterMap &pmap) { pmap.warn_unused_parameters(optionalParams); }
-
-/*! \fn void Parse_Param(char *name,char *value, struct Parameters *parms);
- *  \brief Parses and sets a single param based on name and value.
- *
- *  \returns true if the parameter was actually used. false otherwise.
- */
-bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameters *parms)
-{
-  /* Copy into correct entry in parameters struct */
-  if (strcmp(name, "output_always") == 0) {
-    int tmp = atoi(value);
-    // In this case the CHOLLA_ASSERT macro runs into issuse with the readability-simplify-boolean-expr clang-tidy check
-    // due to some weird macro expansion stuff. That check has been disabled here for now but in clang-tidy 18 the
-    // IgnoreMacro option should be used instead.
-    // NOLINTNEXTLINE(readability-simplify-boolean-expr)
-    CHOLLA_ASSERT((tmp == 0) or (tmp == 1), "output_always must be 1 or 0.");
-    parms->output_always = tmp;
-  } else if (strcmp(name, "n_steps_limit") == 0) {
-    parms->n_steps_limit = atof(value);
-#ifdef PARTICLES
-  } else if (strcmp(name, "prng_seed") == 0) {
-    parms->prng_seed = atoi(value);
-#endif  // PARTICLES
-  } else if (strcmp(name, "bc_potential_type") == 0) {
-    parms->bc_potential_type = atoi(value);
-#ifdef SCALAR
-  #ifdef DUST
-  } else if (strcmp(name, "grain_radius") == 0) {
-    parms->grain_radius = atoi(value);
-  #endif
-#endif
-  } else {
-    return false;
-  }
-  return true;
-}
 
 /*! \brief this would be entirely unnecessary if the Parameters struct directly stored a std::string
  */
@@ -186,12 +129,10 @@ static void Load_String_Param_Into_Char_Buffer(ParameterMap &pmap, const std::st
   strncpy(dest_buffer, tmp.c_str(), MAXLEN);
 }
 
-/*! \brief Parses and sets a bunch of members of parms from pmap.
- *
- *  The goal is eventually get rid of the old-style function
- */
-void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
+Parameters::Parameters(ParameterMap &pmap)
 {
+  Parameters *parms = this;  // <- this is a minor hack to avoid making an enormous diff
+
   // load the domain dimensions (abort with an error if one of these is missing)
   parms->nx = pmap.value<int>("nx");
   parms->ny = pmap.value<int>("ny");
@@ -327,6 +268,26 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   parms->tile_length = pmap.value<double>("tile_length");
 #endif  // TILED_INITIAL_CONDITIONS
 
+  // parse some assorted values (we should parse them only where we need them)
+  {
+    int tmp = pmap.value_or("output_always", 0);
+    CHOLLA_ASSERT((tmp == 0) or (tmp == 1), "output_always must be 1 or 0.");
+    parms->output_always = tmp;
+  }
+
+  parms->n_steps_limit = pmap.value_or("n_steps_limit", -1);
+
+#ifdef PARTICLES
+  parms->prng_seed = pmap.value_or("prng_seed", 0);
+#endif  // PARTICLES
+
+  // a negative value means that the parameter wasn't set
+  parms->bc_potential_type = pmap.value_or("bc_potential_type", -1);
+
+#if defined(SCALAR) && defined(DUST)
+  parms->grain_radius = pmap.value<double>("grain_radius");
+#endif  // defined(SCALAR) && defined(DUST)
+
   // in the future, the feedback module will read in its own parameters (the global Parameter struct won't
   // know anything about it)
 #ifdef FEEDBACK
@@ -349,6 +310,7 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   // were specified (& there were no default values). Now cosmological simulations will loudly fail if a user forgets
   // parameters like H0, Omega_M, Omega_L, Omega_b, etc.
 #ifdef COSMOLOGY
+  parms->scale_outputs_file[0] = '\0';  // <- unclear how necessary this is
   if (not pmap.has_param("End_redshift") and not pmap.has_param("scale_outputs_file")) {
     CHOLLA_ERROR("either the scale_outputs_file or End_redshift parameter must be provided in Cosmology sims");
   } else {
