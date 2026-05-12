@@ -73,7 +73,7 @@ class CloudyHeatAndCool
    *  is only directly invoked in the tests)
    */
   template <bool TABLE_ONLY>
-  __forceinline__ __device__ Real calc_contrib_(Real n, Real T) const
+  __device__ __forceinline__ Real calc_contrib_(Real n, Real T) const
   {
     Real lambda  = 0.0;  // log cooling rate, erg s^-1 cm^3
     Real cooling = 0.0;  // cooling per unit volume, erg /s / cm^3

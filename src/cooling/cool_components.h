@@ -188,7 +188,7 @@ inline __device__ Real analytic_creasey11_lambda(Real n, Real T)
  *   The actual formula for the fit is first described in the appendix of
  *   (Schneider & Robertson 2018)[https://ui.adsabs.harvard.edu/abs/2018ApJ...860..135S/abstract
  */
-__forceinline__ __device__ Real analytic_cie_lambda(Real log10T)
+__device__ __forceinline__ Real analytic_cie_lambda(Real log10T)
 {
   // fit to CIE cooling function
   if (log10T < 4.0) {
@@ -214,7 +214,7 @@ __forceinline__ __device__ Real analytic_cie_lambda(Real log10T)
  *  The actual formula for the fit is given as equations 4 and 5 in
  *  (Koyama & Inutsuka 2002)[https://ui.adsabs.harvard.edu/abs/2018ApJ...860..135S/abstract].
  */
-__forceinline__ __device__ Real analytic_koyama_inutsuka_02_lambda(Real T)
+__device__ __forceinline__ Real analytic_koyama_inutsuka_02_lambda(Real T)
 {
   return 2e-26 * (1e7 * exp(-1.148e5 / (T + 1000.0)) + 1.4e-2 * sqrt(T) * exp(-92.0 / T));
 }
@@ -242,7 +242,7 @@ __forceinline__ __device__ Real analytic_koyama_inutsuka_02_lambda(Real T)
  * used a CIE analytic fit. In practice, the fit below 1e4 K is intended to be used with a mean
  * molecular weight fixed to ~1.25
  */
-__forceinline__ __device__ Real combined_analytic_ti_cie_lambda(Real T)
+__device__ __forceinline__ Real combined_analytic_ti_cie_lambda(Real T)
 {
   if (T < 10.0) {
     return 0.0;  // no cooling below 10 K
