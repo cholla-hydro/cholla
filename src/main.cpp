@@ -88,11 +88,13 @@ int main(int argc, char *argv[])
   //   -> modern: code initializes the simulation by getting values directly from pmap
   Parameters P(pmap);
 
-  // read in a few parameters only used in the top-level main function (maybe aggregate in a struct?)
+  // read in a few parameters only used in the top-level main function
+  const int n_steps_limit = pmap.value_or("n_steps_limit", -1);  // negative values indicate that there is no limit
+  // perhaps these belong as attributes of io::WriterManager? Or maybe we should wait to do that until after we
+  // figure out how exactly we want to schedule operations?
   const double outstep    = pmap.value<double>("outstep");  // aborts if missing
   const int output_always = pmap.value_or("output_always", 0);
   CHOLLA_ASSERT((output_always == 0) or (output_always == 1), "output_always must be 1 or 0.");
-  const int n_steps_limit = pmap.value_or("n_steps_limit", -1);  // negative values indicate that there is no limit
 
   // write a description of simulation configuration to console
   chprintf("Git Commit Hash = %s\n", GIT_HASH);
