@@ -13,12 +13,7 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../io/io.h"  // provides chprintf
-
-cudaArray *cuCoolArray;
-cudaArray *cuHeatArray;
-
-void Test_Cloudy_Textures();
-void Test_Cloudy_Speed();
+#include "../utils/error_handling.h"
 
 /* \fn void Host_Read_Cooling_Tables(float* cooling_table, float* heating_table)
  * \brief Load the Cloudy cooling tables into host (CPU) memory. */
@@ -86,9 +81,11 @@ void Host_Read_Cooling_Tables(float *cooling_table, float *heating_table, std::s
   }
 }
 
-/* \fn void Load_Cuda_Textures()
- * \brief Load the Cloudy cooling tables into texture memory on the GPU. */
-void Load_Cuda_Textures(std::string filename)
+/*! \brief Load the Cloudy cooling tables into texture memory on the GPU.
+ *
+ *  We'll probably need to factor out some logic to implement metal tables
+ */
+static void Load_Cuda_Textures_(std::string filename, cudaTextureObject_t &coolTexObj, cudaTextureObject_t &heatTexObj)
 {
   float *cooling_table;
   float *heating_table;
@@ -104,9 +101,17 @@ void Load_Cuda_Textures(std::string filename)
   Host_Read_Cooling_Tables(cooling_table, heating_table, filename);
 
   // Allocate CUDA arrays in device memory
+  cudaArray *cuCoolArray;
+  cudaArray *cuHeatArray;
   cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32, 0, 0, 0, cudaChannelFormatKindFloat);
   GPU_Error_Check(cudaMallocArray(&cuCoolArray, &channelDesc, nx, ny));
   GPU_Error_Check(cudaMallocArray(&cuHeatArray, &channelDesc, nx, ny));
+
+  // note: while we allow cuCoolArray and cuHeatArray to go out of scope in this
+  //       function, references are retained to the underlying memory within the cuda
+  //       data structures associated with the texture objects we will be initializing.
+  //       Thus, when we deallocate the texture objects, we use those references to
+  //       deallocate the memory
 
   // Copy the cooling and heating arrays from host to device
 
@@ -153,120 +158,32 @@ void Load_Cuda_Textures(std::string filename)
   // Free the memory associated with the cooling tables on the host
   GPU_Error_Check(cudaFreeHost(cooling_table));
   GPU_Error_Check(cudaFreeHost(heating_table));
-
-  // Run Test
-  // Test_Cloudy_Textures();
-  // Test_Cloudy_Speed();
 }
 
-void Free_Cuda_Textures()
+static void Free_Single_Cuda_Texture(cudaTextureObject_t &texObj)
 {
+  // get the handle for the device memory associated with the texture
+  cudaResourceDesc resDesc;
+  cudaGetTextureObjectResourceDesc(&resDesc, texObj);
+  cudaArray *cuArray = resDesc.res.array.array;
+
   // unbind the cuda textures
-  cudaDestroyTextureObject(coolTexObj);
-  cudaDestroyTextureObject(heatTexObj);
+  cudaDestroyTextureObject(texObj);
 
-  // Free the device memory associated with the cuda arrays
-  cudaFreeArray(cuCoolArray);
-  cudaFreeArray(cuHeatArray);
+  // Free the device memory associated with the texture
+  cudaFreeArray(cuArray);
 }
 
-/* Consider this function only to be used at the end of Load_Cuda_Textures when
- * testing Evaluate texture on grid of size num_n num_T for variables n,T */
-__global__ void Test_Cloudy_Textures_Kernel(int num_n, int num_T, cudaTextureObject_t coolTexObj,
-                                            cudaTextureObject_t heatTexObj)
+__host__ cool_component::CloudyHeatAndCool::CloudyHeatAndCool(std::string filename)
 {
-  int id, id_n, id_T;
-  id = threadIdx.x + blockIdx.x * blockDim.x;
-  // Calculate log_T and log_n based on id
-  id_T = id / num_n;
-  id_n = id % num_n;
+  cudaTextureObject_t coolTexObj = 0;
+  cudaTextureObject_t heatTexObj = 0;
+  Load_Cuda_Textures_(filename, coolTexObj, heatTexObj);
 
-  float grid_offset = 0.1 / 512.0;
-  // Min value, but include id=-1 as an outside value to check clamping. Use dx
-  // = 0.05 instead of 0.1 to check interpolation
-  float log_T = 1.0 + (id_T - 1) * 0.05 + grid_offset;
-  float log_n = -6.0 + (id_n - 1) * 0.05 + grid_offset;
+  // define the deleter callback
+  auto deleter = [](cudaTextureObject_t &texObj) { Free_Single_Cuda_Texture(texObj); };
 
-  // Remap for texture with normalized coords
-  // float rlog_T = (log_T - 1.0) / 8.1;
-  // float rlog_n = (log_n + 6.0) / 12.1;
-
-  // Remap for texture without normalized coords
-  float rlog_T = (log_T - 1.0) * 10;
-  float rlog_n = (log_n + 6.0) * 10;
-
-  // Evaluate
-  float lambda = Bilinear_Texture(coolTexObj, rlog_T, rlog_n);  // tex2D<float>(coolTexObj, rlog_T, rlog_n);
-  float heat   = Bilinear_Texture(heatTexObj, rlog_T, rlog_n);  // tex2D<float>(heatTexObj, rlog_T, rlog_n);
-
-  // Hackfully print it out for processing for correctness
-  printf("TEST_Cloudy: %.17e %.17e %.17e %.17e \n", log_T, log_n, lambda, heat);
-}
-
-/* Consider this function only to be used at the end of Load_Cuda_Textures when
- * testing Evaluate texture on grid of size num_n num_T for variables n,T */
-__global__ void Test_Cloudy_Speed_Kernel(int num_n, int num_T, cudaTextureObject_t coolTexObj,
-                                         cudaTextureObject_t heatTexObj)
-{
-  int id, id_n, id_T;
-  id = threadIdx.x + blockIdx.x * blockDim.x;
-  // Calculate log_T and log_n based on id
-  id_T = id / num_n;
-  id_n = id % num_n;
-
-  // Min value, but include id=-1 as an outside value to check clamping. Use dx
-  // = 0.05 instead of 0.1 to check interpolation float log_T = 1.0  +
-  // (id_T-1)*0.05;
-  //  float log_n = -6.0 + (id_n-1)*0.05;
-
-  // Remap for texture with normalized coords
-  // float rlog_T = (log_T - 1.0) / 8.1;
-  // float rlog_n = (log_n + 6.0) / 12.1;
-
-  // Remap for texture without normalized coords
-  // float rlog_T = (log_T - 1.0) * 10;
-  // float rlog_n = (log_n + 6.0) * 10;
-
-  float rlog_T = (id_T - 1) * 0.0125;
-  float rlog_n = (id_n - 1) * 0.0125;
-
-  // Evaluate
-  float lambda = Bilinear_Texture(coolTexObj, rlog_T, rlog_n);  // tex2D<float>(coolTexObj, rlog_T, rlog_n);
-  float heat   = Bilinear_Texture(heatTexObj, rlog_T, rlog_n);  // tex2D<float>(heatTexObj, rlog_T, rlog_n);
-
-  // Hackfully print it out for processing for correctness
-  // printf("TEST_Cloudy: %.17e %.17e %.17e %.17e \n",log_T, log_n, lambda,
-  // heat);
-}
-
-/* Consider this function only to be used at the end of Load_Cuda_Textures when
- * testing Evaluate texture on grid of size num_n num_T for variables n,T */
-void Test_Cloudy_Textures()
-{
-  int num_n = 1 + 2 * 121;
-  int num_T = 1 + 2 * 81;
-  dim3 dim1dGrid((num_n * num_T + TPB - 1) / TPB, 1, 1);
-  dim3 dim1dBlock(TPB, 1, 1);
-  hipLaunchKernelGGL(Test_Cloudy_Textures_Kernel, dim1dGrid, dim1dBlock, 0, 0, num_n, num_T, coolTexObj, heatTexObj);
-  GPU_Error_Check(cudaDeviceSynchronize());
-  printf("Exiting due to Test_Cloudy_Textures() being called \n");
-  exit(0);
-}
-
-void Test_Cloudy_Speed()
-{
-  int num_n = 1 + 80 * 121;
-  int num_T = 1 + 80 * 81;
-  dim3 dim1dGrid((num_n * num_T + TPB - 1) / TPB, 1, 1);
-  dim3 dim1dBlock(TPB, 1, 1);
-  GPU_Error_Check(cudaDeviceSynchronize());
-  Real time_start = Get_Time();
-  for (int i = 0; i < 100; i++) {
-    hipLaunchKernelGGL(Test_Cloudy_Speed_Kernel, dim1dGrid, dim1dBlock, 0, 0, num_n, num_T, coolTexObj, heatTexObj);
-  }
-  GPU_Error_Check(cudaDeviceSynchronize());
-  Real time_end = Get_Time();
-  printf(" Cloudy Test Time %9.4f micro-s \n", (time_end - time_start));
-  printf("Exiting due to Test_Cloudy_Speed() being called \n");
-  exit(0);
+  // actually construct the SharedHandles
+  this->coolTexObj_ = SharedHandle<cudaTextureObject_t>(coolTexObj, deleter);
+  this->heatTexObj_ = SharedHandle<cudaTextureObject_t>(heatTexObj, deleter);
 }

@@ -277,7 +277,13 @@ class ControlBlockImpl : public ControlBlock
   __host__ __device__ KLASS<T>::KLASS(const KLASS<T>& other) noexcept : wrapped_{other.wrapped_}, cb_{other.cb_} \
   {                                                                                                              \
     if (cb_ != nullptr) {                                                                                        \
+      /* The lint that we disable just below tells us that we should enclose every is warning about using */     \
+      /* memory after it is freed. However, the fact that we always initialize the cb_ to nullptr and     */     \
+      /* that we only decrement the reference count if we overwrite cb_ immediately afterwards means that */     \
+      /* it's impossible for this scenario to arise                                                       */     \
+      /* NOLINTBEGIN(clang-analyzer-cplusplus.NewDelete,-warnings-as-errors) */                                  \
       CALL_INCREMENT_COUNT(cb_);                                                                                 \
+      /* NOLINTEND(clang-analyzer-cplusplus.NewDelete,-warnings-as-errors) */                                    \
     }                                                                                                            \
   }                                                                                                              \
                                                                                                                  \
