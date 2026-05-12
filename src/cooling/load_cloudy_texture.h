@@ -31,7 +31,7 @@ namespace cool_component
  *  As of now, this class internally tracks both a cooling table AND a heating table. If
  *  we want to support the use of just a single table:
  *  - the easiest thing to do is *probably* to make a new class.
- *  - Since we are fully embracing the approach of building cooling recipies out of 1
+ *  - Since we are fully embracing the approach of building cooling recipes out of 1 or
  *    more cooling components, we could then have the option of replacing this type
  *    with 2 instances of the single-table type (but we then need to figure out how to
  *    elegantly handle constructors)

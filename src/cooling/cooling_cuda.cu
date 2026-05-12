@@ -70,7 +70,7 @@ class CoolingUpdateExecutor
   CoolingRecipe recipe_;
 
  public:
-  CoolingUpdateExecutor(CoolingRecipe recipe) : recipe_(recipe) {}
+  CoolingUpdateExecutor(CoolingRecipe recipe) : recipe_(std::move(recipe)) {}
 
   void operator()(Grid3D &grid) const
   {
