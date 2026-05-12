@@ -99,7 +99,7 @@ void TabulatedDynamicalDarkEnergyEoS::Setup_DynamicalDE_EquationOfState_(std::is
   int lineno = 0;
   while (std::getline(in, line)) {
     lineno++;  // <- increment the line number (it is 1-indexed)
-    if (line.find("#") == 0) continue;
+    if (line.find('#') == 0) continue;
     if (line.empty()) {
       if (lineno == n_lines) continue;  // <- allow empty final line
       CHOLLA_ERROR("%s:%d is empty", path.c_str(), lineno);
