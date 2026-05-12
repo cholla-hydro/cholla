@@ -225,6 +225,7 @@ struct Parameters {
   int nx;
   int ny;
   int nz;
+  double tout;
   Real gamma;
   char init[MAXLEN];
   int nfile;

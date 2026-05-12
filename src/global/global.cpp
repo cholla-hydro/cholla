@@ -182,6 +182,9 @@ Parameters::Parameters(ParameterMap &pmap)
   parms->custom_grav = pmap.value_or("custom_grav", 0);
 #endif
 
+  parms->tout = pmap.value<double>("tout");  // aborts if missing
+  CHOLLA_ASSERT(parms->tout >= 0.0, "tout parameter must be non-negative");
+
   // in the future, maybe we should provide a default value of 5/3 for gamma
   parms->gamma = Real(pmap.value<double>("gamma"));
   CHOLLA_ASSERT(parms->gamma > 1.0, "gamma parameter must be greater than one.");
