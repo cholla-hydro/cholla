@@ -153,6 +153,7 @@ Of these 3 "flaws," the third is probably most troubling (since the estimated de
 
 [^negative-density]: If you are still struggling to wrap your head around this, it may be instructive to recall the parallels with electrostatics. In that context, Poisson's equation, with physical different constants, relates electrostatic potential and charge density (which can be negative).
 
-[^density-potential-pair]: For the uninitiated, a given density profile always has a unique gravitational potential (modulo a constant offset in the potential).  Some simple examples of well known potential pairs include:
-   - point mass: As we all know, the density profile of a point mass (of mass {math}`M`) is associated with {math}`\phi(r) = -GM/r`
-   - Plummer-Kuzmin disk potential (where {math}`R` is cylindrical radius): an infinitely thin disk with surface density profile {math}`\Sigma(R) = a M/ (2\pi (R^2 + a^2)^{3/2})` has the potential {math}`\phi(R,z) = -GM/\sqrt{R^2 + (a + |z|)^2}`
+[^density-potential-pair]: For the uninitiated, a given density profile always has a unique gravitational potential (modulo a constant offset in the potential).  An example of a well-known potential pairs is the point mass.
+  As we all know, the density profile of a point mass (of mass {math}`M`) is associated with {math}`\phi(r) = -GM/r`.
+  Another example is the Plummer-Kuzmin disk potential (where {math}`R` is cylindrical radius).
+  In this case, an infinitely thin disk with surface density profile {math}`\Sigma(R) = a M/ (2\pi (R^2 + a^2)^{3/2})` has the potential {math}`\phi(R,z) = -GM/\sqrt{R^2 + (a + |z|)^2}`.

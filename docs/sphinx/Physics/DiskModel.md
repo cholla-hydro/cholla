@@ -97,7 +97,7 @@ Consider the parameterization of a Miyamoto-Nagai potential (this will be import
 :::
 
 At the time of writing, we always define {math}`\Phi_{\rm stars,old}(R,z)=\Phi_{\rm MN}(R,z; M_{\rm stars}, R_{\rm stars}, z_{\rm stars})`, where {math}`R` & {math}`z` are cylindrical coordinates, {math}`R_{\rm stars}` & {math}`z_{\rm stars}` are the scale radius/height, and {math}`M_{\rm stars}` is the mass of the disk.
-Currently, these values are hardcoded where we initialize the `ClusteredDiskGalaxy` struct that holds the Milky Way properties (in {repository-file}`src/model/particles/disk_galaxy.cu`).
+Currently, these values are hardcoded where we initialize the `ClusteredDiskGalaxy` struct that holds the Milky Way properties (in {repository-file}`src/model/disk_galaxy.cu`).
 
 At the time of writing, {math}`\Phi_{\rm dm}` is always assumed to be an NFW profile, or
 
@@ -303,27 +303,60 @@ We have written the equations in this form to highlight that this is an "initial
 
 Particles are only initialized if you use the ``"Disk_3D_particles"`` initial conditions.
 
-We use the Kennicutt–Schmidt law to determine the distribution of particles with respect to {math}`r_{\rm cyl}`
+For this problem, we don't attempt to self-consistently implement star formation.
+Instead, at startup, we create a particle for every star-cluster that is born over the course of the simulation.
+We initialize each cluster particle with a randomly choosen:
+
+- position in the disk with an appropriate circular velocity
+- perturb the z position by a small random amount
+- a cluster mass
+- and a "turn-on time"
+
+:::{important}
+The "turn-on time" only affects feedback (the rate of Supernovae is a function of age and the age used for that purpose is difference between the current simulation time and the "turn-on time".
+The the cluster particles are evolved and experience gravity over the entirety of the simulation, independent of the "turn-on time."
+:::
+
+The cluster particles are create with "turn-on times" ranging from a little before the simulation is started until the `tout` parameter.
+The positions and cluster-masses are picked to target a desired star formation surface density distribution and a cluster mass distribution.
+We will describe these distributions and the seeding strategy down below.
+
+
+### Star Formation Surface Density
+
+We use the Kennicutt–Schmidt law to determine the desired star formation surface density.
+According to this law,
 
 :::{math}
-
-\Sigma_{SFR}(R) = a * \Sigma_{\rm gas}^{k_s},
+\Sigma_{SFR}(R) = a \Sigma_{\rm gas}^{k_s},
 :::
 
-where `a` is some arbitrary normalization constant and {math}`k_s` is usually 1.4. We can combine this with the formula for the gas surface density, {math}`\Sigma_{\rm gas}(R) = \Sigma_{{\rm gas},0} \exp(-R / R_{\rm d})`, to get a more detailed formula for star-formation surface density:
+where {math}`a` is some arbitrary normalization constant and {math}`k_s` is usually 1.4.
+We can combine this with the formula for the gas surface density, {math}`\Sigma_{\rm gas}(R) = \Sigma_{{\rm gas},0} \exp(-R / R_{\rm gas-scale-length})`, to get a more detailed formula for star-formation surface density:
 
 :::{math}
-
-\Sigma_{\rm SFR}(R) = a * \Sigma_{{\rm gas},0}^{k_s} * \exp(-r_{\rm cyl} / R_{\rm gas-scale-length}).
+\Sigma_{\rm SFR}(R) = a\ \Sigma_{{\rm gas},0}^{k_s}\ \exp(-k_s r_{\rm cyl} / R_{\rm gas-scale-length}).
 :::
 
-Essentially we can use this to incremental rate of star-formation {math}`d{\rm SFR}` in the disk between {math}`r_{\rm cyl}` and {math}`(r_{\rm cyl} + dr_{\rm cyl}`). If we consider some duration of time (in practice set by the `t_out` runtime parameter), you can work an expected number of stars formed between  {math}`r_{\rm cyl}` and {math}`(r_{\rm cyl} + dr_{\rm cyl}`) during that duration. It's straight-forward to convert this function into a PDF.
-
-:::{note}
-I can definitely elaborate more -- I found the relevant notes on this topic
+We can rewrite {math}`a` in terms of the diskwide star-formation rate {math}`{\rm SFR}_{\rm tot}`.
+To get this we can compute the following integral:[^posterity-calc-normalize]
+:::{math}
+\begin{align}
+{\rm SFR}_{\rm tot} 
+    &= \int_{\rm Disk} \Sigma_{\rm SFR}\, dA \\ 
+    &= \int_0^\infty \left(a\, \Sigma_{{\rm gas},0}^{k_s} \exp(-k_s r_{\rm cyl} / R_{\rm gas-scale-length})\right)\,  (2 \pi\,r_{\rm cyl}\, dr_{\rm cyl})\\
+    &= 2\pi\, a\, \Sigma_{{\rm gas},0}^{k_s} \int_0^\infty r_{\rm cyl}\, \exp(-k_s r_{\rm cyl} / R_{\rm gas-scale-length})\, dr_{\rm cyl}\\
+    &= 2\pi\, a\, \Sigma_{{\rm gas},0}^{k_s}\, \left(\left. -\frac{R_{\rm gas-scale-length}}{k_s^2} (k_s\, r_{\rm cyl}+R_{\rm gas-scale-length})\, e^{-k_s\, r_{\rm cyl}/R_{\rm gas-scale-length}}  \right\rvert_0^\infty \right)\\
+    &= 2\pi\, a\, \Sigma_{{\rm gas},0}^{k_s}\, \frac{R_{\rm gas-scale-length}^2}{k_s^2}.\\
+\end{align}
 :::
 
-At startup we sample this PDF to determine the {math}`r_{\rm cyl}` at which all particles are expected to form. We create star-particles at these radii and distribute the "turn-on times" from a time a little before we start the simulation until the time specified by the `tout` parameter. We use Poisson sampling to distribute these "turn-on times," to target a particular SFR.
+Thus {math}`a = {\rm SFR}_{\rm tot} k_s^2 / (2 \pi R_{\rm gas-scale-length})` and we can write
+
+:::{math}
+\Sigma_{\rm SFR} (r_{\rm cyl}) =  \frac{k_s^2\ {\rm SFR}_{\rm tot}}{2\pi R_{\rm gas-scale-length}^2} \exp(-k_s r_{\rm cyl} / R_{\rm gas-scale-length})
+:::
+
 At the time of writing, the SFR is hardcoded within the `disk_stellar_cluster_init_` C++ function (in {repository-file}`src/particles/particles_3D.cpp`).
 
 :::{todo}
@@ -331,5 +364,101 @@ Adjust the location where SFR is set to be co-located with other parameters.
 (Ideally, it would be a runtime parameter)
 :::
 
+### Cluster Mass Distribution
+
+Let's suppose that when stars are formed they are formed in clusters where the cluster-mass, {math}`M_{cl}` is randomly drawn from a PDF, that *can* vary with {math}`r_{\rm cyl}`, denoted by {math}`P_{cl}(M_{cl} | r_{\rm cyl})`.
+
+:::{important}
+In practice, the current implementation does not actually model a cluster mass distribution that varies with {math}`r_{\rm cyl}` (it has only been included in the discussion to demonstrate that it is mathematically possible).
+:::
+
+At the time of writing, we often assume a {math}`P_{cl}` given by:
+
+:::{math}
+P_{cl}(M_{cl}) =
+\begin{cases}
+\frac{1-\alpha}{M_{\rm hi}^{1-\alpha} - M_{\rm lo}^{1-\alpha}} M_{cl}^{-\alpha}, & M_{\rm lo} \leq M_{cl} < M_{\rm hi} \\
+0, & {\rm otherwise}
+\end{cases}
+:::
+
+where {math}`\alpha \neq 1` and {math}`0 < M_{\rm lo} < M_{\rm hi}`.
+
+:::{todo}
+Make this configurable in the input parameter file.
+Right now the parameters are hardcoded within {repository-file}`src/model/disk_galaxy.cu`
+:::
+
+### Actually Seeding the Particle Distribution
+
+At this point, we discuss how exactly we decide how exactly to form star particles in a manner consistent with our {math}`\Sigma_{\rm SFR} (r_{\rm cyl})` and {math}`P_{cl}(M_{cl} | r_{\rm cyl})`.
+
+We essentially have 2 options: (i) construct the cluster particles such that the global star formation rate is exactly constant and (ii) using a poisson point process.
+
+In both cases:
+
+- the minimum possible "turn-on time" is set to a value before $t=0$ (it is influenced by the dependence of Supernove rate on cluster age)
+- our cluster-generation logic may indicate that a cluster should be formed somewhere beyond the truncation radius of the stellar disk.
+  In that case, we act like the cluster is formed (and compute all of its properties), but stop short of actually creating the particle.
+
+Now let's discuss the approaches:
+
+:::{important}
+At this time, the codebase is hardcoded to use the Poisson point-process approach (this is set in {repository-file}`src/particles/particles_3D.cpp` within ``Particles3D::Initialize_Disk_Stellar_Clusters``).
+:::
+
+:::{note}
+For the purposes of this discussion, we act as if the cluster mass distribution can vary with {math}`r_{\rm cyl}` to demonstrate that the model can indeed support this behavior.
+But (as we've mentioned), the implementation doesn't currently support this.
+:::
 
 
+#### Exact star formation rate
+
+In this scenario we focus on forming clusters such that the total integrated star formation rate across the disk is constant by construction.
+
+We essentially loop through the following set of steps
+
+1. Determine the "turn-on time" of a new cluster
+   - if this is the very first cluster, the "turn-on time" is set to the minimum possible "turn-on time."
+   - otherwise, the "turn-on time" is {math}`t_{\rm turn-on, cur} = t_{\rm turn-on, prev} + M_{cl, prev} /  {\rm SFR}_{\rm tot}`, where {math}`t_{\rm turn-on, prev}` and {math}`M_{cl, prev}` are the turn-on time and cluster masses of the previously formed clusters.
+
+2. Draw a random position for the new cluster.
+   The most noteworthy part of this step is that {math}`r_{\rm cyl}` is drawn from a PDF of the form {math}`f(r_{\rm cyl}) = c \Sigma_{\rm SFR}(r_{\rm cyl})` where {math}`c` is a normalization constant picked such that {math}`1 = \int_{\rm Disk} c \Sigma_{\rm SFR}\, dA`.
+
+3. Draw the cluster mass from {math}`P_{cl}(M_{cl} | r_{\rm cyl})`
+
+4. Go back to step 1 (unless that would involve forming a cluster after the ``tout`` parameter).
+
+#### Poisson Point-Process Approach
+
+This approach assumes that cluster formation events are
+- instantaneous
+- spatially and temporarily independent (i.e. proximity to other cluster formation events in space and time is unimportant).
+
+With this in mind, the cluster formation surface density is
+
+:::{math}
+\Sigma_{\rm CFR}(r_{\rm cyl}) = \Sigma_{\rm SFR} (r_{\rm cyl}) / \langle M_{cl} \rangle (r_{\rm cyl}),
+:::
+
+where {math}`\langle M_{cl} \rangle (r_{\rm cyl})` specifies the average cluster mass as a function of {math}`r_{cyl}` and is derived from {math}`P_{cl}(M_{cl} | r_{\rm cyl})`.
+The total disk-wide cluster formation rate is given by 
+{math}`{\rm CFR}_{\rm tot} = \int_{\rm Disk} \Sigma_{\rm CFR}\, dA`
+
+
+Now onto the actual procedure:
+
+1. Determine the "turn-on time" of a new cluster.
+   Under this approach, cluster formation is treated as a Poisson point-process with a rate given by {math}`{\rm CFR}_{\rm tot}`.
+   Thus, the time that elapses between two consecutive formation events is drawn from an [exponential distribution](https://en.wikipedia.org/wiki/Exponential_distribution) with {math}`\lambda={\rm CFR}_{\rm tot}`.
+
+2. Draw a random position for the new cluster.
+   The most noteworthy part of this step is that {math}`r_{\rm cyl}` is drawn from a PDF of the form {math}`f(r_{\rm cyl}) = c \Sigma_{\rm CFR}(r_{\rm cyl})` where {math}`c` is a normalization constant picked such that {math}`1 = \int_{\rm Disk} c \Sigma_{\rm CFR}\, dA`.
+
+3. Draw the cluster mass from {math}`P_{cl}(M_{cl} | r_{\rm cyl})`
+
+4. Go back to step 1 (unless that would involve forming a cluster after the ``tout`` parameter).
+
+
+[^posterity-calc-normalize]: To solve the actual integral (after pulling out constants), you perform u-substitution with {math}`u=k_s r_{\rm cyl} / R_{\rm gas-scale-length}` to get {math}`\int u\, e^{-u} du`
