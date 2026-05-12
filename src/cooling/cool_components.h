@@ -8,6 +8,7 @@
 #include "../global/global.h"
 #include "../io/ParameterMap.h"
 #include "../utils/error_handling.h"
+#include "../utils/gpu.hpp"  // inlcudes HIP header that define __forceinline__
 
 /*! @defgroup coolcomp Cooling Component Logic
  *
