@@ -602,7 +602,7 @@ void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* 
   const int kc = k;
 
 //  if(ic>=origx && jc>=origy && kc>=origx && ic<nmaxx && jc<nmaxy && kc<nmaxz)
-  if(True)
+  if(true)
   {
       //const int idx = (ic-origx) + nout*(jc-origy+nout*(kc-origz));
       const int idx = ic+nx*(jc+ny*kc);
