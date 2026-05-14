@@ -568,6 +568,7 @@ if(ic>=orig && jc>=orig && kc>=orig && ic<nmax && jc<nmax && kc<nmax)
 //void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* __restrict__ rfi, int nout, Real* __restrict__ rfiOut, int deb)
 void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* __restrict__ rfi, Real* __restrict__ rfiOut, int deb)
 {
+  /*
   const int tid = threadIdx.x + blockIdx.x*blockDim.x;
   const int nc = nx - 2*n_ghost;
   const int jkc = tid/nc; // May need to be updated for ny and nz separately
@@ -582,11 +583,26 @@ void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* 
 
   const int nmaxx = origx + n_ghost;
   const int nmaxy = origy + n_ghost;
-  const int nmaxz = origz + n_ghost;
+  const int nmaxz = origz + n_ghost;*/
 
   const int nw3 = nx*ny*nz;
 
-  if(ic>=origx && jc>=origy && kc>=origx && ic<nmaxx && jc<nmaxy && kc<nmaxz)
+
+  // same indexing as calc_abs
+  const int tid = threadIdx.x + blockIdx.x * blockDim.x;
+  const int jk  = tid / nx;
+  const int i   = tid % nx;
+  const int j   = jk % ny;
+  const int k   = jk / ny;
+
+  if (i < n_ghost || j < n_ghost || k < n_ghost || i >= nx - n_ghost || j >= ny - n_ghost || k >= nz - n_ghost) return;
+
+  const int ic = i;
+  const int jc = j;
+  const int kc = k;
+
+//  if(ic>=origx && jc>=origy && kc>=origx && ic<nmaxx && jc<nmaxy && kc<nmaxz)
+  if(True)
   {
       //const int idx = (ic-origx) + nout*(jc-origy+nout*(kc-origz));
       const int idx = ic+nx*(jc+ny*kc);
