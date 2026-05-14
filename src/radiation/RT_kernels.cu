@@ -429,6 +429,9 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost,
                                         const Real* __restrict__ pij_,
                                         Real* __restrict__ rfiNew, int deb)
 {
+
+  /*
+  // following altair
   const int tid = threadIdx.x + blockIdx.x*blockDim.x;
   const int nc = nx - 2*n_ghost;
   const int jkc = tid/nc; // May need to be updated for ny and nz separately
@@ -436,6 +439,22 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost,
   const int jc = n_ghost + jkc%nc;
   const int kc = n_ghost + jkc/nc; //DEBUG
   if(kc >= nz-n_ghost) return; // try this
+  */
+
+
+// from cal abs
+  const int tid = threadIdx.x + blockIdx.x * blockDim.x;
+  const int jk  = tid / nx;
+  const int i   = tid % nx;
+  const int j   = jk % ny;
+  const int k   = jk / ny;
+
+  if (i < n_ghost || j < n_ghost || k < n_ghost || i >= nx - n_ghost || j >= ny - n_ghost || k >= nz - n_ghost) return;
+
+  const int ic = i;
+  const int jc = j;
+  const int kc = k;
+
 
   const bool Split = true; // semi-implicit
   const int ip = ic + 1;
