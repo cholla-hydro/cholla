@@ -192,8 +192,11 @@ ifdef TIDY_FILES
   GPUFILES_TIDY := $(filter $(TIDY_FILES), $(GPUFILES_TIDY))
 endif
 
+DLINK := src/device_link.o
+
 $(EXEC): prereq-build $(OBJS)
-	mkdir -p bin/ && $(LD) $(LDFLAGS) $(OBJS) -o $(EXEC) $(LIBS)
+	nvcc -dlink $(OBJS) -arch $(CUDA_ARCH) -o $(DLINK)
+	mkdir -p bin/ && $(LD) $(LDFLAGS) $(OBJS) $(DLINK) -o $(EXEC) $(LIBS)
 	eval $(EXTRA_COMMANDS)
 
 %.o: %.cpp
