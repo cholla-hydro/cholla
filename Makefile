@@ -152,6 +152,7 @@ else
   LD        := $(CXX)
   LDFLAGS   += $(CXXFLAGS)
   LIBS      += $(CUDA_LIB)
+  DLINK	    := src/device_link.o
 endif
 
 ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
@@ -192,11 +193,14 @@ ifdef TIDY_FILES
   GPUFILES_TIDY := $(filter $(TIDY_FILES), $(GPUFILES_TIDY))
 endif
 
-DLINK := src/device_link.o
-
 $(EXEC): prereq-build $(OBJS)
+	mkdir -p bin/
+ifndef HIPCONFIG
 	nvcc -dlink $(OBJS) -arch $(CUDA_ARCH) -o $(DLINK)
-	mkdir -p bin/ && $(LD) $(LDFLAGS) $(OBJS) $(DLINK) -o $(EXEC) $(LIBS)
+	$(LD) $(LDFLAGS) $(OBJS) $(DLINK) -o $(EXEC) $(LIBS)
+else
+	$(LD) $(LDFLAGS) $(OBJS) -o $(EXEC) $(LIBS)
+endif
 	eval $(EXTRA_COMMANDS)
 
 %.o: %.cpp
@@ -221,7 +225,7 @@ tidy:
 	@echo -e "\nResults from clang-tidy are available in the 'tidy_results_cpp_$(TYPE).log' and 'tidy_results_gpu_$(TYPE).log' files."
 
 clean:
-	rm -f $(CLEAN_OBJS)
+	rm -f $(CLEAN_OBJS) $(DLINK)
 	rm -rf googletest
 	-find bin/ -type f -executable -name "cholla.*.$(MACHINE)*" -exec rm -f '{}' \;
 	-find src/ -type f -name "*.gcno" -delete
