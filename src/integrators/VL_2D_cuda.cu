@@ -223,9 +223,9 @@ __global__ void Update_Conserved_Variables_2D_half(Real *dev_conserved, Real *de
     // update the conserved variable array
     dev_conserved_half[id] =
         dev_conserved[id] + dtodx * (dev_F_x[imo] - dev_F_x[id]) + dtody * (dev_F_y[jmo] - dev_F_y[id]);
-    dev_conserved_half[n_cells + id] = dev_conserved[n_cells + id] +
-                                       dtodx * (dev_F_x[n_cells + imo] - dev_F_x[n_cells + id]) +
-                                       dtody * (dev_F_y[n_cells + jmo] - dev_F_y[n_cells + id]);
+    dev_conserved_half[n_cells + id]     = dev_conserved[n_cells + id] +
+                                           dtodx * (dev_F_x[n_cells + imo] - dev_F_x[n_cells + id]) +
+                                           dtody * (dev_F_y[n_cells + jmo] - dev_F_y[n_cells + id]);
     dev_conserved_half[2 * n_cells + id] = dev_conserved[2 * n_cells + id] +
                                            dtodx * (dev_F_x[2 * n_cells + imo] - dev_F_x[2 * n_cells + id]) +
                                            dtody * (dev_F_y[2 * n_cells + jmo] - dev_F_y[2 * n_cells + id]);

@@ -108,7 +108,7 @@ void supernova::initState(struct Parameters* P, part_int_t n_local, Real allocat
         }
         if (i > 0) {
           break;  // only care about the first 2 items.  Once i = 1 can break
-        }         // here.
+        }  // here.
 
         data = strtok(nullptr, s99_delim);
         i++;
@@ -484,7 +484,7 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id, Real
                   py = y_frac * feedback_momentum;
                   pz = z_frac * feedback_momentum;
                   d  = (abs(x_frac) + abs(y_frac) + abs(z_frac)) / 6 * feedback_density +
-                      n_0 * supernova::MU * MP / DENSITY_UNIT;
+                       n_0 * supernova::MU * MP / DENSITY_UNIT;
 
                   // d  = frac(i, delta_x) * frac(j, delta_y) * frac(k, delta_z)
                   // * feedback_density; e  = frac(i, delta_x) * frac(j,
@@ -537,9 +537,9 @@ __global__ void Cluster_Feedback_Kernel(part_int_t n_local, part_int_t* id, Real
 
                   density[indx] = d;
                   energy[indx]  = (momentum_x[indx] * momentum_x[indx] + momentum_y[indx] * momentum_y[indx] +
-                                  momentum_z[indx] * momentum_z[indx]) /
-                                     2 / density[indx] +
-                                 gasEnergy[indx];
+                                   momentum_z[indx] * momentum_z[indx]) /
+                                      2 / density[indx] +
+                                  gasEnergy[indx];
 
                   // atomicAdd(    &energy[indx], e );
                   // atomicAdd(   &density[indx], d );
