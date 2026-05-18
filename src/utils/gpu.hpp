@@ -98,9 +98,10 @@ static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
   #define cudaMemcpyToArray   hipMemcpyToArray
   #define cudaMemcpy2DToArray hipMemcpy2DToArray
 
-  #define cudaTextureObject_t      hipTextureObject_t
-  #define cudaCreateTextureObject  hipCreateTextureObject
-  #define cudaDestroyTextureObject hipDestroyTextureObject
+  #define cudaTextureObject_t              hipTextureObject_t
+  #define cudaCreateTextureObject          hipCreateTextureObject
+  #define cudaDestroyTextureObject         hipDestroyTextureObject
+  #define cudaGetTextureObjectResourceDesc hipGetTextureObjectResourceDesc
 
   #define cudaChannelFormatDesc      hipChannelFormatDesc
   #define cudaCreateChannelDesc      hipCreateChannelDesc
