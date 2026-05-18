@@ -7,11 +7,6 @@ CUDA_ARCH       = sm_100
 OMP_NUM_THREADS   = 16
 
 #-- Library
-# GCC_ROOT        = /vast/parcc/sw/lmod/linux-ubuntu24.04-x86_64/gcc/13.3.0
-# CUDA_ROOT	:=$(CUDA_HOME)
-# HDF5_ROOT	= /vast/parcc/spack/sw/apps/linux-sapphirerapids/hdf5-1.14.6-ujrinu3pcp4soa2r55ssplnpwpuxbzd2
-# MPI_ROOT	= /vast/parcc/spack/sw/apps/linux-zen4/openmpi-4.1.8-j3iadce5mhbevsmv2waf3vsfej7orbpq
-
 GCC_ROOT	:= $(BETTY_GCC)
 CUDA_ROOT       := $(BETTY_CUDA)
 HDF5_ROOT       := $(BETTY_HDF5)
