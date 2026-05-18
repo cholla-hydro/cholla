@@ -32,3 +32,4 @@ zl_bcnd=1
 zu_bcnd=1
 # path to output directory
 outdir=./
+bc_potential_type=0
