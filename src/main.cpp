@@ -59,8 +59,10 @@ int main(int argc, char *argv[])
 
   Real dti = 0;  // inverse time step, 1.0 / dt
 
+#ifdef RT
   // BRANT limit max time, added for RT tests
   Real dt_max = 0.0;  // maximum allowed time step
+#endif // RT
 
   // input parameter variables
   char *param_file;
@@ -285,10 +287,12 @@ int main(int argc, char *argv[])
   // Compute inverse timestep for the first time
   dti = G.Calc_Inverse_Timestep();
 
+#ifdef RT
   // BRANT
   if (P.max_timestep != 0) {
     dt_max = P.max_timestep;
   }
+#endif //RT 
 
   while (G.H.t < P.tout) {
 // get the start time
@@ -297,6 +301,7 @@ int main(int argc, char *argv[])
 #endif  // CPU_TIME
     start_step = Get_Time();
 
+#ifdef RT
     // BRANT
     // Use log step if it's smaller
     if (dt_max != 0) {
@@ -304,6 +309,7 @@ int main(int argc, char *argv[])
         dti = 1.0 / dt_max;
       }
     }
+#endif //RT
 
     // calculate the timestep by calling MPI_Allreduce
     G.set_dt(dti);
@@ -315,10 +321,12 @@ int main(int argc, char *argv[])
     }
 
 
+#ifdef RT
     // update the log timestep // BRANT
     if (P.max_timestep_dexinc != 0) {
       dt_max *= pow(10.0, P.max_timestep_dexinc);
     }
+#endif //RT
 
 
 #if defined(FEEDBACK) && defined(PARTICLE_AGE)

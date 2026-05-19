@@ -467,7 +467,7 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost,
   const int nw3 = nx*ny*nz;
 
   const Real* rf = rfi;
-  const Real* fi[3] = { rfi+nw3, rfi+2*nw3, rfi+3*nw3 }; // fluxes
+  const Real* fi[3] = { rfi+nw3, rfi+2*nw3, rfi+3*nw3 }; 
   const Real* pij[6] = { pij_, pij_+nw3, pij_+2*nw3, pij_+3*nw3, pij_+4*nw3, pij_+5*nw3 };
   Real* fiNew[3] = { rfiNew+nw3, rfiNew+2*nw3, rfiNew+3*nw3 };
 
