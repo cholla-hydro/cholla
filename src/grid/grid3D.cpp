@@ -420,13 +420,17 @@ void Grid3D::Execute_Hydro_Integrator(void)
 #endif  // VL
 #ifdef SIMPLE
     chprintf("Before Simple Execute Hydro Integrator\n");
+#ifdef CHEMISTRY_GPU
     Do_Print_Chemistry(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields);
+#endif //CHEMISTRY_GPU
     Simple_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
                              H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, H.density_floor,
                              C.Grav_potential, SlowCellConditionChecker(1.0 / H.min_dt_slow, H.dx, H.dy, H.dz),
                              error_code_buffer.data());
-    chprintf("Before Simple Execute Hydro Integrator\n");
+    chprintf("After Simple Execute Hydro Integrator\n");
+#ifdef CHEMISTRY_GPU
     Do_Print_Chemistry(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields);
+#endif //CHEMISTRY_GPU
 #endif  // SIMPLE
   } else {
     chprintf("Error: Grid dimensions nx: %d  ny: %d  nz: %d  not supported.\n", H.nx, H.ny, H.nz);

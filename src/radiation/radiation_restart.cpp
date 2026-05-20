@@ -14,6 +14,7 @@
   #include <hdf5.h>
 #endif
 
+#ifdef RT
 void Rad3D::Radiation_Restart_Filename(char* filename, char* dirname, int nfile)
 {
 #ifdef MPI_CHOLLA
@@ -22,6 +23,7 @@ void Rad3D::Radiation_Restart_Filename(char* filename, char* dirname, int nfile)
   sprintf(filename, "%s%d_rt.h5", dirname, nfile);
 #endif
 }
+#endif
 
 #if defined(RT) && defined(HDF5)
 void Rad3D::Read_Restart_HDF5(Parameters* P, int nfile)

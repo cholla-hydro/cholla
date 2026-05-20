@@ -98,11 +98,13 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
   #ifdef DE
   chprintf("GasEnergy[0] %e\n",G.C.GasEnergy[0]);
   #endif
+#ifdef CHEMISTRY_GPU
   chprintf("HI_density[0] %e\n",G.C.HI_density[0]);
   chprintf("HII_density[0] %e\n",G.C.HII_density[0]);
   chprintf("HeI_density[0] %e\n",G.C.HeI_density[0]);
   chprintf("HeII_density[0] %e\n",G.C.HeII_density[0]);
   chprintf("HeIII_density[0] %e\n",G.C.HeIII_density[0]);
+#endif
 
   // ensure the output-directory exists (try to create it if it doesn't exist)
   Ensure_Dir_Exists(write_manager.fname_template().effective_output_dir_path(nfile));
