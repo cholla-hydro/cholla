@@ -217,7 +217,7 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
   Real *phi_out; // output cosmological potential
 
   //Create a file name for each hdf5 output
-  sprintf(fname,"%s0/phi_ini.h5.%d",P->outdir,procID);
+  sprintf(fname,"%s0/delta_ini.h5.%d",P->outdir,procID);
 
   // create a file
   f_id = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
