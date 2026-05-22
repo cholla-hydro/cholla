@@ -151,11 +151,14 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   //         when the power spectrum is loaded, so this just applies sqrt(P(k))
   chprintf("Applying power spectrum...\n");
 
-
+/*
   fft.Filter_rescale_by_power_spectrum(CP.d_delta_c,CP.d_delta_c,true,CP.n_pk,CP.d_k_array,CP.d_pk_dm_array);
 #ifndef ONLY_PARTICLES
+  chprintf("Applying baryonic power spectrum...\n");
+
   fft.Filter_rescale_by_power_spectrum(CP.d_delta_b,CP.d_delta_b,true,CP.n_pk,CP.d_k_array,CP.d_pk_gas_array);
 #endif 
+*/
 
 	// copy memory back to host
 	cudaMemcpy(CP.delta_c, CP.d_delta_c, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
@@ -188,6 +191,9 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   chprintf("Saving potential...\n");
 
   Save_Cosmo_Potential(P);
+
+  chprintf("Exiting...\n");
+
 	chexit(0);
 }
 
@@ -197,6 +203,9 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
 {
   char fname[200];
   hid_t f_id, d_id, a0_id, a1_id, a2_id, a3_id;
+#ifndef ONLY_PARTICLES
+  hid_t db_id;
+#endif
   hid_t fs_id, fsa0_id, fsa1_id, fsa2_id, fsa3_id, ms_id;
   hsize_t dimsf[3];
   hsize_t dimsa = 3;
@@ -240,7 +249,7 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
 
   // create a dataset
   fs_id   = H5Screate_simple(3, dimsf, NULL);
-  d_id = H5Dcreate2(f_id, "phi", H5T_NATIVE_DOUBLE, fs_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  d_id = H5Dcreate2(f_id, "delta_c", H5T_NATIVE_DOUBLE, fs_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
   // attach attributes
   fsa0_id = H5Screate_simple(1, &dimsa, NULL);
@@ -288,7 +297,7 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
         kk = k;
         idx = ii*(nz_local*ny_local) + jj*nz_local + kk; // row major
 
-        phi_out[idx] = CP.phi_1[id]; // map to output potential
+        phi_out[idx] = CP.delta_c[id]; // map to output CDM overdensity field
       }
     }
   }
@@ -299,11 +308,47 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
     printf("Error writing data to HDF5 on process %d\n",procID);
   }
 
+  H5Dclose(d_id);
+
+
+#ifndef ONLY_PARTICLES
+
+  db_id = H5Dcreate2(f_id, "delta_b", H5T_NATIVE_DOUBLE, fs_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+  // store the output potential in row major order
+  int i, j, k, id;
+  int ii,jj,kk, idx;
+  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
+    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
+      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
+
+        // get cell index
+        id = i + j * nx_local + k * nx_local * ny_local;
+
+        ii = i;
+        jj = j;
+        kk = k;
+        idx = ii*(nz_local*ny_local) + jj*nz_local + kk; // row major
+
+        phi_out[idx] = CP.delta_b[id]; // map to output baryon overdensity field
+      }
+    }
+  }
+
+
+  status = H5Dwrite(db_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, phi_out);
+  if(status < 0) {
+    printf("Error writing data to HDF5 on process %d\n",procID);
+  }
+
+  H5Dclose(db_id);
+
+#endif //ONLY_PARTICLES
+
   H5Aclose(a0_id);
   H5Aclose(a1_id);
   H5Aclose(a2_id);
   H5Aclose(a3_id);
-  H5Dclose(d_id);
   H5Sclose(fs_id);
   H5Sclose(fsa3_id);
   H5Sclose(fsa2_id);
