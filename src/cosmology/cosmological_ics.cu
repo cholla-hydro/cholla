@@ -205,7 +205,7 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
 #ifndef ONLY_PARTICLES
   hid_t db_id;
   hid_t ba0_id, ba1_id, ba2_id, ba3_id;
-  hid_t fbs_id, fbsa0_id, fbsa1_id, fbsa2_id, fbsa3_id, ms_id;
+  hid_t fbs_id, fbsa0_id, fbsa1_id, fbsa2_id, fbsa3_id;
 #endif
   hsize_t dimsf[3];
   hsize_t dimsa = 3;
@@ -322,6 +322,7 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
 #ifndef ONLY_PARTICLES
 
   fbs_id   = H5Screate_simple(3, dimsf, NULL);
+  db_id = H5Dcreate2(f_id, "delta_b", H5T_NATIVE_DOUBLE, fbs_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
   // attach attributes
   fbsa0_id = H5Screate_simple(1, &dimsa, NULL);
@@ -353,7 +354,6 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
     printf("Error writing data to HDF5 on process %d\n",procID);
   }
 
-  db_id = H5Dcreate2(f_id, "delta_b", H5T_NATIVE_DOUBLE, fbs_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
   // store the output potential in row major order
   for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
