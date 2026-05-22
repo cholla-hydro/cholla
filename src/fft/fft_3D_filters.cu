@@ -113,6 +113,8 @@ void FFT_3D::Filter_rescale_by_power_spectrum( double *input, double *output, bo
   } else {
     GPU_Error_Check( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyHostToDevice));
   } 
+
+  chprintf("Before filter...\n")
   
   // Provide FFT filter with a lambda that multiplies by P(k)
   henry_->filter(bytes, db_, da_,

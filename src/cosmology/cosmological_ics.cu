@@ -130,7 +130,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
 
 	// copy mean zero phi back to GPU
-	cudaMemcpy(CP.delta_c, CP.d_delta_c, n_cells * sizeof(Real), cudaMemcpyHostToDevice);
+	GPU_Error_Check(cudaMemcpy(CP.delta_c, CP.d_delta_c, n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
   chprintf("Rescaling field...\n");
 
@@ -141,7 +141,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
 #ifndef ONLY_PARTICLES
   // step 2.5) Copy random field to baryonic field
-	cudaMemcpy(CP.d_delta_b, CP.d_delta_c, n_cells * sizeof(Real), cudaMemcpyDeviceToDevice);
+	GPU_Error_Check(cudaMemcpy(CP.d_delta_b, CP.d_delta_c, n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
 #endif 
 
 	// step 3) Multiply xi(k) by the transfer function 
@@ -150,15 +150,13 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   //         also note  the [(2 \pi / L)**3 ]^{1/2} factor is handled
   //         when the power spectrum is loaded, so this just applies sqrt(P(k))
   chprintf("Applying power spectrum...\n");
-
-/*
   fft.Filter_rescale_by_power_spectrum(CP.d_delta_c,CP.d_delta_c,true,CP.n_pk,CP.d_k_array,CP.d_pk_dm_array);
+
 #ifndef ONLY_PARTICLES
   chprintf("Applying baryonic power spectrum...\n");
-
   fft.Filter_rescale_by_power_spectrum(CP.d_delta_b,CP.d_delta_b,true,CP.n_pk,CP.d_k_array,CP.d_pk_gas_array);
 #endif 
-*/
+
 
 	// copy memory back to host
 	cudaMemcpy(CP.delta_c, CP.d_delta_c, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
@@ -501,11 +499,10 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
 
   GPU_Error_Check(cudaHostAlloc((void **)&CP.host, CP.n_fields * n_cells * sizeof(Real), cudaHostAllocDefault));
 
-  chprintf("Host memory allocated for cosmological ICs initial potential.\n");
+  chprintf("Host memory allocated for %d fields in cosmological ICs initial potential.\n",CP.n_fields);
 
   // point potential variables to the appropriate locations on host
   CP.delta_c    = CP.host;
-  offset += n_cells;
 #ifndef ONLY_PARTICLES
   CP.delta_b   = &(CP.host[offset]);
   offset += n_cells;
@@ -517,11 +514,11 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
   GPU_Error_Check(cudaMalloc((void **)&CP.device, CP.n_fields * n_cells * sizeof(Real)));
   cuda_utilities::initGpuMemory(CP.device, CP.n_fields * n_cells * sizeof(Real));
 
-  chprintf("Device memory allocated for cosmological ICs initial potential.\n");
+  chprintf("Device memory allocated for %d fields in cosmological ICs initial potential.\n",CP.n_fields);
 
   // point potential variables to the appropriate locations on the device
   CP.d_delta_c   = CP.device;
-  offset += n_cells;
+  offset = n_cells;
 #ifndef ONLY_PARTICLES
   CP.d_delta_b  = &(CP.device[offset]);
   offset += n_cells;
