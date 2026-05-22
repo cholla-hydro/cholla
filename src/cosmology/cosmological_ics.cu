@@ -316,8 +316,6 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
   db_id = H5Dcreate2(f_id, "delta_b", H5T_NATIVE_DOUBLE, fs_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
   // store the output potential in row major order
-  int i, j, k, id;
-  int ii,jj,kk, idx;
   for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
     for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
       for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
