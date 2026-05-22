@@ -290,8 +290,10 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
       for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
 
         // get cell index
-//        id = i + j * nx_local + k * nx_local * ny_local; // why no offset for ghost cells?
-        id = (i+H.n_ghost) + (j+H.n_ghost) * H.nx + (k+H.n_ghost) * H.nx * H.ny; // why no offset for ghost cells?
+        id = i + j * nx_local + k * nx_local * ny_local; // why no offset for ghost cells?
+
+        // the following is all wrong, shifts, and leaves gaps
+        //id = (i+H.n_ghost) + (j+H.n_ghost) * H.nx + (k+H.n_ghost) * H.nx * H.ny; // why no offset for ghost cells?
 
         ii = i;
         jj = j;
@@ -362,8 +364,10 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
       for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
 
         // get cell index
-        //id = i + j * nx_local + k * nx_local * ny_local; //why no offset?
-        id = (i+H.n_ghost) + (j+H.n_ghost) * H.nx + (k+H.n_ghost) * H.nx * H.ny; // why no offset for ghost cells?
+        id = i + j * nx_local + k * nx_local * ny_local; //why no offset?
+
+        // the following is all wrong, shifts, and leaves gaps
+        //id = (i+H.n_ghost) + (j+H.n_ghost) * H.nx + (k+H.n_ghost) * H.nx * H.ny; // why no offset for ghost cells?
 
         ii = i;
         jj = j;
