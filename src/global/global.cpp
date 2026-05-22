@@ -408,7 +408,7 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   parms->wa            = pmap.value_or("wa", 0.0);
   parms->seed          = pmap.value_or("seed", 1337);
   if (not pmap.has_param("cosmo_ics_pk_file")) {
-    CHOLLA_ERROR("Cosmology sims must specify a power spectrum");
+    CHOLLA_ERROR("Cosmology sims must specify a power spectrum cosmo_ics_pk_file");
   }
   Load_String_Param_Into_Char_Buffer(pmap, "cosmo_ics_pk_file", parms->cosmo_ics_pk_file, "Pk.txt");
   chprintf("Power spectrum file: %s\n",parms->cosmo_ics_pk_file);

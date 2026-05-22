@@ -132,6 +132,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	// copy mean zero phi back to GPU
 	cudaMemcpy(CP.delta_c, CP.d_delta_c, n_cells * sizeof(Real), cudaMemcpyHostToDevice);
 
+  chprintf("Rescaling field...\n");
 
 	// step 2) Take the fourier transform
 	//         xi(k) = N**-d \sum_m exp( -(2 pi i / M) * kappa \dot m) * xi(m)
@@ -148,6 +149,9 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	//         note T(k) is computed at z=0
   //         also note  the [(2 \pi / L)**3 ]^{1/2} factor is handled
   //         when the power spectrum is loaded, so this just applies sqrt(P(k))
+  chprintf("Applying power spectrum...\n");
+
+
   fft.Filter_rescale_by_power_spectrum(CP.d_delta_c,CP.d_delta_c,true,CP.n_pk,CP.d_k_array,CP.d_pk_dm_array);
 #ifndef ONLY_PARTICLES
   fft.Filter_rescale_by_power_spectrum(CP.d_delta_b,CP.d_delta_b,true,CP.n_pk,CP.d_k_array,CP.d_pk_gas_array);
@@ -181,9 +185,10 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
 
   // exit
+  chprintf("Saving potential...\n");
 
-  //Save_Cosmo_Potential(P);
-	//chexit(0);
+  Save_Cosmo_Potential(P);
+	chexit(0);
 }
 
 /*! \fn void Save_Cosmo_Potential(struct Parameters *P)
