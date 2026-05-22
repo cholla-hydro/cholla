@@ -201,10 +201,12 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
 {
   char fname[200];
   hid_t f_id, d_id, a0_id, a1_id, a2_id, a3_id;
+  hid_t fs_id, fsa0_id, fsa1_id, fsa2_id, fsa3_id, ms_id;
 #ifndef ONLY_PARTICLES
   hid_t db_id;
+  hid_t ba0_id, ba1_id, ba2_id, ba3_id;
+  hid_t fbs_id, fbsa0_id, fbsa1_id, fbsa2_id, fbsa3_id, ms_id;
 #endif
-  hid_t fs_id, fsa0_id, fsa1_id, fsa2_id, fsa3_id, ms_id;
   hsize_t dimsf[3];
   hsize_t dimsa = 3;
   int attr_global[3];
@@ -310,36 +312,48 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
   H5Aclose(a2_id);
   H5Aclose(a3_id);
   H5Dclose(d_id);
+  H5Sclose(fs_id);
+  H5Sclose(fsa3_id);
+  H5Sclose(fsa2_id);
+  H5Sclose(fsa1_id);
+  H5Sclose(fsa0_id);
 
 
 #ifndef ONLY_PARTICLES
 
+  fbs_id   = H5Screate_simple(3, dimsf, NULL);
 
-  a0_id = H5Acreate2(db_id, "global", H5T_NATIVE_INT, fsa0_id, H5P_DEFAULT, H5P_DEFAULT);
-  a1_id = H5Acreate2(db_id, "start",  H5T_NATIVE_INT, fsa1_id, H5P_DEFAULT, H5P_DEFAULT);
-  a2_id = H5Acreate2(db_id, "size",   H5T_NATIVE_INT, fsa2_id, H5P_DEFAULT, H5P_DEFAULT);
-  a3_id = H5Acreate2(db_id, "ghost",  H5T_NATIVE_INT, fsa3_id, H5P_DEFAULT, H5P_DEFAULT);
+  // attach attributes
+  fbsa0_id = H5Screate_simple(1, &dimsa, NULL);
+  fbsa1_id = H5Screate_simple(1, &dimsa, NULL);
+  fbsa2_id = H5Screate_simple(1, &dimsa, NULL);
+  fbsa3_id = H5Screate_simple(1, &dimsa, NULL);
+
+  ba0_id = H5Acreate2(db_id, "global", H5T_NATIVE_INT, fbsa0_id, H5P_DEFAULT, H5P_DEFAULT);
+  ba1_id = H5Acreate2(db_id, "start",  H5T_NATIVE_INT, fbsa1_id, H5P_DEFAULT, H5P_DEFAULT);
+  ba2_id = H5Acreate2(db_id, "size",   H5T_NATIVE_INT, fbsa2_id, H5P_DEFAULT, H5P_DEFAULT);
+  ba3_id = H5Acreate2(db_id, "ghost",  H5T_NATIVE_INT, fbsa3_id, H5P_DEFAULT, H5P_DEFAULT);
                 
                            
-  status = H5Awrite(a0_id, H5T_NATIVE_INT, attr_global);
+  status = H5Awrite(ba0_id, H5T_NATIVE_INT, attr_global);
   if(status < 0) {
     printf("Error writing data to HDF5 on process %d\n",procID);
   }
                            
-  status = H5Awrite(a1_id, H5T_NATIVE_INT, attr_start);
+  status = H5Awrite(ba1_id, H5T_NATIVE_INT, attr_start);
   if(status < 0) {
     printf("Error writing data to HDF5 on process %d\n",procID);
   }
-  status = H5Awrite(a2_id, H5T_NATIVE_INT, attr_size);
+  status = H5Awrite(ba2_id, H5T_NATIVE_INT, attr_size);
   if(status < 0) {
     printf("Error writing data to HDF5 on process %d\n",procID);
   }
-  status = H5Awrite(a3_id, H5T_NATIVE_INT, attr_ghost);
+  status = H5Awrite(ba3_id, H5T_NATIVE_INT, attr_ghost);
   if(status < 0) {
     printf("Error writing data to HDF5 on process %d\n",procID);
   }
 
-  db_id = H5Dcreate2(f_id, "delta_b", H5T_NATIVE_DOUBLE, fs_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  db_id = H5Dcreate2(f_id, "delta_b", H5T_NATIVE_DOUBLE, fbs_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
   // store the output potential in row major order
   for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
@@ -364,20 +378,21 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
   if(status < 0) {
     printf("Error writing data to HDF5 on process %d\n",procID);
   }
-  H5Aclose(a0_id);
-  H5Aclose(a1_id);
-  H5Aclose(a2_id);
-  H5Aclose(a3_id);
+  H5Aclose(ba0_id);
+  H5Aclose(ba1_id);
+  H5Aclose(ba2_id);
+  H5Aclose(ba3_id);
   H5Dclose(db_id);
+  H5Sclose(fbs_id);
+  H5Sclose(fbsa3_id);
+  H5Sclose(fbsa2_id);
+  H5Sclose(fbsa1_id);
+  H5Sclose(fbsa0_id);
 
 #endif //ONLY_PARTICLES
 
 
-  H5Sclose(fs_id);
-  H5Sclose(fsa3_id);
-  H5Sclose(fsa2_id);
-  H5Sclose(fsa1_id);
-  H5Sclose(fsa0_id);
+
   H5Fclose(f_id);
 }
 
