@@ -343,12 +343,14 @@ void Grid3D::Free_Cosmo_Power_Spectrum()
 {
   // free host P(k) info
   free(CP.k_array);
+  free(CP.pk_tot_array);
   free(CP.pk_dm_array);
   free(CP.pk_gas_array);
 
   // free device P(k) info
   GPU_Error_Check(cudaFree(CP.d_n_pk));
   GPU_Error_Check(cudaFree(CP.d_k_array));
+  GPU_Error_Check(cudaFree(CP.d_pk_tot_array));
   GPU_Error_Check(cudaFree(CP.d_pk_dm_array));
   GPU_Error_Check(cudaFree(CP.d_pk_gas_array));
 }
@@ -398,10 +400,11 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
   chprintf( " Loaded %d lines in file. \n", n_lines  );
   
   // Allocate cpu and device memory for power spectrum
-  CP.n_pk         = n_lines;
-  CP.k_array      = (Real *)malloc( CP.n_pk*sizeof(Real) );
-  CP.pk_dm_array  = (Real *)malloc( CP.n_pk*sizeof(Real) );
-  CP.pk_gas_array = (Real *)malloc( CP.n_pk*sizeof(Real) );
+  CP.n_pk          = n_lines;
+  CP.k_array       = (Real *)malloc( CP.n_pk*sizeof(Real) );
+  CP.pk_tot_array  = (Real *)malloc( CP.n_pk*sizeof(Real) );
+  CP.pk_dm_array   = (Real *)malloc( CP.n_pk*sizeof(Real) );
+  CP.pk_gas_array  = (Real *)malloc( CP.n_pk*sizeof(Real) );
   
   chprintf( "Lbox = %f %f %f  n_grid = %d %d %d\n", P->xlen, P->ylen, P->zlen, P->nx, P->ny, P->nz );
   
@@ -413,24 +416,27 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
   
   for (i=0; i<n_lines; i++ ){
     CP.k_array[i]      = v[i][0] * 1e-3;       //Convert from 1/(Mpc/h) to  1/(kpc/h)
-    CP.pk_dm_array[i]  = v[i][1] * pk_factor;  // moving P(k) rescaling here
-    if(j==3)
+    CP.pk_tot_array[i] = v[i][1] * pk_factor;  // moving P(k) rescaling here
+    CP.pk_dm_array[i]  = v[i][2] * pk_factor;  // moving P(k) rescaling here
+    if(j==4)
     {
-      CP.pk_gas_array[i] = v[i][2] * pk_factor;  // moving P(k) rescaling here
+      CP.pk_gas_array[i] = v[i][3] * pk_factor;  // moving P(k) rescaling here
     }else{
-      CP.pk_gas_array[i] = v[i][1] * pk_factor;  // moving P(k) rescaling here
+      CP.pk_gas_array[i] = v[i][2] * pk_factor;  // moving P(k) rescaling here
     }
   }
 
   // Allocate device P(k) arrays  
   GPU_Error_Check(cudaMalloc((void**)&CP.d_n_pk,         sizeof(int)) );
   GPU_Error_Check(cudaMalloc((void**)&CP.d_k_array,      CP.n_pk*sizeof(Real)) );
+  GPU_Error_Check(cudaMalloc((void**)&CP.d_pk_tot_array, CP.n_pk*sizeof(Real)) );
   GPU_Error_Check(cudaMalloc((void**)&CP.d_pk_dm_array,  CP.n_pk*sizeof(Real)) );
   GPU_Error_Check(cudaMalloc((void**)&CP.d_pk_gas_array, CP.n_pk*sizeof(Real)) );
 
   // Copy host P(k) to device P(k)
   GPU_Error_Check(cudaMemcpy(CP.d_n_pk,        &CP.n_pk,                 sizeof(int),  cudaMemcpyHostToDevice) );
   GPU_Error_Check(cudaMemcpy(CP.d_k_array,      CP.k_array,      CP.n_pk*sizeof(Real), cudaMemcpyHostToDevice) );
+  GPU_Error_Check(cudaMemcpy(CP.d_pk_tot_array, CP.pk_tot_array, CP.n_pk*sizeof(Real), cudaMemcpyHostToDevice) );
   GPU_Error_Check(cudaMemcpy(CP.d_pk_dm_array,  CP.pk_dm_array,  CP.n_pk*sizeof(Real), cudaMemcpyHostToDevice) );
   GPU_Error_Check(cudaMemcpy(CP.d_pk_gas_array, CP.pk_gas_array, CP.n_pk*sizeof(Real), cudaMemcpyHostToDevice) );
 }

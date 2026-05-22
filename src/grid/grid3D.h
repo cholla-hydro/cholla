@@ -887,6 +887,7 @@ class Grid3D
     Real *k_array;
 
     /*! pointer to array of p(k) spectrum*/
+    Real *pk_tot_array;
     Real *pk_dm_array;
     Real *pk_gas_array;
 
@@ -894,6 +895,7 @@ class Grid3D
     Real *d_k_array;
 
     /*! pointer to array of p(k) spectrum on device*/
+    Real *d_pk_tot_array;
     Real *d_pk_dm_array;
     Real *d_pk_gas_array;
 
