@@ -93,11 +93,11 @@ void FFT_3D::Filter_rescale_by_k_k2( double *input, double *output, bool in_devi
       }
     });
     
-    if ( in_device ){
-      GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToDevice));
-    } else {
-      GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToHost));
-    } 
+  if ( in_device ){
+    GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToDevice));
+  } else {
+    GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToHost));
+  } 
 }
 /*! void FFT_3D::Filter_rescale_by_power_spectrum( double *input, double *output, bool in_device, int size, double *dev_k, double *dev_pk ) const
  *  \brief Filter that rescales by a scale-dependent power spectrum */
@@ -113,8 +113,6 @@ void FFT_3D::Filter_rescale_by_power_spectrum( double *input, double *output, bo
   } else {
     GPU_Error_Check( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyHostToDevice));
   } 
-
-  chprintf("Before filter...\n")
   
   // Provide FFT filter with a lambda that multiplies by P(k)
   henry_->filter(bytes, db_, da_,
@@ -139,11 +137,11 @@ void FFT_3D::Filter_rescale_by_power_spectrum( double *input, double *output, bo
       }
     });
     
-    if ( in_device ){
-      GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToDevice));
-    } else {
-      GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToHost));
-    } 
+  if ( in_device ){
+    GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToDevice));
+  } else {
+    GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToHost));
+  } 
     
 }
 
