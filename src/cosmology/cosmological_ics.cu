@@ -167,10 +167,18 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // free the P(k)
   Free_Cosmo_Power_Spectrum();
 
-  // At this stage, the cosmological potential(s) phi_ini
-  // has/have been computed. These can be used to set
-  // the remaining initial conditions in the ICs generation
-  // locations of the code
+  // exit
+  chprintf("Saving potential...\n");
+  Save_Cosmo_Potential(P);
+
+
+  // At this stage, the cosmological overdensity fields
+  // has/have been computed. These can be used to compute
+  // the initial potential fields, which are then used to set
+  // the remaining initial conditions.
+
+
+
 
 	// step 2.5) create k vectors
 	//Populate_Wavevectors(d_kx, d_ky, d_kz, d_kk);
@@ -185,10 +193,6 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	//fft.Reset();
 
 
-  // exit
-  chprintf("Saving potential...\n");
-
-  Save_Cosmo_Potential(P);
 
   chprintf("Exiting...\n");
 
