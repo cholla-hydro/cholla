@@ -854,10 +854,10 @@ class Grid3D
     /*! pointer to first potential */
     Real *phi_1; // initial potential sourced by total overdensity
 
-    Real *delta_c; // CDM overdensity
+    Real *delta_m; // matter overdensity
 
 #ifndef ONLY_PARTICLES
-    Real *delta_b; // baryon overdensity
+    Real *delta_bc; // baryon - cdm overdensity
 #endif 
 
     /*! pointer to second potential */
@@ -870,10 +870,10 @@ class Grid3D
     Real *d_phi_1;
 
     /*! pointer to first potential on device */
-    Real *d_delta_c;
+    Real *d_delta_m;
 
 #ifndef ONLY_PARTICLES
-    Real *d_delta_b;
+    Real *d_delta_bc;
 #endif
 
     /*! pointer to second potential on device */
@@ -887,17 +887,15 @@ class Grid3D
     Real *k_array;
 
     /*! pointer to array of p(k) spectrum*/
-    Real *pk_tot_array;
-    Real *pk_dm_array;
-    Real *pk_gas_array;
+    Real *pk_m_array;
+    Real *pk_bc_array;
 
     /*! pointer to array of p(k) wavenumbers on device*/
     Real *d_k_array;
 
     /*! pointer to array of p(k) spectrum on device*/
-    Real *d_pk_tot_array;
-    Real *d_pk_dm_array;
-    Real *d_pk_gas_array;
+    Real *d_pk_m_array;
+    Real *d_pk_bc_array;
 
   } CP;
   /*! RNG state */
