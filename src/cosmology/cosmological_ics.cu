@@ -141,7 +141,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
 #ifndef ONLY_PARTICLES
   // step 2.5) Copy random field to baryonic field
-	GPU_Error_Check(cudaMemcpy(CP.d_delta_bc, CP.d_delta_bc, n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
+	GPU_Error_Check(cudaMemcpy(CP.d_delta_bc, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
 #endif 
 
 	// step 3) Multiply xi(k) by the transfer function 
