@@ -94,6 +94,65 @@ Real Cosmology::Get_Hubble_Parameter(Real a)
   return H0 * sqrt(factor);
 }
 
+Real Cosmology::OmegaDEz(Real z)
+{
+  Real A = pow(1+z,3*(1+w0+wa));
+  Real B = Omega_L * exp(-3*wa*z/(1+z));
+  return A*B;
+}
+
+std::vector<Real> Cosmology::growth_factor_system(Real z, std::vector<Real> y, std::vector<Real> params)
+{
+
+  int ny = y.size();
+  std::vector<Real> dydz(ny);
+
+  Real aa;
+  Real a = y[0];
+  Real delta = y[1];
+  Real delta_dot = y[2];
+  Real da_dt, d2delta_dt2;
+
+  Real H0 = params[0];
+  Real Omega_r = params[1];
+  Real Omega_m = params[2];
+  Real Omega_DE = params[3];
+  Real w0 = params[4];
+  Real wa = params[5];
+
+  aa=a;
+  if(aa<1.0e-7)
+    aa = 1.0e-7;
+
+  // get current hubble parameter at this
+  // scale factor and time
+  //Real H = Hubble(aa, H0, Omega_r, Omega_m, Omega_DE, w0, wa);
+  Real H = Get_Hubble_Parameter(aa);
+
+  // get the current redshift
+  z = 1./aa -1.;
+
+  // Get the current fraction of the critical
+  // density contributed by matter and DE
+  Real Omega_r_z = Omega_r * pow(1+z,4);
+  Real Omega_m_z = Omega_m * pow(1+z,3);
+//  Real Omega_DE_z = OmegaDEz(z, Omega_DE, w0, wa);
+  Real Omega_DE_z = OmegaDEz(z);
+  Real Omega_tot = Omega_m_z + Omega_DE_z  + Omega_r_z;
+
+  // get the current da/dt = H*a
+  da_dt = H * a;
+
+  // get the current d^2 delta/dt^2 = -2 H ddelta/dt + 4\piG\rho_0 \delta
+  // \rho_0 = 3 \Omega_m(z)/\Omega_tot H^2 / 8 \pi G 
+  // so the second term is 1.5*(Omega_m_z/Omega_tot)*(H**2)*delta
+  d2delta_dt2 = -2*H*delta_dot + 1.5*(Omega_m_z/Omega_tot)*(H*H)*delta;
+
+  dydz[0] = da_dt;
+  dydz[1] = delta_dot;
+  dydz[2] = d2delta_dt2;
+  return dydz;
+}
 // Function to precompute the growth function
 void Cosmology::Compute_Cosmo_Growth_Function(struct Parameters *P)
 {
