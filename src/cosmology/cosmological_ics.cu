@@ -71,18 +71,6 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // save the growth function data to file
   Cosmo.Create_Growth_Function_File(P);
 
-  Real ac, Di, dDdti;
-  for(int i=0;i<100;i++)
-  {
-    ac = pow(10., -4 + 4*Real(i)/99.);
-    Di = Cosmo.D_Growth(ac);
-    dDdti = Cosmo.dDdt_Growth(ac);
-
-    chprintf("%e %e %e\n",ac,Di,dDdti);
-  }
-
-  chexit(0);
-
 	// Initialize the FFT as well
 	chprintf("Initializing the FFT system\n");
   chprintf("xdglobal %f %f %f\n",H.xdglobal, H.ydglobal, H.zdglobal);
@@ -175,12 +163,14 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   fft.Filter_rescale_by_power_spectrum(CP.d_delta_bc,CP.d_delta_bc,true,CP.n_pk,CP.d_k_array,CP.d_pk_bc_array);
 #endif 
 
-
 	// copy memory back to host
 	cudaMemcpy(CP.delta_m,  CP.d_delta_m,  n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 #ifndef ONLY_PARTICLES 
 	cudaMemcpy(CP.delta_bc, CP.d_delta_bc, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 #endif 
+
+  // free the P(k)
+  Free_Cosmo_Power_Spectrum();
 
   // note that delta_bc is about a ~0.1-1% effect,
   // depending on the k-scale
@@ -194,9 +184,6 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // delta_c = \delta_m + delta_c_ini = delta_m - f_b * delta_bc
   // delta_b = \delta_m + delta_b_ini = delta_m + f_c * delta_bc
   // delta_b = delta_c + f_b delta_bc + f_c delta_bc = delta_c + delta_bc
-  // exit
-  //chprintf("Saving potential...\n");
-  //Save_Cosmo_Potential(P);
 
   // We have verified that the delta_m and delta_bc 
   // reflect the expected Pm(k) and Pbc(k)
@@ -224,8 +211,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // 5) replace delta_bc with \nabla^-2 delta_bc
   // 6) x_c from phi_ini and gradient of delta_bc
 
-  // free the P(k)
-  Free_Cosmo_Power_Spectrum();
+
 
 
 
@@ -251,10 +237,10 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	//fft.Reset();
 
 
+  // Perhaps compute phi_init here as advertised?
 
-  chprintf("Exiting...\n");
-
-	chexit(0);
+  //chprintf("Exiting...\n");
+	//chexit(0);
 }
 
 /*! \fn void Save_Cosmo_Potential(struct Parameters *P)
