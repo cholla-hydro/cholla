@@ -1,6 +1,7 @@
 #ifdef COSMOLOGY
-  #include <string>
+  #include <fstream>
   #include <iostream>
+  #include <string>
   #include <cstdio>
 
 
