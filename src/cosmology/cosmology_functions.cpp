@@ -94,14 +94,26 @@ Real Cosmology::Get_Hubble_Parameter(Real a)
   return H0 * sqrt(factor);
 }
 
-Real Cosmology::OmegaDEz(Real z)
+Real Hubble_Growth_Function(Real a, Real H0, Real Omega_r, Real Omega_m, Real Omega_DE, Real w0, Real wa)
+{
+	//set redshifts, limit scale factor to 1.0e-6 minimum
+	Real aa = a;
+	if(aa<1.0e-6)
+		aa = 1.0e-6;
+	Real z = 1./aa -1.;
+  return H0*sqrt( Omega_r*pow(1+z,4) + Omega_m*pow(1+z,3) + OmegaDEz_Growth_Function(z,Omega_DE,w0,wa) );
+}
+
+//Real Cosmology::OmegaDEz(Real z)
+Real OmegaDEz_Growth_Function(Real z, Real Omega_DE, Real w0, Real wa)
 {
   Real A = pow(1+z,3*(1+w0+wa));
-  Real B = Omega_L * exp(-3*wa*z/(1+z));
+  Real B = Omega_DE * exp(-3*wa*z/(1+z));
   return A*B;
 }
 
-std::vector<Real> Cosmology::growth_factor_system(Real z, std::vector<Real> y, std::vector<Real> params)
+//std::vector<Real> Cosmology::growth_factor_system(Real z, std::vector<Real> y, std::vector<Real> params)
+std::vector<Real> growth_factor_system(Real z, std::vector<Real> y, std::vector<Real> params)
 {
 
   int ny = y.size();
@@ -126,8 +138,8 @@ std::vector<Real> Cosmology::growth_factor_system(Real z, std::vector<Real> y, s
 
   // get current hubble parameter at this
   // scale factor and time
-  //Real H = Hubble(aa, H0, Omega_r, Omega_m, Omega_DE, w0, wa);
-  Real H = Get_Hubble_Parameter(aa);
+  Real H = Hubble_Growth_Function(aa, H0, Omega_r, Omega_m, Omega_DE, w0, wa);
+  //Real H = Get_Hubble_Parameter(aa);
 
   // get the current redshift
   z = 1./aa -1.;
@@ -137,7 +149,8 @@ std::vector<Real> Cosmology::growth_factor_system(Real z, std::vector<Real> y, s
   Real Omega_r_z = Omega_r * pow(1+z,4);
   Real Omega_m_z = Omega_m * pow(1+z,3);
 //  Real Omega_DE_z = OmegaDEz(z, Omega_DE, w0, wa);
-  Real Omega_DE_z = OmegaDEz(z);
+  Real Omega_DE_z = OmegaDEz_Growth_Function(z, Omega_DE, w0, wa);
+//  Real Omega_DE_z = OmegaDEz(z);
   Real Omega_tot = Omega_m_z + Omega_DE_z  + Omega_r_z;
 
   // get the current da/dt = H*a
@@ -204,8 +217,8 @@ void Cosmology::Compute_Cosmo_Growth_Function(struct Parameters *P)
     }
 
     // evolve ODE by one timestep
-    //RK.rk4_ode( growth_factor_system, t , y_n, &dt, &dt_new, params, yp, &error);
-    RK.rk4_ode( [this]() {this->growth_factor_system();}, t , y_n, &dt, &dt_new, params, yp, &error);
+    RK.rk4_ode( growth_factor_system, t , y_n, &dt, &dt_new, params, yp, &error);
+    //RK.rk4_ode( [this]() {this->growth_factor_system();}, t , y_n, &dt, &dt_new, params, yp, &error);
 
     // iterate time
     t += dt;

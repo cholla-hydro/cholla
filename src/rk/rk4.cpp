@@ -142,6 +142,7 @@ void RK_Integrator::rk4_ode( std::vector<Real> (*dydx) (Real x, std::vector<Real
 	}
 }
 
+/*
 Real OmegaDEz(Real z, Real Omega_DE, Real w0, Real wa)
 {
 	Real A = pow(1+z,3*(1+w0+wa));
@@ -312,10 +313,10 @@ int main(int argc, char **argv)
 
 	int i;
 
-	/*for(i=0;i<RK.ai.size();i++)
+	for(i=0;i<RK.ai.size();i++)
 	{
 		printf("ai[%d] %e\n",i,RK.ai[i]);
-	}*/
+	}
 	for(i=0;i<z_array.size();i++)
 		printf("%e\t%e\t%e\t%e\n",z_array[i],ya_array[i],yb_array[i],yc_array[i]);
 
@@ -323,3 +324,4 @@ int main(int argc, char **argv)
 
 	return 0;
 }
+*/
