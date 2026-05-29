@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include <vector>
+#include <cmath>
 #include "rk4.h"
-
-typedef double Real;
 
 using namespace std;
 

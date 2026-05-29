@@ -1,4 +1,9 @@
+#pragma once
+
+#ifndef RK_H
+#define RK_H
 #include <vector>
+#include "../global/global.h"
 
 /*! \class RK_Integrator
  *  \brief Class for evolving coupled 
@@ -34,3 +39,4 @@ class RK_Integrator
 		void rk4_ode(std::vector<Real> (dydx)(Real x, std::vector<Real> y, std::vector<Real> params), Real x, std::vector<Real> y, Real *h, Real *hpass, std::vector<Real> params, std::vector<Real> &yp, Real *error);
 
 };
+#endif //RK_H
