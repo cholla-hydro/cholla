@@ -74,7 +74,8 @@ class Cosmology
 
   // growth function calculation
   // and interpolation
-  void Compute_Cosmo_Growth_Function(struct Parameters *P);
+  void Compute_Growth_Function(struct Parameters *P);
+  void Create_Growth_Function_File(struct Parameters *P);
   std::vector<Real> t_array;
   std::vector<Real> a_array;
   std::vector<Real> D_array;

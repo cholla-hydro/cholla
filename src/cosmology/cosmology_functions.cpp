@@ -1,5 +1,11 @@
 #ifdef COSMOLOGY
   #include <fstream>
+  #include <string>
+  #include <iomanip>
+  #include <iostream>
+  #include <sstream>
+  #include <cstdio>
+
 
   #include "../global/global.h"
   #include "../grid/grid3D.h"
@@ -167,7 +173,7 @@ std::vector<Real> growth_factor_system(Real z, std::vector<Real> y, std::vector<
   return dydz;
 }
 // Function to precompute the growth function
-void Cosmology::Compute_Cosmo_Growth_Function(struct Parameters *P)
+void Cosmology::Compute_Growth_Function(struct Parameters *P)
 {
 
 
@@ -185,7 +191,6 @@ void Cosmology::Compute_Cosmo_Growth_Function(struct Parameters *P)
 
   std::vector<Real> y;
 
-//HERE
   Real H0      = P->H0;
   H0 /= 1000;  //[km/s / kpc]
   Real Omega_M = P->Omega_M;
@@ -350,11 +355,21 @@ void Grid3D::Change_GAS_Frame_System(bool forward)
 }
 
 /* create the file for recording the expansion history */
-void Cosmology::Create_Growth_Factor_File(struct Parameters *P)
+void Cosmology::Create_Growth_Function_File(struct Parameters *P)
 {
   if (not Is_Root_Proc()) {
     return;
   }
+
+  Real H0      = P->H0;
+  H0 /= 1000;  //[km/s / kpc]
+  Real Omega_M = P->Omega_M;
+  Real Omega_L = P->Omega_L;
+  Real Omega_R = P->Omega_R;
+  Real Omega_K = 1 - (Omega_M + Omega_L + Omega_R);
+  Real Omega_b = P->Omega_b;
+  Real w0      = P->w0;
+  Real wa      = P->wa;
 
   std::string file_name(GROWTH_FACTOR_FILE_NAME);
   chprintf("\nCreating Growth Factor File: %s \n\n", file_name.c_str());
@@ -371,25 +386,51 @@ void Cosmology::Create_Growth_Factor_File(struct Parameters *P)
   // convert now to string form
   char *dt = ctime(&now);
 
+  char buffer[50];
   std::string message = "# H0 OmegaM Omega_b OmegaL w0 wa Omega_R Omega_K\n";
   message += "# " + std::to_string(H0 * 1e3) + " " + std::to_string(Omega_M);
   message += " " + std::to_string(Omega_b);
   message += " " + std::to_string(Omega_L) + " " + std::to_string(w0) + " " + std::to_string(wa);
-  message += " " + std::to_string(Omega_R) + " " + std::to_string(Omega_K);
+  std::snprintf(buffer, sizeof(buffer), "%7.6e", Omega_R);
+  message += " " + std::string(buffer) + " " + std::to_string(Omega_K);
 
   std::ofstream out_file;
-  out_file.open(file_name.c_str(), std::ios::app);
+  out_file.open(file_name.c_str(), std::ios::out);
   out_file << "# Run date: " << dt;
   out_file << message.c_str() << std::endl;
 
   // add columns to header
   out_file << "# t [1/H0] a D dD/dt [H0]" << std::endl;
 
+  std::ostringstream gstream;
   for(int i=0;i<t_array.size();i++)
   {
-    message  = std::to_string(t_array[i]) + " " + std::to_string(a_array[i]);
-    message += std::to_string(D_array[i]) + " " + std::to_string(dDdt_array[i]);
-    out_file << message.c_str() << std::endl;
+    //message  = std::format("{:7.6e}",t_array[i]) + " " + std::to_string(a_array[i]);
+    //message  = std::format("{:7.6e}",t_array[i]) + " " + std::to_string(a_array[i]);
+    //message += std::to_string(D_array[i]) + " " + std::to_string(dDdt_array[i]);
+    //fprintf("%e\t%e\t%e\t%e\n",t_array[i],a_array[i],D_array[i],dDdt_array[i]);
+    //gstream << std::scientific << std::setprecision(6) << t_array[i] + " ";
+    //message = gstream.str() + " ";
+    //gstream << std::scientific << std::setprecision(6) << a_array[i] + " ";
+    ////message += gstream.str() + " ";
+    //gstream << std::scientific << std::setprecision(6) << D_array[i] + " ";
+    //message += gstream.str() + " ";
+    //gstream << std::scientific << std::setprecision(6) << dDdt_array[i] + " ";
+    //message += gstream.str();
+
+    // only write useable a
+    if(a_array[i]>=1.0e-4)
+    {
+      std::snprintf(buffer, sizeof(buffer), "%7.6e", t_array[i]);
+      message = std::string(buffer) + " ";
+      std::snprintf(buffer, sizeof(buffer), "%7.6e", a_array[i]);
+      message += std::string(buffer) + " ";
+      std::snprintf(buffer, sizeof(buffer), "%7.6e", D_array[i]);
+      message += std::string(buffer) + " ";
+      std::snprintf(buffer, sizeof(buffer), "%7.6e", dDdt_array[i]);
+      message += std::string(buffer);
+      out_file << message.c_str() << std::endl;
+    }
   }
   out_file.close();
 }
@@ -416,11 +457,13 @@ void Cosmology::Create_Expansion_History_File(struct Parameters *P)
   // convert now to string form
   char *dt = ctime(&now);
 
+  char buffer[50];
   std::string message = "# H0 OmegaM Omega_b OmegaL w0 wa Omega_R Omega_K\n";
   message += "# " + std::to_string(H0 * 1e3) + " " + std::to_string(Omega_M);
   message += " " + std::to_string(Omega_b);
   message += " " + std::to_string(Omega_L) + " " + std::to_string(w0) + " " + std::to_string(wa);
-  message += " " + std::to_string(Omega_R) + " " + std::to_string(Omega_K);
+  std::snprintf(buffer, sizeof(buffer), "%7.6e", Omega_R);
+  message += " " + std::string(buffer) + " " + std::to_string(Omega_K);
 
   std::ofstream out_file;
   out_file.open(file_name.c_str(), std::ios::app);
@@ -435,8 +478,14 @@ void Cosmology::Write_Expansion_History_Entry(void)
   if (not Is_Root_Proc()) {
     return;
   }
+  std::string message;
+  char buffer[50];
+  std::snprintf(buffer, sizeof(buffer), "%7.6e", t_secs / MYR);
+  message  = std::string(buffer) + " ";
+  std::snprintf(buffer, sizeof(buffer), "%7.6e", current_a);
+  message += std::string(buffer);
 
-  std::string message = std::to_string(t_secs / MYR) + " " + std::to_string(current_a);
+  //std::string message = std::to_string(t_secs / MYR) + " " + std::to_string(current_a);
   std::string file_name(EXPANSION_HISTORY_FILE_NAME);
   std::ofstream out_file;
   out_file.open(file_name.c_str(), std::ios::app);

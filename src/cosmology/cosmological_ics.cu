@@ -66,7 +66,10 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   Load_Cosmo_Power_Spectrum(P);
 
   // load the growth function
-  Cosmo.Compute_Cosmo_Growth_Function(P);
+  Cosmo.Compute_Growth_Function(P);
+
+  // save the growth function data to file
+  Cosmo.Create_Growth_Function_File(P);
 
   chexit(0);
 
