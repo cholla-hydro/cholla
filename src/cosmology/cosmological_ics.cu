@@ -238,7 +238,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
 
   // rescale by 4pi/G
-  Real a = 1./(1+P->z_init);
+  Real a = 1./(1+P->Init_redshift);
   Real scale = Real(4) * M_PI / GN / a;
   Real offset = 0;
 

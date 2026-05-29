@@ -172,6 +172,8 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, const Real sc
   const Real sk = 2.0 * M_PI / Real(nk);
   #endif
 
+  const int n = ni * nj * nk;
+
 
   //rescale and apply offset
   gpuFor(
@@ -248,6 +250,7 @@ void FFT_3D::Filter_rescale( Real *const input, Real A, Real *output, bool in_de
 {
   // Local copies of members for lambda capture
   const int ni = ni_, nj = nj_;
+  const int nk    = nk_;
   const Real ddi = ddi_, ddj = ddj_, ddk = ddk_;
   const size_t bytes = minBytes_;
 
@@ -258,10 +261,12 @@ void FFT_3D::Filter_rescale( Real *const input, Real A, Real *output, bool in_de
     GPU_Error_Check( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyHostToDevice));
   } 
   
+  const int n = ni * nj * nk;
+
   //rescale and apply offset
-  gpuFor(
-      n, GPU_LAMBDA(const int i) { da_[i] = A * db_[i]; });
-  /*// Provide FFT filter that does nothing
+  //gpuFor(
+  //    n, GPU_LAMBDA(const int i) { db_[i] = A * db_[i]; });
+  // Provide FFT filter that simply rescales
   henry_->filter(bytes, db_, da_,
     [=] __device__ (const int i, const int j, const int k, const cufftDoubleComplex b) {
       if (i || j || k) {
@@ -269,13 +274,15 @@ void FFT_3D::Filter_rescale( Real *const input, Real A, Real *output, bool in_de
       } else {
         return cufftDoubleComplex{0.0,0.0};
       }
-    });*/
+    });
 
   // copy results to output
   if ( in_device ){
-    GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToDevice));
+    //GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToDevice));
+    GPU_Error_Check( cudaMemcpy( output, db_, outputBytes_, cudaMemcpyDeviceToDevice));
   } else {
-    GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToHost));
+    //GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToHost));
+    GPU_Error_Check( cudaMemcpy( output, db_, outputBytes_, cudaMemcpyDeviceToHost));
   } 
 }
 
