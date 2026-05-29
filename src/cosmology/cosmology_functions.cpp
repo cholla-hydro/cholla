@@ -1,9 +1,6 @@
 #ifdef COSMOLOGY
-  #include <fstream>
   #include <string>
-  #include <iomanip>
   #include <iostream>
-  #include <sstream>
   #include <cstdio>
 
 
@@ -145,7 +142,6 @@ std::vector<Real> growth_factor_system(Real z, std::vector<Real> y, std::vector<
   // get current hubble parameter at this
   // scale factor and time
   Real H = Hubble_Growth_Function(aa, H0, Omega_r, Omega_m, Omega_DE, w0, wa);
-  //Real H = Get_Hubble_Parameter(aa);
 
   // get the current redshift
   z = 1./aa -1.;
@@ -154,9 +150,7 @@ std::vector<Real> growth_factor_system(Real z, std::vector<Real> y, std::vector<
   // density contributed by matter and DE
   Real Omega_r_z = Omega_r * pow(1+z,4);
   Real Omega_m_z = Omega_m * pow(1+z,3);
-//  Real Omega_DE_z = OmegaDEz(z, Omega_DE, w0, wa);
   Real Omega_DE_z = OmegaDEz_Growth_Function(z, Omega_DE, w0, wa);
-//  Real Omega_DE_z = OmegaDEz(z);
   Real Omega_tot = Omega_m_z + Omega_DE_z  + Omega_r_z;
 
   // get the current da/dt = H*a
@@ -187,7 +181,7 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
   std::vector<Real> yp (ny,0);
 
   RK_Integrator RK;
-  RK.InitializeRK(3);
+  RK.InitializeRK(3); // initialize coupled system with 3 variables
 
   std::vector<Real> y;
 
@@ -209,8 +203,6 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
   params[3] = Omega_L;
   params[4] = w0;
   params[5] = wa;
-
-  printf("H0 %e OR %e OM %e OL %e w0 %e wa %e\n",H0,Omega_R,Omega_M,Omega_L,w0,wa);
 
   // initial scale factor, not important
   y_n[0] = 1.0e-7;
@@ -239,7 +231,6 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
 
     // evolve ODE by one timestep
     RK.rk4_ode( growth_factor_system, t , y_n, &dt, &dt_new, params, yp, &error);
-    //RK.rk4_ode( [this]() {this->growth_factor_system();}, t , y_n, &dt, &dt_new, params, yp, &error);
 
     // iterate time
     t += dt;
@@ -260,9 +251,7 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
     dDdt_array.push_back(y_n[2]);
   }
 
-  //for(int i=0;i<t_array.size();i++)
-  //  printf("%e\t%e\t%e\t%e\n",t_array[i],a_array[i],D_array[i],dDdt_array[i]);
-
+  // free the RK integrator memory
   RK.FreeMemory();
 }
 
@@ -371,15 +360,9 @@ void Cosmology::Create_Growth_Function_File(struct Parameters *P)
   Real w0      = P->w0;
   Real wa      = P->wa;
 
+  // set the growth function filename
   std::string file_name(GROWTH_FACTOR_FILE_NAME);
   chprintf("\nCreating Growth Factor File: %s \n\n", file_name.c_str());
-
-  /*bool file_exists = false;
-  if (FILE *file = fopen(file_name.c_str(), "r")) {
-    file_exists = true;
-    chprintf("  File exists, appending values: %s \n\n", file_name.c_str());
-    fclose(file);
-  }*/
 
   // current date/time based on current system
   time_t now = time(0);
@@ -402,22 +385,9 @@ void Cosmology::Create_Growth_Function_File(struct Parameters *P)
   // add columns to header
   out_file << "# t [1/H0] a D dD/dt [H0]" << std::endl;
 
-  std::ostringstream gstream;
+  // output the growth function data
   for(int i=0;i<t_array.size();i++)
   {
-    //message  = std::format("{:7.6e}",t_array[i]) + " " + std::to_string(a_array[i]);
-    //message  = std::format("{:7.6e}",t_array[i]) + " " + std::to_string(a_array[i]);
-    //message += std::to_string(D_array[i]) + " " + std::to_string(dDdt_array[i]);
-    //fprintf("%e\t%e\t%e\t%e\n",t_array[i],a_array[i],D_array[i],dDdt_array[i]);
-    //gstream << std::scientific << std::setprecision(6) << t_array[i] + " ";
-    //message = gstream.str() + " ";
-    //gstream << std::scientific << std::setprecision(6) << a_array[i] + " ";
-    ////message += gstream.str() + " ";
-    //gstream << std::scientific << std::setprecision(6) << D_array[i] + " ";
-    //message += gstream.str() + " ";
-    //gstream << std::scientific << std::setprecision(6) << dDdt_array[i] + " ";
-    //message += gstream.str();
-
     // only write useable a
     if(a_array[i]>=1.0e-4)
     {
@@ -432,7 +402,7 @@ void Cosmology::Create_Growth_Function_File(struct Parameters *P)
       out_file << message.c_str() << std::endl;
     }
   }
-  out_file.close();
+  out_file.close(); //close the file
 }
 
 /* create the file for recording the expansion history */
