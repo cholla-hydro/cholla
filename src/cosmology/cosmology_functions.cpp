@@ -374,12 +374,12 @@ void Cosmology::Create_Growth_Function_File(struct Parameters *P)
   std::string file_name(GROWTH_FACTOR_FILE_NAME);
   chprintf("\nCreating Growth Factor File: %s \n\n", file_name.c_str());
 
-  bool file_exists = false;
+  /*bool file_exists = false;
   if (FILE *file = fopen(file_name.c_str(), "r")) {
     file_exists = true;
     chprintf("  File exists, appending values: %s \n\n", file_name.c_str());
     fclose(file);
-  }
+  }*/
 
   // current date/time based on current system
   time_t now = time(0);
