@@ -71,6 +71,16 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // save the growth function data to file
   Cosmo.Create_Growth_Function_File(P);
 
+  Real ac, Di, dDdti;
+  for(int i=0;i<100;i++)
+  {
+    ac = pow(10., -4 + 4*Real(i)/99.);
+    Di = Cosmo.D_Growth(ac);
+    dDdti = Cosmo.dDdt_Growth(ac);
+
+    chprintf("%e %e %e\n",ac,Di,dDdti);
+  }
+
   chexit(0);
 
 	// Initialize the FFT as well

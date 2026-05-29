@@ -256,6 +256,35 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
   RK.FreeMemory();
 }
 
+
+// function to perform linear interpolation on vectos
+Real Cosmology::LinearInterpolation(std::vector<Real> x, std::vector<Real> y, Real a)
+{
+  // clamp if needed
+  if(a<=x.front()) return y.front();
+  if(a>=x.back())  return y.back();
+
+  // use lower_bound() to find index for interpolation
+  auto it = std::lower_bound(x.begin(), x.end(), a);
+
+  // interpolate
+  auto index = std::distance(x.begin(), it);
+
+  return y[index] + (y[index+1]-y[index])*(a - x[index])/(x[index+1]-x[index]);
+}
+// Function to precompute the growth function
+Real Cosmology::D_Growth(Real a)
+{
+  // interpolate (a,D)
+  return LinearInterpolation(a_array,D_array,a);
+}
+// Function to precompute the growth function time derivative
+Real Cosmology::dDdt_Growth(Real a)
+{
+  // interpolate (a,dDdt)
+  return LinearInterpolation(a_array,dDdt_array,a);
+}
+
 void Grid3D::Change_Cosmological_Frame_System(bool forward)
 {
   if (forward) {
