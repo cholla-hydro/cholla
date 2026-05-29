@@ -237,10 +237,20 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	//fft.Reset();
 
 
-  // Perhaps compute phi_init here as advertised?
+  // rescale by 4pi/G
+  Real a = 1./(1+P->z_init);
+  Real scale = Real(4) * M_PI / GN / a;
+  Real offset = 0;
 
-  //chprintf("Exiting...\n");
-	//chexit(0);
+  // Perhaps compute phi_init here as advertised?
+  // should return phi_1 = \nabla^-2 delta_m
+  fft.Filter_inv_k2(CP.d_delta_m,CP.d_phi_1,scale,offset,true);
+
+
+
+
+  chprintf("Exiting...\n");
+	chexit(0);
 }
 
 /*! \fn void Save_Cosmo_Potential(struct Parameters *P)
