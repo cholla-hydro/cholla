@@ -65,6 +65,9 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // load the P(k)
   Load_Cosmo_Power_Spectrum(P);
 
+  // load the growth function
+  Cosmo.Compute_Cosmo_Growth_Function(P);
+
 	// Initialize the FFT as well
 	chprintf("Initializing the FFT system\n");
   chprintf("xdglobal %f %f %f\n",H.xdglobal, H.ydglobal, H.zdglobal);
@@ -164,12 +167,52 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	cudaMemcpy(CP.delta_bc, CP.d_delta_bc, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 #endif 
 
+  // note that delta_bc is about a ~0.1-1% effect,
+  // depending on the k-scale
+
+  // f_b = Omega_b / Omega_m
+  // f_c = 1.0 - f_b
+
+  // delta_m = D \nabla^2 \phi_ini
+  // delta_b_ini =  f_c * delta_bc
+  // delta_c_ini = -f_b * delta_bc
+  // delta_c = \delta_m + delta_c_ini = delta_m - f_b * delta_bc
+  // delta_b = \delta_m + delta_b_ini = delta_m + f_c * delta_bc
+  // delta_b = delta_c + f_b delta_bc + f_c delta_bc = delta_c + delta_bc
+  // exit
+  //chprintf("Saving potential...\n");
+  //Save_Cosmo_Potential(P);
+
+  // We have verified that the delta_m and delta_bc 
+  // reflect the expected Pm(k) and Pbc(k)
+
+  // dm particle masses could inherit mass perturbations
+  // m_c(q) = \bar{m}_c * (1 + delta_c_ini(q))
+
+  // or to first-order the lagrangian displacement is
+  // xi_c_pert = D xi_m(1) - \nabla^-2 \grad \delta_c_init
+  // xi_m(1) = - \grad \phi_ini
+  // x_c = q - D(z_start) \grad \phi_ini - \nabla^-2 \grad \delta_c_init
+  // x_c = q - D(z_start) \grad \phi_ini + f_b * \nabla^-2 \grad \delta_bc
+  // v_c = dD/dt * \grad \phi_ini
+  // v_b = dD/dt * \grad \phi_ini
+  // \phi_ini = \nabla^-2 \delta_m (a_Ref)/D+(a_Ref) * D+(a)/a
+
+  // the first method still requires the PT total mass displacements
+  // for the dark matter
+
+  // so we should compute
+  // 1) phi_ini from delta_m
+  // 2) \grad phi_ini
+  // 3) v_c and v_b from \grad phi_ini
+  // 4) delta_b from delta_m and delta_bc
+  // 5) replace delta_bc with \nabla^-2 delta_bc
+  // 6) x_c from phi_ini and gradient of delta_bc
+
   // free the P(k)
   Free_Cosmo_Power_Spectrum();
 
-  // exit
-  chprintf("Saving potential...\n");
-  Save_Cosmo_Potential(P);
+
 
 
   // At this stage, the cosmological overdensity fields

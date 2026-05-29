@@ -5,6 +5,7 @@
   #include "../grid/grid3D.h"
   #include "../grid/grid_enum.h"
   #include "../io/io.h"
+  #include "../rk/rk4.h"
 
 void Grid3D::Initialize_Cosmology(struct Parameters *P)
 {
@@ -91,6 +92,84 @@ Real Cosmology::Get_Hubble_Parameter(Real a)
   Real fac_de = pow(a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - a));
   Real factor = (Omega_R / a4 + Omega_M / a3 + Omega_K / a2 + Omega_L * fac_de);
   return H0 * sqrt(factor);
+}
+
+// Function to precompute the growth function
+void Cosmology::Compute_Cosmo_Growth_Function(struct Parameters *P)
+{
+  int np = 6;
+  int ny = 3;
+
+  std::vector<Real> params(np);
+
+  Real error;
+  std::vector<Real> y_n(ny,0);
+  std::vector<Real> yp (ny,0);
+
+  RK_Integrator RK;
+  RK.InitializeRK(3);
+
+  std::vector<Real> y;
+
+  //parameters
+  params[0] = H0;
+  params[1] = Omega_R;
+  params[2] = Omega_M;
+  params[3] = Omega_L;
+  params[4] = w0;
+  params[5] = wa;
+
+  // initial scale factor, not important
+  y_n[0] = 1.0e-7;
+  y_n[1] = 1.0e-8;
+  y_n[2] = 1.0e-8;
+
+  Real t = 0;
+
+  t_array.push_back(t);
+  a_array.push_back(y_n[0]);
+  D_array.push_back(y_n[1]);
+  dDdt_array.push_back(y_n[2]);
+  Real tmax = 1./H0;
+
+  Real dt = 1.0e-4 * tmax;
+  Real dt_new;
+  Real dt_max = 1.0e-2 * tmax;
+
+  Real a_max = 1.0;
+  while( (t<tmax)&(y_n[0]<a_max) )
+  {
+    if(t+dt>tmax)
+    {
+      dt = tmax-t;
+    }
+
+    // evolve ODE by one timestep
+    RK.rk4_ode( growth_factor_system, t , y_n, &dt, &dt_new, params, yp, &error);
+
+    // iterate time
+    t += dt;
+
+    for(int i=0;i<yp.size();i++)
+      y_n[i] = yp[i];
+
+    // limit to the largest dz allowable
+    if(dt_new<dt_max)
+      dt_new = dt_max;
+
+    // update the redshift step
+    dt = dt_new;
+
+    t_array.push_back(t);
+    a_array.push_back(y_n[0]);
+    D_array.push_back(y_n[1]);
+    dDdt_array.push_back(y_n[2]);
+  }
+
+  for(int i=0;i<t_array.size();i++)
+    printf("%e\t%e\t%e\t%e\n",t_array[i],a_array[i],D_array[i],dDdt_array[i]);
+
+  RK.FreeMemory();
 }
 
 void Grid3D::Change_Cosmological_Frame_System(bool forward)

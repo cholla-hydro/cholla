@@ -1677,6 +1677,9 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   h       = H0 / 100;
   G       = G_COSMO;
   Real Omega_b = P.Omega_b;
+  Real Omega_m = P.Omega_M;
+  Real f_b = Omega_b/Omega_m;
+  Real f_c = 1.0 - f_b;
   Real rho_b   = 3 * H0 * H0 / (8 * M_PI * G) * Omega_b / h / h;
   z_init = P.Init_redshift;
   gamma = P.gamma;
@@ -1704,6 +1707,51 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
 
   // create gas 
+  // f_b = Omega_b / Omega_m
+  // f_c = 1.0 - f_b
+
+  // delta_m = D \nabla^2 \phi_ini
+  // delta_b_ini =  f_c * delta_bc
+  // delta_c_ini = -f_b * delta_bc
+  // delta_c = \delta_m + delta_c_ini = delta_m - f_b * delta_bc
+  // delta_b = \delta_m + delta_b_ini = delta_m + f_c * delta_bc
+  // delta_b = delta_c + f_b delta_bc + f_c delta_bc = delta_c + delta_bc
+  // exit
+  //chprintf("Saving potential...\n");
+  //Save_Cosmo_Potential(P);
+
+  // We have verified that the delta_m and delta_bc 
+  // reflect the expected Pm(k) and Pbc(k)
+
+  // dm particle masses could inherit mass perturbations
+  // m_c(q) = \bar{m}_c * (1 + delta_c_ini(q))
+
+  // or to first-order the lagrangian displacement is
+  // xi_c_pert = D xi_m(1) - \nabla^-2 \grad \delta_c_init
+  // xi_m(1) = - \grad \phi_ini
+  // x_c = q - D(z_start) \grad \phi_ini - \nabla^-2 \grad \delta_c_init
+  // x_c = q - D(z_start) \grad \phi_ini + f_b * \nabla^-2 \grad \delta_bc
+  // v_c = dD/dt * \grad \phi_ini
+  // v_b = dD/dt * \grad \phi_ini
+  // \phi_ini = \nabla^-2 \delta_m (a_Ref)/D+(a_Ref) * D+(a)/a
+
+  // the first method still requires the PT total mass displacements
+  // for the dark matter
+
+  // so we should compute
+  // 1) phi_ini from delta_m
+  // 2) \grad phi_ini
+  // 3) v_c and v_b from \grad phi_ini
+  // 4) delta_b from delta_m and delta_bc
+  // 5) replace delta_bc with \nabla^-2 delta_bc
+  // 6) x_c from phi_ini and gradient of delta_bc
+
+  ////////////////////////////////////////////////
+  // 4) Compute delta b from delta_m and delta_bc
+  ////////////////////////////////////////////////
+
+
+  // compute dD/da * da/dt / a = a H dD/da
 
 #ifndef ONLY_PARTICLES
   int index;
@@ -1720,7 +1768,9 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         ii = i - H.n_ghost;
         index =  ii + jj * nx_local + kk * nx_local * ny_local;
 
-        dens = rho_b * (1 + CP.delta_b[index]); // rho_b * (1+delta_gas)
+        // rho_b * (1+delta_b) = rho_b * (1 + delta_m + f_c * delta_bc)
+        dens = rho_b * (1 + CP.delta_m[index] + f_c * CP.delta_bc[index]); 
+
         vel  = 0;
         U    = T_init / (gamma - 1) / MP * KB * 1e-10 * dens;
         E    = U;

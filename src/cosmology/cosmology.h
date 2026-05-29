@@ -72,6 +72,13 @@ class Cosmology
   Real Get_da_from_dt(Real dt);
   Real Get_dt_from_da(Real da, Real a);
 
+  // growth function calculation
+  void Compute_Cosmo_Growth_Function(struct Parameters *P);
+  std::vector<Real> t_array;
+  std::vector<Real> a_array;
+  std::vector<Real> D_array;
+  std::vector<Real> dDdt_array;
+  
   // write expansion history log file
   void Create_Expansion_History_File(struct Parameters *P);
   void Write_Expansion_History_Entry(void);
