@@ -169,6 +169,8 @@ std::vector<Real> growth_factor_system(Real z, std::vector<Real> y, std::vector<
 // Function to precompute the growth function
 void Cosmology::Compute_Cosmo_Growth_Function(struct Parameters *P)
 {
+
+
   int np = 6;
   int ny = 3;
 
@@ -183,6 +185,18 @@ void Cosmology::Compute_Cosmo_Growth_Function(struct Parameters *P)
 
   std::vector<Real> y;
 
+//HERE
+  Real H0      = P->H0;
+  H0 /= 1000;  //[km/s / kpc]
+  Real Omega_M = P->Omega_M;
+  Real Omega_L = P->Omega_L;
+  Real Omega_R = P->Omega_R;
+  Real Omega_K = 1 - (Omega_M + Omega_L + Omega_R);
+  Real Omega_b = P->Omega_b;
+  Real w0      = P->w0;
+  Real wa      = P->wa;
+
+
   //parameters
   params[0] = H0;
   params[1] = Omega_R;
@@ -190,6 +204,8 @@ void Cosmology::Compute_Cosmo_Growth_Function(struct Parameters *P)
   params[3] = Omega_L;
   params[4] = w0;
   params[5] = wa;
+
+  printf("H0 %e OR %e OM %e OL %e w0 %e wa %e\n",H0,Omega_R,Omega_M,Omega_L,w0,wa);
 
   // initial scale factor, not important
   y_n[0] = 1.0e-7;

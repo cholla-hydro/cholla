@@ -68,6 +68,8 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // load the growth function
   Cosmo.Compute_Cosmo_Growth_Function(P);
 
+  chexit(0);
+
 	// Initialize the FFT as well
 	chprintf("Initializing the FFT system\n");
   chprintf("xdglobal %f %f %f\n",H.xdglobal, H.ydglobal, H.zdglobal);
