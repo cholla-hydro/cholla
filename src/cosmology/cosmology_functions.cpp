@@ -204,7 +204,8 @@ void Cosmology::Compute_Cosmo_Growth_Function(struct Parameters *P)
     }
 
     // evolve ODE by one timestep
-    RK.rk4_ode( growth_factor_system, t , y_n, &dt, &dt_new, params, yp, &error);
+    //RK.rk4_ode( growth_factor_system, t , y_n, &dt, &dt_new, params, yp, &error);
+    RK.rk4_ode( [this]() {this->growth_factor_system();}, t , y_n, &dt, &dt_new, params, yp, &error);
 
     // iterate time
     t += dt;
