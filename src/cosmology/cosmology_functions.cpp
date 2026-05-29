@@ -239,8 +239,8 @@ void Cosmology::Compute_Cosmo_Growth_Function(struct Parameters *P)
     dDdt_array.push_back(y_n[2]);
   }
 
-  for(int i=0;i<t_array.size();i++)
-    printf("%e\t%e\t%e\t%e\n",t_array[i],a_array[i],D_array[i],dDdt_array[i]);
+  //for(int i=0;i<t_array.size();i++)
+  //  printf("%e\t%e\t%e\t%e\n",t_array[i],a_array[i],D_array[i],dDdt_array[i]);
 
   RK.FreeMemory();
 }
@@ -331,6 +331,51 @@ void Grid3D::Change_GAS_Frame_System(bool forward)
       }
     }
   }
+}
+
+/* create the file for recording the expansion history */
+void Cosmology::Create_Growth_Factor_File(struct Parameters *P)
+{
+  if (not Is_Root_Proc()) {
+    return;
+  }
+
+  std::string file_name(GROWTH_FACTOR_FILE_NAME);
+  chprintf("\nCreating Growth Factor File: %s \n\n", file_name.c_str());
+
+  bool file_exists = false;
+  if (FILE *file = fopen(file_name.c_str(), "r")) {
+    file_exists = true;
+    chprintf("  File exists, appending values: %s \n\n", file_name.c_str());
+    fclose(file);
+  }
+
+  // current date/time based on current system
+  time_t now = time(0);
+  // convert now to string form
+  char *dt = ctime(&now);
+
+  std::string message = "# H0 OmegaM Omega_b OmegaL w0 wa Omega_R Omega_K\n";
+  message += "# " + std::to_string(H0 * 1e3) + " " + std::to_string(Omega_M);
+  message += " " + std::to_string(Omega_b);
+  message += " " + std::to_string(Omega_L) + " " + std::to_string(w0) + " " + std::to_string(wa);
+  message += " " + std::to_string(Omega_R) + " " + std::to_string(Omega_K);
+
+  std::ofstream out_file;
+  out_file.open(file_name.c_str(), std::ios::app);
+  out_file << "# Run date: " << dt;
+  out_file << message.c_str() << std::endl;
+
+  // add columns to header
+  out_file << "# t [1/H0] a D dD/dt [H0]" << std::endl;
+
+  for(int i=0;i<t_array.size();i++)
+  {
+    message  = std::to_string(t_array[i]) + " " + std::to_string(a_array[i]);
+    message += std::to_string(D_array[i]) + " " + std::to_string(dDdt_array[i]);
+    out_file << message.c_str() << std::endl;
+  }
+  out_file.close();
 }
 
 /* create the file for recording the expansion history */
