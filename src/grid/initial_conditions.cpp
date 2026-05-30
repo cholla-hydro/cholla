@@ -1673,6 +1673,12 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   Real H0, h, Omega_M, rho_0, G, z_zeldovich, z_init, x_center, T_init, k_x;
   Real gamma;
 
+  Real a_init, D, dDdt;
+
+  Real vx, vy, vz;  // velocities
+  Real dx, dy, dz;  // cell sizes
+  Real xi_x, xi_y, xi_z;  // particle offsets
+
   H0      = P.H0;
   h       = H0 / 100;
   G       = G_COSMO;
@@ -1681,8 +1687,17 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   Real f_b = Omega_b/Omega_m;
   Real f_c = 1.0 - f_b;
   Real rho_b   = 3 * H0 * H0 / (8 * M_PI * G) * Omega_b / h / h;
-  z_init = P.Init_redshift;
   gamma = P.gamma;
+
+  z_init = P.Init_redshift;
+  a_init = 1./(1+z_init);
+
+  chprintf("z_init %e a_init %e\n",z_init,a_init);
+
+  // get growth function and time derivative
+  D    = Cosmo.D_Growth(a_init);
+  dDdt = Cosmo.dDdt_Growth(a_init);
+  chprintf("Growth Function Info: D %e dDdt %e\n",D,dDdt);
 
   if(P.T_init==-1) {
     T_init = 2.72548 * (1.0 + z_init); // set to CMB
@@ -1690,6 +1705,12 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
     T_init = P.T_init; // set to precomputed gas temperature
   }
   chprintf(" T initial = %f \n", T_init);
+
+
+  // cell sizes
+  dx = H.dx;
+  dy = H.dy;
+  dz = H.dz;
 
 
   /*
@@ -1739,19 +1760,33 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   // for the dark matter
 
   // so we should compute
-  // 1) phi_ini from delta_m
-  // 2) \grad phi_ini
-  // 3) v_c and v_b from \grad phi_ini
+  // 1) phi_ini from delta_m (check)
   // 4) delta_b from delta_m and delta_bc
+  // 3) v_c and v_b from \grad phi_ini
   // 5) replace delta_bc with \nabla^-2 delta_bc
-  // 6) x_c from phi_ini and gradient of delta_bc
+  // 6) x_c from \grad phi_ini and gradient of delta_bc
+
+  // compute dD/da * da/dt / a = a H dD/da
+
 
   ////////////////////////////////////////////////
   // 4) Compute delta b from delta_m and delta_bc
   ////////////////////////////////////////////////
 
+  // We have to skip almost everthing because we won't have
+  // the particles yet
 
-  // compute dD/da * da/dt / a = a H dD/da
+  // we can compute the baryon density field
+  // density and velocities
+
+  Real grad_phi_x, grad_phi_y, grad_phi_z;
+
+#ifdef GRAVITY_5_POINTS_GRADIENT
+  Real phi_ll, phi_rr;
+  int id_ll, id_rr;
+#endif
+  Real phi_l, phi_r;
+  int id_l, id_r;
 
 #ifndef ONLY_PARTICLES
   int index;
@@ -1771,14 +1806,89 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         // rho_b * (1+delta_b) = rho_b * (1 + delta_m + f_c * delta_bc)
         dens = rho_b * (1 + CP.delta_m[index] + f_c * CP.delta_bc[index]); 
 
-        vel  = 0;
         U    = T_init / (gamma - 1) / MP * KB * 1e-10 * dens;
-        E    = U;
 
-        C.density[id]    = dens; // density fluctuations are >> 1 check
-        C.momentum_x[id] = dens * vel;
-        C.momentum_y[id] = 0;
-        C.momentum_z[id] = 0;
+
+
+        //////////////////////////////////////////
+        // take the potential gradient
+        // along the x direction
+        //////////////////////////////////////////
+
+        id    = index;
+        id_l  = (ii - 1) + jj * nx_local + kk * ny_local * nx_local;
+        id_r  = (ii + 1) + jj * nx_local + kk * ny_local * nx_local;
+
+        phi_l = CP.phi_1[id_l];
+        phi_r = CP.phi_1[id_r];
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+        id_ll   = (ii - 2 ) + j * nx_local + k  * ny_local * nx_local;
+        id_rr   = (ii + 2 ) + j * nx_local + k  * ny_local * nx_local;
+        phi_ll  = CP.phi_1[id_ll];
+        phi_rr  = CP.phi_1[id_rr];
+        grad_phi_x = -1 * (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
+    #else
+        //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
+        grad_phi_x = -0.5 * (phi_r - phi_l) / dx;
+    #endif
+
+        //////////////////////////////////////////
+        // take the potential gradient
+        // along the y direction
+        //////////////////////////////////////////
+
+        id    = index;
+        id_l  = ii + (jj - 1) * nx_local + kk * ny_local * nx_local;
+        id_r  = ii + (jj + 1) * nx_local + kk * ny_local * nx_local;
+
+        phi_l = CP.phi_1[id_l];
+        phi_r = CP.phi_1[id_r];
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+        id_ll   = ii + (j - 2) * nx_local + k  * ny_local * nx_local;
+        id_rr   = ii + (j + 2) * nx_local + k  * ny_local * nx_local;
+        phi_ll  = CP.phi_1[id_ll];
+        phi_rr  = CP.phi_1[id_rr];
+        grad_phi_y = -1 * (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
+    #else
+        //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
+        grad_phi_y = -0.5 * (phi_r - phi_l) / dx;
+    #endif
+
+        //////////////////////////////////////////
+        // take the potential gradient
+        // along the z direction
+        //////////////////////////////////////////
+
+        id    = index;
+        id_l  = ii + jj * nx_local + (kk - 1) * ny_local * nx_local;
+        id_r  = ii + jj * nx_local + (kk + 1) * ny_local * nx_local;
+
+        phi_l = CP.phi_1[id_l];
+        phi_r = CP.phi_1[id_r];
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+        id_ll   = ii + j * nx_local + (k - 2) * ny_local * nx_local;
+        id_rr   = ii + j * nx_local + (k + 2) * ny_local * nx_local;
+        phi_ll  = CP.phi_1[id_ll];
+        phi_rr  = CP.phi_1[id_rr];
+        grad_phi_z = -1 * (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
+    #else
+        //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
+        grad_phi_z = -0.5 * (phi_r - phi_l) / dx;
+    #endif
+
+
+
+        // compute velocities field
+        vx = dDdt * grad_phi_x;
+        vy = dDdt * grad_phi_y;
+        vy = dDdt * grad_phi_z;
+        E    = U + 0.5*dens*(vx*vx + vy*vy + vz*vz);
+
+        // initialize hydro grid properties
+        C.density[id]    = dens; 
+        C.momentum_x[id] = dens * vx;
+        C.momentum_y[id] = dens * vy; 
+        C.momentum_z[id] = dens * vz; 
         C.Energy[id]     = E;
 
   #ifdef DE
@@ -1789,11 +1899,13 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   }
 #endif 
 
-
+  // Now, for all the other quantities we need
+  // to wait until the particles are initialized
+  chprintf("Cosmological ICs: Gas grid initialized...\n");
 
   // write potential to file
-  chprintf("Writing cosmological potential to file...\n");
-  Save_Cosmo_Potential(&P);
+  //chprintf("Writing cosmological potential to file...\n");
+  //Save_Cosmo_Potential(&P);
 
   // free potential memory
   // well, we still need it until after the particles
@@ -1802,6 +1914,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   //Free_Cosmo_Potential_Memory();
 
   // Further Initialization performed elsewhere .... perhaps move here
+  // well, we can't because we don't have the particles yet
   //chexit(0);
 #endif  // COSMOLOGY
 }

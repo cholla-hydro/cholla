@@ -221,24 +221,12 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // the initial potential fields, which are then used to set
   // the remaining initial conditions.
 
-
-
-
-	// step 2.5) create k vectors
-	//Populate_Wavevectors(d_kx, d_ky, d_kz, d_kk);
-
-	// step 3.1) divide by k^2 to take inverse laplacian
-	//FFT_Field_Inverse_Laplacian(d_xi_k, d_kk);
-
-	// step 3.5) rescale by growth factor(a)/a
-	//Rescale_FFT_Field(d_xi_k, Daa);
-
-	// step 4) Reset the FFT system, free memory
-	//fft.Reset();
-
+  // let's calculate phi_1
+  chprintf("Calculating initial potential for cosmological ICs...\n");
 
   // rescale by 4pi/G
   Real a = 1./(1+P->Init_redshift);
+  chprintf("Initial scale facor = %e\n",a);
   Real scale = Real(4) * M_PI / GN / a;
   Real offset = 0;
 
@@ -247,11 +235,13 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   fft.Filter_inv_k2(CP.d_delta_m,CP.d_phi_1,true);
   fft.Filter_rescale(CP.d_phi_1,1./scale,CP.d_phi_1,true);
 
+	// copy memory back to host
+	cudaMemcpy(CP.phi_1,  CP.d_phi_1,  n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
+  chprintf("Proceeding to finish initialization...\n");
 
-
-  chprintf("Exiting...\n");
-	chexit(0);
+  //chprintf("Exiting...\n");
+	//chexit(0);
 }
 
 /*! \fn void Save_Cosmo_Potential(struct Parameters *P)
