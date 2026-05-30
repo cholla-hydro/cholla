@@ -1230,9 +1230,154 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
 
   chprintf(" Initializing Lagrangian Positions\n");
 
-  part_int_t pID = 0;
+  part_int_t pID = 0; // don't we need an offset? -- well we use this as an index, so start at 0
   Real x_pos, y_pos, z_pos;
 
+  Real grad_phi_x, grad_phi_y, grad_phi_z;
+
+#ifdef GRAVITY_5_POINTS_GRADIENT
+  Real phi_ll, phi_rr;
+  int id_ll, id_rr;
+#endif
+  Real phi_l, phi_r;
+  int id_l, id_r;
+
+  int index;
+  int ii, jj, kk;
+
+  part_int_t pID = 0;
+  for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
+    for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
+      for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+
+        id = i + j * H.nx + k * H.nx * H.ny;
+
+        // // get the centered cell positions at (i,j,k)
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+
+        kk = k - H.n_ghost;
+        jj = j - H.n_ghost;
+        ii = i - H.n_ghost;
+        index =  ii + jj * nx_local + kk * nx_local * ny_local;
+
+        //////////////////////////////////////////
+        // take the potential gradient
+        // along the x direction
+        //////////////////////////////////////////
+
+        id    = index;
+        id_l  = (ii - 1) + jj * nx_local + kk * ny_local * nx_local;
+        id_r  = (ii + 1) + jj * nx_local + kk * ny_local * nx_local;
+
+        phi_l = CP.phi_1[id_l];
+        phi_r = CP.phi_1[id_r];
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+        id_ll   = (ii - 2 ) + j * nx_local + k  * ny_local * nx_local;
+        id_rr   = (ii + 2 ) + j * nx_local + k  * ny_local * nx_local;
+        phi_ll  = CP.phi_1[id_ll];
+        phi_rr  = CP.phi_1[id_rr];
+        grad_phi_x = -1 * (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
+    #else
+        //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
+        grad_phi_x = -0.5 * (phi_r - phi_l) / dx;
+    #endif
+
+        //////////////////////////////////////////
+        // take the potential gradient
+        // along the y direction
+        //////////////////////////////////////////
+
+        id    = index;
+        id_l  = ii + (jj - 1) * nx_local + kk * ny_local * nx_local;
+        id_r  = ii + (jj + 1) * nx_local + kk * ny_local * nx_local;
+
+        phi_l = CP.phi_1[id_l];
+        phi_r = CP.phi_1[id_r];
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+        id_ll   = ii + (j - 2) * nx_local + k  * ny_local * nx_local;
+        id_rr   = ii + (j + 2) * nx_local + k  * ny_local * nx_local;
+        phi_ll  = CP.phi_1[id_ll];
+        phi_rr  = CP.phi_1[id_rr];
+        grad_phi_y = -1 * (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
+    #else
+        //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
+        grad_phi_y = -0.5 * (phi_r - phi_l) / dx;
+    #endif
+
+        //////////////////////////////////////////
+        // take the potential gradient
+        // along the z direction
+        //////////////////////////////////////////
+
+        id    = index;
+        id_l  = ii + jj * nx_local + (kk - 1) * ny_local * nx_local;
+        id_r  = ii + jj * nx_local + (kk + 1) * ny_local * nx_local;
+
+        phi_l = CP.phi_1[id_l];
+        phi_r = CP.phi_1[id_r];
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+        id_ll   = ii + j * nx_local + (k - 2) * ny_local * nx_local;
+        id_rr   = ii + j * nx_local + (k + 2) * ny_local * nx_local;
+        phi_ll  = CP.phi_1[id_ll];
+        phi_rr  = CP.phi_1[id_rr];
+        grad_phi_z = -1 * (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
+    #else
+        //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
+        grad_phi_z = -0.5 * (phi_r - phi_l) / dx;
+    #endif
+
+        // compute velocities field
+        vx = dDdt * grad_phi_x;
+        vy = dDdt * grad_phi_y;
+        vz = dDdt * grad_phi_z;
+
+        // add offsets
+        x_pos = x_pos - D * grad_phi_x;
+        y_pos = y_pos - D * grad_phi_y;
+        z_pos = z_pos - D * grad_phi_z;
+
+      #ifdef PARTICLES_CPU
+        // Copy the particle data to the particles vectors
+        pos_x.push_back(x_pos);
+        pos_y.push_back(y_pos);
+        pos_z.push_back(z_pos);
+        vel_x.push_back(vx);
+        vel_y.push_back(vy);
+        vel_z.push_back(vz);
+        grav_x.push_back(0.0);
+        grav_y.push_back(0.0);
+        grav_z.push_back(0.0);
+        #ifdef PARTICLE_IDS
+        partIDs.push_back(pID);
+        #endif
+        #ifndef SINGLE_PARTICLE_MASS
+        mass.push_back(Mparticle);
+        #endif
+      #endif  // PARTICLES_CPU
+
+      #ifdef PARTICLES_GPU
+        // Copy the particle data to the temporary Host Buffers
+        temp_pos_x[pID] = x_pos;
+        temp_pos_y[pID] = y_pos;
+        temp_pos_z[pID] = z_pos;
+        temp_vel_x[pID] = vx;
+        temp_vel_y[pID] = vy;
+        temp_vel_z[pID] = vz;
+        #ifndef SINGLE_PARTICLE_MASS
+        temp_mass[pID] = Mparticle;
+        #endif
+        #ifdef PARTICLE_IDS
+        temp_id[pID] = pID;
+        #endif
+      #endif  // PARTICLES_GPU
+
+        pID += 1;
+
+      }
+    }
+  }
+
+/*
   for (k = 0; k < G.nz_local; k++) {
     for (j = 0; j < G.ny_local; j++) {
       for (i = 0; i < G.nx_local; i++) {
@@ -1281,6 +1426,7 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
       }
     }
   }
+*/
 
   #ifdef PARTICLES_CPU
   n_local = pos_x.size();
