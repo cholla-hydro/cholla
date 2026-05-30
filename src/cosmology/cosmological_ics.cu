@@ -244,7 +244,8 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
   // Perhaps compute phi_init here as advertised?
   // should return phi_1 = \nabla^-2 delta_m
-  fft.Filter_inv_k2(CP.d_delta_m,CP.d_phi_1,scale,offset,true);
+  fft.Filter_inv_k2(CP.d_delta_m,CP.d_phi_1,true);
+  fft.Filter_rescale(CP.d_phi_1,1./scale,CP.d_phi_1,true);
 
 
 

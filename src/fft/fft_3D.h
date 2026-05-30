@@ -16,7 +16,7 @@ class FFT_3D
     void Initialize(Real lx, Real ly, Real lz, Real xMin, Real yMin, Real zMin, int nx, int ny, int nz, int nxReal, int nyReal, int nzReal, Real dx, Real dy, Real dz);
     void Reset();
     
-    void Filter_inv_k2( Real *input, Real *output, Real scale, Real offset, bool in_device ) const; 
+    void Filter_inv_k2( Real *input, Real *output, bool in_device ) const; 
 
     void Filter_rescale_by_power_spectrum( Real *input, Real *output, bool in_device, int size, Real *dev_k, Real *dev_pk ) const;
      

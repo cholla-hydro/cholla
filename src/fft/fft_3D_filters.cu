@@ -146,7 +146,7 @@ void FFT_3D::Filter_rescale_by_power_spectrum( Real *input, Real *output, bool i
     
 }
 
-void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, const Real scale, const Real offset, bool in_device ) const
+void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_device ) const
 {
   // Local copies of members for lambda capture
   const int ni = ni_, nj = nj_;
@@ -173,11 +173,6 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, const Real sc
   #endif
 
   const int n = ni * nj * nk;
-
-
-  //rescale and apply offset
-  gpuFor(
-      n, GPU_LAMBDA(const int i) { db_[i] = scale * (db_[i] - offset); });
 
   // Provide FFT filter with a lambda that does 1/k^2 solve in frequency space
   henry_->filter(bytes, db_, da_,
