@@ -1666,7 +1666,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 #else
 
 
-  chprintf("Setting Cosmological initial conditions (eventually)...\n");
+  chprintf("Setting Cosmological gas grid initial conditions ...\n");
 
   int i, j, k, id;
   Real x_pos, y_pos, z_pos;
@@ -1881,7 +1881,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         // compute velocities field
         vx = dDdt * grad_phi_x;
         vy = dDdt * grad_phi_y;
-        vy = dDdt * grad_phi_z;
+        vz = dDdt * grad_phi_z;
         E    = U + 0.5*dens*(vx*vx + vy*vy + vz*vz);
 
         // initialize hydro grid properties
@@ -1918,6 +1918,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   //chexit(0);
 #endif  // COSMOLOGY
 }
+
 
 
 void Grid3D::Chemistry_Test(struct Parameters P)
