@@ -1826,10 +1826,10 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         id_rr   = (ii + 2 ) + j * nx_local + k  * ny_local * nx_local;
         phi_ll  = CP.phi_1[id_ll];
         phi_rr  = CP.phi_1[id_rr];
-        grad_phi_x = -1 * (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
+        grad_phi_x = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
     #else
         //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
-        grad_phi_x = -0.5 * (phi_r - phi_l) / dx;
+        grad_phi_x = 0.5*(phi_r - phi_l) / dx;
     #endif
 
         //////////////////////////////////////////
@@ -1848,10 +1848,10 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         id_rr   = ii + (j + 2) * nx_local + k  * ny_local * nx_local;
         phi_ll  = CP.phi_1[id_ll];
         phi_rr  = CP.phi_1[id_rr];
-        grad_phi_y = -1 * (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
+        grad_phi_y = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dy);
     #else
         //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
-        grad_phi_y = -0.5 * (phi_r - phi_l) / dx;
+        grad_phi_y = 0.5 * (phi_r - phi_l) / dy;
     #endif
 
         //////////////////////////////////////////
@@ -1870,10 +1870,10 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         id_rr   = ii + j * nx_local + (k + 2) * ny_local * nx_local;
         phi_ll  = CP.phi_1[id_ll];
         phi_rr  = CP.phi_1[id_rr];
-        grad_phi_z = -1 * (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
+        grad_phi_z = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
     #else
         //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
-        grad_phi_z = -0.5 * (phi_r - phi_l) / dx;
+        grad_phi_z = 0.5 * (phi_r - phi_l) / dz;
     #endif
 
 
@@ -1902,6 +1902,26 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   // Now, for all the other quantities we need
   // to wait until the particles are initialized
   chprintf("Cosmological ICs: Gas grid initialized...\n");
+
+  // At this point though, we need to process delta_bc
+  // to turn it into a potential for deflecting the
+  // DM particle positions
+
+  // let's calculate phi_1
+  chprintf("Cosmological ICs: Calculating b/c potential...\n");
+  int n_cells = nx_local*ny_local*nz_local;
+  Real scale = Real(4) * M_PI / GN / a_init;
+  Real offset = 0;
+
+  // Perhaps compute phi_init here as advertised
+  // should return delta_bc = \nabla^-2 delta_bc in place
+  fft.Filter_inv_k2(CP.d_delta_bc,CP.d_delta_bc,true);
+  fft.Filter_rescale(CP.d_delta_bc,1./scale,CP.d_delta_bc,true);
+
+  // copy back to the host
+  cudaMemcpy(CP.delta_bc,  CP.d_delta_bc,  n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+
+  chprintf("Cosmological ICs: Ready for particle initialization...");
 
   // write potential to file
   //chprintf("Writing cosmological potential to file...\n");

@@ -45,8 +45,30 @@ class Particles3D
   Real particle_mass;
 
     #ifdef COSMOLOGY
-  Real current_z;
-  Real current_a;
+  Real current_z; //current redshift
+  Real current_a; //current scale factor
+  struct Cosmo_ICs {
+    Real *phi_1;  // pointer to initial potential
+    Real *phi_bc; // pointer to baryon-cdm fluctuations
+    Real D;       // growth function at initial redshift
+    Real dDdt;    // growth function time derivative
+  } CP;
+  struct Cosmo_Header {
+    int nx;
+    int ny;
+    int nz;
+    int n_ghost;
+    Real dx;
+    Real dy;
+    Real dz;
+    Real xbound;
+    Real ybound;
+    Real zbound;
+  } H;      // carry some information from Grid's header
+  
+  /*! \fn void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real
+   * *zpos) \brief Get the cell-centered position based on cell index */
+  void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real *zpos) const;
     #endif
 
     #ifdef PARTICLES_CPU
