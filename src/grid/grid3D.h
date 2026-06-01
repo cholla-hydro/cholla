@@ -848,8 +848,11 @@ class Grid3D
     /*! RNG offset */
     unsigned long long rng_offset;
 
-    /*! pointer to potentials on host */
+    /*! pointer to deltas on host */
     Real *host;
+
+    /*! point to phis on host */
+    Real *hostp;
 
     /*! pointer to first potential */
     Real *phi_1; // initial potential sourced by total overdensity
@@ -863,8 +866,11 @@ class Grid3D
     /*! pointer to second potential */
     Real *phi_2;
 
-    /*! pointer to potentials on device */
+    /*! pointer to deltas on device */
     Real *device;
+
+    /*! pointer to phis on device */
+    Real *devicep;
 
     /*! pointer to first potential on device */
     Real *d_phi_1;

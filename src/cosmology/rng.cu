@@ -16,8 +16,9 @@ __global__ void RNG_Init_GPU(int nx, int ny, int nz, int n_ghost, unsigned long 
   cuda_utilities::compute3DIndices(threadId, nx, ny, xid, yid, zid);
 
 	// only real cells participate
-  if (xid > n_ghost - 1 && xid < nx - n_ghost && yid > n_ghost - 1 && yid < ny - n_ghost && zid > n_ghost - 1 &&
-      zid < nz - n_ghost) {
+/*  if (xid > n_ghost - 1 && xid < nx - n_ghost && yid > n_ghost - 1 && yid < ny - n_ghost && zid > n_ghost - 1 &&
+      zid < nz - n_ghost) {*/
+  if((xid>=0)&(xid<nx)&(yid>=0)&(yid<ny)&(zid>=0)&(zid<nz)) { // all cells are real
 
 	  // copy state to local memory for efficiency
 	  rng_parallel_state_t localState = states[threadId];
@@ -45,8 +46,9 @@ __global__ void RNG_Normal_Field_GPU(Real *d_field, int nx, int ny, int nz, int 
 
 
 	// only real cells participate
-  if (xid > n_ghost - 1 && xid < nx - n_ghost && yid > n_ghost - 1 && yid < ny - n_ghost && zid > n_ghost - 1 &&
-      zid < nz - n_ghost) {
+/*  if (xid > n_ghost - 1 && xid < nx - n_ghost && yid > n_ghost - 1 && yid < ny - n_ghost && zid > n_ghost - 1 &&
+      zid < nz - n_ghost) {*/
+  if((xid>=0)&(xid<nx)&(yid>=0)&(yid<ny)&(zid>=0)&(zid<nz)) { // all cells are real
 
 	  rng_parallel_state_t localState = states[threadId];
 	

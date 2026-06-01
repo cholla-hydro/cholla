@@ -32,8 +32,8 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
   int i, j, k, id;
   int istart, jstart, kstart, iend, jend, kend;
-  //int n_cells = nx_local*ny_local*nz_local;
-  int n_cells = H.nx*H.ny*H.nz;
+  int n_cells = nx_local*ny_local*nz_local;
+
   istart = H.n_ghost;
   iend   = H.nx - H.n_ghost;
   if (H.ny > 1) {
@@ -99,7 +99,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	Rescale_Field(CP.d_delta_m, nx_global*ny_global*nz_global);
 
 
-	// copy memory
+	// copy memory -- only real, local cells
 	cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
 
@@ -109,7 +109,6 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
     for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
       for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
-
         // get cell index
         id = i + j * nx_local + k * nx_local * ny_local;
 
@@ -147,8 +146,8 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
 	// step 2) Take the fourier transform
 	//         xi(k) = N**-d \sum_m exp( -(2 pi i / M) * kappa \dot m) * xi(m)
-	fft.Filter_rescale(CP.d_delta_m,1./(nx_global*ny_global*nz_global),CP.d_delta_m,true);
-
+	//fft.Filter_rescale(CP.d_delta_m,1./(nx_global*ny_global*nz_global),CP.d_delta_m,true);
+  Rescale_Field(CP.d_delta_m,1./(nx_global*ny_global*nz_global));
 
 #ifndef ONLY_PARTICLES
   // step 2.5) Copy random field to baryonic field
@@ -238,10 +237,25 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // Perhaps compute phi_init here as advertised?
   // should return phi_1 = \nabla^-2 delta_m
   fft.Filter_inv_k2(CP.d_delta_m,CP.d_phi_1,true);
-  fft.Filter_rescale(CP.d_phi_1,1./scale,CP.d_phi_1,true);
+  //fft.Filter_rescale(CP.d_phi_1,1./scale,CP.d_phi_1,true);
+  Rescale_Field(CP.d_phi_1,1./scale);
+
+#ifndef ONLY_PARTICLES
+  fft.Filter_inv_k2(CP.d_delta_bc,CP.d_phi_2,true);
+  //fft.Filter_rescale(CP.d_phi_2,1./scale,CP.d_phi_2,true);
+  Rescale_Field(CP.d_phi_2,1./scale);
+#endif //ONLY_PARTICLES
 
 	// copy memory back to host
+  // note we are only using the
+  // first n_local**3 cells on the host
+  // and need to remap before populating
+  // the potential. We can re-use existing
+  // density arrays for the interim.
 	cudaMemcpy(CP.phi_1,  CP.d_phi_1,  n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+#ifndef ONLY_PARTICLES
+    cudaMemcpy(CP.phi_2,  CP.d_phi_2,  n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+#endif //ONLY_PARTICLES
 
   chprintf("Proceeding to finish initialization...\n");
 
@@ -344,10 +358,7 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
       for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
 
         // get cell index
-        id = i + j * nx_local + k * nx_local * ny_local; // why no offset for ghost cells?
-
-        // the following is all wrong, shifts, and leaves gaps
-        //id = (i+H.n_ghost) + (j+H.n_ghost) * H.nx + (k+H.n_ghost) * H.nx * H.ny; // why no offset for ghost cells?
+        id = i + j * nx_local + k * nx_local * ny_local; // We are only using real cells
 
         ii = i;
         jj = j;
@@ -418,11 +429,8 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
       for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
 
         // get cell index
-        id = i + j * nx_local + k * nx_local * ny_local; //why no offset?
-
-        // the following is all wrong, shifts, and leaves gaps
-        //id = (i+H.n_ghost) + (j+H.n_ghost) * H.nx + (k+H.n_ghost) * H.nx * H.ny; // why no offset for ghost cells?
-
+        id = i + j * nx_local + k * nx_local * ny_local;
+        
         ii = i;
         jj = j;
         kk = k;
@@ -461,8 +469,8 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
 void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
 {
 	// Initialize the parameters for the Philox RNG
-//  int n_cells = nx_local*ny_local*nz_local;
-  int n_cells = H.nx * H.ny * H.nz;
+  int n_cells = nx_local*ny_local*nz_local;
+//  int n_cells = H.nx * H.ny * H.nz;
 
 	// Record the RNG seed from the parameter file
 	CP.rng_seed = P->seed;
@@ -479,8 +487,8 @@ void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
   // initialze
   cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Init_GPU, n_cells);
   hipLaunchKernelGGL(RNG_Init_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
-                     H.nx,H.ny,H.nz,0,CP.rng_seed, CP.rng_subsequence, CP.rng_offset, rng_states);
-//                     nx_local,ny_local,nz_local,0,CP.rng_seed, CP.rng_subsequence, CP.rng_offset, rng_states);
+                     nx_local,ny_local,nz_local,0,CP.rng_seed, CP.rng_subsequence, CP.rng_offset, rng_states);
+//                     H.nx,H.ny,H.nz,0,CP.rng_seed, CP.rng_subsequence, CP.rng_offset, rng_states);
 
   GPU_Error_Check();
                      
@@ -606,12 +614,11 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
   // allocate memory for the phi arrays
   // allocate all the memory to phi_1, to ensure contiguous memory
   //int n_cells = nx_local*ny_local*nz_local;
-  int n_cells = H.n_cells;
+  //int n_cells = H.n_cells;
   int offset = n_cells;
 
   GPU_Error_Check(cudaHostAlloc((void **)&CP.host, CP.n_fields * n_cells * sizeof(Real), cudaHostAllocDefault));
-
-  chprintf("Host memory allocated for %d fields in cosmological ICs initial potential (n = %d).\n",CP.n_fields, n_cells);
+  chprintf("Host memory allocated for %d fields in cosmological ICs initial deltas (n = %d).\n",CP.n_fields, n_cells);
 
   // point potential variables to the appropriate locations on host
   CP.delta_m    = CP.host;
@@ -619,27 +626,56 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
   CP.delta_bc   = &(CP.host[offset]);
   offset += n_cells;
 #endif
-  CP.phi_1 = &(CP.host[offset]);
-
 
   // allocate memory for the conserved variable arrays on the device
   GPU_Error_Check(cudaMalloc((void **)&CP.device, CP.n_fields * n_cells * sizeof(Real)));
   cuda_utilities::initGpuMemory(CP.device, CP.n_fields * n_cells * sizeof(Real));
 
-  chprintf("Device memory allocated for %d fields in cosmological ICs initial potential.\n",CP.n_fields);
+  chprintf("Device memory allocated for %d fields in cosmological ICs initial deltas (n = %d).\n",CP.n_fields, n_cells);
 
   // point potential variables to the appropriate locations on the device
   CP.d_delta_m   = CP.device;
   offset = n_cells;
 #ifndef ONLY_PARTICLES
   CP.d_delta_bc  = &(CP.device[offset]);
-  offset += n_cells;
 #endif
-  CP.d_phi_1 = &(CP.device[offset]);
 
   // initialize host array
   for (int i = 0; i < CP.n_fields * n_cells; i++) {
     CP.host[i] = 0.0;
+  }
+
+
+  // repeat for potentials
+  // which include ghost cells
+  n_cells = H.n_cells;
+  offset  = n_cells;
+
+  GPU_Error_Check(cudaHostAlloc((void **)&CP.hostp, CP.n_fields * n_cells * sizeof(Real), cudaHostAllocDefault));
+  chprintf("Host memory allocated for %d fields in cosmological ICs initial potentials (n = %d).\n",CP.n_fields, n_cells);
+
+  // point potential variables to the appropriate locations on host
+  CP.phi_1    = CP.hostp;
+#ifndef ONLY_PARTICLES
+  CP.phi_2    = &(CP.hostp[offset]);
+#endif
+
+  // allocate memory for the conserved variable arrays on the device
+  GPU_Error_Check(cudaMalloc((void **)&CP.devicep, CP.n_fields * n_cells * sizeof(Real)));
+  cuda_utilities::initGpuMemory(CP.devicep, CP.n_fields * n_cells * sizeof(Real));
+
+  chprintf("Device memory allocated for %d fields in cosmological ICs initial potentials (n = %d).\n",CP.n_fields, n_cells);
+
+  // point potential variables to the appropriate locations on the device
+  CP.d_phi_1 = CP.devicep;
+  offset = n_cells;
+#ifndef ONLY_PARTICLES
+  CP.d_phi_2  = &(CP.devicep[offset]);
+#endif
+
+  // initialize host array
+  for (int i = 0; i < CP.n_fields * n_cells; i++) {
+    CP.hostp[i] = 0.0;
   }
 }
 
@@ -647,11 +683,17 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
  *  \brief Free the memory allocated for cosmological ICs potentials */
 void Grid3D::Free_Cosmo_Potential_Memory(void)
 {
-  // free the host phi arrays
+  // free the host delta arrays
   GPU_Error_Check(cudaFreeHost(CP.host));
 
-  // free the device phi arrays
+  // free the device delta arrays
   GPU_Error_Check(cudaFree(CP.device));
+
+  // free the host phi arrays
+  GPU_Error_Check(cudaFreeHost(CP.hostp));
+
+  // free the device phi arrays
+  GPU_Error_Check(cudaFree(CP.devicep));
 }
 
 
@@ -660,10 +702,10 @@ void Grid3D::Free_Cosmo_Potential_Memory(void)
 void Grid3D::Generate_Normal_Random_Field(Real *d_field, rng_parallel_state_t *state)
 {
 	// Here, d_field has been pre-allocated on the device
-  //int n_cells = nx_local*ny_local*nz_local;
+  int n_cells = nx_local*ny_local*nz_local;
   //chprintf("nx_local %d ny_local %d nz_local %d\n",nx_local,ny_local,nz_local);
   //chexit(0);
-  int n_cells = H.nx * H.ny * H.nz;
+  //int n_cells = H.nx * H.ny * H.nz;
   cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Normal_Field_GPU, n_cells);
   hipLaunchKernelGGL(RNG_Normal_Field_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
                      d_field, nx_local, ny_local, nz_local, 0, state);
@@ -675,8 +717,8 @@ void Grid3D::Rescale_Field(Real *d_x, Real A)
 {
 	// Here, d_x has been pre-allocated on the device
 	// Rescale the field by a multiplicative factor.
-  //int n_cells = nx_local*ny_local*nz_local;
-  int n_cells = H.nx * H.ny * H.nz;
+  int n_cells = nx_local*ny_local*nz_local;
+  //int n_cells = H.nx * H.ny * H.nz;
   cuda_utilities::AutomaticLaunchParams static const launchParams(Rescale_Field_GPU, n_cells);
   hipLaunchKernelGGL(Rescale_Field_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
                      d_x, A, nx_local, ny_local, nz_local, 0);

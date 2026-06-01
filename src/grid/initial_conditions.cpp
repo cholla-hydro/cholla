@@ -1666,6 +1666,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   exit(-1);
 #else
 
+  int n_cells = nx_local * ny_local * nz_local;
 
   chprintf("Setting Cosmological gas grid initial conditions ...\n");
 
@@ -1783,17 +1784,8 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   // We have to skip almost everthing because we won't have
   // the particles yet
 
-  // we can compute the baryon density field
-  // density and velocities
-
-  Real grad_phi_x=0, grad_phi_y=0, grad_phi_z=0;
-
-#ifdef GRAVITY_5_POINTS_GRADIENT
-  Real phi_ll, phi_rr;
-  int id_ll, id_rr;
-#endif
-  Real phi_l, phi_r;
-  int id_l, id_r;
+  // we can compute the baryon field
+  // densities only at this stage
 
 #ifndef ONLY_PARTICLES
   int index;
@@ -1803,11 +1795,15 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
     for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
       for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+
+        // this is the full index with ghost cells
         id = i + j * H.nx + k * H.nx * H.ny;
 
         kk = k - H.n_ghost;
         jj = j - H.n_ghost;
         ii = i - H.n_ghost;
+
+        // this is the real index with only local real cells
         index =  ii + jj * nx_local + kk * nx_local * ny_local;
 
         // rho_b * (1+delta_b) = rho_b * (1 + delta_m + f_c * delta_bc)
@@ -1815,7 +1811,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
         U    = T_init / (gamma - 1) / MP * KB * 1e-10 * dens;
 
-
+/*
         //////////////////////////////////////////
         // take the potential gradient
         // along the x direction
@@ -1882,22 +1878,29 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
         grad_phi_z = 0.5 * (phi_r - phi_l) / dz;
     #endif
-
+*/
 
         // compute velocities field
-        vx = dDdt * grad_phi_x;
-        vy = dDdt * grad_phi_y;
-        vz = dDdt * grad_phi_z;
-        E    = U + 0.5*dens*(vx*vx + vy*vy + vz*vz);
+        //vx = dDdt * grad_phi_x;
+        //vy = dDdt * grad_phi_y;
+        //vz = dDdt * grad_phi_z;
+        //E    = U + 0.5*dens*(vx*vx + vy*vy + vz*vz);
 
         // initialize hydro grid properties
+        // using the index for the whole grid
         C.density[id]    = dens; 
-        C.momentum_x[id] = dens * vx;
-        C.momentum_y[id] = dens * vy; 
-        C.momentum_z[id] = dens * vz; 
-        C.Energy[id]     = E;
+
+
+        //C.momentum_x[id] = dens * vx;
+        //C.momentum_y[id] = dens * vy; 
+        //C.momentum_z[id] = dens * vz; 
+
+        // add the internal energy, will update
+        // after momentum is computed
+        C.Energy[id]     = U;
 
   #ifdef DE
+        // initialize the 
         C.GasEnergy[id] = U;
   #endif
       }
@@ -1905,7 +1908,161 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   }
 #endif 
 
-  chexit(0);
+  // At this point, we don't need the deltas anymore
+  // and we can use them to help us transfer the potentials
+
+  // We can copy the potential fields to the density fields
+  // for the real cells only
+
+  // copy memory -- only real, local cells
+  cudaMemcpy(CP.delta_m, CP.phi_1, n_cells * sizeof(Real), cudaMemcpyHostToHost);
+#ifndef ONLY_PARTICLES
+  cudaMemcpy(CP.delta_bc, CP.phi_2, n_cells * sizeof(Real), cudaMemcpyHostToHost);
+#endif //ONLY_PARTICLES
+
+  // now, we remap the potential fields from the density fields
+  for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
+    for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
+      for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+
+        // this is the full index with ghost cells
+        id = i + j * H.nx + k * H.nx * H.ny;
+
+        kk = k - H.n_ghost;
+        jj = j - H.n_ghost;
+        ii = i - H.n_ghost;
+
+        // this is the real index with only local real cells
+        index =  ii + jj * nx_local + kk * nx_local * ny_local;
+
+        // copy from delta back to phi
+        CP.phi_1[id] = CP.delta_m[index];
+#ifndef ONLY_PARTICLES
+        CP.phi_2[id] = CP.delta_bc[index]
+#endif //ONLY_PARTICLES
+      }
+    }
+  }
+
+  // The potentials are now in their correct
+  // places, indexed against the entire local
+  // grid including ghost cells. Deal with the
+  // boundary conditions appropriately.
+
+
+  // now we can proceed with computing the gradients
+#ifndef ONLY_PARTICLES
+
+  Real grad_phi_x=0, grad_phi_y=0, grad_phi_z=0;
+
+#ifdef GRAVITY_5_POINTS_GRADIENT
+  Real phi_ll, phi_rr;
+  int id_ll, id_rr;
+#endif
+  Real phi_l, phi_r;
+  int id_l, id_r;
+
+  int index;
+  int ii, jj, kk;
+  Real dens, vel, U, E; 
+  // set the initial values of the conserved variables
+  for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
+    for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
+      for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+        id = i + j * H.nx + k * H.nx * H.ny;
+
+        kk = k - H.n_ghost;
+        jj = j - H.n_ghost;
+        ii = i - H.n_ghost;
+        index =  ii + jj * nx_local + kk * nx_local * ny_local;
+
+        //////////////////////////////////////////
+        // take the potential gradient
+        // along the x direction
+        //////////////////////////////////////////
+
+        id_l  = (i - 1) + j * H.nx + k * H.ny * H.nx;
+        id_r  = (i + 1) + j * H.nx + k * H.ny * H.nx;
+
+        phi_l = CP.phi_1[id_l];
+        phi_r = CP.phi_1[id_r];
+
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+        id_ll   = (i - 2 ) + j * H.nx + k * H.ny * H.nx;
+        id_rr   = (i + 2 ) + j * H.nx + k * H.ny * H.nx;
+        phi_ll  = CP.phi_1[id_ll];
+        phi_rr  = CP.phi_1[id_rr];
+        grad_phi_x = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
+    #else
+        //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
+        grad_phi_x = 0.5*(phi_r - phi_l) / dx;
+    #endif
+
+        //////////////////////////////////////////
+        // take the potential gradient
+        // along the y direction
+        //////////////////////////////////////////
+
+        id_l  = i + (j - 1) * H.nx + k * H.ny * H.nx;
+        id_r  = i + (j + 1) * H.nx + k * H.ny * H.nx;
+
+        phi_l = CP.phi_1[id_l];
+        phi_r = CP.phi_1[id_r];
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+        id_ll   = i + (j - 2) * H.nx + k * H.ny * H.nx;
+        id_rr   = i + (j + 2) * H.nx + k * H.ny * H.nx;
+        phi_ll  = CP.phi_1[id_ll];
+        phi_rr  = CP.phi_1[id_rr];
+        grad_phi_y = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dy);
+    #else
+        //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
+        grad_phi_y = 0.5 * (phi_r - phi_l) / dy;
+    #endif
+
+        //////////////////////////////////////////
+        // take the potential gradient
+        // along the z direction
+        //////////////////////////////////////////
+
+        id_l  = i + j * H.nx + (k - 1) * H.ny * H.nx;
+        id_r  = i + j * H.nx + (k + 1) * H.ny * H.nx;
+        phi_l = CP.phi_1[id_l];
+        phi_r = CP.phi_1[id_r];
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+        id_ll   = ii + j * H.nx + (k - 2) * H.ny * H.nx;
+        id_rr   = ii + j * H.nx + (k + 2) * H.ny * H.nx;
+        phi_ll  = CP.phi_1[id_ll];
+        phi_rr  = CP.phi_1[id_rr];
+        grad_phi_z = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
+    #else
+        //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
+        grad_phi_z = 0.5 * (phi_r - phi_l) / dz;
+    #endif
+
+
+        // compute velocities field
+        vx = dDdt * grad_phi_x;
+        vy = dDdt * grad_phi_y;
+        vz = dDdt * grad_phi_z;
+
+        // retrieve the gas density
+        dens = C.density[id];
+
+        // kinetic energy
+        E    = 0.5*dens*(vx*vx + vy*vy + vz*vz);
+
+        // compute the momenta
+        C.momentum_x[id]  = dens * vx;
+        C.momentum_y[id]  = dens * vy; 
+        C.momentum_z[id]  = dens * vz; 
+
+        // add the kinetic energy to the
+        // total energy
+        C.Energy[id]     += E;
+      }
+    }
+  }
+#endif 
 
   // Now, for all the other quantities we need
   // to wait until the particles are initialized
@@ -1915,6 +2072,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   // to turn it into a potential for deflecting the
   // DM particle positions
 
+/*
   // let's calculate phi_1
   chprintf("Cosmological ICs: Calculating b/c potential...\n");
   int n_cells = nx_local*ny_local*nz_local;
@@ -1928,6 +2086,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
   // copy back to the host
   cudaMemcpy(CP.delta_bc,  CP.d_delta_bc,  n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+*/
 
   chprintf("Cosmological ICs: Ready for particle initialization...");
 
