@@ -32,7 +32,8 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
   int i, j, k, id;
   int istart, jstart, kstart, iend, jend, kend;
-  int n_cells = nx_local*ny_local*nz_local;
+  //int n_cells = nx_local*ny_local*nz_local;
+  int n_cells = H.nx*H.ny*H.nz;
   istart = H.n_ghost;
   iend   = H.nx - H.n_ghost;
   if (H.ny > 1) {
@@ -68,6 +69,9 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // load the growth function
   Cosmo.Compute_Growth_Function(P);
 
+  chprintf("Cosmo Sizes t %d a %d D %d dDdt %d\n",Cosmo.t_array.size(),Cosmo.a_array.size(),Cosmo.D_array.size(),Cosmo.dDdt_array.size());
+
+  //chexit(0);
   // save the growth function data to file
   Cosmo.Create_Growth_Function_File(P);
 
@@ -77,6 +81,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   chprintf("xblocal %f %f %f\n",H.xblocal, H.yblocal, H.zblocal);
   chprintf("nx_local %d %d %d\n",nx_local, ny_local, nz_local);
   chprintf("nx_global %d ny_global %d nz_global %d\n",nx_global,ny_global,nz_global);
+  chprintf("n ghost %d n ghost pot %d\n",H.n_ghost,N_GHOST_POTENTIAL);
 	fft.Initialize( H.xdglobal, H.ydglobal, H.zdglobal, H.xblocal, H.yblocal, H.zblocal,
 		              nx_global, ny_global, nz_global, nx_local, ny_local, nz_local, H.dx, H.dy, H.dz );
 
@@ -456,7 +461,8 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
 void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
 {
 	// Initialize the parameters for the Philox RNG
-  int n_cells = nx_local*ny_local*nz_local;
+//  int n_cells = nx_local*ny_local*nz_local;
+  int n_cells = H.nx * H.ny * H.nz;
 
 	// Record the RNG seed from the parameter file
 	CP.rng_seed = P->seed;
@@ -473,7 +479,9 @@ void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
   // initialze
   cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Init_GPU, n_cells);
   hipLaunchKernelGGL(RNG_Init_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
-                     nx_local,ny_local,nz_local,0,CP.rng_seed, CP.rng_subsequence, CP.rng_offset, rng_states);
+                     H.nx,H.ny,H.nz,0,CP.rng_seed, CP.rng_subsequence, CP.rng_offset, rng_states);
+//                     nx_local,ny_local,nz_local,0,CP.rng_seed, CP.rng_subsequence, CP.rng_offset, rng_states);
+
   GPU_Error_Check();
                      
 	chprintf("Initialized Cosmological ICs RNG states.");
@@ -596,13 +604,14 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
 void Grid3D::Allocate_Cosmo_Potential_Memory()
 {
   // allocate memory for the phi arrays
-  // allocate all the memory to phi_1, to insure contiguous memory
-  int n_cells = nx_local*ny_local*nz_local;
+  // allocate all the memory to phi_1, to ensure contiguous memory
+  //int n_cells = nx_local*ny_local*nz_local;
+  int n_cells = H.n_cells;
   int offset = n_cells;
 
   GPU_Error_Check(cudaHostAlloc((void **)&CP.host, CP.n_fields * n_cells * sizeof(Real), cudaHostAllocDefault));
 
-  chprintf("Host memory allocated for %d fields in cosmological ICs initial potential.\n",CP.n_fields);
+  chprintf("Host memory allocated for %d fields in cosmological ICs initial potential (n = %d).\n",CP.n_fields, n_cells);
 
   // point potential variables to the appropriate locations on host
   CP.delta_m    = CP.host;
@@ -651,7 +660,10 @@ void Grid3D::Free_Cosmo_Potential_Memory(void)
 void Grid3D::Generate_Normal_Random_Field(Real *d_field, rng_parallel_state_t *state)
 {
 	// Here, d_field has been pre-allocated on the device
-  int n_cells = nx_local*ny_local*nz_local;
+  //int n_cells = nx_local*ny_local*nz_local;
+  //chprintf("nx_local %d ny_local %d nz_local %d\n",nx_local,ny_local,nz_local);
+  //chexit(0);
+  int n_cells = H.nx * H.ny * H.nz;
   cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Normal_Field_GPU, n_cells);
   hipLaunchKernelGGL(RNG_Normal_Field_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
                      d_field, nx_local, ny_local, nz_local, 0, state);
@@ -663,7 +675,8 @@ void Grid3D::Rescale_Field(Real *d_x, Real A)
 {
 	// Here, d_x has been pre-allocated on the device
 	// Rescale the field by a multiplicative factor.
-  int n_cells = nx_local*ny_local*nz_local;
+  //int n_cells = nx_local*ny_local*nz_local;
+  int n_cells = H.nx * H.ny * H.nz;
   cuda_utilities::AutomaticLaunchParams static const launchParams(Rescale_Field_GPU, n_cells);
   hipLaunchKernelGGL(Rescale_Field_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
                      d_x, A, nx_local, ny_local, nz_local, 0);

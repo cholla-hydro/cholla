@@ -170,8 +170,6 @@ void Grid3D::Initialize(struct Parameters *P)
   /* perform domain decomposition
    * and set grid dimensions
    * and allocate comm buffers */
-  printf("Before DD P nxp %d nyp %d nzp %d\n",P->n_proc_x,P->n_proc_y,P->n_proc_z);
-  fflush(stdout);
   DomainDecomposition(P, &H, nx_in, ny_in, nz_in);
 
 #endif /*MPI_CHOLLA*/
@@ -240,6 +238,8 @@ void Grid3D::Initialize(struct Parameters *P)
 
 #ifdef COSMOLOGY
   Generate_Cosmo_Phi_Init(P); // memory intensive -- before grid allocation
+  //chprintf("D info before main %d %d\n",Cosmo.D_array.size(),Cosmo.a_array.size());
+
 #endif
 
   // allocate memory

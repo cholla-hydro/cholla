@@ -108,6 +108,8 @@ void FFT_3D::Filter_rescale_by_power_spectrum( Real *input, Real *output, bool i
   const int ni = ni_, nj = nj_, nk = nk_;
   const Real ddi = ddi_, ddj = ddj_, ddk = ddk_;
   const size_t bytes = minBytes_;
+
+  chprintf("inputBytes %d outputBytes %d\n",inputBytes_,outputBytes_);
   
   if ( in_device ){
     GPU_Error_Check( cudaMemcpy( db_, input, inputBytes_, cudaMemcpyDeviceToDevice));

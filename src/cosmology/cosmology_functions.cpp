@@ -252,6 +252,9 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
     dDdt_array.push_back(y_n[2]);
   }
 
+
+  chprintf("Sizes t %d a %d D %d dDdt %d\n",t_array.size(),a_array.size(),D_array.size(),dDdt_array.size());
+
   // free the RK integrator memory
   RK.FreeMemory();
 }
@@ -276,13 +279,15 @@ Real Cosmology::LinearInterpolation(std::vector<Real> x, std::vector<Real> y, Re
 Real Cosmology::D_Growth(Real a)
 {
   // interpolate (a,D)
-  return LinearInterpolation(a_array,D_array,a);
+  Real norm = LinearInterpolation(a_array,D_array,1);
+  return LinearInterpolation(a_array,D_array,a)/norm;
 }
 // Function to precompute the growth function time derivative
 Real Cosmology::dDdt_Growth(Real a)
 {
   // interpolate (a,dDdt)
-  return LinearInterpolation(a_array,dDdt_array,a);
+  Real norm = LinearInterpolation(a_array,D_array,1);
+  return LinearInterpolation(a_array,dDdt_array,a)/norm;
 }
 
 void Grid3D::Change_Cosmological_Frame_System(bool forward)

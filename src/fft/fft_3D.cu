@@ -101,6 +101,10 @@ void FFT_3D::Initialize(const Real lx, const Real ly, const Real lz, const Real 
 
 
   const long gg = 0; //note we assume inputs have no ghost cells
+  //const long gg = N_GHOST_POTENTIAL + N_GHOST_POTENTIAL; // try this 
+  // actually don't. We'll assume FFT applies only to the real cells
+  // and then we will use the full domain for potential gradients as
+  // needed
   outputBytes_ = long(sizeof(Real))*(dn_[0]+gg)*(dn_[1]+gg)*(dn_[2]+gg);
   
   GPU_Error_Check(cudaMalloc(reinterpret_cast<void **>(&da_),std::max(minBytes_,inputBytes_)));

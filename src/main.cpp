@@ -135,9 +135,12 @@ int main(int argc, char *argv[])
   G.Rad.Initialize_Start(P);
 #endif
 
+  //chprintf("D info main %d %d\n",G.Cosmo.D_array.size(),G.Cosmo.a_array.size());
+
   // Set initial conditions
   chprintf("Setting initial conditions...\n");
   //chprintf("bsic nx/ny/nz %d/%d/%d\n",P.nx,P.ny,P.nz);
+  //chprintf("Gamma here %e\n",P.gamma);
   G.Set_Initial_Conditions(P, pmap);
   chprintf("Initial conditions set.\n");
   //chprintf("asic nx/ny/nz %d/%d/%d\n",P.nx,P.ny,P.nz);
