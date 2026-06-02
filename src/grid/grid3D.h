@@ -908,9 +908,19 @@ class Grid3D
   rng_parallel_state_t *rng_states;
 
   // Cosmo ICs potential comms
-  void Set_Cosmo_Potential_Boundaries_Periodic(int direction, int side, int *flags);
-  void Unload_Cosmo_Potential_from_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *dest);
-  int  Load_Cosmo_Potential_To_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *source);
+  void Set_Field_Boundaries_Periodic(int direction, int side, int *flags, Real *field);
+  void Set_Boundary_Conditions_Field(Parameters P, Real *field);
+  void Set_Boundaries_Field(int dir, int flags[], Real *field);
+  int Load_Field_To_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *field);
+  void Unload_Field_from_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *field);
+#ifdef MPI_CHOLLA
+  void Unload_MPI_Comm_Buffers_Field(int index, Real *field);
+  void Wait_and_Unload_MPI_Comm_Buffers_Field(int dir, int *flags, Real *field);
+  void Load_and_Send_MPI_Comm_Buffers_Field(int dir, int *flags, Real *field);
+  void Set_Boundaries_MPI_BLOCK_Field(int *flags, struct Parameters P, Real *field);
+  void Set_Boundaries_MPI_Field(struct Parameters P, Real *field);
+#endif //MPI_CHOLLA
+
 
 #endif    // COSMOLOGY
 
@@ -971,5 +981,6 @@ class Grid3D
 typedef void (Grid3D::*Grid3D_PMF_UnloadHydroBuffer)(Real *);
 typedef void (Grid3D::*Grid3D_PMF_UnloadGravityPotential)(int, int, Real *, int);
 typedef void (Grid3D::*Grid3D_PMF_UnloadParticleDensity)(int, int, Real *);
+typedef void (Grid3D::*Grid3D_PMF_UnloadField)(int, int, Real *, int, Real *);
 
 #endif  // GRID3D_H
