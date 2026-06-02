@@ -1938,7 +1938,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         // copy from delta back to phi
         CP.phi_1[id] = CP.delta_m[index];
 #ifndef ONLY_PARTICLES
-        CP.phi_2[id] = CP.delta_bc[index]
+        CP.phi_2[id] = CP.delta_bc[index];
 #endif //ONLY_PARTICLES
       }
     }
@@ -1962,9 +1962,6 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   Real phi_l, phi_r;
   int id_l, id_r;
 
-  int index;
-  int ii, jj, kk;
-  Real dens, vel, U, E; 
   // set the initial values of the conserved variables
   for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
     for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {

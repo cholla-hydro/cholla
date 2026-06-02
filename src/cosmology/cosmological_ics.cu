@@ -613,7 +613,7 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
 {
   // allocate memory for the phi arrays
   // allocate all the memory to phi_1, to ensure contiguous memory
-  //int n_cells = nx_local*ny_local*nz_local;
+  int n_cells = nx_local*ny_local*nz_local;
   //int n_cells = H.n_cells;
   int offset = n_cells;
 
