@@ -753,4 +753,910 @@ void Grid3D::Field_Elementwise_Product(Real *d_x, Real *d_y)
 	FFT_Populate_Wavevectors_GPU(d_kx, d_ky, d_kz, d_kk, H.n_cells, H.n_ghost);
 }*/
 
+
+// Set_Boundary_Conditions_Cosmo_Potential()
+// -- calls Set_Boundaries_Cosmo_Potential
+//    -- calls Set_Cosmo_Potential_Boundaries_Periodic
+// OR
+// Set_Boundaries_MPI_Cosmo_Potential
+
+
+/*! \fn void Set_Boundary_Conditions_Cosmo_Potential(Parameters P )
+ *  \brief Set the boundary conditions for all components based on info in the
+ * parameters structure. */
+void Grid3D::Set_Boundary_Conditions_Cosmo_Potential(Parameters P)
+{
+#ifndef MPI_CHOLLA
+
+  int flags[6] = {0, 0, 0, 0, 0, 0};
+
+  // Check for custom boundary conditions and set boundary flags
+  // can use generic boundary check
+  if (Check_Custom_Boundary(&flags[0], P)) {
+    chprintf("Error -- custom boundary not implemented for cosmo ics.")
+    chexit(-1);
+  }
+
+  // set regular boundaries
+  if (H.nx > 1) {
+    Set_Boundaries_Cosmo_Potential(0, flags);
+    Set_Boundaries_Cosmo_Potential(1, flags);
+  }
+  if (H.ny > 1) {
+    Set_Boundaries_Cosmo_Potential(2, flags);
+    Set_Boundaries_Cosmo_Potential(3, flags);
+  }
+  if (H.nz > 1) {
+    Set_Boundaries_Cosmo_Potential(4, flags);
+    Set_Boundaries_Cosmo_Potential(5, flags);
+  }
+
+#else /*MPI_CHOLLA*/
+
+  /*Set boundaries, including MPI exchanges*/
+
+  Set_Boundaries_MPI_Cosmo_Potential(P);
+
+#endif /*MPI_CHOLLA*/
+}
+
+
+/*! \fn void Set_Boundaries(int dir, int flags[])
+ *  \brief Apply boundary conditions to the grid. */
+void Grid3D::Set_Boundaries_Cosmo_Potential(int dir, int flags[])
+{
+  int i, j, k;
+  int imin[3] = {0, 0, 0};
+  int imax[3] = {H.nx, H.ny, H.nz};
+  Real a[3]   = {1, 1, 1};  // sign of momenta
+  int idx;                  // index of a real cell
+  int gidx;                 // index of a ghost cell
+
+  int nPB, nBoundaries;
+  int *iaBoundary, *iaCell;
+
+  /*if the cell face is an custom boundary, exit */
+  if (flags[dir] == 4) {
+    return;
+  }
+
+#ifdef MPI_CHOLLA
+  /*if the cell face is an mpi boundary, exit */
+  if (flags[dir] == 5) {
+    return;
+  }
+#endif /*MPI_CHOLLA*/
+  if(true) {
+    if (flags[dir] == 1) {
+  // Set Periodic Boundaries for the ghost cells.
+ 
+      if (dir == 0) {
+        Set_Cosmo_Potential_Boundaries_Periodic(0, 0, flags);
+      }
+      if (dir == 1) {
+        Set_Cosmo_Potential_Boundaries_Periodic(0, 1, flags);
+      }
+      if (dir == 2) {
+        Set_Cosmo_Potential_Boundaries_Periodic(1, 0, flags);
+      }
+      if (dir == 3) {
+        Set_Cosmo_Potential_Boundaries_Periodic(1, 1, flags);
+      }
+      if (dir == 4) {
+        Set_Cosmo_Potential_Boundaries_Periodic(2, 0, flags);
+      }
+      if (dir == 5) {
+        Set_Cosmo_Potential_Boundaries_Periodic(2, 1, flags);
+      }
+    }
+    return;
+  }
+  /*
+  // get the extents of the ghost region we are initializing
+  Set_Boundary_Extents(dir, &imin[0], &imax[0]);
+
+  // from grid/cuda_boundaries.cu
+  SetGhostCells(C.device, H.nx, H.ny, H.nz, H.n_fields, H.n_cells, H.n_ghost, flags, imax[0] - imin[0],
+                imax[1] - imin[1], imax[2] - imin[2], imin[0], imin[1], imin[2], dir);
+  */
+}
+
+
+void Grid3D::Set_Cosmo_Potential_Boundaries_Periodic(int direction, int side, int *flags)
+{
+  // Flags: 1 (periodic), 2 (reflective), 3 (transmissive), 4 (custom), 5 (mpi)
+
+  int i, j, k, indx_src, indx_dst;
+  int nGHST, nx_g, ny_g, nz_g;
+  nGHST = N_GHOST_POTENTIAL;
+  nx_g  = nx_local + 2 * nGHST;
+  ny_g  = ny_local + 2 * nGHST;
+  nz_g  = nz_local + 2 * nGHST;
+
+  // Copy X boundaries
+  if (direction == 0) {
+    for (k = 0; k < nz_g; k++) {
+      for (j = 0; j < ny_g; j++) {
+        for (i = 0; i < nGHST; i++) {
+          if (side == 0) {
+            indx_src = (nx_g - 2 * nGHST + i) + (j)*nx_g + (k)*nx_g * ny_g;  // Periodic
+            indx_dst = (i) + (j)*nx_g + (k)*nx_g * ny_g;
+          }
+          if (side == 1) {
+            indx_src = (i + nGHST) + (j)*nx_g + (k)*nx_g * ny_g;  // Periodic
+            indx_dst = (nx_g - nGHST + i) + (j)*nx_g + (k)*nx_g * ny_g;
+          }
+          CP.phi_1[indx_dst] = CP.phi_1[indx_src];
+#ifndef ONLY_PARTICLES
+          CP.phi_2[indx_dst] = CP.phi_2[indx_src];
 #endif
+        }
+      }
+    }
+  }
+
+  // Copy Y boundaries
+  if (direction == 1) {
+    for (k = 0; k < nz_g; k++) {
+      for (j = 0; j < nGHST; j++) {
+        for (i = 0; i < nx_g; i++) {
+          if (side == 0) {
+            indx_src = (i) + (ny_g - 2 * nGHST + j) * nx_g + (k)*nx_g * ny_g;  // Periodic
+            indx_dst = (i) + (j)*nx_g + (k)*nx_g * ny_g;
+          }
+          if (side == 1) {
+            indx_src = (i) + (j + nGHST) * nx_g + (k)*nx_g * ny_g;  // Periodic
+            indx_dst = (i) + (ny_g - nGHST + j) * nx_g + (k)*nx_g * ny_g;
+          }
+          CP.phi_1[indx_dst] = CP.phi_1[indx_src];
+#ifndef ONLY_PARTICLES
+          CP.phi_2[indx_dst] = CP.phi_2[indx_src];
+#endif
+        }
+      }
+    }
+  }
+
+  // Copy Z boundaries
+  if (direction == 2) {
+    for (k = 0; k < nGHST; k++) {
+      for (j = 0; j < ny_g; j++) {
+        for (i = 0; i < nx_g; i++) {
+          if (side == 0) {
+            indx_src = (i) + (j)*nx_g + (nz_g - 2 * nGHST + k) * nx_g * ny_g;  // Periodic
+            indx_dst = (i) + (j)*nx_g + (k)*nx_g * ny_g;
+          }
+          if (side == 1) {
+            indx_src = (i) + (j)*nx_g + (k + nGHST) * nx_g * ny_g;  // Periodic
+            indx_dst = (i) + (j)*nx_g + (nz_g - nGHST + k) * nx_g * ny_g;
+          }
+          CP.phi_1[indx_dst] = CP.phi_1[indx_src];
+#ifndef ONLY_PARTICLES
+          CP.phi_2[indx_dst] = CP.phi_2[indx_src];
+#endif
+        }
+      }
+    }
+  }
+}
+
+
+
+
+
+void Grid3D::Set_Boundaries_MPI_Cosmo_Potential(struct Parameters P)
+{
+  int flags[6] = {0, 0, 0, 0, 0, 0};
+
+  if (Check_Custom_Boundary(&flags[0], P)) {
+    // perform custom boundaries
+    Custom_Boundary(P.custom_bcnd);
+  }
+
+  Set_Boundaries_MPI_BLOCK_Cosmo_Potential(flags, P);
+}
+
+void Grid3D::Set_Boundaries_MPI_BLOCK_Cosmo_Potential(int *flags, struct Parameters P)
+{
+
+  if (H.nx > 1) {
+    /* Step 1 - Send MPI x-boundaries */
+    if (flags[0] == 5 || flags[1] == 5) {
+      Load_and_Send_MPI_Comm_Buffers_Cosmo_Potential(0, flags);
+    }
+
+    /* Step 2 - Set non-MPI x-boundaries */
+    Set_Boundaries_Cosmo_Potential(0, flags);
+    Set_Boundaries_Cosmo_Potential(1, flags);
+
+    /* Step 3 - Receive MPI x-boundaries */
+
+    if (flags[0] == 5 || flags[1] == 5) {
+      Wait_and_Unload_MPI_Comm_Buffers_Cosmo_Potential(0, flags);
+    }
+  }
+  MPI_Barrier(world);
+  if (H.ny > 1) {
+    /* Step 4 - Send MPI y-boundaries */
+    if (flags[2] == 5 || flags[3] == 5) {
+      Load_and_Send_MPI_Comm_Buffers_Cosmo_Potential(1, flags);
+    }
+
+    /* Step 5 - Set non-MPI y-boundaries */
+    Set_Boundaries_Cosmo_Potential(2, flags);
+    Set_Boundaries_Cosmo_Potential(3, flags);
+
+    /* Step 6 - Receive MPI y-boundaries */
+    if (flags[2] == 5 || flags[3] == 5) {
+      Wait_and_Unload_MPI_Comm_Buffers_Cosmo_Potential(1, flags);
+    }
+  }
+  MPI_Barrier(world);
+  if (H.nz > 1) {
+    /* Step 7 - Send MPI z-boundaries */
+    if (flags[4] == 5 || flags[5] == 5) {
+      Load_and_Send_MPI_Comm_Buffers_Cosmo_Potential(2, flags);
+    }
+
+    /* Step 8 - Set non-MPI z-boundaries */
+    Set_Boundaries_Cosmo_Potential(4, flags);
+    Set_Boundaries_Cosmo_Potential(5, flags);
+
+    /* Step 9 - Receive MPI z-boundaries */
+    if (flags[4] == 5 || flags[5] == 5) {
+      Wait_and_Unload_MPI_Comm_Buffers_Cosmo_Potential(2, flags);
+    }
+  }
+}
+
+
+void Grid3D::Load_and_Send_MPI_Comm_Buffers_Cosmo_Potential(int dir, int *flags)
+{
+  int ireq;
+  ireq = 0;
+
+  int xbsize = x_buffer_length, ybsize = y_buffer_length, zbsize = z_buffer_length;
+
+  int buffer_length;
+
+  // Flag to omit the transfer of the main buffer when tranferring the particles
+  // buffer
+  bool transfer_main_buffer = true;
+
+  /* x boundaries */
+  if (dir == 0) {
+    if (flags[0] == 5) {
+      // load left x communication buffer
+
+  #ifdef GRAVITY
+      if (Grav.TRANSFER_POTENTIAL_BOUNDARIES) {
+    #ifdef GRAVITY_GPU
+        buffer_length = Load_Gravity_Potential_To_Buffer_GPU(0, 0, d_send_buffer_x0, 0);
+      #ifndef MPI_GPU
+        cudaMemcpy(h_send_buffer_x0, d_send_buffer_x0, xbsize * sizeof(Real), cudaMemcpyDeviceToHost);
+      #endif
+    #else
+        buffer_length = Load_Gravity_Potential_To_Buffer(0, 0, h_send_buffer_x0, 0);
+        //Load_Cosmo_Potential_To_Buffer
+    #endif
+      }
+  #endif    // GRAVITY
+
+      if (transfer_main_buffer) {
+  #if defined(MPI_GPU)
+        // post non-blocking receive left x communication buffer
+        MPI_Irecv(d_recv_buffer_x0, buffer_length, MPI_CHREAL, source[0], 0, world, &recv_request[ireq]);
+
+        // non-blocking send left x communication buffer
+        MPI_Isend(d_send_buffer_x0, buffer_length, MPI_CHREAL, dest[0], 1, world, &send_request[0]);
+  #else
+        // post non-blocking receive left x communication buffer
+        MPI_Irecv(h_recv_buffer_x0, buffer_length, MPI_CHREAL, source[0], 0, world, &recv_request[ireq]);
+
+        // non-blocking send left x communication buffer
+        MPI_Isend(h_send_buffer_x0, buffer_length, MPI_CHREAL, dest[0], 1, world, &send_request[0]);
+  #endif
+        MPI_Request_free(send_request);
+
+        // keep track of how many sends and receives are expected
+        ireq++;
+      }
+    }
+
+    if (flags[1] == 5) {
+      // load right x communication buffer
+  #ifdef GRAVITY
+      if (Grav.TRANSFER_POTENTIAL_BOUNDARIES) {
+    #ifdef GRAVITY_GPU
+        buffer_length = Load_Gravity_Potential_To_Buffer_GPU(0, 1, d_send_buffer_x1, 0);
+      #ifndef MPI_GPU
+        cudaMemcpy(h_send_buffer_x1, d_send_buffer_x1, xbsize * sizeof(Real), cudaMemcpyDeviceToHost);
+      #endif
+    #else
+        buffer_length = Load_Gravity_Potential_To_Buffer(0, 1, h_send_buffer_x1, 0);
+    #endif
+      }
+  #endif    // GRAVITY
+
+      if (transfer_main_buffer) {
+  #if defined(MPI_GPU)
+        // post non-blocking receive right x communication buffer
+        MPI_Irecv(d_recv_buffer_x1, buffer_length, MPI_CHREAL, source[1], 1, world, &recv_request[ireq]);
+
+        // non-blocking send right x communication buffer
+        MPI_Isend(d_send_buffer_x1, buffer_length, MPI_CHREAL, dest[1], 0, world, &send_request[1]);
+  #else
+        // post non-blocking receive right x communication buffer
+        MPI_Irecv(h_recv_buffer_x1, buffer_length, MPI_CHREAL, source[1], 1, world, &recv_request[ireq]);
+
+        // non-blocking send right x communication buffer
+        MPI_Isend(h_send_buffer_x1, buffer_length, MPI_CHREAL, dest[1], 0, world, &send_request[1]);
+  #endif
+
+        MPI_Request_free(send_request + 1);
+
+        // keep track of how many sends and receives are expected
+        ireq++;
+      }
+    }
+  }
+
+  /* y boundaries */
+  if (dir == 1) {
+    if (flags[2] == 5) {
+      // load left y communication buffer
+  #ifdef GRAVITY
+      if (Grav.TRANSFER_POTENTIAL_BOUNDARIES) {
+    #ifdef GRAVITY_GPU
+        buffer_length = Load_Gravity_Potential_To_Buffer_GPU(1, 0, d_send_buffer_y0, 0);
+      #ifndef MPI_GPU
+        cudaMemcpy(h_send_buffer_y0, d_send_buffer_y0, ybsize * sizeof(Real), cudaMemcpyDeviceToHost);
+      #endif
+    #else
+        buffer_length = Load_Gravity_Potential_To_Buffer(1, 0, h_send_buffer_y0, 0);
+    #endif
+      }
+  #endif    // GRAVITY
+
+      if (transfer_main_buffer) {
+  #if defined(MPI_GPU)
+        // post non-blocking receive left y communication buffer
+        MPI_Irecv(d_recv_buffer_y0, buffer_length, MPI_CHREAL, source[2], 2, world, &recv_request[ireq]);
+
+        // non-blocking send left y communication buffer
+        MPI_Isend(d_send_buffer_y0, buffer_length, MPI_CHREAL, dest[2], 3, world, &send_request[0]);
+  #else
+        // post non-blocking receive left y communication buffer
+        MPI_Irecv(h_recv_buffer_y0, buffer_length, MPI_CHREAL, source[2], 2, world, &recv_request[ireq]);
+
+        // non-blocking send left y communication buffer
+        MPI_Isend(h_send_buffer_y0, buffer_length, MPI_CHREAL, dest[2], 3, world, &send_request[0]);
+  #endif
+
+        MPI_Request_free(send_request);
+
+        // keep track of how many sends and receives are expected
+        ireq++;
+      }
+    }
+
+    if (flags[3] == 5) {
+      // load right y communication buffer
+
+  #ifdef GRAVITY
+      if (Grav.TRANSFER_POTENTIAL_BOUNDARIES) {
+    #ifdef GRAVITY_GPU
+        buffer_length = Load_Gravity_Potential_To_Buffer_GPU(1, 1, d_send_buffer_y1, 0);
+      #ifndef MPI_GPU
+        cudaMemcpy(h_send_buffer_y1, d_send_buffer_y1, ybsize * sizeof(Real), cudaMemcpyDeviceToHost);
+      #endif
+    #else
+        buffer_length = Load_Gravity_Potential_To_Buffer(1, 1, h_send_buffer_y1, 0);
+    #endif
+      }
+  #endif    // GRAVITY
+
+      if (transfer_main_buffer) {
+  #if defined(MPI_GPU)
+        // post non-blocking receive right y communication buffer
+        MPI_Irecv(d_recv_buffer_y1, buffer_length, MPI_CHREAL, source[3], 3, world, &recv_request[ireq]);
+
+        // non-blocking send right y communication buffer
+        MPI_Isend(d_send_buffer_y1, buffer_length, MPI_CHREAL, dest[3], 2, world, &send_request[1]);
+  #else
+        // post non-blocking receive right y communication buffer
+        MPI_Irecv(h_recv_buffer_y1, buffer_length, MPI_CHREAL, source[3], 3, world, &recv_request[ireq]);
+
+        // non-blocking send right y communication buffer
+        MPI_Isend(h_send_buffer_y1, buffer_length, MPI_CHREAL, dest[3], 2, world, &send_request[1]);
+  #endif
+        MPI_Request_free(send_request + 1);
+
+        // keep track of how many sends and receives are expected
+        ireq++;
+      }
+    }
+  }
+
+  /* z boundaries */
+  if (dir == 2) {
+    if (flags[4] == 5) {
+      // left z communication buffer
+
+  #ifdef GRAVITY
+      if (Grav.TRANSFER_POTENTIAL_BOUNDARIES) {
+    #ifdef GRAVITY_GPU
+        buffer_length = Load_Gravity_Potential_To_Buffer_GPU(2, 0, d_send_buffer_z0, 0);
+      #ifndef MPI_GPU
+        cudaMemcpy(h_send_buffer_z0, d_send_buffer_z0, zbsize * sizeof(Real), cudaMemcpyDeviceToHost);
+      #endif
+    #else
+        buffer_length = Load_Gravity_Potential_To_Buffer(2, 0, h_send_buffer_z0, 0);
+    #endif
+      }
+  #endif    // GRAVITY
+
+      if (transfer_main_buffer) {
+  #if defined(MPI_GPU)
+        // post non-blocking receive left z communication buffer
+        MPI_Irecv(d_recv_buffer_z0, buffer_length, MPI_CHREAL, source[4], 4, world, &recv_request[ireq]);
+        // non-blocking send left z communication buffer
+        MPI_Isend(d_send_buffer_z0, buffer_length, MPI_CHREAL, dest[4], 5, world, &send_request[0]);
+  #else
+        // post non-blocking receive left z communication buffer
+        MPI_Irecv(h_recv_buffer_z0, buffer_length, MPI_CHREAL, source[4], 4, world, &recv_request[ireq]);
+
+        // non-blocking send left z communication buffer
+        MPI_Isend(h_send_buffer_z0, buffer_length, MPI_CHREAL, dest[4], 5, world, &send_request[0]);
+  #endif
+
+        MPI_Request_free(send_request);
+
+        // keep track of how many sends and receives are expected
+        ireq++;
+      }
+    }
+
+    if (flags[5] == 5) {
+      // load right z communication buffer
+      if (H.TRANSFER_HYDRO_BOUNDARIES) {
+
+  #ifdef GRAVITY
+      if (Grav.TRANSFER_POTENTIAL_BOUNDARIES) {
+    #ifdef GRAVITY_GPU
+        buffer_length = Load_Gravity_Potential_To_Buffer_GPU(2, 1, d_send_buffer_z1, 0);
+      #ifndef MPI_GPU
+        cudaMemcpy(h_send_buffer_z1, d_send_buffer_z1, zbsize * sizeof(Real), cudaMemcpyDeviceToHost);
+      #endif
+    #else
+        buffer_length = Load_Gravity_Potential_To_Buffer(2, 1, h_send_buffer_z1, 0);
+    #endif
+      }
+  #endif    // GRAVITY
+
+      if (transfer_main_buffer) {
+  #if defined(MPI_GPU)
+        // post non-blocking receive right x communication buffer
+        MPI_Irecv(d_recv_buffer_z1, buffer_length, MPI_CHREAL, source[5], 5, world, &recv_request[ireq]);
+
+        // non-blocking send right x communication buffer
+        MPI_Isend(d_send_buffer_z1, buffer_length, MPI_CHREAL, dest[5], 4, world, &send_request[1]);
+  #else
+        // post non-blocking receive right x communication buffer
+        MPI_Irecv(h_recv_buffer_z1, buffer_length, MPI_CHREAL, source[5], 5, world, &recv_request[ireq]);
+
+        // non-blocking send right x communication buffer
+        MPI_Isend(h_send_buffer_z1, buffer_length, MPI_CHREAL, dest[5], 4, world, &send_request[1]);
+  #endif
+        MPI_Request_free(send_request + 1);
+
+        // keep track of how many sends and receives are expected
+        ireq++;
+      }
+    }
+  }
+}
+
+void Grid3D::Wait_and_Unload_MPI_Comm_Buffers_Cosmo_Potential(int dir, int *flags)
+{
+  int iwait;
+  int index    = 0;
+  int wait_max = 0;
+  MPI_Status status;
+
+  // find out how many recvs we need to wait for
+  if (dir == 0) {
+    if (flags[0] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
+    if (flags[1] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
+  }
+  if (dir == 1) {
+    if (flags[2] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
+    if (flags[3] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
+  }
+  if (dir == 2) {
+    if (flags[4] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
+    if (flags[5] == 5) {  // there is communication on this face
+      wait_max++;         // so we'll need to wait for its comm
+    }
+  }
+
+  // wait for any receives to complete
+  for (iwait = 0; iwait < wait_max; iwait++) {
+    // wait for recv completion
+    MPI_Waitany(wait_max, recv_request, &index, &status);
+    // if (procID==1) MPI_Get_count(&status, MPI_CHREAL, &count);
+    // if (procID==1) printf("Process 1 unloading direction %d, source %d, index
+    // %d, length %d.\n", status.MPI_TAG, status.MPI_SOURCE, index, count);
+    // depending on which face arrived, load the buffer into the ghost grid
+    Unload_MPI_Comm_Buffers_Cosmo_Potential(status.MPI_TAG);
+  }
+}
+
+
+
+void Grid3D::Unload_MPI_Comm_Buffers_Cosmo_Potential(int index)
+{
+  // local recv buffers
+  Real *l_recv_buffer_x0, *l_recv_buffer_x1, *l_recv_buffer_y0, *l_recv_buffer_y1, *l_recv_buffer_z0, *l_recv_buffer_z1;
+
+  Grid3D_PMF_UnloadHydroBuffer Fptr_Unload_Hydro_Buffer_X0, Fptr_Unload_Hydro_Buffer_X1, Fptr_Unload_Hydro_Buffer_Y0,
+      Fptr_Unload_Hydro_Buffer_Y1, Fptr_Unload_Hydro_Buffer_Z0, Fptr_Unload_Hydro_Buffer_Z1;
+
+  Grid3D_PMF_UnloadGravityPotential Fptr_Unload_Gravity_Potential;
+  Grid3D_PMF_UnloadParticleDensity Fptr_Unload_Particle_Density;
+
+  if (H.TRANSFER_HYDRO_BOUNDARIES) {
+  #ifndef MPI_GPU
+    copyHostToDeviceReceiveBuffer(index);
+  #endif
+    l_recv_buffer_x0 = d_recv_buffer_x0;
+    l_recv_buffer_x1 = d_recv_buffer_x1;
+    l_recv_buffer_y0 = d_recv_buffer_y0;
+    l_recv_buffer_y1 = d_recv_buffer_y1;
+    l_recv_buffer_z0 = d_recv_buffer_z0;
+    l_recv_buffer_z1 = d_recv_buffer_z1;
+
+    Fptr_Unload_Hydro_Buffer_X0 = &Grid3D::Unload_Hydro_DeviceBuffer_X0;
+    Fptr_Unload_Hydro_Buffer_X1 = &Grid3D::Unload_Hydro_DeviceBuffer_X1;
+    Fptr_Unload_Hydro_Buffer_Y0 = &Grid3D::Unload_Hydro_DeviceBuffer_Y0;
+    Fptr_Unload_Hydro_Buffer_Y1 = &Grid3D::Unload_Hydro_DeviceBuffer_Y1;
+    Fptr_Unload_Hydro_Buffer_Z0 = &Grid3D::Unload_Hydro_DeviceBuffer_Z0;
+    Fptr_Unload_Hydro_Buffer_Z1 = &Grid3D::Unload_Hydro_DeviceBuffer_Z1;
+
+    switch (index) {
+      case (0):
+        (this->*Fptr_Unload_Hydro_Buffer_X0)(l_recv_buffer_x0);
+        break;
+      case (1):
+        (this->*Fptr_Unload_Hydro_Buffer_X1)(l_recv_buffer_x1);
+        break;
+      case (2):
+        (this->*Fptr_Unload_Hydro_Buffer_Y0)(l_recv_buffer_y0);
+        break;
+      case (3):
+        (this->*Fptr_Unload_Hydro_Buffer_Y1)(l_recv_buffer_y1);
+        break;
+      case (4):
+        (this->*Fptr_Unload_Hydro_Buffer_Z0)(l_recv_buffer_z0);
+        break;
+      case (5):
+        (this->*Fptr_Unload_Hydro_Buffer_Z1)(l_recv_buffer_z1);
+        break;
+    }
+  }
+
+  #ifdef GRAVITY
+  if (Grav.TRANSFER_POTENTIAL_BOUNDARIES) {
+    #ifdef GRAVITY_GPU
+      #ifndef MPI_GPU
+    copyHostToDeviceReceiveBuffer(index);
+      #endif  // MPI_GPU
+
+    l_recv_buffer_x0 = d_recv_buffer_x0;
+    l_recv_buffer_x1 = d_recv_buffer_x1;
+    l_recv_buffer_y0 = d_recv_buffer_y0;
+    l_recv_buffer_y1 = d_recv_buffer_y1;
+    l_recv_buffer_z0 = d_recv_buffer_z0;
+    l_recv_buffer_z1 = d_recv_buffer_z1;
+
+    Fptr_Unload_Gravity_Potential = &Grid3D::Unload_Gravity_Potential_from_Buffer_GPU;
+
+    #else
+
+    l_recv_buffer_x0 = h_recv_buffer_x0;
+    l_recv_buffer_x1 = h_recv_buffer_x1;
+    l_recv_buffer_y0 = h_recv_buffer_y0;
+    l_recv_buffer_y1 = h_recv_buffer_y1;
+    l_recv_buffer_z0 = h_recv_buffer_z0;
+    l_recv_buffer_z1 = h_recv_buffer_z1;
+
+    Fptr_Unload_Gravity_Potential = &Grid3D::Unload_Gravity_Potential_from_Buffer;
+
+    #endif  // GRAVITY_GPU
+
+    if (index == 0) {
+      (this->*Fptr_Unload_Gravity_Potential)(0, 0, l_recv_buffer_x0, 0);
+    }
+    if (index == 1) {
+      (this->*Fptr_Unload_Gravity_Potential)(0, 1, l_recv_buffer_x1, 0);
+    }
+    if (index == 2) {
+      (this->*Fptr_Unload_Gravity_Potential)(1, 0, l_recv_buffer_y0, 0);
+    }
+    if (index == 3) {
+      (this->*Fptr_Unload_Gravity_Potential)(1, 1, l_recv_buffer_y1, 0);
+    }
+    if (index == 4) {
+      (this->*Fptr_Unload_Gravity_Potential)(2, 0, l_recv_buffer_z0, 0);
+    }
+    if (index == 5) {
+      (this->*Fptr_Unload_Gravity_Potential)(2, 1, l_recv_buffer_z1, 0);
+    }
+  }
+
+    #ifdef SOR
+  if (Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES) {
+    l_recv_buffer_x0 = h_recv_buffer_x0;
+    l_recv_buffer_x1 = h_recv_buffer_x1;
+    l_recv_buffer_y0 = h_recv_buffer_y0;
+    l_recv_buffer_y1 = h_recv_buffer_y1;
+    l_recv_buffer_z0 = h_recv_buffer_z0;
+    l_recv_buffer_z1 = h_recv_buffer_z1;
+
+    if (index == 0) {
+      Unload_Poisson_Boundary_From_Buffer(0, 0, l_recv_buffer_x0);
+    }
+    if (index == 1) {
+      Unload_Poisson_Boundary_From_Buffer(0, 1, l_recv_buffer_x1);
+    }
+    if (index == 2) {
+      Unload_Poisson_Boundary_From_Buffer(1, 0, l_recv_buffer_y0);
+    }
+    if (index == 3) {
+      Unload_Poisson_Boundary_From_Buffer(1, 1, l_recv_buffer_y1);
+    }
+    if (index == 4) {
+      Unload_Poisson_Boundary_From_Buffer(2, 0, l_recv_buffer_z0);
+    }
+    if (index == 5) {
+      Unload_Poisson_Boundary_From_Buffer(2, 1, l_recv_buffer_z1);
+    }
+  }
+    #endif  // SOR
+
+  #endif  // GRAVITY
+
+  #ifdef PARTICLES
+  if (Particles.TRANSFER_DENSITY_BOUNDARIES) {
+    #ifdef PARTICLES_GPU
+      #ifndef MPI_GPU
+    copyHostToDeviceReceiveBuffer(index);
+      #endif
+
+    l_recv_buffer_x0 = d_recv_buffer_x0;
+    l_recv_buffer_x1 = d_recv_buffer_x1;
+    l_recv_buffer_y0 = d_recv_buffer_y0;
+    l_recv_buffer_y1 = d_recv_buffer_y1;
+    l_recv_buffer_z0 = d_recv_buffer_z0;
+    l_recv_buffer_z1 = d_recv_buffer_z1;
+
+    Fptr_Unload_Particle_Density = &Grid3D::Unload_Particles_Density_Boundary_From_Buffer_GPU;
+
+    #else
+
+      #ifdef MPI_GPU
+    if (index == 0) {
+      Copy_Particles_Density_Buffer_Device_to_Host(0, 0, d_recv_buffer_x0, h_recv_buffer_x0_particles);
+    }
+    if (index == 1) {
+      Copy_Particles_Density_Buffer_Device_to_Host(0, 1, d_recv_buffer_x1, h_recv_buffer_x1_particles);
+    }
+    if (index == 2) {
+      Copy_Particles_Density_Buffer_Device_to_Host(1, 0, d_recv_buffer_y0, h_recv_buffer_y0_particles);
+    }
+    if (index == 3) {
+      Copy_Particles_Density_Buffer_Device_to_Host(1, 1, d_recv_buffer_y1, h_recv_buffer_y1_particles);
+    }
+    if (index == 4) {
+      Copy_Particles_Density_Buffer_Device_to_Host(2, 0, d_recv_buffer_z0, h_recv_buffer_z0_particles);
+    }
+    if (index == 5) {
+      Copy_Particles_Density_Buffer_Device_to_Host(2, 1, d_recv_buffer_z1, h_recv_buffer_z1_particles);
+    }
+    l_recv_buffer_x0 = h_recv_buffer_x0_particles;
+    l_recv_buffer_x1 = h_recv_buffer_x1_particles;
+    l_recv_buffer_y0 = h_recv_buffer_y0_particles;
+    l_recv_buffer_y1 = h_recv_buffer_y1_particles;
+    l_recv_buffer_z0 = h_recv_buffer_z0_particles;
+    l_recv_buffer_z1 = h_recv_buffer_z1_particles;
+      #else
+    l_recv_buffer_x0 = h_recv_buffer_x0;
+    l_recv_buffer_x1 = h_recv_buffer_x1;
+    l_recv_buffer_y0 = h_recv_buffer_y0;
+    l_recv_buffer_y1 = h_recv_buffer_y1;
+    l_recv_buffer_z0 = h_recv_buffer_z0;
+    l_recv_buffer_z1 = h_recv_buffer_z1;
+      #endif  // MPI_GPU
+
+    Fptr_Unload_Particle_Density = &Grid3D::Unload_Particles_Density_Boundary_From_Buffer;
+
+    #endif  // PARTICLES_GPU
+
+    if (index == 0) {
+      (this->*Fptr_Unload_Particle_Density)(0, 0, l_recv_buffer_x0);
+    }
+    if (index == 1) {
+      (this->*Fptr_Unload_Particle_Density)(0, 1, l_recv_buffer_x1);
+    }
+    if (index == 2) {
+      (this->*Fptr_Unload_Particle_Density)(1, 0, l_recv_buffer_y0);
+    }
+    if (index == 3) {
+      (this->*Fptr_Unload_Particle_Density)(1, 1, l_recv_buffer_y1);
+    }
+    if (index == 4) {
+      (this->*Fptr_Unload_Particle_Density)(2, 0, l_recv_buffer_z0);
+    }
+    if (index == 5) {
+      (this->*Fptr_Unload_Particle_Density)(2, 1, l_recv_buffer_z1);
+    }
+  }
+
+  #endif  // PARTICLES
+}
+
+
+
+  #ifdef MPI_CHOLLA
+int Grid3D::Load_Cosmo_Potential_To_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *source)
+{
+  int i, j, k, indx, indx_buff, length;
+  int nGHST, nx_g, ny_g, nz_g;
+  nGHST = N_GHOST_POTENTIAL;
+  nx_g  = nx_local + 2 * nGHST;
+  ny_g  = ny_local + 2 * nGHST;
+  nz_g  = nz_local + 2 * nGHST;
+
+  // Load X boundaries
+  if (direction == 0) {
+    length = nGHST * nz_g * ny_g;
+    for (k = 0; k < nz_g; k++) {
+      for (j = 0; j < ny_g; j++) {
+        for (i = 0; i < nGHST; i++) {
+          if (side == 0) {
+            indx = (i + nGHST) + (j)*nx_g + (k)*nx_g * ny_g;
+          }
+          if (side == 1) {
+            indx = (nx_g - 2 * nGHST + i) + (j)*nx_g + (k)*nx_g * ny_g;
+          }
+          indx_buff                        = (j) + (k)*ny_g + i * ny_g * nz_g;
+          buffer[buffer_start + indx_buff] = source[indx];
+        }
+      }
+    }
+  }
+
+  // Load Y boundaries
+  if (direction == 1) {
+    length = nGHST * nz_g * nx_g;
+    for (k = 0; k < nz_g; k++) {
+      for (j = 0; j < nGHST; j++) {
+        for (i = 0; i < nx_g; i++) {
+          if (side == 0) {
+            indx = (i) + (j + nGHST) * nx_g + (k)*nx_g * ny_g;
+          }
+          if (side == 1) {
+            indx = (i) + (ny_g - 2 * nGHST + j) * nx_g + (k)*nx_g * ny_g;
+          }
+          indx_buff                        = (i) + (k)*nx_g + j * nx_g * nz_g;
+          buffer[buffer_start + indx_buff] = source[indx];
+        }
+      }
+    }
+  }
+
+  // Load Z boundaries
+  if (direction == 2) {
+    length = nGHST * nx_g * ny_g;
+    for (k = 0; k < nGHST; k++) {
+      for (j = 0; j < ny_g; j++) {
+        for (i = 0; i < nx_g; i++) {
+          if (side == 0) {
+            indx = (i) + (j)*nx_g + (k + nGHST) * nx_g * ny_g;
+          }
+          if (side == 1) {
+            indx = (i) + (j)*nx_g + (nz_g - 2 * nGHST + k) * nx_g * ny_g;
+          }
+          indx_buff                        = (i) + (j)*nx_g + k * nx_g * ny_g;
+          buffer[buffer_start + indx_buff] = source[indx];
+        }
+      }
+    }
+  }
+  return length;
+}
+
+void Grid3D::Unload_Cosmo_Potential_from_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *dest)
+{
+  int i, j, k, indx, indx_buff;
+  int nGHST, nx_g, ny_g, nz_g;
+  nGHST = N_GHOST_POTENTIAL;
+  nx_g  = Grav.nx_local + 2 * nGHST;
+  ny_g  = Grav.ny_local + 2 * nGHST;
+  nz_g  = Grav.nz_local + 2 * nGHST;
+
+  // Load X boundaries
+  if (direction == 0) {
+    for (k = 0; k < nz_g; k++) {
+      for (j = 0; j < ny_g; j++) {
+        for (i = 0; i < nGHST; i++) {
+          if (side == 0) {
+            indx = (i) + (j)*nx_g + (k)*nx_g * ny_g;
+          }
+          if (side == 1) {
+            indx = (nx_g - nGHST + i) + (j)*nx_g + (k)*nx_g * ny_g;
+          }
+          indx_buff                = (j) + (k)*ny_g + i * ny_g * nz_g;
+          dest[indx] = buffer[buffer_start + indx_buff];
+        }
+      }
+    }
+  }
+
+  // Load Y boundaries
+  if (direction == 1) {
+    for (k = 0; k < nz_g; k++) {
+      for (j = 0; j < nGHST; j++) {
+        for (i = 0; i < nx_g; i++) {
+          if (side == 0) {
+            indx = (i) + (j)*nx_g + (k)*nx_g * ny_g;
+          }
+          if (side == 1) {
+            indx = (i) + (ny_g - nGHST + j) * nx_g + (k)*nx_g * ny_g;
+          }
+          indx_buff                = (i) + (k)*nx_g + j * nx_g * nz_g;
+          dest[indx] = buffer[buffer_start + indx_buff];
+        }
+      }
+    }
+  }
+
+  // Load Z boundaries
+  if (direction == 2) {
+    for (k = 0; k < nGHST; k++) {
+      for (j = 0; j < ny_g; j++) {
+        for (i = 0; i < nx_g; i++) {
+          if (side == 0) {
+            indx = (i) + (j)*nx_g + (k)*nx_g * ny_g;
+          }
+          if (side == 1) {
+            indx = (i) + (j)*nx_g + (nz_g - nGHST + k) * nx_g * ny_g;
+          }
+          indx_buff                = (i) + (j)*nx_g + k * nx_g * ny_g;
+          dest[indx] = buffer[buffer_start + indx_buff];
+        }
+      }
+    }
+  }
+}
+
+  #endif  // GRAVITY
+#endif    // MPI_CHOLLA
+
+
+//#error CALL TWICE, MAYBE SEND FLAG FOR phi_1 vs. phi_2
+
+
+
+
+#endif //COSMOLOGY

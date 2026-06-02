@@ -906,6 +906,12 @@ class Grid3D
   } CP;
   /*! RNG state */
   rng_parallel_state_t *rng_states;
+
+  // Cosmo ICs potential comms
+  void Set_Cosmo_Potential_Boundaries_Periodic(int direction, int side, int *flags);
+  void Unload_Cosmo_Potential_from_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *dest);
+  int  Load_Cosmo_Potential_To_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *source);
+
 #endif    // COSMOLOGY
 
 #ifdef FFT
