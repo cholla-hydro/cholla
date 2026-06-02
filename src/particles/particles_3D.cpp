@@ -1259,7 +1259,7 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
   chprintf(" Allocated GPU memory for particle data\n");
   #endif  // PARTICLES_GPU
 
-  chprintf(" Initializing Lagrangian Positions\n");
+  chprintf(" Initializing dark matter particle positions...\n");
 
   part_int_t pID = 0; // don't we need an offset? -- well we use this as an index, so start at 0
   Real x_pos, y_pos, z_pos; // initial positions
@@ -1512,7 +1512,7 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
   #if defined(PARTICLE_IDS) && defined(MPI_CHOLLA)
   // Get global IDs: Offset the local IDs to get unique global IDs across the
   // MPI ranks
-  chprintf(" Computing Global Particles IDs offset \n");
+  chprintf(" Computing Global Particles IDs offset...\n");
   part_int_t global_id_offset;
   global_id_offset = Get_Particles_IDs_Global_MPI_Offset(n_local);
     #ifdef PARTICLES_CPU
@@ -1557,9 +1557,9 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
     #endif
   #endif  // PARTICLES_GPU
 
-  chprintf(" Cosmological ICs lagrangian positions initialized, n_local: %lu\n", n_local);
+  chprintf(" Cosmological ICs particle positions initialized, n_local: %lu\n", n_local);
 
-  chexit(0);
+  //chexit(0);
 }
 
 

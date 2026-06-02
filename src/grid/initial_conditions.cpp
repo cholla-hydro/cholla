@@ -1949,6 +1949,15 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   // grid including ghost cells. Deal with the
   // boundary conditions appropriately.
 
+  // perform the ghost cell transfers between
+  // subdomains of the computational volume
+  chprintf("Exchanging ghost cells for cosmological potential phi_1.\n");
+  Set_Boundary_Conditions_Field(P, CP.phi_1);
+#ifndef ONLY_PARTICLES
+  chprintf("Exchanging ghost cells for cosmological potential phi_2.\n");
+  Set_Boundary_Conditions_Field(P, CP.phi_2);
+#endif  //ONLY_PARTICLES
+
 
   // now we can proceed with computing the gradients
 #ifndef ONLY_PARTICLES
