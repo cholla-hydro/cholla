@@ -83,7 +83,6 @@ void Grid3D::Set_Initial_Conditions(Parameters P, const ParameterMap &pmap)
   } else if (strcmp(P.init, "Adiabatic_Expansion") == 0) {
     Adiabatic_Expansion(P);
   } else if (strcmp(P.init, "Cosmological_ICs") == 0) {
-    //chprintf("D info here %d %d\n",Cosmo.D_array.size(),Cosmo.a_array.size());
     Cosmological_ICs(P);
   } else if (strcmp(P.init, "Chemistry_Test") == 0) {
     Chemistry_Test(P);
@@ -1681,6 +1680,10 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   Real dx, dy, dz;  // cell sizes
   Real xi_x, xi_y, xi_z;  // particle offsets
 
+  Real xHp  = P.xHp;  // hydrogen ionization fraction
+  Real xHep = P.xHep; // helium ionization fraction
+  Real YHe  = P.YHe;  // helium mass fraction
+
   H0      = P.H0;
   h       = H0 / 100;
   G       = G_COSMO;
@@ -1689,6 +1692,24 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   Real f_b = Omega_b/Omega_m;
   Real f_c = 1.0 - f_b;
   Real rho_b   = 3 * H0 * H0 / (8 * M_PI * G) * Omega_b / h / h;
+//src/cosmology/cosmology.cpp:  rho_0_gas = 3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_M / cosmo_h / cosmo_h;
+/*
+  // Set Normalization factors
+  r_0_dm          = P->xlen / P->nx;
+  t_0_dm          = 1. / H0;
+  v_0_dm          = r_0_dm / t_0_dm / cosmo_h;
+  rho_0_dm        = 3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_M / cosmo_h / cosmo_h;
+  rho_mean_baryon = 3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_b / cosmo_h / cosmo_h;
+  // dens_avrg = 0;
+
+  r_0_gas   = 1.0;
+  rho_0_gas = 3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_M / cosmo_h / cosmo_h;
+  t_0_gas   = 1 / H0 * cosmo_h;
+  v_0_gas   = r_0_gas / t_0_gas;
+  phi_0_gas = v_0_gas * v_0_gas;
+  p_0_gas   = rho_0_gas * v_0_gas * v_0_gas;
+  e_0_gas   = v_0_gas * v_0_gas;
+*/
   gamma = P.gamma;
 
   z_init = P.Init_redshift;
@@ -1796,13 +1817,36 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
         U    = T_init / (gamma - 1) / MP * KB * 1e-10 * dens;
 
+/*      // forward
+        dens_factor     = 1 / Cosmo.rho_0_gas;
+        momentum_factor = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas * Cosmo.current_a;
+        energy_factor   = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas / Cosmo.v_0_gas * Cosmo.current_a * Cosmo.current_a;
+        C.density[id]    = C.density[id] * dens_factor;
+        C.momentum_x[id] = C.momentum_x[id] * momentum_factor;
+        C.momentum_y[id] = C.momentum_y[id] * momentum_factor;
+        C.momentum_z[id] = C.momentum_z[id] * momentum_factor;
+        C.Energy[id]     = C.Energy[id] * energy_factor;
+        C.GasEnergy[id] = C.GasEnergy[id] * energy_factor;
+        C.HI_density[id] *= dens_factor;
+        C.HII_density[id] *= dens_factor;
+*/
+
         // initialize hydro grid properties
         // using the index for the whole grid
         C.density[id]    = dens; 
 
+  #ifdef CHEMISTRY_GPU
+        C.HI_density[id]    = (1-xHp)*(1-YHe)*dens; //HI    density
+        C.HII_density[id]   = xHp*(1-YHe)*dens;     //HII   density
+        C.HeI_density[id]   = (1-xHep)*YHe*dens;    //HeI   density
+        C.HeII_density[id]  = Hep*YHe*dens;         //HeII  density
+        C.HeIII_density[id] = 0;                    //HeIII density
+        //C.e_density[id]     = dens_factor;
+  #endif
+
         // add the internal energy, will update
         // after momentum is computed
-        C.Energy[id]     = U;
+        C.Energy[id]    = U;
 
   #ifdef DE
         // initialize the 
@@ -1820,7 +1864,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   // for the real cells only
 
   // copy memory -- only real, local cells
-  cudaMemcpy(CP.delta_m, CP.phi_1, n_cells * sizeof(Real), cudaMemcpyHostToHost);
+  cudaMemcpy(CP.delta_m,  CP.phi_1, n_cells * sizeof(Real), cudaMemcpyHostToHost);
 #ifndef ONLY_PARTICLES
   cudaMemcpy(CP.delta_bc, CP.phi_2, n_cells * sizeof(Real), cudaMemcpyHostToHost);
 #endif //ONLY_PARTICLES
@@ -1978,42 +2022,12 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   // Now, for all the other quantities we need
   // to wait until the particles are initialized
   chprintf("Cosmological ICs: Gas grid initialized...\n");
-
-  // At this point though, we need to process delta_bc
-  // to turn it into a potential for deflecting the
-  // DM particle positions
-
-/*
-  // let's calculate phi_1
-  chprintf("Cosmological ICs: Calculating b/c potential...\n");
-  int n_cells = nx_local*ny_local*nz_local;
-  Real scale = Real(4) * M_PI / GN / a_init;
-  Real offset = 0;
-
-  // Perhaps compute phi_init here as advertised
-  // should return delta_bc = \nabla^-2 delta_bc in place
-  fft.Filter_inv_k2(CP.d_delta_bc,CP.d_delta_bc,true);
-  fft.Filter_rescale(CP.d_delta_bc,1./scale,CP.d_delta_bc,true);
-
-  // copy back to the host
-  cudaMemcpy(CP.delta_bc,  CP.d_delta_bc,  n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
-*/
-
   chprintf("Cosmological ICs: Ready for particle initialization...");
 
   // write potential to file
   //chprintf("Writing cosmological potential to file...\n");
   //Save_Cosmo_Potential(&P);
 
-  // free potential memory
-  // well, we still need it until after the particles
-  // have been generated
-  //chprintf("Free cosmological potential memory...\n");
-  //Free_Cosmo_Potential_Memory();
-
-  // Further Initialization performed elsewhere .... perhaps move here
-  // well, we can't because we don't have the particles yet
-  //chexit(0);
 #endif  // COSMOLOGY
 }
 

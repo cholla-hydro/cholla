@@ -295,6 +295,9 @@ struct Parameters {
   Real T_init;
   unsigned long long seed; //Cosmological ICs seed
   char cosmo_ics_pk_file[MAXLEN];
+  Real YHe;  // helium mass fraction
+  Real xHp;  // hydrogen ionization fraction
+  Real xHep; // helium ionization fraction
 
   // File for the scale_factor output values for cosmological simulations
   char scale_outputs_file[MAXLEN];

@@ -135,15 +135,13 @@ int main(int argc, char *argv[])
   G.Rad.Initialize_Start(P);
 #endif
 
-  //chprintf("D info main %d %d\n",G.Cosmo.D_array.size(),G.Cosmo.a_array.size());
-
   // Set initial conditions
   chprintf("Setting initial conditions...\n");
   chprintf("basic nx/ny/nz %d/%d/%d\n",P.nx,P.ny,P.nz);
   //chprintf("Gamma here %e\n",P.gamma);
   G.Set_Initial_Conditions(P, pmap);
   chprintf("Initial conditions set.\n");
-  //chprintf("asic nx/ny/nz %d/%d/%d\n",P.nx,P.ny,P.nz);
+
   // set main variables for Read_Grid and Read_Grid_Cat initial conditions
   if (is_restart) {
     outtime += G.H.t;
@@ -286,6 +284,10 @@ int main(int argc, char *argv[])
   chprintf("Starting calculations.\n");
   message = "Starting calculations.";
   Write_Message_To_Log_File(message.c_str());
+
+
+  // BRANT
+  chexit(0);
 
   // Compute inverse timestep for the first time
   dti = G.Calc_Inverse_Timestep();

@@ -408,6 +408,10 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   parms->w0            = pmap.value_or("w0", -1.0);
   parms->wa            = pmap.value_or("wa", 0.0);
   parms->seed          = pmap.value_or("seed", 1337);
+  // Hydrogen, Helium ionization fractions and helium mass fraction
+  parms->YHe           = pmap.value_or("YHe",  0.24);
+  parms->xHp           = pmap.value_or("xHp",  0.0);
+  parms->xHep          = pmap.value_or("xHep", 0.0);
   if (not pmap.has_param("cosmo_ics_pk_file")) {
     CHOLLA_ERROR("Cosmology sims must specify a power spectrum cosmo_ics_pk_file");
   }

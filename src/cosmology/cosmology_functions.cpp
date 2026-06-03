@@ -26,8 +26,6 @@ void Grid3D::Initialize_Cosmology(struct Parameters *P)
     H.Output_Now = true;
   }
 
-  // Finalize cosmological ICs HERE
-
   chprintf("Cosmology Successfully Initialized. \n\n");
 }
 
@@ -378,7 +376,7 @@ void Grid3D::Change_GAS_Frame_System(bool forward)
   }
 }
 
-/* create the file for recording the expansion history */
+/* create the file for recording the growth function history */
 void Cosmology::Create_Growth_Function_File(struct Parameters *P)
 {
   if (not Is_Root_Proc()) {

@@ -69,7 +69,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   chprintf("CP: Omega_M = %f \n", Omega_M);
 
   H0 /= 1000;  //[km/s / kpc]
-  rho_0  = 3 * H0 * H0 / (8 * M_PI * G) * Omega_M / h / h;
+  Real rho_0  = 3 * H0 * H0 / (8 * M_PI * G) * Omega_M / h / h;
 
 	// initialize the RNG properties
 	Initialize_Cosmo_Potential_RNG(P);
@@ -265,13 +265,10 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // density arrays for the interim.
 	cudaMemcpy(CP.phi_1,  CP.d_phi_1,  n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 #ifndef ONLY_PARTICLES
-    cudaMemcpy(CP.phi_2,  CP.d_phi_2,  n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+  cudaMemcpy(CP.phi_2,  CP.d_phi_2,  n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 #endif //ONLY_PARTICLES
 
   chprintf("Proceeding to finish initialization...\n");
-
-  //chprintf("Exiting...\n");
-	//chexit(0);
 }
 
 /*! \fn void Save_Cosmo_Potential(struct Parameters *P)
