@@ -60,6 +60,17 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	CP.n_fields += 1;	// add a baryon overdensity field
 #endif 
 
+  Real H0      = P->H0;
+  Real h       = H0 / 100;
+  Real Omega_M = P->Omega_M;
+  Real G       = G_COSMO;
+
+  chprintf("CP: h = %f \n", h);
+  chprintf("CP: Omega_M = %f \n", Omega_M);
+
+  H0 /= 1000;  //[km/s / kpc]
+  rho_0  = 3 * H0 * H0 / (8 * M_PI * G) * Omega_M / h / h;
+
 	// initialize the RNG properties
 	Initialize_Cosmo_Potential_RNG(P);
 
@@ -228,10 +239,10 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // let's calculate phi_1
   chprintf("Calculating initial potential for cosmological ICs...\n");
 
-  // rescale by 4pi/G
+  // rescale by 4piGrho/a
   Real a = 1./(1+P->Init_redshift);
-  chprintf("Initial scale facor = %e\n",a);
-  Real scale = Real(4) * M_PI / GN / a;
+  chprintf("Initial scale factor = %e\n",a);
+  Real scale = Real(4) * M_PI * G * rho_0 / a;
   Real offset = 0;
 
   // Perhaps compute phi_init here as advertised?

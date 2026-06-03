@@ -1718,22 +1718,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   dy = H.dy;
   dz = H.dz;
 
-
   chprintf("Cell sizes dx %e dy %e dz %e\n",dx,dy,dz);
-
-  /*
-
-  chprintf(" h = %f \n", h);
-  chprintf(" Omega_M = %f \n", Omega_M);
-
-  H0 /= 1000;  //[km/s / kpc]
-  chprintf(" rho_0 = %f \n", rho_0);
-  chprintf(" z_init = %f \n", z_init);
-
-
-  k_x = 2 * M_PI / H.xdglobal;
-  */
-
 
   // create gas 
   // f_b = Omega_b / Omega_m
@@ -1811,89 +1796,9 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
         U    = T_init / (gamma - 1) / MP * KB * 1e-10 * dens;
 
-/*
-        //////////////////////////////////////////
-        // take the potential gradient
-        // along the x direction
-        //////////////////////////////////////////
-
-        id    = index;
-        id_l  = (ii - 1) + jj * nx_local + kk * ny_local * nx_local;
-        id_r  = (ii + 1) + jj * nx_local + kk * ny_local * nx_local;
-
-        phi_l = CP.phi_1[id];
-        //phi_l = CP.phi_1[id_l];
-        //phi_r = CP.phi_1[id_r];
-    #ifdef GRAVITY_5_POINTS_GRADIENT
-        id_ll   = (ii - 2 ) + j * nx_local + k  * ny_local * nx_local;
-        id_rr   = (ii + 2 ) + j * nx_local + k  * ny_local * nx_local;
-        //phi_ll  = CP.phi_1[id_ll];
-        //phi_rr  = CP.phi_1[id_rr];
-        grad_phi_x = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
-    #else
-        //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
-        grad_phi_x = 0.5*(phi_r - phi_l) / dx;
-    #endif
-
-        //////////////////////////////////////////
-        // take the potential gradient
-        // along the y direction
-        //////////////////////////////////////////
-
-        id    = index;
-        id_l  = ii + (jj - 1) * nx_local + kk * ny_local * nx_local;
-        id_r  = ii + (jj + 1) * nx_local + kk * ny_local * nx_local;
-
-        //phi_l = CP.phi_1[id_l];
-        //phi_r = CP.phi_1[id_r];
-    #ifdef GRAVITY_5_POINTS_GRADIENT
-        id_ll   = ii + (j - 2) * nx_local + k  * ny_local * nx_local;
-        id_rr   = ii + (j + 2) * nx_local + k  * ny_local * nx_local;
-        //phi_ll  = CP.phi_1[id_ll];
-        //phi_rr  = CP.phi_1[id_rr];
-        grad_phi_y = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dy);
-    #else
-        //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
-        grad_phi_y = 0.5 * (phi_r - phi_l) / dy;
-    #endif
-
-        //////////////////////////////////////////
-        // take the potential gradient
-        // along the z direction
-        //////////////////////////////////////////
-
-        id    = index;
-        id_l  = ii + jj * nx_local + (kk - 1) * ny_local * nx_local;
-        id_r  = ii + jj * nx_local + (kk + 1) * ny_local * nx_local;
-
-        //phi_l = CP.phi_1[id_l];
-        //phi_r = CP.phi_1[id_r];
-    #ifdef GRAVITY_5_POINTS_GRADIENT
-        id_ll   = ii + j * nx_local + (k - 2) * ny_local * nx_local;
-        id_rr   = ii + j * nx_local + (k + 2) * ny_local * nx_local;
-        //phi_ll  = CP.phi_1[id_ll];
-        //phi_rr  = CP.phi_1[id_rr];
-        grad_phi_z = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
-    #else
-        //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
-        grad_phi_z = 0.5 * (phi_r - phi_l) / dz;
-    #endif
-*/
-
-        // compute velocities field
-        //vx = dDdt * grad_phi_x;
-        //vy = dDdt * grad_phi_y;
-        //vz = dDdt * grad_phi_z;
-        //E    = U + 0.5*dens*(vx*vx + vy*vy + vz*vz);
-
         // initialize hydro grid properties
         // using the index for the whole grid
         C.density[id]    = dens; 
-
-
-        //C.momentum_x[id] = dens * vx;
-        //C.momentum_y[id] = dens * vy; 
-        //C.momentum_z[id] = dens * vz; 
 
         // add the internal energy, will update
         // after momentum is computed
