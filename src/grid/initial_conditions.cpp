@@ -1500,8 +1500,10 @@ void Grid3D::Zeldovich_Pancake(struct Parameters P)
   chprintf(" Omega_M = %f \n", Omega_M);
 
   H0 /= 1000;  //[km/s / kpc]
-  G           = G_COSMO;
+
+  G           = G_COSMO; 
   rho_0       = 3 * H0 * H0 / (8 * M_PI * G) * Omega_M / h / h;
+
   z_zeldovich = 1;
   z_init      = P.Init_redshift;
   chprintf(" rho_0 = %f \n", rho_0);
@@ -1686,6 +1688,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
   H0      = P.H0;
   h       = H0 / 100;
+  H0     /= 1000; // to km/s/kpc
   G       = G_COSMO;
   Real Omega_b = P.Omega_b;
   Real Omega_m = P.Omega_M;
@@ -1693,6 +1696,36 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   Real f_c = 1.0 - f_b;
   Real rho_b   = 3 * H0 * H0 / (8 * M_PI * G) * Omega_b / h / h;
 //src/cosmology/cosmology.cpp:  rho_0_gas = 3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_M / cosmo_h / cosmo_h;
+
+
+  //src/global/global.h:#define G_COSMO  4.300927161e-06;  // gravitational constant, kpc km^2 s^-2 Msun^-1
+  // (km/s/kpc)^2 / (kpc km^2 s^-2 Msun^-1) = Msun/kpc^3
+  // G in cgs is 6.674e-8 cm^3 g^-1 s^-2
+  // 1.327104878e+26 cm^3 Msun^-1 s^-2
+  // 1.327104878e+16 cm km^2 Msun^-1 s^-2
+  // 4.300854005621676e-06 kpc km^2 Msun^-1 s^-2
+
+  chprintf("H0: %e [km/s/kpc]\n", H0);
+  chprintf("Omega_b: %e\n", Omega_b);
+  chprintf("Baryon density rho_b %e [Msun/kpc^3]\n",rho_b);
+  chprintf("MP %e [g]\n",MP);
+  chprintf("KB %e [cgs]\n",KB);
+  chprintf("DENSITY_UNIT %e\n",DENSITY_UNIT);
+  chprintf("ENERGY_UNIT %e\n",ENERGY_UNIT);
+  chprintf("LENGTH_UNIT %e\n",LENGTH_UNIT);
+  chprintf("PRESSURE_UNIT %e\n",PRESSURE_UNIT);
+  chprintf("VELOCITY_UNIT %e\n",VELOCITY_UNIT);
+  /*
+  MP 1.672622e-24 [g]
+  KB 1.380658e-16 [cgs]
+  DENSITY_UNIT 6.768110e-32
+  ENERGY_UNIT 6.471126e-10
+  LENGTH_UNIT 3.085678e+21
+  PRESSURE_UNIT 6.471126e-10
+  VELOCITY_UNIT 9.778139e+10
+  */
+  
+
 /*
   // Set Normalization factors
   r_0_dm          = P->xlen / P->nx;
@@ -1710,6 +1743,63 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   p_0_gas   = rho_0_gas * v_0_gas * v_0_gas;
   e_0_gas   = v_0_gas * v_0_gas;
 */
+
+  Real r_0_dm          = P.xlen / P.nx;
+  Real t_0_dm          = 1. / H0;
+  Real v_0_dm          = r_0_dm / t_0_dm / h;
+  Real rho_0_dm        = 3 * H0 * H0 / (8 * M_PI * G) * Omega_m / h / h;
+  Real rho_mean_baryon = 3 * H0 * H0 / (8 * M_PI * G) * Omega_b / h / h;
+  // dens_avrg = 0;
+
+  Real r_0_gas   = 1.0;
+  Real rho_0_gas = 3 * H0 * H0 / (8 * M_PI * G) * Omega_m / h / h;
+  Real t_0_gas   = 1 / H0 * h;
+  Real v_0_gas   = r_0_gas / t_0_gas;
+  Real phi_0_gas = v_0_gas * v_0_gas;
+  Real p_0_gas   = rho_0_gas * v_0_gas * v_0_gas;
+  Real e_0_gas   = v_0_gas * v_0_gas;
+
+  chprintf("H0     %e [(km/s)/kpc]\n",H0);
+  chprintf("r_0_dm %e [kpc/h]\n",r_0_dm);
+  chprintf("t_0_dm %e [kpc/(km/s)]\n",t_0_dm);
+  chprintf("v_0_dm %e [km/s]\n",v_0_dm);
+  chprintf("rho_0_dm %e [Msun/kpc^3]\n",rho_0_dm);
+  chprintf("rho_mean_baryon %e [Msun/kpc^3]\n",rho_mean_baryon);
+  chprintf("r_0_gas   %e [kpc]\n",r_0_gas);
+  chprintf("rho_0_gas %e [Msun/kpc^3]\n",rho_0_gas);
+  chprintf("t_0_gas   %e [kpc/(km/s)]\n",t_0_gas);
+  chprintf("v_0_gas   %e [km/s]\n",v_0_gas);
+  chprintf("phi_0_gas %e [(km/s)^2]\n",phi_0_gas);
+  chprintf("p_0_gas   %e [(Msun/kpc^3) (km/s)^2]\n",p_0_gas);
+  chprintf("e_0_gas   %e [(km/s)^2]\n",e_0_gas);
+
+  /*
+  H0: 6.732117e-02 [km/s/kpc]
+  Omega_b: 4.938700e-02
+  Baryon density rho_b 1.370667e+01 [Msun/kpc^3]
+  MP 1.672622e-24 [g]
+  KB 1.380658e-16 [cgs]
+  DENSITY_UNIT 6.768110e-32
+  ENERGY_UNIT 6.471126e-10
+  LENGTH_UNIT 3.085678e+21
+  PRESSURE_UNIT 6.471126e-10
+  VELOCITY_UNIT 9.778139e+10
+  H0     6.732117e-02 [(km/s)/kpc]
+  r_0_dm 1.953125e+02 [kpc/h]
+  t_0_dm 1.485417e+01 [kpc/(km/s)]
+  v_0_dm 1.953125e+01 [km/s]
+  rho_0_dm 8.725731e+01 [Msun/kpc^3]
+  rho_mean_baryon 1.370667e+01 [Msun/kpc^3]
+  r_0_gas   1.000000e+00 [kpc]
+  rho_0_gas 8.725731e+01 [Msun/kpc^3]
+  t_0_gas   1.000000e+01 [kpc/(km/s)]
+  v_0_gas   1.000000e-01 [km/s]
+  phi_0_gas 1.000000e-02 [(km/s)^2]
+  p_0_gas   8.725731e-01 [(Msun/kpc^3) (km/s)^2]
+  e_0_gas   1.000000e-02 [(km/s)^2]
+  */
+
+
   gamma = P.gamma;
 
   z_init = P.Init_redshift;
@@ -1720,11 +1810,16 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   chprintf("D size %d a size %d\n",Cosmo.D_array.size(),Cosmo.a_array.size());
 
   // get growth function and time derivative
-  chprintf("Dinfo a %e %e D %e %e\n",Cosmo.a_array.front(),Cosmo.a_array.back(),Cosmo.D_array.front(),Cosmo.D_array.back());
+  //chprintf("Dinfo a %e %e D %e %e\n",Cosmo.a_array.front(),Cosmo.a_array.back(),Cosmo.D_array.front(),Cosmo.D_array.back());
   D    = Cosmo.D_Growth(a_init);
-  chprintf("D %e\n",D);
   dDdt = Cosmo.dDdt_Growth(a_init);
-  chprintf("Growth Function Info: D %e dDdt %e\n",D,dDdt);
+  chprintf("Growth Function Info: D %e dDdt %e\n",D,dDdt); // note dDdt is in km/s/kpc
+
+  // convert dDdt from km/s/kpc to 1/kyr
+  //dDdt *= 1e5/LENGTH_UNIT; // km in cm / kpc in cm
+  //dDdt *= TIME_UNIT;       // 1/s to 1/kyr
+  //dDdt *= TIME_UNIT;       // km/s/kpc to km/kyr/kpc
+  //chprintf("dDdt in 1/kyr: %e\n",dDdt);
 
   if(P.T_init==-1) {
     T_init = 2.72548 * (1.0 + z_init); // set to CMB
@@ -1996,6 +2091,23 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
 
         // compute velocities field
+
+        // 4 pi G rho 
+        // #define G_COSMO  4.300927161e-06;  // gravitational constant, kpc km^2 s^-2 Msun^-1
+        // rho in Msun/kpc^3
+        // phi in km^2/s^2
+        // grad phi is in km^2/s^2/kpc
+
+        // dDdt is in km/s/kpc
+        // phi is in (km/s)^2, grad_phi in (km/s)^2 / kpc
+
+        // wait though -- no units on phi?
+        // x = q - del^-2 grad overdensity, and del^-2 grad has units kpc
+        // if dD/dt is in km/s/kpc, convert dDdt to 1/kyr
+
+        // if we leave dDdt in km/s/kpc, then vx, vy, vz in km/s
+        // Velocity unit v_c = [9.77813911e+10] [kpc/kyr in cgs]
+
         vx = dDdt * grad_phi_x;
         vy = dDdt * grad_phi_y;
         vz = dDdt * grad_phi_z;

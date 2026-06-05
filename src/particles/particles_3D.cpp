@@ -35,14 +35,6 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
   SpatialDomainProps spatial_props = SpatialDomainProps::From_Grid3D(*this, P);
   #endif
 
-  Particles.Initialize(P, spatial_props, H.xbound, H.ybound, H.zbound, H.xdglobal, H.ydglobal, H.zdglobal);
-
-  #if defined(PARTICLES_GPU) && defined(GRAVITY_GPU)
-  // Set the GPU array for the particles potential equal to the Gravity GPU
-  // array for the potential
-  Particles.G.potential_dev = Grav.F.potential_d;
-  #endif
-
   #ifdef COSMOLOGY
   // Initialize a pointer to the cosmological ics
   // potentials. These are used for Cosmological_ICs
@@ -52,6 +44,13 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
   Particles.CP.phi_bc = CP.phi_2; // delta_bc has been replaced by phi_bc
   Particles.CP.D      = Cosmo.D_Growth(a_init);
   Particles.CP.dDdt   = Cosmo.dDdt_Growth(a_init); 
+  // convert dDdt from km/s/kpc to 1/kyr
+  //Particles.CP.dDdt *= 1e5/LENGTH_UNIT; // km in cm / kpc in cm
+  //Particles.CP.dDdt *= TIME_UNIT;       // 1/s to 1/kyr
+  //Particles.CP.dDdt *= TIME_UNIT;       // km/s/kpc to km/kyr/kpc
+  chprintf("Particles.CP.D    %e\n",Particles.CP.D);
+  chprintf("Particles.CP.dDdt %e [km/s/kpc]\n",Particles.CP.dDdt);
+  //chprintf("Particles.CP.dDdt %e [1/kyr]\n",Particles.CP.dDdt);
   Particles.H.dx = H.dx;
   Particles.H.dy = H.dy;
   Particles.H.dz = H.dz;
@@ -63,6 +62,15 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
   Particles.H.ybound = H.ybound;
   Particles.H.zbound = H.zbound;
   #endif
+
+  Particles.Initialize(P, spatial_props, H.xbound, H.ybound, H.zbound, H.xdglobal, H.ydglobal, H.zdglobal);
+
+  #if defined(PARTICLES_GPU) && defined(GRAVITY_GPU)
+  // Set the GPU array for the particles potential equal to the Gravity GPU
+  // array for the potential
+  Particles.G.potential_dev = Grav.F.potential_d;
+  #endif
+
 
   if (strcmp(P->init, "Uniform") == 0) {
     Initialize_Uniform_Particles();
@@ -1218,6 +1226,8 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
   Real D = CP.D;       //initial growth function
   Real dDdt = CP.dDdt; //growth function time derivative
 
+  chprintf("D %e dDdt %e\n",D,dDdt);
+
   #ifdef SINGLE_PARTICLE_MASS
   particle_mass = Mparticle;
   #endif
@@ -1281,6 +1291,8 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
 
   int index;
   int ii, jj, kk;
+  Real vx_max = -1e9;
+  Real vx_min =  1e9;
 
   // compute the positions and velocities of
   // each particle
@@ -1443,6 +1455,11 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         vy = dDdt * grad_phi_y;
         vz = dDdt * grad_phi_z;
 
+        if(vx<vx_min)
+          vx_min = vx;
+        if(vx>vx_max)
+          vx_max = vx;
+
         //////////////////////////////////////////
         // compute displacements from lagrangian pos
         // x = q - D * \grad phi
@@ -1503,6 +1520,9 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
       }
     }
   }
+
+  chprintf("Minimum vx: %e\n",vx_min);
+  chprintf("Maximum vx: %e\n",vx_max);
 
 
   #ifdef PARTICLES_CPU

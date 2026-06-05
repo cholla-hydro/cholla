@@ -416,7 +416,8 @@ void Cosmology::Create_Growth_Function_File(struct Parameters *P)
   out_file << message.c_str() << std::endl;
 
   // add columns to header
-  out_file << "# t [1/H0] a D dD/dt [H0]" << std::endl;
+  //out_file << "# t [1/H0] a D dD/dt [H0]" << std::endl;
+  out_file << "# t [kpc/(km/s)] a D dD/dt [km/s/kpc]" << std::endl;
 
   // output the growth function data
   for(int i=0;i<t_array.size();i++)

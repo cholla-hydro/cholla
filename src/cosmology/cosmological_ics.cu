@@ -242,19 +242,23 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // rescale by 4piGrho/a
   Real a = 1./(1+P->Init_redshift);
   chprintf("Initial scale factor = %e\n",a);
-  Real scale = Real(4) * M_PI * G * rho_0 / a;
+  // G is in #define G_COSMO  4.300927161e-06;  // gravitational constant, kpc km^2 s^-2 Msun^-1
+  // rho_0 is in Msun/kpc^3
+  Real scale = Real(4) * M_PI * G * rho_0 / a; // km^2 s^-2 / kpc^2
   Real offset = 0;
 
   // Perhaps compute phi_init here as advertised?
   // should return phi_1 = \nabla^-2 delta_m
   fft.Filter_inv_k2(CP.d_delta_m,CP.d_phi_1,true);
   //fft.Filter_rescale(CP.d_phi_1,1./scale,CP.d_phi_1,true);
-  Rescale_Field(CP.d_phi_1,1./scale);
+  //Rescale_Field(CP.d_phi_1,1./scale);
+  //Rescale_Field(CP.d_phi_1,scale); 
 
 #ifndef ONLY_PARTICLES
   fft.Filter_inv_k2(CP.d_delta_bc,CP.d_phi_2,true);
   //fft.Filter_rescale(CP.d_phi_2,1./scale,CP.d_phi_2,true);
-  Rescale_Field(CP.d_phi_2,1./scale);
+  //Rescale_Field(CP.d_phi_2,1./scale);
+  //Rescale_Field(CP.d_phi_2,scale);
 #endif //ONLY_PARTICLES
 
 	// copy memory back to host
@@ -574,7 +578,22 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
   chprintf( "Lbox = %f %f %f  n_grid = %d %d %d\n", P->xlen, P->ylen, P->zlen, P->nx, P->ny, P->nz );
   
   Real dx = P->xlen / P->nx; 
+
+  // original
+  // seems to produce correct P(k)
   Real pk_factor = (2.0*M_PI/(1.0e-3*P->xlen))*(2.0*M_PI/(1.0e-3*P->ylen))*(2.0*M_PI/(1.0e-3*P->zlen));
+
+  // perhaps we just need volume?
+  // this doesn't seem to work
+  //Real pk_factor = (P->xlen/(2.0*M_PI)) * (P->ylen/(2.0*M_PI)) * (P->zlen/(2.0*M_PI));
+
+  // this doesn't seem to work
+  //Real pk_factor = 1e9;
+
+  // perhaps divide by dx ?
+  //Real pk_factor = (2.0*M_PI/(dx))*(2.0*M_PI/(dx))*(2.0*M_PI/(dx));
+
+  chprintf("Power spectrum rescaling factor: %e\n",pk_factor);
   // note the pk_factor is supposed to remove the volume element from 
   // the normalization of P(k), and needs to be in the units of the original P(k)
   // We are assuming P(k) has units of (Mpc/h)^3 and xlen, ylen, zlen are in kpc/h
