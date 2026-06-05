@@ -1694,7 +1694,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   Real Omega_m = P.Omega_M;
   Real f_b = Omega_b/Omega_m;
   Real f_c = 1.0 - f_b;
-  Real rho_b   = 3 * H0 * H0 / (8 * M_PI * G) * Omega_b / h / h;
+  Real rho_b   = 3 * H0 * H0 / (8 * M_PI * G) * Omega_b / h / h; //correctly set
 //src/cosmology/cosmology.cpp:  rho_0_gas = 3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_M / cosmo_h / cosmo_h;
 
 
@@ -1707,9 +1707,9 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
   chprintf("H0: %e [km/s/kpc]\n", H0);
   chprintf("Omega_b: %e\n", Omega_b);
-  chprintf("Baryon density rho_b %e [Msun/kpc^3]\n",rho_b);
+  chprintf("Baryon density rho_b %e [h^2 Msun/kpc^3]\n",rho_b);
   chprintf("MP %e [g]\n",MP);
-  chprintf("KB %e [cgs]\n",KB);
+  chprintf("KB %e [ergs/K]\n",KB);
   chprintf("DENSITY_UNIT %e\n",DENSITY_UNIT);
   chprintf("ENERGY_UNIT %e\n",ENERGY_UNIT);
   chprintf("LENGTH_UNIT %e\n",LENGTH_UNIT);
@@ -1728,21 +1728,41 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
 /*
   // Set Normalization factors
-  r_0_dm          = P->xlen / P->nx;
-  t_0_dm          = 1. / H0;
-  v_0_dm          = r_0_dm / t_0_dm / cosmo_h;
+  r_0_dm          = P->xlen / P->nx; // kpc/h
+  t_0_dm          = 1. / H0; // kpc / (km/s)
+  v_0_dm          = r_0_dm / t_0_dm / cosmo_h; // km/s
   rho_0_dm        = 3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_M / cosmo_h / cosmo_h;
   rho_mean_baryon = 3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_b / cosmo_h / cosmo_h;
   // dens_avrg = 0;
 
-  r_0_gas   = 1.0;
+  r_0_gas   = 1.0; // kpc/h
   rho_0_gas = 3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_M / cosmo_h / cosmo_h;
-  t_0_gas   = 1 / H0 * cosmo_h;
-  v_0_gas   = r_0_gas / t_0_gas;
-  phi_0_gas = v_0_gas * v_0_gas;
-  p_0_gas   = rho_0_gas * v_0_gas * v_0_gas;
-  e_0_gas   = v_0_gas * v_0_gas;
+  t_0_gas   = 1 / H0 * cosmo_h; // (kpc/h) / (km/s)
+  v_0_gas   = r_0_gas / t_0_gas;// km/s
+  phi_0_gas = v_0_gas * v_0_gas;// (km/s)^2
+  p_0_gas   = rho_0_gas * v_0_gas * v_0_gas; h^2 Msun kpc^-3 (km/s)^2
+  e_0_gas   = v_0_gas * v_0_gas;// (km/s)^2
 */
+
+  /*
+    if (forward) {
+    dens_factor     = 1 / Cosmo.rho_0_gas;
+    momentum_factor = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas * Cosmo.current_a;
+    energy_factor   = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas / Cosmo.v_0_gas * Cosmo.current_a * Cosmo.current_a;
+  } else {
+    dens_factor     = Cosmo.rho_0_gas;
+    momentum_factor = Cosmo.rho_0_gas * Cosmo.v_0_gas / Cosmo.current_a;
+    energy_factor   = Cosmo.rho_0_gas * Cosmo.v_0_gas * Cosmo.v_0_gas / Cosmo.current_a / Cosmo.current_a;
+  }
+        C.density[id]    = C.density[id] * dens_factor;
+        C.momentum_x[id] = C.momentum_x[id] * momentum_factor;
+        C.momentum_y[id] = C.momentum_y[id] * momentum_factor;
+        C.momentum_z[id] = C.momentum_z[id] * momentum_factor;
+        C.Energy[id]     = C.Energy[id] * energy_factor;
+
+  #ifdef DE
+        C.GasEnergy[id] = C.GasEnergy[id] * energy_factor;
+  */
 
   Real r_0_dm          = P.xlen / P.nx;
   Real t_0_dm          = 1. / H0;
@@ -1758,6 +1778,10 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   Real phi_0_gas = v_0_gas * v_0_gas;
   Real p_0_gas   = rho_0_gas * v_0_gas * v_0_gas;
   Real e_0_gas   = v_0_gas * v_0_gas;
+
+  Real dens_factor;
+  Real momentum_factor;
+  Real energy_factor;
 
   chprintf("H0     %e [(km/s)/kpc]\n",H0);
   chprintf("r_0_dm %e [kpc/h]\n",r_0_dm);
@@ -1908,8 +1932,14 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         index =  ii + jj * nx_local + kk * nx_local * ny_local;
 
         // rho_b * (1+delta_b) = rho_b * (1 + delta_m + f_c * delta_bc)
+        // this is the comoving mean density
+        // in our units, this is usually ~ 13.7 h^2 Msun/kpc^3
         dens = rho_b * (1 + CP.delta_m[index] + f_c * CP.delta_bc[index]); 
 
+        // note that if gamma = 1.6667
+        // then 1./(gamma-1) * KB *1e-10 / MP = 0.012381617873714293 in (km/s)^2/K
+        // so a 100K gas has U ~ 1.24 * density
+        // with the comoving mean density, these units are correct for U
         U    = T_init / (gamma - 1) / MP * KB * 1e-10 * dens;
 
 /*      // forward
