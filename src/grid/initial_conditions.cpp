@@ -1940,6 +1940,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         // then 1./(gamma-1) * KB *1e-10 / MP = 0.012381617873714293 in (km/s)^2/K
         // so a 100K gas has U ~ 1.24 * density
         // with the comoving mean density, these units are correct for U
+        // U is in Msun/kpc^3 (km/s)^2
         U    = T_init / (gamma - 1) / MP * KB * 1e-10 * dens;
 
 /*      // forward
