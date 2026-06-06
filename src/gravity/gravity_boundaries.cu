@@ -176,14 +176,12 @@ static void Compute_Potential_Isolated_Boundary_Helper(Real *pot_boundary, const
 
 void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc_potential_type)
 {
-  Real domain_l;
   Real *pot_boundary;
   int n_i, n_j, nGHST;
   nGHST = N_GHOST_POTENTIAL;
 
     #ifdef GRAV_ISOLATED_BOUNDARY_X
   if (direction == 0) {
-    domain_l = Grav.xMin;
     n_i      = Grav.ny_local;
     n_j      = Grav.nz_local;
     if (side == 0) {
@@ -196,7 +194,6 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
     #endif
     #ifdef GRAV_ISOLATED_BOUNDARY_Y
   if (direction == 1) {
-    domain_l = Grav.yMin;
     n_i      = Grav.nx_local;
     n_j      = Grav.nz_local;
     if (side == 0) {
@@ -209,7 +206,6 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
     #endif
     #ifdef GRAV_ISOLATED_BOUNDARY_Z
   if (direction == 2) {
-    domain_l = Grav.zMin;
     n_i      = Grav.nx_local;
     n_j      = Grav.ny_local;
     if (side == 0) {
