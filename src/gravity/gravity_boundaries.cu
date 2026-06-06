@@ -179,7 +179,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
   }
     #endif
 
-  Real M, cm_pos_x, cm_pos_y, cm_pos_z, r, delta_x, delta_y, delta_z;
+  Real M, cm_pos_x, cm_pos_y, cm_pos_z;
 
   if (bc_potential_type == 0) {
     const Real r0 = H.sphere_radius;
@@ -225,11 +225,11 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
 
         if (bc_potential_type == 0) {
           // Point mass potential GM/r
-          delta_x = pos_x - cm_pos_x;
-          delta_y = pos_y - cm_pos_y;
-          delta_z = pos_z - cm_pos_z;
-          r       = sqrt((delta_x * delta_x) + (delta_y * delta_y) + (delta_z * delta_z));
-          pot_val = -Grav.Gconst * M / r;
+          Real delta_x = pos_x - cm_pos_x;
+          Real delta_y = pos_y - cm_pos_y;
+          Real delta_z = pos_z - cm_pos_z;
+          Real r       = sqrt((delta_x * delta_x) + (delta_y * delta_y) + (delta_z * delta_z));
+          pot_val      = -Grav.Gconst * M / r;
         } else if (bc_potential_type == 1) {
           // M-W disk potential
 
@@ -247,7 +247,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
           // -> we are currently ignoring contributions from particles
           const ApproxExponentialDisk3MN approx_potential = galaxies::MW.getGasDisk().selfgrav_approx_potential;
 
-          r       = sqrt((pos_x * pos_x) + (pos_y * pos_y));
+          Real r  = sqrt((pos_x * pos_x) + (pos_y * pos_y));
           pot_val = approx_potential.phi_disk_D3D(r, pos_z);
         } else {
           CHOLLA_ERROR("Invalid bc_potential_type value: %d", bc_potential_type);
