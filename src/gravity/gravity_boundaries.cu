@@ -1,6 +1,7 @@
 #ifdef GRAVITY
 
   #include <cmath>
+  #include <utility>
 
   #include "../gravity/grav3D.h"
   #include "../grid/grid3D.h"
@@ -9,8 +10,48 @@
   #include "../model/potentials.h"
   #include "../utils/error_handling.h"
 
-  #if defined(GRAV_ISOLATED_BOUNDARY_X) || defined(GRAV_ISOLATED_BOUNDARY_Y) || defined(GRAV_ISOLATED_BOUNDARY_Z)
+/*! \brief aggregates properties of the buffer for boundary vals of the potential */
+struct BoundaryBufProps {
+  int n_i;
+  int n_j;
+  int nGHST;
+};
 
+/*! \brief retrieve the boundary_buf for the potential and associated properties */
+[[maybe_unused]] static std::pair<Real *, BoundaryBufProps> Get_Boundary_Buf_(const Grav3D &Grav, int direction,
+                                                                              int side)
+{
+  // maybe we should convert direction and side to enums (so its more obvious)
+  CHOLLA_ASSERT(0 <= direction and direction <= 2, "sanity check failed");
+  CHOLLA_ASSERT(side == 0 or side == 1, "sanity check failed");
+
+  int n_i, n_j;
+  Real *pot_boundary = nullptr;
+  if (direction == 0) {
+    n_i = Grav.ny_local;
+    n_j = Grav.nz_local;
+  #ifdef GRAV_ISOLATED_BOUNDARY_X
+    pot_boundary = (side == 0) ? Grav.F.pot_boundary_x0 : Grav.F.pot_boundary_x1;
+  #endif
+  } else if (direction == 1) {
+    n_i = Grav.nx_local;
+    n_j = Grav.nz_local;
+  #ifdef GRAV_ISOLATED_BOUNDARY_Y
+    pot_boundary = (side == 0) ? Grav.F.pot_boundary_y0 : Grav.F.pot_boundary_y1;
+  #endif
+  } else {  // direction == 2
+    n_i = Grav.nx_local;
+    n_j = Grav.ny_local;
+  #ifdef GRAV_ISOLATED_BOUNDARY_Z
+    pot_boundary = (side == 0) ? Grav.F.pot_boundary_z0 : Grav.F.pot_boundary_z1;
+  #endif
+  }
+
+  CHOLLA_ASSERT(pot_boundary != nullptr, "sanity check failed!");
+  return {pot_boundary, {n_i, n_j, N_GHOST_POTENTIAL}};
+}
+
+  #if defined(GRAV_ISOLATED_BOUNDARY_X) || defined(GRAV_ISOLATED_BOUNDARY_Y) || defined(GRAV_ISOLATED_BOUNDARY_Z)
 void Grid3D::Compute_Potential_Boundaries_Isolated(int dir, struct Parameters *P)
 {
   // Set Isolated Boundaries for the ghost cells.
@@ -41,54 +82,20 @@ void Grid3D::Compute_Potential_Boundaries_Isolated(int dir, struct Parameters *P
 
 void Grid3D::Set_Potential_Boundaries_Isolated(int direction, int side, int *flags)
 {
-  Real *pot_boundary;
-  int n_i, n_j, nGHST;
+  std::pair<Real *, BoundaryBufProps> tmp = Get_Boundary_Buf_(Grav, direction, side);
+  Real *pot_boundary                      = tmp.first;
+  int n_i                                 = tmp.second.n_i;
+  int n_j                                 = tmp.second.n_j;
+  int nGHST                               = tmp.second.nGHST;
+
   int nx_g, ny_g, nz_g;
   int nx_local, ny_local, nz_local;
-  nGHST    = N_GHOST_POTENTIAL;
   nx_g     = Grav.nx_local + 2 * nGHST;
   ny_g     = Grav.ny_local + 2 * nGHST;
   nz_g     = Grav.nz_local + 2 * nGHST;
   nx_local = Grav.nx_local;
   ny_local = Grav.ny_local;
   nz_local = Grav.nz_local;
-
-    #ifdef GRAV_ISOLATED_BOUNDARY_X
-  if (direction == 0) {
-    n_i = Grav.ny_local;
-    n_j = Grav.nz_local;
-    if (side == 0) {
-      pot_boundary = Grav.F.pot_boundary_x0;
-    }
-    if (side == 1) {
-      pot_boundary = Grav.F.pot_boundary_x1;
-    }
-  }
-    #endif
-    #ifdef GRAV_ISOLATED_BOUNDARY_Y
-  if (direction == 1) {
-    n_i = Grav.nx_local;
-    n_j = Grav.nz_local;
-    if (side == 0) {
-      pot_boundary = Grav.F.pot_boundary_y0;
-    }
-    if (side == 1) {
-      pot_boundary = Grav.F.pot_boundary_y1;
-    }
-  }
-    #endif
-    #ifdef GRAV_ISOLATED_BOUNDARY_Z
-  if (direction == 2) {
-    n_i = Grav.nx_local;
-    n_j = Grav.ny_local;
-    if (side == 0) {
-      pot_boundary = Grav.F.pot_boundary_z0;
-    }
-    if (side == 1) {
-      pot_boundary = Grav.F.pot_boundary_z1;
-    }
-  }
-    #endif
 
   int i, j, k, id_buffer, id_grid;
 
@@ -129,12 +136,16 @@ void Grid3D::Set_Potential_Boundaries_Isolated(int direction, int side, int *fla
 }
 
 template <typename PotentialFn>
-static void Compute_Potential_Isolated_Boundary_Helper(Real *pot_boundary, const Grav3D &Grav, int nGHST, int n_i,
-                                                       int n_j, int direction, int side, PotentialFn fn)
+static void Compute_Potential_Isolated_Boundary_Helper(Real *pot_boundary, const BoundaryBufProps &boundary_buf_props,
+                                                       const Grav3D &Grav, int direction, int side, PotentialFn fn)
 {
   Real Lx_local = Grav.nx_local * Grav.dx;
   Real Ly_local = Grav.ny_local * Grav.dy;
   Real Lz_local = Grav.nz_local * Grav.dz;
+
+  int n_i   = boundary_buf_props.n_i;
+  int n_j   = boundary_buf_props.n_j;
+  int nGHST = boundary_buf_props.nGHST;
 
   for (int k = 0; k < nGHST; k++) {
     for (int i = 0; i < n_i; i++) {
@@ -176,46 +187,8 @@ static void Compute_Potential_Isolated_Boundary_Helper(Real *pot_boundary, const
 
 void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc_potential_type)
 {
-  Real *pot_boundary;
-  int n_i, n_j, nGHST;
-  nGHST = N_GHOST_POTENTIAL;
-
-    #ifdef GRAV_ISOLATED_BOUNDARY_X
-  if (direction == 0) {
-    n_i      = Grav.ny_local;
-    n_j      = Grav.nz_local;
-    if (side == 0) {
-      pot_boundary = Grav.F.pot_boundary_x0;
-    }
-    if (side == 1) {
-      pot_boundary = Grav.F.pot_boundary_x1;
-    }
-  }
-    #endif
-    #ifdef GRAV_ISOLATED_BOUNDARY_Y
-  if (direction == 1) {
-    n_i      = Grav.nx_local;
-    n_j      = Grav.nz_local;
-    if (side == 0) {
-      pot_boundary = Grav.F.pot_boundary_y0;
-    }
-    if (side == 1) {
-      pot_boundary = Grav.F.pot_boundary_y1;
-    }
-  }
-    #endif
-    #ifdef GRAV_ISOLATED_BOUNDARY_Z
-  if (direction == 2) {
-    n_i      = Grav.nx_local;
-    n_j      = Grav.ny_local;
-    if (side == 0) {
-      pot_boundary = Grav.F.pot_boundary_z0;
-    }
-    if (side == 1) {
-      pot_boundary = Grav.F.pot_boundary_z1;
-    }
-  }
-    #endif
+  std::pair<Real *, BoundaryBufProps> tmp = Get_Boundary_Buf_(Grav, direction, side);
+  auto [pot_boundary, boundary_buf_props] = tmp;
 
   if (bc_potential_type == 0) {
     // Point mass potential GM/r
@@ -235,7 +208,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
     };
 
     // now, use the calc_potential function to actually fill the boundaries
-    Compute_Potential_Isolated_Boundary_Helper(pot_boundary, Grav, nGHST, n_i, n_j, direction, side, calc_potential);
+    Compute_Potential_Isolated_Boundary_Helper(pot_boundary, boundary_buf_props, Grav, direction, side, calc_potential);
   } else if (bc_potential_type == 1) {
     // M-W disk potential
 
@@ -260,7 +233,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
     };
 
     // now, use the calc_potential function to actually fill the boundaries
-    Compute_Potential_Isolated_Boundary_Helper(pot_boundary, Grav, nGHST, n_i, n_j, direction, side, calc_potential);
+    Compute_Potential_Isolated_Boundary_Helper(pot_boundary, boundary_buf_props, Grav, direction, side, calc_potential);
   } else {
     CHOLLA_ERROR("Invalid bc_potential_type value: %d", bc_potential_type);
   }
