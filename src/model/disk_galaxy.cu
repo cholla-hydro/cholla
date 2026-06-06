@@ -27,6 +27,8 @@ const DiskGalaxy galaxies::M82(MiyamotoNagaiPotential{1.0e10, 0.8, 0.15},       
                                GasDiskProps{0.25 * 1.0e10, 2 * 0.8, 0.15, 1e4, true, 2 * 0.8},  // gas_disk
                                5.0e10, 0.8 / 0.015, 10, 100.0);
 
+const ClusteredDiskGalaxy& galaxies::get_MW_model() { return galaxies::MW; }
+
 // here we define the methods
 
 // this is empty since the std::shared_ptr automatically handles things

@@ -219,6 +219,11 @@ namespace galaxies
 {
 extern const ClusteredDiskGalaxy MW;
 extern const DiskGalaxy M82;
+
+// temporary helper function used to help us avoid phase out direct access to global
+// MW variable. The idea is to eventually remove this function
+const ClusteredDiskGalaxy& get_MW_model();
+
 };  // namespace galaxies
 
 #endif  // DISK_GALAXY
