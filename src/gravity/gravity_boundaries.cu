@@ -179,7 +179,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
   }
     #endif
 
-  Real M, cm_pos_x, cm_pos_y, cm_pos_z, pos_x, pos_y, pos_z, r, delta_x, delta_y, delta_z;
+  Real M, cm_pos_x, cm_pos_y, cm_pos_z, r, delta_x, delta_y, delta_z;
 
   if (bc_potential_type == 0) {
     const Real r0 = H.sphere_radius;
@@ -195,6 +195,8 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
       for (int j = 0; j < n_j; j++) {
         int id = i + j * n_i + k * n_i * n_j;
 
+        // calculate the position
+        Real pos_x, pos_y, pos_z;
         if (direction == 0) {
           // pos_x = Grav.xMin - ( nGHST + k + 0.5 ) * Grav.dx;
           pos_x = Grav.xMin + (k + 0.5 - nGHST) * Grav.dx;
