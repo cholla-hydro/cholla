@@ -190,11 +190,10 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
   }
 
   Real pot_val = 0.0;
-  int i, j, k, id;
-  for (k = 0; k < nGHST; k++) {
-    for (i = 0; i < n_i; i++) {
-      for (j = 0; j < n_j; j++) {
-        id = i + j * n_i + k * n_i * n_j;
+  for (int k = 0; k < nGHST; k++) {
+    for (int i = 0; i < n_i; i++) {
+      for (int j = 0; j < n_j; j++) {
+        int id = i + j * n_i + k * n_i * n_j;
 
         if (direction == 0) {
           // pos_x = Grav.xMin - ( nGHST + k + 0.5 ) * Grav.dx;
