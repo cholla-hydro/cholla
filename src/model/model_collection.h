@@ -220,7 +220,7 @@ class ModelCollection
   /*! \brief default constructor */
   ModelCollection() {}
 
-  /*! \breif primary constructor */
+  /*! \brief primary constructor */
   explicit ModelCollection(ParameterMap& pmap) {}
 
   ModelCollection(ModelCollection&&)            = default;
@@ -238,12 +238,22 @@ class ModelCollection
   template <typename T>
   const T* try_get() const
   {
-    static_assert(model_detail::is_model_type<T>, "T isn't a known model type");
-    for (const model_detail::model_variant& v : vec_) {
-      const T* ptr = std::get_if<T>(v);
-      if (ptr != nullptr) return ptr;
+    // here is a dummy implementation to be used while converting all existing logic to
+    // try to access clustered disk galaxy through this approach
+    if constexpr (std::is_same_v<T, ClusteredDiskGalaxy>) {
+      return &galaxies::get_MW_model();
+    } else {
+      static_assert(always_false<T>, "unknown model type");
     }
-    return nullptr;
+
+    // here is the real implementation
+    // ===============================
+    // static_assert(model_detail::is_model_type<T>, "T isn't a known model type");
+    // for (const model_detail::model_variant& v : vec_) {
+    //  const T* ptr = std::get_if<T>(v);
+    //  if (ptr != nullptr) return ptr;
+    //}
+    // return nullptr;
   }
 };
 ///@}  // <- close the doxygen modelgrp
