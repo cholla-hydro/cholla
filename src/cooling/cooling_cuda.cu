@@ -245,6 +245,22 @@ class CoolRecipeCloudyAndPhotoHeating
   __device__ Real cool_rate(Real n, Real T) const { return net_cloudy_(n, T) - photoelectric_fn_(n, T); }
 };
 
+class CoolRecipeMetals
+{
+
+ public:
+  explicit __host__ CoolRecipeMetals(ParameterMap &pmap) {}
+
+  __device__ Real cool_rate(Real n, Real T, Real Z) const 
+  { 
+    Real primordial = cool_component::primordial_cool(n, T)
+    Real metals = cool_component::analytic_cie_lambda(log10(T)) - primordial;     
+    Real lambda = primordial + Z * metals; // cooling rate, erg s^-1 cm^3
+    Real cool = n * n * lambda;            // cooling per unit volume, erg /s / cm^3
+    return cool;
+  }
+};
+
 /*! \brief Analytic cooling/heating recipe that roughly matches the "TI" cooling runs shown in
  *     [Kim & Ostriker 2015](https://ui.adsabs.harvard.edu/abs/2015ApJ...802...99K/abstract)
  *
@@ -321,6 +337,10 @@ std::function<void(Grid3D &)> configure_cooling_callback(std::string kind, Param
       CoolingUpdateExecutor<CoolRecipeTIAndCIE> updater(recipe);
       return {updater};
     }
+  } else if (kind == "metal-dependent") {
+    CoolRecipeMetals recipe(pmap);
+    CoolingUpdateExecutor<CoolRecipeMetals> updater(recipe);
+    return {updater};
   }
   return {};
 }

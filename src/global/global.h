@@ -298,6 +298,10 @@ struct Parameters {
   Real radius;
   Real P_blast;
   Real wave_length;
+#ifdef METALS
+  Real metallicity_wind;
+  Real metallicity_cloud;
+#endif
 #ifdef PARTICLES
   // The random seed for particle simulations. With the default of 0 then a
   // machine dependent seed will be generated.
