@@ -253,7 +253,7 @@ class CoolRecipeMetals
 
   __device__ Real cool_rate(Real n, Real T, Real Z) const 
   { 
-    Real primordial = cool_component::primordial_cool(n, T)
+    Real primordial = cool_component::primordial_cool(n, T);
     Real metals = cool_component::analytic_cie_lambda(log10(T)) - primordial;     
     Real lambda = primordial + Z * metals; // cooling rate, erg s^-1 cm^3
     Real cool = n * n * lambda;            // cooling per unit volume, erg /s / cm^3
