@@ -22,8 +22,6 @@ std::function<void(Grid3D&)> configure_chemistry_callback(ParameterMap& pmap)
   default_kind = "chemistry-gpu";
 #elif defined(COOLING_GRACKLE)
   default_kind = "grackle";
-#elif defined(COOLING_GPU) && defined(METALS)
-  default_kind = "metal-dependent";
 #endif
 
   std::string chemistry_kind = pmap.value_or("chemistry.kind", default_kind);
