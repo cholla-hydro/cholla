@@ -135,6 +135,27 @@ void Grid3D::Set_Potential_Boundaries_Isolated(int direction, int side, int *fla
   }
 }
 
+/*! \brief A helper function that computes the gravitational potential at the
+ *         simulation boundaries using a callback function
+ *
+ *  \param[out] pot_boundary the buffer to be filled with the computed potential
+ *  \param[in] boundary_buf_props Describes properties of \p pot_boundary
+ *  \param[in] Grav Holds information needed to compute the spatial location of each
+ *      location.
+ *  \param[in] direction Encodes the axis of the boundary
+ *  \param[in] side Encodes whether we are consider a left or right boundary
+ *  \param[in] fn A function object that effectively has the signature
+ *      `Real fn(Real x, Real y, Real z)`. In more detail, it returns the potential
+ *      computed at a specified position.
+ *
+ *  \note
+ *  Ideally, we might replace \p Grav with an instance of \ref SpatialDomainProps (or
+ *  something similar). This will become in a future planned change that will factor
+ *  out this logic and other logic pertaining the estimate for the dynamical potential.
+ *  It's also more elegant (i.e. \ref Grav3D contains a lot of superfluous info) and
+ *  makes it possible to invoke this logic on GPUs (we would just need to replace the
+ *  for-loop with \ref gpuFor)
+ */
 template <typename PotentialFn>
 static void Compute_Potential_Isolated_Boundary_Helper(Real *pot_boundary, const BoundaryBufProps &boundary_buf_props,
                                                        const Grav3D &Grav, int direction, int side, PotentialFn fn)
