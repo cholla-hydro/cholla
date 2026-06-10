@@ -2070,7 +2070,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
   Real grad_phi_x=0, grad_phi_y=0, grad_phi_z=0;
   Real d2phidx2=0, d2phidy2=0, d2phidz2 = 0;
-  Real grad_x[3][3];
+  Real grad_x_T[3][3], det_grad_x;
   Real dens, vel, U, E; 
   Real Daf = Cosmo.D_Growth(1e-4)/1e-4;
   //Real Daf = Cosmo.D_Growth(a_init)/a_init;
@@ -2268,8 +2268,8 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         phi_lu = CP.phi_1[id_lu] + f_c*CP.phi_2[id_lu]; 
         phi_rd = CP.phi_1[id_rd] + f_c*CP.phi_2[id_rd];
         phi_ru = CP.phi_1[id_ru] + f_c*CP.phi_2[id_ru]; 
-        grad_x_T[0][2] = 0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dy*dz);
-        grad_x_T[2][0] = grad_x_T[0][2];  
+        grad_x_T[1][2] = 0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dy*dz);
+        grad_x_T[2][1] = grad_x_T[1][2];  
 
         // compute velocities field
 
