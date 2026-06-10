@@ -280,6 +280,17 @@ Real Cosmology::D_Growth(Real a)
   Real norm = LinearInterpolation(a_array,D_array,1);
   return LinearInterpolation(a_array,D_array,a)/norm;
 }
+// Function to precompute the growth function scale factor derivative
+Real Cosmology::dDda_Growth(Real a)
+{
+  Real dDda;
+  if(a>0.95) {
+    dDda = (D_Growth(a)-D_growth(a-0.05))/0.05;
+  }else{
+    dDda = (D_Growth(a+0.05)-D_growth(a-0.05))/0.1;
+  }
+  return dDda;
+}
 // Function to precompute the growth function time derivative
 Real Cosmology::dDdt_Growth(Real a)
 {

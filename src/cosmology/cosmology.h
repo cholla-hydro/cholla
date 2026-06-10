@@ -79,6 +79,7 @@ class Cosmology
   Real LinearInterpolation(std::vector<Real> x, std::vector<Real> y, Real a);
   Real D_Growth(Real a);
   Real dDdt_Growth(Real a);
+  Real dDda_Growth(Real a);
 
   std::vector<Real> t_array;
   std::vector<Real> a_array;

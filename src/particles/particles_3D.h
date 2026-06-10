@@ -52,6 +52,7 @@ class Particles3D
     Real *phi_bc; // pointer to baryon-cdm fluctuations
     Real D;       // growth function at initial redshift
     Real dDdt;    // growth function time derivative
+    Real dDda;    // growth function scale factor derivative
   } CP;
   struct Cosmo_Header {
     int nx;
