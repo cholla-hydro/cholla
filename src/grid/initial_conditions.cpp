@@ -1851,7 +1851,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   // get growth function and time derivative
   //chprintf("Dinfo a %e %e D %e %e\n",Cosmo.a_array.front(),Cosmo.a_array.back(),Cosmo.D_array.front(),Cosmo.D_array.back());
   Hp = Hubble_Growth_Function(a_init, H0, Omega_r, Omega_m, Omega_DE, w0, wa);
-  chprintf("Cosmological ICs: H(%e) = %e\n",a_init,H);
+  chprintf("Cosmological ICs: H(%e) = %e\n",a_init,Hp);
 
   D    = Cosmo.D_Growth(a_init);
   dDdt = Cosmo.dDdt_Growth(a_init);
