@@ -21,7 +21,7 @@ DFLAGS    += -DTEMPERATURE_FLOOR
 #DFLAGS    += -DDE
 
 # Apply cooling on the GPU from precomputed tables
-#DFLAGS    += -DCOOLING_GPU
+DFLAGS    += -DCOOLING_GPU
 
 # Define metals macro and evolve additional scalars
 #DFLAGS    += -DSCALAR

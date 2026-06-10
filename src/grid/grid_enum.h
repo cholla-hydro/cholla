@@ -61,6 +61,10 @@ enum : int {
     #endif
   #endif
 
+  #ifdef METALS 
+  metal_density
+  #endif
+
   #ifdef DUST
   dust_density,
   #endif  // DUST
