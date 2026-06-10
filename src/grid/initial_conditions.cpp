@@ -24,7 +24,7 @@
 #include "../utils/mhd_utilities.h"
 
 /*! Set the initial conditions based on info in the parameters structure. */
-void Grid3D::Set_Initial_Conditions(Parameters P, const ParameterMap &pmap)
+void Grid3D::Set_Initial_Conditions(Parameters P, ParameterMap &pmap)
 {
   Set_Domain_Properties(P);
   Set_Gammas(P.gamma);
@@ -66,7 +66,7 @@ void Grid3D::Set_Initial_Conditions(Parameters P, const ParameterMap &pmap)
   } else if (strcmp(P.init, "Spherical_Overdensity_3D") == 0) {
     Spherical_Overdensity_3D();
   } else if (strcmp(P.init, "Clouds") == 0) {
-    Clouds();
+    Clouds(pmap);
   } else if (strcmp(P.init, "Read_Grid") == 0) {
 #ifndef ONLY_PARTICLES
     Read_Grid(P);
@@ -1310,7 +1310,7 @@ void Grid3D::Spherical_Overdensity_3D()
 
 /*! \fn void Clouds()
  *  \brief Bunch of clouds. */
-void Grid3D::Clouds()
+void Grid3D::Clouds(ParameterMap &pmap)
 {
   int i, j, k, id;
   int istart, jstart, kstart, iend, jend, kend;
@@ -1327,6 +1327,9 @@ void Grid3D::Clouds()
   Real R_cl = 2.5;       // cloud radius in code units (kpc)
   Real cl_pos[N_cl][3];  // array of cloud positions
   Real r;
+
+  double metallicity_wind    = pmap.value_or("metallicity_wind", 1.0);
+  double metallicity_cloud   = pmap.value_or("metallicity_cloud", 1.0);
 
   // Multiple Cloud Setup
   // for (int nn=0; nn<N_cl; nn++) {

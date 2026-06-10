@@ -288,11 +288,6 @@ Parameters::Parameters(ParameterMap &pmap)
   parms->grain_radius = pmap.value<double>("grain_radius");
 #endif  // defined(SCALAR) && defined(DUST)
 
-#if defined(SCALAR) && defined(DUST)
-  parms->metallicity_wind    = pmap.value_or("metallicity_wind", 1.0);
-  parms->metallicity_cloud   = pmap.value_or("metallicity_cloud", 1.0);
-#endif //defined(SCALAR) && defined(DUST)
-
   // in the future, the feedback module will read in its own parameters (the global Parameter struct won't
   // know anything about it)
 #ifdef FEEDBACK
