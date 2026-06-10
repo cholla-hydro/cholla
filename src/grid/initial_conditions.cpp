@@ -1669,11 +1669,11 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
   int n_cells = nx_local * ny_local * nz_local;
 
-  chprintf("Setting Cosmological gas grid initial conditions ...\n");
+  chprintf("Cosmological ICs: Setting gas grid initial conditions ...\n");
 
   int i, j, k, id;
   Real x_pos, y_pos, z_pos;
-  Real H0, h, Omega_M, rho_0, G, z_zeldovich, z_init, x_center, T_init, k_x;
+  Real H0, h, Hp, rho_0, G, z_zeldovich, z_init, x_center, T_init, k_x;
   Real gamma;
 
   Real a_init, D, dDdt;
@@ -1686,15 +1686,22 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   Real xHep = P.xHep; // helium ionization fraction
   Real YHe  = P.YHe;  // helium mass fraction
 
+
   H0      = P.H0;
   h       = H0 / 100;
   H0     /= 1000; // to km/s/kpc
   G       = G_COSMO;
   Real Omega_b = P.Omega_b;
   Real Omega_m = P.Omega_M;
+  Real Omega_r = P.Omega_R;
+  Real Omega_DE = P.Omega_L;
+  Real w0 = P.w0;
+  Real wa = P.wa;
+
   Real f_b = Omega_b/Omega_m;
   Real f_c = 1.0 - f_b;
   Real rho_b   = 3 * H0 * H0 / (8 * M_PI * G) * Omega_b / h / h; //correctly set
+  Real d_mean = 0, n_d_mean=0;
 //src/cosmology/cosmology.cpp:  rho_0_gas = 3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_M / cosmo_h / cosmo_h;
 
 
@@ -1705,16 +1712,16 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   // 1.327104878e+16 cm km^2 Msun^-1 s^-2
   // 4.300854005621676e-06 kpc km^2 Msun^-1 s^-2
 
-  chprintf("H0: %e [km/s/kpc]\n", H0);
-  chprintf("Omega_b: %e\n", Omega_b);
-  chprintf("Baryon density rho_b %e [h^2 Msun/kpc^3]\n",rho_b);
-  chprintf("MP %e [g]\n",MP);
-  chprintf("KB %e [ergs/K]\n",KB);
-  chprintf("DENSITY_UNIT %e\n",DENSITY_UNIT);
-  chprintf("ENERGY_UNIT %e\n",ENERGY_UNIT);
-  chprintf("LENGTH_UNIT %e\n",LENGTH_UNIT);
-  chprintf("PRESSURE_UNIT %e\n",PRESSURE_UNIT);
-  chprintf("VELOCITY_UNIT %e\n",VELOCITY_UNIT);
+  chprintf("Cosmological ICs: H0: %e [km/s/kpc]\n", H0);
+  chprintf("Cosmological ICs: Omega_b: %e\n", Omega_b);
+  chprintf("Cosmological ICs: Baryon density rho_b %e [h^2 Msun/kpc^3]\n",rho_b);
+  chprintf("Cosmological ICs: MP %e [g]\n",MP);
+  chprintf("Cosmological ICs: KB %e [ergs/K]\n",KB);
+  chprintf("Cosmological ICs: DENSITY_UNIT %e\n",DENSITY_UNIT);
+  chprintf("Cosmological ICs: ENERGY_UNIT %e\n",ENERGY_UNIT);
+  chprintf("Cosmological ICs: LENGTH_UNIT %e\n",LENGTH_UNIT);
+  chprintf("Cosmological ICs: PRESSURE_UNIT %e\n",PRESSURE_UNIT);
+  chprintf("Cosmological ICs: VELOCITY_UNIT %e\n",VELOCITY_UNIT);
   /*
   MP 1.672622e-24 [g]
   KB 1.380658e-16 [cgs]
@@ -1783,19 +1790,19 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   Real momentum_factor;
   Real energy_factor;
 
-  chprintf("H0     %e [(km/s)/kpc]\n",H0);
-  chprintf("r_0_dm %e [kpc/h]\n",r_0_dm);
-  chprintf("t_0_dm %e [kpc/(km/s)]\n",t_0_dm);
-  chprintf("v_0_dm %e [km/s]\n",v_0_dm);
-  chprintf("rho_0_dm %e [Msun/kpc^3]\n",rho_0_dm);
-  chprintf("rho_mean_baryon %e [Msun/kpc^3]\n",rho_mean_baryon);
-  chprintf("r_0_gas   %e [kpc]\n",r_0_gas);
-  chprintf("rho_0_gas %e [Msun/kpc^3]\n",rho_0_gas);
-  chprintf("t_0_gas   %e [kpc/(km/s)]\n",t_0_gas);
-  chprintf("v_0_gas   %e [km/s]\n",v_0_gas);
-  chprintf("phi_0_gas %e [(km/s)^2]\n",phi_0_gas);
-  chprintf("p_0_gas   %e [(Msun/kpc^3) (km/s)^2]\n",p_0_gas);
-  chprintf("e_0_gas   %e [(km/s)^2]\n",e_0_gas);
+  chprintf("Cosmological ICs: H0     %e [(km/s)/kpc]\n",H0);
+  chprintf("Cosmological ICs: r_0_dm %e [kpc/h]\n",r_0_dm);
+  chprintf("Cosmological ICs: t_0_dm %e [kpc/(km/s)]\n",t_0_dm);
+  chprintf("Cosmological ICs: v_0_dm %e [km/s]\n",v_0_dm);
+  chprintf("Cosmological ICs: rho_0_dm %e [Msun/kpc^3]\n",rho_0_dm);
+  chprintf("Cosmological ICs: rho_mean_baryon %e [Msun/kpc^3]\n",rho_mean_baryon);
+  chprintf("Cosmological ICs: r_0_gas   %e [kpc]\n",r_0_gas);
+  chprintf("Cosmological ICs: rho_0_gas %e [Msun/kpc^3]\n",rho_0_gas);
+  chprintf("Cosmological ICs: t_0_gas   %e [kpc/(km/s)]\n",t_0_gas);
+  chprintf("Cosmological ICs: v_0_gas   %e [km/s]\n",v_0_gas);
+  chprintf("Cosmological ICs: phi_0_gas %e [(km/s)^2]\n",phi_0_gas);
+  chprintf("Cosmological ICs: p_0_gas   %e [(Msun/kpc^3) (km/s)^2]\n",p_0_gas);
+  chprintf("Cosmological ICs: e_0_gas   %e [(km/s)^2]\n",e_0_gas);
 
   /*
   H0: 6.732117e-02 [km/s/kpc]
@@ -1829,15 +1836,23 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   z_init = P.Init_redshift;
   a_init = 1./(1+z_init);
 
-  chprintf("z_init %e a_init %e\n",z_init,a_init);
+  chprintf("Cosmological ICs: z_init %e a_init %e\n",z_init,a_init);
 
-  chprintf("D size %d a size %d\n",Cosmo.D_array.size(),Cosmo.a_array.size());
+  //chprintf("D size %d a size %d\n",Cosmo.D_array.size(),Cosmo.a_array.size());
 
   // get growth function and time derivative
   //chprintf("Dinfo a %e %e D %e %e\n",Cosmo.a_array.front(),Cosmo.a_array.back(),Cosmo.D_array.front(),Cosmo.D_array.back());
+  Hp = Hubble_Growth_Function(a_init, H0, Omega_r, Omega_m, Omega_DE, w0, wa);
+  chprintf("Cosmological ICs: H(%e) = %e\n",a_init,H);
+
   D    = Cosmo.D_Growth(a_init);
   dDdt = Cosmo.dDdt_Growth(a_init);
-  chprintf("Growth Function Info: D %e dDdt %e\n",D,dDdt); // note dDdt is in km/s/kpc
+  chprintf("Cosmological ICs: Growth Function Info: D %e dDdt %e\n",D,dDdt); // note dDdt is in km/s/kpc
+
+  Real D_da = 1.01*a_init - 0.99*a_init;
+  Real D_dD = Cosmo.D_Growth(1.01*a_init)-Cosmo.D_Growth(0.99*a_init);
+  //Real dlnDdlna = (D_dD)/D * a_init/(D_da);
+  Real Fa = (D_dD/D_da)*(a_init/D);
 
   // convert dDdt from km/s/kpc to 1/kyr
   //dDdt *= 1e5/LENGTH_UNIT; // km in cm / kpc in cm
@@ -1850,7 +1865,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   }else{
     T_init = P.T_init; // set to precomputed gas temperature
   }
-  chprintf(" T initial = %f \n", T_init);
+  chprintf("Cosmological ICs: T initial = %f \n", T_init);
 
 
   // cell sizes
@@ -1858,7 +1873,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   dy = H.dy;
   dz = H.dz;
 
-  chprintf("Cell sizes dx %e dy %e dz %e\n",dx,dy,dz);
+  chprintf("Cosmological ICs: Cell sizes dx %e dy %e dz %e\n",dx,dy,dz);
 
   // create gas 
   // f_b = Omega_b / Omega_m
@@ -1911,11 +1926,8 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
   // we can compute the baryon field
   // densities only at this stage
-
+/*
 #ifndef ONLY_PARTICLES
-  int index;
-  int ii, jj, kk;
-  Real dens, vel, U, E; 
   // set the initial values of the conserved variables
   for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
     for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
@@ -1934,7 +1946,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         // rho_b * (1+delta_b) = rho_b * (1 + delta_m + f_c * delta_bc)
         // this is the comoving mean density
         // in our units, this is usually ~ 13.7 h^2 Msun/kpc^3
-        dens = rho_b * (1 + CP.delta_m[index] + f_c * CP.delta_bc[index]); 
+        dens = rho_b * (1 + (D*CP.delta_m[index] + f_c * CP.delta_bc[index])/a_init); 
 
         // note that if gamma = 1.6667
         // then 1./(gamma-1) * KB *1e-10 / MP = 0.012381617873714293 in (km/s)^2/K
@@ -1943,19 +1955,19 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         // U is in Msun/kpc^3 (km/s)^2
         U    = T_init / (gamma - 1) / MP * KB * 1e-10 * dens;
 
-/*      // forward
-        dens_factor     = 1 / Cosmo.rho_0_gas;
-        momentum_factor = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas * Cosmo.current_a;
-        energy_factor   = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas / Cosmo.v_0_gas * Cosmo.current_a * Cosmo.current_a;
-        C.density[id]    = C.density[id] * dens_factor;
-        C.momentum_x[id] = C.momentum_x[id] * momentum_factor;
-        C.momentum_y[id] = C.momentum_y[id] * momentum_factor;
-        C.momentum_z[id] = C.momentum_z[id] * momentum_factor;
-        C.Energy[id]     = C.Energy[id] * energy_factor;
-        C.GasEnergy[id] = C.GasEnergy[id] * energy_factor;
-        C.HI_density[id] *= dens_factor;
-        C.HII_density[id] *= dens_factor;
-*/
+      // forward
+        //dens_factor     = 1 / Cosmo.rho_0_gas;
+        //momentum_factor = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas * Cosmo.current_a;
+        //energy_factor   = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas / Cosmo.v_0_gas * Cosmo.current_a * Cosmo.current_a;
+        //C.density[id]    = C.density[id] * dens_factor;
+        //C.momentum_x[id] = C.momentum_x[id] * momentum_factor;
+        //C.momentum_y[id] = C.momentum_y[id] * momentum_factor;
+        //C.momentum_z[id] = C.momentum_z[id] * momentum_factor;
+        //C.Energy[id]     = C.Energy[id] * energy_factor;
+        //C.GasEnergy[id] = C.GasEnergy[id] * energy_factor;
+        //C.HI_density[id] *= dens_factor;
+        //C.HII_density[id] *= dens_factor;
+
 
         // initialize hydro grid properties
         // using the index for the whole grid
@@ -1974,27 +1986,22 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         // after momentum is computed
         C.Energy[id]    = U;
 
-  #ifdef DE
-        // initialize the 
-        C.GasEnergy[id] = U;
-  #endif
       }
     }
   }
 #endif 
+*/
 
-  // At this point, we don't need the deltas anymore
-  // and we can use them to help us transfer the potentials
+  // At this point, we need the potentials, and delta_bc
+  // and we can delta_m to help transfer the potentials
 
-  // We can copy the potential fields to the density fields
+  // We can copy the potential fields to the density field
   // for the real cells only
+  int index;
+  int ii, jj, kk;
 
   // copy memory -- only real, local cells
   cudaMemcpy(CP.delta_m,  CP.phi_1, n_cells * sizeof(Real), cudaMemcpyHostToHost);
-#ifndef ONLY_PARTICLES
-  cudaMemcpy(CP.delta_bc, CP.phi_2, n_cells * sizeof(Real), cudaMemcpyHostToHost);
-#endif //ONLY_PARTICLES
-
   // now, we remap the potential fields from the density fields
   for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
     for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
@@ -2012,12 +2019,36 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
         // copy from delta back to phi
         CP.phi_1[id] = CP.delta_m[index];
-#ifndef ONLY_PARTICLES
-        CP.phi_2[id] = CP.delta_bc[index];
-#endif //ONLY_PARTICLES
       }
     }
   }
+
+
+  // repeat for baryons if present
+#ifndef ONLY_PARTICLES
+  cudaMemcpy(CP.delta_m, CP.phi_2, n_cells * sizeof(Real), cudaMemcpyHostToHost);
+  // now, we remap the potential fields from the density fields
+  for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
+    for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
+      for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+
+        // this is the full index with ghost cells
+        id = i + j * H.nx + k * H.nx * H.ny;
+
+        kk = k - H.n_ghost;
+        jj = j - H.n_ghost;
+        ii = i - H.n_ghost;
+
+        // this is the real index with only local real cells
+        index =  ii + jj * nx_local + kk * nx_local * ny_local;
+
+        // copy from delta back to phi
+        CP.phi_2[id] = CP.delta_m[index];
+      }
+    }
+  }
+#endif //ONLY_PARTICLES
+
 
   // The potentials are now in their correct
   // places, indexed against the entire local
@@ -2026,10 +2057,10 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
   // perform the ghost cell transfers between
   // subdomains of the computational volume
-  chprintf("Exchanging ghost cells for cosmological potential phi_1.\n");
+  chprintf("Cosmological ICs: Exchanging ghost cells for cosmological potential phi_1.\n");
   Set_Boundary_Conditions_Field(P, CP.phi_1);
 #ifndef ONLY_PARTICLES
-  chprintf("Exchanging ghost cells for cosmological potential phi_2.\n");
+  chprintf("Cosmological ICs: Exchanging ghost cells for cosmological potential phi_2.\n");
   Set_Boundary_Conditions_Field(P, CP.phi_2);
 #endif  //ONLY_PARTICLES
 
@@ -2038,13 +2069,33 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 #ifndef ONLY_PARTICLES
 
   Real grad_phi_x=0, grad_phi_y=0, grad_phi_z=0;
+  Real d2phidx2=0, d2phidy2=0, d2phidz2 = 0;
+  Real dens, vel, U, E; 
+  Real Daf = Cosmo.D_Growth(1e-4)/1e-4;
+  //Real Daf = Cosmo.D_Growth(a_init)/a_init;
+
+  //With radiation the perturbation ratio D/a keeps
+  //increasing to large redshift
+  chprintf("Cosmological ICs: lim a->0 D(a)/a = %e\n",Daf);
+  //Daf = Cosmo.D_Growth(a_init);
+  //Daf = 1./Daf;
+  Daf = Cosmo.D_Growth(a_init)/a_init;
+  chprintf("Cosmological ICs: D(a)/a = %e\n",Daf);
 
 #ifdef GRAVITY_5_POINTS_GRADIENT
   Real phi_ll, phi_rr;
   int id_ll, id_rr;
 #endif
-  Real phi_l, phi_r;
+  Real phi_l, phi, phi_r;
   int id_l, id_r;
+
+  // gradient operators
+  // d/dx
+  // 2: 0.5*[-1 0 1]
+  // 4: (1/12)*[1 -8 0 8 -1]
+  // d2/dx2
+  // 2: [1 -2 1]
+  // 4: (1/12)*[-1 16 -30 16 -1]
 
   // set the initial values of the conserved variables
   for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
@@ -2062,9 +2113,11 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         // along the x direction
         //////////////////////////////////////////
 
+        id    = i + j * H.nx + k * H.ny * H.nx;
         id_l  = (i - 1) + j * H.nx + k * H.ny * H.nx;
         id_r  = (i + 1) + j * H.nx + k * H.ny * H.nx;
 
+        phi   = CP.phi_1[id];
         phi_l = CP.phi_1[id_l];
         phi_r = CP.phi_1[id_r];
 
@@ -2073,10 +2126,26 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         id_rr   = (i + 2 ) + j * H.nx + k * H.ny * H.nx;
         phi_ll  = CP.phi_1[id_ll];
         phi_rr  = CP.phi_1[id_rr];
-        grad_phi_x = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
+        grad_phi_x = (-phi_rr +  8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
+        d2phidx2   = (-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dx*dx);
     #else
-        //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
         grad_phi_x = 0.5*(phi_r - phi_l) / dx;
+        d2phidx2   = (phi_r - 2 * phi + - phi_ll)/(dx*dx);
+    #endif
+
+        // repeat for nabla^-2 \delta_bc
+        // which affects displacements only
+        phi   = CP.phi_2[id];
+        phi_l = CP.phi_2[id_l];
+        phi_r = CP.phi_2[id_r];
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+        id_ll   = (i - 2 ) + j * H.nx + k * H.ny * H.nx;
+        id_rr   = (i + 2 ) + j * H.nx + k * H.ny * H.nx;
+        phi_ll  = CP.phi_2[id_ll];
+        phi_rr  = CP.phi_2[id_rr];
+        d2phidx2   += f_c * ((-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dx*dx));
+    #else
+        d2phidx2   += f_c * ((phi_r - 2 * phi + - phi_ll)/(dx*dx));
     #endif
 
         //////////////////////////////////////////
@@ -2095,10 +2164,28 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         phi_ll  = CP.phi_1[id_ll];
         phi_rr  = CP.phi_1[id_rr];
         grad_phi_y = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dy);
+        d2phidy2   = (-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dy*dy);
     #else
-        //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
         grad_phi_y = 0.5 * (phi_r - phi_l) / dy;
+        d2phidy2   = (phi_r - 2 * phi + - phi_ll)/(dy*dy);
     #endif
+
+        // repeat for nabla^-2 \delta_bc
+        // which affects displacements only
+        phi   = CP.phi_2[id];
+        phi_l = CP.phi_2[id_l];
+        phi_r = CP.phi_2[id_r];
+
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+        id_ll   = i + (j - 2) * H.nx + k * H.ny * H.nx;
+        id_rr   = i + (j + 2) * H.nx + k * H.ny * H.nx;
+        phi_ll  = CP.phi_2[id_ll];
+        phi_rr  = CP.phi_2[id_rr];
+        d2phidy2   += f_c*((-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dy*dy));
+    #else
+        d2phidy2   += f_c*((phi_r - 2 * phi + - phi_ll)/(dy*dy));
+    #endif
+
 
         //////////////////////////////////////////
         // take the potential gradient
@@ -2115,51 +2202,124 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         phi_ll  = CP.phi_1[id_ll];
         phi_rr  = CP.phi_1[id_rr];
         grad_phi_z = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
+        d2phidz2   = (-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dz*dz);
     #else
-        //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
         grad_phi_z = 0.5 * (phi_r - phi_l) / dz;
+        d2phidz2   = (phi_r - 2 * phi + - phi_ll)/(dz*dz);
     #endif
 
+        // repeat for nabla^-2 \delta_bc
+        // which affects displacements only
+        phi   = CP.phi_2[id];
+        phi_l = CP.phi_2[id_l];
+        phi_r = CP.phi_2[id_r];
+
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+        id_ll   = ii + j * H.nx + (k - 2) * H.ny * H.nx;
+        id_rr   = ii + j * H.nx + (k + 2) * H.ny * H.nx;
+        phi_ll  = CP.phi_2[id_ll];
+        phi_rr  = CP.phi_2[id_rr];
+        d2phidz2   += f_c*((-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dz*dz));
+    #else
+        d2phidz2   += f_c*((phi_r - 2 * phi + - phi_ll)/(dz*dz));
+    #endif
 
         // compute velocities field
-
-        // 4 pi G rho 
-        // #define G_COSMO  4.300927161e-06;  // gravitational constant, kpc km^2 s^-2 Msun^-1
-        // rho in Msun/kpc^3
-        // phi in km^2/s^2
-        // grad phi is in km^2/s^2/kpc
-
-        // dDdt is in km/s/kpc
-        // phi is in (km/s)^2, grad_phi in (km/s)^2 / kpc
-
-        // wait though -- no units on phi?
-        // x = q - del^-2 grad overdensity, and del^-2 grad has units kpc
-        // if dD/dt is in km/s/kpc, convert dDdt to 1/kyr
 
         // if we leave dDdt in km/s/kpc, then vx, vy, vz in km/s
         // Velocity unit v_c = [9.77813911e+10] [kpc/kyr in cgs]
 
-        vx = dDdt * grad_phi_x;
-        vy = dDdt * grad_phi_y;
-        vz = dDdt * grad_phi_z;
+        vx = -dDdt * Daf * grad_phi_x; // km/s
+        vy = -dDdt * Daf * grad_phi_y; // km/s
+        vz = -dDdt * Daf * grad_phi_z; // km/s
+
+        vx /= a_init;
+        vy /= a_init;
+        vz /= a_init;
+
+        C.momentum_x[id] = vx; //store velocities
+        C.momentum_y[id] = vy; //store velocities
+        C.momentum_z[id] = vz; //store velocities
+
+
+        // Displacements
+        // x = q - D \grad phi_init - grad \nabla^-2 \delta_b
+        // x = q - D \grad phi_init - f_c grad \nabla^-2 \delta_bc
+        // delta_b = (1+f_c \delta_bc )/(det grad x) - 1
 
         // retrieve the gas density
-        dens = C.density[id];
+        // delta_alpha = (1 + delta_alpha^ini)/((1-D d2phidx2)*(1-D d2phidy2)*(1-D d2phidz2)) -1
+        dens = rho_b * (1 + CP.delta_bc[index])/( (1 - D*Daf*d2phidx2)*(1 - D*Daf*d2phidy2)*(1 - D*Daf*d2phidz2) );
 
-        // kinetic energy
-        E    = 0.5*dens*(vx*vx + vy*vy + vz*vz);
 
-        // compute the momenta
-        C.momentum_x[id]  = dens * vx;
-        C.momentum_y[id]  = dens * vy; 
-        C.momentum_z[id]  = dens * vz; 
 
-        // add the kinetic energy to the
-        // total energy
-        C.Energy[id]     += E;
+        C.density[id]  = dens;
+        d_mean += dens;
+        n_d_mean += 1.;
+
       }
     }
   }
+  d_mean /= n_d_mean;
+  chprintf("Cosmological ICs: Mean baryon density %e rho_b %e\n",d_mean,rho_b);
+  //chexit(-1);
+
+  // set the initial values of the conserved variables
+  for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
+    for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
+      for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+        id = i + j * H.nx + k * H.nx * H.ny;
+
+        kk = k - H.n_ghost;
+        jj = j - H.n_ghost;
+        ii = i - H.n_ghost;
+        index =  ii + jj * nx_local + kk * nx_local * ny_local;
+
+        C.density[id] *= rho_b/d_mean;
+        dens = C.density[id];
+
+  #ifdef CHEMISTRY_GPU
+        C.HI_density[id]    = (1-xHp)*(1-YHe)*dens; //HI    density
+        C.HII_density[id]   = xHp*(1-YHe)*dens;     //HII   density
+        C.HeI_density[id]   = (1-xHep)*YHe*dens;    //HeI   density
+        C.HeII_density[id]  = Hep*YHe*dens;         //HeII  density
+        C.HeIII_density[id] = 0;                    //HeIII density
+        //C.e_density[id]     = dens_factor;
+  #endif
+
+
+        // compute the momenta
+        C.momentum_x[id]  *= dens;
+        C.momentum_y[id]  *= dens;
+        C.momentum_z[id]  *= dens; 
+
+        // note that if gamma = 1.6667
+        // then 1./(gamma-1) * KB *1e-10 / MP = 0.012381617873714293 in (km/s)^2/K
+        // so a 100K gas has U ~ 1.24 * density
+        // with the comoving mean density, these units are correct for U
+        // U is in Msun/kpc^3 (km/s)^2
+        U    = T_init / (gamma - 1) / MP * KB * 1e-10 * dens;
+
+        // kinetic energy
+        vx = C.momentum_x[id];
+        vy = C.momentum_y[id];
+        vz = C.momentum_z[id];
+        E    = 0.5*(vx*vx + vy*vy + vz*vz)/dens;
+
+        // add the kinetic energy to the
+        // total energy
+        C.Energy[id]     = U + E;
+
+  #ifdef DE
+        // initialize the internal energy
+        C.GasEnergy[id] = U;
+  #endif
+
+      }
+    }
+  }
+
+
 #endif 
 
   // Now, for all the other quantities we need

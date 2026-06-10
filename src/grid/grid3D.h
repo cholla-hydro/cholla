@@ -857,6 +857,11 @@ class Grid3D
     /*! pointer to first potential */
     Real *phi_1; // initial potential sourced by total overdensity
 
+    // derivatives of the potential
+    Real *d2phidx2; // second spatial derivative of potential
+    Real *d2phidy2; // second spatial derivative of potential
+    Real *d2phidz2; // second spatial derivative of potential
+
     Real *delta_m; // matter overdensity
 
 #ifndef ONLY_PARTICLES

@@ -80,19 +80,19 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // load the growth function
   Cosmo.Compute_Growth_Function(P);
 
-  chprintf("Cosmo Sizes t %d a %d D %d dDdt %d\n",Cosmo.t_array.size(),Cosmo.a_array.size(),Cosmo.D_array.size(),Cosmo.dDdt_array.size());
+  //chprintf("Cosmo Sizes t %d a %d D %d dDdt %d\n",Cosmo.t_array.size(),Cosmo.a_array.size(),Cosmo.D_array.size(),Cosmo.dDdt_array.size());
 
   //chexit(0);
   // save the growth function data to file
   Cosmo.Create_Growth_Function_File(P);
 
 	// Initialize the FFT as well
-	chprintf("Initializing the FFT system\n");
+	/*chprintf("Initializing the FFT system\n");
   chprintf("xdglobal %f %f %f\n",H.xdglobal, H.ydglobal, H.zdglobal);
   chprintf("xblocal %f %f %f\n",H.xblocal, H.yblocal, H.zblocal);
   chprintf("nx_local %d %d %d\n",nx_local, ny_local, nz_local);
   chprintf("nx_global %d ny_global %d nz_global %d\n",nx_global,ny_global,nz_global);
-  chprintf("n ghost %d n ghost pot %d\n",H.n_ghost,N_GHOST_POTENTIAL);
+  chprintf("n ghost %d n ghost pot %d\n",H.n_ghost,N_GHOST_POTENTIAL);*/
 	fft.Initialize( H.xdglobal, H.ydglobal, H.zdglobal, H.xblocal, H.yblocal, H.zblocal,
 		              nx_global, ny_global, nz_global, nx_local, ny_local, nz_local, H.dx, H.dy, H.dz );
 
@@ -133,7 +133,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
   // find the average
   delta_ave = delta_sum/(nx_global*ny_global*nz_global);
-  chprintf("Average of random field %e\n",delta_ave);
+  //chprintf("Average of random field %e\n",delta_ave);
 
 
   // reduce the grid values
@@ -153,11 +153,10 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	// copy mean zero phi back to GPU
 	GPU_Error_Check(cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
-  chprintf("Rescaling field...\n");
+  //chprintf("Rescaling field...\n");
 
 	// step 2) Take the fourier transform
 	//         xi(k) = N**-d \sum_m exp( -(2 pi i / M) * kappa \dot m) * xi(m)
-	//fft.Filter_rescale(CP.d_delta_m,1./(nx_global*ny_global*nz_global),CP.d_delta_m,true);
   Rescale_Field(CP.d_delta_m,1./(nx_global*ny_global*nz_global));
 
 #ifndef ONLY_PARTICLES
@@ -227,10 +226,6 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // 6) x_c from phi_ini and gradient of delta_bc
 
 
-
-
-
-
   // At this stage, the cosmological overdensity fields
   // has/have been computed. These can be used to compute
   // the initial potential fields, which are then used to set
@@ -239,26 +234,13 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // let's calculate phi_1
   chprintf("Calculating initial potential for cosmological ICs...\n");
 
-  // rescale by 4piGrho/a
-  Real a = 1./(1+P->Init_redshift);
-  chprintf("Initial scale factor = %e\n",a);
-  // G is in #define G_COSMO  4.300927161e-06;  // gravitational constant, kpc km^2 s^-2 Msun^-1
-  // rho_0 is in Msun/kpc^3
-  Real scale = Real(4) * M_PI * G * rho_0 / a; // km^2 s^-2 / kpc^2
-  Real offset = 0;
-
   // Perhaps compute phi_init here as advertised?
   // should return phi_1 = \nabla^-2 delta_m
   fft.Filter_inv_k2(CP.d_delta_m,CP.d_phi_1,true);
-  //fft.Filter_rescale(CP.d_phi_1,1./scale,CP.d_phi_1,true);
-  //Rescale_Field(CP.d_phi_1,1./scale);
-  //Rescale_Field(CP.d_phi_1,scale); 
 
 #ifndef ONLY_PARTICLES
+  // compute \nabla^-2 \delta_bc
   fft.Filter_inv_k2(CP.d_delta_bc,CP.d_phi_2,true);
-  //fft.Filter_rescale(CP.d_phi_2,1./scale,CP.d_phi_2,true);
-  //Rescale_Field(CP.d_phi_2,1./scale);
-  //Rescale_Field(CP.d_phi_2,scale);
 #endif //ONLY_PARTICLES
 
 	// copy memory back to host
@@ -583,42 +565,18 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
   // seems to produce correct P(k)?
   Real pk_factor = (2.0*M_PI/(1.0e-3*P->xlen))*(2.0*M_PI/(1.0e-3*P->ylen))*(2.0*M_PI/(1.0e-3*P->zlen));
 
-  //arbitrary pk_scaling
-//  pk_factor *= pow(2.0*M_PI,3); //doesn't have the expected effect....
-//#error fix this
-
-  // perhaps we just need volume?
-  // this doesn't seem to work
-  //Real pk_factor = (P->xlen/(2.0*M_PI)) * (P->ylen/(2.0*M_PI)) * (P->zlen/(2.0*M_PI));
-
-  // this doesn't seem to work
-  //Real pk_factor = 1e9;
-
-  // perhaps divide by dx ?
-  //Real pk_factor = (2.0*M_PI/(dx))*(2.0*M_PI/(dx))*(2.0*M_PI/(dx));
-
   chprintf("Power spectrum rescaling factor: %e\n",pk_factor);
+
   // note the pk_factor is supposed to remove the volume element from 
   // the normalization of P(k), and needs to be in the units of the original P(k)
   // We are assuming P(k) has units of (Mpc/h)^3 and xlen, ylen, zlen are in kpc/h
   
-  /*for (i=0; i<n_lines; i++ ){
-    CP.k_array[i]      = v[i][0] * 1e-3;       //Convert from 1/(Mpc/h) to  1/(kpc/h)
-    CP.pk_tot_array[i] = v[i][1] * pk_factor;  // moving P(k) rescaling here
-    CP.pk_dm_array[i]  = v[i][2] * pk_factor;  // moving P(k) rescaling here
-    if(j==4)
-    {
-      CP.pk_gas_array[i] = v[i][3] * pk_factor;  // moving P(k) rescaling here
-    }else{
-      CP.pk_gas_array[i] = v[i][2] * pk_factor;  // moving P(k) rescaling here
-    }
-  }*/
   for (i=0; i<n_lines; i++ ){
     CP.k_array[i]      = v[i][0] * 1e-3;       //Convert from 1/(Mpc/h) to  1/(kpc/h)
-    CP.pk_m_array[i]   = v[i][1] * pk_factor;  // moving P(k) rescaling here
+    CP.pk_m_array[i]   = v[i][1] * pk_factor;  // P(k) rescaling
     if(j==3)
     {
-      CP.pk_bc_array[i] = v[i][2] * pk_factor;  // moving P(k) rescaling here
+      CP.pk_bc_array[i] = v[i][2] * pk_factor; //P(k) rescaling
     }else{
       CP.pk_bc_array[i] = 0;  // no baryon-cdm difference
     }

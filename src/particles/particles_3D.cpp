@@ -48,8 +48,8 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
   //Particles.CP.dDdt *= 1e5/LENGTH_UNIT; // km in cm / kpc in cm
   //Particles.CP.dDdt *= TIME_UNIT;       // 1/s to 1/kyr
   //Particles.CP.dDdt *= TIME_UNIT;       // km/s/kpc to km/kyr/kpc
-  chprintf("Particles.CP.D    %e\n",Particles.CP.D);
-  chprintf("Particles.CP.dDdt %e [km/s/kpc]\n",Particles.CP.dDdt);
+  chprintf("Cosmological ICs: Particles.CP.D    %e\n",Particles.CP.D);
+  chprintf("Cosmological ICs: Particles.CP.dDdt %e [km/s/kpc]\n",Particles.CP.dDdt);
   //chprintf("Particles.CP.dDdt %e [1/kyr]\n",Particles.CP.dDdt);
   Particles.H.dx = H.dx;
   Particles.H.dy = H.dy;
@@ -1191,7 +1191,7 @@ void Particles3D::Initialize_Adiabatic_Expansion(struct Parameters *P)
 void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Real xbound, Real ybound, Real zbound,
                                                         Real xdglobal, Real ydglobal, Real zdglobal)
 {
-  chprintf("Setting Cosmological ICs particle positions...\n");
+  chprintf("Cosmological ICs: Setting particle positions...\n");
 
   // The first set of particles are initialzed at Lagrangian
   // locations on the grid
@@ -1223,10 +1223,14 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
   Real Mvol    = rho_cdm * xdglobal * ydglobal * zdglobal;
   Real Mparticle = Mvol / n_particles_total;
 
+  Real a_init = 1./(1+P->Init_redshift);
+  chprintf("Cosmological ICs: Particles: a %e\n",a_init);
+
   Real D = CP.D;       //initial growth function
   Real dDdt = CP.dDdt; //growth function time derivative
+  Real Daf = D/a_init;
+  chprintf("Cosmological ICs: Particles: D %e dDdt %e D/a %e\n",D,dDdt,Daf);
 
-  chprintf("D %e dDdt %e\n",D,dDdt);
 
   #ifdef SINGLE_PARTICLE_MASS
   particle_mass = Mparticle;
@@ -1266,10 +1270,10 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
   auto *temp_id = (part_int_t *)malloc(particles_array_size * sizeof(part_int_t));
     #endif
 
-  chprintf(" Allocated GPU memory for particle data\n");
+  chprintf("Cosmological ICs: Allocated GPU memory for particle data\n");
   #endif  // PARTICLES_GPU
 
-  chprintf(" Initializing dark matter particle positions...\n");
+  chprintf("Cosmological ICs: Initializing dark matter particle positions...\n");
 
   part_int_t pID = 0; // don't we need an offset? -- well we use this as an index, so start at 0
   Real x_pos, y_pos, z_pos; // initial positions
@@ -1293,6 +1297,16 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
   int ii, jj, kk;
   Real vx_max = -1e9;
   Real vx_min =  1e9;
+  Real xix_max = -1e9;
+  Real xix_min =  1e9;
+
+  // gradient operators
+  // d/dx
+  // 2: 0.5*[-1 0 1]
+  // 4: (1/12)*[1 -8 0 8 -1]
+  // d2/dx2
+  // 2: [1 -2 1]
+  // 4: (1/12)*[-1 16 -30 16 -1]
 
   // compute the positions and velocities of
   // each particle
@@ -1330,7 +1344,6 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         // dphi/dx
         grad_phi_x = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
     #else
-        //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
         grad_phi_x = 0.5 * (phi_r - phi_l) / dx;
     #endif
 
@@ -1351,7 +1364,6 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         phi_rr  = CP.phi_1[id_rr];
         grad_phi_y = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dy);
     #else
-        //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
         grad_phi_y = 0.5 * (phi_r - phi_l) / dy;
     #endif
 
@@ -1372,7 +1384,6 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         phi_rr  = CP.phi_1[id_rr];
         grad_phi_z = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
     #else
-        //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
         grad_phi_z = 0.5 * (phi_r - phi_l) / dz;
     #endif
 
@@ -1398,7 +1409,6 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         phi_rr  = CP.phi_bc[id_rr];
         grad_phi_bc_x = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
     #else
-        //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
         grad_phi_bc_x = 0.5 * (phi_r - phi_l) / dx;
     #endif
 
@@ -1419,7 +1429,6 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         phi_rr  = CP.phi_bc[id_rr];
         grad_phi_bc_y = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dy);
     #else
-        //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
         grad_phi_bc_y = 0.5 * (phi_r - phi_l) / dy;
     #endif
 
@@ -1440,7 +1449,6 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         phi_rr  = CP.phi_bc[id_rr];
         grad_phi_bc_z = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
     #else
-        //Particles.G.gravity_x[id] = -0.5 * (phi_r - phi_l) / dx;
         grad_phi_bc_z = 0.5 * (phi_r - phi_l) / dz;
     #endif
 
@@ -1448,12 +1456,18 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
 
         //////////////////////////////////////////
         // compute velocity fields
-        // v = dD/dt * \grad \phi
+        // v = a * dD/dt * \grad \phi
+        // vp = v/a^2
         //////////////////////////////////////////
 
-        vx = dDdt * grad_phi_x;
-        vy = dDdt * grad_phi_y;
-        vz = dDdt * grad_phi_z;
+
+        vx = -dDdt * Daf * grad_phi_x; // km/s
+        vy = -dDdt * Daf * grad_phi_y; // km/s
+        vz = -dDdt * Daf * grad_phi_z; // km/s
+
+        vx /= a_init;
+        vy /= a_init;
+        vz /= a_init;
 
         if(vx<vx_min)
           vx_min = vx;
@@ -1465,18 +1479,25 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         // x = q - D * \grad phi
         //////////////////////////////////////////
 
-        x_pos = x_pos - D * grad_phi_x;
-        y_pos = y_pos - D * grad_phi_y;
-        z_pos = z_pos - D * grad_phi_z;
+        /*x_pos = x_pos - D * grad_phi_x / ((a_init*a_init));
+        y_pos = y_pos - D * grad_phi_y / ((a_init*a_init));
+        z_pos = z_pos - D * grad_phi_z / ((a_init*a_init));*/
+        x_pos = x_pos - D * Daf * grad_phi_x;
+        y_pos = y_pos - D * Daf * grad_phi_y;
+        z_pos = z_pos - D * Daf * grad_phi_z;
+
+        if(D*grad_phi_x<xix_min)
+          xix_min = grad_phi_x;
+        if(D*grad_phi_x>xix_max)
+          xix_max = grad_phi_x;
 
       #ifndef ONLY_PARTICLES
 
         // add contribution from baryon-cdm fluctuation
-        // potential, but these are not scaled by the
-        // growth factor -> x = x - \grad phi_bc
-        x_pos -= grad_phi_bc_x;
-        y_pos -= grad_phi_bc_y;
-        z_pos -= grad_phi_bc_z;
+        // potential, -> x = x - \grad phi_bc
+        x_pos -= D*grad_phi_bc_x;
+        y_pos -= D*grad_phi_bc_y;
+        z_pos -= D*grad_phi_bc_z;
 
       #endif //ONLY PARTICLES
 
@@ -1523,6 +1544,8 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
 
   chprintf("Minimum vx: %e\n",vx_min);
   chprintf("Maximum vx: %e\n",vx_max);
+  chprintf("Minimum xix: %e\n",xix_min);
+  chprintf("Maximum xix: %e\n",xix_max);
 
 
   #ifdef PARTICLES_CPU
