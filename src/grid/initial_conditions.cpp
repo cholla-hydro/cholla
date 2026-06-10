@@ -22,6 +22,9 @@
 #include "../utils/hydro_utilities.h"
 #include "../utils/math_utilities.h"
 #include "../utils/mhd_utilities.h"
+#ifdef COSMOLOGY
+#include "../cosmology/cosmology.h"
+#endif
 
 /*! Set the initial conditions based on info in the parameters structure. */
 void Grid3D::Set_Initial_Conditions(Parameters P, const ParameterMap &pmap)
@@ -1713,7 +1716,12 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   // 4.300854005621676e-06 kpc km^2 Msun^-1 s^-2
 
   chprintf("Cosmological ICs: H0: %e [km/s/kpc]\n", H0);
-  chprintf("Cosmological ICs: Omega_b: %e\n", Omega_b);
+  chprintf("Cosmological ICs: Omega_m:  %e\n", Omega_m);
+  chprintf("Cosmological ICs: Omega_b:  %e\n", Omega_b);
+  chprintf("Cosmological ICs: Omega_r:  %e\n", Omega_r);
+  chprintf("Cosmological ICs: Omega_DE: %e\n", Omega_DE);
+  chprintf("Cosmological ICs: w0:       %e\n", w0);
+  chprintf("Cosmological ICs: wa:       %e\n", wa);
   chprintf("Cosmological ICs: Baryon density rho_b %e [h^2 Msun/kpc^3]\n",rho_b);
   chprintf("Cosmological ICs: MP %e [g]\n",MP);
   chprintf("Cosmological ICs: KB %e [ergs/K]\n",KB);
