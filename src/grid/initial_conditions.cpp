@@ -1395,6 +1395,9 @@ void Grid3D::Clouds(ParameterMap &pmap)
         C.momentum_y[id] = rho_bg * vy_bg;
         C.momentum_z[id] = rho_bg * vz_bg;
         C.Energy[id]     = p_bg / (gama - 1.0) + 0.5 * rho_bg * (vx_bg * vx_bg + vy_bg * vy_bg + vz_bg * vz_bg);
+#ifdef METALS
+        C.metal_density[id] = metallicity_wind * SOLAR_METAL_MASS_FRAC * rho_bg;
+#endif
 #ifdef DE
         C.GasEnergy[id] = p_bg / (gama - 1.0);
 #endif
@@ -1414,6 +1417,9 @@ void Grid3D::Clouds(ParameterMap &pmap)
             C.momentum_y[id] = rho_cl * vy_cl;
             C.momentum_z[id] = rho_cl * vz_cl;
             C.Energy[id]     = p_cl / (gama - 1.0) + 0.5 * rho_cl * (vx_cl * vx_cl + vy_cl * vy_cl + vz_cl * vz_cl);
+#ifdef METALS
+            C.metal_density[id] = metallicity_cloud * SOLAR_METAL_MASS_FRAC * rho_cl;
+#endif
 #ifdef DE
             C.GasEnergy[id] = p_cl / (gama - 1.0);
 #endif  // DE
