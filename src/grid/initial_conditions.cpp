@@ -2070,6 +2070,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
   Real grad_phi_x=0, grad_phi_y=0, grad_phi_z=0;
   Real d2phidx2=0, d2phidy2=0, d2phidz2 = 0;
+  Real grad_x[3][3];
   Real dens, vel, U, E; 
   Real Daf = Cosmo.D_Growth(1e-4)/1e-4;
   //Real Daf = Cosmo.D_Growth(a_init)/a_init;
@@ -2087,7 +2088,10 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   int id_ll, id_rr;
 #endif
   Real phi_l, phi, phi_r;
+  Real phi_ld, phi_lu, phi_rd, phi_ru;
   int id_l, id_r;
+  int id_ld, id_lu;
+  int id_rd, id_ru;
 
   // gradient operators
   // d/dx
@@ -2127,14 +2131,14 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         phi_ll  = CP.phi_1[id_ll];
         phi_rr  = CP.phi_1[id_rr];
         grad_phi_x = (-phi_rr +  8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
-        d2phidx2   = (-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dx*dx);
+        grad_x_T[0][0]   = (-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dx*dx);
     #else
-        grad_phi_x = 0.5*(phi_r - phi_l) / dx;
-        d2phidx2   = (phi_r - 2 * phi + - phi_ll)/(dx*dx);
+        grad_phi_x       = 0.5*(phi_r - phi_l) / dx;
+        grad_x_T[0][0]   = (phi_r - 2 * phi + - phi_ll)/(dx*dx);
     #endif
 
         // repeat for nabla^-2 \delta_bc
-        // which affects displacements only
+        // which affects LLA only
         phi   = CP.phi_2[id];
         phi_l = CP.phi_2[id_l];
         phi_r = CP.phi_2[id_r];
@@ -2143,10 +2147,12 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         id_rr   = (i + 2 ) + j * H.nx + k * H.ny * H.nx;
         phi_ll  = CP.phi_2[id_ll];
         phi_rr  = CP.phi_2[id_rr];
-        d2phidx2   += f_c * ((-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dx*dx));
+        grad_x_T[0][0]   += f_c * ((-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dx*dx));
     #else
-        d2phidx2   += f_c * ((phi_r - 2 * phi + - phi_ll)/(dx*dx));
+        grad_x_T[0][0]   += f_c * ((phi_r - 2 * phi + - phi_ll)/(dx*dx));
     #endif
+        // add dq0/dq0 to grad x
+        grad_x_T[0][0] += 1;
 
         //////////////////////////////////////////
         // take the potential gradient
@@ -2164,14 +2170,14 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         phi_ll  = CP.phi_1[id_ll];
         phi_rr  = CP.phi_1[id_rr];
         grad_phi_y = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dy);
-        d2phidy2   = (-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dy*dy);
+        grad_x_T[1][1]   = (-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dy*dy);
     #else
         grad_phi_y = 0.5 * (phi_r - phi_l) / dy;
-        d2phidy2   = (phi_r - 2 * phi + - phi_ll)/(dy*dy);
+        grad_x_T[1][1]   = (phi_r - 2 * phi + - phi_ll)/(dy*dy);
     #endif
 
         // repeat for nabla^-2 \delta_bc
-        // which affects displacements only
+        // which affects which affects LLA only
         phi   = CP.phi_2[id];
         phi_l = CP.phi_2[id_l];
         phi_r = CP.phi_2[id_r];
@@ -2181,11 +2187,12 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         id_rr   = i + (j + 2) * H.nx + k * H.ny * H.nx;
         phi_ll  = CP.phi_2[id_ll];
         phi_rr  = CP.phi_2[id_rr];
-        d2phidy2   += f_c*((-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dy*dy));
+        grad_x_T[1][1]   += f_c*((-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dy*dy));
     #else
-        d2phidy2   += f_c*((phi_r - 2 * phi + - phi_ll)/(dy*dy));
+        grad_x_T[1][1]   += f_c*((phi_r - 2 * phi + - phi_ll)/(dy*dy));
     #endif
-
+        // add dq1/dq1 to grad x
+        grad_x_T[1][1] += 1;
 
         //////////////////////////////////////////
         // take the potential gradient
@@ -2201,15 +2208,15 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         id_rr   = ii + j * H.nx + (k + 2) * H.ny * H.nx;
         phi_ll  = CP.phi_1[id_ll];
         phi_rr  = CP.phi_1[id_rr];
-        grad_phi_z = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
-        d2phidz2   = (-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dz*dz);
+        grad_phi_z     = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
+        grad_x_T[2][2] = (-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dz*dz);
     #else
-        grad_phi_z = 0.5 * (phi_r - phi_l) / dz;
-        d2phidz2   = (phi_r - 2 * phi + - phi_ll)/(dz*dz);
+        grad_phi_z     = 0.5 * (phi_r - phi_l) / dz;
+        grad_x_T[2][2] = (phi_r - 2 * phi + - phi_ll)/(dz*dz);
     #endif
 
         // repeat for nabla^-2 \delta_bc
-        // which affects displacements only
+        // which affects which affects LLA only
         phi   = CP.phi_2[id];
         phi_l = CP.phi_2[id_l];
         phi_r = CP.phi_2[id_r];
@@ -2219,10 +2226,50 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         id_rr   = ii + j * H.nx + (k + 2) * H.ny * H.nx;
         phi_ll  = CP.phi_2[id_ll];
         phi_rr  = CP.phi_2[id_rr];
-        d2phidz2   += f_c*((-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dz*dz));
+        grad_x_T[2][2] += f_c*((-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dz*dz));
     #else
-        d2phidz2   += f_c*((phi_r - 2 * phi + - phi_ll)/(dz*dz));
+        grad_x_T[2][2] += f_c*((phi_r - 2 * phi + - phi_ll)/(dz*dz));
     #endif
+
+        // add dq2/dq2 to grad x
+        grad_x_T[2][2] += 1;
+
+        // now we need the cross terms for LLA
+        // first xy
+        id_ld  = (i - 1) + (j - 1) * H.nx + k * H.ny * H.nx;
+        id_lu  = (i - 1) + (j + 1) * H.nx + k * H.ny * H.nx;
+        id_rd  = (i + 1) + (j - 1) * H.nx + k * H.ny * H.nx;
+        id_ru  = (i + 1) + (j + 1) * H.nx + k * H.ny * H.nx;
+        phi_ld = CP.phi_1[id_ld] + f_c*CP.phi_2[id_ld];
+        phi_lu = CP.phi_1[id_lu] + f_c*CP.phi_2[id_lu]; 
+        phi_rd = CP.phi_1[id_rd] + f_c*CP.phi_2[id_rd];
+        phi_ru = CP.phi_1[id_ru] + f_c*CP.phi_2[id_ru]; 
+        grad_x_T[0][1] = 0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dx*dy);
+        grad_x_T[1][0] = grad_x_T[0][1];
+
+        // second xz
+        id_ld  = (i - 1) + j * H.nx + (k - 1) * H.ny * H.nx;
+        id_lu  = (i - 1) + j * H.nx + (k + 1) * H.ny * H.nx;
+        id_rd  = (i + 1) + j * H.nx + (k - 1) * H.ny * H.nx;
+        id_ru  = (i + 1) + j * H.nx + (k + 1) * H.ny * H.nx;
+        phi_ld = CP.phi_1[id_ld] + f_c*CP.phi_2[id_ld];
+        phi_lu = CP.phi_1[id_lu] + f_c*CP.phi_2[id_lu]; 
+        phi_rd = CP.phi_1[id_rd] + f_c*CP.phi_2[id_rd];
+        phi_ru = CP.phi_1[id_ru] + f_c*CP.phi_2[id_ru]; 
+        grad_x_T[0][2] = 0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dx*dz);
+        grad_x_T[2][0] = grad_x_T[0][2];
+
+       // third yz
+        id_ld  = i + (j - 1) * H.nx + (k - 1) * H.ny * H.nx;
+        id_lu  = i + (j - 1) * H.nx + (k + 1) * H.ny * H.nx;
+        id_rd  = i + (j + 1) * H.nx + (k - 1) * H.ny * H.nx;
+        id_ru  = i + (j + 1) * H.nx + (k + 1) * H.ny * H.nx;
+        phi_ld = CP.phi_1[id_ld] + f_c*CP.phi_2[id_ld];
+        phi_lu = CP.phi_1[id_lu] + f_c*CP.phi_2[id_lu]; 
+        phi_rd = CP.phi_1[id_rd] + f_c*CP.phi_2[id_rd];
+        phi_ru = CP.phi_1[id_ru] + f_c*CP.phi_2[id_ru]; 
+        grad_x_T[0][2] = 0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dy*dz);
+        grad_x_T[2][0] = grad_x_T[0][2];  
 
         // compute velocities field
 
@@ -2245,11 +2292,18 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         // Displacements
         // x = q - D \grad phi_init - grad \nabla^-2 \delta_b
         // x = q - D \grad phi_init - f_c grad \nabla^-2 \delta_bc
-        // delta_b = (1+f_c \delta_bc )/(det grad x) - 1
+        // A = | a b c |
+        //     | d e f |
+        //     | g h i |
+        // det(A) = a |e f| - b |d f| + c |d e|
+        //            |h i|     |g i|     |g h|
+        det_grad_x  = grad_x_T[0][0]*(grad_x_T[1][1]*grad_x_T[2][2] - grad_x_T[2][1]*grad_x_T[1][2]);
+        det_grad_x -= grad_x_T[0][1]*(grad_x_T[1][0]*grad_x_T[2][2] - grad_x_T[2][0]*grad_x_T[1][2]);
+        det_grad_x += grad_x_T[0][2]*(grad_x_T[1][0]*grad_x_T[2][1] - grad_x_T[2][0]*grad_x_T[1][1]);
 
         // retrieve the gas density
-        // delta_alpha = (1 + delta_alpha^ini)/((1-D d2phidx2)*(1-D d2phidy2)*(1-D d2phidz2)) -1
-        dens = rho_b * (1 + CP.delta_bc[index])/( (1 - D*Daf*d2phidx2)*(1 - D*Daf*d2phidy2)*(1 - D*Daf*d2phidz2) );
+        // delta_b = (1+f_c \delta_bc )/(det grad x) - 1
+        dens = rho_b * ((1 + CP.delta_bc[index])/det_grad_x - 1);
 
 
 
