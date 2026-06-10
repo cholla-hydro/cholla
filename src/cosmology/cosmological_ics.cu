@@ -563,7 +563,9 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
 
   // original
   // seems to produce correct P(k)?
-  Real pk_factor = (2.0*M_PI/(1.0e-3*P->xlen))*(2.0*M_PI/(1.0e-3*P->ylen))*(2.0*M_PI/(1.0e-3*P->zlen));
+  //Real pk_factor = (2.0*M_PI/(1.0e-3*P->xlen))*(2.0*M_PI/(1.0e-3*P->ylen))*(2.0*M_PI/(1.0e-3*P->zlen));
+
+  Real pk_factor = 1e9;
 
   chprintf("Power spectrum rescaling factor: %e\n",pk_factor);
 
