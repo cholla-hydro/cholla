@@ -2303,9 +2303,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
         // retrieve the gas density
         // delta_b = (1+f_c \delta_bc )/(det grad x) - 1
-        dens = rho_b * ((1 + CP.delta_bc[index])/det_grad_x - 1);
-
-
+        dens = ((1 + CP.delta_bc[index])/det_grad_x - 1);
 
         C.density[id]  = dens;
         d_mean += dens;
@@ -2315,7 +2313,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
     }
   }
   d_mean /= n_d_mean;
-  chprintf("Cosmological ICs: Mean baryon density %e rho_b %e\n",d_mean,rho_b);
+  chprintf("Cosmological ICs: excess average baryon overdensity %e\n",d_mean);
   //chexit(-1);
 
   // set the initial values of the conserved variables
@@ -2329,7 +2327,10 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         ii = i - H.n_ghost;
         index =  ii + jj * nx_local + kk * nx_local * ny_local;
 
-        C.density[id] *= rho_b/d_mean;
+//        C.density[id] *= rho_b/d_mean;
+        C.density[id] -= d_mean; // correct for imprecision in delta
+        C.density[id] += 1;      // convert to 1 + delta
+        C.density[id] *= rho_b;  // convert to density
         dens = C.density[id];
 
   #ifdef CHEMISTRY_GPU
