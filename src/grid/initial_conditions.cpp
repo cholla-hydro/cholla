@@ -2191,8 +2191,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
     #else
         grad_x_T[1][1]   += f_c*((phi_r - 2 * phi + - phi_ll)/(dy*dy));
     #endif
-        // add dq1/dq1 to grad x
-        grad_x_T[1][1] += 1;
+
 
         //////////////////////////////////////////
         // take the potential gradient
@@ -2292,6 +2291,19 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         // Displacements
         // x = q - D \grad phi_init - grad \nabla^-2 \delta_b
         // x = q - D \grad phi_init - f_c grad \nabla^-2 \delta_bc
+
+        // Multiply by growth factor
+        for (int ii = 0; ii < 3; ii++) {
+          for (int jj = 0; jj < 3; jj++) {
+            grad_x_T[ii][jj] *= D;
+          }
+        }
+
+        // add dq/dq to grad x
+        grad_x_T[0][0] += 1;
+        grad_x_T[1][1] += 1;
+        grad_x_T[2][2] += 1;
+
         // A = | a b c |
         //     | d e f |
         //     | g h i |
