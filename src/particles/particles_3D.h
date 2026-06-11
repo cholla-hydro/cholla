@@ -53,6 +53,7 @@ class Particles3D
     Real D;       // growth function at initial redshift
     Real dDdt;    // growth function time derivative
     Real dDda;    // growth function scale factor derivative
+    Real Ha;      // Hubble parameter at initial redshift
   } CP;
   struct Cosmo_Header {
     int nx;

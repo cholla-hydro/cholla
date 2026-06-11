@@ -106,6 +106,17 @@ Real Hubble_Growth_Function(Real a, Real H0, Real Omega_r, Real Omega_m, Real Om
   return H0*sqrt( Omega_r*pow(1+z,4) + Omega_m*pow(1+z,3) + OmegaDEz_Growth_Function(z,Omega_DE,w0,wa) );
 }
 
+Real dHda_Growth_Function(Real a, Real H0, Real Omega_r, Real Omega_m, Real Omega_DE, Real w0, Real wa)
+{
+	//dH/da
+  Real z = 1./a - 1;
+  Real Ha = Hubble_Growth_Function(a, H0, Omega_r, Omega_m, Omega_DE, w0, wa);
+  Real O_DE_z = OmegaDEz_Growth_Function(z,Omega_DE,w0,wa);
+  Real answer = -0.5/(a * Ha) * ( 3*Omega_m/pow(a,3) + 4*Omega_r/pow(a,4) + 3*O_DE_z*(1+w0 + (1-a)*wa) );
+  return H0*H0*answer;
+}
+
+
 //Real Cosmology::OmegaDEz(Real z)
 Real OmegaDEz_Growth_Function(Real z, Real Omega_DE, Real w0, Real wa)
 {
@@ -283,11 +294,11 @@ Real Cosmology::D_Growth(Real a)
 // Function to precompute the growth function scale factor derivative
 Real Cosmology::dDda_Growth(Real a)
 {
-  Real dDda;
+  Real dDda; // take numerical derivative
   if(a>0.95) {
-    dDda = (D_Growth(a)-D_growth(a-0.05))/0.05;
+    dDda = (D_Growth(a)-D_Growth(0.95*a))/(0.05*a);
   }else{
-    dDda = (D_Growth(a+0.05)-D_growth(a-0.05))/0.1;
+    dDda = (D_Growth(1.05*a)-D_Growth(0.95*a))/(0.1*a);
   }
   return dDda;
 }

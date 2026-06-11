@@ -94,6 +94,7 @@ class Cosmology
   void Write_Expansion_History_Entry(void);
 };
 Real Hubble_Growth_Function(Real a, Real H0, Real Omega_r, Real Omega_m, Real Omega_DE, Real w0, Real wa);
+Real dHda_Growth_Function(Real a, Real H0, Real Omega_r, Real Omega_m, Real Omega_DE, Real w0, Real wa);
 Real OmegaDEz_Growth_Function(Real z, Real Omega_DE, Real w0, Real wa);
 std::vector<Real> growth_factor_system(Real z, std::vector<Real> y, std::vector<Real> params);
 

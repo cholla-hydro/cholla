@@ -514,7 +514,7 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
   
   char pk_filename[MAXLEN];
   strcpy(pk_filename, P->cosmo_ics_pk_file);
-  chprintf( " Loading Power Spectrum File: %s \n", pk_filename );
+  chprintf( "Cosmological ICs: Loading Power Spectrum File: %s \n", pk_filename );
   
   std::fstream in_file(pk_filename);
   std::string line;
@@ -549,7 +549,7 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
   }
   
   int n_lines = i;
-  chprintf( " Loaded %d lines in file. \n", n_lines  );
+  chprintf( "Cosmological ICs: Loaded %d lines in file. \n", n_lines  );
   
   // Allocate cpu and device memory for power spectrum
   CP.n_pk         = n_lines;
@@ -557,17 +557,17 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
   CP.pk_m_array   = (Real *)malloc( CP.n_pk*sizeof(Real) );
   CP.pk_bc_array  = (Real *)malloc( CP.n_pk*sizeof(Real) );
   
-  chprintf( "Lbox = %f %f %f  n_grid = %d %d %d\n", P->xlen, P->ylen, P->zlen, P->nx, P->ny, P->nz );
+  chprintf( "Cosmological ICs: Lbox = %f %f %f  n_grid = %d %d %d\n", P->xlen, P->ylen, P->zlen, P->nx, P->ny, P->nz );
   
   Real dx = P->xlen / P->nx; 
 
   // original
   // seems to produce correct P(k)?
   //Real pk_factor = (2.0*M_PI/(1.0e-3*P->xlen))*(2.0*M_PI/(1.0e-3*P->ylen))*(2.0*M_PI/(1.0e-3*P->zlen));
+  //Real pk_factor = 1e9; // convert (Mpc/h)^3 to (kpc/h)^3
+  Real pk_factor = 1; // convert (Mpc/h)^3 to (kpc/h)^3
 
-  Real pk_factor = 1e9;
-
-  chprintf("Power spectrum rescaling factor: %e\n",pk_factor);
+  chprintf("Cosmological ICs: Power spectrum rescaling factor: %e\n",pk_factor);
 
   // note the pk_factor is supposed to remove the volume element from 
   // the normalization of P(k), and needs to be in the units of the original P(k)

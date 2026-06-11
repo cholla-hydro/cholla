@@ -50,6 +50,7 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
   Real Omega_DE = P->Omega_L;
   Real w0 = P->w0;
   Real wa = P->wa;
+  Real H0 = P->H0/1000; // km/s/kpc
   Particles.CP.Ha   = Hubble_Growth_Function(a_init, H0, Omega_r, Omega_m, Omega_DE, w0, wa);
 
   // convert dDdt from km/s/kpc to 1/kyr
@@ -89,6 +90,15 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
   MPI_Barrier(world);
   #endif
   chprintf("Particles Initialized Successfully. \n\n");
+
+
+  #ifdef COSMOLOGY
+  // move particles as needed after displacement
+  if(strcmp(P->init, "Cosmological_ICs") == 0) {
+    Transfer_Particles_Boundaries(*P);
+  }
+  #endif //COSMOLOGY
+
 }
 
 void Particles3D::Initialize(Parameters *P, const SpatialDomainProps &spatial_props, Real xbound, Real ybound,
@@ -323,6 +333,7 @@ void Particles3D::Initialize(Parameters *P, const SpatialDomainProps &spatial_pr
   Allocate_Memory_GPU_MPI();
     #endif  // PARTICLES_GPU
   #endif    // MPI_CHOLLA
+
 }
 
 void Particles3D::Allocate_Memory(void)
@@ -1218,7 +1229,7 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
 
   // Set the particle mass
   Real H0      = P->H0;
-  Real cosmo_h = H0 / 100;
+  Real h       = H0 / 100;
   H0 /= 1000;  //[km/s / kpc]
   Real Omega_M = P->Omega_M;
   Real Omega_L = P->Omega_L;
@@ -1228,21 +1239,21 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
   Real w0      = P->w0;
   Real wa      = P->wa;
   Real G_n     = G_COSMO;
-  Real rho_cdm = 3 * H0 * H0 / (8 * M_PI * G_n) * (Omega_M-Omega_b) / cosmo_h / cosmo_h;
+  Real rho_cdm = 3 * H0 * H0 / (8 * M_PI * G_n) * (Omega_M-Omega_b) / h / h;
   Real Mvol    = rho_cdm * xdglobal * ydglobal * zdglobal;
   Real Mparticle = Mvol / n_particles_total;
 
-  Real f_b = Omega_b/Omega_m;
+  Real f_b = Omega_b/Omega_M;
 
   Real a_init = 1./(1+P->Init_redshift);
   chprintf("Cosmological ICs: Particles: a %e\n",a_init);
-  Real Ha = Cp.Ha;     //Hubble parameter at a_init
-  Real D = CP.D;       //initial growth function
+  Real Ha   = CP.Ha;   //Hubble parameter at a_init
+  Real D    = CP.D;    //initial growth function
   Real dDdt = CP.dDdt; //growth function time derivative
   Real dDda = CP.dDda; //growth function scale factor derivative
+  Real dlogDdloga = dDda * a_init/D; // should be close to 1
 
-  Real Daf = D/a_init;
-  chprintf("Cosmological ICs: Particles: D %e dDdt %e dDda %e D/a %e Ha %e\n",D,dDdt,dDda,Daf,Ha);
+  chprintf("Cosmological ICs: Particles: D %e dDdt %e dDda %e dlogDdloga %e Ha %e\n",D,dDdt,dDda,dlogDdloga,Ha);
 
 
   #ifdef SINGLE_PARTICLE_MASS
@@ -1320,7 +1331,12 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
   // scaling is A = a*H*dlogD/dloga = a^2 (H/D) dD/da
   // these units will be in km/s/kpc, and multiplying by
   // displacement will convert into a velocity
-  A_vel = a_init*a_init * (Ha/D) * dDda;
+  //A_vel = a_init*a_init * (Ha/D) * dDda;
+  // Since dlogDdloga ~ 1, A_vel ~ a * Ha
+  // at z~100, a ~ 0.0099 and Ha ~ 38.9 km/s/kpc
+  // so A_vel should be ~ 0.37 km/s/kpc
+  A_vel = a_init * Ha * dlogDdloga;
+  chprintf("Cosmological ICs: Particles: Velocity scaling = %e [km/s/k[c]\n",A_vel);
 
   // gradient operators
   // d/dx
@@ -1480,9 +1496,9 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         // compute displacements
         // xi = D * \grad \phi
         //////////////////////////////////////////
-        xi_x = D * grad_phi_x;
-        xi_y = D * grad_phi_y;
-        xi_z = D * grad_phi_z;
+        xi_x = D * grad_phi_x; // kpc/h
+        xi_y = D * grad_phi_y; // kpc/h
+        xi_z = D * grad_phi_z; // kpc/h
 
         if(xi_x<xix_min)
           xix_min = xi_x;
@@ -1493,18 +1509,28 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         // compute velocity fields
         // v = a H dlogD/dloga * xi
         // v = da/dt * dD/da * a/D * xi 
-        // v = a^2 * (H/D) * dD/da * \grad \phi
+        // v = a^2 * (H/D) * dD/da * xi
         //////////////////////////////////////////
 
 
-        vx = A_vel * xi_x; // km/s
-        vy = A_vel * xi_y; // km/s
-        vz = A_vel * xi_z; // km/s
+        vx = A_vel * xi_x/h; // km/s
+        vy = A_vel * xi_y/h; // km/s
+        vz = A_vel * xi_z/h; // km/s
 
         if(vx<vx_min)
           vx_min = vx;
         if(vx>vx_max)
           vx_max = vx;
+
+      #ifndef ONLY_PARTICLES
+
+        // add contribution from baryon-cdm fluctuation
+        // potential, -> x = x - \grad phi_bc
+        xi_x += grad_phi_bc_x;
+        xi_y += grad_phi_bc_y;
+        xi_z += grad_phi_bc_z;
+
+      #endif //ONLY PARTICLES
 
         //////////////////////////////////////////
         // apply displacements from lagrangian pos
@@ -1516,15 +1542,6 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         z_pos = z_pos - xi_z;
 
 
-      #ifndef ONLY_PARTICLES
-
-        // add contribution from baryon-cdm fluctuation
-        // potential, -> x = x - \grad phi_bc
-        x_pos -= grad_phi_bc_x;
-        y_pos -= grad_phi_bc_y;
-        z_pos -= grad_phi_bc_z;
-
-      #endif //ONLY PARTICLES
 
       #ifdef PARTICLES_CPU
         // Copy the particle data to the particles vectors
