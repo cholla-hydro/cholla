@@ -106,12 +106,37 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	//         each spatial point
 	Generate_Normal_Random_Field(CP.d_delta_m,rng_states);
 
+	// copy memory -- only real, local cells
+	cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
-	Rescale_Field(CP.d_delta_m, nx_global*ny_global*nz_global);
+  Real delta_rms = 0;
+  // reduce the grid values
+  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
+    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
+      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
+
+        // get cell index
+        id = i + j * nx_local + k * nx_local * ny_local;
+
+        delta_rms += pow(CP.delta_m[id],2);
+      }
+    }
+  }
+  chprintf("RMS of density field over entire grid = %e (before reduction)\n",delta_rms);
+  // get the total of the grid to compute the mean
+  MPI_Allreduce(MPI_IN_PLACE, &delta_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+  // find the average
+  delta_rms = delta_rms/(nx_global*ny_global*nz_global);
+  delta_rms = sqrt(delta_rms);
+  chprintf("RMS of density field over entire grid = %e\n",delta_rms);
+
+
+	//Rescale_Field(CP.d_delta_m, nx_global*ny_global*nz_global);
 
 
 	// copy memory -- only real, local cells
-	cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+	//cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
 
   // reduce the grid values
@@ -133,7 +158,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
   // find the average
   delta_ave = delta_sum/(nx_global*ny_global*nz_global);
-  //chprintf("Average of random field %e\n",delta_ave);
+  chprintf("Average of random field %e\n",delta_ave);
 
 
   // reduce the grid values
@@ -153,11 +178,36 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	// copy mean zero phi back to GPU
 	GPU_Error_Check(cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
+
+
+  delta_rms = 0;
+  // reduce the grid values
+  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
+    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
+      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
+
+        // get cell index
+        id = i + j * nx_local + k * nx_local * ny_local;
+
+        delta_rms += pow(CP.delta_m[id],2);
+      }
+    }
+  }
+  chprintf("2nd RMS of density field over entire grid = %e (before reduction)\n",delta_rms);
+  // get the total of the grid to compute the mean
+  MPI_Allreduce(MPI_IN_PLACE, &delta_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+  // find the average
+  delta_rms = delta_rms/(nx_global*ny_global*nz_global);
+  delta_rms = sqrt(delta_rms);
+  chprintf("2nd RMS of density field over entire grid = %e\n",delta_rms);
+
+
   //chprintf("Rescaling field...\n");
 
 	// step 2) Take the fourier transform
 	//         xi(k) = N**-d \sum_m exp( -(2 pi i / M) * kappa \dot m) * xi(m)
-  Rescale_Field(CP.d_delta_m,1./(nx_global*ny_global*nz_global));
+  //Rescale_Field(CP.d_delta_m,1./(nx_global*ny_global*nz_global));
 
 #ifndef ONLY_PARTICLES
   // step 2.5) Copy random field to baryonic field
@@ -185,6 +235,29 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
   // free the P(k)
   Free_Cosmo_Power_Spectrum();
+
+  delta_rms = 0;
+  // reduce the grid values
+  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
+    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
+      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
+
+        // get cell index
+        id = i + j * nx_local + k * nx_local * ny_local;
+
+        delta_rms += pow(CP.delta_m[id],2);
+      }
+    }
+  }
+  chprintf("RMS of density field over entire grid = %e (before reduction)\n",delta_rms);
+  // get the total of the grid to compute the mean
+  MPI_Allreduce(MPI_IN_PLACE, &delta_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+  // find the average
+  delta_rms = delta_rms/(nx_global*ny_global*nz_global);
+  delta_rms = sqrt(delta_rms);
+  chprintf("RMS of density field over entire grid = %e\n",delta_rms);
+
 
   // note that delta_bc is about a ~0.1-1% effect,
   // depending on the k-scale
@@ -563,9 +636,7 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
 
   // original
   // seems to produce correct P(k)?
-  //Real pk_factor = (2.0*M_PI/(1.0e-3*P->xlen))*(2.0*M_PI/(1.0e-3*P->ylen))*(2.0*M_PI/(1.0e-3*P->zlen));
-  //Real pk_factor = 1e9; // convert (Mpc/h)^3 to (kpc/h)^3
-  Real pk_factor = 1; // convert (Mpc/h)^3 to (kpc/h)^3
+  Real pk_factor = 1e9; // convert (Mpc/h)^3 to (kpc/h)^3
 
   chprintf("Cosmological ICs: Power spectrum rescaling factor: %e\n",pk_factor);
 

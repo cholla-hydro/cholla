@@ -131,6 +131,7 @@ void FFT_3D::Filter_rescale_by_power_spectrum( Real *input, Real *output, bool i
         Real kx = id_k * ddk;  
         // Compute the magnitude of k 
         const Real k_mag = sqrt( kx*kx + ky*ky + kz*kz );
+        // these give similar answers
         //Real pk = linear_interpolation( k_mag, dev_k, dev_pk, size ); // linear interp of P(k)
         Real pk = log_log_interpolation( k_mag, dev_k, dev_pk, size );  // log log interp of P(k)
         pk = sqrt(pk);
@@ -196,6 +197,17 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
         const Real j2 = Sqr(Real(min(j, nj - j)) * ddj);
         const Real k2 = Sqr(Real(k) * ddk);
   #endif
+        /*// Get the global indices 
+        int id_i = i < ni/2 ? i : i - ni;
+        int id_j = j < nj/2 ? j : j - nj;
+        int id_k = k < nk/2 ? k : k - nk;
+        // Compute kx, ky, and kz from the indices
+        Real kz = id_i * ddi;
+        Real ky = id_j * ddj;
+        Real kx = id_k * ddk;  
+        // Compute the magnitude of k squared
+        Real k2 = kx*kx + ky*ky + kz*kz ;
+        if ( k2 == 0 ) k2 = 1.0;*/
         const Real d = -1.0/(i2+j2+k2);
         return cufftDoubleComplex{d*b.x,d*b.y};
       } else {

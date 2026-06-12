@@ -2176,9 +2176,9 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
         id_l  = i + (j - 1) * H.nx + k * H.ny * H.nx;
         id_r  = i + (j + 1) * H.nx + k * H.ny * H.nx;
-        phi   = D*CP.phi_1[id];
-        phi_l = D*CP.phi_1[id_l];
-        phi_r = D*CP.phi_1[id_r];
+        phi   = CP.phi_1[id];
+        phi_l = CP.phi_1[id_l];
+        phi_r = CP.phi_1[id_r];
     #ifdef GRAVITY_5_POINTS_GRADIENT
         id_ll   = i + (j - 2) * H.nx + k * H.ny * H.nx;
         id_rr   = i + (j + 2) * H.nx + k * H.ny * H.nx;
@@ -2214,9 +2214,9 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
         id_l  = i + j * H.nx + (k - 1) * H.ny * H.nx;
         id_r  = i + j * H.nx + (k + 1) * H.ny * H.nx;
-        phi   = D*CP.phi_1[id];
-        phi_l = D*CP.phi_1[id_l];
-        phi_r = D*CP.phi_1[id_r];
+        phi   = CP.phi_1[id];
+        phi_l = CP.phi_1[id_l];
+        phi_r = CP.phi_1[id_r];
     #ifdef GRAVITY_5_POINTS_GRADIENT
         id_ll   = ii + j * H.nx + (k - 2) * H.ny * H.nx;
         id_rr   = ii + j * H.nx + (k + 2) * H.ny * H.nx;
@@ -2336,10 +2336,10 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         //     | g h i |
         // det(A) = a |e f| - b |d f| + c |d e|
         //            |h i|     |g i|     |g h|
-        /*det_grad_x  = grad_x_T[0][0]*(grad_x_T[1][1]*grad_x_T[2][2] - grad_x_T[2][1]*grad_x_T[1][2]);
+        det_grad_x  = grad_x_T[0][0]*(grad_x_T[1][1]*grad_x_T[2][2] - grad_x_T[2][1]*grad_x_T[1][2]);
         det_grad_x -= grad_x_T[0][1]*(grad_x_T[1][0]*grad_x_T[2][2] - grad_x_T[2][0]*grad_x_T[1][2]);
-        det_grad_x += grad_x_T[0][2]*(grad_x_T[1][0]*grad_x_T[2][1] - grad_x_T[2][0]*grad_x_T[1][1]);*/
-        det_grad_x  = grad_x_T[0][0]*grad_x_T[1][1]*grad_x_T[2][2]; // first order
+        det_grad_x += grad_x_T[0][2]*(grad_x_T[1][0]*grad_x_T[2][1] - grad_x_T[2][0]*grad_x_T[1][1]);
+        //det_grad_x  = grad_x_T[0][0]*grad_x_T[1][1]*grad_x_T[2][2]; // first order
 
         if(det_grad_x<det_grad_x_min)
           det_grad_x_min=det_grad_x;
@@ -2348,7 +2348,8 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
         // retrieve the gas overdensity
         // delta_b = (1+f_c \delta_bc )/(det grad x) - 1
-        dens = ((1 + CP.delta_bc[index])/det_grad_x - 1);
+        ///dens = ((1 + CP.delta_bc[index])/det_grad_x - 1);
+        dens = (1/det_grad_x - 1);
 
         C.density[id]  = dens;
         d_mean += dens;
