@@ -44,5 +44,6 @@ class FFT_3D
     HenryPeriodic *henry_; //!< FFT filter object 
 };
 
+
 #endif  
 #endif

@@ -134,6 +134,7 @@ void FFT_3D::Filter_rescale_by_power_spectrum( Real *input, Real *output, bool i
         // these give similar answers
         //Real pk = linear_interpolation( k_mag, dev_k, dev_pk, size ); // linear interp of P(k)
         Real pk = log_log_interpolation( k_mag, dev_k, dev_pk, size );  // log log interp of P(k)
+        //Real pk = 1.;
         pk = sqrt(pk);
         return cufftDoubleComplex{pk*b.x,pk*b.y};
       } else {

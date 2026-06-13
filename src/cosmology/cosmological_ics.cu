@@ -80,19 +80,10 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // load the growth function
   Cosmo.Compute_Growth_Function(P);
 
-  //chprintf("Cosmo Sizes t %d a %d D %d dDdt %d\n",Cosmo.t_array.size(),Cosmo.a_array.size(),Cosmo.D_array.size(),Cosmo.dDdt_array.size());
-
-  //chexit(0);
   // save the growth function data to file
   Cosmo.Create_Growth_Function_File(P);
 
 	// Initialize the FFT as well
-	/*chprintf("Initializing the FFT system\n");
-  chprintf("xdglobal %f %f %f\n",H.xdglobal, H.ydglobal, H.zdglobal);
-  chprintf("xblocal %f %f %f\n",H.xblocal, H.yblocal, H.zblocal);
-  chprintf("nx_local %d %d %d\n",nx_local, ny_local, nz_local);
-  chprintf("nx_global %d ny_global %d nz_global %d\n",nx_global,ny_global,nz_global);
-  chprintf("n ghost %d n ghost pot %d\n",H.n_ghost,N_GHOST_POTENTIAL);*/
 	fft.Initialize( H.xdglobal, H.ydglobal, H.zdglobal, H.xblocal, H.yblocal, H.zblocal,
 		              nx_global, ny_global, nz_global, nx_local, ny_local, nz_local, H.dx, H.dy, H.dz );
 
@@ -122,7 +113,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
       }
     }
   }
-  chprintf("RMS of density field over entire grid = %e (before reduction)\n",delta_rms);
+
   // get the total of the grid to compute the mean
   MPI_Allreduce(MPI_IN_PLACE, &delta_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
@@ -130,14 +121,6 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   delta_rms = delta_rms/(nx_global*ny_global*nz_global);
   delta_rms = sqrt(delta_rms);
   chprintf("RMS of density field over entire grid = %e\n",delta_rms);
-
-
-	//Rescale_Field(CP.d_delta_m, nx_global*ny_global*nz_global);
-
-
-	// copy memory -- only real, local cells
-	//cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
-
 
   // reduce the grid values
 	Real delta_sum = 0;
@@ -203,11 +186,8 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   chprintf("2nd RMS of density field over entire grid = %e\n",delta_rms);
 
 
-  //chprintf("Rescaling field...\n");
-
 	// step 2) Take the fourier transform
 	//         xi(k) = N**-d \sum_m exp( -(2 pi i / M) * kappa \dot m) * xi(m)
-  //Rescale_Field(CP.d_delta_m,1./(nx_global*ny_global*nz_global));
 
 #ifndef ONLY_PARTICLES
   // step 2.5) Copy random field to baryonic field
@@ -236,6 +216,25 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // free the P(k)
   Free_Cosmo_Power_Spectrum();
 
+  delta_sum = 0;
+  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
+    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
+      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
+        // get cell index
+        id = i + j * nx_local + k * nx_local * ny_local;
+
+        delta_sum += CP.delta_m[id]; // perform a local reduction
+      }
+    }
+  }
+
+  // get the total of the grid to compute the mean
+  MPI_Allreduce(MPI_IN_PLACE, &delta_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+  // find the average
+  delta_ave = delta_sum/(nx_global*ny_global*nz_global);
+  chprintf("Average of random field after P(k) %e\n",delta_ave);
+
   delta_rms = 0;
   // reduce the grid values
   for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
@@ -258,6 +257,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   delta_rms = sqrt(delta_rms);
   chprintf("RMS of density field over entire grid = %e\n",delta_rms);
 
+  chexit(0);
 
   // note that delta_bc is about a ~0.1-1% effect,
   // depending on the k-scale
@@ -634,9 +634,54 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
   
   Real dx = P->xlen / P->nx; 
 
-  // original
-  // seems to produce correct P(k)?
-  Real pk_factor = 1e9; // convert (Mpc/h)^3 to (kpc/h)^3
+  // Rescale the cosmological power spectrum
+
+  // The log-log interpolation of the power spectrum
+  // correctly returns the amplitude expected with the
+  // rescaled P(k) -- for instance, if forcing a sample
+  // at k=1./195 h/kpc ~ 5.1 h/Mpc gives P(k) ~ 1.26 (times 1e9 if rescaled)
+  // because the rms density fluctuations are 3.548910e+04
+
+  // if instead we adopt a Mpc unit system, we get 
+  // at k=1./195 h/kpc ~ 5.1 h/Mpc gives P(k) ~ 1.26
+
+  // So, evaluated at the same location in h/kpc or h/Mpc
+  // returns the same P(k)
+
+  // If we keep the h/Mpc units, then when filtering
+  // by the P(k) we get 
+  // RMS of density field over entire grid = 4.583223e-01
+
+  // If we keep the h/kpc units, then when filtering
+  // by the P(k) we get 
+  // RMS of density field over entire grid = 1.449342e+04
+
+  // The factor of the power spectrum is leaking through
+
+  // So the scaling factor should not have the Mpc->kpc conversion
+  // unless we undo the scaling
+
+
+
+  // Multiplying by the square root of the power spectrum
+  // re HERE
+  Real pk_factor = 1; // RMS of density field over entire grid = 4.583223e-01
+  // if we transfer forward, multiply by 1, and then backward, we get the same variance we input
+  //Real pk_factor = 1.0e9*(nx_global*ny_global*nz_global)/(P->xlen*P->ylen*P->zlen);
+  //Real pk_factor = 1.0e9*(/pow(50000,3); // convert (Mpc/h)^3 to (kpc/h)^3 1.296331e-03
+
+  //Real pk_factor = 1.0e9; // convert (Mpc/h)^3 to (kpc/h)^3 RMS of density field over entire grid = 1.449342e+04
+  //Real pk_factor = 1.0e9/pow(50000,3); // convert (Mpc/h)^3 to (kpc/h)^3 1.296331e-03
+  //Real pk_factor = 1.0e9/pow(50000/(2*M_PI),3); // convert (Mpc/h)^3 to (kpc/h)^3 2e-2
+  //Real pk_factor = 1; // RMS of density field over entire grid = 4.583223e-01
+  //Real pk_factor = 1/(2.0*M_PI*M_PI); // RMS of density field over entire grid = 4.583223e-01
+  //Real pk_factor = pow(50,3)/(2.0); // RMS of density field over entire grid = 4.583223e-01
+  // (50/256)**3 = 0.007450580596923828
+  // (50000/256)**3 = 7450580.596923828
+
+
+
+  // The value of the power spectrum at redshift 0 and a ~195 kpc/h ~ 5 h/Mpc cell is ~ 1
 
   chprintf("Cosmological ICs: Power spectrum rescaling factor: %e\n",pk_factor);
 
@@ -645,7 +690,7 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
   // We are assuming P(k) has units of (Mpc/h)^3 and xlen, ylen, zlen are in kpc/h
   
   for (i=0; i<n_lines; i++ ){
-    CP.k_array[i]      = v[i][0] * 1e-3;       //Convert from 1/(Mpc/h) to  1/(kpc/h)
+    CP.k_array[i]      = v[i][0] * 1.0e-3;       //Convert from 1/(Mpc/h) to  1/(kpc/h)
     CP.pk_m_array[i]   = v[i][1] * pk_factor;  // P(k) rescaling
     if(j==3)
     {
