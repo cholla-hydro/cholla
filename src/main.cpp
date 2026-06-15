@@ -287,7 +287,7 @@ int main(int argc, char *argv[])
 
 
   // BRANT
-  //chexit(0);
+  chexit(0);
 
   // Compute inverse timestep for the first time
   dti = G.Calc_Inverse_Timestep();

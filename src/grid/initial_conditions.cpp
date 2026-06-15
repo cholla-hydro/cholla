@@ -2218,6 +2218,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         grad_phi_x       = 0.5*(phi_r - phi_l) / dx;
         grad_x_T[0][0]   = D*(phi_rr - 2 * phi + - phi_ll)/(dx*dx);
     #endif
+        grad_phi_x       = 0.5*(phi_r - phi_l) / dx;
 
 /*
         // repeat for nabla^-2 \delta_bc
@@ -2255,6 +2256,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         grad_phi_y = 0.5 * (phi_r - phi_l) / dy;
         grad_x_T[1][1]   = D*(phi_rr - 2 * phi + - phi_ll)/(dy*dy);
     #endif
+        grad_phi_y = 0.5 * (phi_r - phi_l) / dy;
 
 /*
         // repeat for nabla^-2 \delta_bc
@@ -2293,6 +2295,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         grad_phi_z     = 0.5 * (phi_r - phi_l) / dz;
         grad_x_T[2][2] = D*(phi_rr - 2 * phi + - phi_ll)/(dz*dz);
     #endif
+        grad_phi_z     = 0.5 * (phi_r - phi_l) / dz;
 
 /*
         // repeat for nabla^-2 \delta_bc
@@ -2584,7 +2587,8 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   //chprintf("Writing cosmological potential to file...\n");
   //Save_Cosmo_Potential(&P);
 
-#error investigate particles
+//#error investigate particles
+  //chexit(0);
 
 #endif  // COSMOLOGY
 }

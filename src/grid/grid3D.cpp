@@ -419,7 +419,7 @@ void Grid3D::Execute_Hydro_Integrator(void)
                          error_code_buffer.data());
 #endif  // VL
 #ifdef SIMPLE
-    chprintf("Before Simple Execute Hydro Integrator\n");
+    //chprintf("Before Simple Execute Hydro Integrator\n");
 #ifdef CHEMISTRY_GPU
     Do_Print_Chemistry(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields);
 #endif //CHEMISTRY_GPU
@@ -427,7 +427,7 @@ void Grid3D::Execute_Hydro_Integrator(void)
                              H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, H.density_floor,
                              C.Grav_potential, SlowCellConditionChecker(1.0 / H.min_dt_slow, H.dx, H.dy, H.dz),
                              error_code_buffer.data());
-    chprintf("After Simple Execute Hydro Integrator\n");
+    //chprintf("After Simple Execute Hydro Integrator\n");
 #ifdef CHEMISTRY_GPU
     Do_Print_Chemistry(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields);
 #endif //CHEMISTRY_GPU

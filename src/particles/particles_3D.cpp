@@ -1384,6 +1384,7 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
     #else
         grad_phi_x = 0.5 * (phi_r - phi_l) / dx;
     #endif
+        grad_phi_x = 0.5 * (phi_r - phi_l) / dx;
 
         //////////////////////////////////////////
         // take the potential gradient
@@ -1404,6 +1405,7 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
     #else
         grad_phi_y = 0.5 * (phi_r - phi_l) / dy;
     #endif
+        grad_phi_y = 0.5 * (phi_r - phi_l) / dy;
 
         //////////////////////////////////////////
         // take the potential gradient
@@ -1424,6 +1426,7 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
     #else
         grad_phi_z = 0.5 * (phi_r - phi_l) / dz;
     #endif
+        grad_phi_z = 0.5 * (phi_r - phi_l) / dz;
 
 /*
   #ifndef ONLY_PARTICLES
@@ -1574,6 +1577,9 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         temp_vel_x[pID] = vx;
         temp_vel_y[pID] = vy;
         temp_vel_z[pID] = vz;
+        //temp_vel_x[pID] = 0;
+        //temp_vel_y[pID] = 0;
+        //temp_vel_z[pID] = 0;
         #ifndef SINGLE_PARTICLE_MASS
         temp_mass[pID] = Mparticle;
         #endif

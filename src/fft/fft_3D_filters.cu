@@ -218,9 +218,9 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
 
 
         // Get the global indices 
-        int id_i = i < ni/2 ? i : i - ni;
-        int id_j = j < nj/2 ? j : j - nj;
-        int id_k = k < nk/2 ? k : k - nk;
+        //int id_i = i < ni/2 ? i : i - ni;
+        //int id_j = j < nj/2 ? j : j - nj;
+        //int id_k = k < nk/2 ? k : k - nk;
         // Compute kx, ky, and kz from the indices
         //Real kz = id_i * ddi;
         //Real ky = id_j * ddj;
@@ -234,7 +234,7 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
           //k2 = 1;
         // ddi = 2.0 * MPI/50000
         // dx  = (2.0*M_PI/(ddi*ni);
-
+/*
         Real dx = (2.0*M_PI/(ddi*ni));
         Real dy = (2.0*M_PI/(ddj*nj));
         Real dz = (2.0*M_PI/(ddk*nk));
@@ -248,8 +248,10 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
         Real k_sq = (kx*kx + ky*ky + kz*kz);
         if(k_sq==0)
           return cufftDoubleComplex{0.0,0.0};
-        Real d = -1./k_sq;
-
+        //Real d = -1./k_sq;
+        Real d = 1./k_sq;
+        //error REVERT
+*/
         /*const Real i2 = Sqr(Real(min(i, ni - i)) * ddi);
         const Real j2 = Sqr(Real(min(j, nj - j)) * ddj);
         const Real k2 = Sqr(Real(k) * ddk);*/
@@ -289,7 +291,7 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
         //const Real d = -1.0/(kx*kx + ky*ky + kz*kz);
 
         // 1/k^2
-/*
+
         // Get the global indices 
         int id_i = i < ni/2 ? i : i - ni;
         int id_j = j < nj/2 ? j : j - nj;
@@ -300,9 +302,11 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
         Real kx = id_k * ddk;  
         // Compute the magnitude of k 
         const Real k_sq =  kx*kx + ky*ky + kz*kz ;
-        const Real d = -1.0/k_sq;
-        //const Real d = 1.0/k_sq;
-*/
+        if(k_sq==0)
+          return cufftDoubleComplex{0.0,0.0};
+        //const Real d = -1.0/k_sq;
+        const Real d = 1.0/k_sq; // sign change doesn't change oddness
+
         return cufftDoubleComplex{d*b.x,d*b.y};
       } else {
         return cufftDoubleComplex{0.0,0.0};
