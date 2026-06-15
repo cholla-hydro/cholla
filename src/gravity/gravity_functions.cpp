@@ -124,12 +124,14 @@ void Grid3D::set_dt_Gravity()
   // Compute the physical time
   dt_physical   = Cosmo.Get_dt_from_da(Cosmo.delta_a, Cosmo.current_a);
   Cosmo.dt_secs = dt_physical * Cosmo.time_conversion;
-  Cosmo.t_secs += Cosmo.dt_secs;
   chprintf(" t_physical: %f Myr   dt_physical: %f Myr\n", Cosmo.t_secs / MYR, Cosmo.dt_secs / MYR);
-  Particles.dt = dt_physical;
 
   // Write expansion history
   Cosmo.Write_Expansion_History_Entry();
+
+  // Update time for cosmology and apply dt to particles
+  Cosmo.t_secs += Cosmo.dt_secs;
+  Particles.dt = dt_physical;
 
     #else  // Not Cosmology
   // If NOT using COSMOLOGY
