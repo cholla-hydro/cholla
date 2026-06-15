@@ -4,6 +4,8 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
+#include <string>
+
 #include "../grid/grid_enum.h"  // defines NSCALARS
 #include "cholla_config.h"
 
@@ -182,17 +184,13 @@ extern int root;   /*rank of root process*/
  */
 void Init_Global_Parallel_Vars_No_MPI();
 
+// forward-declare ParameterMap (it's primarily used to construct Parameters)
+class ParameterMap;
+
 /*! A collection of assorted parameter values.
  *
  *  The existence of this type is largely a historical artifact. The plan is to
  *  gradually remove data members from this type.
- *
- *  \note
- *  Before removing a parameter from this type, check if that parameter is parsed
- *  within \ref Old_Style_Parse_Param. PR 495 seeks to remove all
- *  of the parameters from that function. Thus, you may want to merge in the work from
- *  the branch where the parameter parsing logic has been moved **BEFORE** you start to
- *  relocate logic. (Otherwise, you are going to encounter some merge conflicts)
  *
  *  Guidelines for Removing Parameters
  *  ----------------------------------
@@ -216,6 +214,15 @@ void Init_Global_Parallel_Vars_No_MPI();
  *    (maybe a "Model" type?) where a value can be persistently stored
  */
 struct Parameters {
+  /*! Construct a new instance using values from \p pmap
+   *
+   *  \param[in] pmap The map of all parsed parameters. Reminder: the only reason this
+   *      isn't marked ``const`` is to reflect the fact that the type internally tracks
+   *      each parameter that is accessed.
+   */
+  explicit Parameters(ParameterMap &pmap);
+
+  // List the parameters
   int nx;
   int ny;
   int nz;
@@ -316,6 +323,8 @@ struct Parameters {
   Real Init_redshift;
   Real End_redshift;
 
+  std::string wDE_file;  // File with equation of state as function of redshift
+
   // File for the scale_factor output values for cosmological simulations
   char scale_outputs_file[MAXLEN];
   #define EXPANSION_HISTORY_FILE_NAME "expansion_history.txt"
@@ -354,22 +363,6 @@ struct Parameters {
   #endif
 #endif
 };
-
-class ParameterMap;
-
-/*! \brief Initializes \p parms using values from \p pmap
- *
- *  \param[in] pmap The map of all parsed parameters. Reminder: the only reason this
- *      isn't marked ``const`` is to reflect the fact that the type internally tracks
- *      each parameter that is accessed.
- *  \param[out] parms The object being initialized
- *
- *  \todo
- *  This should probably be converted so that it is a constructor of \ref Parameters
- *  (or we should change the function name), but we are waiting until after PR #495
- *  to actually do that
- */
-void Parse_Params(ParameterMap &pmap, struct Parameters *parms);
 
 /*! \brief prints a warning if pmap contains any unused parameters */
 void Warn_Unused_Params(ParameterMap &pmap);

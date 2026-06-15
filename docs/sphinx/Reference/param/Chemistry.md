@@ -28,7 +28,7 @@ The following table summarizes the available choices (and the conditions where t
 * - "piecewise-cie"
   - piecewise-parabolic fit to a collisional ionization equilibrium (CIE)
   - N/A
-* - "piecewise-ti"
+* - "piecewise-ti+cie"
   - Analytic cooling/heating recipe that roughly matches the "TI" cooling runs shown in
  in [Kim & Ostriker 2015](https://ui.adsabs.harvard.edu/abs/2015ApJ...802...99K/abstract)
   - N/A
@@ -67,7 +67,7 @@ It is an error to specify this parameter when {par:param}`chemistry.kind` chemis
 :Type: {par:typefmt}`bool`
 :Default: `false`
 
-Can be used to enable photoelectric-heating when {par:param}`chemistry.kind` is set to "tabulated-cloudy" or "piecewise-ti". It is an error to specify this for any other {par:param}`cooling.kind`.
+Can be used to enable photoelectric-heating when {par:param}`chemistry.kind` is set to "tabulated-cloudy" or "piecewise-ti+cie". It is an error to specify this for any other {par:param}`cooling.kind`.
 
 :::
 

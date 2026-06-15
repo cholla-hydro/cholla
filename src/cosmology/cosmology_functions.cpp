@@ -24,11 +24,21 @@ void Grid3D::Initialize_Cosmology(struct Parameters *P)
   chprintf("Cosmology Successfully Initialized. \n\n");
 }
 
+/* Calculate rhoDE(z) / rhoDE(z=0) */
+Real Cosmology::Get_DE_Density_from_a(Real a)
+{
+  if (Using_DynamicalDE_Table()) {
+    return tab_dynamicalDE_EoS->Get_DynamicalDE_Density_from_a(a);
+  } else {
+    return pow(a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - a));
+  }
+}
+
 /* Computes dt/da * da */
 Real Cosmology::dtda_cosmo(Real da, Real a)
 {
   Real a2     = a * a;
-  Real fac_de = pow(a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - current_a));
+  Real fac_de = Get_DE_Density_from_a(a);
   Real a_dot  = sqrt(Omega_R / a2 + Omega_M / a + a2 * Omega_L * fac_de + Omega_K) * H0;
   return da / a_dot;
 }
@@ -61,7 +71,7 @@ Real Cosmology::Get_dt_from_da_rk(Real da, Real a)
 Real Cosmology::Get_da_from_dt(Real dt)
 {
   Real a2     = current_a * current_a;
-  Real fac_de = pow(current_a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - current_a));
+  Real fac_de = Get_DE_Density_from_a(current_a);
   Real a_dot  = sqrt(Omega_R / a2 + Omega_M / current_a + a2 * Omega_L * fac_de + Omega_K) * H0;
   return a_dot * dt;
 }
@@ -86,7 +96,7 @@ Real Cosmology::Get_Hubble_Parameter(Real a)
   Real a2     = a * a;
   Real a3     = a2 * a;
   Real a4     = a2 * a2;
-  Real fac_de = pow(a, -3 * (1 + w0 + wa)) * exp(-3 * wa * (1 - a));
+  Real fac_de = Get_DE_Density_from_a(a);
   Real factor = (Omega_R / a4 + Omega_M / a3 + Omega_K / a2 + Omega_L * fac_de);
   return H0 * sqrt(factor);
 }

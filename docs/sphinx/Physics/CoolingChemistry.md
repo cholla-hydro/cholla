@@ -19,7 +19,7 @@ We will cover this in more detail down below.
 
 Supported options include:
 - `"piecewise-cie"`: a piecewise-parabolic fit to a collisional ionization equilibrium (CIE) cooling function at solar metallicity (see Appendix A.2 in [Schneider & Robertson, 2018](https://ui.adsabs.harvard.edu/abs/2018ApJ...860..135S/abstract) for a description)
-- `"piecewise-ti"`: Analytic cooling/heating recipe that roughly matches the "TI" cooling runs shown in
+- `"piecewise-ti+cie"`: Analytic cooling/heating recipe that roughly matches the "TI" cooling runs shown in
  [Kim & Ostriker 2015](https://ui.adsabs.harvard.edu/abs/2015ApJ...802...99K/abstract)
 - `"tabulated-cloudy"`: a cooling / heating function based on a solar metallicity Cloudy model with a Hardt & Madau 2005 UV background (see Appendix C in [Schneider & Robertson, 2017](https://ui.adsabs.harvard.edu/abs/2017ApJ...834..144S/abstract) for a description)
 
@@ -39,7 +39,8 @@ The choice of simple-solver is specified through the {par:param}`chemistry.kind`
   - path to data file used by "tabulated-cooling" solver
 * - "piecewise-cie"
   - piecewise-parabolic fit to a collisional ionization equilibrium (CIE)
-* - "piecewise-ti"
+  - `COOLING_GPU` **without** `CLOUDY_COOL`
+* - "piecewise-ti+cie"
   - Analytic cooling/heating recipe that roughly matches the "TI" cooling runs shown in
  in [Kim & Ostriker 2015](https://ui.adsabs.harvard.edu/abs/2015ApJ...802...99K/abstract)
 :::
@@ -52,7 +53,7 @@ This solver provides an analytic fit to a solar metallicity CIE cooling curve ca
 
 Not currently compatible with photoelectric heating.
 
-#### "piecewise-ti"
+#### "piecewise-ti+cie"
 
 This solver uses the same analytic fit as "piecewise-cie" above 1e4K and extends the fit at lower temperatures.
 
