@@ -7,6 +7,7 @@
   #include "../grid/grid3D.h"
   #include "../io/io.h"
   #include "../model/disk_galaxy.h"
+  #include "../model/model_collection.h"
   #include "../model/potentials.h"
   #include "../utils/error_handling.h"
 
@@ -232,8 +233,6 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
     // now, use the calc_potential function to actually fill the boundaries
     Compute_Potential_Isolated_Boundary_Helper(pot_boundary, boundary_buf_props, Grav, direction, side, calc_potential);
   } else if (bc_potential_type == 1) {
-    // M-W disk potential
-
     // The underlying assumption of PARIS_GALACTIC is that we have a good analytic
     // approximation the gravitation potential at the boundaries due to the dynamical density
     // (i.e. gas density and particle density)
@@ -246,7 +245,18 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
     // -> we are implicitly assuming that the gas disk is the only source of dynamical density
     //    (i.e. the `rho_real` array is dominated by gas density)
     // -> we are currently ignoring contributions from particles
-    const ApproxExponentialDisk3MN approx_potential = galaxies::MW.getGasDisk().selfgrav_approx_potential;
+    const ClusteredDiskGalaxy *galaxy_model = models().try_get<ClusteredDiskGalaxy>();
+    CHOLLA_ASSERT(galaxy_model != nullptr, "no galaxy model was initialized");
+
+    // NOTE: The way that we access galaxy_model from the model-collection every time is
+    // a little inefficient
+    // - it's probably fine when there is only a small number of models, but it will get
+    //   proportionally more expensive as we add more kinds of models.
+    // - the solution to this problem and the problem of keeping the approximation
+    //   synchronized with the approximation in Paris_Galactic is to create some kind
+    //   of callback/plugin inside of the Grav3D type for this purpose (we would
+    //   probably implement that via inheritance)
+    const ApproxExponentialDisk3MN approx_potential = galaxy_model->getGasDisk().selfgrav_approx_potential;
 
     // define a local function that actually computes the potential
     auto calc_potential = [=](Real pos_x, Real pos_y, Real pos_z) -> Real {
