@@ -383,6 +383,8 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
     }
   }
 */
+
+/*
   chprintf("TESTING Add a gradient to phi_1\n");
   Real dx = H.dx;
   Real dy = H.dy;
@@ -458,6 +460,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   chprintf("TESTING Z-gradient average = %e\n",grad_phi_z);
 
   //chexit(0);
+*/
 
 
   chprintf("Proceeding to finish initialization...\n");
