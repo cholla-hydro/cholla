@@ -1336,7 +1336,7 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
   // at z~100, a ~ 0.0099 and Ha ~ 38.9 km/s/kpc
   // so A_vel should be ~ 0.37 km/s/kpc
   A_vel = a_init * Ha * dlogDdloga;
-  chprintf("Cosmological ICs: Particles: Velocity scaling = %e [km/s/k[c]\n",A_vel);
+  chprintf("Cosmological ICs: Particles: Velocity scaling = %e [km/s/kpc]\n",A_vel);
 
   // gradient operators
   // d/dx
@@ -1425,6 +1425,7 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         grad_phi_z = 0.5 * (phi_r - phi_l) / dz;
     #endif
 
+/*
   #ifndef ONLY_PARTICLES
 
         // repeat the potential calcualtion for the 
@@ -1491,6 +1492,7 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
     #endif
 
   #endif //ONLY_PARTICLES
+*/
 
         //////////////////////////////////////////
         // compute displacements
@@ -1522,6 +1524,7 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         if(vx>vx_max)
           vx_max = vx;
 
+/*
       #ifndef ONLY_PARTICLES
 
         // add contribution from baryon-cdm fluctuation
@@ -1531,6 +1534,7 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         xi_z += grad_phi_bc_z;
 
       #endif //ONLY PARTICLES
+*/
 
         //////////////////////////////////////////
         // apply displacements from lagrangian pos
@@ -1583,12 +1587,6 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
       }
     }
   }
-
-  chprintf("Minimum vx: %e\n",vx_min);
-  chprintf("Maximum vx: %e\n",vx_max);
-  chprintf("Minimum xix: %e\n",xix_min);
-  chprintf("Maximum xix: %e\n",xix_max);
-
 
   #ifdef PARTICLES_CPU
   n_local = pos_x.size();
@@ -1643,8 +1641,6 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
   #endif  // PARTICLES_GPU
 
   chprintf(" Cosmological ICs particle positions initialized, n_local: %lu\n", n_local);
-
-  //chexit(0);
 }
 
 

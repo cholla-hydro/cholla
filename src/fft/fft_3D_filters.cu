@@ -165,17 +165,22 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
 
   // Poisson-solve constants that depend on divergence-operator approximation
   const int nk    = nk_;
+
+  const Real si = M_PI / Real(ni);
+  const Real sj = M_PI / Real(nj);
+  const Real sk = M_PI / Real(nk);
 /*
   #ifdef PARIS_3PT
   const Real si = M_PI / Real(ni);
   const Real sj = M_PI / Real(nj);
   const Real sk = M_PI / Real(nk);
   #elif defined PARIS_5PT
-  const int nk    = nk_;
+  //const int nk    = nk_;
   const Real si = 2.0 * M_PI / Real(ni);
   const Real sj = 2.0 * M_PI / Real(nj);
   const Real sk = 2.0 * M_PI / Real(nk);
-  #endif*/
+  #endif
+*/
 
   const int n = ni * nj * nk;
 
@@ -183,6 +188,14 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
   henry_->filter(bytes, db_, da_,
     [=] __device__ (const int i, const int j, const int k, const cufftDoubleComplex b) {
       if (i || j || k) {
+
+        /*const Real i2 = Sqr(sin(Real(min(i, ni - i)) * si) * ddi);
+        const Real j2 = Sqr(sin(Real(min(j, nj - j)) * sj) * ddj);
+        const Real k2 = Sqr(sin(Real(k) * sk) * ddk);*/
+        /*const Real i2 = Sqr(Real(min(i, ni - i)) * ddi);
+        const Real j2 = Sqr(Real(min(j, nj - j)) * ddj);
+        const Real k2 = Sqr(Real(k) * ddk);
+        const Real d = -1./(i2+j2+k2);*/
 /*
   #ifdef PARIS_3PT
         const Real i2 = Sqr(sin(Real(min(i, ni - i)) * si) * ddi);
@@ -199,7 +212,54 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
         const Real i2 = Sqr(Real(min(i, ni - i)) * ddi);
         const Real j2 = Sqr(Real(min(j, nj - j)) * ddj);
         const Real k2 = Sqr(Real(k) * ddk);
-  #endif*/
+  #endif
+*/
+
+
+
+        // Get the global indices 
+        int id_i = i < ni/2 ? i : i - ni;
+        int id_j = j < nj/2 ? j : j - nj;
+        int id_k = k < nk/2 ? k : k - nk;
+        // Compute kx, ky, and kz from the indices
+        //Real kz = id_i * ddi;
+        //Real ky = id_j * ddj;
+        //Real kx = id_k * ddk; 
+        //const Real dx = 1./(ddi/(2.*M_PI)); // grid size
+        //const Real k2 = 2./(dx*dx) * (3 - cos(kx*dx) - cos(ky*dx) - cos(kz*dx) );
+        //const Real f = 2.0*M_PI;
+        //Real k2 = 2./(dx*dx) * (3 - cos(f*Real(id_i)) - cos(f*Real(id_j)) - cos(f*Real(id_k)) );
+        //if(k2==0)
+        //  return cufftDoubleComplex{0.0,0.0};
+          //k2 = 1;
+        // ddi = 2.0 * MPI/50000
+        // dx  = (2.0*M_PI/(ddi*ni);
+
+        Real dx = (2.0*M_PI/(ddi*ni));
+        Real dy = (2.0*M_PI/(ddj*nj));
+        Real dz = (2.0*M_PI/(ddk*nk));
+        Real kx = id_i * ddi;
+        Real ky = id_j * ddj;
+        Real kz = id_k * ddk; 
+        Real i2 = (2/(dx*dx)) * (cos(kx*dx)-1);
+        Real j2 = (2/(dy*dy)) * (cos(ky*dy)-1);
+        Real k2 = (2/(dz*dz)) * (cos(kz*dz)-1);
+        //Real k_sq = (i2+j2+k2);
+        Real k_sq = (kx*kx + ky*ky + kz*kz);
+        if(k_sq==0)
+          return cufftDoubleComplex{0.0,0.0};
+        Real d = -1./k_sq;
+
+        /*const Real i2 = Sqr(Real(min(i, ni - i)) * ddi);
+        const Real j2 = Sqr(Real(min(j, nj - j)) * ddj);
+        const Real k2 = Sqr(Real(k) * ddk);*/
+
+        //HERE
+        /*const Real i2 = Sqr(Real(min(i, ni - i)) * ddi);
+        const Real j2 = Sqr(Real(min(j, nj - j)) * ddj);
+        const Real k2 = Sqr(Real(k) * ddk);
+        const Real d = -1.0/(i2+j2+k2);*/
+
         //const Real i2 = Sqr(Real(min(i, ni - i)) * ddi);
         //const Real j2 = Sqr(Real(min(j, nj - j)) * ddj);
         //const Real k2 = Sqr(Real(k) * ddk);
@@ -228,6 +288,8 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
         //const Real d = -1.0/(i2+j2+k2);
         //const Real d = -1.0/(kx*kx + ky*ky + kz*kz);
 
+        // 1/k^2
+/*
         // Get the global indices 
         int id_i = i < ni/2 ? i : i - ni;
         int id_j = j < nj/2 ? j : j - nj;
@@ -240,7 +302,7 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
         const Real k_sq =  kx*kx + ky*ky + kz*kz ;
         const Real d = -1.0/k_sq;
         //const Real d = 1.0/k_sq;
-
+*/
         return cufftDoubleComplex{d*b.x,d*b.y};
       } else {
         return cufftDoubleComplex{0.0,0.0};

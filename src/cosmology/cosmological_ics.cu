@@ -52,7 +52,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   }
 
 	// OK, let's proceed
-	chprintf("Generating potentials for cosmological ICs.\n");
+	chprintf("Cosmological ICs: Generating potentials....\n");
 
 	// set the number of fields
 	CP.n_fields = 2; //initial potential and overdensity field	
@@ -65,8 +65,8 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   Real Omega_M = P->Omega_M;
   Real G       = G_COSMO;
 
-  chprintf("CP: h = %f \n", h);
-  chprintf("CP: Omega_M = %f \n", Omega_M);
+  chprintf("Cosmological ICs: h = %f \n", h);
+  chprintf("Cosmological ICs: Omega_M = %f \n", Omega_M);
 
   H0 /= 1000;  //[km/s / kpc]
   Real rho_0  = 3 * H0 * H0 / (8 * M_PI * G) * Omega_M / h / h;
@@ -101,6 +101,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
   Real delta_rms = 0;
+  Real delta_ave = 0;
   // reduce the grid values
   for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
     for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
@@ -110,39 +111,22 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
         id = i + j * nx_local + k * nx_local * ny_local;
 
         delta_rms += pow(CP.delta_m[id],2);
+        delta_ave += CP.delta_m[id];
       }
     }
   }
 
-  // get the total of the grid to compute the mean
+  // get the total of the grid to compute the rms
   MPI_Allreduce(MPI_IN_PLACE, &delta_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
-  // find the average
-  delta_rms = delta_rms/(nx_global*ny_global*nz_global);
-  delta_rms = sqrt(delta_rms);
-  chprintf("RMS of density field over entire grid = %e\n",delta_rms);
-
-  // reduce the grid values
-	Real delta_sum = 0;
-	Real delta_ave = 0;
-  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
-    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
-      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
-        // get cell index
-        id = i + j * nx_local + k * nx_local * ny_local;
-
-        delta_sum += CP.delta_m[id]; // perform a local reduction
-      }
-    }
-  }
-
   // get the total of the grid to compute the mean
-  MPI_Allreduce(MPI_IN_PLACE, &delta_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &delta_ave, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-  // find the average
-  delta_ave = delta_sum/(nx_global*ny_global*nz_global);
-  chprintf("Average of random field %e\n",delta_ave);
-
+  // find the rms and average
+  delta_rms = delta_rms/(nx_global*ny_global*nz_global);
+  delta_ave = delta_ave/(nx_global*ny_global*nz_global);
+  delta_rms = sqrt(delta_rms);
+  chprintf("Cosmological ICs: Mean of unit-variance field over entire grid = %e\n",delta_ave);
+  chprintf("Cosmological ICs: RMS  of unit-variance field over entire grid = %e\n",delta_rms);
 
   // reduce the grid values
   for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
@@ -161,37 +145,6 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	// copy mean zero phi back to GPU
 	GPU_Error_Check(cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
-
-
-  delta_sum  = 0;
-  delta_rms  = 0;
-  // reduce the grid values
-  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
-    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
-      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
-
-        // get cell index
-        id = i + j * nx_local + k * nx_local * ny_local;
-
-        delta_sum  += pow(CP.delta_m[id],2);
-        delta_sum  += CP.delta_m[id];
-      }
-    }
-  }
-  chprintf("2nd RMS of density field over entire grid = %e (before reduction)\n",delta_rms);
-  // get the total of the grid to compute the mean
-  MPI_Allreduce(MPI_IN_PLACE, &delta_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-  // get the total of the grid to compute the mean
-  MPI_Allreduce(MPI_IN_PLACE, &delta_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
-  // find the average
-  delta_ave = delta_sum/(nx_global*ny_global*nz_global);
-  delta_rms = delta_rms/(nx_global*ny_global*nz_global);
-  delta_rms = sqrt(delta_rms);
-  chprintf("2nd RMS of density field over entire grid = %e\n",delta_rms);
-  chprintf("2nd Mean of density field over entire grid = %e\n",delta_ave);
-
-
 	// step 2) Take the fourier transform
 	//         xi(k) = N**-d \sum_m exp( -(2 pi i / M) * kappa \dot m) * xi(m)
 
@@ -205,11 +158,11 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	//         note T(k) is computed at z=0
   //         also note  the [(2 \pi / L)**3 ]^{1/2} factor is handled
   //         when the power spectrum is loaded, so this just applies sqrt(P(k))
-  chprintf("Applying matter power spectrum...\n");
+  chprintf("Cosmological ICs: applying matter power spectrum...\n");
   fft.Filter_rescale_by_power_spectrum(CP.d_delta_m,CP.d_delta_m,true,CP.n_pk,CP.d_k_array,CP.d_pk_m_array);
 
 #ifndef ONLY_PARTICLES
-  chprintf("Applying baryonic - cdm power spectrum...\n");
+  chprintf("Cosmological ICs: applying baryonic - cdm power spectrum...\n");
   fft.Filter_rescale_by_power_spectrum(CP.d_delta_bc,CP.d_delta_bc,true,CP.n_pk,CP.d_k_array,CP.d_pk_bc_array);
 #endif 
 
@@ -222,46 +175,31 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // free the P(k)
   Free_Cosmo_Power_Spectrum();
 
-  delta_sum = 0;
-  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
-    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
-      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
-        // get cell index
-        id = i + j * nx_local + k * nx_local * ny_local;
-
-        delta_sum += CP.delta_m[id]; // perform a local reduction
-      }
-    }
-  }
-
-  // get the total of the grid to compute the mean
-  MPI_Allreduce(MPI_IN_PLACE, &delta_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
-  // find the average
-  delta_ave = delta_sum/(nx_global*ny_global*nz_global);
-  chprintf("Average of random field after P(k) %e\n",delta_ave);
-
+  delta_ave = 0;
   delta_rms = 0;
-  // reduce the grid values
   for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
     for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
       for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
-
         // get cell index
         id = i + j * nx_local + k * nx_local * ny_local;
 
+        delta_ave += CP.delta_m[id]; // perform a local reduction
         delta_rms += pow(CP.delta_m[id],2);
       }
     }
   }
-  chprintf("RMS of density field over entire grid = %e (before reduction)\n",delta_rms);
+
   // get the total of the grid to compute the mean
+  MPI_Allreduce(MPI_IN_PLACE, &delta_ave, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  // get the total of the grid to compute the rms
   MPI_Allreduce(MPI_IN_PLACE, &delta_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
   // find the average
+  delta_ave = delta_ave/(nx_global*ny_global*nz_global);
   delta_rms = delta_rms/(nx_global*ny_global*nz_global);
   delta_rms = sqrt(delta_rms);
-  chprintf("RMS of density field over entire grid = %e\n",delta_rms);
+  chprintf("Cosmological ICs: Mean of overdensity field after P(k) %e\n",delta_ave);
+  chprintf("Cosmological ICs: RMS  of overdensity field after P(k) %e\n",delta_rms);
 
 
   // note that delta_bc is about a ~0.1-1% effect,
@@ -310,7 +248,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // the remaining initial conditions.
 
   // let's calculate phi_1
-  chprintf("Calculating initial potential for cosmological ICs...\n");
+  chprintf("Cosmological ICs: calculating initial potential from inverse lapacian...\n");
 
   // Perhaps compute phi_init here as advertised?
   // should return phi_1 = \nabla^-2 delta_m
@@ -332,57 +270,33 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   cudaMemcpy(CP.phi_2,  CP.d_phi_2,  n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 #endif //ONLY_PARTICLES
 
-  delta_sum = 0;
-  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
-    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
-      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
-        // get cell index
-        id = i + j * nx_local + k * nx_local * ny_local;
-
-        delta_sum += CP.phi_1[id]; // perform a local reduction
-      }
-    }
-  }
-
-  // get the total of the grid to compute the mean
-  MPI_Allreduce(MPI_IN_PLACE, &delta_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
-  // find the average
-  delta_ave = delta_sum/(nx_global*ny_global*nz_global);
-  chprintf("Average of Phi field %e\n",delta_ave);
-
+  delta_ave = 0;
   delta_rms = 0;
-  // reduce the grid values
   for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
     for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
       for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
-
         // get cell index
         id = i + j * nx_local + k * nx_local * ny_local;
 
+        delta_ave += CP.phi_1[id]; // perform a local reduction
         delta_rms += pow(CP.phi_1[id],2);
       }
     }
   }
-  chprintf("RMS of density field over entire grid = %e (before reduction)\n",delta_rms);
+
   // get the total of the grid to compute the mean
+  MPI_Allreduce(MPI_IN_PLACE, &delta_ave, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  // get the total of the grid to compute the rms
   MPI_Allreduce(MPI_IN_PLACE, &delta_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
   // find the average
+  delta_ave = delta_ave/(nx_global*ny_global*nz_global);
   delta_rms = delta_rms/(nx_global*ny_global*nz_global);
   delta_rms = sqrt(delta_rms);
-  chprintf("RMS of phi field over entire grid = %e\n",delta_rms);
+  chprintf("Cosmological ICs: Mean of phi field %e\n",delta_ave);
+  chprintf("Cosmological ICs: RMS  of phi field %e\n",delta_rms);
 
-/*
-  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
-    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
-      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
-        id = i + j * nx_local + k * nx_local * ny_local;
-        CP.delta_m[id] = 0;
-      }
-    }
-  }
-*/
+  //chexit(0); //HERE
 
 /*
   chprintf("TESTING Add a gradient to phi_1\n");
@@ -464,7 +378,6 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
 
   chprintf("Proceeding to finish initialization...\n");
-  //chexit(0);
 }
 
 /*! \fn void Save_Cosmo_Potential(struct Parameters *P)
