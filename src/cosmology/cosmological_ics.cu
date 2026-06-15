@@ -163,7 +163,8 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
 
 
-  delta_rms = 0;
+  delta_sum  = 0;
+  delta_rms  = 0;
   // reduce the grid values
   for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
     for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
@@ -172,18 +173,23 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
         // get cell index
         id = i + j * nx_local + k * nx_local * ny_local;
 
-        delta_rms += pow(CP.delta_m[id],2);
+        delta_sum  += pow(CP.delta_m[id],2);
+        delta_sum  += CP.delta_m[id];
       }
     }
   }
   chprintf("2nd RMS of density field over entire grid = %e (before reduction)\n",delta_rms);
   // get the total of the grid to compute the mean
   MPI_Allreduce(MPI_IN_PLACE, &delta_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  // get the total of the grid to compute the mean
+  MPI_Allreduce(MPI_IN_PLACE, &delta_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
   // find the average
+  delta_ave = delta_sum/(nx_global*ny_global*nz_global);
   delta_rms = delta_rms/(nx_global*ny_global*nz_global);
   delta_rms = sqrt(delta_rms);
   chprintf("2nd RMS of density field over entire grid = %e\n",delta_rms);
+  chprintf("2nd Mean of density field over entire grid = %e\n",delta_ave);
 
 
 	// step 2) Take the fourier transform
@@ -257,7 +263,6 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   delta_rms = sqrt(delta_rms);
   chprintf("RMS of density field over entire grid = %e\n",delta_rms);
 
-  chexit(0);
 
   // note that delta_bc is about a ~0.1-1% effect,
   // depending on the k-scale
@@ -327,7 +332,136 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   cudaMemcpy(CP.phi_2,  CP.d_phi_2,  n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 #endif //ONLY_PARTICLES
 
+  delta_sum = 0;
+  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
+    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
+      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
+        // get cell index
+        id = i + j * nx_local + k * nx_local * ny_local;
+
+        delta_sum += CP.phi_1[id]; // perform a local reduction
+      }
+    }
+  }
+
+  // get the total of the grid to compute the mean
+  MPI_Allreduce(MPI_IN_PLACE, &delta_sum, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+  // find the average
+  delta_ave = delta_sum/(nx_global*ny_global*nz_global);
+  chprintf("Average of Phi field %e\n",delta_ave);
+
+  delta_rms = 0;
+  // reduce the grid values
+  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
+    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
+      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
+
+        // get cell index
+        id = i + j * nx_local + k * nx_local * ny_local;
+
+        delta_rms += pow(CP.phi_1[id],2);
+      }
+    }
+  }
+  chprintf("RMS of density field over entire grid = %e (before reduction)\n",delta_rms);
+  // get the total of the grid to compute the mean
+  MPI_Allreduce(MPI_IN_PLACE, &delta_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+  // find the average
+  delta_rms = delta_rms/(nx_global*ny_global*nz_global);
+  delta_rms = sqrt(delta_rms);
+  chprintf("RMS of phi field over entire grid = %e\n",delta_rms);
+
+/*
+  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
+    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
+      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
+        id = i + j * nx_local + k * nx_local * ny_local;
+        CP.delta_m[id] = 0;
+      }
+    }
+  }
+*/
+  chprintf("TESTING Add a gradient to phi_1\n");
+  Real dx = H.dx;
+  Real dy = H.dy;
+  Real dz = H.dz;
+  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
+    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
+      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
+        // get cell index
+        id = i + j * nx_local + k * nx_local * ny_local;
+
+        //CP.phi_1[id] = 3 * (i/256.) + 5*(j/256.)*nx_local + 7.5 * (k/256.) * nx_local * ny_local;
+        CP.phi_1[id] = 3*i*dx + 5*j*dy + 7.5*k*dz;
+        //CP.phi_1[id] = 7.5 * k * dz + 0.5*dz;
+        //CP.phi_1[id] = 1.0;
+
+        //CP.delta_m[id] = 7.5 * (k/256.);
+      }
+    }
+  }
+
+  delta_ave = 0;  
+  Real phi, phi_l, phi_r, phi_ll, phi_rr;
+  Real grad_phi_x=0, grad_phi_y=0, grad_phi_z=0;
+  Real ngrad = 0;
+  //for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
+  //  for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
+  //    for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
+  for (k = 2; k < H.nz - 2*H.n_ghost - 2; k++) {
+    for (j = 2; j < H.ny - 2*H.n_ghost - 2; j++) {
+      for (i = 2; i < H.nx - 2*H.n_ghost - 2; i++) {
+        // x-direction
+        id = i + j * nx_local + k * nx_local * ny_local;
+        phi = CP.phi_1[id];
+        id = i - 1  + j * nx_local + k * nx_local * ny_local;
+        phi_l = CP.phi_1[id];
+        id = i + 1  + j * nx_local + k * nx_local * ny_local;
+        phi_r = CP.phi_1[id];
+        grad_phi_x += 0.5*(phi_r - phi_l)/dx;
+
+        // y-direction
+        id = i + j * nx_local + k * nx_local * ny_local;
+        phi = CP.phi_1[id];
+        id = i + (j-1) * nx_local + k * nx_local * ny_local;
+        phi_l = CP.phi_1[id];
+        id = i + (j+1) * nx_local + k * nx_local * ny_local;
+        phi_r = CP.phi_1[id];
+        grad_phi_y += 0.5*(phi_r - phi_l)/dy;
+
+        // z-direction
+        id = i + j * nx_local + k * nx_local * ny_local;
+        phi = CP.phi_1[id];
+        id = i + j * nx_local + (k-1)* nx_local * ny_local;
+        phi_l = CP.phi_1[id];
+        id = i + j * nx_local + (k+1) * nx_local * ny_local;
+        phi_r = CP.phi_1[id];
+        grad_phi_z += 0.5*(phi_r - phi_l)/dz;
+
+        ngrad +=1;
+
+      }
+    }
+  }
+  MPI_Allreduce(MPI_IN_PLACE, &grad_phi_x, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &grad_phi_y, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &grad_phi_z, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &ngrad, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  // find the average
+  grad_phi_x = grad_phi_x/ngrad;
+  grad_phi_y = grad_phi_y/ngrad;
+  grad_phi_z = grad_phi_z/ngrad;
+  chprintf("TESTING X-gradient average = %e\n",grad_phi_x);
+  chprintf("TESTING Y-gradient average = %e\n",grad_phi_y);
+  chprintf("TESTING Z-gradient average = %e\n",grad_phi_z);
+
+  //chexit(0);
+
+
   chprintf("Proceeding to finish initialization...\n");
+  //chexit(0);
 }
 
 /*! \fn void Save_Cosmo_Potential(struct Parameters *P)
@@ -665,9 +799,9 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
 
   // Multiplying by the square root of the power spectrum
   // re HERE
-  Real pk_factor = 1; // RMS of density field over entire grid = 4.583223e-01
+  //Real pk_factor = 1; // RMS of density field over entire grid = 4.583223e-01
   // if we transfer forward, multiply by 1, and then backward, we get the same variance we input
-  //Real pk_factor = 1.0e9*(nx_global*ny_global*nz_global)/(P->xlen*P->ylen*P->zlen);
+  Real pk_factor = 1.0e9*(nx_global*ny_global*nz_global)/(P->xlen*P->ylen*P->zlen);
   //Real pk_factor = 1.0e9*(/pow(50000,3); // convert (Mpc/h)^3 to (kpc/h)^3 1.296331e-03
 
   //Real pk_factor = 1.0e9; // convert (Mpc/h)^3 to (kpc/h)^3 RMS of density field over entire grid = 1.449342e+04
@@ -690,7 +824,8 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
   // We are assuming P(k) has units of (Mpc/h)^3 and xlen, ylen, zlen are in kpc/h
   
   for (i=0; i<n_lines; i++ ){
-    CP.k_array[i]      = v[i][0] * 1.0e-3;       //Convert from 1/(Mpc/h) to  1/(kpc/h)
+    //CP.k_array[i]      = v[i][0];       //Convert from 1/(Mpc/h) to  1/(kpc/h)
+    CP.k_array[i]      = v[i][0] * 1e-3;       //Convert from 1/(Mpc/h) to  1/(kpc/h)
     CP.pk_m_array[i]   = v[i][1] * pk_factor;  // P(k) rescaling
     if(j==3)
     {

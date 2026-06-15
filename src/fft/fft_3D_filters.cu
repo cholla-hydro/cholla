@@ -11,6 +11,7 @@
 
 
 __host__ __device__ static inline Real sqr(const Real x) { return x*x; }
+__host__ __device__ static inline Real Sqr(const double x) { return x * x; }
 
 __device__ Real linear_interpolation( Real x, Real *x_vals, Real *y_vals, int N ){
   if ( x <= x_vals[0] ){
@@ -134,7 +135,6 @@ void FFT_3D::Filter_rescale_by_power_spectrum( Real *input, Real *output, bool i
         // these give similar answers
         //Real pk = linear_interpolation( k_mag, dev_k, dev_pk, size ); // linear interp of P(k)
         Real pk = log_log_interpolation( k_mag, dev_k, dev_pk, size );  // log log interp of P(k)
-        //Real pk = 1.;
         pk = sqrt(pk);
         return cufftDoubleComplex{pk*b.x,pk*b.y};
       } else {
@@ -164,8 +164,9 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
   } 
 
   // Poisson-solve constants that depend on divergence-operator approximation
-  #ifdef PARIS_3PT
   const int nk    = nk_;
+/*
+  #ifdef PARIS_3PT
   const Real si = M_PI / Real(ni);
   const Real sj = M_PI / Real(nj);
   const Real sk = M_PI / Real(nk);
@@ -174,7 +175,7 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
   const Real si = 2.0 * M_PI / Real(ni);
   const Real sj = 2.0 * M_PI / Real(nj);
   const Real sk = 2.0 * M_PI / Real(nk);
-  #endif
+  #endif*/
 
   const int n = ni * nj * nk;
 
@@ -182,6 +183,7 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
   henry_->filter(bytes, db_, da_,
     [=] __device__ (const int i, const int j, const int k, const cufftDoubleComplex b) {
       if (i || j || k) {
+/*
   #ifdef PARIS_3PT
         const Real i2 = Sqr(sin(Real(min(i, ni - i)) * si) * ddi);
         const Real j2 = Sqr(sin(Real(min(j, nj - j)) * sj) * ddj);
@@ -197,7 +199,21 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
         const Real i2 = Sqr(Real(min(i, ni - i)) * ddi);
         const Real j2 = Sqr(Real(min(j, nj - j)) * ddj);
         const Real k2 = Sqr(Real(k) * ddk);
-  #endif
+  #endif*/
+        //const Real i2 = Sqr(Real(min(i, ni - i)) * ddi);
+        //const Real j2 = Sqr(Real(min(j, nj - j)) * ddj);
+        //const Real k2 = Sqr(Real(k) * ddk);
+        // Get the global indices 
+        /*int id_i = i < ni/2 ? i : i - ni;
+        int id_j = j < nj/2 ? j : j - nj;
+        int id_k = k < nk/2 ? k : k - nk;
+        // Compute kx, ky, and kz from the indices
+        Real kz = id_i * ddi;
+        Real ky = id_j * ddj;
+        Real kx = id_k * ddk;  */
+        // Compute the magnitude of k 
+        //const Real k_mag = sqrt( kx*kx + ky*ky + kz*kz );
+
         /*// Get the global indices 
         int id_i = i < ni/2 ? i : i - ni;
         int id_j = j < nj/2 ? j : j - nj;
@@ -209,7 +225,22 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
         // Compute the magnitude of k squared
         Real k2 = kx*kx + ky*ky + kz*kz ;
         if ( k2 == 0 ) k2 = 1.0;*/
-        const Real d = -1.0/(i2+j2+k2);
+        //const Real d = -1.0/(i2+j2+k2);
+        //const Real d = -1.0/(kx*kx + ky*ky + kz*kz);
+
+        // Get the global indices 
+        int id_i = i < ni/2 ? i : i - ni;
+        int id_j = j < nj/2 ? j : j - nj;
+        int id_k = k < nk/2 ? k : k - nk;
+        // Compute kx, ky, and kz from the indices
+        Real kz = id_i * ddi;
+        Real ky = id_j * ddj;
+        Real kx = id_k * ddk;  
+        // Compute the magnitude of k 
+        const Real k_sq =  kx*kx + ky*ky + kz*kz ;
+        const Real d = -1.0/k_sq;
+        //const Real d = 1.0/k_sq;
+
         return cufftDoubleComplex{d*b.x,d*b.y};
       } else {
         return cufftDoubleComplex{0.0,0.0};

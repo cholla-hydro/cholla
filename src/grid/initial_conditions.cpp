@@ -1675,6 +1675,17 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   chprintf("Cosmological ICs: Setting gas grid initial conditions ...\n");
 
   int i, j, k, id;
+
+#ifdef GRAVITY_5_POINTS_GRADIENT
+  Real phi_ll, phi_rr;
+  int id_ll, id_rr;
+#endif
+  Real phi_l, phi, phi_r;
+  Real phi_ld, phi_lu, phi_rd, phi_ru;
+  int id_l, id_r;
+  int id_ld, id_lu;
+  int id_rd, id_ru;
+
   Real x_pos, y_pos, z_pos;
   Real H0, h, Ha, rho_0, G, z_zeldovich, z_init, x_center, T_init, k_x;
   Real gamma;
@@ -2014,6 +2025,42 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
   // copy memory -- only real, local cells
   cudaMemcpy(CP.delta_m,  CP.phi_1, n_cells * sizeof(Real), cudaMemcpyHostToHost);
+
+  // check before the remap
+  Real delta_rm_check=0;
+  Real delta_rm_check_n=0;
+  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
+    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
+      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
+
+        // get cell index
+        id = i + j * nx_local + k * nx_local * ny_local;
+
+        delta_rm_check += CP.phi_1[id];
+        delta_rm_check_n+=1;
+      }
+    }
+  }
+  // get the total of the grid to compute the mean
+  MPI_Allreduce(MPI_IN_PLACE, &delta_rm_check, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+  // find the average
+  delta_rm_check = delta_rm_check /(nx_global*ny_global*nz_global);
+  printf("Before the remap, mean(phi) = %e\n",delta_rm_check);
+
+  Real delta_m_check=0;
+  Real delta_m_check_n=0;
+
+
+  Real grad_phi_x=0, grad_phi_y=0, grad_phi_z=0;
+  Real xix_mean =  0;
+  Real xiy_mean =  0;
+  Real xiz_mean =  0;
+  Real xix_rms  =  0;
+  Real xix_n    =  0;
+  Real phi_mean =  0;
+
+
   // now, we remap the potential fields from the density fields
   for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
     for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
@@ -2028,12 +2075,112 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
         // this is the real index with only local real cells
         index =  ii + jj * nx_local + kk * nx_local * ny_local;
+        // maybe the field is not iso
+        //index =  jj + ii * nx_local + kk * nx_local * ny_local;
+        //index =  jj + kk * nx_local + ii * nx_local * ny_local;//really 
+        //index =  ii + kk * nx_local + jj * nx_local * ny_local;//really 
 
         // copy from delta back to phi
         CP.phi_1[id] = CP.delta_m[index];
+        delta_m_check += CP.delta_m[index];
+        delta_m_check_n += 1;
+
+        /*
+        if((i>2+H.n_ghost)&(i<H.nx-H.n_ghost-2)) {
+          if((j>2+H.n_ghost)&(j<H.ny-H.n_ghost-2)) {
+            if((k>2+H.n_ghost)&(k<H.nz-H.n_ghost-2)) {
+              
+              index =  ii + jj * nx_local + kk * nx_local * ny_local;
+              phi = CP.delta_m[index];
+
+              index =  (ii-1) + jj * nx_local + kk * nx_local * ny_local;
+              phi_l = CP.delta_m[index];
+              index =  (ii+1) + jj * nx_local + kk * nx_local * ny_local;
+              phi_r = CP.delta_m[index];
+              grad_phi_x += 0.5*(phi_r-phi_l)/dx;
+
+              index =  ii + (jj-1) * nx_local + kk * nx_local * ny_local;
+              phi_l = CP.delta_m[index];
+              index =  ii + (jj+1) * nx_local + kk * nx_local * ny_local;
+              phi_r = CP.delta_m[index];
+              grad_phi_y += 0.5*(phi_r-phi_l)/dy;
+
+              index =  ii + jj * nx_local + (kk-1) * nx_local * ny_local;
+              phi_l = CP.delta_m[index];
+              index =  ii + jj * nx_local + (kk+1) * nx_local * ny_local;
+              phi_r = CP.delta_m[index];
+              grad_phi_z += 0.5*(phi_r-phi_l)/dz;
+
+              xix_n += 1;
+            }
+          }
+        }*/
       }
     }
   }
+  // Check the gradient -- need to finish populating phi_1
+  for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
+    for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
+      for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+
+        // this is the full index with ghost cells
+        id = i + j * H.nx + k * H.nx * H.ny;
+
+        kk = k - H.n_ghost;
+        jj = j - H.n_ghost;
+        ii = i - H.n_ghost;
+
+        // this is the real index with only local real cells
+        index =  ii + jj * nx_local + kk * nx_local * ny_local;
+        if((i>2+H.n_ghost)&(i<H.nx-H.n_ghost-2)) {
+          if((j>2+H.n_ghost)&(j<H.ny-H.n_ghost-2)) {
+            if((k>2+H.n_ghost)&(k<H.nz-H.n_ghost-2)) {
+         
+         
+              id = i + j * H.nx + k * H.nx * H.ny;
+              phi = CP.phi_1[id];
+
+              id = (i-1) + j * H.nx + k * H.nx * H.ny;
+              phi_l = CP.phi_1[id];
+              id = (i+1) + j * H.nx + k * H.nx * H.ny;
+              phi_r = CP.phi_1[id];
+              grad_phi_x += 0.5*(phi_r-phi_l)/dx;
+
+              id = i + (j-1) * H.nx + k * H.nx * H.ny;
+              phi_l = CP.phi_1[id];
+              id = i + (j+1) * H.nx + k * H.nx * H.ny;
+              phi_r = CP.phi_1[id];
+              grad_phi_y += 0.5*(phi_r-phi_l)/dy;
+
+              id = i + j * H.nx + (k-1) * H.nx * H.ny;
+              phi_l = CP.phi_1[id];
+              id = i + j * H.nx + (k+1) * H.nx * H.ny;
+              phi_r = CP.phi_1[id];
+              grad_phi_z += 0.5*(phi_r-phi_l)/dz;
+
+              xix_n += 1;
+            }
+          }
+        }
+      }
+    }
+  }
+  MPI_Allreduce(MPI_IN_PLACE, &grad_phi_x, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &grad_phi_y, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &grad_phi_z, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &xix_n, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  grad_phi_x/=xix_n;
+  grad_phi_y/=xix_n;
+  grad_phi_z/=xix_n;
+  chprintf("TESTING 0 X-gradient average = %e\n",grad_phi_x);
+  chprintf("TESTING 1 Y-gradient average = %e\n",grad_phi_y);
+  chprintf("TESTING 2 Z-gradient average = %e\n",grad_phi_z);
+
+  // phi gradients correct here, look after ghost cell transfer
+  // get the total of the grid to compute the mean
+  MPI_Allreduce(MPI_IN_PLACE, &delta_m_check, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  delta_m_check = delta_m_check /(nx_global*ny_global*nz_global);
+  chprintf("Delta m check %e\n",delta_m_check);
 
 
   // repeat for baryons if present
@@ -2062,6 +2209,34 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 #endif //ONLY_PARTICLES
 
 
+
+  Real phi_check=0;
+  Real phi_check_n=0;
+  // set the initial values of the conserved variables
+  for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
+    for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
+      for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+        id = i + j * H.nx + k * H.nx * H.ny;
+
+        kk = k - H.n_ghost;
+        jj = j - H.n_ghost;
+        ii = i - H.n_ghost;
+        index =  ii + jj * nx_local + kk * nx_local * ny_local;
+
+        id = i + j * H.nx + k * H.nx * H.ny;
+        phi_check += CP.phi_1[id];
+        phi_check_n += 1;
+
+      }
+    }
+  }
+  // get the total of the grid to compute the mean
+  MPI_Allreduce(MPI_IN_PLACE, &phi_check, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  phi_check = phi_check /(nx_global*ny_global*nz_global);
+  chprintf("phi_1 check %e\n",phi_check);
+
+
+
   // The potentials are now in their correct
   // places, indexed against the entire local
   // grid including ghost cells. Deal with the
@@ -2069,6 +2244,10 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
   // perform the ghost cell transfers between
   // subdomains of the computational volume
+
+  // the ghost cells are not set correctly here
+  // and we need to investigate why
+
   chprintf("Cosmological ICs: Exchanging ghost cells for cosmological potential phi_1.\n");
   Set_Boundary_Conditions_Field(P, CP.phi_1);
 #ifndef ONLY_PARTICLES
@@ -2077,16 +2256,165 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 #endif  //ONLY_PARTICLES
 
 
+  // Check the gradient -- need to finish populating phi_1
+  grad_phi_x = 0;
+  grad_phi_y = 0;
+  grad_phi_z = 0;
+  xix_n = 0;
+  for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
+    for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
+      for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+
+        // this is the full index with ghost cells
+        id = i + j * H.nx + k * H.nx * H.ny;
+
+        kk = k - H.n_ghost;
+        jj = j - H.n_ghost;
+        ii = i - H.n_ghost;
+
+        // this is the real index with only local real cells
+        index =  ii + jj * nx_local + kk * nx_local * ny_local;
+        if((i>2+H.n_ghost)&(i<H.nx-H.n_ghost-2)) {
+          if((j>2+H.n_ghost)&(j<H.ny-H.n_ghost-2)) {
+            if((k>2+H.n_ghost)&(k<H.nz-H.n_ghost-2)) {
+         
+         
+              id = i + j * H.nx + k * H.nx * H.ny;
+              phi = CP.phi_1[id];
+
+              id = (i-1) + j * H.nx + k * H.nx * H.ny;
+              phi_l = CP.phi_1[id];
+              id = (i+1) + j * H.nx + k * H.nx * H.ny;
+              phi_r = CP.phi_1[id];
+              grad_phi_x += 0.5*(phi_r-phi_l)/dx;
+
+              id = i + (j-1) * H.nx + k * H.nx * H.ny;
+              phi_l = CP.phi_1[id];
+              id = i + (j+1) * H.nx + k * H.nx * H.ny;
+              phi_r = CP.phi_1[id];
+              grad_phi_y += 0.5*(phi_r-phi_l)/dy;
+
+              id = i + j * H.nx + (k-1) * H.nx * H.ny;
+              phi_l = CP.phi_1[id];
+              id = i + j * H.nx + (k+1) * H.nx * H.ny;
+              phi_r = CP.phi_1[id];
+              grad_phi_z += 0.5*(phi_r-phi_l)/dz;
+
+              xix_n += 1;
+            }
+          }
+        }
+      }
+    }
+  }
+  MPI_Allreduce(MPI_IN_PLACE, &grad_phi_x, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &grad_phi_y, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &grad_phi_z, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &xix_n, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  grad_phi_x/=xix_n;
+  grad_phi_y/=xix_n;
+  grad_phi_z/=xix_n;
+  chprintf("TESTING 1-0 X-gradient average = %e\n",grad_phi_x);
+  chprintf("TESTING 1-1 Y-gradient average = %e\n",grad_phi_y);
+  chprintf("TESTING 1-2 Z-gradient average = %e\n",grad_phi_z);
+
+  chprintf("Local total (real+ghost) domain: nx %d ny %d nz %d\n",H.nx,H.ny,H.nz);
+
+
+  // Check the gradient -- need to finish populating phi_1
+  grad_phi_x = 0;
+  grad_phi_y = 0;
+  grad_phi_z = 0;
+  xix_n = 0;
+  //if(procID==0) {
+  if(true) {
+  for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
+  //for (k = 1; k < 2; k++) {
+    for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
+    //for (j = 1; j < 2; j++) {
+      //for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+      for (i = 1; i < 2; i++) {
+
+        // this is the full index with ghost cells
+        id = i + j * H.nx + k * H.nx * H.ny;
+
+        kk = k - H.n_ghost;
+        jj = j - H.n_ghost;
+        ii = i - H.n_ghost;
+
+        // this is the real index with only local real cells
+        if(true) {
+        //if((i>2+H.n_ghost)&(i<H.nx-H.n_ghost-2)) {
+          if((j>2+H.n_ghost)&(j<H.ny-H.n_ghost-2)) {
+          //if(true) {
+            if((k>2+H.n_ghost)&(k<H.nz-H.n_ghost-2)) {
+            //if(true) {
+         
+         
+              id = i + j * H.nx + k * H.nx * H.ny;
+              phi = CP.phi_1[id];
+
+              id = (i-1) + j * H.nx + k * H.nx * H.ny;
+              phi_l = CP.phi_1[id];
+              id = (i+1) + j * H.nx + k * H.nx * H.ny;
+              phi_r = CP.phi_1[id];
+              grad_phi_x += 0.5*(phi_r-phi_l)/dx;
+
+              id = i + (j-1) * H.nx + k * H.nx * H.ny;
+              phi_l = CP.phi_1[id];
+              id = i + (j+1) * H.nx + k * H.nx * H.ny;
+              phi_r = CP.phi_1[id];
+              grad_phi_y += 0.5*(phi_r-phi_l)/dy;
+
+              id = i + j * H.nx + (k-1) * H.nx * H.ny;
+              phi_l = CP.phi_1[id];
+              id = i + j * H.nx + (k+1) * H.nx * H.ny;
+              phi_r = CP.phi_1[id];
+              grad_phi_z += 0.5*(phi_r-phi_l)/dz;
+
+              xix_n += 1;
+            }
+          }
+        }
+      }
+    }
+  }
+  grad_phi_x/=xix_n;
+  grad_phi_y/=xix_n;
+  grad_phi_z/=xix_n;
+  //chprintf("TESTING procID %d 1-0 X-gradient average = %e\n",procID,grad_phi_x);
+  //chprintf("TESTING procID %d 1-1 Y-gradient average = %e\n",procID,grad_phi_y);
+  //chprintf("TESTING procID %d 1-2 Z-gradient average = %e\n",procID,grad_phi_z);
+  printf("TESTING procID %d 1-0 X-gradient average = %e\n",procID,grad_phi_x);
+  printf("TESTING procID %d 1-1 Y-gradient average = %e\n",procID,grad_phi_y);
+  printf("TESTING procID %d 1-2 Z-gradient average = %e\n",procID,grad_phi_z);
+  }
+  //MPI_Allreduce(MPI_IN_PLACE, &grad_phi_x, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  //MPI_Allreduce(MPI_IN_PLACE, &grad_phi_y, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  //MPI_Allreduce(MPI_IN_PLACE, &grad_phi_z, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  //MPI_Allreduce(MPI_IN_PLACE, &xix_n, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+  // at this stage, we have verified the correct gradients for
+  // real cells.  We have not verified that ghost cells have the
+  // correct values
+
+
+//#error look after ghost cell transfer
+  chexit(0);
+
   // now we can proceed with computing the gradients
 #ifndef ONLY_PARTICLES
 
-  Real grad_phi_x=0, grad_phi_y=0, grad_phi_z=0;
   Real d2phidx2=0, d2phidy2=0, d2phidz2 = 0;
   Real grad_x_T[3][3], det_grad_x;
   Real det_grad_x_min =  1e9;
   Real det_grad_x_max = -1e9;
   Real xix_min  =  1e9;
   Real xix_max  = -1e9;
+  Real phi_min  =  1.0e9;
+  Real phi_max  =  -1.0e9;
+  Real phi_rms  =  0;
+  Real phi_n    =  0;
 
   Real dens, vel, U, E; 
   Real Daf = Cosmo.D_Growth(1e-4)/1e-4;
@@ -2100,16 +2428,6 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   Daf = Cosmo.D_Growth(a_init)/a_init;
   chprintf("Cosmological ICs: D(a)/a = %e\n",Daf);
 
-#ifdef GRAVITY_5_POINTS_GRADIENT
-  Real phi_ll, phi_rr;
-  int id_ll, id_rr;
-#endif
-  Real phi_l, phi, phi_r;
-  Real phi_ld, phi_lu, phi_rd, phi_ru;
-  int id_l, id_r;
-  int id_ld, id_lu;
-  int id_rd, id_ru;
-
   // gradient operators
   // d/dx
   // 2: 0.5*[-1 0 1]
@@ -2118,11 +2436,16 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   // 2: [1 -2 1]
   // 4: (1/12)*[-1 16 -30 16 -1]
 
+
+  // HERE
   // set the initial values of the conserved variables
   for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
     for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
       for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
-        id = i + j * H.nx + k * H.nx * H.ny;
+  //for (k = H.n_ghost+3; k < H.nz - H.n_ghost-3; k++) {
+  //  for (j = H.n_ghost+3; j < H.ny - H.n_ghost-3; j++) {
+  //    for (i = H.n_ghost+3; i < H.nx - H.n_ghost-3; i++) {
+        id = i + j * H.nx + k * H.ny * H.nx;
 
         kk = k - H.n_ghost;
         jj = j - H.n_ghost;
@@ -2153,6 +2476,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         grad_phi_x       = 0.5*(phi_r - phi_l) / dx;
         grad_x_T[0][0]   = D*(phi_r - 2 * phi + - phi_ll)/(dx*dx);
     #endif
+        grad_phi_x       = 0.5*(phi_r - phi_l) / dx;
 
 /*
         // repeat for nabla^-2 \delta_bc
@@ -2190,6 +2514,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         grad_phi_y = 0.5 * (phi_r - phi_l) / dy;
         grad_x_T[1][1]   = D*(phi_r - 2 * phi + - phi_ll)/(dy*dy);
     #endif
+        grad_phi_y = 0.5 * (phi_r - phi_l) / dy;
 
 /*
         // repeat for nabla^-2 \delta_bc
@@ -2218,8 +2543,8 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         phi_l = CP.phi_1[id_l];
         phi_r = CP.phi_1[id_r];
     #ifdef GRAVITY_5_POINTS_GRADIENT
-        id_ll   = ii + j * H.nx + (k - 2) * H.ny * H.nx;
-        id_rr   = ii + j * H.nx + (k + 2) * H.ny * H.nx;
+        id_ll   = i + j * H.nx + (k - 2) * H.ny * H.nx;
+        id_rr   = i + j * H.nx + (k + 2) * H.ny * H.nx;
         phi_ll  = CP.phi_1[id_ll];
         phi_rr  = CP.phi_1[id_rr];
         grad_phi_z     = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
@@ -2228,6 +2553,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         grad_phi_z     = 0.5 * (phi_r - phi_l) / dz;
         grad_x_T[2][2] = D*(phi_r - 2 * phi + - phi_ll)/(dz*dz);
     #endif
+        grad_phi_z     = 0.5 * (phi_r - phi_l) / dz;
 
 /*
         // repeat for nabla^-2 \delta_bc
@@ -2299,14 +2625,69 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         // compute displacements
         // xi = D * \grad \phi
         //////////////////////////////////////////
-        xi_x = D * grad_phi_x; // in kpc/h
-        xi_y = D * grad_phi_y; // in kpc/h
-        xi_z = D * grad_phi_z; // in kpc/h
+        //xi_x = D * grad_phi_x; // in kpc/h
+        //xi_y = D * grad_phi_y; // in kpc/h
+        //xi_z = D * grad_phi_z; // in kpc/h
+        xi_x = grad_phi_x; // in kpc/h
+        xi_y = grad_phi_y; // in kpc/h
+        xi_z = grad_phi_z; // in kpc/h
+        //xi_x = 3; // in kpc/h
+        //xi_y = 5; // in kpc/h
+        //xi_z = 7.5; // in kpc/h
 
-        if(xi_x<xix_min)
-          xix_min = xi_x;
-        if(xi_x>xix_max)
-          xix_max = xi_x;
+        if(xi_z<xix_min)
+          xix_min = xi_z;
+          //xix_min = xi_x;
+        if(xi_z>xix_max)
+          xix_max = xi_z;
+          //xix_max = xi_x;
+        xix_mean += xi_x;
+        xiy_mean += xi_y;
+        xiz_mean += xi_z;
+        xix_rms  += xi_z * xi_z;
+        xix_n += 1;
+
+        //phi   = CP.phi_1[id];
+
+        /*
+        if((i-1)<H.n_ghost) {
+          id_l  = i + j * H.nx + k * H.ny * H.nx;
+          id_r  = (i+1) + j * H.nx + k * H.ny * H.nx;
+        } else if((i+1)>(H.nx-H.n_ghost)){
+          id_l  = (i-1) + j * H.nx + k * H.ny * H.nx;
+          id_r  = (i) + j * H.nx + k * H.ny * H.nx;
+        } else {
+          id_l  = (i-1) + j * H.nx + k * H.ny * H.nx;
+          id_r  = (i+1) + j * H.nx + k * H.ny * H.nx;
+        }*/
+
+//#error the gradients are not isotropic 
+
+        //id_l  = (i-1) + j * H.nx + k * H.ny * H.nx;
+        //id_r  = (i+1) + j * H.nx + k * H.ny * H.nx;
+        //id_l  = i + (j-1) * H.nx + k * H.ny * H.nx;
+        //id_r  = i + (j+1) * H.nx + k * H.ny * H.nx;
+        //id_l  = i + j * H.nx + (k - 1) * H.ny * H.nx;
+        //id_r  = i + j * H.nx + (k + 1) * H.ny * H.nx;
+        phi   = CP.phi_1[id];
+        phi_l = CP.phi_1[id_l];
+        phi_r = CP.phi_1[id_r];
+        /*phi_mean += phi;
+        phi_rms  += phi * phi;
+        if(phi<phi_min)
+          phi_min = phi;
+        if(phi>phi_max)
+          phi_max = phi;*/
+        //phi_mean += phi_r;
+        //phi_rms  += phi_r * phi_r;
+        phi_mean += phi_l;
+        phi_rms  += phi_l * phi_l;
+        if(phi_l<phi_min)
+          phi_min = phi_l;
+        if(phi_l>phi_max)
+          phi_max = phi_l;
+        //Cosmological ICs: min/max phi  -8.026132e+07/5.829081e+07
+        phi_n += 1;
 
         // compute velocities field
 
@@ -2359,10 +2740,39 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
     }
   }
   d_mean /= n_d_mean;
+  MPI_Allreduce(MPI_IN_PLACE, &xix_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &xiy_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &xiz_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &xix_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &xix_n, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  xix_mean = xix_mean/xix_n;
+  xiy_mean = xiy_mean/xix_n;
+  xiz_mean = xiz_mean/xix_n;
+
+  chprintf("TESTING X-gradient average = %e\n",xix_mean);
+  chprintf("TESTING Y-gradient average = %e\n",xiy_mean);
+  chprintf("TESTING Z-gradient average = %e\n",xiz_mean);
+  chexit(0);
+
+  //xix_rms  = xix_rms/(nx_global*ny_global*nz_global);
+  //xix_rms = sqrt(xix_rms);
+
+  MPI_Allreduce(MPI_IN_PLACE, &phi_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &phi_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  phi_mean = phi_mean/(nx_global*ny_global*nz_global);
+  phi_rms= phi_rms/(nx_global*ny_global*nz_global);
+  phi_rms = sqrt(phi_rms);
+  MPI_Allreduce(MPI_IN_PLACE, &phi_min, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &phi_max, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+
   chprintf("Cosmological ICs: excess average baryon overdensity %e\n",d_mean);
   chprintf("Cosmological ICs: min/max det grad x %e/%e\n",det_grad_x_min,det_grad_x_max);
   chprintf("Cosmological ICs: min/max disp x %e/%e\n",xix_min,xix_max);
-  //chexit(-1);
+  chprintf("Cosmological ICs: mean/rms disp x %e/%e\n",xix_mean,xix_rms);
+  chprintf("Cosmological ICs: mean/rms phi  %e/%e\n",phi_mean,phi_rms);
+  chprintf("Cosmological ICs: min/max phi  %e/%e\n",phi_min,phi_max);
+  MPI_Barrier(world);
+  chexit(-1);
 
   // set the initial values of the conserved variables
   for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
