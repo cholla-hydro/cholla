@@ -2328,12 +2328,12 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   xix_n = 0;
   //if(procID==0) {
   if(true) {
-  for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
-  //for (k = 1; k < 2; k++) {
+  //for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
+  for (k = 1; k < 2; k++) {
     for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
     //for (j = 1; j < 2; j++) {
-      //for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
-      for (i = 1; i < 2; i++) {
+      for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+      //for (i = 1; i < 2; i++) {
 
         // this is the full index with ghost cells
         id = i + j * H.nx + k * H.nx * H.ny;
@@ -2343,12 +2343,12 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         ii = i - H.n_ghost;
 
         // this is the real index with only local real cells
-        if(true) {
-        //if((i>2+H.n_ghost)&(i<H.nx-H.n_ghost-2)) {
+        //if(true) {
+        if((i>2+H.n_ghost)&(i<H.nx-H.n_ghost-2)) {
           if((j>2+H.n_ghost)&(j<H.ny-H.n_ghost-2)) {
           //if(true) {
-            if((k>2+H.n_ghost)&(k<H.nz-H.n_ghost-2)) {
-            //if(true) {
+            //if((k>2+H.n_ghost)&(k<H.nz-H.n_ghost-2)) {
+            if(true) {
          
          
               id = i + j * H.nx + k * H.nx * H.ny;
