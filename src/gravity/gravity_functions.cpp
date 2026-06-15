@@ -546,7 +546,10 @@ void Grid3D::Compute_Gravitational_Potential(struct Parameters *P)
       #ifdef GRAVITY_GPU
         #error "GRAVITY_GPU not yet supported with PARIS_GALACTIC_TEST"
       #endif
-  Grav.Poisson_solver_test.Get_Potential(input_density, output_potential, Grav_Constant, galaxies::MW);
+  const ClusteredDiskGalaxy *galaxy_model = models().try_get<ClusteredDiskGalaxy>();
+  CHOLLA_ASSERT(galaxy_model != nullptr, "no galaxy model was initialized");
+  Grav.Poisson_solver_test.Get_Potential(input_density, output_potential, Grav_Constant, *galaxy_model);
+
   std::vector<Real> p(output_potential, output_potential + Grav.n_cells_potential);
   Get_Potential_SOR(Grav_Constant, dens_avrg, current_a, P);
   chprintf(" Paris vs SOR");
@@ -556,7 +559,13 @@ void Grid3D::Compute_Gravitational_Potential(struct Parameters *P)
     #endif
 
   #elif defined PARIS_GALACTIC
-  Grav.Poisson_solver.Get_Potential(input_density, output_potential, Grav_Constant, galaxies::MW);
+  // ideally in the future, we'll be able to avoid looking up the galaxy model every
+  // single time we need it
+  // - this is ok for right now, but will become costly as we add more models
+  // - we can adopt a strategy like the one mentioned within gravity_boundaries.cu
+  const ClusteredDiskGalaxy *galaxy_model = models().try_get<ClusteredDiskGalaxy>();
+  CHOLLA_ASSERT(galaxy_model != nullptr, "no galaxy model was initialized");
+  Grav.Poisson_solver.Get_Potential(input_density, output_potential, Grav_Constant, *galaxy_model);
   #else
   Grav.Poisson_solver.Get_Potential(input_density, output_potential, Grav_Constant, dens_avrg, current_a);
   #endif  // SOR
