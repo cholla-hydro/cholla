@@ -23,7 +23,7 @@ DFLAGS    += -DTEMPERATURE_FLOOR
 #DFLAGS    += -DCPU_TIME
 
 # Select output format
-# Can also add -DSLICES and -DPROJECTIONS
+# Can also add -DSLICES and -DPROJECTION
 OUTPUT    ?=  -DOUTPUT -DHDF5
 DFLAGS    += $(OUTPUT)
 

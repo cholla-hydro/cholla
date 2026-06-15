@@ -30,7 +30,6 @@
 // Do we actually need to define the following 2 macros? They seems like
 // the sorts of things that would be defined by the compiler for us (or
 // that could be inferred from the compiler's builtin macros)
-#configurefile_define CUDA
 #configurefile_define O_HIP
 
 #configurefile_define DISABLE_GPU_ERROR_CHECKING
@@ -101,7 +100,6 @@
 
 #configurefile_define CHEMISTRY_GPU
 #configurefile_define CLOUDY_COOL
-#configurefile_define CLOUDY_COOLING
 #configurefile_define COOLING_GPU
 #configurefile_define COOLING_GRACKLE
 
@@ -171,7 +169,6 @@
 #configurefile_define OUTPUT_SKEWERS
 #configurefile_define OUTPUT_TEMPERATURE
 #configurefile_define PROJECTION
-#configurefile_define PROJECTIONS
 #configurefile_define ROTATED_PROJECTION
 #configurefile_define SLICES
 #configurefile_define N_OUTPUT_COMPLETE
@@ -181,17 +178,3 @@
 // ============
 #configurefile_define CPU_TIME
 #configurefile_define DISK_ICS
-
-// ====================
-// Can we delete these?
-// ====================
-// I don't think any of these are ever used
-// -> if/when we delete these, we should go through and remove the options
-//    from the all of the configuration files
-#configurefile_define COUPLE_DELTA_E_KINETIC
-#configurefile_define COUPLE_GRAVITATIONAL_WORK
-#configurefile_define CUDA_ERROR_CHECK
-#configurefile_define CUFFT
-#configurefile_define PFFT
-#configurefile_define DYNAMIC_GPU_ALLOC
-
