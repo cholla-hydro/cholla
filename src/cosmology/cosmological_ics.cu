@@ -1540,14 +1540,9 @@ void Grid3D::Unload_Field_from_Buffer(int direction, int side, Real *buffer, int
   int nGHST, nx_g, ny_g, nz_g;
   nGHST = N_GHOST_POTENTIAL;
 
-  chprintf("Grav.nx_local %d\n",Grav.nx_local);
-  chprintf("Grav.ny_local %d\n",Grav.ny_local);
-  chprintf("Grav.nz_local %d\n",Grav.nz_local);
-
-  chexit(0);
-  nx_g  = Grav.nx_local + 2 * nGHST;
-  ny_g  = Grav.ny_local + 2 * nGHST;
-  nz_g  = Grav.nz_local + 2 * nGHST;
+  nx_g  = nx_local + 2 * nGHST;
+  ny_g  = ny_local + 2 * nGHST;
+  nz_g  = nz_local + 2 * nGHST;
 
   // Load X boundaries
   if (direction == 0) {
