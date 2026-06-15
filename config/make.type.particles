@@ -34,7 +34,6 @@ ifneq ($(findstring -DPARALLEL_OMP,$(DFLAGS)),-DPARALLEL_OMP)
   DFLAGS += -DPARALLEL_OMP
 endif
 
-#-- OMP_NUM_THREADS should be set in make.host.*
 # (take some care to ensure the variable isn't set twicee)
 ifneq ($(findstring -DN_OMP_THREADS,$(DFLAGS)),-DN_OMP_THREADS)
   DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
