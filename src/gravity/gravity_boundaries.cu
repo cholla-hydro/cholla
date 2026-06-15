@@ -218,6 +218,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
     const Real cm_pos_x = H.sphere_center_x;
     const Real cm_pos_y = H.sphere_center_y;
     const Real cm_pos_z = H.sphere_center_z;
+    const Real Gconst   = Grav.Gconst;
 
     // define a local function that actually computes the potential
     auto calc_potential = [=](Real pos_x, Real pos_y, Real pos_z) -> Real {
@@ -225,7 +226,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
       Real delta_y = pos_y - cm_pos_y;
       Real delta_z = pos_z - cm_pos_z;
       Real r       = sqrt((delta_x * delta_x) + (delta_y * delta_y) + (delta_z * delta_z));
-      return -Grav.Gconst * M / r;
+      return -Gconst * M / r;
     };
 
     // now, use the calc_potential function to actually fill the boundaries
