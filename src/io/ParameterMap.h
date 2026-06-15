@@ -16,12 +16,6 @@
 namespace param_details
 {
 
-/* defining a construct like this is a common workaround used to raise a compile-time error in the
- * else-branch of a constexpr-if statement. This is used to implement ``ParameterMap::try_get_``
- */
-template <class>
-inline constexpr bool dummy_false_v_ = false;
-
 /* Kinds of errors from converting parameters to a type */
 enum class TypeErr { none, generic, boolean, out_of_range };
 
@@ -188,20 +182,6 @@ class ParameterMap
   int warn_unused_parameters(const std::set<std::string>& ignore_params, bool abort_on_warning = false,
                              bool suppress_warning_msg = false) const;
 
-  /* This is a temporary function to help ease the transition to the new parsing approach. */
-  template <typename LegacyParseParamFn>
-  void pass_entries_to_legacy_parse_param(LegacyParseParamFn& f)
-  {
-    for (auto& kv_pair : entries_) {
-      const char* name  = kv_pair.first.c_str();
-      const char* value = (kv_pair.second).param_str.c_str();
-
-      // pass the parameter name and (unparsed) value to the legacy function. Record if used.
-      bool rslt = f(name, value);
-      if (rslt) (kv_pair.second).accessed = true;
-    }
-  }
-
   /*! Aborts with an error message if one or more of the parameters in the specified table has been used or has not
    *  been used. The precise details depend on the `expect_unused` argument.
    *
@@ -252,8 +232,7 @@ std::optional<T> ParameterMap::try_get_(const std::string& param, bool is_type_c
     err        = param_details::try_int_(str, val);
     dtype_name = "int";
   } else {
-    static_assert(param_details::dummy_false_v_<T>,
-                  "template type can only be bool, int, std::int64_t, double, or std::string.");
+    static_assert(always_false<T>, "template type can only be bool, int, std::int64_t, double, or std::string.");
   }
 
   // now do err-handling/value return

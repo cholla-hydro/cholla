@@ -21,7 +21,7 @@
 #include "../utils/error_handling.h"
 
 io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const FieldInfo& field_info)
-    : fname_template_(P)
+    : fname_template_(FnameTemplate::from_pmap(pmap))
 {
   int ndim;
   if ((P.nx > 1) and (P.ny > 1) and (P.nz > 1)) {
