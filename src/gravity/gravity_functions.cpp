@@ -569,8 +569,11 @@ void Grid3D::Compute_Gravitational_Potential(struct Parameters *P)
   #ifdef GRAVITY_ANALYTIC_COMP
 void Grid3D::Setup_Analytic_Potential(struct Parameters *P)
 {
+  const ClusteredDiskGalaxy *galaxy_model = models().try_get<ClusteredDiskGalaxy>();
+  CHOLLA_ASSERT(galaxy_model != nullptr, "no galaxy model was initialized");
+
     #ifndef PARALLEL_OMP
-  Setup_Analytic_Galaxy_Potential(0, Grav.nz_local + 2 * N_GHOST_POTENTIAL, galaxies::MW);
+  Setup_Analytic_Galaxy_Potential(0, Grav.nz_local + 2 * N_GHOST_POTENTIAL, *galaxy_model);
     #else
       #pragma omp parallel num_threads(N_OMP_THREADS)
   {
@@ -581,7 +584,7 @@ void Grid3D::Setup_Analytic_Potential(struct Parameters *P)
     n_omp_procs = omp_get_num_threads();
     Get_OMP_Grid_Indxs(Grav.nz_local + 2 * N_GHOST_POTENTIAL, n_omp_procs, omp_id, &g_start, &g_end);
 
-    Setup_Analytic_Galaxy_Potential(g_start, g_end, galaxies::MW);
+    Setup_Analytic_Galaxy_Potential(g_start, g_end, *galaxy_model);
   }
     #endif
 
