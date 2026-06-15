@@ -106,7 +106,7 @@ void PotentialParisGalactic::Get_Potential(const Real *const density, Real *cons
   //
   // NOTE: At the time of writing, we aren't accounting for the fact that the gas-disk is truncated.
   //       This is almost certainly significant!
-  const ApproxExponentialDisk3MN approx_potential = galaxies::MW.getGasDisk().selfgrav_approx_potential;
+  const ApproxExponentialDisk3MN approx_potential = galaxy.getGasDisk().selfgrav_approx_potential;
 
   // STEP 1: compute the RHS of Poisson's equation that will be passed to the solver
   //  -> in more detail we are computing `4 * pi * G * rho_solver`
