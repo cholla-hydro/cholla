@@ -77,8 +77,12 @@ GPUFLAGS          += $(GPUFLAGS_$(BUILD))
 
 #-- Add flags and libraries as needed
 
-CXXFLAGS += $(DFLAGS) -Isrc
-GPUFLAGS += $(DFLAGS) -Isrc
+# by passing `-include cholla_config.h` to the compiler, the C preprocessor
+# acts as if the very first line of the source is `#include "cholla_config.h"`
+#
+# this is bad practice
+CXXFLAGS += -I./src -include cholla_config.h
+GPUFLAGS += -I./src -include cholla_config.h
 
 ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
   ifdef HIPCONFIG
@@ -173,8 +177,8 @@ EXEC := bin/cholla$(SUFFIX)
 
 # Get the git hash and setup macro to store a string of all the other macros so
 # that they can be written to the save files
-DFLAGS      += -DGIT_HASH='"$(shell git rev-parse --verify HEAD)"'
-MACRO_FLAGS := -DMACRO_FLAGS='"$(DFLAGS)"'
+DFLAGS      += -DGIT_HASH=$(shell git rev-parse --verify HEAD)
+MACRO_FLAGS := -DMACRO_FLAGS='$(DFLAGS)'
 DFLAGS      += $(MACRO_FLAGS)
 
 # Setup variables for clang-tidy
@@ -203,10 +207,25 @@ else
 endif
 	eval $(EXTRA_COMMANDS)
 
-%.o: %.cpp
+# here's a trick to ensure that src/cholla_config.h's recipe is rerun without declaring
+# src/cholla_config.h to be PHONY (we shouldn't do that since the recipe makes the file)
+# -> https://stackoverflow.com/a/60724811
+.PHONY: FORCE
+FORCE: ;
+
+# this is the generated file that holds all of the DFLAGS
+# -> even though this recipe is rerun every time make is invoked to build a target
+#    with a direct or indirect dependency on src/cholla_config.h, we only mutate
+#    src/cholla_config.h if the contents of the file changes
+src/cholla_config.h: src/cholla_config.h.in FORCE
+	tools/configure_file.py --clobber --input $< --output $@.tmp $(DFLAGS)
+	cmp $@.tmp $@ || mv $@.tmp $@
+	rm -rf $@.tmp
+
+%.o: %.cpp src/cholla_config.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-%.o: %.cu
+%.o: %.cu src/cholla_config.h
 	$(GPUCXX) $(GPUFLAGS) -c $< -o $@
 
 .PHONY: clean, clobber, tidy, format
@@ -219,13 +238,13 @@ tidy:
 # - --warnings-as-errors=<string> Upgrade all warnings to error, good for CI
 	clang-tidy --verify-config
 	@echo -e
-	(time clang-tidy $(CLANG_TIDY_ARGS) $(CPPFILES_TIDY) -- $(DFLAGS) $(CXXFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_cpp_$(TYPE).log 2>&1 & \
-	(time clang-tidy $(CLANG_TIDY_ARGS) $(GPUFILES_TIDY) -- $(DFLAGS) $(GPUFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_gpu_$(TYPE).log 2>&1 & \
+	(time clang-tidy $(CLANG_TIDY_ARGS) $(CPPFILES_TIDY) -- $(CXXFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_cpp_$(TYPE).log 2>&1 & \
+	(time clang-tidy $(CLANG_TIDY_ARGS) $(GPUFILES_TIDY) -- $(GPUFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_gpu_$(TYPE).log 2>&1 & \
 	for i in 1 2; do wait -n; done
 	@echo -e "\nResults from clang-tidy are available in the 'tidy_results_cpp_$(TYPE).log' and 'tidy_results_gpu_$(TYPE).log' files."
 
 clean:
-	rm -f $(CLEAN_OBJS) $(DLINK)
+	rm -f $(CLEAN_OBJS) $(DLINK) src/cholla_config.h
 	rm -rf googletest
 	-find bin/ -type f -executable -name "cholla.*.$(MACHINE)*" -exec rm -f '{}' \;
 	-find src/ -type f -name "*.gcno" -delete

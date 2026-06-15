@@ -4,6 +4,7 @@ googletest*
 tidy_results*.txt
 bin/*
 docs/cached_mtimes.json
+src/cholla_config.h
 
 # Compiled source #
 ###################
