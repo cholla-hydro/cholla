@@ -6,10 +6,12 @@
     #include <stdio.h>
 
     #include <cmath>
+    #include <memory>
 
     #include "../global/global.h"
     #include "../gravity/grav3D.h"
     #include "../particles/particles_3D.h"
+    #include "tabulated_dynamicalDE_EoS.h"
 
 class Cosmology
 {
@@ -22,6 +24,15 @@ class Cosmology
   Real Omega_R;
   Real w0;
   Real wa;
+
+  /*! Calculate rho_DE(z) / rho_DE(z=0) at some scale factor */
+  Real Get_DE_Density_from_a(Real a);
+
+  /*! Stores pointer to dynamical DE equation of state table class */
+  std::unique_ptr<TabulatedDynamicalDarkEnergyEoS> tab_dynamicalDE_EoS;
+
+  /*! Indicate whether the simulation is configured to use a DynamicalDE EOS table */
+  bool Using_DynamicalDE_Table() { return tab_dynamicalDE_EoS != nullptr; }
 
   Real cosmo_G;
   Real cosmo_h;
