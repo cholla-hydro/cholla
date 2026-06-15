@@ -2584,6 +2584,8 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   //chprintf("Writing cosmological potential to file...\n");
   //Save_Cosmo_Potential(&P);
 
+#error investigate particles
+
 #endif  // COSMOLOGY
 }
 
