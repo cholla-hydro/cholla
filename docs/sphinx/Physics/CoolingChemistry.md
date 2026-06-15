@@ -39,7 +39,6 @@ The choice of simple-solver is specified through the {par:param}`chemistry.kind`
   - path to data file used by "tabulated-cooling" solver
 * - "piecewise-cie"
   - piecewise-parabolic fit to a collisional ionization equilibrium (CIE)
-  - `COOLING_GPU` **without** `CLOUDY_COOL`
 * - "piecewise-ti+cie"
   - Analytic cooling/heating recipe that roughly matches the "TI" cooling runs shown in
  in [Kim & Ostriker 2015](https://ui.adsabs.harvard.edu/abs/2015ApJ...802...99K/abstract)
