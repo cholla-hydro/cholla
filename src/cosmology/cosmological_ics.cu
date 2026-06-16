@@ -294,7 +294,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   chprintf("Cosmological ICs: RMS  of phi field %e\n",delta_rms);
 
   chprintf("Cosmological ICs: Proceeding to finish initialization...\n");
-  chexit(0);
+  //chexit(0); //BRANT
 }
 
 /*! \fn void Save_Cosmo_Potential(struct Parameters *P)
@@ -635,7 +635,9 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
   //Real pk_factor = 1; // RMS of density field over entire grid = 4.583223e-01
   // if we transfer forward, multiply by 1, and then backward, we get the same variance we input
   Real pk_factor = 1.0e9*(nx_global*ny_global*nz_global)/(P->xlen*P->ylen*P->zlen);
-  //Real pk_factor = 1.0e9*(/pow(50000,3); // convert (Mpc/h)^3 to (kpc/h)^3 1.296331e-03
+  //Real pk_factor = 0.5e9*(nx_global*ny_global*nz_global)/(P->xlen*P->ylen*P->zlen);
+
+  // see if answer changes in different box
 
   //Real pk_factor = 1.0e9; // convert (Mpc/h)^3 to (kpc/h)^3 RMS of density field over entire grid = 1.449342e+04
   //Real pk_factor = 1.0e9/pow(50000,3); // convert (Mpc/h)^3 to (kpc/h)^3 1.296331e-03
@@ -657,7 +659,6 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
   // We are assuming P(k) has units of (Mpc/h)^3 and xlen, ylen, zlen are in kpc/h
   
   for (i=0; i<n_lines; i++ ){
-    //CP.k_array[i]      = v[i][0];       //Convert from 1/(Mpc/h) to  1/(kpc/h)
     CP.k_array[i]      = v[i][0] * 1e-3;       //Convert from 1/(Mpc/h) to  1/(kpc/h)
     CP.pk_m_array[i]   = v[i][1] * pk_factor;  // P(k) rescaling
     if(j==3)

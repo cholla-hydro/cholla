@@ -236,6 +236,9 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
         //double ksq = sqr(2*sin(0.5*kx*dx)/dx) + sqr(2*sin(0.5*ky*dy)/dy) + sqr(2*sin(0.5*kz*dz)/dz);
         double d = -1./ksq;
 
+        // heavily dependent on the box size, the largest modes
+        // are up -weighted by the 1/k^2 dependence
+
         return cufftDoubleComplex{d*b.x,d*b.y};
       } else {
         return cufftDoubleComplex{0.0,0.0};

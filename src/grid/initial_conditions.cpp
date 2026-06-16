@@ -2318,6 +2318,7 @@ Cosmological ICs: corr overdens. field average = 5.729687e-16, rms = 6.550127e-0
         grad_x_T[2][2] = -1*D*(phi_r - 2 * phi + phi_l)/(dz*dz);
         //grad_x_T[2][2] = D*(phi_r - 2 * phi + phi_l)/(dz*dz);
     #endif
+        grad_phi_z     = 0.5 * (phi_r - phi_l) / dz;
 
 /*
         // repeat for nabla^-2 \delta_bc
@@ -2456,7 +2457,7 @@ Cosmological ICs: corr overdens. field average = 5.729687e-16, rms = 6.550127e-0
         det_grad_x  = grad_x_T[0][0]*(grad_x_T[1][1]*grad_x_T[2][2] - grad_x_T[2][1]*grad_x_T[1][2]);
         det_grad_x -= grad_x_T[0][1]*(grad_x_T[1][0]*grad_x_T[2][2] - grad_x_T[2][0]*grad_x_T[1][2]);
         det_grad_x += grad_x_T[0][2]*(grad_x_T[1][0]*grad_x_T[2][1] - grad_x_T[2][0]*grad_x_T[1][1]);
-        //det_grad_x  = grad_x_T[0][0]*grad_x_T[1][1]*grad_x_T[2][2]; // first order
+        det_grad_x  = grad_x_T[0][0]*grad_x_T[1][1]*grad_x_T[2][2]; // first order
 
         if(det_grad_x<det_grad_x_min)
           det_grad_x_min=det_grad_x;
@@ -2559,7 +2560,7 @@ Cosmological ICs: corr overdens. field average = 5.729687e-16, rms = 6.550127e-0
 
         C.density[id] += 1;      // convert to 1 + delta
         C.density[id] *= rho_b;  // convert to density
-        dens = C.density[id];    // store baryond density
+        dens = C.density[id];    // store baryon density
 
   #ifdef CHEMISTRY_GPU
         C.HI_density[id]    = (1-xHp)*(1-YHe)*dens; //HI    density
