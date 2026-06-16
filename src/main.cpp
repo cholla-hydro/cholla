@@ -286,7 +286,7 @@ int main(int argc, char *argv[])
   Write_Message_To_Log_File(message.c_str());
 
 
-  // BRANT
+  // BRANT -- stop after generating ICs
   //chexit(0);
 
   // Compute inverse timestep for the first time
