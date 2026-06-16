@@ -1211,7 +1211,7 @@ void Particles3D::Initialize_Adiabatic_Expansion(struct Parameters *P)
 void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Real xbound, Real ybound, Real zbound,
                                                         Real xdglobal, Real ydglobal, Real zdglobal)
 {
-  chprintf("Cosmological ICs: Setting particle positions...\n");
+  chprintf("Cosmological ICs: Setting particle positions...\n"); //HERE
 
   // The first set of particles are initialzed at Lagrangian
   // locations on the grid
@@ -1242,6 +1242,11 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
   Real rho_cdm = 3 * H0 * H0 / (8 * M_PI * G_n) * (Omega_M-Omega_b) / h / h;
   Real Mvol    = rho_cdm * xdglobal * ydglobal * zdglobal;
   Real Mparticle = Mvol / n_particles_total;
+  chprintf("Cosmological ICs: Particles: H0         %e\n",H0);
+  chprintf("Cosmological ICs: Particles: h          %e\n",h);
+  chprintf("Cosmological ICs: Particles: G_n        %e\n",G_n);
+  chprintf("Cosmological ICs: Particles: Mparticle  %e\n",Mparticle);
+  chprintf("Cosmological ICs: Particles: rho_cdm    %e\n",rho_cdm);
 
   Real f_b = Omega_b/Omega_M;
 
@@ -1338,6 +1343,17 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
   A_vel = a_init * Ha * dlogDdloga;
   chprintf("Cosmological ICs: Particles: Velocity scaling = %e [km/s/kpc]\n",A_vel);
 
+  chprintf("Cosmological ICs: Particles: H.xbound %d\n",H.xbound);
+  chprintf("Cosmological ICs: Particles: H.ybound %d\n",H.ybound);
+  chprintf("Cosmological ICs: Particles: H.zbound %d\n",H.zbound);
+  chprintf("Cosmological ICs: Particles: H.dx %d\n",H.dx);
+  chprintf("Cosmological ICs: Particles: H.dy %d\n",H.dy);
+  chprintf("Cosmological ICs: Particles: H.dz %d\n",H.dz);
+  chprintf("Cosmological ICs: Particles: nx_local_start %d\n",nx_local_start);
+  chprintf("Cosmological ICs: Particles: ny_local_start %d\n",ny_local_start);
+  chprintf("Cosmological ICs: Particles: nz_local_start %d\n",nz_local_start);
+
+
   // gradient operators
   // d/dx
   // 2: 0.5*[-1 0 1]
@@ -1348,6 +1364,20 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
 
   // compute the positions and velocities of
   // each particle
+
+  Real xix_rms=0;
+  Real xiy_rms=0;
+  Real xiz_rms=0;
+  Real xix_mean=0;
+  Real xiy_mean=0;
+  Real xiz_mean=0;
+  Real vx_mean=0;
+  Real vy_mean=0;
+  Real vz_mean=0;
+  Real vx_rms=0;
+  Real vy_rms=0;
+  Real vz_rms=0;
+  Real xix_n = 0;
 
   for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
     for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
@@ -1510,6 +1540,13 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         if(xi_x>xix_max)
           xix_max = xi_x;
 
+        xix_mean += xi_x;
+        xiy_mean += xi_y;
+        xiz_mean += xi_z;
+        xix_rms += xi_x*xi_x;
+        xiy_rms += xi_y*xi_y;
+        xiz_rms += xi_z*xi_z;
+
         //////////////////////////////////////////
         // compute velocity fields
         // v = a H dlogD/dloga * xi
@@ -1522,11 +1559,20 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         vy = A_vel * xi_y/h; // km/s
         vz = A_vel * xi_z/h; // km/s
 
+        vx_mean += vx;
+        vy_mean += vy;
+        vz_mean += vz;
+
+        vx_rms += vx*vx;
+        vy_rms += vy*vy; 
+        vz_rms += vz*vz;
+
         if(vx<vx_min)
           vx_min = vx;
         if(vx>vx_max)
           vx_max = vx;
 
+        xix_n += 1;
 /*
       #ifndef ONLY_PARTICLES
 
@@ -1544,9 +1590,12 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         // x = q - D * \grad phi
         //////////////////////////////////////////
 
-        x_pos = x_pos - xi_x;
-        y_pos = y_pos - xi_y;
-        z_pos = z_pos - xi_z;
+        //x_pos = x_pos - xi_x;
+        //y_pos = y_pos - xi_y;
+        //z_pos = z_pos - xi_z;
+        x_pos = x_pos + xi_x;
+        y_pos = y_pos + xi_y;
+        z_pos = z_pos + xi_z;
 
 
 
@@ -1593,6 +1642,51 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
       }
     }
   }
+
+  MPI_Allreduce(MPI_IN_PLACE, &xix_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &xiy_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &xiz_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &xix_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &xiy_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &xiz_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &vx_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &vy_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &vz_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &vx_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &vy_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &vz_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &xix_n, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  xix_mean/=xix_n;
+  xiy_mean/=xix_n;
+  xiz_mean/=xix_n;
+  xix_rms/=xix_n;
+  xiy_rms/=xix_n;
+  xiz_rms/=xix_n;
+  vx_mean/=xix_n;
+  vy_mean/=xix_n;
+  vz_mean/=xix_n;
+  vx_rms/=xix_n;
+  vy_rms/=xix_n;
+  vz_rms/=xix_n;
+  xix_rms = sqrt(xix_rms);
+  xiy_rms = sqrt(xiy_rms);
+  xiz_rms = sqrt(xiz_rms);
+  vx_rms = sqrt(vx_rms);
+  vy_rms = sqrt(vy_rms);
+  vz_rms = sqrt(vz_rms);
+
+  chprintf("Cosmological ICs: Particle mean x-displacement: %5.4e\n",xix_mean);
+  chprintf("Cosmological ICs: Particle mean y-displacement: %5.4e\n",xiy_mean);
+  chprintf("Cosmological ICs: Particle mean z-displacement: %5.4e\n",xiz_mean);
+  chprintf("Cosmological ICs: Particle rms x-displacement: %5.4e\n",xix_rms);
+  chprintf("Cosmological ICs: Particle rms y-displacement: %5.4e\n",xiy_rms);
+  chprintf("Cosmological ICs: Particle rms z-displacement: %5.4e\n",xiz_rms);
+  chprintf("Cosmological ICs: Particle mean x-vel : %5.4e\n",vx_mean);
+  chprintf("Cosmological ICs: Particle mean y-vel : %5.4e\n",vy_mean);
+  chprintf("Cosmological ICs: Particle mean z-vel : %5.4e\n",vz_mean);
+  chprintf("Cosmological ICs: Particle rms x-vel : %5.4e\n",vx_rms);
+  chprintf("Cosmological ICs: Particle rms y-vel : %5.4e\n",vy_rms);
+  chprintf("Cosmological ICs: Particle rms z-vel : %5.4e\n",vz_rms);
 
   #ifdef PARTICLES_CPU
   n_local = pos_x.size();
