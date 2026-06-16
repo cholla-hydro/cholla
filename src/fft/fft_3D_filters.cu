@@ -220,8 +220,8 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
         int id_i = i < ni/2 ? i : i - ni;
         int id_j = j < nj/2 ? j : j - nj;
         // no difference?
-        //int id_k = k < nk/2 ? k : k - nk;
-        int id_k = k; 
+        int id_k = k < nk/2 ? k : k - nk;
+        //int id_k = k; 
         Real kz = id_i * ddi;
         Real ky = id_j * ddj;
         Real kx = id_k * ddk;
