@@ -1,5 +1,5 @@
 # 2D Implosion
-This tests a code's ability to resolve contact discontinuities for a non-grid aligned shock tube and can determine the symmetry of a code. It consists of a diamond region of density = 0.125 and pressure = 0.14 inside a square region of both density and pressure of 1. Parameters from Liska and Wendroff 2003. Gamma is set to 1.4. Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Implosion_2D()`.This test is performed with the default hydro build (`cholla/builds/make.type.hydro`).  
+This tests a code's ability to resolve contact discontinuities for a non-grid aligned shock tube and can determine the symmetry of a code. It consists of a diamond region of density = 0.125 and pressure = 0.14 inside a square region of both density and pressure of 1. Parameters from Liska and Wendroff 2003. Gamma is set to 1.4. Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Implosion_2D()`.This test is performed with the default hydro build ({repository-file}`config/make.type.hydro`).  
 
 The parameter file can be found at: {repository-file}`examples/2D/Implosion_2D.txt`
 

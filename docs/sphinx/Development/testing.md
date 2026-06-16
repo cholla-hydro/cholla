@@ -28,13 +28,13 @@ The tests have three dependencies:
 
 ### Building & Launching with the Included Script
 
-If you are on a supported machine, the simplest way to build and run tests is with the script {repository-file}`builds/scripts/run_tests.sh`.
+If you are on a supported machine, the simplest way to build and run tests is with the script {repository-file}`config/scripts/run_tests.sh`.
 That script contains functions to clean, source setup scripts, optionally
 build GoogleTest, build Cholla, build the tests, and launch the tests. For example, using the script to build with GCC and run all hydro tests:
 
 ```bash
 > cd cholla
-> source builds/run_tests.sh
+> source config/run_tests.sh
 > buildAndRunTests -c gcc -t hydro
 ```
 
@@ -54,9 +54,9 @@ flag.
 1. Check that GoogleTest is installed in your machine and load the module if
    applicable.
 2. Check that the `GOOGLETEST_ROOT` variable is set in the Makefile for you
-   machine. E.g. go to `cholla/builds/make.host.MACHINE_NAME` and assign
+   machine. E.g. go to `cholla/config/make.host.MACHINE_NAME` and assign
    `GOOGLETEST_ROOT` to be the path to your installation of GoogleTest.
-   - An example can be found in {repository-file}`builds/make.host.summit`
+   - An example can be found in {repository-file}`config/make.host.summit`
 3. Build Cholla as normal using whichever make type you want.
    This executable will be used to run system tests
    - Example: `make -j TYPE=hydro` builds the hydro make type.
@@ -74,7 +74,7 @@ flag.
      directory. A relative path *might* work but that is untested and
      unverified.
    - `--build-type` - The make type used, e.g. `hydro`, `gravity`, etc.
-   - `--machine` - The machine used. Must match the name returned by {repository-file}`builds/machine.sh`
+   - `--machine` - The machine used. Must match the name returned by {repository-file}`config/machine.sh`
    - A full launch command that runs all the hydro tests looks like:
      - `{chollaRoot}/bin/cholla.type.machine.tests --cholla-root {chollaRoot} --build-type hydro --machine spock --gtest_filter=*tHYDRO*`
    - A full launch command that runs only hydro system tests looks like:
