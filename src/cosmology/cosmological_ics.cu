@@ -249,7 +249,9 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
   // Perhaps compute phi_init here as advertised?
   // should return phi_1 = \nabla^-2 delta_m
-  fft.Filter_inv_k2(CP.d_delta_m,CP.d_phi_1,true);
+  fft.Filter_inv_k2(CP.d_delta_m,CP.d_phi_1,true); // scalar potential
+//void FFT_3D::Filter_rescale_by_k_k2( Real *input, Real *output, bool in_device, int direction, Real D ) const
+  //fft.Filter_rescale_by_k_k2(CP.d_delta_m,CP.d_phi_1,true,0,1); // scalar field
 
 #ifndef ONLY_PARTICLES
   // compute \nabla^-2 \delta_bc
@@ -294,7 +296,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   chprintf("Cosmological ICs: RMS  of phi field %e\n",delta_rms);
 
   chprintf("Cosmological ICs: Proceeding to finish initialization...\n");
-  //chexit(0); //BRANT
+  chexit(0); //BRANT
 }
 
 /*! \fn void Save_Cosmo_Potential(struct Parameters *P)
@@ -631,8 +633,6 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
 
 
   // Multiplying by the square root of the power spectrum
-  // re HERE
-  //Real pk_factor = 1; // RMS of density field over entire grid = 4.583223e-01
   // if we transfer forward, multiply by 1, and then backward, we get the same variance we input
   Real pk_factor = 1.0e9*(nx_global*ny_global*nz_global)/(P->xlen*P->ylen*P->zlen);
   //Real pk_factor = 0.5e9*(nx_global*ny_global*nz_global)/(P->xlen*P->ylen*P->zlen);

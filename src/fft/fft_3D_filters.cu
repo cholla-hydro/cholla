@@ -83,9 +83,12 @@ void FFT_3D::Filter_rescale_by_k_k2( Real *input, Real *output, bool in_device, 
         Real k2 = kx*kx + ky*ky + kz*kz ;
         if ( k2 == 0 ) k2 = 1.0;
         Real factor;
-        if      (direction == 0) factor = kz / k2 / D;
+        //if      (direction == 0) factor = kz / k2 / D;
+        //else if (direction == 1) factor = ky / k2 / D;
+        //else if (direction == 2) factor = kx / k2 / D;
+        if      (direction == 0) factor = kx / k2 / D;
         else if (direction == 1) factor = ky / k2 / D;
-        else if (direction == 2) factor = kx / k2 / D;
+        else if (direction == 2) factor = kz / k2 / D;
         else printf("Wrong direction %d\n", direction ); 
          // multiply b by 1j*factor ( Imaginary Number)
         return cufftDoubleComplex{-factor*b.y,factor*b.x};
@@ -223,15 +226,15 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
         Real ky = id_j * ddj;
         Real kx = id_k * ddk;
         //spectral
-        //double ksq = kx*kx + ky*ky + kz*kz;
+        double ksq = kx*kx + ky*ky + kz*kz;
         //this gives the same answer as spectral
-        const double ci = cos(2.0*M_PI*id_i/Real(ni));
+        /*const double ci = cos(2.0*M_PI*id_i/Real(ni));
         const double cj = cos(2.0*M_PI*id_j/Real(nj));
         const double ck = cos(2.0*M_PI*id_k/Real(nk));
         const double i2 = (2.0 * ci * ci - 16.0 * ci + 14.0)/(6*dx*dx);
         const double j2 = (2.0 * cj * cj - 16.0 * cj + 14.0)/(6*dy*dy);
         const double k2 = (2.0 * ck * ck - 16.0 * ck + 14.0)/(6*dz*dz);
-        double ksq = i2+j2+k2;
+        double ksq = i2+j2+k2;*/
         //this gives the same answer as spectral
         //double ksq = sqr(2*sin(0.5*kx*dx)/dx) + sqr(2*sin(0.5*ky*dy)/dy) + sqr(2*sin(0.5*kz*dz)/dz);
         double d = -1./ksq;
