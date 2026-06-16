@@ -296,7 +296,6 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   chprintf("Cosmological ICs: RMS  of phi field %e\n",delta_rms);
 
   chprintf("Cosmological ICs: Proceeding to finish initialization...\n");
-  chexit(0); //BRANT
 }
 
 /*! \fn void Save_Cosmo_Potential(struct Parameters *P)
