@@ -142,6 +142,9 @@ int main(int argc, char *argv[])
   G.Set_Initial_Conditions(P, pmap);
   chprintf("Initial conditions set.\n");
 
+  // BRANT
+  chexit(0);
+
   // set main variables for Read_Grid and Read_Grid_Cat initial conditions
   if (is_restart) {
     outtime += G.H.t;

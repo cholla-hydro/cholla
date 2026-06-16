@@ -86,6 +86,9 @@ void FFT_3D::Initialize(const Real lx, const Real ly, const Real lz, const Real 
   #endif*/
 
   // for fft
+  dx_ = dx;
+  dy_ = dy;
+  dz_ = dz;
   ddi_ = 2.0*M_PI*double(n[0]-1)/(double(n[0])*(hi[0]-lo_[0]));
   ddj_ = 2.0*M_PI*double(n[1]-1)/(double(n[1])*(hi[1]-lo_[1]));
   ddk_ = 2.0*M_PI*double(n[2]-1)/(double(n[2])*(hi[2]-lo_[2]));

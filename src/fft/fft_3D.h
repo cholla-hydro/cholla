@@ -41,6 +41,7 @@ class FFT_3D
   private:
     int ni_,nj_,nk_; //!< Number of elements in X, Y, and Z dimensions
     Real ddi_,ddj_,ddk_; //!< Frequency-independent terms for the filter
+    Real dx_,dy_,dz_; //!< grid cell size
     HenryPeriodic *henry_; //!< FFT filter object 
 };
 
