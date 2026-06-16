@@ -13,6 +13,26 @@
 	#include "rng.h"
 	#include "field_operations.h"
 
+#include<math.h>
+#include<stdlib.h>
+#include<time.h>
+// Returns a normal distributed value with given mean and standard deviation
+double generate_gaussian(double mean, double std_dev) {
+    // EPSILON prevents taking the log of zero
+    const double epsilon = 1e-7;
+    double u1, u2;
+
+    do {
+        u1 = (double)rand() / RAND_MAX;
+        u2 = (double)rand() / RAND_MAX;
+    } while (u1 <= epsilon);
+
+    // Box-Muller transform step
+    double z0 = sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2);
+    
+    return z0 * std_dev + mean;
+}
+
 
 /*! \fn void Generate_Cosmo_Phi_Init(void)
  *  \brief Create the potentials for cosmological ICs */
@@ -95,13 +115,15 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	// step 1) sample xi(m) by generating independent
 	//         zero-mean normal deviates with variance N**d at 
 	//         each spatial point
-	Generate_Normal_Random_Field(CP.d_delta_m,rng_states);
+	//Generate_Normal_Random_Field(CP.d_delta_m,rng_states);
 
 	// copy memory -- only real, local cells
-	cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+	//cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
   Real delta_rms = 0;
   Real delta_ave = 0;
+  Real variate;
+  srand(time(NULL)+procID);
   // reduce the grid values
   for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
     for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
@@ -109,12 +131,15 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
         // get cell index
         id = i + j * nx_local + k * nx_local * ny_local;
+        variate =  generate_gaussian(0,1);
+        CP.delta_m[id] = variate;
 
         delta_rms += pow(CP.delta_m[id],2);
         delta_ave += CP.delta_m[id];
       }
     }
   }
+	GPU_Error_Check(cudaMemcpy(CP.d_delta_m, CP.delta_m, n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
   // get the total of the grid to compute the rms
   MPI_Allreduce(MPI_IN_PLACE, &delta_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -143,7 +168,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
 
 	// copy mean zero phi back to GPU
-	GPU_Error_Check(cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyHostToDevice));
+	GPU_Error_Check(cudaMemcpy(CP.d_delta_m, CP.delta_m, n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
 	// step 2) Take the fourier transform
 	//         xi(k) = N**-d \sum_m exp( -(2 pi i / M) * kappa \dot m) * xi(m)
@@ -250,7 +275,6 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // Perhaps compute phi_init here as advertised?
   // should return phi_1 = \nabla^-2 delta_m
   fft.Filter_inv_k2(CP.d_delta_m,CP.d_phi_1,true); // scalar potential
-//void FFT_3D::Filter_rescale_by_k_k2( Real *input, Real *output, bool in_device, int direction, Real D ) const
   //fft.Filter_rescale_by_k_k2(CP.d_delta_m,CP.d_phi_1,true,0,1); // scalar field
 
 #ifndef ONLY_PARTICLES
@@ -296,7 +320,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   chprintf("Cosmological ICs: RMS  of phi field %e\n",delta_rms);
 
   chprintf("Cosmological ICs: Proceeding to finish initialization...\n");
-  chexit(0);
+  //chexit(0);  //BRANT
 }
 
 /*! \fn void Save_Cosmo_Potential(struct Parameters *P)

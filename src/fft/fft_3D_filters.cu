@@ -76,9 +76,12 @@ void FFT_3D::Filter_rescale_by_k_k2( Real *input, Real *output, bool in_device, 
         int id_j = j < nj/2 ? j : j - nj;
         int id_k = k < nk/2 ? k : k - nk;
         // Compute kx, ky, and kz from the indices
-        Real kz = id_i * ddi;
+        //Real kz = id_i * ddi;
+        //Real ky = id_j * ddj;
+        //Real kx = id_k * ddk;  
+        Real kx = id_i * ddi;
         Real ky = id_j * ddj;
-        Real kx = id_k * ddk;  
+        Real kz = id_k * ddk;  
         // Compute the magnitude of k squared
         Real k2 = kx*kx + ky*ky + kz*kz ;
         if ( k2 == 0 ) k2 = 1.0;
@@ -122,6 +125,7 @@ void FFT_3D::Filter_rescale_by_power_spectrum( Real *input, Real *output, bool i
   henry_->filter(bytes, db_, da_,
     [=] __device__ (const int i, const int j, const int k, const cufftDoubleComplex b) {
       if (i || j || k) {
+/*
         // Compute kx, ky, and kz from the indices
         const double i2 = sqr(double(min(i, ni - i)) * ddi);
         const double j2 = sqr(double(min(j, nj - j)) * ddj);
@@ -129,6 +133,15 @@ void FFT_3D::Filter_rescale_by_power_spectrum( Real *input, Real *output, bool i
 
         // Compute the magnitude of k 
         const Real k_mag = sqrt( i2 + j2 + k2);
+*/
+        // Get the global indices
+        int id_i = i < ni/2 ? i : i - ni;
+        int id_j = j < nj/2 ? j : j - nj;
+        // no difference?
+        //int id_k = k < nk/2 ? k : k - nk;
+        int id_k = k; 
+        const Real k_mag = sqrt( sqr(id_i*ddi) + sqr(id_j*ddj) + sqr(id_k*ddk));
+
         // these give similar answers
         //Real pk = linear_interpolation( k_mag, dev_k, dev_pk, size ); // linear interp of P(k)
         //Real pk = log_log_interpolation( k_mag, dev_k, dev_pk, size );  // log log interp of P(k)
@@ -159,6 +172,29 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
   const double ddi = ddi_, ddj = ddj_, ddk = ddk_;
   const double dx = dx_, dy = dy_, dz = dz_;
   const size_t bytes = minBytes_;
+
+  /* For 128^3 in 25 Mpc/h
+    ngpu = 1, Cosmological ICs: RMS  of phi field 1.474697e+07
+    ngpu = 2, Cosmological ICs: RMS  of phi field 1.275145e+07
+    ngpu = 4, Cosmological ICs: RMS  of phi field 1.430082e+07*/
+    //ngpu=1, Cosmological ICs: RMS  of overdensity field after P(k) 5.331810e+00
+    //ngpu=2, Cosmological ICs: RMS  of overdensity field after P(k) 5.333359e+00
+    //ngpu=4, Cosmological ICs: RMS  of overdensity field after P(k) 5.308875e+00
+
+  /* For 256^3 in 50 Mpc/h
+    ngpu = 1, Cosmological ICs: RMS  of phi field 4.423029e+07
+    ngpu = 2, Cosmological ICs: RMS  of phi field 3.297570e+07
+    ngpu = 4, Cosmological ICs: RMS  of phi field 2.809177e+07*/
+ // ngpu = 4, Cosmological ICs: RMS  of overdensity field after P(k) 5.301260e+00
+
+  /* For 384^3 in 75 Mpc/h
+    ngpu = 2, Cosmological ICs: RMS  of phi field 4.042792e+07
+    ngpu = 4, Cosmological ICs: RMS  of phi field 5.219293e+07*/
+    //ngpu=4, Cosmological ICs: RMS  of overdensity field after P(k) 5.310492e+00
+
+  /* For 512^3 in 100 Mpc/h
+    ngpu = 4, Cosmological ICs: RMS  of phi field 8.125767e+07 */
+    //ngpu=4, Cosmological ICs: RMS  of overdensity field after P(k) 5.327733e+00
 
   // Poisson-solve constants that depend on divergence-operator approximation
   //#ifdef PARIS_3PT
@@ -220,21 +256,21 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
         int id_i = i < ni/2 ? i : i - ni;
         int id_j = j < nj/2 ? j : j - nj;
         // no difference?
-        int id_k = k < nk/2 ? k : k - nk;
-        //int id_k = k; 
-        Real kz = id_i * ddi;
+        //int id_k = k < nk/2 ? k : k - nk;
+        int id_k = k; 
+        Real kx = id_i * ddi;
         Real ky = id_j * ddj;
-        Real kx = id_k * ddk;
+        Real kz = id_k * ddk;
         //spectral
-        double ksq = kx*kx + ky*ky + kz*kz;
+        //double ksq = kx*kx + ky*ky + kz*kz;
         //this gives the same answer as spectral
-        /*const double ci = cos(2.0*M_PI*id_i/Real(ni));
+        const double ci = cos(2.0*M_PI*id_i/Real(ni));
         const double cj = cos(2.0*M_PI*id_j/Real(nj));
         const double ck = cos(2.0*M_PI*id_k/Real(nk));
         const double i2 = (2.0 * ci * ci - 16.0 * ci + 14.0)/(6*dx*dx);
         const double j2 = (2.0 * cj * cj - 16.0 * cj + 14.0)/(6*dy*dy);
         const double k2 = (2.0 * ck * ck - 16.0 * ck + 14.0)/(6*dz*dz);
-        double ksq = i2+j2+k2;*/
+        double ksq = i2+j2+k2;
         //this gives the same answer as spectral
         //double ksq = sqr(2*sin(0.5*kx*dx)/dx) + sqr(2*sin(0.5*ky*dy)/dy) + sqr(2*sin(0.5*kz*dz)/dz);
         double d = -1./ksq;
