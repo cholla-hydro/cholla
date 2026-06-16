@@ -2218,7 +2218,26 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         grad_phi_x       = 0.5*(phi_r - phi_l) / dx;
         grad_x_T[0][0]   = -1*D*(phi_r - 2 * phi + phi_l)/(dx*dx);
     #endif
-
+/*
+2nd
+Cosmological ICs: x-displacement field average = 1.035328e-17, rms = 5.977859e+01
+Cosmological ICs: y-displacement field average = -3.631385e-15, rms = 5.373778e+01
+Cosmological ICs: z-displacement field average = 4.274555e-13, rms = 4.206997e+01
+Cosmological ICs: x-velocity     field average = 1.086150e-17, rms = 3.334087e+01
+Cosmological ICs: y-velocity     field average = -3.553962e-15, rms = 2.997167e+01
+Cosmological ICs: z-velocity     field average = 3.764261e-13, rms = 2.346408e+01
+Cosmological ICs: overdensity    field average = 3.909169e-03, rms = 6.561782e-02
+Cosmological ICs: corr overdens. field average = 5.729687e-16, rms = 6.550127e-02
+4th
+Cosmological ICs: x-displacement field average = -8.011153e-17, rms = 5.984219e+01
+Cosmological ICs: y-displacement field average = 7.371302e-15, rms = 5.380806e+01
+Cosmological ICs: z-displacement field average = 2.038536e-13, rms = 4.215598e+01
+Cosmological ICs: x-velocity     field average = -3.418498e-17, rms = 3.337634e+01
+Cosmological ICs: y-velocity     field average = 4.785711e-15, rms = 3.001087e+01
+Cosmological ICs: z-velocity     field average = -6.382516e-14, rms = 2.351205e+01
+Cosmological ICs: overdensity    field average = 3.909169e-03, rms = 6.561782e-02
+Cosmological ICs: corr overdens. field average = 5.729687e-16, rms = 6.550127e-02
+*/
 /*
         // repeat for nabla^-2 \delta_bc
         // which affects LLA only
