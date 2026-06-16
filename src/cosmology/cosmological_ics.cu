@@ -218,10 +218,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // We have verified that the delta_m and delta_bc 
   // reflect the expected Pm(k) and Pbc(k)
 
-  // dm particle masses could inherit mass perturbations
-  // m_c(q) = \bar{m}_c * (1 + delta_c_ini(q))
-
-  // or to first-order the lagrangian displacement is
+  // to first-order the lagrangian displacement is
   // xi_c_pert = D xi_m(1) - \nabla^-2 \grad \delta_c_init
   // xi_m(1) = - \grad \phi_ini
   // x_c = q - D(z_start) \grad \phi_ini - \nabla^-2 \grad \delta_c_init
@@ -242,7 +239,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // 6) x_c from phi_ini and gradient of delta_bc
 
 
-  // At this stage, the cosmological overdensity fields
+  // At this stage, the cosmological overdensity field(s)
   // has/have been computed. These can be used to compute
   // the initial potential fields, which are then used to set
   // the remaining initial conditions.
@@ -296,7 +293,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   chprintf("Cosmological ICs: Mean of phi field %e\n",delta_ave);
   chprintf("Cosmological ICs: RMS  of phi field %e\n",delta_rms);
 
-  chprintf("Proceeding to finish initialization...\n");
+  chprintf("Cosmological ICs: Proceeding to finish initialization...\n");
 }
 
 /*! \fn void Save_Cosmo_Potential(struct Parameters *P)

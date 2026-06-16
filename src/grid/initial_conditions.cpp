@@ -2150,28 +2150,19 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   // now we can proceed with computing the gradients
 #ifndef ONLY_PARTICLES
 
-  Real d2phidx2=0, d2phidy2=0, d2phidz2 = 0;
   Real grad_x_T[3][3], det_grad_x;
   Real det_grad_x_min =  1e9;
   Real det_grad_x_max = -1e9;
   Real xix_min  =  1e9;
   Real xix_max  = -1e9;
-  Real phi_min  =  1.0e9;
-  Real phi_max  =  -1.0e9;
-  Real phi_rms  =  0;
-  Real phi_n    =  0;
   Real d_rms    =  0;
 
   Real dens, vel, U, E; 
-  Real Daf = Cosmo.D_Growth(1e-4)/1e-4;
-  //Real Daf = Cosmo.D_Growth(a_init)/a_init;
+  Real Daf = Cosmo.D_Growth(a_init)/a_init;
 
   //With radiation the perturbation ratio D/a keeps
   //increasing to large redshift
   chprintf("Cosmological ICs: lim a->0 D(a)/a = %e\n",Daf);
-  //Daf = Cosmo.D_Growth(a_init);
-  //Daf = 1./Daf;
-  Daf = Cosmo.D_Growth(a_init)/a_init;
   chprintf("Cosmological ICs: D(a)/a = %e\n",Daf);
 
   // gradient operators
@@ -2199,6 +2190,15 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         // along the x direction
         //////////////////////////////////////////
 
+        //////////////////////////////////////////
+        // We have that
+        // x = q - D\nabla^-2 \grad \delta
+        // v = dDdt \nabla^-2 \grad \delta
+        // Then for the laplacian
+        // \grad x = \grad q - D \nabla^2 \nabla^-2 \delta
+        // -> we subtract the second derivative
+        //////////////////////////////////////////
+
         id    = i + j * H.nx + k * H.ny * H.nx;
         id_l  = (i - 1) + j * H.nx + k * H.ny * H.nx;
         id_r  = (i + 1) + j * H.nx + k * H.ny * H.nx;
@@ -2213,10 +2213,10 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         phi_ll  = CP.phi_1[id_ll];
         phi_rr  = CP.phi_1[id_rr];
         grad_phi_x = (-phi_rr +  8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
-        grad_x_T[0][0]   = D*(-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dx*dx);
+        grad_x_T[0][0]   = -1*D*(-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dx*dx);
     #else
         grad_phi_x       = 0.5*(phi_r - phi_l) / dx;
-        grad_x_T[0][0]   = D*(phi_rr - 2 * phi + - phi_ll)/(dx*dx);
+        grad_x_T[0][0]   = -1*D*(phi_r - 2 * phi + phi_l)/(dx*dx);
     #endif
 
 /*
@@ -2250,10 +2250,10 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         phi_ll  = CP.phi_1[id_ll];
         phi_rr  = CP.phi_1[id_rr];
         grad_phi_y = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dy);
-        grad_x_T[1][1]   = D*(-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dy*dy);
+        grad_x_T[1][1]   = -1*D*(-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dy*dy);
     #else
         grad_phi_y = 0.5 * (phi_r - phi_l) / dy;
-        grad_x_T[1][1]   = D*(phi_rr - 2 * phi + - phi_ll)/(dy*dy);
+        grad_x_T[1][1]   = -1*D*(phi_r - 2 * phi + phi_l)/(dy*dy);
     #endif
 
 /*
@@ -2288,10 +2288,10 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         phi_ll  = CP.phi_1[id_ll];
         phi_rr  = CP.phi_1[id_rr];
         grad_phi_z     = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
-        grad_x_T[2][2] = D*(-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dz*dz);
+        grad_x_T[2][2] = -1*D*(-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dz*dz);
     #else
         grad_phi_z     = 0.5 * (phi_r - phi_l) / dz;
-        grad_x_T[2][2] = D*(phi_rr - 2 * phi + - phi_ll)/(dz*dz);
+        grad_x_T[2][2] = -1*D*(phi_r - 2 * phi + phi_l)/(dz*dz);
     #endif
 
 /*
@@ -2316,15 +2316,18 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         id_lu  = (i - 1) + (j + 1) * H.nx + k * H.ny * H.nx;
         id_rd  = (i + 1) + (j - 1) * H.nx + k * H.ny * H.nx;
         id_ru  = (i + 1) + (j + 1) * H.nx + k * H.ny * H.nx;
-        /*phi_ld = D*CP.phi_1[id_ld] + f_c*CP.phi_2[id_ld];
-        phi_lu = D*CP.phi_1[id_lu] + f_c*CP.phi_2[id_lu]; 
-        phi_rd = D*CP.phi_1[id_rd] + f_c*CP.phi_2[id_rd];
-        phi_ru = D*CP.phi_1[id_ru] + f_c*CP.phi_2[id_ru]; */
+
+        // for baryon-dm fluctuations
+        //phi_ld = D*CP.phi_1[id_ld] + f_c*CP.phi_2[id_ld];
+        //phi_lu = D*CP.phi_1[id_lu] + f_c*CP.phi_2[id_lu]; 
+        //phi_rd = D*CP.phi_1[id_rd] + f_c*CP.phi_2[id_rd];
+        //phi_ru = D*CP.phi_1[id_ru] + f_c*CP.phi_2[id_ru];
+        
         phi_ld = D*CP.phi_1[id_ld];
         phi_lu = D*CP.phi_1[id_lu];
         phi_rd = D*CP.phi_1[id_rd];
         phi_ru = D*CP.phi_1[id_ru];
-        grad_x_T[0][1] = 0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dx*dy);
+        grad_x_T[0][1] = -1*0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dx*dy);
         grad_x_T[1][0] = grad_x_T[0][1];
 
         // second xz
@@ -2332,15 +2335,18 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         id_lu  = (i - 1) + j * H.nx + (k + 1) * H.ny * H.nx;
         id_rd  = (i + 1) + j * H.nx + (k - 1) * H.ny * H.nx;
         id_ru  = (i + 1) + j * H.nx + (k + 1) * H.ny * H.nx;
-        /*phi_ld = D*CP.phi_1[id_ld] + f_c*CP.phi_2[id_ld];
-        phi_lu = D*CP.phi_1[id_lu] + f_c*CP.phi_2[id_lu]; 
-        phi_rd = D*CP.phi_1[id_rd] + f_c*CP.phi_2[id_rd];
-        phi_ru = D*CP.phi_1[id_ru] + f_c*CP.phi_2[id_ru]; */
+
+        // for baryon-dm fluctuations
+        //phi_ld = D*CP.phi_1[id_ld] + f_c*CP.phi_2[id_ld];
+        //phi_lu = D*CP.phi_1[id_lu] + f_c*CP.phi_2[id_lu]; 
+        //phi_rd = D*CP.phi_1[id_rd] + f_c*CP.phi_2[id_rd];
+        //phi_ru = D*CP.phi_1[id_ru] + f_c*CP.phi_2[id_ru];
+
         phi_ld = D*CP.phi_1[id_ld];
         phi_lu = D*CP.phi_1[id_lu];
         phi_rd = D*CP.phi_1[id_rd];
         phi_ru = D*CP.phi_1[id_ru];
-        grad_x_T[0][2] = 0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dx*dz);
+        grad_x_T[0][2] = -1*0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dx*dz);
         grad_x_T[2][0] = grad_x_T[0][2];
 
        // third yz
@@ -2348,15 +2354,18 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         id_lu  = i + (j - 1) * H.nx + (k + 1) * H.ny * H.nx;
         id_rd  = i + (j + 1) * H.nx + (k - 1) * H.ny * H.nx;
         id_ru  = i + (j + 1) * H.nx + (k + 1) * H.ny * H.nx;
-        /*phi_ld = D*CP.phi_1[id_ld] + f_c*CP.phi_2[id_ld];
-        phi_lu = D*CP.phi_1[id_lu] + f_c*CP.phi_2[id_lu]; 
-        phi_rd = D*CP.phi_1[id_rd] + f_c*CP.phi_2[id_rd];
-        phi_ru = D*CP.phi_1[id_ru] + f_c*CP.phi_2[id_ru]; */
+
+        // for baryon-dm fluctuations
+        //phi_ld = D*CP.phi_1[id_ld] + f_c*CP.phi_2[id_ld];
+        //phi_lu = D*CP.phi_1[id_lu] + f_c*CP.phi_2[id_lu]; 
+        //phi_rd = D*CP.phi_1[id_rd] + f_c*CP.phi_2[id_rd];
+        //phi_ru = D*CP.phi_1[id_ru] + f_c*CP.phi_2[id_ru];
+
         phi_ld = D*CP.phi_1[id_ld];
         phi_lu = D*CP.phi_1[id_lu];
         phi_rd = D*CP.phi_1[id_rd];
         phi_ru = D*CP.phi_1[id_ru];
-        grad_x_T[1][2] = 0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dy*dz);
+        grad_x_T[1][2] = -1*0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dy*dz);
         grad_x_T[2][1] = grad_x_T[1][2];  
 
 
@@ -2380,18 +2389,9 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         xiz_rms  += xi_z * xi_z;
         xix_n += 1;
 
-        phi   = CP.phi_1[id];
-        phi_l = CP.phi_1[id_l];
-        phi_r = CP.phi_1[id_r];
-        phi_mean += phi_l;
-        phi_rms  += phi_l * phi_l;
-        if(phi_l<phi_min)
-          phi_min = phi_l;
-        if(phi_l>phi_max)
-          phi_max = phi_l;
-        phi_n += 1;
-
+        //////////////////////////////////////////
         // compute velocities field
+        //////////////////////////////////////////
 
         vx = A_vel * xi_x/h; // km/s
         vy = A_vel * xi_y/h; // km/s
@@ -2409,9 +2409,11 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         C.momentum_z[id] = vz; //store velocities
 
 
+        ////////////////////////////////////////////////////////
         // Displacements
         // x = q - D \grad phi_init - grad \nabla^-2 \delta_b
         // x = q - D \grad phi_init - f_c grad \nabla^-2 \delta_bc
+        ////////////////////////////////////////////////////////
 
         // add dq/dq to grad x
         grad_x_T[0][0] += 1;
@@ -2529,7 +2531,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
         C.density[id] += 1;      // convert to 1 + delta
         C.density[id] *= rho_b;  // convert to density
-        dens = C.density[id];
+        dens = C.density[id];    // store baryond density
 
   #ifdef CHEMISTRY_GPU
         C.HI_density[id]    = (1-xHp)*(1-YHe)*dens; //HI    density
@@ -2583,9 +2585,6 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   // write potential to file
   //chprintf("Writing cosmological potential to file...\n");
   //Save_Cosmo_Potential(&P);
-
-//#error investigate particles
-  //chexit(0);
 
 #endif  // COSMOLOGY
 }
