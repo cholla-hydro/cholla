@@ -1,4 +1,4 @@
-include builds/make.type.gravity
+include config/make.type.gravity
 
 #Include Particles
 DFLAGS += -DPARTICLES
