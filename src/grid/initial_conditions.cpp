@@ -2214,9 +2214,11 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         phi_rr  = CP.phi_1[id_rr];
         grad_phi_x = (-phi_rr +  8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
         grad_x_T[0][0]   = -1*D*(-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dx*dx);
+        //grad_x_T[0][0]   = D*(-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dx*dx);
     #else
         grad_phi_x       = 0.5*(phi_r - phi_l) / dx;
         grad_x_T[0][0]   = -1*D*(phi_r - 2 * phi + phi_l)/(dx*dx);
+        //grad_x_T[0][0]   = D*(phi_r - 2 * phi + phi_l)/(dx*dx);
     #endif
 /*
 2nd
@@ -2270,9 +2272,11 @@ Cosmological ICs: corr overdens. field average = 5.729687e-16, rms = 6.550127e-0
         phi_rr  = CP.phi_1[id_rr];
         grad_phi_y = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dy);
         grad_x_T[1][1]   = -1*D*(-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dy*dy);
+        //grad_x_T[1][1]   = D*(-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dy*dy);
     #else
         grad_phi_y = 0.5 * (phi_r - phi_l) / dy;
         grad_x_T[1][1]   = -1*D*(phi_r - 2 * phi + phi_l)/(dy*dy);
+        //grad_x_T[1][1]   = D*(phi_r - 2 * phi + phi_l)/(dy*dy);
     #endif
 
 /*
@@ -2308,9 +2312,11 @@ Cosmological ICs: corr overdens. field average = 5.729687e-16, rms = 6.550127e-0
         phi_rr  = CP.phi_1[id_rr];
         grad_phi_z     = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
         grad_x_T[2][2] = -1*D*(-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dz*dz);
+        //grad_x_T[2][2] = D*(-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dz*dz);
     #else
         grad_phi_z     = 0.5 * (phi_r - phi_l) / dz;
         grad_x_T[2][2] = -1*D*(phi_r - 2 * phi + phi_l)/(dz*dz);
+        //grad_x_T[2][2] = D*(phi_r - 2 * phi + phi_l)/(dz*dz);
     #endif
 
 /*
@@ -2346,6 +2352,7 @@ Cosmological ICs: corr overdens. field average = 5.729687e-16, rms = 6.550127e-0
         phi_lu = D*CP.phi_1[id_lu];
         phi_rd = D*CP.phi_1[id_rd];
         phi_ru = D*CP.phi_1[id_ru];
+        //grad_x_T[0][1] = 0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dx*dy);
         grad_x_T[0][1] = -1*0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dx*dy);
         grad_x_T[1][0] = grad_x_T[0][1];
 
@@ -2365,6 +2372,7 @@ Cosmological ICs: corr overdens. field average = 5.729687e-16, rms = 6.550127e-0
         phi_lu = D*CP.phi_1[id_lu];
         phi_rd = D*CP.phi_1[id_rd];
         phi_ru = D*CP.phi_1[id_ru];
+        //grad_x_T[0][2] = 0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dx*dz);
         grad_x_T[0][2] = -1*0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dx*dz);
         grad_x_T[2][0] = grad_x_T[0][2];
 
@@ -2384,6 +2392,7 @@ Cosmological ICs: corr overdens. field average = 5.729687e-16, rms = 6.550127e-0
         phi_lu = D*CP.phi_1[id_lu];
         phi_rd = D*CP.phi_1[id_rd];
         phi_ru = D*CP.phi_1[id_ru];
+        //grad_x_T[1][2] = 0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dy*dz);
         grad_x_T[1][2] = -1*0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dy*dz);
         grad_x_T[2][1] = grad_x_T[1][2];  
 

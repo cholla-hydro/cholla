@@ -165,18 +165,63 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
   // Using the spectral operator -- consider others to control low-frequency modes
   const int n = ni * nj * nk;
 
+  const Real si = M_PI / Real(ni);
+  const Real sj = M_PI / Real(nj);
+  const Real sk = M_PI / Real(nk);
+
   // Provide FFT filter with a lambda that does 1/k^2 solve in frequency space
   henry_->filter(bytes, db_, da_,
     [=] __device__ (const int i, const int j, const int k, const cufftDoubleComplex b) {
       if (i || j || k) {
 
-        // 1/k^2
-
-        // Get the global indices 
+        //Cosmological ICs: x-displacement field average = -8.011153e-17, rms = 5.984219e+01
+        //Cosmological ICs: y-displacement field average = 7.371302e-15, rms = 5.380806e+01
+        //Cosmological ICs: z-displacement field average = 2.038536e-13, rms = 4.215598e+01
+        //Cosmological ICs: x-velocity     field average = -3.418498e-17, rms = 3.337634e+01
+        //Cosmological ICs: y-velocity     field average = 4.785711e-15, rms = 3.001087e+01
+        //Cosmological ICs: z-velocity     field average = -6.382516e-14, rms = 2.351205e+01
+        //Cosmological ICs: overdensity    field average = 3.909169e-03, rms = 6.561782e-02
+        //Cosmological ICs: corr overdens. field average = 5.729687e-16, rms = 6.550127e-02
+        // Get the global indices
         int id_i = i < ni/2 ? i : i - ni;
         int id_j = j < nj/2 ? j : j - nj;
         int id_k = k < nk/2 ? k : k - nk;
         // Compute kx, ky, and kz from the indices
+        Real kz = id_i * ddi;
+        Real ky = id_j * ddj;
+        Real kx = id_k * ddk;
+        // Compute the magnitude of k squared
+        Real k2 = kx*kx + ky*ky + kz*kz ;
+        if ( k2 == 0 ) k2 = 1.0;
+        Real d = -1/k2;
+
+
+        //Cosmological ICs: x-displacement field average = 1.988918e-17, rms = 5.988630e+01
+        //Cosmological ICs: y-displacement field average = 2.827057e-15, rms = 5.385668e+01
+        //Cosmological ICs: z-displacement field average = 2.647539e-13, rms = 4.221638e+01
+        //Cosmological ICs: x-velocity     field average = 1.005640e-17, rms = 3.340094e+01
+        //Cosmological ICs: y-velocity     field average = 2.557464e-15, rms = 3.003799e+01
+        //Cosmological ICs: z-velocity     field average = 2.761453e-14, rms = 2.354573e+01
+        //Cosmological ICs: overdensity    field average = 5.128162e-03, rms = 7.638924e-02
+        //Cosmological ICs: corr overdens. field average = 1.365178e-15, rms = 7.621691e-02
+        /*const Real ci = cos(Real(min(i, ni - i)) * si);
+        const Real cj = cos(Real(min(j, nj - j)) * sj);
+        const Real ck = cos(Real(k) * sk);
+        const Real i2 = ddi * (2.0 * ci * ci - 16.0 * ci + 14.0);
+        const Real j2 = ddj * (2.0 * cj * cj - 16.0 * cj + 14.0);
+        const Real k2 = ddk * (2.0 * ck * ck - 16.0 * ck + 14.0);
+        const Real k_sq = (i2+j2+k2);
+        if(k_sq==0)
+          return cufftDoubleComplex{0.0,0.0};
+        const Real d = -1.0/k_sq;*/
+
+        // 1/k^2
+
+        // Get the global indices 
+        //int id_i = i < ni/2 ? i : i - ni;
+        //int id_j = j < nj/2 ? j : j - nj;
+        //int id_k = k < nk/2 ? k : k - nk;
+        /*// Compute kx, ky, and kz from the indices
         Real kz = id_i * ddi;
         Real ky = id_j * ddj;
         Real kx = id_k * ddk;  
@@ -184,7 +229,32 @@ void FFT_3D::Filter_inv_k2( Real *const input, Real *const output, bool in_devic
         const Real k_sq =  kx*kx + ky*ky + kz*kz ;
         if(k_sq==0)
           return cufftDoubleComplex{0.0,0.0};
-        const Real d = -1.0/k_sq;
+        const Real d = -1.0/k_sq;*/
+
+
+        //Cosmological ICs: x-displacement field average = 1.988918e-17, rms = 5.988630e+01
+        //Cosmological ICs: y-displacement field average = 2.827057e-15, rms = 5.385668e+01
+        //Cosmological ICs: z-displacement field average = 2.647539e-13, rms = 4.221638e+01
+        //Cosmological ICs: x-velocity     field average = 1.005640e-17, rms = 3.340094e+01
+        //Cosmological ICs: y-velocity     field average = 2.557464e-15, rms = 3.003799e+01
+        //Cosmological ICs: z-velocity     field average = 2.761453e-14, rms = 2.354573e+01
+        //Cosmological ICs: overdensity    field average = 5.128162e-03, rms = 7.638924e-02
+        //Cosmological ICs: corr overdens. field average = 1.365178e-15, rms = 7.621691e-02
+        /*Real dx = (2.0*M_PI/(ddi*ni));
+        Real dy = (2.0*M_PI/(ddj*nj));
+        Real dz = (2.0*M_PI/(ddk*nk));
+        Real kx = id_i * ddi;
+        Real ky = id_j * ddj;
+        Real kz = id_k * ddk; 
+        Real i2 = (2/(dx*dx)) * (cos(kx*dx)-1);
+        Real j2 = (2/(dy*dy)) * (cos(ky*dy)-1);
+        Real k2 = (2/(dz*dz)) * (cos(kz*dz)-1);
+        Real k_sq = (i2+j2+k2);
+        //Real k_sq = (kx*kx + ky*ky + kz*kz);
+        if(k_sq==0)
+          return cufftDoubleComplex{0.0,0.0};
+        Real d = -1./k_sq;*/
+
 
         return cufftDoubleComplex{d*b.x,d*b.y};
       } else {
