@@ -185,9 +185,6 @@ Parameters::Parameters(ParameterMap &pmap)
   parms->tout = pmap.value<double>("tout");  // aborts if missing
   CHOLLA_ASSERT(parms->tout >= 0.0, "tout parameter must be non-negative");
 
-  parms->outstep        = pmap.value<double>("outstep");  // aborts if missing
-  parms->n_steps_output = pmap.value_or("n_steps_output", 0);
-
   // in the future, maybe we should provide a default value of 5/3 for gamma
   parms->gamma = Real(pmap.value<double>("gamma"));
   CHOLLA_ASSERT(parms->gamma > 1.0, "gamma parameter must be greater than one.");
@@ -269,13 +266,6 @@ Parameters::Parameters(ParameterMap &pmap)
 #endif  // TILED_INITIAL_CONDITIONS
 
   // parse some assorted values (we should parse them only where we need them)
-  {
-    int tmp = pmap.value_or("output_always", 0);
-    CHOLLA_ASSERT((tmp == 0) or (tmp == 1), "output_always must be 1 or 0.");
-    parms->output_always = tmp;
-  }
-
-  parms->n_steps_limit = pmap.value_or("n_steps_limit", -1);
 
 #ifdef PARTICLES
   parms->prng_seed = pmap.value_or("prng_seed", 0);

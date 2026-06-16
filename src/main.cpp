@@ -88,6 +88,14 @@ int main(int argc, char *argv[])
   //   -> modern: code initializes the simulation by getting values directly from pmap
   Parameters P(pmap);
 
+  // read in a few parameters only used in the top-level main function
+  const int n_steps_limit = pmap.value_or("n_steps_limit", -1);  // negative values indicate that there is no limit
+  // perhaps these belong as attributes of io::WriterManager? Or maybe we should wait to do that until after we
+  // figure out how exactly we want to schedule operations?
+  const double outstep    = pmap.value<double>("outstep");  // aborts if missing
+  const int output_always = pmap.value_or("output_always", 0);
+  CHOLLA_ASSERT((output_always == 0) or (output_always == 1), "output_always must be 1 or 0.");
+
   // write a description of simulation configuration to console
   chprintf("Git Commit Hash = %s\n", GIT_HASH);
   chprintf("Macro Flags     = %s\n", MACRO_FLAGS);
@@ -245,7 +253,7 @@ int main(int argc, char *argv[])
 #endif  // MHD
 
   // increment the next output time
-  outtime += P.outstep;
+  outtime += outstep;
 
 #ifdef CPU_TIME
   stop_init = Get_Time();
@@ -348,7 +356,7 @@ int main(int argc, char *argv[])
         "%9.3f ms   total time = %9.4f s\n\n",
         G.H.n_step, G.H.t, G.H.dt, (stop_step - start_step) * 1000, G.H.t_wall);
 
-    if (P.output_always) G.H.Output_Now = true;
+    if (output_always) G.H.Output_Now = true;
 
 #ifdef ANALYSIS
     if (G.Analysis.Output_Now) G.Compute_and_Output_Analysis(&P);
@@ -356,9 +364,6 @@ int main(int argc, char *argv[])
     sn_analysis.Compute_Gas_Velocity_Dispersion(G);
   #endif
 #endif
-
-    // if ( P.n_steps_output > 0 && G.H.n_step % P.n_steps_output == 0)
-    // G.H.Output_Now = true;
 
     if (G.H.t == outtime || G.H.Output_Now) {
 #ifdef OUTPUT
@@ -368,7 +373,7 @@ int main(int argc, char *argv[])
       nfile++;
 #endif  // OUTPUT
       if (G.H.t == outtime) {
-        outtime += P.outstep;  // update to the next output time
+        outtime += outstep;  // update to the next output time
       }
     }
 
@@ -377,7 +382,7 @@ int main(int argc, char *argv[])
 #endif
 
     // Exit the loop when reached the limit number of steps (optional)
-    if (G.H.n_step >= P.n_steps_limit and P.n_steps_limit > 0) {
+    if (G.H.n_step >= n_steps_limit and n_steps_limit > 0) {
 #ifdef OUTPUT
       Write_Data(G, P, nfile, writer_manager);
 #endif  // OUTPUT

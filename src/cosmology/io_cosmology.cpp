@@ -53,7 +53,6 @@ void Cosmology::Load_Scale_Outputs(struct Parameters *P)
 void Cosmology::Set_Scale_Outputs(struct Parameters *P)
 {
   if (P->scale_outputs_file[0] == '\0') {
-    chprintf(" Output every %d timesteps.\n", P->n_steps_output);
     Real scale_end = 1 / (P->End_redshift + 1);
     scale_outputs.push_back(current_a);
     scale_outputs.push_back(scale_end);
