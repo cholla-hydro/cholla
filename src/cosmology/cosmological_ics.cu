@@ -115,15 +115,26 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	// step 1) sample xi(m) by generating independent
 	//         zero-mean normal deviates with variance N**d at 
 	//         each spatial point
-	//Generate_Normal_Random_Field(CP.d_delta_m,rng_states);
+	Generate_Normal_Random_Field(CP.d_delta_m,rng_states);
 
 	// copy memory -- only real, local cells
-	//cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+	cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+
+/*
+  printf("procID %d delta_m[0:9] %e %e %e %e %e %e %e %e %e %e\n",procID,CP.delta_m[0],CP.delta_m[1],CP.delta_m[2],
+                                                                         CP.delta_m[3],CP.delta_m[4],CP.delta_m[5],
+                                                                         CP.delta_m[6],CP.delta_m[7],CP.delta_m[8],
+                                                                         CP.delta_m[9]);
+  fflush(stdout);
+
+
+  chexit(0);
+*/
 
   Real delta_rms = 0;
   Real delta_ave = 0;
-  Real variate;
-  srand(time(NULL)+procID);
+  //Real variate;
+  //srand(time(NULL)+procID);
   // reduce the grid values
   for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
     for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
@@ -131,8 +142,8 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
         // get cell index
         id = i + j * nx_local + k * nx_local * ny_local;
-        variate =  generate_gaussian(0,1);
-        CP.delta_m[id] = variate;
+        //variate =  generate_gaussian(0,1);
+        //CP.delta_m[id] = variate;
 
         delta_rms += pow(CP.delta_m[id],2);
         delta_ave += CP.delta_m[id];
@@ -535,21 +546,40 @@ void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
 	// Record the RNG seed from the parameter file
 	CP.rng_seed = P->seed;
 
+/*
 	// Set the RNG subsequence to be the global MPI Rank + 1
 	CP.rng_subsequence = (unsigned long long) (procID);
+*/
+/*
+  //uint64_t task_start_global_idx = procID*n_cells; //fitx
+  // i + j*nx + k *ny*nx;
+  uint64_t task_start_global_idx = nx_local_start + ny_local_start*nx + nz_local_start*nx*ny;
+
+  CP.rng_subsequnce = task_start_global_idx >> 32; //high 32 bits
 
 	// Initialize the RNG offset to be the process ID
-	CP.rng_offset = procID;
+	//CP.rng_offset = procID;
+  CP.rng_offset     = task_start_global_idx & 0xFFFFFFFFULL; //low 32 bits
+*/
 
 	// Call the RNG initialization function on the GPUs
 	GPU_Error_Check(cudaMalloc((void **)&rng_states, n_cells * sizeof(rng_parallel_state_t)));
 
+
+//__global__ void RNG_Init_GPU_TEST(int nx, int ny, int nz, int nx_local_start, int ny_local_start, int nz_local_start, uint64_t seed, rng_parallel_state_t *state) {
   // initialze
+  cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Init_GPU, n_cells);
+  hipLaunchKernelGGL(RNG_Init_GPU_TEST, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
+                     nx_local,ny_local,nz_local,nx_local_start,ny_local_start,nz_local_start,CP.rng_seed, rng_states);
+
+
+  // initialze
+/*
   cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Init_GPU, n_cells);
   hipLaunchKernelGGL(RNG_Init_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
                      nx_local,ny_local,nz_local,0,CP.rng_seed, CP.rng_subsequence, CP.rng_offset, rng_states);
 //                     H.nx,H.ny,H.nz,0,CP.rng_seed, CP.rng_subsequence, CP.rng_offset, rng_states);
-
+*/
   GPU_Error_Check();
                      
 	chprintf("Initialized Cosmological ICs RNG states.");
