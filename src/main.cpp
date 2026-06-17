@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
   chprintf("Initial conditions set.\n");
 
   // BRANT
-  //chexit(0);
+  chexit(0);
 
   // set main variables for Read_Grid and Read_Grid_Cat initial conditions
   if (is_restart) {
@@ -290,7 +290,7 @@ int main(int argc, char *argv[])
 
 
   // BRANT -- stop after generating ICs
-  //chexit(0);
+  chexit(0);
 
   // Compute inverse timestep for the first time
   dti = G.Calc_Inverse_Timestep();

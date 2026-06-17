@@ -570,7 +570,8 @@ void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
   // initialze
   cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Init_GPU, n_cells);
   hipLaunchKernelGGL(RNG_Init_GPU_TEST, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
-                     nx_local,ny_local,nz_local,nx_local_start,ny_local_start,nz_local_start,CP.rng_seed, rng_states);
+                     nx_local,ny_local,nz_local,nx_local_start,ny_local_start,nz_local_start,P->nx,P->ny,P->nz,CP.rng_seed, rng_states);
+                     //nx_local,ny_local,nz_local,nx_local_start,ny_local_start,nz_local_start,CP.rng_seed, rng_states);
 
 
   // initialze
@@ -582,7 +583,7 @@ void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
 */
   GPU_Error_Check();
                      
-	chprintf("Initialized Cosmological ICs RNG states.");
+	chprintf("Cosmological ICs: Initialized RNG states (seed = %d).\n",CP.rng_seed);
 }
 
 
