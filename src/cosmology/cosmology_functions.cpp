@@ -261,9 +261,6 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
     dDdt_array.push_back(y_n[2]);
   }
 
-
-  chprintf("Sizes t %d a %d D %d dDdt %d\n",t_array.size(),a_array.size(),D_array.size(),dDdt_array.size());
-
   // free the RK integrator memory
   RK.FreeMemory();
 }
@@ -417,7 +414,7 @@ void Cosmology::Create_Growth_Function_File(struct Parameters *P)
 
   // set the growth function filename
   std::string file_name(GROWTH_FACTOR_FILE_NAME);
-  chprintf("\nCreating Growth Factor File: %s \n\n", file_name.c_str());
+  chprintf("\nCosmology: Creating Growth Factor File: %s \n\n", file_name.c_str());
 
   // current date/time based on current system
   time_t now = time(0);

@@ -158,8 +158,6 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // step 2.7) 
   // We can free the RNG now
   Free_Cosmo_Potential_RNG();
-  
-
 
 	// step 3) Multiply xi(k) by the transfer function 
 	//         T(k) \equiv [(2 \pi / L)**3 P(k)]^{1/2}
@@ -303,6 +301,10 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   chprintf("Cosmological ICs: RMS  of phi field %e\n",delta_rms);
 
   chprintf("Cosmological ICs: Proceeding to finish initialization...\n");
+
+  // clear the FFT memory
+  fft.Reset();
+
   //chexit(0);  //BRANT
 }
 
@@ -703,7 +705,7 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
   int offset = n_cells;
 
   GPU_Error_Check(cudaHostAlloc((void **)&CP.host, CP.n_fields * n_cells * sizeof(Real), cudaHostAllocDefault));
-  chprintf("Host memory allocated for %d fields in cosmological ICs initial deltas (n = %d).\n",CP.n_fields, n_cells);
+  chprintf("Cosmological ICs: Host memory allocated for %d fields in cosmological ICs initial deltas (n = %d).\n",CP.n_fields, n_cells);
 
   // point potential variables to the appropriate locations on host
   CP.delta_m    = CP.host;
@@ -716,7 +718,7 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
   GPU_Error_Check(cudaMalloc((void **)&CP.device, CP.n_fields * n_cells * sizeof(Real)));
   cuda_utilities::initGpuMemory(CP.device, CP.n_fields * n_cells * sizeof(Real));
 
-  chprintf("Device memory allocated for %d fields in cosmological ICs initial deltas (n = %d).\n",CP.n_fields, n_cells);
+  chprintf("Cosmological ICs: Device memory allocated for %d fields in cosmological ICs initial deltas (n = %d).\n",CP.n_fields, n_cells);
 
   // point potential variables to the appropriate locations on the device
   CP.d_delta_m   = CP.device;
@@ -737,7 +739,7 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
   offset  = n_cells;
 
   GPU_Error_Check(cudaHostAlloc((void **)&CP.hostp, CP.n_fields * n_cells * sizeof(Real), cudaHostAllocDefault));
-  chprintf("Host memory allocated for %d fields in cosmological ICs initial potentials (n = %d).\n",CP.n_fields, n_cells);
+  chprintf("Cosmological ICs: Host memory allocated for %d fields in cosmological ICs initial potentials (n = %d).\n",CP.n_fields, n_cells);
 
   // point potential variables to the appropriate locations on host
   CP.phi_1    = CP.hostp;
@@ -749,7 +751,7 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
   GPU_Error_Check(cudaMalloc((void **)&CP.devicep, CP.n_fields * n_cells * sizeof(Real)));
   cuda_utilities::initGpuMemory(CP.devicep, CP.n_fields * n_cells * sizeof(Real));
 
-  chprintf("Device memory allocated for %d fields in cosmological ICs initial potentials (n = %d).\n",CP.n_fields, n_cells);
+  chprintf("Cosmological ICs: Device memory allocated for %d fields in cosmological ICs initial potentials (n = %d).\n",CP.n_fields, n_cells);
 
   // point potential variables to the appropriate locations on the device
   CP.d_phi_1 = CP.devicep;
@@ -764,7 +766,7 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
   }
 }
 
-/*! \fn void Free_Cosmo_Phi_Init(void)
+/*! \fn void Free_Cosmo_Potential_Memory(void)
  *  \brief Free the memory allocated for cosmological ICs potentials */
 void Grid3D::Free_Cosmo_Potential_Memory(void)
 {
