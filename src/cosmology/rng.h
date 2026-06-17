@@ -1,7 +1,7 @@
 # pragma once
 #ifdef O_HIP
-  #include <hiprand.h>
-  #include <hiprand_kernel.h>
+  #include <hiprand/hiprand.h>
+  #include <hiprand/hiprand_kernel.h>
 #else
   #include <curand.h>
   #include <curand_kernel.h>

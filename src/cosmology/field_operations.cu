@@ -1,4 +1,4 @@
-
+#include "../utils/gpu.hpp"
 #include "field_operations.h"
 
 /*! \fn void Rescale_Field_GPU(Real *d_x, Real A, int nx, int ny, int nz, int n_ghost)

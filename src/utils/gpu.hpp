@@ -54,6 +54,7 @@ static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
   #define cudaMemcpyDeviceToHost             hipMemcpyDeviceToHost
   #define cudaMemcpyDeviceToDevice           hipMemcpyDeviceToDevice
   #define cudaMemcpyHostToDevice             hipMemcpyHostToDevice
+  #define cudaMemcpyHostToHost               hipMemcpyHostToHost
   #define cudaMemGetInfo                     hipMemGetInfo
   #define cudaMemset                         hipMemset
   #define cudaReadModeElementType            hipReadModeElementType
@@ -69,6 +70,7 @@ static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
   #define cudaPeekAtLastError                hipPeekAtLastError
   #define cudaFuncAttributes                 hipFuncAttributes
   #define cudaFuncGetAttributes              hipFuncGetAttributes
+  #define cudaStreamSynchronize              hipStreamSynchronize
 
   // Texture definitions
   #define cudaArray           hipArray
