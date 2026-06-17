@@ -13,27 +13,6 @@
 	#include "rng.h"
 	#include "field_operations.h"
 
-#include<math.h>
-#include<stdlib.h>
-#include<time.h>
-// Returns a normal distributed value with given mean and standard deviation
-double generate_gaussian(double mean, double std_dev) {
-    // EPSILON prevents taking the log of zero
-    const double epsilon = 1e-7;
-    double u1, u2;
-
-    do {
-        u1 = (double)rand() / RAND_MAX;
-        u2 = (double)rand() / RAND_MAX;
-    } while (u1 <= epsilon);
-
-    // Box-Muller transform step
-    double z0 = sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2);
-    
-    return z0 * std_dev + mean;
-}
-
-
 /*! \fn void Generate_Cosmo_Phi_Init(void)
  *  \brief Create the potentials for cosmological ICs */
 void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
@@ -121,21 +100,8 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	// copy memory -- only real, local cells
 	cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
-/*
-  printf("procID %d delta_m[0:9] %e %e %e %e %e %e %e %e %e %e\n",procID,CP.delta_m[0],CP.delta_m[1],CP.delta_m[2],
-                                                                         CP.delta_m[3],CP.delta_m[4],CP.delta_m[5],
-                                                                         CP.delta_m[6],CP.delta_m[7],CP.delta_m[8],
-                                                                         CP.delta_m[9]);
-  fflush(stdout);
-
-
-  chexit(0);
-*/
-
   Real delta_rms = 0;
   Real delta_ave = 0;
-  //Real variate;
-  //srand(time(NULL)+procID);
   // reduce the grid values
   for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
     for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
@@ -143,9 +109,8 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
         // get cell index
         id = i + j * nx_local + k * nx_local * ny_local;
-        //variate =  generate_gaussian(0,1);
-        //CP.delta_m[id] = variate;
-
+      
+        // record average and RMS
         delta_rms += pow(CP.delta_m[id],2);
         delta_ave += CP.delta_m[id];
       }
@@ -192,6 +157,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
   // step 2.7) 
   // We can free the RNG now
+  Free_Cosmo_Potential_RNG();
   
 
 
@@ -556,10 +522,9 @@ void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
 	GPU_Error_Check(cudaMalloc((void **)&rng_states, n_cells * sizeof(rng_parallel_state_t)));
 
 
-//__global__ void RNG_Init_GPU_TEST(int nx, int ny, int nz, int nx_local_start, int ny_local_start, int nz_local_start, uint64_t seed, rng_parallel_state_t *state) {
-  // initialze
+  // initialze the RNG generator
   cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Init_GPU, n_cells);
-  hipLaunchKernelGGL(RNG_Init_GPU_TEST, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
+  hipLaunchKernelGGL(RNG_Init_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
                      nx_local,ny_local,nz_local,nx_local_start,ny_local_start,nz_local_start,P->nx,P->ny,P->nz,CP.rng_seed, rng_states);
                      //nx_local,ny_local,nz_local,nx_local_start,ny_local_start,nz_local_start,CP.rng_seed, rng_states);
 
@@ -845,43 +810,7 @@ void Grid3D::Rescale_Field(Real *d_x, Real A)
 }
 
 
-/*! \fn void Field_Elementwise_Product(Real *d_x, Real *d_y)
- *  \brief Multiply one field elementwise by another. */
-/*
-void Grid3D::Field_Elementwise_Product(Real *d_x, Real *d_y)
-{
-	// Here, d_x and d_y
-	// Rescale the field by a multiplicative factor.
-	Field_Elementwise_Product_GPU(d_x, d_y, H.n_cells, H.n_ghost);
-}*/
-
-/*! \fn void FFT_Field_Inverse_Laplacian(Real *d_x, Real A)
- *  \brief Multiply one field elementwise by another. */
-/*void Grid3D::FFT_Field_Inverse_Laplacian(Real *d_x_k, Real *d_kk)
-{
-	// Here, d_x and d_y
-	// Rescale the field by a multiplicative factor.
-	FFT_Field_Elementwise_Ratio_Power_GPU(d_x, d_y, H.n_cells, H.n_ghost);
-}
-*/
-
-/*! \fn void FFT_Populate_Wavevectors(Real *d_kx, Real *d_ky, Real *d_kz, Real *d_kk)
- *  \brief Initialize the wavevector arrays for an FFT grid */
-/*void Grid3D::FFT_Populate_Wavevectors(Real *d_kx, Real *d_ky, Real *d_kz, Real *d_kk)
-{
-	// Populate wavevectors for an FFT grid
-	FFT_Populate_Wavevectors_GPU(d_kx, d_ky, d_kz, d_kk, H.n_cells, H.n_ghost);
-}*/
-
-
-// Set_Boundary_Conditions_Cosmo_Potential()
-// -- calls Set_Boundaries_Cosmo_Potential
-//    -- calls Set_Cosmo_Potential_Boundaries_Periodic
-// OR
-// Set_Boundaries_MPI_Cosmo_Potential
-
-
-/*! \fn void Set_Boundary_Conditions_Cosmo_Potential(Parameters P )
+/*! \fn void Set_Boundary_Conditions_Field(Parameters P )
  *  \brief Set the boundary conditions for all components based on info in the
  * parameters structure. */
 void Grid3D::Set_Boundary_Conditions_Field(Parameters P, Real *field)
@@ -921,7 +850,7 @@ void Grid3D::Set_Boundary_Conditions_Field(Parameters P, Real *field)
 }
 
 
-/*! \fn void Set_Boundaries(int dir, int flags[])
+/*! \fn void Set_Boundaries_Field(int dir, int flags[])
  *  \brief Apply boundary conditions to the grid. */
 void Grid3D::Set_Boundaries_Field(int dir, int flags[], Real *field)
 {
@@ -971,14 +900,6 @@ void Grid3D::Set_Boundaries_Field(int dir, int flags[], Real *field)
     }
     return;
   }
-  /*
-  // get the extents of the ghost region we are initializing
-  Set_Boundary_Extents(dir, &imin[0], &imax[0]);
-
-  // from grid/cuda_boundaries.cu
-  SetGhostCells(C.device, H.nx, H.ny, H.nz, H.n_fields, H.n_cells, H.n_ghost, flags, imax[0] - imin[0],
-                imax[1] - imin[1], imax[2] - imin[2], imin[0], imin[1], imin[2], dir);
-  */
 }
 
 
@@ -1053,6 +974,7 @@ void Grid3D::Set_Field_Boundaries_Periodic(int direction, int side, int *flags, 
 
 
 
+#ifdef MPI_CHOLLA
 
 
 void Grid3D::Set_Boundaries_MPI_Field(struct Parameters P, Real *field)
@@ -1305,6 +1227,8 @@ void Grid3D::Wait_and_Unload_MPI_Comm_Buffers_Field(int dir, int *flags, Real *f
 
 
 
+/*! \fn void Grid3D::Unload_MPI_Comm_Buffers_Field(int index, Real *field)
+ *  \brief Unload the MPI buffers for field comms. */
 void Grid3D::Unload_MPI_Comm_Buffers_Field(int index, Real *field)
 {
   // local recv buffers
@@ -1342,8 +1266,8 @@ void Grid3D::Unload_MPI_Comm_Buffers_Field(int index, Real *field)
 }
 
 
-
-#ifdef MPI_CHOLLA
+/*! \fn void Grid3D::Load_Field_To_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *field)
+ *  \brief Load the MPI buffers for field comms. */
 int Grid3D::Load_Field_To_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *field)
 {
   int i, j, k, indx, indx_buff, length;
