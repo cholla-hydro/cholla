@@ -117,6 +117,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	//         each spatial point
 	Generate_Normal_Random_Field(CP.d_delta_m,rng_states);
 
+
 	// copy memory -- only real, local cells
 	cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
@@ -188,6 +189,11 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // step 2.5) Copy random field to baryonic field
 	GPU_Error_Check(cudaMemcpy(CP.d_delta_bc, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
 #endif 
+
+  // step 2.7) 
+  // We can free the RNG now
+  
+
 
 	// step 3) Multiply xi(k) by the transfer function 
 	//         T(k) \equiv [(2 \pi / L)**3 P(k)]^{1/2}
@@ -546,22 +552,6 @@ void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
 	// Record the RNG seed from the parameter file
 	CP.rng_seed = P->seed;
 
-/*
-	// Set the RNG subsequence to be the global MPI Rank + 1
-	CP.rng_subsequence = (unsigned long long) (procID);
-*/
-/*
-  //uint64_t task_start_global_idx = procID*n_cells; //fitx
-  // i + j*nx + k *ny*nx;
-  uint64_t task_start_global_idx = nx_local_start + ny_local_start*nx + nz_local_start*nx*ny;
-
-  CP.rng_subsequnce = task_start_global_idx >> 32; //high 32 bits
-
-	// Initialize the RNG offset to be the process ID
-	//CP.rng_offset = procID;
-  CP.rng_offset     = task_start_global_idx & 0xFFFFFFFFULL; //low 32 bits
-*/
-
 	// Call the RNG initialization function on the GPUs
 	GPU_Error_Check(cudaMalloc((void **)&rng_states, n_cells * sizeof(rng_parallel_state_t)));
 
@@ -573,19 +563,18 @@ void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
                      nx_local,ny_local,nz_local,nx_local_start,ny_local_start,nz_local_start,P->nx,P->ny,P->nz,CP.rng_seed, rng_states);
                      //nx_local,ny_local,nz_local,nx_local_start,ny_local_start,nz_local_start,CP.rng_seed, rng_states);
 
-
-  // initialze
-/*
-  cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Init_GPU, n_cells);
-  hipLaunchKernelGGL(RNG_Init_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
-                     nx_local,ny_local,nz_local,0,CP.rng_seed, CP.rng_subsequence, CP.rng_offset, rng_states);
-//                     H.nx,H.ny,H.nz,0,CP.rng_seed, CP.rng_subsequence, CP.rng_offset, rng_states);
-*/
   GPU_Error_Check();
                      
 	chprintf("Cosmological ICs: Initialized RNG states (seed = %d).\n",CP.rng_seed);
 }
 
+/*! \fn void Free_Cosmo_Potential_RNG()
+ *  \brief Free memory for cosmological potential*/
+void Grid3D::Free_Cosmo_Potential_RNG()
+{
+  // free rng states info
+  GPU_Error_Check(cudaFree(rng_states));
+}
 
 
 /*! \fn void Free_Cosmo_Power_Spectrum()
