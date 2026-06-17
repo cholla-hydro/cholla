@@ -1574,9 +1574,12 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         // x = q - D * \grad phi
         //////////////////////////////////////////
 
-        x_pos = x_pos - xi_x;
-        y_pos = y_pos - xi_y;
-        z_pos = z_pos - xi_z;
+        //x_pos = x_pos - xi_x;
+        //y_pos = y_pos - xi_y;
+        //z_pos = z_pos - xi_z;
+        x_pos = x_pos + xi_x;
+        y_pos = y_pos + xi_y;
+        z_pos = z_pos + xi_z;
 
 
       #ifdef PARTICLES_CPU
