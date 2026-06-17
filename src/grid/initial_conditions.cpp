@@ -2566,7 +2566,7 @@ Cosmological ICs: corr overdens. field average = 5.729687e-16, rms = 6.550127e-0
         C.HI_density[id]    = (1-xHp)*(1-YHe)*dens; //HI    density
         C.HII_density[id]   = xHp*(1-YHe)*dens;     //HII   density
         C.HeI_density[id]   = (1-xHep)*YHe*dens;    //HeI   density
-        C.HeII_density[id]  = Hep*YHe*dens;         //HeII  density
+        C.HeII_density[id]  = xHep*YHe*dens;        //HeII  density
         C.HeIII_density[id] = 0;                    //HeIII density
         //C.e_density[id]     = dens_factor;
   #endif

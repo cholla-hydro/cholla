@@ -425,8 +425,8 @@ __device__ Real Get_Chemistry_dt(Thermal_State &TS, ChemistryHeader &Chem_H, Rea
   #endif
 
   energy = fmax(TS.U * TS.d, tiny);
-  dt     = fabs(0.1 * TS.d_HI / HI_dot); //BRANT EDIT
-  //dt     = fmin(fabs(0.1 * TS.d_HI / HI_dot), fabs(0.1 * TS.d_e / e_dot)); //BRANT EDIT
+  //dt     = fabs(0.1 * TS.d_HI / HI_dot); //BRANT EDIT
+  dt     = fmin(fabs(0.1 * TS.d_HI / HI_dot), fabs(0.1 * TS.d_e / e_dot)); //BRANT EDIT
   dt     = fmin(fabs(0.1 * energy / U_dot), dt);
   dt     = fmin(0.5 * dt_hydro, dt);
   dt     = fmin(dt_hydro - t_chem, dt);
@@ -546,9 +546,9 @@ __global__ void Print_Chemistry_kernel(Real *dev_conserved, int nx, int ny, int 
   if (xid > n_ghost - 1 && xid < nx - n_ghost && yid > n_ghost - 1 && yid < ny - n_ghost && zid > n_ghost - 1 &&
       zid < nz - n_ghost) {
 
-    if((xid==n_ghost)&&(yid==n_ghost)&&(zid==n_ghost)){
+    /*if((xid==n_ghost)&&(yid==n_ghost)&&(zid==n_ghost)){
       print = true;
-    }
+    }*/ //BRANT
     d     = dev_conserved[id];
     d_inv = 1.0 / d;
     vx    = dev_conserved[1 * n_cells + id] * d_inv;
@@ -631,7 +631,7 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
 
     print = false;
     //print = true;
-    if ( xid == n_ghost && yid == n_ghost && zid == n_ghost ) print = true;
+    //if ( xid == n_ghost && yid == n_ghost && zid == n_ghost ) print = true; //BRANT
 
     // Convert to cgs units
     current_a = 1 / (current_z + 1);
@@ -640,7 +640,7 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
     d *= density_conv / a3;
     GE *= energy_conv / a2;
     // BRANT UPDATE
-    //dt_hydro = dt_hydro / Chem_H.time_units; // Nick flagged this as a bug
+    dt_hydro = dt_hydro / Chem_H.time_units; // Nick flagged this as a bug NG
 
   #ifdef COSMOLOGY
     dt_hydro *= current_a * current_a / Chem_H.H0 * 1000 * KPC;
@@ -685,9 +685,9 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
     TS.d_HeI   = fmax(TS.d_HeI, tiny);
     TS.d_HeII  = fmax(TS.d_HeII, tiny);
     TS.d_HeIII = fmax(TS.d_HeIII, 1e-5 * tiny);
-    //TS.d_e     = fmax(TS.d_e, tiny);
+    TS.d_e     = fmax(TS.d_e, tiny);
     // Use charge conservation to determine electron fraction BRANT ALTER
-    TS.d_e = TS.d_HII + TS.d_HeII / 4.0 + TS.d_HeIII / 2.0;
+    //TS.d_e = TS.d_HII + TS.d_HeII / 4.0 + TS.d_HeIII / 2.0;
 
     // Compute temperature at first iteration
     temp_prev = TS.get_temperature(Chem_H.gamma);
