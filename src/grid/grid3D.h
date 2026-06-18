@@ -914,6 +914,8 @@ class Grid3D
   rng_parallel_state_t *rng_states;
 
   // Cosmo ICs potential comms
+  void Allocate_Boundary_Conditions_Field_MPI();
+  void Free_Boundary_Conditions_Field_MPI();
   void Set_Field_Boundaries_Periodic(int direction, int side, int *flags, Real *field);
   void Set_Boundary_Conditions_Field(Parameters P, Real *field);
   void Set_Boundaries_Field(int dir, int flags[], Real *field);

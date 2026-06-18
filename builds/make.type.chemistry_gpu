@@ -28,7 +28,7 @@ DFLAGS    += -DSCALAR -DCHEMISTRY_GPU
 #DFLAGS    += -DCLOUDY_COOL
 
 #Measure the Timing of the different stages
-DFLAGS += -DCPU_TIME
+#DFLAGS += -DCPU_TIME
 
 DFLAGS    += $(OUTPUT)
 

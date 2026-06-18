@@ -2046,7 +2046,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
   // find the average
   delta_rm_check = delta_rm_check /(nx_global*ny_global*nz_global);
-  printf("Before the remap, mean(phi) = %e\n",delta_rm_check);
+  //printf("Before the remap, mean(phi) = %e\n",delta_rm_check);
 
   Real delta_m_check=0;
   Real delta_m_check_n=0;
@@ -2099,7 +2099,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   // get the total of the grid to compute the mean
   MPI_Allreduce(MPI_IN_PLACE, &delta_m_check, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   delta_m_check = delta_m_check /(nx_global*ny_global*nz_global);
-  chprintf("Delta m check %e\n",delta_m_check);
+  chprintf("Cosmological ICs: Delta m check %e\n",delta_m_check);
 
 
   // repeat for baryons if present
@@ -2140,11 +2140,13 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   // and we need to investigate why
 
   chprintf("Cosmological ICs: Exchanging ghost cells for cosmological potential phi_1.\n");
+  Allocate_Boundary_Conditions_Field_MPI();
   Set_Boundary_Conditions_Field(P, CP.phi_1);
 #ifndef ONLY_PARTICLES
   chprintf("Cosmological ICs: Exchanging ghost cells for cosmological potential phi_2.\n");
   Set_Boundary_Conditions_Field(P, CP.phi_2);
 #endif  //ONLY_PARTICLES
+  Free_Boundary_Conditions_Field_MPI();
 
 
   // now we can proceed with computing the gradients

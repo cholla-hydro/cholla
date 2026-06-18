@@ -979,6 +979,60 @@ void Grid3D::Set_Field_Boundaries_Periodic(int direction, int side, int *flags, 
 #ifdef MPI_CHOLLA
 
 
+void Grid3D::Allocate_Boundary_Conditions_Field_MPI()
+{
+  int xbsize = 1, ybsize = 1, zbsize = 1;
+  if (H.ny == 1 && H.nz == 1) {
+    xbsize = H.n_fields * H.n_ghost;
+  }
+  // 2D
+  else if (H.ny > 1 && H.nz == 1) {
+    xbsize = H.n_fields * H.n_ghost * (H.ny - 2 * H.n_ghost);
+    ybsize = H.n_fields * H.n_ghost * (H.nx);
+  }
+  // 3D
+  else if (H.ny > 1 && H.nz > 1) {
+    xbsize = H.n_fields * H.n_ghost * (H.ny - 2 * H.n_ghost) * (H.nz - 2 * H.n_ghost);
+    ybsize = H.n_fields * H.n_ghost * (H.nx) * (H.nz - 2 * H.n_ghost);
+    zbsize = H.n_fields * H.n_ghost * (H.nx) * (H.ny);
+  } else {
+    throw std::runtime_error("MPI buffer size failed to set.");
+  }
+
+  #if defined(MPI_GPU) //these won't be allocated yet
+  h_send_buffer_x0 = (Real *)malloc(xbsize * sizeof(Real));
+  h_send_buffer_x1 = (Real *)malloc(xbsize * sizeof(Real));
+  h_recv_buffer_x0 = (Real *)malloc(xbsize * sizeof(Real));
+  h_recv_buffer_x1 = (Real *)malloc(xbsize * sizeof(Real));
+  h_send_buffer_y0 = (Real *)malloc(ybsize * sizeof(Real));
+  h_send_buffer_y1 = (Real *)malloc(ybsize * sizeof(Real));
+  h_recv_buffer_y0 = (Real *)malloc(ybsize * sizeof(Real));
+  h_recv_buffer_y1 = (Real *)malloc(ybsize * sizeof(Real));
+  h_send_buffer_z0 = (Real *)malloc(zbsize * sizeof(Real));
+  h_send_buffer_z1 = (Real *)malloc(zbsize * sizeof(Real));
+  h_recv_buffer_z0 = (Real *)malloc(zbsize * sizeof(Real));
+  h_recv_buffer_z1 = (Real *)malloc(zbsize * sizeof(Real));
+  #endif
+}
+void Grid3D::Free_Boundary_Conditions_Field_MPI()
+{
+  #if defined(MPI_GPU) //these won't be allocated yet
+  free(h_send_buffer_x0);
+  free(h_send_buffer_x1);
+  free(h_recv_buffer_x0);
+  free(h_recv_buffer_x1);
+  free(h_send_buffer_y0);
+  free(h_send_buffer_y1);
+  free(h_recv_buffer_y0);
+  free(h_recv_buffer_y1);
+  free(h_send_buffer_z0);
+  free(h_send_buffer_z1);
+  free(h_recv_buffer_z0);
+  free(h_recv_buffer_z1);
+  #endif
+}
+
+
 void Grid3D::Set_Boundaries_MPI_Field(struct Parameters P, Real *field)
 {
   int flags[6] = {0, 0, 0, 0, 0, 0};
@@ -1001,7 +1055,6 @@ void Grid3D::Set_Boundaries_MPI_BLOCK_Field(int *flags, struct Parameters P, Rea
     }
 
     /* Step 2 - Set non-MPI x-boundaries */
-    // This does both phi_1 and phi_2 if needed
     Set_Boundaries_Field(0, flags, field);
     Set_Boundaries_Field(1, flags, field);
 
@@ -1019,7 +1072,6 @@ void Grid3D::Set_Boundaries_MPI_BLOCK_Field(int *flags, struct Parameters P, Rea
     }
 
     /* Step 5 - Set non-MPI y-boundaries */
-    // This does both phi_1 and phi_2 if needed
     Set_Boundaries_Field(2, flags, field);
     Set_Boundaries_Field(3, flags, field);
 
@@ -1036,7 +1088,6 @@ void Grid3D::Set_Boundaries_MPI_BLOCK_Field(int *flags, struct Parameters P, Rea
     }
 
     /* Step 8 - Set non-MPI z-boundaries */
-    // This does both phi_1 and phi_2 if needed
     Set_Boundaries_Field(4, flags, field);
     Set_Boundaries_Field(5, flags, field);
 
@@ -1057,7 +1108,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_Field(int dir, int *flags, Real *fie
 
   int buffer_length;
 
-  // Flag to omit the transfer of the main buffer when tranferring the particles
+  // Flag to omit the transfer of the main buffer when transferring the particles
   // buffer
   bool transfer_main_buffer = true;
 
