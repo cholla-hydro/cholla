@@ -1367,6 +1367,13 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
   Real vz_rms=0;
   Real xix_n = 0;
 
+  int nxlt = 0;
+  int nxut = 0;
+  int nylt = 0;
+  int nyut = 0;
+  int nzlt = 0;
+  int nzut = 0;
+
   for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
     for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
       for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
@@ -1616,12 +1623,33 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         temp_id[pID] = pID;
         #endif
       #endif  // PARTICLES_GPU
+	
+	// Count particles to transfer
+	if(x_pos<G.xMin)
+	  nxlt += 1;
+	if(x_pos>=G.xMax)
+	  nxut += 1;
+
+	if(y_pos<G.yMin)
+	  nylt += 1;
+	if(y_pos>=G.yMax)
+	  nyut += 1;
+
+	if(z_pos<G.zMin)
+	  nzlt += 1;
+	if(z_pos>=G.zMax)
+	  nzut += 1;
+
 
         pID += 1;
 
       }
     }
   }
+
+  printf("Transfers procID %d nxlt %d nxut %d nylt %d nyut %d nzlt %d nzut %d\n",procID,nxlt,nxut,nylt,nyut,nzlt,nzut);
+  fflush(stdout);
+  MPI_Barrier(world);
 
   MPI_Allreduce(MPI_IN_PLACE, &xix_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(MPI_IN_PLACE, &xiy_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);

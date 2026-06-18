@@ -814,7 +814,7 @@ void Particles3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dire
   // If the number of particles in the array exceeds the size of the array,
   // extend the array
   if ((*n_send + n_transfer) * N_DATA_PER_PARTICLE_TRANSFER > *buffer_size) {
-    printf("Extending Particles Transfer Buffer  ");
+    printf("Extending Particles Transfer Buffer procID %d n_send %d n_transfer %d NDPPT %d product %d buffer_size %d gpu_alloc_fac %3.2f ",procID,(*n_send),n_transfer,N_DATA_PER_PARTICLE_TRANSFER,(*n_send + n_transfer) * N_DATA_PER_PARTICLE_TRANSFER,*buffer_size,G.gpu_allocation_factor);
     Extend_GPU_Array(&send_buffer_d, *buffer_size,
                      G.gpu_allocation_factor * (*n_send + n_transfer) * N_DATA_PER_PARTICLE_TRANSFER, true);
     *buffer_size = (part_int_t)G.gpu_allocation_factor * (*n_send + n_transfer) * N_DATA_PER_PARTICLE_TRANSFER;
