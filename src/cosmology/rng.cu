@@ -22,8 +22,10 @@ __global__ void RNG_Init_GPU(int nx_local, int ny_local, int nz_local, int nx_lo
     global_idx += (zid + nz_local_start)*nx*ny;
 
     // create a reproducible subsequence and offset
-    uint64_t subsequence = global_idx >> 32;
-    uint64_t offset = global_idx & 0xFFFFFFFFULL;
+    //uint64_t subsequence = global_idx >> 32;
+    //uint64_t offset = global_idx & 0xFFFFFFFFULL;
+    uint64_t subsequence = global_idx >> 48;
+    uint64_t offset = global_idx & 0xFFFFFFFFFFFFULL;
 
 	  // copy state to local memory for efficiency
 	  rng_parallel_state_t localState = states[threadId];
