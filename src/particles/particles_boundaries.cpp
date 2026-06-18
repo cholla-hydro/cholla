@@ -211,7 +211,8 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     #ifdef PARTICLES_GPU
       #ifdef MPI_GPU
     if (buffer_length > Particles.G.recv_buffer_size_x0) {
-      printf("Extending Particles Transfer Buffer  ");
+      //printf("Extending Particles Transfer Buffer  ");
+      printf("Extending Particles Transfer Buffer  bl %d nrx0 %d rcvx0 %d\n",buffer_length,Particles.n_recv_x0,Particles.G.recv_buffer_size_x0);
       Extend_GPU_Array(&recv_buffer_x0_particles, Particles.G.recv_buffer_size_x0,
                        Particles.G.gpu_allocation_factor * buffer_length, true);
       Particles.G.recv_buffer_size_x0 = (part_int_t)Particles.G.gpu_allocation_factor * buffer_length;
@@ -233,7 +234,8 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     #ifdef PARTICLES_GPU
       #ifdef MPI_GPU
     if (buffer_length > Particles.G.recv_buffer_size_x1) {
-      printf("Extending Particles Transfer Buffer  ");
+      //printf("Extending Particles Transfer Buffer  ");
+      printf("Extending Particles Transfer Buffer  bl %d nrx1 %d rcvx1 %d\n",buffer_length,Particles.n_recv_x1,Particles.G.recv_buffer_size_x1);
       Extend_GPU_Array(&recv_buffer_x1_particles, Particles.G.recv_buffer_size_x1,
                        Particles.G.gpu_allocation_factor * buffer_length, true);
       Particles.G.recv_buffer_size_x1 = (part_int_t)Particles.G.gpu_allocation_factor * buffer_length;
@@ -256,7 +258,8 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     #ifdef PARTICLES_GPU
       #ifdef MPI_GPU
     if (buffer_length > Particles.G.recv_buffer_size_y0) {
-      printf("Extending Particles Transfer Buffer  ");
+      //printf("Extending Particles Transfer Buffer  ");
+      printf("Extending Particles Transfer Buffer  bl %d nry0 %d rcvy0 %d\n",buffer_length,Particles.n_recv_y0,Particles.G.recv_buffer_size_y0);
       Extend_GPU_Array(&recv_buffer_y0_particles, Particles.G.recv_buffer_size_y0,
                        Particles.G.gpu_allocation_factor * buffer_length, true);
       Particles.G.recv_buffer_size_y0 = (part_int_t)Particles.G.gpu_allocation_factor * buffer_length;
@@ -278,7 +281,8 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     #ifdef PARTICLES_GPU
       #ifdef MPI_GPU
     if (buffer_length > Particles.G.recv_buffer_size_y1) {
-      printf("Extending Particles Transfer Buffer  ");
+      //printf("Extending Particles Transfer Buffer  ");
+      printf("Extending Particles Transfer Buffer  bl %d nry1 %d rcvy1 %d\n",buffer_length,Particles.n_recv_y1,Particles.G.recv_buffer_size_y1);
       Extend_GPU_Array(&recv_buffer_y1_particles, Particles.G.recv_buffer_size_y1,
                        Particles.G.gpu_allocation_factor * buffer_length, true);
       Particles.G.recv_buffer_size_y1 = (part_int_t)Particles.G.gpu_allocation_factor * buffer_length;
@@ -300,7 +304,8 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     #ifdef PARTICLES_GPU
       #ifdef MPI_GPU
     if (buffer_length > Particles.G.recv_buffer_size_z0) {
-      printf("Extending Particles Transfer Buffer  ");
+      //printf("Extending Particles Transfer Buffer  ");
+      printf("Extending Particles Transfer Buffer  bl %d nrz0 %d rcvz0 %d\n",buffer_length,Particles.n_recv_z0,Particles.G.recv_buffer_size_z0);
       Extend_GPU_Array(&recv_buffer_z0_particles, Particles.G.recv_buffer_size_z0,
                        Particles.G.gpu_allocation_factor * buffer_length, true);
       Particles.G.recv_buffer_size_z0 = (part_int_t)Particles.G.gpu_allocation_factor * buffer_length;
@@ -322,7 +327,8 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     #ifdef PARTICLES_GPU
       #ifdef MPI_GPU
     if (buffer_length > Particles.G.recv_buffer_size_z1) {
-      printf("Extending Particles Transfer Buffer  ");
+      //printf("Extending Particles Transfer Buffer  ");
+      printf("Extending Particles Transfer Buffer  bl %d nrz1 %d rcvz1 %d\n",buffer_length,Particles.n_recv_z1,Particles.G.recv_buffer_size_z1);
       Extend_GPU_Array(&recv_buffer_z1_particles, Particles.G.recv_buffer_size_z1,
                        Particles.G.gpu_allocation_factor * buffer_length, true);
       Particles.G.recv_buffer_size_z1 = (part_int_t)Particles.G.gpu_allocation_factor * buffer_length;
