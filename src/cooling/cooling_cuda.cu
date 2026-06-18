@@ -83,7 +83,7 @@ class CoolingUpdateExecutor
     dim3 dim1dBlock(TPB, 1, 1);
 
     hipLaunchKernelGGL(cooling_kernel, dim1dGrid, dim1dBlock, 0, 0, dev_conserved, H.nx, H.ny, H.nz, H.n_ghost,
-                       H.n_fields, H.dt, gama, SOLAR_METAL_MASS_FRAC, this->recipe_);
+                       H.n_fields, H.dt, gama, SOLAR_METAL_MASS_FRAC, HYDROGEN_FRAC_BY_MASS, this->recipe_);
     GPU_Error_Check();
   }
 };
@@ -96,7 +96,7 @@ class CoolingUpdateExecutor
  function. */
 template <typename CoolingRecipe>
 __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
-                               Real gamma, Real solar_metal_mass_frac, CoolingRecipe recipe)
+                               Real gamma, Real solar_metal_mass_frac, Real hydrogen_frac_by_mass, CoolingRecipe recipe)
 {
   int n_cells = nx * ny * nz;
   int is, ie, js, je, ks, ke;
@@ -117,11 +117,12 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     ke = nz - n_ghost;
   }
 
-  Real d, d_metals, E;
-  Real n_tot, T, T_init;
+  Real d, d_metals, d_H, d_He, E;
+  Real n, n_H, n_He, T, T_init;
   Real del_T, dt_sub;
+  Real metal_mass_frac, metallicity;
   Real mu;    // mean molecular weight
-  Real cool;  // cooling rate per volume, erg/s/cm^3
+  Real cool;  // cooling rate per volume, erg/s/cm^3\
   // #ifndef DE
   Real vx, vy, vz, p;
   // #endif
@@ -164,41 +165,47 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     ge = dev_conserved[(n_fields - 1) * n_cells + id] / d;
     ge = fmax(ge, (Real)TINY_NUMBER);
 #endif
+    // calculate the mass densities of Hydrogen and Helium
+    d_H = hydrogen_frac_by_mass * (d - d_metals);
+    d_He = d - d_H - d_metals;
 
     // calculate the number density of the gas (in cgs)
-    n_tot = d * DENSITY_UNIT / (mu * MP);
-    Real n_primordial = (d - d_metals) * DENSITY_UNIT / (mu * MP);
+    n = d * DENSITY_UNIT / (mu * MP);
+    n_H = d_H * DENSITY_UNIT / MP;
+    n_He = d_He * DENSITY_UNIT / (4*MP);
 
-    Real metal_mass_frac = d_metals / d;
-    Real metallicity = metal_mass_frac / solar_metal_mass_frac;
+    // calculate the metal mass fraction and the metallicity of the gas
+    metal_mass_frac = d_metals / d;
+    metallicity = metal_mass_frac / solar_metal_mass_frac;
 
     // calculate the temperature of the gas
-    T_init = p * PRESSURE_UNIT / (n_tot * KB);
+    T_init = p * PRESSURE_UNIT / (n * KB);
 #ifdef DE
-    T_init = d * ge * (gamma - 1.0) * PRESSURE_UNIT / (n_tot * KB);
+    T_init = d * ge * (gamma - 1.0) * PRESSURE_UNIT / (n * KB);
 #endif
 
     // calculate cooling rate per volume
     T = T_init;
     // call the cooling function
-    cool = recipe.cool_rate(n_primordial, n_tot, T, metallicity);
+
+    cool = recipe.cool_rate(n_H, n_He, T, metallicity);
 
     // calculate change in temperature given dt
-    del_T = cool * dt * TIME_UNIT * (gamma - 1.0) / (n_tot * KB);
+    del_T = cool * dt * TIME_UNIT * (gamma - 1.0) / (n * KB);
 
     // limit change in temperature to 1% (we use fabs for when heating dominates)
     while (fabs(del_T / T) > 0.01) {
       // what dt gives del_T with a magnitude of 0.01*T? (we use fabs for cases when heating dominates)
-      dt_sub = fabs(0.01 * T * n_tot * KB / (cool * TIME_UNIT * (gamma - 1.0)));
+      dt_sub = fabs(0.01 * T * n * KB / (cool * TIME_UNIT * (gamma - 1.0)));
       // apply that dt
-      T -= cool * dt_sub * TIME_UNIT * (gamma - 1.0) / (n_tot * KB);
+      T -= cool * dt_sub * TIME_UNIT * (gamma - 1.0) / (n * KB);
       // how much time is left from the original timestep?
       dt -= dt_sub;
 
       // calculate cooling again
-      cool = recipe.cool_rate(n_primordial, n_tot, T, metallicity);
+      cool = recipe.cool_rate(n_H, n_He, T, metallicity);
       // calculate new change in temperature
-      del_T = cool * dt * TIME_UNIT * (gamma - 1.0) / (n_tot * KB);
+      del_T = cool * dt * TIME_UNIT * (gamma - 1.0) / (n * KB);
     }
 
     // calculate final temperature
@@ -206,7 +213,7 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
 
     // adjust value of energy based on total change in temperature
     del_T = T_init - T;  // total change in T
-    E -= n_tot * KB * del_T / ((gamma - 1.0) * ENERGY_UNIT);
+    E -= n * KB * del_T / ((gamma - 1.0) * ENERGY_UNIT);
 #ifdef DE
     ge -= KB * del_T / (mu * MP * (gamma - 1.0) * SP_ENERGY_UNIT);
 #endif
@@ -225,10 +232,10 @@ struct CoolRecipeCIE {
   // this only exists for the sake of consistency
   explicit __host__ CoolRecipeCIE(ParameterMap &pmap) {}
 
-  __device__ Real cool_rate(Real n_primordial, Real n_tot, Real T, Real metallicity) const 
+  __device__ Real cool_rate(Real n_H, Real n_He, Real T, Real metallicity) const 
   {
     Real lambda = cool_component::analytic_cie_lambda(log10(T));  // cooling rate, erg s^-1 cm^3
-    Real cool   = n_tot * n_tot * lambda;                                 // cooling per unit volume, erg /s / cm^3
+    Real cool   = n_H * n_H * lambda;                                 // cooling per unit volume, erg /s / cm^3
     return cool;
   }
 };
@@ -241,9 +248,9 @@ class CoolRecipeCloudy
 
  public:
   explicit __host__ CoolRecipeCloudy(ParameterMap &pmap) : net_cloudy_(pmap) {}
-  __device__ Real cool_rate(Real n_primordial, Real n_tot, Real T, Real metallicity) const 
+  __device__ Real cool_rate(Real n_H, Real n_He, Real T, Real metallicity) const 
   { 
-    return net_cloudy_(n_tot, T); 
+    return net_cloudy_(n_H, T); 
   }
 };
 
@@ -255,25 +262,29 @@ class CoolRecipeCloudyAndPhotoHeating
  public:
   explicit __host__ CoolRecipeCloudyAndPhotoHeating(ParameterMap &pmap) : net_cloudy_(pmap), photoelectric_fn_(pmap) {}
 
-  __device__ Real cool_rate(Real n_primordial, Real n_tot, Real T, Real metallicity) const 
+  __device__ Real cool_rate(Real n_H, Real n_He, Real T, Real metallicity) const 
   { 
-    return net_cloudy_(n_tot, T) - photoelectric_fn_(n_tot, T); 
+    return net_cloudy_(n_H, T) - photoelectric_fn_(n_H, T); 
   }
 };
 
 class CoolRecipeMetals
 {
-
+  cool_component::CloudyHeatAndCool net_cloudy_;
  public:
-  explicit __host__ CoolRecipeMetals(ParameterMap &pmap) {}
+  explicit __host__ CoolRecipeMetals(ParameterMap &pmap) : net_cloudy_(pmap){}
 
-  __device__ Real cool_rate(Real n_primordial, Real n_tot, Real T, Real metallicity) const 
+  __device__ Real cool_rate(Real n_H, Real n_He, Real T, Real metallicity) const 
   { 
-    Real primordial = cool_component::primordial_cool(n_primordial, T);
-    Real metals = cool_component::analytic_cie_lambda(log10(T)) - primordial;     
-    Real lambda = primordial + metallicity * metals; // cooling rate, erg s^-1 cm^3
-    Real cool = n_tot * n_tot * lambda;            // cooling per unit volume, erg /s / cm^3
-    return cool;
+    // compute cooling per unit volume for just primordial components
+    Real cool_primordial = cool_component::primordial_cool(n_H, n_He, T);
+
+    // get cooling per unit volume of metals if cell had solar metallicty
+    // Real cool_metal = n_H * n_H * cool_component::analytic_cie_lambda(log10(T));     
+    Real cool_metal = n_H * n_H * net_cloudy_(n_H, T);  
+    Real cool_metal_if_solar = fmax(cool_metal - cool_primordial, 0.0); 
+   
+    return cool_primordial + cool_metal_if_solar * metallicity;
   }
 };
 
@@ -287,10 +298,10 @@ class CoolRecipeTIAndCIE
  public:
   explicit __host__ CoolRecipeTIAndCIE(ParameterMap &pmap) {}
 
-  __device__ Real cool_rate(Real n_primordial, Real n_tot, Real T, Real metallicity) const 
+  __device__ Real cool_rate(Real n_H, Real n_He, Real T, Real metallicity) const 
   {
     Real lambda = cool_component::combined_analytic_ti_cie_lambda(T);  // cooling rate, erg s^-1 cm^3
-    Real cool   = n_tot * n_tot * lambda;                                      // cooling per unit volume, erg /s / cm^3
+    Real cool   = n_H * n_H * lambda;                                      // cooling per unit volume, erg /s / cm^3
     return cool;
   }
 };
@@ -308,11 +319,11 @@ class CoolRecipeTIAndCIEAndPhotoHeating
  public:
   explicit __host__ CoolRecipeTIAndCIEAndPhotoHeating(ParameterMap &pmap) : photoelectric_fn_(pmap) {}
 
-  __device__ Real cool_rate(Real n_primordial, Real n_tot, Real T, Real metallicity) const 
+  __device__ Real cool_rate(Real n_H, Real n_He, Real T, Real metallicity) const 
   {
     Real lambda = cool_component::combined_analytic_ti_cie_lambda(T);  // cooling rate, erg s^-1 cm^3
-    Real cool   = n_tot * n_tot * lambda;                                      // cooling per unit volume, erg /s / cm^3
-    return cool - photoelectric_fn_(n_tot, T);
+    Real cool   = n_H * n_H * lambda;                                      // cooling per unit volume, erg /s / cm^3
+    return cool - photoelectric_fn_(n_H, T);
   }
 };
 

@@ -52,9 +52,10 @@ namespace cool_component
 {
 
 /*! Primordial hydrogen/helium cooling curve (derived according to Katz et al. 1996.) */
-inline __device__ Real primordial_cool(Real n, Real T)
+inline __device__ Real primordial_cool(Real n_H, Real n_He, Real T)
 {
-  Real n_h, Y, y, g_ff, cool;
+  // Real n_h, Y, y, g_ff, cool;
+  Real g_ff, cool;
   Real n_h0, n_hp, n_he0, n_hep, n_hepp, n_e, n_e_old;
   Real alpha_hp, alpha_hep, alpha_d, alpha_hepp, gamma_eh0, gamma_ehe0, gamma_ehep;
   Real le_h0, le_hep, li_h0, li_he0, li_hep, lr_hp, lr_hep, lr_hepp, ld_hep, l_ff;
@@ -64,13 +65,13 @@ inline __device__ Real primordial_cool(Real n, Real T)
 
   // set flag to 1 for photoionization & heating
   heat_flag = 0;
-
+  //TODO: remove comments
   // Real X = 0.76; //hydrogen abundance by mass
-  Y = 0.24;  // helium abundance by mass
-  y = Y / (4 - 4 * Y);
+  // Y = 0.24;  // helium abundance by mass
+  // y = Y / (4 - 4 * Y);
 
   // set the hydrogen number density
-  n_h = n;
+  // n_h = n;
 
   // calculate the recombination and collisional ionization rates
   // (Table 2 from Katz 1996)
@@ -93,16 +94,16 @@ inline __device__ Real primordial_cool(Real n, Real T)
 
   // assuming no photoionization, solve equations for number density of
   // each species
-  n_e    = n_h;  // as a first guess, use the hydrogen number density
+  n_e    = n_H;  // as a first guess, use the hydrogen number density
   n_iter = 20;
   diff   = 1.0;
   tol    = 1.0e-6;
   if (heat_flag) {
     for (int i = 0; i < n_iter; i++) {
       n_e_old = n_e;
-      n_h0    = n_h * alpha_hp / (alpha_hp + gamma_eh0 + gamma_lh0 / n_e);
-      n_hp    = n_h - n_h0;
-      n_hep   = y * n_h /
+      n_h0    = n_H * alpha_hp / (alpha_hp + gamma_eh0 + gamma_lh0 / n_e);
+      n_hp    = n_H - n_h0;
+      n_hep   = n_He /
               (1.0 + (alpha_hep + alpha_d) / (gamma_ehe0 + gamma_lhe0 / n_e) +
                (gamma_ehep + gamma_lhep / n_e) / alpha_hepp);
       n_he0  = n_hep * (alpha_hep + alpha_d) / (gamma_ehe0 + gamma_lhe0 / n_e);
@@ -114,9 +115,9 @@ inline __device__ Real primordial_cool(Real n, Real T)
       }
     }
   } else {
-    n_h0   = n_h * alpha_hp / (alpha_hp + gamma_eh0);
-    n_hp   = n_h - n_h0;
-    n_hep  = y * n_h / (1.0 + (alpha_hep + alpha_d) / (gamma_ehe0) + (gamma_ehep) / alpha_hepp);
+    n_h0   = n_H * alpha_hp / (alpha_hp + gamma_eh0);
+    n_hp   = n_H - n_h0;
+    n_hep  = n_He / (1.0 + (alpha_hep + alpha_d) / (gamma_ehe0) + (gamma_ehep) / alpha_hepp);
     n_he0  = n_hep * (alpha_hep + alpha_d) / (gamma_ehe0);
     n_hepp = n_hep * (gamma_ehep) / alpha_hepp;
     n_e    = n_hp + n_hep + 2 * n_hepp;
