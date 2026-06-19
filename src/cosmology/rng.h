@@ -28,4 +28,5 @@ typedef curandStatePhilox4_32_10_t rng_parallel_state_t;
 __global__ void RNG_Init_GPU(int nx_local, int ny_local, int nz_local, int nx_local_start, int ny_local_start, int nz_local_start, int nx, int ny, int nz, uint64_t seed, rng_parallel_state_t *states);
 __global__ void RNG_Init_TEST(int procID, int nx_local, int ny_local, int nz_local, int nx_local_start, int ny_local_start, int nz_local_start, int nx, int ny, int nz, uint64_t seed, rng_parallel_state_t *states);
 //__global__ void RNG_Normal_Field_GPU(Real *d_field, int nx, int ny, int nz, int n_ghost, rng_parallel_state_t *states);
-__global__ void RNG_Normal_Field_GPU(Real *d_field, int nx_local, int ny_local, int nz_local, int nx_local_start, int ny_local_start, int nz_local_start, int nx, int ny, int nz, int n_ghost, rng_parallel_state_t *states);
+//__global__ void RNG_Normal_Field_GPU(Real *d_field, int nx_local, int ny_local, int nz_local, int nx_local_start, int ny_local_start, int nz_local_start, int nx, int ny, int nz, int n_ghost, rng_parallel_state_t *states);
+__global__ void RNG_Normal_Field_GPU(Real *d_field, int nx_local, int ny_local, int nz_local, int nx_local_start, int ny_local_start, int nz_local_start, int nx, int ny, int nz, uint64_t seed, rng_parallel_state_t *states);
