@@ -101,10 +101,10 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // copy memory -- only real, local cells
   cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
-  printf("procID %d rngs: %e %e %e\n",procID,CP.delta_m[0],CP.delta_m[1],CP.delta_m[2]);
-  fflush(stdout);
+  //printf("procID %d rngs: %e %e %e\n",procID,CP.delta_m[0],CP.delta_m[1],CP.delta_m[2]);
+  //fflush(stdout);
 
-  chexit(0);
+  //chexit(0);
   Real delta_rms = 0;
   Real delta_ave = 0;
   // reduce the grid values

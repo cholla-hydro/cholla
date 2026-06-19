@@ -59,7 +59,8 @@ __global__ void RNG_Init_GPU(int nx_local, int ny_local, int nz_local, int nx_lo
     //if(flag) {
    // 	curand_init(seed+1, subsequence, offset, &localState);
     //}else{
-    curand_init(seed, subsequence, offset, &localState);
+    //curand_init(seed, subsequence, offset, &localState);
+    curand_init(seed, 0, 0, &localState); //same state
     //}
 	
     states[threadId] = localState;
@@ -122,11 +123,15 @@ __global__ void RNG_Normal_Field_GPU(Real *d_field, int nx_local, int ny_local, 
   if((xid>=0)&(xid<nx_local)&(yid>=0)&(yid<ny_local)&(zid>=0)&(zid<nz_local)) { // all cells are real
 
     // create a global real-cell index
-    //uint64_t global_idx = (xid + nx_local_start);
-    //global_idx += (yid + ny_local_start)*nx;
-    //global_idx += (zid + nz_local_start)*nx*ny;
+    uint64_t global_idx = (xid + nx_local_start);
+    global_idx += (yid + ny_local_start)*nx;
+    global_idx += (zid + nz_local_start)*nx*ny;
 
     rng_parallel_state_t localState = states[threadId];
+
+
+    //skip ahead
+    skipahead(global_idx, &localState);
 
     //uint64_t offset = global_idx;
     //uint64_t subsequence = global_idx;
