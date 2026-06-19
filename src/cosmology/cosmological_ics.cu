@@ -70,8 +70,8 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   H0 /= 1000;  //[km/s / kpc]
   Real rho_0  = 3 * H0 * H0 / (8 * M_PI * G) * Omega_M / h / h;
 
-	// initialize the RNG properties
-	Initialize_Cosmo_Potential_RNG(P);
+  //initialize the RNG properties
+  Initialize_Cosmo_Potential_RNG(P);
 
   // load the P(k)
   Load_Cosmo_Power_Spectrum(P);
@@ -82,23 +82,24 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // save the growth function data to file
   Cosmo.Create_Growth_Function_File(P);
 
-	// Initialize the FFT as well
-	fft.Initialize( H.xdglobal, H.ydglobal, H.zdglobal, H.xblocal, H.yblocal, H.zblocal,
-		              nx_global, ny_global, nz_global, nx_local, ny_local, nz_local, H.dx, H.dy, H.dz );
+  // Initialize the FFT as well
+  fft.Initialize( H.xdglobal, H.ydglobal, H.zdglobal, H.xblocal, H.yblocal, H.zblocal,
+                  nx_global, ny_global, nz_global, nx_local, ny_local, nz_local, H.dx, H.dy, H.dz );
 
-	// Allocate the memory needed for the potentials
-	Allocate_Cosmo_Potential_Memory();
+  // Allocate the memory needed for the potentials
+  Allocate_Cosmo_Potential_Memory();
 
   // We have allocated the potential arrays, and are ready to proceed
 
-	// step 1) sample xi(m) by generating independent
-	//         zero-mean normal deviates with variance N**d at 
-	//         each spatial point
-	Generate_Normal_Random_Field(CP.d_delta_m,rng_states);
+  // step 1) sample xi(m) by generating independent
+  //         zero-mean normal deviates with variance N**d at 
+  //         each spatial point
+  //Generate_Normal_Random_Field(CP.d_delta_m,rng_states);
+  Generate_Normal_Random_Field(CP.d_delta_m,P,rng_states);
 
 
-	// copy memory -- only real, local cells
-	cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+  // copy memory -- only real, local cells
+  cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
   printf("procID %d rngs: %e %e %e\n",procID,CP.delta_m[0],CP.delta_m[1],CP.delta_m[2]);
   fflush(stdout);
@@ -791,7 +792,7 @@ void Grid3D::Free_Cosmo_Potential_Memory(void)
 
 /*! \fn void Generate_Normal_Random_Field(Real *d_field, rng_parallel_state_t *state)
  *  \brief Create a Gaussian random field on a grid */
-void Grid3D::Generate_Normal_Random_Field(Real *d_field, rng_parallel_state_t *state)
+void Grid3D::Generate_Normal_Random_Field(Real *d_field, struct Parameters *P, rng_parallel_state_t *state)
 {
 	// Here, d_field has been pre-allocated on the device
   int n_cells = nx_local*ny_local*nz_local;
@@ -800,7 +801,9 @@ void Grid3D::Generate_Normal_Random_Field(Real *d_field, rng_parallel_state_t *s
   //int n_cells = H.nx * H.ny * H.nz;
   cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Normal_Field_GPU, n_cells);
   hipLaunchKernelGGL(RNG_Normal_Field_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
-                     d_field, nx_local, ny_local, nz_local, 0, state);
+                     d_field, nx_local,ny_local,nz_local,nx_local_start,ny_local_start,nz_local_start,
+		     P->nx,P->ny,P->nz,0,rng_states);
+                     //d_field, nx_local, ny_local, nz_local, 0, state);
 }
 
 /*! \fn void Rescale_Field(Real *d_x, Real A)

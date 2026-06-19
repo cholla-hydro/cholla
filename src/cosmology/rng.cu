@@ -5,11 +5,13 @@
 #if PRECISION == 1
   #ifndef TYPEDEF_DEFINED_REAL
 typedef float4 Real4;
+typedef float2 Real2;
   #endif
 #endif
 #if PRECISION == 2
   #ifndef TYPEDEF_DEFINED_REAL
 typedef double4 Real4;
+typedef double2 Real2;
   #endif
 #endif
 
@@ -40,16 +42,16 @@ __global__ void RNG_Init_GPU(int nx_local, int ny_local, int nz_local, int nx_lo
     //uint64_t offset = global_idx & 0xFFFFFFFFFFFFULL;
     uint64_t offset = 0;
 
-	  // copy state to local memory for efficiency
-	  rng_parallel_state_t localState = states[threadId];
+    // copy state to local memory for efficiency
+    rng_parallel_state_t localState = states[threadId];
 
-		// initialize the Philox RNG using the 
-		// shared seed, the rank-specific subsequence
-		// the rank-specific offset, and the philox state
-		curand_init(seed, subsequence, offset, &localState);
+    // initialize the Philox RNG using the 
+    // shared seed, the rank-specific subsequence
+    // the rank-specific offset, and the philox state
+    curand_init(seed, subsequence, offset, &localState);
 	
     states[threadId] = localState;
-	}
+  }
 }
 
 /*! \fn void RNG_Init_GPU(int nx, int ny, int nz, int n_ghost, unsigned long long seed, unsigned long long subsequence, unsigned long long offset, curandStatePhilox4_32_10_t *state)
@@ -60,10 +62,10 @@ __global__ void RNG_Init_TEST(int procID, int nx_local, int ny_local, int nz_loc
   int xid, yid, zid;
   int const threadId = threadIdx.x + blockIdx.x * blockDim.x;
 
-	// determine the cell location
+  // determine the cell location
   cuda_utilities::compute3DIndices(threadId, nx_local, ny_local, xid, yid, zid);
 
-	// only real cells participate
+  // only real cells participate
   if((xid>=0)&(xid<nx_local)&(yid>=0)&(yid<ny_local)&(zid>=0)&(zid<nz_local)) { // all cells are real
 
     // create a global real-cell index
@@ -72,29 +74,19 @@ __global__ void RNG_Init_TEST(int procID, int nx_local, int ny_local, int nz_loc
     global_idx += (zid + nz_local_start)*nx*ny;
 
     // create a reproducible subsequence and offset
-    //uint64_t subsequence = global_idx >> 32;
-    //uint64_t offset = global_idx & 0xFFFFFFFFULL;
-    //uint64_t subsequence = global_idx >> 48;
-    //uint64_t subsequence = global_idx;
-    //uint64_t offset = global_idx & 0xFFFFFFFFFFFFULL;
     uint64_t offset = 0;
     uint64_t subsequence = global_idx;
-    //subsequence += (1ULL << 32)*procID; // explore sequence cycling every 2^32
-    subsequence = 0;
-    if(procID==1)
-      subsequence = 1ULL << 32; //HERE
-      subsequence += global_idx;
 
-	  // copy state to local memory for efficiency
-	  rng_parallel_state_t localState = states[threadId];
+    // copy state to local memory for efficiency
+    rng_parallel_state_t localState = states[threadId];
 
-		// initialize the Philox RNG using the 
-		// shared seed, the rank-specific subsequence
-		// the rank-specific offset, and the philox state
-		curand_init(seed, subsequence, offset, &localState);
+    // initialize the Philox RNG using the 
+    // shared seed, the rank-specific subsequence
+    // the rank-specific offset, and the philox state
+    curand_init(seed, subsequence, offset, &localState);
 	
     states[threadId] = localState;
-	}
+  }
 }
 
 
@@ -103,7 +95,55 @@ __global__ void RNG_Init_TEST(int procID, int nx_local, int ny_local, int nz_loc
 
 /*! \fn void RNG_Normal_Field_GPU(Real *d_field, int nx, int ny, int nz, int n_ghost, curandStatePhilox4_32_10_t *state)
  *  \brief Generate a normal gaussian random field on a grid */
-__global__ void RNG_Normal_Field_GPU(Real *d_field, int nx, int ny, int nz, int n_ghost, rng_parallel_state_t *states)
+__global__ void RNG_Normal_Field_GPU(Real *d_field, int nx_local, int ny_local, int nz_local, int nx_local_start, int ny_local_start, int nz_local_start, int nx, int ny, int nz, int n_ghost, rng_parallel_state_t *states) {
+  
+  // indices
+  int xid, yid, zid;
+  int const threadId = threadIdx.x + blockIdx.x * blockDim.x;
+
+  // determine the cell location
+  cuda_utilities::compute3DIndices(threadId, nx, ny, xid, yid, zid);
+
+  // only real cells participate
+  if((xid>=0)&(xid<nx_local)&(yid>=0)&(yid<ny_local)&(zid>=0)&(zid<nz_local)) { // all cells are real
+
+    // create a global real-cell index
+    uint64_t global_idx = (xid + nx_local_start);
+    global_idx += (yid + ny_local_start)*nx;
+    global_idx += (zid + nz_local_start)*nx*ny;
+
+    rng_parallel_state_t localState = states[threadId];
+
+    // pull two random uniform numbers
+    Real2 u = gpurand_uniform2(&localState);
+
+    // do box-muller transform
+    Real r = sqrt(-2.0 * log(u.x));
+    Real theta = 2.0 * RNG_PI * u.y;
+
+    // force the 128-bit counter to advance perfectly across 64-bit boundaries.
+    // state.v[0] and state.v[1] hold the lower 64 bits of the Philox counter.
+    //localState.v[0] = (unsigned int)(global_index & 0xFFFFFFFFULL);
+    //localState.v[1] = (unsigned int)(global_index  >> 32);
+
+    // clear any internal Box-Muller tracking flags to prevent stale state masking
+    //localState.boxmuller_index = 0;
+    //localState.boxmuller_flag = 0;
+	
+    // pull a gaussian random variate for each cell
+    //Real4 variate = gpurand_normal4(&localState); 
+    //d_field[threadId] = variate.x;
+    //d_field[threadId] = gpurand_normal(&localState); // precision-aware wrapper
+    d_field[threadId] = r * cos(theta); // just need one
+
+    states[threadId] = localState;
+  }
+}
+
+
+/*! \fn void RNG_Normal_Field_GPU(Real *d_field, int nx, int ny, int nz, int n_ghost, curandStatePhilox4_32_10_t *state)
+ *  \brief Generate a normal gaussian random field on a grid */
+__global__ void RNG_Normal_Field_GPU_BAK(Real *d_field, int nx, int ny, int nz, int n_ghost, rng_parallel_state_t *states)
 {
   // indices
   int xid, yid, zid;
@@ -124,6 +164,5 @@ __global__ void RNG_Normal_Field_GPU(Real *d_field, int nx, int ny, int nz, int 
     states[threadId] = localState;
   }
 }
-
 
 

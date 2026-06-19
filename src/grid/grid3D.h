@@ -832,7 +832,8 @@ class Grid3D
   void Field_Elementwise_Product(Real *d_x, Real *d_y);
   void FFT_Populate_Wavevectors(Real *d_kx, Real *d_ky, Real *d_kz, Real *d_kk);
   void FFT_Field_Reverse_Laplacian(Real *d_x_k, Real *d_kk);
-  void Generate_Normal_Random_Field(Real *d_field, rng_parallel_state_t *state);
+  //void Generate_Normal_Random_Field(Real *d_field, rng_parallel_state_t *state);
+  void Generate_Normal_Random_Field(Real *d_field, struct Parameters *P, rng_parallel_state_t *state);
 
 
   struct Cosmo_Potentials {
