@@ -100,6 +100,10 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 	// copy memory -- only real, local cells
 	cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
+  printf("procID %d rngs: %e %e %e\n",procID,CP.delta_m[0],CP.delta_m[1],CP.delta_m[2]);
+  fflush(stdout);
+
+  chexit(0);
   Real delta_rms = 0;
   Real delta_ave = 0;
   // reduce the grid values
@@ -528,7 +532,8 @@ void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
   cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Init_GPU, n_cells);
   hipLaunchKernelGGL(RNG_Init_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
                      nx_local,ny_local,nz_local,nx_local_start,ny_local_start,nz_local_start,P->nx,P->ny,P->nz,CP.rng_seed, rng_states);
-                     //nx_local,ny_local,nz_local,nx_local_start,ny_local_start,nz_local_start,CP.rng_seed, rng_states);
+  //hipLaunchKernelGGL(RNG_Init_TEST, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
+  //                   procID,nx_local,ny_local,nz_local,nx_local_start,ny_local_start,nz_local_start,P->nx,P->ny,P->nz,CP.rng_seed, rng_states);
 
   GPU_Error_Check();
                      
