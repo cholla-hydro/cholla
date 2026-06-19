@@ -13,9 +13,11 @@ typedef curandStatePhilox4_32_10_t rng_parallel_state_t;
 
 #if PRECISION == 1
   #define gpurand_normal  curand_normal
+  #define gpurand_normal4 curand_normal4
 #endif
 #if PRECISION == 2
   #define gpurand_normal  curand_normal_double
+  #define gpurand_normal4 curand_normal4_double
 #endif
 
 

@@ -2,6 +2,17 @@
 #include "../utils/cuda_utilities.h"
 #include "rng.h"
 
+#if PRECISION == 1
+  #ifndef TYPEDEF_DEFINED_REAL
+typedef float4 Real4;
+  #endif
+#endif
+#if PRECISION == 2
+  #ifndef TYPEDEF_DEFINED_REAL
+typedef double4 Real4;
+  #endif
+#endif
+
 /*! \fn void RNG_Init_GPU(int nx, int ny, int nz, int n_ghost, unsigned long long seed, unsigned long long subsequence, unsigned long long offset, curandStatePhilox4_32_10_t *state)
  *  \brief Initialize a GPU-based RNG */
 __global__ void RNG_Init_GPU(int nx_local, int ny_local, int nz_local, int nx_local_start, int ny_local_start, int nz_local_start, int nx, int ny, int nz, uint64_t seed, rng_parallel_state_t *states) {
@@ -24,8 +35,10 @@ __global__ void RNG_Init_GPU(int nx_local, int ny_local, int nz_local, int nx_lo
     // create a reproducible subsequence and offset
     //uint64_t subsequence = global_idx >> 32;
     //uint64_t offset = global_idx & 0xFFFFFFFFULL;
-    uint64_t subsequence = global_idx >> 48;
-    uint64_t offset = global_idx & 0xFFFFFFFFFFFFULL;
+    //uint64_t subsequence = global_idx >> 48;
+    uint64_t subsequence = global_idx;
+    //uint64_t offset = global_idx & 0xFFFFFFFFFFFFULL;
+    uint64_t offset = 0;
 
 	  // copy state to local memory for efficiency
 	  rng_parallel_state_t localState = states[threadId];
@@ -48,19 +61,20 @@ __global__ void RNG_Normal_Field_GPU(Real *d_field, int nx, int ny, int nz, int 
   int xid, yid, zid;
   int const threadId = threadIdx.x + blockIdx.x * blockDim.x;
 
-	// determine the cell location
+  // determine the cell location
   cuda_utilities::compute3DIndices(threadId, nx, ny, xid, yid, zid);
 
-	// only real cells participate
+  // only real cells participate
   if((xid>=0)&(xid<nx)&(yid>=0)&(yid<ny)&(zid>=0)&(zid<nz)) { // all cells are real
-
-	  rng_parallel_state_t localState = states[threadId];
+    rng_parallel_state_t localState = states[threadId];
 	
-		// pull a gaussian random variate for each cell
-		d_field[threadId] = gpurand_normal(&localState); // precision-aware wrapper
+    // pull a gaussian random variate for each cell
+    //Real4 variate = gpurand_normal4(&localState); 
+    //d_field[threadId] = variate.x;
+    d_field[threadId] = gpurand_normal(&localState); // precision-aware wrapper
 
-	  states[threadId] = localState;
-	}
+    states[threadId] = localState;
+  }
 }
 
 
