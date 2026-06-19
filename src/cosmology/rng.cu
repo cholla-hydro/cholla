@@ -21,7 +21,7 @@ __global__ void RNG_Init_GPU(int nx_local, int ny_local, int nz_local, int nx_lo
 
   // indices
   int xid, yid, zid;
-  int const threadId = threadIdx.x + blockIdx.x * blockDim.x;
+  uint64_t const threadId = threadIdx.x + blockIdx.x * blockDim.x;
 
 	// determine the cell location
   cuda_utilities::compute3DIndices(threadId, nx_local, ny_local, xid, yid, zid);
@@ -30,6 +30,9 @@ __global__ void RNG_Init_GPU(int nx_local, int ny_local, int nz_local, int nx_lo
   if((xid>=0)&(xid<nx_local)&(yid>=0)&(yid<ny_local)&(zid>=0)&(zid<nz_local)) { // all cells are real
 
     // create a global real-cell index
+    //uint64_t global_idx = (xid + nx_local_start);
+    //global_idx += (yid + ny_local_start)*nx;
+    //global_idx += (zid + nz_local_start)*nx*ny;
     uint64_t global_idx = (xid + nx_local_start);
     global_idx += (yid + ny_local_start)*nx;
     global_idx += (zid + nz_local_start)*nx*ny;
@@ -39,8 +42,11 @@ __global__ void RNG_Init_GPU(int nx_local, int ny_local, int nz_local, int nx_lo
     //uint64_t offset = global_idx & 0xFFFFFFFFULL;
     //uint64_t subsequence = global_idx >> 48;
     uint64_t subsequence = global_idx;
-    //uint64_t offset = global_idx & 0xFFFFFFFFFFFFULL;
+    //uint64_t subsequence = 0;
     uint64_t offset = 0;
+    uint64_t flag = global_idx >> 32;
+    //uint64_t offset = global_idx & 0xFFFFFFFFFFFFULL;
+    //uint64_t offset = global_idx;
 
     // copy state to local memory for efficiency
     rng_parallel_state_t localState = states[threadId];
@@ -48,7 +54,13 @@ __global__ void RNG_Init_GPU(int nx_local, int ny_local, int nz_local, int nx_lo
     // initialize the Philox RNG using the 
     // shared seed, the rank-specific subsequence
     // the rank-specific offset, and the philox state
+    // BRANT ERROR this could only work for multiples of 2048^3
+    // We need a larger iterator, maybe only CPU can work?
+    //if(flag) {
+   // 	curand_init(seed+1, subsequence, offset, &localState);
+    //}else{
     curand_init(seed, subsequence, offset, &localState);
+    //}
 	
     states[threadId] = localState;
   }
@@ -84,6 +96,7 @@ __global__ void RNG_Init_TEST(int procID, int nx_local, int ny_local, int nz_loc
     // shared seed, the rank-specific subsequence
     // the rank-specific offset, and the philox state
     //curand_init(seed, subsequence, offset, &localState);
+    //curand_init(seed, subsequence, offset, &localState);
     curand_init(seed, subsequence, offset, &localState);
 	
     states[threadId] = localState;
@@ -100,7 +113,7 @@ __global__ void RNG_Normal_Field_GPU(Real *d_field, int nx_local, int ny_local, 
   
   // indices
   int xid, yid, zid;
-  int const threadId = threadIdx.x + blockIdx.x * blockDim.x;
+  uint64_t const threadId = threadIdx.x + blockIdx.x * blockDim.x;
 
   // determine the cell location
   cuda_utilities::compute3DIndices(threadId, nx, ny, xid, yid, zid);
@@ -109,16 +122,28 @@ __global__ void RNG_Normal_Field_GPU(Real *d_field, int nx_local, int ny_local, 
   if((xid>=0)&(xid<nx_local)&(yid>=0)&(yid<ny_local)&(zid>=0)&(zid<nz_local)) { // all cells are real
 
     // create a global real-cell index
-    uint64_t global_idx = (xid + nx_local_start);
-    global_idx += (yid + ny_local_start)*nx;
-    global_idx += (zid + nz_local_start)*nx*ny;
+    //uint64_t global_idx = (xid + nx_local_start);
+    //global_idx += (yid + ny_local_start)*nx;
+    //global_idx += (zid + nz_local_start)*nx*ny;
 
     rng_parallel_state_t localState = states[threadId];
 
-    uint64_t flag = global_idx >> 32;
-    uint64_t subsequence = global_idx;
-    if(flag)
-    	curand_init(seed, subsequence, flag, &localState);
+    //uint64_t offset = global_idx;
+    //uint64_t subsequence = global_idx;
+    //uint64_t offset = 0;
+    //uint64_t flag = global_idx >> 32;
+    //uint64_t subsequence = flag;
+    //if(flag)
+    //{
+	//curand_init(seed+flag, subsequence, offset, &localState);
+    	//d_field[threadId] = 0;
+      //curand_init(seed, subsequence, offset, &localState);
+    //}//else{
+   // 	d_field[threadId] = gpurand_normal(&localState); 
+    //}
+      //curand_init(seed, subsequence, offset, &localState);
+    //	curand_init(seed, subsequence, flag, &localState);
+   d_field[threadId] = gpurand_normal(&localState); 
 
    /* 
 
@@ -144,7 +169,7 @@ __global__ void RNG_Normal_Field_GPU(Real *d_field, int nx_local, int ny_local, 
     //d_field[threadId] = variate.x;
     //d_field[threadId] = gpurand_normal(&localState); // precision-aware wrapper
     //d_field[threadId] = r * cos(theta); // just need one
-    d_field[threadId] = gpurand_normal(&localState); 
+    //d_field[threadId] = gpurand_normal(&localState); 
 
     states[threadId] = localState;
   }

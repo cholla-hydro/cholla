@@ -9,7 +9,8 @@
 #include "../global/global.h"
 
 
-typedef curandStatePhilox4_32_10_t rng_parallel_state_t;
+//typedef curandStatePhilox4_32_10_t rng_parallel_state_t;
+typedef curandStateMRG32k3a_t rng_parallel_state_t;
 
 #if PRECISION == 1
   #define gpurand_normal  curand_normal
