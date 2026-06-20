@@ -117,7 +117,12 @@ __global__ void RNG_Normal_Field_GPU(Real *d_field, int nx_local, int ny_local, 
   uint64_t const threadId = threadIdx.x + blockIdx.x * blockDim.x;
 
   // determine the cell location
-  cuda_utilities::compute3DIndices(threadId, nx, ny, xid, yid, zid);
+  //cuda_utilities::compute3DIndices(threadId, nx_local, ny_local, xid, yid, zid);
+  // try again
+  // let's generate the RNGs on the CPU
+  uint64_t zid = threadId / (nx_local * ny_local);
+  uint64_t yid = (threadId - zid * nx_local * ny_local) / nx_local;
+  uint64_t xid = threadId  - zid * nx_local * ny_local - yid * nx_local;
 
   // only real cells participate
   if((xid>=0)&(xid<nx_local)&(yid>=0)&(yid<ny_local)&(zid>=0)&(zid<nz_local)) { // all cells are real
