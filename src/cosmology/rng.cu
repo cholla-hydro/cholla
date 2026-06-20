@@ -20,11 +20,15 @@ typedef double2 Real2;
 __global__ void RNG_Init_GPU(int nx_local, int ny_local, int nz_local, int nx_local_start, int ny_local_start, int nz_local_start, int nx, int ny, int nz, uint64_t seed, rng_parallel_state_t *states) {
 
   // indices
-  int xid, yid, zid;
+  //int xid, yid, zid;
   uint64_t const threadId = threadIdx.x + blockIdx.x * blockDim.x;
 
 	// determine the cell location
-  cuda_utilities::compute3DIndices(threadId, nx_local, ny_local, xid, yid, zid);
+  //cuda_utilities::compute3DIndices(threadId, nx_local, ny_local, xid, yid, zid);
+  uint64_t zid = threadId / (nx_local * ny_local);
+  uint64_t yid = (threadId - zid * nx_local * ny_local) / nx_local;
+  uint64_t xid = threadId  - zid * nx_local * ny_local - yid * nx_local;
+
 
 	// only real cells participate
   if((xid>=0)&(xid<nx_local)&(yid>=0)&(yid<ny_local)&(zid>=0)&(zid<nz_local)) { // all cells are real
@@ -41,9 +45,10 @@ __global__ void RNG_Init_GPU(int nx_local, int ny_local, int nz_local, int nx_lo
     //uint64_t subsequence = global_idx >> 32;
     //uint64_t offset = global_idx & 0xFFFFFFFFULL;
     //uint64_t subsequence = global_idx >> 48;
-    uint64_t subsequence = global_idx;
+    //uint64_t subsequence = global_idx;
     //uint64_t subsequence = 0;
     uint64_t offset = 0;
+    //uint64_t subsequence = global_idx >> 32;
     uint64_t flag = global_idx >> 32;
     //uint64_t offset = global_idx & 0xFFFFFFFFFFFFULL;
     //uint64_t offset = global_idx;
@@ -60,7 +65,7 @@ __global__ void RNG_Init_GPU(int nx_local, int ny_local, int nz_local, int nx_lo
    // 	curand_init(seed+1, subsequence, offset, &localState);
     //}else{
     //curand_init(seed, subsequence, offset, &localState);
-    curand_init(seed, 0, 0, &localState); //same state
+    curand_init(seed + flag, 0, 0, &localState); //same state
     //}
 	
     states[threadId] = localState;
@@ -113,7 +118,7 @@ __global__ void RNG_Init_TEST(int procID, int nx_local, int ny_local, int nz_loc
 __global__ void RNG_Normal_Field_GPU(Real *d_field, int nx_local, int ny_local, int nz_local, int nx_local_start, int ny_local_start, int nz_local_start, int nx, int ny, int nz, uint64_t seed, rng_parallel_state_t *states) {
   
   // indices
-  int xid, yid, zid;
+  //int xid, yid, zid;
   uint64_t const threadId = threadIdx.x + blockIdx.x * blockDim.x;
 
   // determine the cell location
