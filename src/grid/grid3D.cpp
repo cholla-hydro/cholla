@@ -245,6 +245,9 @@ void Grid3D::AllocateMemory(void)
   #ifdef DUST
   C.dust_density = &(C.host[H.n_cells * grid_enum::dust_density]);
   #endif
+  #ifdef METALS
+  C.metal_density = &(C.host[H.n_cells * grid_enum::metal_density]);
+  #endif
 #endif  // SCALAR
 #ifdef MHD
   C.magnetic_x = &(C.host[grid_enum::magnetic_x * H.n_cells]);
@@ -270,6 +273,9 @@ void Grid3D::AllocateMemory(void)
   #endif
   #ifdef DUST
   C.d_dust_density = &(C.device[H.n_cells * grid_enum::dust_density]);
+  #endif
+  #ifdef METALS
+  C.d_metal_density = &(C.host[H.n_cells * grid_enum::metal_density]);
   #endif
 #endif  // SCALAR
 #ifdef MHD
@@ -448,6 +454,9 @@ Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &chemistry_callback
 #ifdef SCALAR_FLOOR
   #ifdef DUST
   Apply_Scalar_Floor(C.device, H.nx, H.ny, H.nz, H.n_ghost, grid_enum::dust_density, H.scalar_floor);
+  #endif
+  #ifdef METALS
+  Apply_Scalar_Floor(C.device, H.nx, H.ny, H.nz, H.n_ghost, grid_enum::metal_density, H.scalar_floor);
   #endif
 #endif  // SCALAR_FLOOR
 

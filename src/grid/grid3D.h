@@ -313,6 +313,12 @@ class Grid3D
      */
     Real *dust_density;
   #endif
+  #ifdef METALS
+    /*! \var metal_density
+     *  \brief Array containing the metal densities.
+     */
+    Real *metal_density;
+  #endif
 #endif  // SCALAR
 
 #ifdef MHD
@@ -359,7 +365,7 @@ class Grid3D
     /*! pointer to conserved variable on device */
     Real *device;
     Real *d_density, *d_momentum_x, *d_momentum_y, *d_momentum_z, *d_Energy, *d_scalar, *d_basic_scalar,
-        *d_dust_density, *d_magnetic_x, *d_magnetic_y, *d_magnetic_z, *d_GasEnergy;
+        *d_dust_density, *d_metal_density, *d_magnetic_x, *d_magnetic_y, *d_magnetic_z, *d_GasEnergy;
 
     /*! pointer to gravitational potential on device */
     Real *d_Grav_potential;
