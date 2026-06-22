@@ -461,7 +461,7 @@ class Grid3D
    *
    * \param[in] P the parameters struct.
    */
-  void Constant(Parameters const &P);
+  void Constant(Parameters const &P, ParameterMap &pmap);
 
   /*!
    * \brief Sine wave perturbation.

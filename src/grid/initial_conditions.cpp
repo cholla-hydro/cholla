@@ -30,7 +30,7 @@ void Grid3D::Set_Initial_Conditions(Parameters P, ParameterMap &pmap)
   Set_Gammas(P.gamma);
 
   if (strcmp(P.init, "Constant") == 0 or strcmp(P.init, "Isolated_Stellar_Cluster") == 0) {
-    Constant(P);
+    Constant(P, pmap);
   } else if (strcmp(P.init, "Sound_Wave") == 0) {
     Sound_Wave(P);
   } else if (strcmp(P.init, "Linear_Wave") == 0) {
@@ -177,13 +177,15 @@ void Grid3D::Set_Domain_Properties(struct Parameters P)
 
 /*! \fn void Constant(Real rho, Real vx, Real vy, Real vz, Real P, Real Bx, Real
  * By, Real Bz) \brief Constant gas properties. */
-void Grid3D::Constant(Parameters const &P)
+void Grid3D::Constant(Parameters const &P, ParameterMap &pmap)
 {
   int i, j, k, id;
   int istart, jstart, kstart, iend, jend, kend;
   Real x_pos, y_pos, z_pos;
   Real mu = 0.6;
   Real n, T;
+
+  double Z = pmap.value_or("metallicity", 1.0);
 
   istart = H.n_ghost;
   iend   = H.nx - H.n_ghost;
@@ -225,6 +227,9 @@ void Grid3D::Constant(Parameters const &P)
           C.momentum_y[id] = P.rho * P.vy;
           C.momentum_z[id] = P.rho * P.vz;
           C.Energy[id]     = P.P / (gama - 1.0) + 0.5 * P.rho * (P.vx * P.vx + P.vy * P.vy + P.vz * P.vz);
+#ifdef METALS
+        C.metal_density[id] = Z * SOLAR_METAL_MASS_FRAC * P.rho;
+#endif
 #ifdef DE
           C.GasEnergy[id] = P.P / (gama - 1.0);
 #endif  // DE
@@ -1357,7 +1362,7 @@ void Grid3D::Clouds(ParameterMap &pmap)
   vx_cl = 0.0;
   vy_bg = vy_cl = 0.0;
   vz_bg = vz_cl = 0.0;
-  T_bg          = 3e6;
+  T_bg          = 1e6;
   T_cl          = 1e4;
   p_bg          = n_bg * KB * T_bg / PRESSURE_UNIT;
   p_cl          = p_bg;
