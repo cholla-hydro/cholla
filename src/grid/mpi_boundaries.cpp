@@ -49,7 +49,7 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct Parameters P)
     /* Step 3 - Receive MPI x-boundaries */
 
     if (flags[0] == 5 || flags[1] == 5) {
-      Wait_and_Unload_MPI_Comm_Buffers(0, flags);
+      Wait_and_Unload_MPI_Comm_Buffers(0, flags); //HERE
   #ifdef PARTICLES
       // Unload Particles buffers when transfering Particles
       if (Particles.TRANSFER_PARTICLES_BOUNDARIES) {
@@ -775,6 +775,9 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
     if (Particles.TRANSFER_PARTICLES_BOUNDARIES) {
       Wait_NTransfer_and_Request_Recv_Particles_Transfer_BLOCK(dir, flags);
     }
+    MPI_Barrier(world); //BRANT
+    chprintf("Exiting on purpose after z1....\n");
+    chexit(0);
   #endif
   }
 }
