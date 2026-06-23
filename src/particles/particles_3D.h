@@ -312,8 +312,10 @@ class Particles3D
                                                       Real Omega_R, Real w0, Real wa);
   part_int_t Compute_Particles_GPU_Array_Size(part_int_t n);
   int Select_Particles_to_Transfer_GPU(int direction, int side);
-  void Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, Real *send_buffer,
-                                             int buffer_length);
+  //void Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, Real *send_buffer,
+   //                                          int buffer_length);
+  void Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, int buffer_length);
+                                             
   void Replace_Transferred_Particles_GPU(int n_transfer);
   void Unload_Particles_from_Buffer_GPU(int direction, int side, Real *recv_buffer_h, int n_recv);
   void Copy_Transfer_Particles_from_Buffer_GPU(int n_recv, Real *recv_buffer_d);
@@ -386,7 +388,8 @@ class Particles3D
       #ifdef PARTICLES_GPU
   void Allocate_Memory_GPU_MPI();
   void ReAllocate_Memory_GPU_MPI();
-  void Load_Particles_to_Buffer_GPU(int direction, int side, Real *send_buffer, int buffer_length);
+  //void Load_Particles_to_Buffer_GPU(int direction, int side, Real *send_buffer, int buffer_length);
+  void Load_Particles_to_Buffer_GPU(int direction, int side, int buffer_length);
       #endif  // PARTICLES_GPU
     #endif
 };

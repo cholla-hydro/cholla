@@ -15,11 +15,11 @@ void Extend_GPU_Array(T **current_array_d, int current_size, int new_size, bool 
     return;
   }
   if (print_out) {
-    std::cout << " Extending GPU Array (T), current_size: " << current_size << "  new_size: " << new_size << std::endl;
+    std::cout << " procID " << procID << " Extending GPU Array (T), current_size: " << current_size << "  new_size: " << new_size << std::endl;
   }
 
   if (print_out) {
-    printf("About to check memory..\n");
+    printf("procID %d About to check memory..\n",procID);
     fflush(stdout);
   }
 
@@ -38,7 +38,7 @@ void Extend_GPU_Array(T **current_array_d, int current_size, int new_size, bool 
     exit(-1);
   }
   if (print_out) {
-    printf("ReAllocating GPU Memory:  %ld  MB free \n", global_free / 1000000);
+    printf("procID %d ReAllocating GPU Memory:  %ld  MB free \n", procID, global_free / 1000000);
     fflush(stdout);
   }
 
@@ -52,7 +52,7 @@ void Extend_GPU_Array(T **current_array_d, int current_size, int new_size, bool 
   }
 
   if (print_out) {
-    std::cout << " New GPU Array buffer successfully allocated." << std::endl;
+    std::cout << "procID " << procID << " New GPU Array buffer successfully allocated." << std::endl;
     fflush(stdout);
   }
   // Copy the content of the original array to the new array
@@ -60,7 +60,7 @@ void Extend_GPU_Array(T **current_array_d, int current_size, int new_size, bool 
   cudaDeviceSynchronize();
   GPU_Error_Check();
   if (print_out) {
-    std::cout << " GPU Array buffer successfully copied." << std::endl;
+    std::cout << "procID " << procID << " GPU Array buffer successfully copied." << std::endl;
     fflush(stdout);
   }
 
@@ -69,20 +69,20 @@ void Extend_GPU_Array(T **current_array_d, int current_size, int new_size, bool 
   cudaDeviceSynchronize();
   GPU_Error_Check();
   if (print_out) {
-    std::cout << " GPU Array buffer freed." << std::endl;
+    std::cout << "procID " << procID << " GPU Array buffer freed." << std::endl;
     fflush(stdout);
   }
 
   // Replace the pointer of the original array with the new one
-  //*current_array_d = new_array_d; // will this work?
+  *current_array_d = new_array_d; // will this work?
   
-
+/*
   // BRANT changes 6/22/2026
   // reallocate the current array
   GPU_Error_Check(cudaMalloc((void **)&(*current_array_d), new_size * sizeof(T)));
   cudaDeviceSynchronize();
   if (print_out) {
-    std::cout << " GPU Array buffer re-allocated." << std::endl;
+    std::cout << "procID " << procID << " GPU Array buffer re-allocated." << std::endl;
     fflush(stdout);
   }
 
@@ -93,16 +93,17 @@ void Extend_GPU_Array(T **current_array_d, int current_size, int new_size, bool 
 
 
   if (print_out) {
-    std::cout << " GPU Array buffer transferred." << std::endl;
+    std::cout << "procID " << procID << " GPU Array buffer transferred." << std::endl;
     fflush(stdout);
   }
 
   // free new array
   GPU_Error_Check(cudaFree(new_array_d));
+  */
 
   if (print_out) {
-    std::cout << " GPU array of size  " << new_size << " successfully allocated." << std::endl;
-    std::cout << "Exiting Extend_GPU_Array()." << std::endl;
+    std::cout << "procID " << procID << " GPU array of size  " << new_size << " successfully allocated." << std::endl;
+    std::cout << "procID " << procID << " Exiting Extend_GPU_Array()." << std::endl;
     fflush(stdout);
   }
 }
