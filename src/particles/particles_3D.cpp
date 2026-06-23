@@ -101,7 +101,7 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
   #endif
     Transfer_Particles_Boundaries(*P); // try twice
   }
-  //chexit(0);
+  //chexit(0); //BRANT
   #endif //COSMOLOGY
 
 }

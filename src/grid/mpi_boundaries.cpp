@@ -775,9 +775,9 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
     if (Particles.TRANSFER_PARTICLES_BOUNDARIES) {
       Wait_NTransfer_and_Request_Recv_Particles_Transfer_BLOCK(dir, flags);
     }
-    MPI_Barrier(world); //BRANT
-    chprintf("Exiting on purpose after z1....\n");
-    chexit(0);
+    //MPI_Barrier(world); //BRANT
+    //chprintf("Exiting on purpose after z1....\n");
+    //chexit(0);
   #endif
   }
 }

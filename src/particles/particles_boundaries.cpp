@@ -39,7 +39,7 @@ void Grid3D::Transfer_Particles_Boundaries(struct Parameters P)
 void Grid3D::Finish_Particles_Transfer(void)
 {
     #ifdef PARTICLES_CPU
-  Particles.Remove_Transfered_Particles();
+  Particles.Remove_Transferred_Particles();
     #endif
 }
 
@@ -103,13 +103,13 @@ void Grid3D::Unload_Particles_From_Buffers_BLOCK(int index, int *flags)
     #endif
 
   if (index == 0) {
-    printf("UPX0 procID %d\n",procID);
-    fflush(stdout);
+    //printf("UPX0 procID %d\n",procID);
+    //fflush(stdout);
     Unload_Particles_from_Buffer_X0(flags);
   }
   if (index == 1) {
-    printf("UPX1 procID %d\n",procID);
-    fflush(stdout);
+    //printf("UPX1 procID %d\n",procID);
+    //fflush(stdout);
     Unload_Particles_from_Buffer_X1(flags);
   }
   if (index == 2) {
@@ -222,10 +222,10 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
       //Extend_GPU_Array(&recv_buffer_x0_particles, Particles.G.recv_buffer_size_x0,
       Extend_GPU_Array(&d_recv_buffer_x0_particles, Particles.G.recv_buffer_size_x0,
                        Particles.G.gpu_allocation_factor * buffer_length, true); //HERE
-      Particles.G.recv_buffer_size_x0 = (part_int_t) (Particles.G.gpu_allocation_factor * buffer_length);
       //d_recv_buffer_x0_particles = recv_buffer_x0_particles;
       recv_buffer_x0_particles = d_recv_buffer_x0_particles;
       Particles.G.recv_buffer_x0_d = d_recv_buffer_x0_particles;
+      Particles.G.recv_buffer_size_x0 = (part_int_t) (Particles.G.gpu_allocation_factor * buffer_length);
       printf("Before recv procID %d set x0 buffer_length = %d recv_buffer_size_x0 %d\n",procID,buffer_length,Particles.G.recv_buffer_size_x0);
       fflush(stdout);
     }
@@ -267,8 +267,8 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
       recv_buffer_x1_particles = d_recv_buffer_x1_particles;
       Particles.G.recv_buffer_x1_d = d_recv_buffer_x1_particles;
       Particles.G.recv_buffer_size_x1 = (part_int_t) (Particles.G.gpu_allocation_factor * buffer_length);
-      printf("Before recv procID %d set x1 buffer_length = %d rcbsx1 %d\n",procID,buffer_length,Particles.G.recv_buffer_size_x1);
-      fflush(stdout);
+      //printf("Before recv procID %d set x1 buffer_length = %d rcbsx1 %d\n",procID,buffer_length,Particles.G.recv_buffer_size_x1);
+      //fflush(stdout);
     }
       #else
     Check_and_Grow_Particles_Buffer(&recv_buffer_x1_particles, &buffer_length_particles_x1_recv, buffer_length);
@@ -303,8 +303,11 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
       flag_resize = true;
       //printf("Extending Particles Transfer Buffer  ");
       printf("Extending Particles Transfer Buffer  bl %d nry0 %d rcvy0 %d\n",buffer_length,Particles.n_recv_y0,Particles.G.recv_buffer_size_y0);
-      Extend_GPU_Array(&recv_buffer_y0_particles, Particles.G.recv_buffer_size_y0,
+      //Extend_GPU_Array(&recv_buffer_y0_particles, Particles.G.recv_buffer_size_y0,
+      Extend_GPU_Array(&d_recv_buffer_y0_particles, Particles.G.recv_buffer_size_y0,
                        Particles.G.gpu_allocation_factor * buffer_length, true);
+      recv_buffer_y0_particles = d_recv_buffer_y0_particles;
+      Particles.G.recv_buffer_y0_d = d_recv_buffer_y0_particles;
       Particles.G.recv_buffer_size_y0 = (part_int_t) (Particles.G.gpu_allocation_factor * buffer_length);
       printf("Before recv procID %d set y0 buffer_length = %d\n",procID,buffer_length);
       fflush(stdout);
@@ -334,8 +337,11 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
       flag_resize = true;
       //printf("Extending Particles Transfer Buffer  ");
       printf("Extending Particles Transfer Buffer  bl %d nry1 %d rcvy1 %d\n",buffer_length,Particles.n_recv_y1,Particles.G.recv_buffer_size_y1);
-      Extend_GPU_Array(&recv_buffer_y1_particles, Particles.G.recv_buffer_size_y1,
+      //Extend_GPU_Array(&recv_buffer_y1_particles, Particles.G.recv_buffer_size_y1,
+      Extend_GPU_Array(&d_recv_buffer_y1_particles, Particles.G.recv_buffer_size_y1,
                        Particles.G.gpu_allocation_factor * buffer_length, true);
+      recv_buffer_y1_particles = d_recv_buffer_y1_particles;
+      Particles.G.recv_buffer_y1_d = d_recv_buffer_y1_particles;
       Particles.G.recv_buffer_size_y1 = (part_int_t) (Particles.G.gpu_allocation_factor * buffer_length);
       printf("Before recv procID %d set y1 buffer_length = %d\n",procID,buffer_length);
       fflush(stdout);
@@ -365,8 +371,11 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
       flag_resize = true;
       //printf("Extending Particles Transfer Buffer  ");
       printf("Extending Particles Transfer Buffer  bl %d nrz0 %d rcvz0 %d\n",buffer_length,Particles.n_recv_z0,Particles.G.recv_buffer_size_z0);
-      Extend_GPU_Array(&recv_buffer_z0_particles, Particles.G.recv_buffer_size_z0,
+      //Extend_GPU_Array(&recv_buffer_z0_particles, Particles.G.recv_buffer_size_z0,
+      Extend_GPU_Array(&d_recv_buffer_z0_particles, Particles.G.recv_buffer_size_z0,
                        Particles.G.gpu_allocation_factor * buffer_length, true);
+      recv_buffer_z0_particles = d_recv_buffer_z0_particles;
+      Particles.G.recv_buffer_z0_d = d_recv_buffer_z0_particles;
       Particles.G.recv_buffer_size_z0 = (part_int_t) (Particles.G.gpu_allocation_factor * buffer_length);
       printf("Before recv procID %d set z0 buffer_length = %d\n",procID,buffer_length);
       fflush(stdout);
@@ -396,8 +405,11 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
       flag_resize = true;
       //printf("Extending Particles Transfer Buffer  ");
       printf("Extending Particles Transfer Buffer  bl %d nrz1 %d rcvz1 %d\n",buffer_length,Particles.n_recv_z1,Particles.G.recv_buffer_size_z1);
-      Extend_GPU_Array(&recv_buffer_z1_particles, Particles.G.recv_buffer_size_z1,
+      //Extend_GPU_Array(&recv_buffer_z1_particles, Particles.G.recv_buffer_size_z1,
+      Extend_GPU_Array(&d_recv_buffer_z1_particles, Particles.G.recv_buffer_size_z1,
                        Particles.G.gpu_allocation_factor * buffer_length, true);
+      recv_buffer_z1_particles = d_recv_buffer_z1_particles;
+      Particles.G.recv_buffer_z1_d = d_recv_buffer_z1_particles;
       Particles.G.recv_buffer_size_z1 = (part_int_t) (Particles.G.gpu_allocation_factor * buffer_length);
       printf("Before recv procID %d set z1 buffer_length = %d\n",procID,buffer_length);
       fflush(stdout);
@@ -458,16 +470,16 @@ void Grid3D::Load_and_Send_Particles_X0(int ireq_n_particles, int ireq_particles
   send_buffer_x0_particles = h_send_buffer_x0_particles;
     #endif
 
-  printf("LaSP X0 procID %d bl %d blpx0 %d dest %d source %d n_recv_x0 %d n_send_x0 %d (dest %d %d %d %d %d %d)\n",procID,buffer_length,buffer_length_particles_x0_send,dest[0],source[0],Particles.n_recv_x0,Particles.n_send_x0,dest[0],dest[1],dest[2],dest[3],dest[4],dest[5]);
-  fflush(stdout);
+  //printf("LaSP X0 procID %d bl %d blpx0 %d dest %d source %d n_recv_x0 %d n_send_x0 %d (dest %d %d %d %d %d %d)\n",procID,buffer_length,buffer_length_particles_x0_send,dest[0],source[0],Particles.n_recv_x0,Particles.n_send_x0,dest[0],dest[1],dest[2],dest[3],dest[4],dest[5]);
+  //fflush(stdout);
   #ifdef MPI_GPU
   	GPU_Error_Check(cudaDeviceSynchronize()); // check a synchronize -- no effect
   #endif
   MPI_Isend(send_buffer_x0_particles, buffer_length, MPI_CHREAL, dest[0], 1, world,
             &send_request_particles_transfer[ireq_particles_transfer]);
   MPI_Request_free(send_request_particles_transfer + ireq_particles_transfer);
-  printf("LaSPIS X0 Complete procID %d\n",procID);
-  fflush(stdout);
+  //printf("LaSPIS X0 Complete procID %d\n",procID);
+  //fflush(stdout);
 }
 
 void Grid3D::Load_and_Send_Particles_X1(int ireq_n_particles, int ireq_particles_transfer)
@@ -664,8 +676,8 @@ void Grid3D::Unload_Particles_from_Buffer_X0(int *flags)
   cudaMemcpy(d_recv_buffer_x0_particles, h_recv_buffer_x0_particles, buffer_length_particles_x0_recv * sizeof(Real),
              cudaMemcpyHostToDevice);
       #endif
-  printf("PUPX0 procID %d nrcvx1 %d\n",procID,Particles.n_recv_x1);
-  fflush(stdout);
+  //printf("PUPX0 procID %d nrcvx1 %d\n",procID,Particles.n_recv_x1);
+  //fflush(stdout);
   Particles.Unload_Particles_from_Buffer_GPU(0, 0, d_recv_buffer_x0_particles, Particles.n_recv_x0);
     #endif  // PARTICLES_GPU
 }
@@ -683,8 +695,8 @@ void Grid3D::Unload_Particles_from_Buffer_X1(int *flags)
   cudaMemcpy(d_recv_buffer_x1_particles, h_recv_buffer_x1_particles, buffer_length_particles_x1_recv * sizeof(Real),
              cudaMemcpyHostToDevice);
       #endif
-  printf("PUPX1 procID %d nrcvx1 %d\n",procID,Particles.n_recv_x1);
-  fflush(stdout);
+  //printf("PUPX1 procID %d nrcvx1 %d\n",procID,Particles.n_recv_x1);
+  //fflush(stdout);
   Particles.Unload_Particles_from_Buffer_GPU(0, 1, d_recv_buffer_x1_particles, Particles.n_recv_x1);
     #endif  // PARTICLES_GPU
 }
@@ -991,10 +1003,10 @@ Real *Particles3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dir
                                           bt_non_pos);
       #endif
       #ifdef PARTICLE_IDS
-  if(flag_resize) {
+  /*if(flag_resize) {
     printf("procID %d loading particle ids.\n",procID);
     fflush(stdout);
-  }
+  }*/
   Load_Particles_to_Transfer_Int_GPU_function(n_transfer, ++field_id, n_fields_to_transfer, partIDs_dev,
                                               G.transfer_particles_indices_d, send_buffer_d, domainMin, domainMax,
                                               bt_non_pos);
@@ -1132,10 +1144,10 @@ void Particles3D::Copy_Transfer_Particles_from_Buffer_GPU(int n_recv, Real *recv
     ReAllocate_Memory_GPU_MPI();
   }
 
-  if(n_recv>0) {
+  /*if(n_recv>0) {
   	printf("procID %d Unload_Particles_to_Transfer_GPU_function n_local %d n_recv %d pas %d\n",procID,n_local,n_recv,particles_array_size);
   	fflush(stdout);
-  }
+  }*/
 
   // Unload the particles that were transferred from the buffers
   int field_id         = -1;
@@ -1215,8 +1227,8 @@ void Particles3D::Unload_Particles_from_Buffer_GPU(int direction, int side, Real
 
   GPU_Error_Check();
 
-  printf("procID %d about to CTPfBGPU dir %d side %d buffer_size %d n_recv %d\n",procID,direction,side,buffer_size,n_recv);
-  fflush(stdout);
+  //printf("procID %d about to CTPfBGPU dir %d side %d buffer_size %d n_recv %d\n",procID,direction,side,buffer_size,n_recv);
+  //fflush(stdout);
 
   Copy_Transfer_Particles_from_Buffer_GPU(n_recv, recv_buffer_d);
 }

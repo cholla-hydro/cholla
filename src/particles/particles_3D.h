@@ -372,7 +372,7 @@ class Particles3D
   void Select_Particles_to_Transfer_All(int *flags);
   void Add_Particle_To_Buffer(Real *buffer, part_int_t n_in_buffer, int buffer_length, Real pId, Real pMass, Real pAge,
                               Real pPos_x, Real pPos_y, Real pPos_z, Real pVel_x, Real pVel_y, Real pVel_z);
-  void Remove_Transfered_Particles();
+  void Remove_Transferred_Particles();
 
       #ifdef PARTICLES_CPU
   void Clear_Vectors_For_Transfers(void);
