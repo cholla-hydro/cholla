@@ -424,11 +424,11 @@ void Grid3D::Load_and_Send_Particles_X0(int ireq_n_particles, int ireq_particles
   Real *send_buffer_x0_particles;
 
     #ifdef PARTICLES_GPU
-  send_buffer_x0_particles = d_send_buffer_x0_particles;
+  //send_buffer_x0_particles = d_send_buffer_x0_particles;
   //printf("procID %d Loading %d to send x0\n",procID,buffer_length_particles_x0_send);
   //fflush(stdout);
   //Particles.Load_Particles_to_Buffer_GPU(0, 0, send_buffer_x0_particles, buffer_length_particles_x0_send);
-  Particles.Load_Particles_to_Buffer_GPU(0, 0, buffer_length_particles_x0_send);
+  send_buffer_x0_particles = Particles.Load_Particles_to_Buffer_GPU(0, 0, buffer_length_particles_x0_send);
     #endif  // PARTICLES_GPU
 
   MPI_Irecv(&Particles.n_recv_x0, 1, MPI_PART_INT, source[0], 0, world, &recv_request_n_particles[ireq_n_particles]);
@@ -453,7 +453,7 @@ void Grid3D::Load_and_Send_Particles_X0(int ireq_n_particles, int ireq_particles
   //printf("LaSP X0 procID %d bl %d blpx0 %d dest %d source %d n_recv_x0 %d n_send_x0 %d (dest %d %d %d %d %d %d)\n",procID,buffer_length,buffer_length_particles_x0_send,dest[0],source[0],Particles.n_recv_x0,Particles.n_send_x0,dest[0],dest[1],dest[2],dest[3],dest[4],dest[5]);
   //fflush(stdout);
   #ifdef MPI_GPU
-  	GPU_Error_Check(cudaDeviceSynchronize()); // check a synchronize
+  	GPU_Error_Check(cudaDeviceSynchronize()); // check a synchronize -- no effect
   #endif
   MPI_Isend(send_buffer_x0_particles, buffer_length, MPI_CHREAL, dest[0], 1, world,
             &send_request_particles_transfer[ireq_particles_transfer]);
@@ -468,11 +468,11 @@ void Grid3D::Load_and_Send_Particles_X1(int ireq_n_particles, int ireq_particles
   Real *send_buffer_x1_particles;
 
     #ifdef PARTICLES_GPU
-  send_buffer_x1_particles = d_send_buffer_x1_particles;
+  //send_buffer_x1_particles = d_send_buffer_x1_particles;
   //printf("procID %d Loading %d to send x1\n",procID,buffer_length_particles_x1_send);
   //fflush(stdout);
   //Particles.Load_Particles_to_Buffer_GPU(0, 1, send_buffer_x1_particles, buffer_length_particles_x1_send);
-  Particles.Load_Particles_to_Buffer_GPU(0, 1, buffer_length_particles_x1_send);
+  send_buffer_x1send_buffer_x0_particles = _particles = Particles.Load_Particles_to_Buffer_GPU(0, 1, buffer_length_particles_x1_send);
     #endif  // PARTICLES_GPU
 
   MPI_Irecv(&Particles.n_recv_x1, 1, MPI_PART_INT, source[1], 1, world, &recv_request_n_particles[ireq_n_particles]);
@@ -506,9 +506,9 @@ void Grid3D::Load_and_Send_Particles_Y0(int ireq_n_particles, int ireq_particles
   Real *send_buffer_y0_particles;
 
     #ifdef PARTICLES_GPU
-  send_buffer_y0_particles = d_send_buffer_y0_particles;
+  //send_buffer_y0_particles = d_send_buffer_y0_particles;
   //Particles.Load_Particles_to_Buffer_GPU(1, 0, send_buffer_y0_particles, buffer_length_particles_y0_send);
-  Particles.Load_Particles_to_Buffer_GPU(1, 0, buffer_length_particles_y0_send);
+  send_buffer_y0_particles = Particles.Load_Particles_to_Buffer_GPU(1, 0, buffer_length_particles_y0_send);
     #endif  // PARTICLES_GPU
 
   MPI_Isend(&Particles.n_send_y0, 1, MPI_PART_INT, dest[2], 3, world, &send_request_n_particles[0]);
@@ -540,9 +540,9 @@ void Grid3D::Load_and_Send_Particles_Y1(int ireq_n_particles, int ireq_particles
   Real *send_buffer_y1_particles;
 
     #ifdef PARTICLES_GPU
-  send_buffer_y1_particles = d_send_buffer_y1_particles;
+  //send_buffer_y1_particles = d_send_buffer_y1_particles;
   //Particles.Load_Particles_to_Buffer_GPU(1, 1, send_buffer_y1_particles, buffer_length_particles_y1_send);
-  Particles.Load_Particles_to_Buffer_GPU(1, 1, buffer_length_particles_y1_send);
+  send_buffer_y1_particles = Particles.Load_Particles_to_Buffer_GPU(1, 1, buffer_length_particles_y1_send);
     #endif  // PARTICLES_GPU
 
   MPI_Isend(&Particles.n_send_y1, 1, MPI_PART_INT, dest[3], 2, world, &send_request_n_particles[1]);
@@ -574,9 +574,9 @@ void Grid3D::Load_and_Send_Particles_Z0(int ireq_n_particles, int ireq_particles
   Real *send_buffer_z0_particles;
 
     #ifdef PARTICLES_GPU
-  send_buffer_z0_particles = d_send_buffer_z0_particles;
+  //send_buffer_z0_particles = d_send_buffer_z0_particles;
   //Particles.Load_Particles_to_Buffer_GPU(2, 0, send_buffer_z0_particles, buffer_length_particles_z0_send);
-  Particles.Load_Particles_to_Buffer_GPU(2, 0, buffer_length_particles_z0_send);
+  send_buffer_z0_particles = Particles.Load_Particles_to_Buffer_GPU(2, 0, buffer_length_particles_z0_send);
     #endif  // PARTICLES_GPU
 
   MPI_Isend(&Particles.n_send_z0, 1, MPI_PART_INT, dest[4], 5, world, &send_request_n_particles[0]);
@@ -608,9 +608,9 @@ void Grid3D::Load_and_Send_Particles_Z1(int ireq_n_particles, int ireq_particles
   Real *send_buffer_z1_particles;
 
     #ifdef PARTICLES_GPU
-  send_buffer_z1_particles = d_send_buffer_z1_particles;
+  //send_buffer_z1_particles = d_send_buffer_z1_particles;
   //Particles.Load_Particles_to_Buffer_GPU(2, 1, send_buffer_z1_particles, buffer_length_particles_z1_send);
-  Particles.Load_Particles_to_Buffer_GPU(2, 1, buffer_length_particles_z1_send);
+  send_buffer_z1_particles = Particles.Load_Particles_to_Buffer_GPU(2, 1, buffer_length_particles_z1_send);
     #endif  // PARTICLES_GPU
 
   MPI_Isend(&Particles.n_send_z1, 1, MPI_PART_INT, dest[5], 4, world, &send_request_n_particles[1]);
@@ -834,7 +834,8 @@ int Particles3D::Select_Particles_to_Transfer_GPU(int direction, int side)
 }
 
 //void Particles3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, Real *send_buffer_h,
-void Particles3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, int buffer_length)
+//void Particles3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, int buffer_length)
+Real *Particles3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, int buffer_length)
 {
   bool flag_resize = false;
   part_int_t *n_send;
@@ -998,6 +999,8 @@ void Particles3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dire
 	  printf( "###procID %d Transferred %ld  particles (about to send to %d, dir = %d)\n",procID, *n_send,tdest,tdir);
 	  fflush(stdout);
   }
+
+  return send_buffer_d;
 }
 
 void Particles3D::Replace_Transferred_Particles_GPU(int n_transfer)
@@ -1034,15 +1037,19 @@ void Particles3D::Replace_Transferred_Particles_GPU(int n_transfer)
 }
 
 //void Particles3D::Load_Particles_to_Buffer_GPU(int direction, int side, Real *send_buffer_h, int buffer_length)
-void Particles3D::Load_Particles_to_Buffer_GPU(int direction, int side, int buffer_length)
+//void Particles3D::Load_Particles_to_Buffer_GPU(int direction, int side, int buffer_length)
+Real *Particles3D::Load_Particles_to_Buffer_GPU(int direction, int side, int buffer_length)
 {
   int n_transfer;
+  Real *send_buffer_d;
   n_transfer = Select_Particles_to_Transfer_GPU(direction, side);
 
   //Copy_Transfer_Particles_to_Buffer_GPU(n_transfer, direction, side, send_buffer_h, buffer_length);
-  Copy_Transfer_Particles_to_Buffer_GPU(n_transfer, direction, side, buffer_length);
+  send_buffer_d = Copy_Transfer_Particles_to_Buffer_GPU(n_transfer, direction, side, buffer_length);
 
   Replace_Transferred_Particles_GPU(n_transfer);
+
+  return send_buffer_d;
 }
 
 /**
