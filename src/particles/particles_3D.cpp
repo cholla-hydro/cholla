@@ -96,7 +96,11 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
   // move particles as needed after displacement
   if(strcmp(P->init, "Cosmological_ICs") == 0) {
     Transfer_Particles_Boundaries(*P);
+  #ifdef MPI_CHOLLA
+    MPI_Barrier(world);
+  #endif
   }
+  chexit(0);
   #endif //COSMOLOGY
 
 }
@@ -1647,7 +1651,7 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
     }
   }
 
-  printf("Transfers procID %d nxlt %d nxut %d nylt %d nyut %d nzlt %d nzut %d\n",procID,nxlt,nxut,nylt,nyut,nzlt,nzut);
+  printf("Transfers procID %d nxlt %d nxut %d xix_rms %e nylt %d nyut %d xiy_rms %e nzlt %d nzut %d xiz_rms %e\n",procID,nxlt,nxut,sqrt(xix_rms/xix_n),nylt,nyut,sqrt(xiy_rms/xix_n),nzlt,nzut,sqrt(xiz_rms/xix_n));
   fflush(stdout);
   MPI_Barrier(world);
 

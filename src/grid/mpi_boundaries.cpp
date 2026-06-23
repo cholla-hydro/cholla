@@ -470,6 +470,9 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
       Wait_NTransfer_and_Request_Recv_Particles_Transfer_BLOCK(dir, flags);
     }
   #endif
+    MPI_Barrier(world);
+    chprintf("Exiting on purpose....\n");
+    chexit(0);
   }
 
   /* y boundaries */

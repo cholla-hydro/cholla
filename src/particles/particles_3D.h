@@ -314,7 +314,7 @@ class Particles3D
   int Select_Particles_to_Transfer_GPU(int direction, int side);
   void Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, Real *send_buffer,
                                              int buffer_length);
-  void Replace_Tranfered_Particles_GPU(int n_transfer);
+  void Replace_Transferred_Particles_GPU(int n_transfer);
   void Unload_Particles_from_Buffer_GPU(int direction, int side, Real *recv_buffer_h, int n_recv);
   void Copy_Transfer_Particles_from_Buffer_GPU(int n_recv, Real *recv_buffer_d);
   void Set_Particles_Open_Boundary_GPU(int dir, int side);
