@@ -218,7 +218,7 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     if (buffer_length > Particles.G.recv_buffer_size_x0) {
       flag_resize=true;
       //printf("Extending Particles Transfer Buffer  ");
-      printf("Extending Particles Transfer Buffer procID %d bl %d nrx0 %d rcvx0 %d\n",procID,buffer_length,Particles.n_recv_x0,Particles.G.recv_buffer_size_x0);
+      //printf("Extending Particles Transfer Buffer procID %d bl %d nrx0 %d rcvx0 %d\n",procID,buffer_length,Particles.n_recv_x0,Particles.G.recv_buffer_size_x0);
       //Extend_GPU_Array(&recv_buffer_x0_particles, Particles.G.recv_buffer_size_x0,
       Extend_GPU_Array(&d_recv_buffer_x0_particles, Particles.G.recv_buffer_size_x0,
                        Particles.G.gpu_allocation_factor * buffer_length, true); //HERE
@@ -226,8 +226,8 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
       recv_buffer_x0_particles = d_recv_buffer_x0_particles;
       Particles.G.recv_buffer_x0_d = d_recv_buffer_x0_particles;
       Particles.G.recv_buffer_size_x0 = (part_int_t) (Particles.G.gpu_allocation_factor * buffer_length);
-      printf("Before recv procID %d set x0 buffer_length = %d recv_buffer_size_x0 %d\n",procID,buffer_length,Particles.G.recv_buffer_size_x0);
-      fflush(stdout);
+      //printf("Before recv procID %d set x0 buffer_length = %d recv_buffer_size_x0 %d\n",procID,buffer_length,Particles.G.recv_buffer_size_x0);
+      //fflush(stdout);
     }
       #else
     Check_and_Grow_Particles_Buffer(&recv_buffer_x0_particles, &buffer_length_particles_x0_recv, buffer_length);
@@ -238,18 +238,18 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     #endif
     // if ( Particles.n_recv_x0 > 0 ) std::cout << " Recv X0: " <<
     // Particles.n_recv_x0 << std::endl;
-    if(flag_resize)
+    /*if(flag_resize)
     {
       printf("procID %d planning to receive x0 bl %d source %d\n",procID,buffer_length,source[0]);
       fflush(stdout); //HERE, note buffer_length == nper part * npart
-    }
+    }*/
     MPI_Irecv(recv_buffer_x0_particles, buffer_length, MPI_CHREAL, source[0], 0, world,
               &recv_request_particles_transfer[*ireq_particles_transfer]);
-    if(flag_resize)
+    /*if(flag_resize)
     {
       printf("procID %d received x0 %d\n",procID,buffer_length);
       fflush(stdout);
-    }
+    }*/
   }
   if (index == 1) {
     buffer_length = Particles.n_recv_x1 * N_DATA_PER_PARTICLE_TRANSFER;
@@ -258,7 +258,7 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     if (buffer_length > Particles.G.recv_buffer_size_x1) {
       flag_resize = true;
       //printf("Extending Particles Transfer Buffer  ");
-      printf("Extending Particles Transfer Buffer procID %d bl %d nrx1 %d rcvx1 %d\n",procID,buffer_length,Particles.n_recv_x1,Particles.G.recv_buffer_size_x1);
+      //printf("Extending Particles Transfer Buffer procID %d bl %d nrx1 %d rcvx1 %d\n",procID,buffer_length,Particles.n_recv_x1,Particles.G.recv_buffer_size_x1);
       //d_recv_buffer_x1_particles;
       //Extend_GPU_Array(&recv_buffer_x1_particles, Particles.G.recv_buffer_size_x1, //ORIG
       Extend_GPU_Array(&d_recv_buffer_x1_particles, Particles.G.recv_buffer_size_x1,
@@ -280,20 +280,20 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     // if ( Particles.n_recv_x1 > 0 ) if ( Particles.n_recv_x1 > 0 ) std::cout
     // << " Recv X1:  " << Particles.n_recv_x1 <<  "  " << procID <<  "  from "
     // <<  source[1] <<  std::endl;
-    if(flag_resize)
+    /*if(flag_resize)
     {
       printf("procID %d planning to receive x1 bl %d source %d rbsx1 %d\n",procID,buffer_length,source[1],Particles.G.recv_buffer_size_x1);
       fflush(stdout);//HERE, note buffer_length == nper part * npart
-    }
+    }*/
     //d_recv_buffer_x1_particles;
     //MPI_Irecv(d_recv_buffer_x1_particles, buffer_length, MPI_CHREAL, source[1], 1, world,
     MPI_Irecv(recv_buffer_x1_particles, buffer_length, MPI_CHREAL, source[1], 1, world, //ORIG
               &recv_request_particles_transfer[*ireq_particles_transfer]);
-    if(flag_resize)
+    /*if(flag_resize)
     {
       printf("procID %d received x1 %d\n",procID,buffer_length);
       fflush(stdout);
-    }
+    }*/
   }
   if (index == 2) {
     buffer_length = Particles.n_recv_y0 * N_DATA_PER_PARTICLE_TRANSFER;
@@ -302,15 +302,15 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     if (buffer_length > Particles.G.recv_buffer_size_y0) {
       flag_resize = true;
       //printf("Extending Particles Transfer Buffer  ");
-      printf("Extending Particles Transfer Buffer  bl %d nry0 %d rcvy0 %d\n",buffer_length,Particles.n_recv_y0,Particles.G.recv_buffer_size_y0);
+      //printf("Extending Particles Transfer Buffer  bl %d nry0 %d rcvy0 %d\n",buffer_length,Particles.n_recv_y0,Particles.G.recv_buffer_size_y0);
       //Extend_GPU_Array(&recv_buffer_y0_particles, Particles.G.recv_buffer_size_y0,
       Extend_GPU_Array(&d_recv_buffer_y0_particles, Particles.G.recv_buffer_size_y0,
                        Particles.G.gpu_allocation_factor * buffer_length, true);
       recv_buffer_y0_particles = d_recv_buffer_y0_particles;
       Particles.G.recv_buffer_y0_d = d_recv_buffer_y0_particles;
       Particles.G.recv_buffer_size_y0 = (part_int_t) (Particles.G.gpu_allocation_factor * buffer_length);
-      printf("Before recv procID %d set y0 buffer_length = %d\n",procID,buffer_length);
-      fflush(stdout);
+      //printf("Before recv procID %d set y0 buffer_length = %d\n",procID,buffer_length);
+      //fflush(stdout);
     }
       #else
     Check_and_Grow_Particles_Buffer(&recv_buffer_y0_particles, &buffer_length_particles_y0_recv, buffer_length);
@@ -323,11 +323,11 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     // Particles.n_recv_y0 << std::endl;
     MPI_Irecv(recv_buffer_y0_particles, buffer_length, MPI_CHREAL, source[2], 2, world,
               &recv_request_particles_transfer[*ireq_particles_transfer]);
-    if(flag_resize)
+    /*if(flag_resize)
     {
       printf("procID %d received y0 %d\n",procID,buffer_length);
       fflush(stdout);
-    }
+    }*/
   }
   if (index == 3) {
     buffer_length = Particles.n_recv_y1 * N_DATA_PER_PARTICLE_TRANSFER;
@@ -336,15 +336,15 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     if (buffer_length > Particles.G.recv_buffer_size_y1) {
       flag_resize = true;
       //printf("Extending Particles Transfer Buffer  ");
-      printf("Extending Particles Transfer Buffer  bl %d nry1 %d rcvy1 %d\n",buffer_length,Particles.n_recv_y1,Particles.G.recv_buffer_size_y1);
+      //printf("Extending Particles Transfer Buffer  bl %d nry1 %d rcvy1 %d\n",buffer_length,Particles.n_recv_y1,Particles.G.recv_buffer_size_y1);
       //Extend_GPU_Array(&recv_buffer_y1_particles, Particles.G.recv_buffer_size_y1,
       Extend_GPU_Array(&d_recv_buffer_y1_particles, Particles.G.recv_buffer_size_y1,
                        Particles.G.gpu_allocation_factor * buffer_length, true);
       recv_buffer_y1_particles = d_recv_buffer_y1_particles;
       Particles.G.recv_buffer_y1_d = d_recv_buffer_y1_particles;
       Particles.G.recv_buffer_size_y1 = (part_int_t) (Particles.G.gpu_allocation_factor * buffer_length);
-      printf("Before recv procID %d set y1 buffer_length = %d\n",procID,buffer_length);
-      fflush(stdout);
+      /*printf("Before recv procID %d set y1 buffer_length = %d\n",procID,buffer_length);
+      fflush(stdout);*/
     }
       #else
     Check_and_Grow_Particles_Buffer(&recv_buffer_y1_particles, &buffer_length_particles_y1_recv, buffer_length);
@@ -357,11 +357,11 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     // Particles.n_recv_y1 << std::endl;
     MPI_Irecv(recv_buffer_y1_particles, buffer_length, MPI_CHREAL, source[3], 3, world,
               &recv_request_particles_transfer[*ireq_particles_transfer]);
-    if(flag_resize)
+    /*if(flag_resize)
     {
       printf("procID %d received y1 %d\n",procID,buffer_length);
       fflush(stdout);
-    }
+    }*/
   }
   if (index == 4) {
     buffer_length = Particles.n_recv_z0 * N_DATA_PER_PARTICLE_TRANSFER;
@@ -370,15 +370,15 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     if (buffer_length > Particles.G.recv_buffer_size_z0) {
       flag_resize = true;
       //printf("Extending Particles Transfer Buffer  ");
-      printf("Extending Particles Transfer Buffer  bl %d nrz0 %d rcvz0 %d\n",buffer_length,Particles.n_recv_z0,Particles.G.recv_buffer_size_z0);
+      //printf("Extending Particles Transfer Buffer  bl %d nrz0 %d rcvz0 %d\n",buffer_length,Particles.n_recv_z0,Particles.G.recv_buffer_size_z0);
       //Extend_GPU_Array(&recv_buffer_z0_particles, Particles.G.recv_buffer_size_z0,
       Extend_GPU_Array(&d_recv_buffer_z0_particles, Particles.G.recv_buffer_size_z0,
                        Particles.G.gpu_allocation_factor * buffer_length, true);
       recv_buffer_z0_particles = d_recv_buffer_z0_particles;
       Particles.G.recv_buffer_z0_d = d_recv_buffer_z0_particles;
       Particles.G.recv_buffer_size_z0 = (part_int_t) (Particles.G.gpu_allocation_factor * buffer_length);
-      printf("Before recv procID %d set z0 buffer_length = %d\n",procID,buffer_length);
-      fflush(stdout);
+      /*printf("Before recv procID %d set z0 buffer_length = %d\n",procID,buffer_length);
+      fflush(stdout);*/
     }
       #else
     Check_and_Grow_Particles_Buffer(&recv_buffer_z0_particles, &buffer_length_particles_z0_recv, buffer_length);
@@ -391,11 +391,11 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     // Particles.n_recv_z0 << std::endl;
     MPI_Irecv(recv_buffer_z0_particles, buffer_length, MPI_CHREAL, source[4], 4, world,
               &recv_request_particles_transfer[*ireq_particles_transfer]);
-    if(flag_resize)
+    /*if(flag_resize)
     {
       printf("procID %d received z0 %d\n",procID,buffer_length);
       fflush(stdout);
-    }
+    }*/
   }
   if (index == 5) {
     buffer_length = Particles.n_recv_z1 * N_DATA_PER_PARTICLE_TRANSFER;
@@ -404,15 +404,15 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     if (buffer_length > Particles.G.recv_buffer_size_z1) {
       flag_resize = true;
       //printf("Extending Particles Transfer Buffer  ");
-      printf("Extending Particles Transfer Buffer  bl %d nrz1 %d rcvz1 %d\n",buffer_length,Particles.n_recv_z1,Particles.G.recv_buffer_size_z1);
+      //printf("Extending Particles Transfer Buffer  bl %d nrz1 %d rcvz1 %d\n",buffer_length,Particles.n_recv_z1,Particles.G.recv_buffer_size_z1);
       //Extend_GPU_Array(&recv_buffer_z1_particles, Particles.G.recv_buffer_size_z1,
       Extend_GPU_Array(&d_recv_buffer_z1_particles, Particles.G.recv_buffer_size_z1,
                        Particles.G.gpu_allocation_factor * buffer_length, true);
       recv_buffer_z1_particles = d_recv_buffer_z1_particles;
       Particles.G.recv_buffer_z1_d = d_recv_buffer_z1_particles;
       Particles.G.recv_buffer_size_z1 = (part_int_t) (Particles.G.gpu_allocation_factor * buffer_length);
-      printf("Before recv procID %d set z1 buffer_length = %d\n",procID,buffer_length);
-      fflush(stdout);
+      //printf("Before recv procID %d set z1 buffer_length = %d\n",procID,buffer_length);
+      //fflush(stdout);
     }
       #else
     Check_and_Grow_Particles_Buffer(&recv_buffer_z1_particles, &buffer_length_particles_z1_recv, buffer_length);
@@ -425,11 +425,11 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
     // Particles.n_recv_z1 << std::endl;
     MPI_Irecv(recv_buffer_z1_particles, buffer_length, MPI_CHREAL, source[5], 5, world,
               &recv_request_particles_transfer[*ireq_particles_transfer]);
-    if(flag_resize)
+    /*if(flag_resize)
     {
       printf("procID %d received z1 %d\n",procID,buffer_length);
       fflush(stdout);
-    }
+    }*/
   }
 
   *ireq_particles_transfer += 1;
@@ -946,7 +946,7 @@ Real *Particles3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dir
   // extend the array
   if ((*n_send + n_transfer) * N_DATA_PER_PARTICLE_TRANSFER > *buffer_size) {
     flag_resize = true; //HERE
-    printf("Extending Particles Transfer Buffer procID %d n_send %d n_transfer %d NDPPT %d product %d buffer_size %d gpu_alloc_fac %3.2f ",procID,(*n_send),n_transfer,N_DATA_PER_PARTICLE_TRANSFER,(*n_send + n_transfer) * N_DATA_PER_PARTICLE_TRANSFER,*buffer_size,G.gpu_allocation_factor);
+    //printf("Extending Particles Transfer Buffer procID %d n_send %d n_transfer %d NDPPT %d product %d buffer_size %d gpu_alloc_fac %3.2f ",procID,(*n_send),n_transfer,N_DATA_PER_PARTICLE_TRANSFER,(*n_send + n_transfer) * N_DATA_PER_PARTICLE_TRANSFER,*buffer_size,G.gpu_allocation_factor);
     Extend_GPU_Array(&send_buffer_d, *buffer_size,
                      G.gpu_allocation_factor * (*n_send + n_transfer) * N_DATA_PER_PARTICLE_TRANSFER, true);
     //*buffer_size = (part_int_t)G.gpu_allocation_factor * (*n_send + n_transfer) * N_DATA_PER_PARTICLE_TRANSFER; // This is wrong
@@ -1020,10 +1020,10 @@ Real *Particles3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dir
 
   *n_send += n_transfer;
   //if ( *n_send > 0 ) printf( "###procID %d Transferred %ld  particles\n",procID, *n_send);
-  if ( (*n_send > 0)&(flag_resize) ) {
+  /*if ( (*n_send > 0)&(flag_resize) ) {
 	  printf( "###procID %d Transferred %ld  particles (about to send to %d, dir = %d)\n",procID, *n_send,tdest,tdir);
 	  fflush(stdout);
-  }
+  }*/
 
   return send_buffer_d;
 }
