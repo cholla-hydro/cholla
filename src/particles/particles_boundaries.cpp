@@ -1176,10 +1176,10 @@ void Particles3D::Copy_Transfer_Particles_from_Buffer_GPU(int n_recv, Real *recv
       #endif
 
   n_local += n_recv;
-   if ( n_recv > 0 ) {
+   /*if ( n_recv > 0 ) {
 	   printf( "### procID %d Unloaded %d  particles\n",procID, n_recv );
 	   fflush(stdout);
-   }
+   }*/
 }
 
 void Particles3D::Unload_Particles_from_Buffer_GPU(int direction, int side, Real *recv_buffer_h, int n_recv)
