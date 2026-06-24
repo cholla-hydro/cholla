@@ -33,7 +33,7 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct Parameters P)
   if (Particles.TRANSFER_PARTICLES_BOUNDARIES) {
     Particles.Clear_Particles_For_Transfer();
     Particles.Select_Particles_to_Transfer_All(flags);
-    chprintf("Cleared transfers, and selected new transfers\n");
+    //chprintf("Cleared transfers, and selected new transfers\n");
   }
   #endif
 
@@ -42,12 +42,12 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct Parameters P)
     if (flags[0] == 5 || flags[1] == 5) {
       Load_and_Send_MPI_Comm_Buffers(0, flags);
     }
-    chprintf("Cleared x load and send\n");
+    //chprintf("Cleared x load and send\n");
 
     /* Step 2 - Set non-MPI x-boundaries */
     Set_Boundaries(0, flags);
     Set_Boundaries(1, flags);
-    chprintf("Cleared non-mpi boundaries\n");
+    //chprintf("Cleared non-mpi boundaries\n");
 
     /* Step 3 - Receive MPI x-boundaries */
 
@@ -60,7 +60,7 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct Parameters P)
       }
   #endif
     }
-    chprintf("Cleared x transfers\n");
+    //chprintf("Cleared x transfers\n");
   }
   MPI_Barrier(world);
   if (H.ny > 1) {
@@ -83,7 +83,7 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct Parameters P)
       }
   #endif
     }
-    chprintf("Cleared y transfers\n");
+    //chprintf("Cleared y transfers\n");
   }
   MPI_Barrier(world);
   if (H.nz > 1) {
@@ -106,7 +106,7 @@ void Grid3D::Set_Boundaries_MPI_BLOCK(int *flags, struct Parameters P)
       }
   #endif
     }
-    chprintf("Cleared z transfers\n");
+    //chprintf("Cleared z transfers\n");
   }
 
   #ifdef PARTICLES
@@ -371,9 +371,9 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
       #endif
     #endif
       } else if (Particles.TRANSFER_PARTICLES_BOUNDARIES) {
-	chprintf("About to load and send X0\n");
+	//chprintf("About to load and send X0\n");
         Load_and_Send_Particles_X0(ireq_n_particles, ireq_particles_transfer);
-	chprintf("Leaving load and send X0\n");
+	//chprintf("Leaving load and send X0\n");
         transfer_main_buffer = false;
         ireq_n_particles++;
         ireq_particles_transfer++;
@@ -444,9 +444,9 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
       #endif
     #endif
       } else if (Particles.TRANSFER_PARTICLES_BOUNDARIES) {
-	chprintf("About to load and send X1\n");
+	//chprintf("About to load and send X1\n");
         Load_and_Send_Particles_X1(ireq_n_particles, ireq_particles_transfer);
-	chprintf("Leaving load and send X1\n");
+	//chprintf("Leaving load and send X1\n");
         transfer_main_buffer = false;
         ireq_n_particles++;
         ireq_particles_transfer++;
@@ -477,14 +477,14 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
   // Receive the number of particles transfer for X
   #ifdef PARTICLES
     if (Particles.TRANSFER_PARTICLES_BOUNDARIES) {
-      chprintf("About to Wait_NTransfer dir %d\n",dir);
+      //chprintf("About to Wait_NTransfer dir %d\n",dir);
       Wait_NTransfer_and_Request_Recv_Particles_Transfer_BLOCK(dir, flags);
     }
   #endif
     //MPI_Barrier(world); //BRANT
     //chprintf("Exiting on purpose....\n");
     //chexit(0);
-    chprintf("Leaving Load_and_Send....\n");
+    //chprintf("Leaving Load_and_Send....\n");
   }
 
   /* y boundaries */
