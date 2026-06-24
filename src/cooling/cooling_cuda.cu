@@ -162,15 +162,9 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     d_metals = solar_metal_mass_frac * d;
 #endif
 if (xid == is && yid == js && zid == ks) {
-    printf("grid_enum::metal_density = %d\n", grid_enum::metal_density);
-    printf("grid_enum::density = %d\n", grid_enum::density);
     printf("n_cells = %d, n_fields = %d\n", n_cells, n_fields);
     printf("d = %e\n", dev_conserved[id]);
-    printf("d_metals direct = %e\n", dev_conserved[grid_enum::metal_density * n_cells + id]);
-    // also check neighboring field indices
-    printf("field 5 = %e\n", dev_conserved[5 * n_cells + id]);
-    printf("field 6 = %e\n", dev_conserved[6 * n_cells + id]);
-    printf("field 7 = %e\n", dev_conserved[7 * n_cells + id]);
+    printf("d_metals = %e\n", dev_conserved[grid_enum::metal_density * n_cells + id]);
 }
 #ifdef DE
     ge = dev_conserved[(n_fields - 1) * n_cells + id] / d;
