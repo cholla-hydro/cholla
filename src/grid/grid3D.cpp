@@ -275,7 +275,7 @@ void Grid3D::AllocateMemory(void)
   C.d_dust_density = &(C.device[H.n_cells * grid_enum::dust_density]);
   #endif
   #ifdef METALS
-  C.d_metal_density = &(C.host[H.n_cells * grid_enum::metal_density]);
+  C.d_metal_density = &(C.device[H.n_cells * grid_enum::metal_density]);
   #endif
 #endif  // SCALAR
 #ifdef MHD
