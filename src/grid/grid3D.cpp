@@ -278,6 +278,7 @@ void Grid3D::AllocateMemory(void)
   C.d_metal_density = &(C.device[H.n_cells * grid_enum::metal_density]);
   #endif
 #endif  // SCALAR
+chprintf("metal_density = %e, d_metal_density = %e\n", C.metal_density, C.d_metal_density);
 #ifdef MHD
   C.d_magnetic_x = &(C.device[(grid_enum::magnetic_x)*H.n_cells]);
   C.d_magnetic_y = &(C.device[(grid_enum::magnetic_y)*H.n_cells]);

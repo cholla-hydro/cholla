@@ -46,8 +46,12 @@ static constexpr PropPack pack_arr_[] = {
     {"HeIII_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
     {"e_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
   #endif
-  #if defined (GRACKLE_METALS) || defined(METALS)
+  #ifdef GRACKLE_METALS
     {"metal_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
+  #endif
+
+  #ifdef METALS
+    {"metal_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::DEVICE},
   #endif
 
   #ifdef DUST

@@ -228,7 +228,7 @@ void Grid3D::Constant(Parameters const &P, ParameterMap &pmap)
           C.momentum_z[id] = P.rho * P.vz;
           C.Energy[id]     = P.P / (gama - 1.0) + 0.5 * P.rho * (P.vx * P.vx + P.vy * P.vy + P.vz * P.vz);
 #ifdef METALS
-        C.metal_density[id] = Z * SOLAR_METAL_MASS_FRAC * P.rho;
+          C.metal_density[id] = Z * SOLAR_METAL_MASS_FRAC * P.rho;
 #endif
 #ifdef DE
           C.GasEnergy[id] = P.P / (gama - 1.0);
@@ -237,7 +237,7 @@ void Grid3D::Constant(Parameters const &P, ParameterMap &pmap)
         if (i == istart && j == jstart && k == kstart) {
           n = P.rho * DENSITY_UNIT / (mu * MP);
           T = P.P * PRESSURE_UNIT / (n * KB);
-          printf("Initial n = %e, T = %e\n", n, T);
+          printf("Initial n = %e, T = %e, Z = %e, metal_density = %e\n", n, T, Z, C.metal_density[id]);
         }
       }
     }

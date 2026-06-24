@@ -161,6 +161,17 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
 #else
     d_metals = solar_metal_mass_frac * d;
 #endif
+if (xid == is && yid == js && zid == ks) {
+    printf("grid_enum::metal_density = %d\n", grid_enum::metal_density);
+    printf("grid_enum::density = %d\n", grid_enum::density);
+    printf("n_cells = %d, n_fields = %d\n", n_cells, n_fields);
+    printf("d = %e\n", dev_conserved[id]);
+    printf("d_metals direct = %e\n", dev_conserved[grid_enum::metal_density * n_cells + id]);
+    // also check neighboring field indices
+    printf("field 5 = %e\n", dev_conserved[5 * n_cells + id]);
+    printf("field 6 = %e\n", dev_conserved[6 * n_cells + id]);
+    printf("field 7 = %e\n", dev_conserved[7 * n_cells + id]);
+}
 #ifdef DE
     ge = dev_conserved[(n_fields - 1) * n_cells + id] / d;
     ge = fmax(ge, (Real)TINY_NUMBER);
@@ -180,10 +191,14 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
 
     // calculate the temperature of the gas
     T_init = p * PRESSURE_UNIT / (n * KB);
+    
 #ifdef DE
     T_init = d * ge * (gamma - 1.0) * PRESSURE_UNIT / (n * KB);
 #endif
 
+    if (xid == is && yid == js && zid == ks) {
+      printf("d = %e, d_metals = %e, d_H = %e, H_mass_frac = %e, T = %e\n", d, d_metals, d_H, hydrogen_frac_by_mass, T_init);
+    }
     // calculate cooling rate per volume
     T = T_init;
     // call the cooling function
@@ -281,10 +296,15 @@ class CoolRecipeMetals
 
     // get cooling per unit volume of metals if cell had solar metallicty
     // Real cool_metal = n_H * n_H * cool_component::analytic_cie_lambda(log10(T));     
-    Real cool_metal = n_H * n_H * net_cloudy_(n_H, T);  
+    Real cool_metal = net_cloudy_(n_H, T);  
+    // printf("cool_metal = %e\n", cool_metal);
+    Real cool_metal_cool_only = fmax(cool_metal, 0.0);
+
     Real cool_metal_if_solar = fmax(cool_metal - cool_primordial, 0.0); 
    
-    return cool_primordial + cool_metal_if_solar * metallicity;
+    Real cool_total = cool_primordial + cool_metal_if_solar * metallicity;
+
+    return fmax(cool_total, 0.0);
   }
 };
 
