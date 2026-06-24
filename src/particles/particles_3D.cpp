@@ -921,7 +921,7 @@ struct StarClusterInitRsltPack {
   std::map<std::string, real_vector_t> real_props;
 };
 
-/* Helper function used to initialize the properties of stellar-clusters in a disk
+/*! \brief Helper function used to initialize the properties of stellar-clusters in a disk
  *
  * This initializes all necessary clusters in a simulation. The "age" property
  * effectively specifies the formation time. If the simulation time is smaller
@@ -933,10 +933,11 @@ struct StarClusterInitRsltPack {
  * \param t_max specifies the final time at which we want to form a cluster. This
  *     typically coincides with the final simulation time.
  * \param G specifies the domain properties
+ * \param model_galaxy Specifies the relevant model galaxy
  */
 template <bool UsePoissonPointProcess = false>
 StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64 &generator, const Real R_max, const Real t_max,
-                                                   const Particles3D::Grid &G)
+                                                   const Particles3D::Grid &G, const ClusteredDiskGalaxy &model_galaxy)
 {
   // todo: move away from using the distribution functions defined in the standard library
   //  -> apparently, the results of distribution functions are not portable across different
@@ -947,7 +948,7 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64 &generator, c
   // fetch governing physical parameters:
   // todo: store the following directly within the Galaxy object
   const Real SFR               = 2e3;                           // global MW SFR: 2 SM / yr
-  const Real Rgas_scale_length = galaxies::MW.getGasDiskR_d();  // gas-disk scale length
+  const Real Rgas_scale_length = model_galaxy.getGasDiskR_d();  // gas-disk scale length
   // the following are theoretically tunable
   const Real k_s_power = 1.4;              // the power in the Kennicut-Schmidt law
                                            // (at the moment, this isn't tunable)
@@ -1000,7 +1001,7 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64 &generator, c
   std::uniform_real_distribution<Real> phiDist(0, 2 * M_PI);  // for generating phi
   std::normal_distribution<Real> speedDist(0, 1);             // for generating random speeds.
 
-  ClusterCreator<UsePoissonPointProcess> cluster_creator(galaxies::MW.getClusterMassDistribution(), SFR,
+  ClusterCreator<UsePoissonPointProcess> cluster_creator(model_galaxy.getClusterMassDistribution(), SFR,
                                                          earliest_t_formation);
 
   // initialize the std::map instances of vectors used to hold the output properties
@@ -1061,9 +1062,9 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64 &generator, c
       }
 
   #ifdef GRAVITY
-      Real vPhi = std::sqrt(galaxies::MW.circular_vel2_with_selfgrav_estimates(R, z));
+      Real vPhi = std::sqrt(model_galaxy.circular_vel2_with_selfgrav_estimates(R, z));
   #else
-      Real vPhi = std::sqrt(galaxies::MW.circular_vel2(R, z));
+      Real vPhi = std::sqrt(model_galaxy.circular_vel2(R, z));
   #endif
 
       Real vx = -vPhi * sin(phi);
@@ -1109,6 +1110,9 @@ void Particles3D::Initialize_Disk_Stellar_Clusters(struct Parameters *P, const M
   // properties (e.g. "age", "mass", "ids"). These assumptions are explicitly checked
   // for us within Initialize_Stellar_Clusters_Helper_ at runtime
 
+  const ClusteredDiskGalaxy *galaxy_model = model_collection.try_get<ClusteredDiskGalaxy>();
+  CHOLLA_ASSERT(galaxy_model != nullptr, "no galaxy model was initialized");
+
   chprintf(" Initializing Particles Stellar Disk\n");
 
   // Set up the PRNG
@@ -1121,9 +1125,10 @@ void Particles3D::Initialize_Disk_Stellar_Clusters(struct Parameters *P, const M
   // to remove the older strategy of determining cluster formation times
   bool poisson_process_formation_strat = true;
 
-  StarClusterInitRsltPack pack = (poisson_process_formation_strat)
-                                     ? disk_stellar_cluster_init_<true>(generator, R_max, t_max, this->G)
-                                     : disk_stellar_cluster_init_<false>(generator, R_max, t_max, this->G);
+  StarClusterInitRsltPack pack =
+      (poisson_process_formation_strat)
+          ? disk_stellar_cluster_init_<true>(generator, R_max, t_max, this->G, *galaxy_model)
+          : disk_stellar_cluster_init_<false>(generator, R_max, t_max, this->G, *galaxy_model);
 
   this->n_local = pack.int_props.at("id").size();  // may be a little redundant
 
