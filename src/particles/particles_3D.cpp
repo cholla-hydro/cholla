@@ -1534,11 +1534,10 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
 			       
 			       
 			       
-	// BRANT ERROR SHIFT ON PURPOSE
-	xi_x += 10.0*dx;
-	xi_y += 10.0*dy;
-	xi_z += 10.0*dz;
-
+        // BRANT ERROR SHIFT ON PURPOSE
+        //xi_x += 10.0*dx;
+        //xi_y += 10.0*dy;
+        //xi_z += 10.0*dz;
 
         if(xi_x<xix_min)
           xix_min = xi_x;
