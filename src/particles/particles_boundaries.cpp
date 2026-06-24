@@ -559,6 +559,9 @@ void Grid3D::Load_and_Send_Particles_Y0(int ireq_n_particles, int ireq_particles
   send_buffer_y0_particles = h_send_buffer_y0_particles;
     #endif
 
+  #ifdef MPI_GPU
+  	GPU_Error_Check(cudaDeviceSynchronize()); // check a synchronize -- no effect
+  #endif
   MPI_Isend(send_buffer_y0_particles, buffer_length, MPI_CHREAL, dest[2], 3, world,
             &send_request_particles_transfer[ireq_particles_transfer]);
   MPI_Request_free(send_request_particles_transfer + ireq_particles_transfer);
@@ -595,6 +598,9 @@ void Grid3D::Load_and_Send_Particles_Y1(int ireq_n_particles, int ireq_particles
   send_buffer_y1_particles = h_send_buffer_y1_particles;
     #endif
 
+  #ifdef MPI_GPU
+  	GPU_Error_Check(cudaDeviceSynchronize()); // check a synchronize -- no effect
+  #endif
   MPI_Isend(send_buffer_y1_particles, buffer_length, MPI_CHREAL, dest[3], 2, world,
             &send_request_particles_transfer[ireq_particles_transfer]);
   MPI_Request_free(send_request_particles_transfer + ireq_particles_transfer);
@@ -631,6 +637,9 @@ void Grid3D::Load_and_Send_Particles_Z0(int ireq_n_particles, int ireq_particles
   send_buffer_z0_particles = h_send_buffer_z0_particles;
     #endif
 
+  #ifdef MPI_GPU
+  	GPU_Error_Check(cudaDeviceSynchronize()); // check a synchronize -- no effect
+  #endif
   MPI_Isend(send_buffer_z0_particles, buffer_length, MPI_CHREAL, dest[4], 5, world,
             &send_request_particles_transfer[ireq_particles_transfer]);
   MPI_Request_free(send_request_particles_transfer + ireq_particles_transfer);
@@ -667,6 +676,9 @@ void Grid3D::Load_and_Send_Particles_Z1(int ireq_n_particles, int ireq_particles
   send_buffer_z1_particles = h_send_buffer_z1_particles;
     #endif
 
+  #ifdef MPI_GPU
+  	GPU_Error_Check(cudaDeviceSynchronize()); // check a synchronize -- no effect
+  #endif
   MPI_Isend(send_buffer_z1_particles, buffer_length, MPI_CHREAL, dest[5], 4, world,
             &send_request_particles_transfer[ireq_particles_transfer]);
   MPI_Request_free(send_request_particles_transfer + ireq_particles_transfer);
