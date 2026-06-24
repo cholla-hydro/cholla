@@ -1229,8 +1229,8 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
   Real dz = H.dz;
 
   // Set the number of particles equal to the number of grid cells
-  part_int_t n_particles_local = G.nx_local * G.ny_local * G.nz_local;
-  part_int_t n_particles_total = G.nx_total * G.ny_total * G.nz_total;
+  part_int_t n_particles_local = ((part_int_t) G.nx_local) * ((part_int_t) G.ny_local) * ((part_int_t) G.nz_local);
+  part_int_t n_particles_total = ((part_int_t) G.nx_total) * ((part_int_t) G.ny_total) * ((part_int_t) G.nz_total);
 
   // Set the particle mass
   Real H0      = P->H0;
@@ -1531,6 +1531,14 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         xi_x = D * grad_phi_x; // kpc/h
         xi_y = D * grad_phi_y; // kpc/h
         xi_z = D * grad_phi_z; // kpc/h
+			       
+			       
+			       
+	// BRANT ERROR SHIFT ON PURPOSE
+	xi_x += 10.0*dx;
+	xi_y += 10.0*dy;
+	xi_z += 10.0*dz;
+
 
         if(xi_x<xix_min)
           xix_min = xi_x;
@@ -1585,13 +1593,11 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         // apply displacements from lagrangian pos
         // x = q - D * \grad phi
         //////////////////////////////////////////
-
-        //x_pos = x_pos - xi_x;
-        //y_pos = y_pos - xi_y;
-        //z_pos = z_pos - xi_z;
+	
         x_pos = x_pos + xi_x;
         y_pos = y_pos + xi_y;
         z_pos = z_pos + xi_z;
+
 
 
       #ifdef PARTICLES_CPU
@@ -1652,9 +1658,9 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
     }
   }
 
-  //printf("Transfers procID %d nxlt %d nxut %d xix_rms %e nylt %d nyut %d xiy_rms %e nzlt %d nzut %d xiz_rms %e\n",procID,nxlt,nxut,sqrt(xix_rms/xix_n),nylt,nyut,sqrt(xiy_rms/xix_n),nzlt,nzut,sqrt(xiz_rms/xix_n));
-  //fflush(stdout);
-  //MPI_Barrier(world);
+  printf("Transfers procID %d nxlt %d nxut %d xix_rms %e nylt %d nyut %d xiy_rms %e nzlt %d nzut %d xiz_rms %e\n",procID,nxlt,nxut,sqrt(xix_rms/xix_n),nylt,nyut,sqrt(xiy_rms/xix_n),nzlt,nzut,sqrt(xiz_rms/xix_n));
+  fflush(stdout);
+  MPI_Barrier(world);
 
   MPI_Allreduce(MPI_IN_PLACE, &xix_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(MPI_IN_PLACE, &xiy_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);

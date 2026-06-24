@@ -345,6 +345,8 @@ int main(int argc, char *argv[])
     // Advance the particles KDK( first step ): Velocities are updated by 0.5*dt
     // and positions are updated by dt
     G.Advance_Particles(1);
+
+    chprintf("About to transfer particle boundaries\n");
     // Transfer the particles that moved outside the local domain
     G.Transfer_Particles_Boundaries(P);
 #endif

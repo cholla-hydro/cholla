@@ -315,7 +315,8 @@ class Particles3D
   //void Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, Real *send_buffer,
    //                                          int buffer_length);
   //void Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, int buffer_length);
-  Real *Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, int buffer_length);
+  //Real *Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, int buffer_length);
+  Real *Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, int *buffer_length);
                                              
   void Replace_Transferred_Particles_GPU(int n_transfer);
   void Unload_Particles_from_Buffer_GPU(int direction, int side, Real *recv_buffer_h, int n_recv);
@@ -391,7 +392,8 @@ class Particles3D
   void ReAllocate_Memory_GPU_MPI();
   //void Load_Particles_to_Buffer_GPU(int direction, int side, Real *send_buffer, int buffer_length);
   //void Load_Particles_to_Buffer_GPU(int direction, int side, int buffer_length);
-  Real * Load_Particles_to_Buffer_GPU(int direction, int side, int buffer_length);
+  //Real * Load_Particles_to_Buffer_GPU(int direction, int side, int buffer_length);
+  Real * Load_Particles_to_Buffer_GPU(int direction, int side, int *buffer_length);
 
       #endif  // PARTICLES_GPU
     #endif
