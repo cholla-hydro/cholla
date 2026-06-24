@@ -15,6 +15,7 @@
     #include "../global/global.h"
     #include "../gravity/grav3D.h"
     #include "../grid/spatial_domain_props.h"
+    #include "../model/model_collection.h"
 
     #ifdef PARTICLES_GPU
       #include "../utils/gpu.hpp"  // cudaFree
@@ -219,10 +220,17 @@ class Particles3D
 
   } G;
 
+  /*! \brief Default Constructor
+   *
+   *  The constructed object is in an ill-defined state and most initialization occurs
+   *  in the \ref Initialize method (ideally, they would be consolidated)
+   */
   Particles3D(void);
 
+  /*! \brief Initializes the Particles object
+   */
   void Initialize(Parameters *P, const SpatialDomainProps &spatial_props, Real xbound, Real ybound, Real zbound,
-                  Real xdglobal, Real ydglobal, Real zdglobal);
+                  Real xdglobal, Real ydglobal, Real zdglobal, const ModelCollection &model_collection);
 
   void Allocate_Particles_Grid_Field_Real(Real **array_dev, int size);
   void Free_GPU_Array_Real(Real *array);
@@ -304,18 +312,22 @@ class Particles3D
 
   void Initialize_Grid_Values();
 
-  void Initialize_Sphere(struct Parameters *P);
+  // It's unfortunate that we need to pass model_collection to each initializer. But,
+  // short of storing ModelCollection in a global variable, I'm not entirely sure that
+  // there is a whole lot to be done
+
+  void Initialize_Sphere(struct Parameters *P, const ModelCollection &model_collection);
 
   void Initialize_Stellar_Clusters_Helper_(std::map<std::string, real_vector_t> &real_props,
                                            std::map<std::string, int_vector_t> &int_props);
 
-  void Initialize_Isolated_Stellar_Cluster(struct Parameters *P);
+  void Initialize_Isolated_Stellar_Cluster(struct Parameters *P, const ModelCollection &model_collection);
 
-  void Initialize_Disk_Stellar_Clusters(struct Parameters *P);
+  void Initialize_Disk_Stellar_Clusters(struct Parameters *P, const ModelCollection &model_collection);
 
-  void Initialize_Zeldovich_Pancake(struct Parameters *P);
+  void Initialize_Zeldovich_Pancake(struct Parameters *P, const ModelCollection &model_collection);
 
-  void Initialize_Adiabatic_Expansion(struct Parameters *P);
+  void Initialize_Adiabatic_Expansion(struct Parameters *P, const ModelCollection &model_collection);
 
   void Load_Particles_Data(struct Parameters *P);
 

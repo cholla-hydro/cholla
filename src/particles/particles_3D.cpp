@@ -35,7 +35,7 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
   SpatialDomainProps spatial_props = SpatialDomainProps::From_Grid3D(*this, P);
   #endif
 
-  Particles.Initialize(P, spatial_props, H.xbound, H.ybound, H.zbound, H.xdglobal, H.ydglobal, H.zdglobal);
+  Particles.Initialize(P, spatial_props, H.xbound, H.ybound, H.zbound, H.xdglobal, H.ydglobal, H.zdglobal, models());
 
   #if defined(PARTICLES_GPU) && defined(GRAVITY_GPU)
   // Set the GPU array for the particles potential equal to the Gravity GPU
@@ -54,7 +54,8 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
 }
 
 void Particles3D::Initialize(Parameters *P, const SpatialDomainProps &spatial_props, Real xbound, Real ybound,
-                             Real zbound, Real xdglobal, Real ydglobal, Real zdglobal)
+                             Real zbound, Real xdglobal, Real ydglobal, Real zdglobal,
+                             const ModelCollection &model_collection)
 {
   // Initialize local and total number of particles to 0
   n_local         = 0;
@@ -211,17 +212,17 @@ void Particles3D::Initialize(Parameters *P, const SpatialDomainProps &spatial_pr
 
   // Initialize Particles
   if (strcmp(P->init, "Spherical_Overdensity_3D") == 0) {
-    Initialize_Sphere(P);
+    Initialize_Sphere(P, model_collection);
   } else if (strcmp(P->init, "Zeldovich_Pancake") == 0) {
-    Initialize_Zeldovich_Pancake(P);
+    Initialize_Zeldovich_Pancake(P, model_collection);
   } else if (strcmp(P->init, "Adiabatic_Expansion") == 0) {
-    Initialize_Adiabatic_Expansion(P);
+    Initialize_Adiabatic_Expansion(P, model_collection);
   } else if (strcmp(P->init, "Read_Grid") == 0) {
     Load_Particles_Data(P);
   } else if (strcmp(P->init, "Isolated_Stellar_Cluster") == 0) {
-    Initialize_Isolated_Stellar_Cluster(P);
+    Initialize_Isolated_Stellar_Cluster(P, model_collection);
   } else if (strcmp(P->init, "Disk_3D_particles") == 0) {
-    Initialize_Disk_Stellar_Clusters(P);
+    Initialize_Disk_Stellar_Clusters(P, model_collection);
   }
 
   #ifdef MPI_CHOLLA
@@ -475,7 +476,7 @@ void Particles3D::Initialize_Grid_Values(void)
   }
 }
 
-void Particles3D::Initialize_Sphere(struct Parameters *P)
+void Particles3D::Initialize_Sphere(struct Parameters *P, const ModelCollection &model_collection)
 {
   // Initialize Random positions for sphere of quasi-uniform density
   chprintf(" Initializing Particles Uniform Sphere\n");
@@ -781,7 +782,7 @@ void Particles3D::Initialize_Stellar_Clusters_Helper_(std::map<std::string, real
 
 /* Initializes an isolated stellar cluster
  */
-void Particles3D::Initialize_Isolated_Stellar_Cluster(struct Parameters *P)
+void Particles3D::Initialize_Isolated_Stellar_Cluster(struct Parameters *P, const ModelCollection &model_collection)
 {
   std::map<std::string, int_vector_t> int_props   = {{"id", {}}};
   std::map<std::string, real_vector_t> real_props = {
@@ -1102,7 +1103,7 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64 &generator, c
 /**
  *   Initializes a disk population of stellar clusters
  */
-void Particles3D::Initialize_Disk_Stellar_Clusters(struct Parameters *P)
+void Particles3D::Initialize_Disk_Stellar_Clusters(struct Parameters *P, const ModelCollection &model_collection)
 {
   // this function makes certain implicit assumptions about the present particle
   // properties (e.g. "age", "mass", "ids"). These assumptions are explicitly checked
@@ -1129,7 +1130,7 @@ void Particles3D::Initialize_Disk_Stellar_Clusters(struct Parameters *P)
   this->Initialize_Stellar_Clusters_Helper_(pack.real_props, pack.int_props);
 }
 
-void Particles3D::Initialize_Zeldovich_Pancake(struct Parameters *P)
+void Particles3D::Initialize_Zeldovich_Pancake(struct Parameters *P, const ModelCollection &model_collection)
 {
   // No particles for the Zeldovich Pancake problem. n_local=0
 
@@ -1141,7 +1142,7 @@ void Particles3D::Initialize_Zeldovich_Pancake(struct Parameters *P)
   chprintf(" Particles Zeldovich Pancake Initialized, n_local: %lu\n", n_local);
 }
 
-void Particles3D::Initialize_Adiabatic_Expansion(struct Parameters *P)
+void Particles3D::Initialize_Adiabatic_Expansion(struct Parameters *P, const ModelCollection &model_collection)
 {
   // No particles for the Adiabatic Expansion problem. n_local=0
 
