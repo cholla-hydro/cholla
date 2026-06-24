@@ -131,6 +131,8 @@ int main(int argc, char *argv[])
   message = "Initializing Simulation";
   Write_Message_To_Log_File(message.c_str());
 
+  G.Initialize_Models(pmap);
+
   // Set initial conditions
   chprintf("Setting initial conditions...\n");
   G.Set_Initial_Conditions(P, pmap);

@@ -214,14 +214,11 @@ inline Real Get_Gas_Truncation_Radius(const Parameters& p)
   return p.xlen / 2.0 - 0.3;
 }
 
-// Forward declare galaxy instances. These are defined in disk_galaxy.cu
 namespace galaxies
 {
-extern const ClusteredDiskGalaxy MW;
-extern const DiskGalaxy M82;
 
-// temporary helper function used to help us avoid phase out direct access to global
-// MW variable. The idea is to eventually remove this function
+// temporary helper function that is being used while we transition
+// to dynamically construct the galaxy model from the parameter file
 const ClusteredDiskGalaxy& get_MW_model();
 
 };  // namespace galaxies

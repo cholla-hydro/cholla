@@ -1,6 +1,15 @@
 #include "../model/potentials.h"
 #include "disk_galaxy.h"
 
+// this is here to temporarily reduce merge-conflicts
+// -> the premise is that we will be constructing the relevant galaxy model from
+//    the parameter map (this will be triggered in the constructor of ModelCollection)
+namespace galaxies
+{
+extern const ClusteredDiskGalaxy MW;
+extern const DiskGalaxy M82;
+}  // namespace galaxies
+
 // Here we actually define the galaxy models that can be accessed from elsewhere
 
 // all masses in M_sun and all distances in kpc
