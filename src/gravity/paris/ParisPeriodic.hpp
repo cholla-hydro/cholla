@@ -45,14 +45,14 @@ class ParisPeriodic
 
 #ifdef RT
   void solveEddingtonTensor(size_t bytes, double *source, double *tensor, int component) const;
-#endif // RT
+#endif  // RT
 
  private:
   int ni_, nj_;  //!< Number of elements in X and Y dimensions
 #if defined(PARIS_3PT) || defined(PARIS_5PT)
   int nk_;  //!< Number of elements in Z dimension
 #endif
-  double ddi_, ddj_, ddk_;  //!< Frequency-independent terms in Poisson solve
+  double ddi_, ddj_, ddk_;          //!< Frequency-independent terms in Poisson solve
   double dx_, dd2i_, dd2j_, dd2k_;  //!< Frequency-independent terms in Poisson solve, for RT
-  HenryPeriodic henry;      //!< FFT filter object
+  HenryPeriodic henry;              //!< FFT filter object
 };

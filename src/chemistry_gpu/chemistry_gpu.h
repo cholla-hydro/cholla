@@ -21,7 +21,7 @@ struct ChemistryHeader {
   Real energy_conversion;
   Real current_z;
   Real runtime_chemistry_step;
-  Real H_fraction=0;
+  Real H_fraction = 0;
 
   // Units system
   Real a_value;
@@ -174,8 +174,8 @@ n_ghost, int n_fields, Real dt, Real gamma)
 *  \brief When passed an array of conserved variables and a timestep, update the
 ionization fractions of H and He and update the internal energy to account for
 radiative cooling and photoheating from the UV background. */
-void Do_Chemistry_Update(Real *dev_conserved, const Real *dev_rf, int n_fpfreq, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
-                         ChemistryHeader &Chem_H);
+void Do_Chemistry_Update(Real *dev_conserved, const Real *dev_rf, int n_fpfreq, int nx, int ny, int nz, int n_ghost,
+                         int n_fields, Real dt, ChemistryHeader &Chem_H);
 
 void Do_Print_Chemistry(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields);
 #endif

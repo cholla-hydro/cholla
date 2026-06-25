@@ -1,8 +1,8 @@
 #include <cstdio>
 
 #ifdef RT
-  #include "../radiation/radiation.h"
   #include "../io/io.h"
+  #include "../radiation/radiation.h"
 #endif
 
 #ifdef MPI_CHOLLA
@@ -17,11 +17,11 @@
 #ifdef RT
 void Rad3D::Radiation_Restart_Filename(char* filename, char* dirname, int nfile)
 {
-#ifdef MPI_CHOLLA
+  #ifdef MPI_CHOLLA
   sprintf(filename, "%s%d_rt.h5.%d", dirname, nfile, procID);
-#else
+  #else
   sprintf(filename, "%s%d_rt.h5", dirname, nfile);
-#endif
+  #endif
 }
 #endif
 
@@ -35,9 +35,9 @@ void Rad3D::Read_Restart_HDF5(Parameters* P, int nfile)
   int rt_mode;
 
   // Read dt_now
-//  hid_t attribute_id = H5Aopen(file_id, "dt_now", H5P_DEFAULT);
-//  herr_t status      = H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &dt_now);
-//  status             = H5Aclose(attribute_id);
+  //  hid_t attribute_id = H5Aopen(file_id, "dt_now", H5P_DEFAULT);
+  //  herr_t status      = H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &dt_now);
+  //  status             = H5Aclose(attribute_id);
 
   hid_t attribute_id = H5Aopen(file_id, "rt_mode", H5P_DEFAULT);
   herr_t status      = H5Aread(attribute_id, H5T_NATIVE_INT, &rt_mode);
@@ -47,14 +47,12 @@ void Rad3D::Read_Restart_HDF5(Parameters* P, int nfile)
   Read_HDF5_Dataset(file_id, rtFields.rs, "/source");
   GPU_Error_Check(cudaMemcpy(rtFields.dev_rs, rtFields.rs, grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
-
   // Read radiation fiels and copy to device
   Read_HDF5_Dataset(file_id, rtFields.rf, "/radiation");
   GPU_Error_Check(cudaMemcpy(rtFields.dev_rf, rtFields.rf, n_rf * grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
   H5Fclose(file_id);
   H5close();
-
 }
 
 void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fname_template)
@@ -71,14 +69,13 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
   hsize_t attr_dims  = 1;
   hid_t dataspace_id = H5Screate_simple(1, &attr_dims, NULL);
 
-
-//  hid_t attribute_id = H5Acreate(file_id, "dt_now", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
- // herr_t status      = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &dt_now);
-//  status             = H5Aclose(attribute_id);
-  int rt_mode = 0; // default OTVET
-#ifdef M1
-  rt_mode = 1; // M1
-#endif
+  //  hid_t attribute_id = H5Acreate(file_id, "dt_now", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  // herr_t status      = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &dt_now);
+  //  status             = H5Aclose(attribute_id);
+  int rt_mode = 0;  // default OTVET
+  #ifdef M1
+  rt_mode = 1;  // M1
+  #endif
 
   hid_t attribute_id = H5Acreate(file_id, "rt_mode", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
   herr_t status      = H5Awrite(attribute_id, H5T_NATIVE_INT, &rt_mode);
@@ -157,10 +154,9 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
   Write_HDF5_Dataset(file_id, dataspace_id, rtFields.rs, "/source");
   H5Sclose(dataspace_id);
 
-
   // Radiation fields
 
-  // Copy device to host 
+  // Copy device to host
   GPU_Error_Check(cudaMemcpy(rtFields.rf, rtFields.dev_rf, n_rf * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
 
   // Write radiation fields

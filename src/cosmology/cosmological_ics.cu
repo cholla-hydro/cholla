@@ -1,37 +1,37 @@
 #ifdef COSMOLOGY
   #include <fstream>
-	#include <cstdio>
-	#include <hdf5.h>
+  #include <cstdio>
+  #include <hdf5.h>
 
   #include "../global/global.h"
   #include "../grid/grid3D.h"
   #include "../grid/grid_enum.h"
+  #include "../io/io.h"
   #include "../utils/cuda_utilities.h"
   #include "../utils/gpu.hpp"
-  #include "../io/io.h"
-	#include "../fft/fft_3D.h"
-	#include "rng.h"
-	#include "field_operations.h"
+  #include "../fft/fft_3D.h"
+  #include "rng.h"
+  #include "field_operations.h"
 
 /*! \fn void Generate_Cosmo_Phi_Init(void)
  *  \brief Create the potentials for cosmological ICs */
 void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 {
-	// This function generates the initial potentials required
-	// for constructing cosmological initial conditions. Since
-	// these potentials may require a substantial memory footprint
-	// to compute, they are generated before the main grid and
-	// particle memory banks are allocated.
+  // This function generates the initial potentials required
+  // for constructing cosmological initial conditions. Since
+  // these potentials may require a substantial memory footprint
+  // to compute, they are generated before the main grid and
+  // particle memory banks are allocated.
 
-	// First, if we are not setting cosmological ICs, just
-	// return
-	if (strcmp(P->init, "Cosmological_ICs") ) {
-		return;
-	}
+  // First, if we are not setting cosmological ICs, just
+  // return
+  if (strcmp(P->init, "Cosmological_ICs")) {
+    return;
+  }
 
   int i, j, k, id;
   int istart, jstart, kstart, iend, jend, kend;
-  int n_cells = nx_local*ny_local*nz_local;
+  int n_cells = nx_local * ny_local * nz_local;
 
   istart = H.n_ghost;
   iend   = H.nx - H.n_ghost;
@@ -50,14 +50,14 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
     kend   = H.nz;
   }
 
-	// OK, let's proceed
-	chprintf("Cosmological ICs: Generating potentials....\n");
+  // OK, let's proceed
+  chprintf("Cosmological ICs: Generating potentials....\n");
 
-	// set the number of fields
-	CP.n_fields = 2; //initial potential and overdensity field	
-#ifndef ONLY_PARTICLES
-	CP.n_fields += 1;	// add a baryon overdensity field
-#endif 
+  // set the number of fields
+  CP.n_fields = 2;  // initial potential and overdensity field
+  #ifndef ONLY_PARTICLES
+  CP.n_fields += 1;  // add a baryon overdensity field
+  #endif
 
   Real H0      = P->H0;
   Real h       = H0 / 100;
@@ -68,9 +68,9 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   chprintf("Cosmological ICs: Omega_M = %f \n", Omega_M);
 
   H0 /= 1000;  //[km/s / kpc]
-  Real rho_0  = 3 * H0 * H0 / (8 * M_PI * G) * Omega_M / h / h;
+  Real rho_0 = 3 * H0 * H0 / (8 * M_PI * G) * Omega_M / h / h;
 
-  //initialize the RNG properties
+  // initialize the RNG properties
   Initialize_Cosmo_Potential_RNG(P);
 
   // load the P(k)
@@ -83,8 +83,8 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   Cosmo.Create_Growth_Function_File(P);
 
   // Initialize the FFT as well
-  fft.Initialize( H.xdglobal, H.ydglobal, H.zdglobal, H.xblocal, H.yblocal, H.zblocal,
-                  nx_global, ny_global, nz_global, nx_local, ny_local, nz_local, H.dx, H.dy, H.dz );
+  fft.Initialize(H.xdglobal, H.ydglobal, H.zdglobal, H.xblocal, H.yblocal, H.zblocal, nx_global, ny_global, nz_global,
+                 nx_local, ny_local, nz_local, H.dx, H.dy, H.dz);
 
   // Allocate the memory needed for the potentials
   Allocate_Cosmo_Potential_Memory();
@@ -92,36 +92,34 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // We have allocated the potential arrays, and are ready to proceed
 
   // step 1) sample xi(m) by generating independent
-  //         zero-mean normal deviates with variance N**d at 
+  //         zero-mean normal deviates with variance N**d at
   //         each spatial point
-  //Generate_Normal_Random_Field(CP.d_delta_m,rng_states);
-  Generate_Normal_Random_Field(CP.d_delta_m,P,rng_states);
-
+  // Generate_Normal_Random_Field(CP.d_delta_m,rng_states);
+  Generate_Normal_Random_Field(CP.d_delta_m, P, rng_states);
 
   // copy memory -- only real, local cells
   cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
-  //printf("procID %d rngs: %e %e %e\n",procID,CP.delta_m[0],CP.delta_m[1],CP.delta_m[2]);
-  //fflush(stdout);
+  // printf("procID %d rngs: %e %e %e\n",procID,CP.delta_m[0],CP.delta_m[1],CP.delta_m[2]);
+  // fflush(stdout);
 
-  //chexit(0);
+  // chexit(0);
   Real delta_rms = 0;
   Real delta_ave = 0;
   // reduce the grid values
-  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
-    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
-      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
-
+  for (k = 0; k < H.nz - 2 * H.n_ghost; k++) {
+    for (j = 0; j < H.ny - 2 * H.n_ghost; j++) {
+      for (i = 0; i < H.nx - 2 * H.n_ghost; i++) {
         // get cell index
         id = i + j * nx_local + k * nx_local * ny_local;
-      
+
         // record average and RMS
-        delta_rms += pow(CP.delta_m[id],2);
+        delta_rms += pow(CP.delta_m[id], 2);
         delta_ave += CP.delta_m[id];
       }
     }
   }
-	GPU_Error_Check(cudaMemcpy(CP.d_delta_m, CP.delta_m, n_cells * sizeof(Real), cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(CP.d_delta_m, CP.delta_m, n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
   // get the total of the grid to compute the rms
   MPI_Allreduce(MPI_IN_PLACE, &delta_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -129,73 +127,71 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   MPI_Allreduce(MPI_IN_PLACE, &delta_ave, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
   // find the rms and average
-  delta_rms = delta_rms/(nx_global*ny_global*nz_global);
-  delta_ave = delta_ave/(nx_global*ny_global*nz_global);
+  delta_rms = delta_rms / (nx_global * ny_global * nz_global);
+  delta_ave = delta_ave / (nx_global * ny_global * nz_global);
   delta_rms = sqrt(delta_rms);
-  chprintf("Cosmological ICs: Mean of unit-variance field over entire grid = %e\n",delta_ave);
-  chprintf("Cosmological ICs: RMS  of unit-variance field over entire grid = %e\n",delta_rms);
+  chprintf("Cosmological ICs: Mean of unit-variance field over entire grid = %e\n", delta_ave);
+  chprintf("Cosmological ICs: RMS  of unit-variance field over entire grid = %e\n", delta_rms);
 
   // reduce the grid values
-  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
-    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
-      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
-
+  for (k = 0; k < H.nz - 2 * H.n_ghost; k++) {
+    for (j = 0; j < H.ny - 2 * H.n_ghost; j++) {
+      for (i = 0; i < H.nx - 2 * H.n_ghost; i++) {
         // get cell index
         id = i + j * nx_local + k * nx_local * ny_local;
 
-        CP.delta_m[id] -= delta_ave; // remove global average
+        CP.delta_m[id] -= delta_ave;  // remove global average
       }
     }
   }
 
+  // copy mean zero phi back to GPU
+  GPU_Error_Check(cudaMemcpy(CP.d_delta_m, CP.delta_m, n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
-	// copy mean zero phi back to GPU
-	GPU_Error_Check(cudaMemcpy(CP.d_delta_m, CP.delta_m, n_cells * sizeof(Real), cudaMemcpyHostToDevice));
+  // step 2) Take the fourier transform
+  //         xi(k) = N**-d \sum_m exp( -(2 pi i / M) * kappa \dot m) * xi(m)
 
-	// step 2) Take the fourier transform
-	//         xi(k) = N**-d \sum_m exp( -(2 pi i / M) * kappa \dot m) * xi(m)
-
-#ifndef ONLY_PARTICLES
+  #ifndef ONLY_PARTICLES
   // step 2.5) Copy random field to baryonic field
-	GPU_Error_Check(cudaMemcpy(CP.d_delta_bc, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
-#endif 
+  GPU_Error_Check(cudaMemcpy(CP.d_delta_bc, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
+  #endif
 
-  // step 2.7) 
+  // step 2.7)
   // We can free the RNG now
   Free_Cosmo_Potential_RNG();
 
-	// step 3) Multiply xi(k) by the transfer function 
-	//         T(k) \equiv [(2 \pi / L)**3 P(k)]^{1/2}
-	//         note T(k) is computed at z=0
+  // step 3) Multiply xi(k) by the transfer function
+  //         T(k) \equiv [(2 \pi / L)**3 P(k)]^{1/2}
+  //         note T(k) is computed at z=0
   //         also note  the [(2 \pi / L)**3 ]^{1/2} factor is handled
   //         when the power spectrum is loaded, so this just applies sqrt(P(k))
   chprintf("Cosmological ICs: applying matter power spectrum...\n");
-  fft.Filter_rescale_by_power_spectrum(CP.d_delta_m,CP.d_delta_m,true,CP.n_pk,CP.d_k_array,CP.d_pk_m_array);
+  fft.Filter_rescale_by_power_spectrum(CP.d_delta_m, CP.d_delta_m, true, CP.n_pk, CP.d_k_array, CP.d_pk_m_array);
 
-#ifndef ONLY_PARTICLES
+  #ifndef ONLY_PARTICLES
   chprintf("Cosmological ICs: applying baryonic - cdm power spectrum...\n");
-  fft.Filter_rescale_by_power_spectrum(CP.d_delta_bc,CP.d_delta_bc,true,CP.n_pk,CP.d_k_array,CP.d_pk_bc_array);
-#endif 
+  fft.Filter_rescale_by_power_spectrum(CP.d_delta_bc, CP.d_delta_bc, true, CP.n_pk, CP.d_k_array, CP.d_pk_bc_array);
+  #endif
 
-	// copy memory back to host
-	cudaMemcpy(CP.delta_m,  CP.d_delta_m,  n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
-#ifndef ONLY_PARTICLES 
-	cudaMemcpy(CP.delta_bc, CP.d_delta_bc, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
-#endif 
+  // copy memory back to host
+  cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+  #ifndef ONLY_PARTICLES
+  cudaMemcpy(CP.delta_bc, CP.d_delta_bc, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+  #endif
 
   // free the P(k)
   Free_Cosmo_Power_Spectrum();
 
   delta_ave = 0;
   delta_rms = 0;
-  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
-    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
-      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
+  for (k = 0; k < H.nz - 2 * H.n_ghost; k++) {
+    for (j = 0; j < H.ny - 2 * H.n_ghost; j++) {
+      for (i = 0; i < H.nx - 2 * H.n_ghost; i++) {
         // get cell index
         id = i + j * nx_local + k * nx_local * ny_local;
 
-        delta_ave += CP.delta_m[id]; // perform a local reduction
-        delta_rms += pow(CP.delta_m[id],2);
+        delta_ave += CP.delta_m[id];  // perform a local reduction
+        delta_rms += pow(CP.delta_m[id], 2);
       }
     }
   }
@@ -206,12 +202,11 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   MPI_Allreduce(MPI_IN_PLACE, &delta_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
   // find the average
-  delta_ave = delta_ave/(nx_global*ny_global*nz_global);
-  delta_rms = delta_rms/(nx_global*ny_global*nz_global);
+  delta_ave = delta_ave / (nx_global * ny_global * nz_global);
+  delta_rms = delta_rms / (nx_global * ny_global * nz_global);
   delta_rms = sqrt(delta_rms);
-  chprintf("Cosmological ICs: Mean of overdensity field after P(k) %e\n",delta_ave);
-  chprintf("Cosmological ICs: RMS  of overdensity field after P(k) %e\n",delta_rms);
-
+  chprintf("Cosmological ICs: Mean of overdensity field after P(k) %e\n", delta_ave);
+  chprintf("Cosmological ICs: RMS  of overdensity field after P(k) %e\n", delta_rms);
 
   // note that delta_bc is about a ~0.1-1% effect,
   // depending on the k-scale
@@ -226,7 +221,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // delta_b = \delta_m + delta_b_ini = delta_m + f_c * delta_bc
   // delta_b = delta_c + f_b delta_bc + f_c delta_bc = delta_c + delta_bc
 
-  // We have verified that the delta_m and delta_bc 
+  // We have verified that the delta_m and delta_bc
   // reflect the expected Pm(k) and Pbc(k)
 
   // to first-order the lagrangian displacement is
@@ -249,7 +244,6 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // 5) replace delta_bc with \nabla^-2 delta_bc
   // 6) x_c from phi_ini and gradient of delta_bc
 
-
   // At this stage, the cosmological overdensity field(s)
   // has/have been computed. These can be used to compute
   // the initial potential fields, which are then used to set
@@ -260,35 +254,35 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
   // Perhaps compute phi_init here as advertised?
   // should return phi_1 = \nabla^-2 delta_m
-  fft.Filter_inv_k2(CP.d_delta_m,CP.d_phi_1,true); // scalar potential
-  //fft.Filter_rescale_by_k_k2(CP.d_delta_m,CP.d_phi_1,true,0,1); // scalar field
+  fft.Filter_inv_k2(CP.d_delta_m, CP.d_phi_1, true);  // scalar potential
+  // fft.Filter_rescale_by_k_k2(CP.d_delta_m,CP.d_phi_1,true,0,1); // scalar field
 
-#ifndef ONLY_PARTICLES
+  #ifndef ONLY_PARTICLES
   // compute \nabla^-2 \delta_bc
-  fft.Filter_inv_k2(CP.d_delta_bc,CP.d_phi_2,true);
-#endif //ONLY_PARTICLES
+  fft.Filter_inv_k2(CP.d_delta_bc, CP.d_phi_2, true);
+  #endif  // ONLY_PARTICLES
 
-	// copy memory back to host
+  // copy memory back to host
   // note we are only using the
   // first n_local**3 cells on the host
   // and need to remap before populating
   // the potential. We can re-use existing
   // density arrays for the interim.
-	cudaMemcpy(CP.phi_1,  CP.d_phi_1,  n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
-#ifndef ONLY_PARTICLES
-  cudaMemcpy(CP.phi_2,  CP.d_phi_2,  n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
-#endif //ONLY_PARTICLES
+  cudaMemcpy(CP.phi_1, CP.d_phi_1, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+  #ifndef ONLY_PARTICLES
+  cudaMemcpy(CP.phi_2, CP.d_phi_2, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+  #endif  // ONLY_PARTICLES
 
   delta_ave = 0;
   delta_rms = 0;
-  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
-    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
-      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
+  for (k = 0; k < H.nz - 2 * H.n_ghost; k++) {
+    for (j = 0; j < H.ny - 2 * H.n_ghost; j++) {
+      for (i = 0; i < H.nx - 2 * H.n_ghost; i++) {
         // get cell index
         id = i + j * nx_local + k * nx_local * ny_local;
 
-        delta_ave += CP.phi_1[id]; // perform a local reduction
-        delta_rms += pow(CP.phi_1[id],2);
+        delta_ave += CP.phi_1[id];  // perform a local reduction
+        delta_rms += pow(CP.phi_1[id], 2);
       }
     }
   }
@@ -299,18 +293,18 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   MPI_Allreduce(MPI_IN_PLACE, &delta_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
   // find the average
-  delta_ave = delta_ave/(nx_global*ny_global*nz_global);
-  delta_rms = delta_rms/(nx_global*ny_global*nz_global);
+  delta_ave = delta_ave / (nx_global * ny_global * nz_global);
+  delta_rms = delta_rms / (nx_global * ny_global * nz_global);
   delta_rms = sqrt(delta_rms);
-  chprintf("Cosmological ICs: Mean of phi field %e\n",delta_ave);
-  chprintf("Cosmological ICs: RMS  of phi field %e\n",delta_rms);
+  chprintf("Cosmological ICs: Mean of phi field %e\n", delta_ave);
+  chprintf("Cosmological ICs: RMS  of phi field %e\n", delta_rms);
 
   chprintf("Cosmological ICs: Proceeding to finish initialization...\n");
 
   // clear the FFT memory
   fft.Reset();
 
-  //chexit(0);  //BRANT
+  // chexit(0);  //BRANT
 }
 
 /*! \fn void Save_Cosmo_Potential(struct Parameters *P)
@@ -320,11 +314,11 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
   char fname[200];
   hid_t f_id, d_id, a0_id, a1_id, a2_id, a3_id;
   hid_t fs_id, fsa0_id, fsa1_id, fsa2_id, fsa3_id, ms_id;
-#ifndef ONLY_PARTICLES
+  #ifndef ONLY_PARTICLES
   hid_t db_id;
   hid_t ba0_id, ba1_id, ba2_id, ba3_id;
   hid_t fbs_id, fbsa0_id, fbsa1_id, fbsa2_id, fbsa3_id;
-#endif
+  #endif
   hsize_t dimsf[3];
   hsize_t dimsa = 3;
   int attr_global[3];
@@ -332,42 +326,40 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
   int attr_size[3];
   int attr_ghost[3];
   herr_t status;
-  Real *phi_out; // output cosmological potential
+  Real *phi_out;  // output cosmological potential
 
-  //Create a file name for each hdf5 output
-  sprintf(fname,"%s0/delta_ini.h5.%d",P->outdir,procID);
+  // Create a file name for each hdf5 output
+  sprintf(fname, "%s0/delta_ini.h5.%d", P->outdir, procID);
 
   // create a file
   f_id = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-  if(f_id < 0) {
-    printf("HDF5 file create error on process %d\n",procID);
+  if (f_id < 0) {
+    printf("HDF5 file create error on process %d\n", procID);
   }
 
   // information on HDF5 subvolume properties
   // within the computational volume
-  attr_start[0] = nx_local_start;
-  attr_start[1] = ny_local_start; 
-  attr_start[2] = nz_local_start; 
-  attr_size[0] = nx_local; 
-  attr_size[1] = ny_local; 
-  attr_size[2] = nz_local; 
-  attr_ghost[0] = H.n_ghost;
-  attr_ghost[1] = H.n_ghost; 
-  attr_ghost[2] = H.n_ghost; 
+  attr_start[0]  = nx_local_start;
+  attr_start[1]  = ny_local_start;
+  attr_start[2]  = nz_local_start;
+  attr_size[0]   = nx_local;
+  attr_size[1]   = ny_local;
+  attr_size[2]   = nz_local;
+  attr_ghost[0]  = H.n_ghost;
+  attr_ghost[1]  = H.n_ghost;
+  attr_ghost[2]  = H.n_ghost;
   attr_global[0] = nx_global;
-  attr_global[1] = ny_global; 
-  attr_global[2] = nz_global; 
-
+  attr_global[1] = ny_global;
+  attr_global[2] = nz_global;
 
   // dimensions of output initial potential
   dimsf[0] = nx_local;
   dimsf[1] = ny_local;
   dimsf[2] = nz_local;
 
-
   // create a dataset
-  fs_id   = H5Screate_simple(3, dimsf, NULL);
-  d_id = H5Dcreate2(f_id, "delta_m", H5T_NATIVE_DOUBLE, fs_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  fs_id = H5Screate_simple(3, dimsf, NULL);
+  d_id  = H5Dcreate2(f_id, "delta_m", H5T_NATIVE_DOUBLE, fs_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
   // attach attributes
   fsa0_id = H5Screate_simple(1, &dimsa, NULL);
@@ -376,54 +368,52 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
   fsa3_id = H5Screate_simple(1, &dimsa, NULL);
 
   a0_id = H5Acreate2(d_id, "global", H5T_NATIVE_INT, fsa0_id, H5P_DEFAULT, H5P_DEFAULT);
-  a1_id = H5Acreate2(d_id, "start",  H5T_NATIVE_INT, fsa1_id, H5P_DEFAULT, H5P_DEFAULT);
-  a2_id = H5Acreate2(d_id, "size",   H5T_NATIVE_INT, fsa2_id, H5P_DEFAULT, H5P_DEFAULT);
-  a3_id = H5Acreate2(d_id, "ghost",  H5T_NATIVE_INT, fsa3_id, H5P_DEFAULT, H5P_DEFAULT);
-                
-                           
+  a1_id = H5Acreate2(d_id, "start", H5T_NATIVE_INT, fsa1_id, H5P_DEFAULT, H5P_DEFAULT);
+  a2_id = H5Acreate2(d_id, "size", H5T_NATIVE_INT, fsa2_id, H5P_DEFAULT, H5P_DEFAULT);
+  a3_id = H5Acreate2(d_id, "ghost", H5T_NATIVE_INT, fsa3_id, H5P_DEFAULT, H5P_DEFAULT);
+
   status = H5Awrite(a0_id, H5T_NATIVE_INT, attr_global);
-  if(status < 0) {
-    printf("Error writing data to HDF5 on process %d\n",procID);
+  if (status < 0) {
+    printf("Error writing data to HDF5 on process %d\n", procID);
   }
-                           
+
   status = H5Awrite(a1_id, H5T_NATIVE_INT, attr_start);
-  if(status < 0) {
-    printf("Error writing data to HDF5 on process %d\n",procID);
+  if (status < 0) {
+    printf("Error writing data to HDF5 on process %d\n", procID);
   }
   status = H5Awrite(a2_id, H5T_NATIVE_INT, attr_size);
-  if(status < 0) {
-    printf("Error writing data to HDF5 on process %d\n",procID);
+  if (status < 0) {
+    printf("Error writing data to HDF5 on process %d\n", procID);
   }
   status = H5Awrite(a3_id, H5T_NATIVE_INT, attr_ghost);
-  if(status < 0) {
-    printf("Error writing data to HDF5 on process %d\n",procID);
+  if (status < 0) {
+    printf("Error writing data to HDF5 on process %d\n", procID);
   }
-  GPU_Error_Check(cudaHostAlloc((void **)&phi_out, nx_local*ny_local*nz_local*sizeof(Real), cudaHostAllocDefault));
+  GPU_Error_Check(
+      cudaHostAlloc((void **)&phi_out, nx_local * ny_local * nz_local * sizeof(Real), cudaHostAllocDefault));
 
   // store the output potential in row major order
   int i, j, k, id;
-  int ii,jj,kk, idx;
-  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
-    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
-      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
-
+  int ii, jj, kk, idx;
+  for (k = 0; k < H.nz - 2 * H.n_ghost; k++) {
+    for (j = 0; j < H.ny - 2 * H.n_ghost; j++) {
+      for (i = 0; i < H.nx - 2 * H.n_ghost; i++) {
         // get cell index
-        id = i + j * nx_local + k * nx_local * ny_local; // We are only using real cells
+        id = i + j * nx_local + k * nx_local * ny_local;  // We are only using real cells
 
-        ii = i;
-        jj = j;
-        kk = k;
-        idx = ii*(nz_local*ny_local) + jj*nz_local + kk; // row major
+        ii  = i;
+        jj  = j;
+        kk  = k;
+        idx = ii * (nz_local * ny_local) + jj * nz_local + kk;  // row major
 
-        phi_out[idx] = CP.delta_m[id]; // map to output CDM overdensity field
+        phi_out[idx] = CP.delta_m[id];  // map to output CDM overdensity field
       }
     }
   }
 
-
   status = H5Dwrite(d_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, phi_out);
-  if(status < 0) {
-    printf("Error writing data to HDF5 on process %d\n",procID);
+  if (status < 0) {
+    printf("Error writing data to HDF5 on process %d\n", procID);
   }
   H5Aclose(a0_id);
   H5Aclose(a1_id);
@@ -436,11 +426,10 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
   H5Sclose(fsa1_id);
   H5Sclose(fsa0_id);
 
+  #ifndef ONLY_PARTICLES
 
-#ifndef ONLY_PARTICLES
-
-  fbs_id   = H5Screate_simple(3, dimsf, NULL);
-  db_id = H5Dcreate2(f_id, "delta_bc", H5T_NATIVE_DOUBLE, fbs_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  fbs_id = H5Screate_simple(3, dimsf, NULL);
+  db_id  = H5Dcreate2(f_id, "delta_bc", H5T_NATIVE_DOUBLE, fbs_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
   // attach attributes
   fbsa0_id = H5Screate_simple(1, &dimsa, NULL);
@@ -449,52 +438,48 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
   fbsa3_id = H5Screate_simple(1, &dimsa, NULL);
 
   ba0_id = H5Acreate2(db_id, "global", H5T_NATIVE_INT, fbsa0_id, H5P_DEFAULT, H5P_DEFAULT);
-  ba1_id = H5Acreate2(db_id, "start",  H5T_NATIVE_INT, fbsa1_id, H5P_DEFAULT, H5P_DEFAULT);
-  ba2_id = H5Acreate2(db_id, "size",   H5T_NATIVE_INT, fbsa2_id, H5P_DEFAULT, H5P_DEFAULT);
-  ba3_id = H5Acreate2(db_id, "ghost",  H5T_NATIVE_INT, fbsa3_id, H5P_DEFAULT, H5P_DEFAULT);
-                
-                           
+  ba1_id = H5Acreate2(db_id, "start", H5T_NATIVE_INT, fbsa1_id, H5P_DEFAULT, H5P_DEFAULT);
+  ba2_id = H5Acreate2(db_id, "size", H5T_NATIVE_INT, fbsa2_id, H5P_DEFAULT, H5P_DEFAULT);
+  ba3_id = H5Acreate2(db_id, "ghost", H5T_NATIVE_INT, fbsa3_id, H5P_DEFAULT, H5P_DEFAULT);
+
   status = H5Awrite(ba0_id, H5T_NATIVE_INT, attr_global);
-  if(status < 0) {
-    printf("Error writing data to HDF5 on process %d\n",procID);
+  if (status < 0) {
+    printf("Error writing data to HDF5 on process %d\n", procID);
   }
-                           
+
   status = H5Awrite(ba1_id, H5T_NATIVE_INT, attr_start);
-  if(status < 0) {
-    printf("Error writing data to HDF5 on process %d\n",procID);
+  if (status < 0) {
+    printf("Error writing data to HDF5 on process %d\n", procID);
   }
   status = H5Awrite(ba2_id, H5T_NATIVE_INT, attr_size);
-  if(status < 0) {
-    printf("Error writing data to HDF5 on process %d\n",procID);
+  if (status < 0) {
+    printf("Error writing data to HDF5 on process %d\n", procID);
   }
   status = H5Awrite(ba3_id, H5T_NATIVE_INT, attr_ghost);
-  if(status < 0) {
-    printf("Error writing data to HDF5 on process %d\n",procID);
+  if (status < 0) {
+    printf("Error writing data to HDF5 on process %d\n", procID);
   }
 
-
   // store the output potential in row major order
-  for (k = 0; k < H.nz - 2*H.n_ghost; k++) {
-    for (j = 0; j < H.ny - 2*H.n_ghost; j++) {
-      for (i = 0; i < H.nx - 2*H.n_ghost; i++) {
-
+  for (k = 0; k < H.nz - 2 * H.n_ghost; k++) {
+    for (j = 0; j < H.ny - 2 * H.n_ghost; j++) {
+      for (i = 0; i < H.nx - 2 * H.n_ghost; i++) {
         // get cell index
         id = i + j * nx_local + k * nx_local * ny_local;
-        
-        ii = i;
-        jj = j;
-        kk = k;
-        idx = ii*(nz_local*ny_local) + jj*nz_local + kk; // row major
 
-        phi_out[idx] = CP.delta_bc[id]; // map to output baryon overdensity field
+        ii  = i;
+        jj  = j;
+        kk  = k;
+        idx = ii * (nz_local * ny_local) + jj * nz_local + kk;  // row major
+
+        phi_out[idx] = CP.delta_bc[id];  // map to output baryon overdensity field
       }
     }
   }
 
-
   status = H5Dwrite(db_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, phi_out);
-  if(status < 0) {
-    printf("Error writing data to HDF5 on process %d\n",procID);
+  if (status < 0) {
+    printf("Error writing data to HDF5 on process %d\n", procID);
   }
   H5Aclose(ba0_id);
   H5Aclose(ba1_id);
@@ -507,9 +492,7 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
   H5Sclose(fbsa1_id);
   H5Sclose(fbsa0_id);
 
-#endif //ONLY_PARTICLES
-
-
+  #endif  // ONLY_PARTICLES
 
   H5Fclose(f_id);
 }
@@ -518,27 +501,28 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
  *  \brief Initialize the RNG for cosmological ICs potentials */
 void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
 {
-	// Initialize the parameters for the Philox RNG
-  int n_cells = nx_local*ny_local*nz_local;
-//  int n_cells = H.nx * H.ny * H.nz;
+  // Initialize the parameters for the Philox RNG
+  int n_cells = nx_local * ny_local * nz_local;
+  //  int n_cells = H.nx * H.ny * H.nz;
 
-	// Record the RNG seed from the parameter file
-	CP.rng_seed = P->seed;
+  // Record the RNG seed from the parameter file
+  CP.rng_seed = P->seed;
 
-	// Call the RNG initialization function on the GPUs
-	GPU_Error_Check(cudaMalloc((void **)&rng_states, n_cells * sizeof(rng_parallel_state_t)));
-
+  // Call the RNG initialization function on the GPUs
+  GPU_Error_Check(cudaMalloc((void **)&rng_states, n_cells * sizeof(rng_parallel_state_t)));
 
   // initialze the RNG generator
   cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Init_GPU, n_cells);
-  hipLaunchKernelGGL(RNG_Init_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
-                     nx_local,ny_local,nz_local,nx_local_start,ny_local_start,nz_local_start,P->nx,P->ny,P->nz,CP.rng_seed, rng_states);
-  //hipLaunchKernelGGL(RNG_Init_TEST, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
-  //                   procID,nx_local,ny_local,nz_local,nx_local_start,ny_local_start,nz_local_start,P->nx,P->ny,P->nz,CP.rng_seed, rng_states);
+  hipLaunchKernelGGL(RNG_Init_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0, nx_local,
+                     ny_local, nz_local, nx_local_start, ny_local_start, nz_local_start, P->nx, P->ny, P->nz,
+                     CP.rng_seed, rng_states);
+  // hipLaunchKernelGGL(RNG_Init_TEST, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
+  //                    procID,nx_local,ny_local,nz_local,nx_local_start,ny_local_start,nz_local_start,P->nx,P->ny,P->nz,CP.rng_seed,
+  //                    rng_states);
 
   GPU_Error_Check();
-                     
-	chprintf("Cosmological ICs: Initialized RNG states (seed = %d).\n",CP.rng_seed);
+
+  chprintf("Cosmological ICs: Initialized RNG states (seed = %d).\n", CP.rng_seed);
 }
 
 /*! \fn void Free_Cosmo_Potential_RNG()
@@ -548,7 +532,6 @@ void Grid3D::Free_Cosmo_Potential_RNG()
   // free rng states info
   GPU_Error_Check(cudaFree(rng_states));
 }
-
 
 /*! \fn void Free_Cosmo_Power_Spectrum()
  *  \brief Free memory for cosmological power spectrum*/
@@ -570,55 +553,50 @@ void Grid3D::Free_Cosmo_Power_Spectrum()
  *  \brief Allocate memory and load cosmological power spectrum*/
 void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
 {
-  
   char pk_filename[MAXLEN];
   strcpy(pk_filename, P->cosmo_ics_pk_file);
-  chprintf( "Cosmological ICs: Loading Power Spectrum File: %s \n", pk_filename );
-  
+  chprintf("Cosmological ICs: Loading Power Spectrum File: %s \n", pk_filename);
+
   std::fstream in_file(pk_filename);
   std::string line;
   std::vector<std::vector<float>> v;
   int i = 0;
   int j = 0;
-  if (in_file.is_open()){
-    while (std::getline(in_file, line))
-    {
-      if ( line.find("#") == 0 ) continue;
-      
+  if (in_file.is_open()) {
+    while (std::getline(in_file, line)) {
+      if (line.find("#") == 0) continue;
+
       float value;
       std::stringstream ss(line);
       if (line.length() == 0) continue;
       v.push_back(std::vector<float>());
-       
-      while (ss >> value){
+
+      while (ss >> value) {
         v[i].push_back(value);
-        if(i==0)
-          j++;
+        if (i == 0) j++;
       }
-      i += 1;    
+      i += 1;
     }
-    
+
     in_file.close();
-  
-  } else{
-  
+
+  } else {
     chprintf(" Error: Unable to open the input power spectrum file: %s\n", pk_filename);
     exit(1);
-  
   }
-  
+
   int n_lines = i;
-  chprintf( "Cosmological ICs: Loaded %d lines in file. \n", n_lines  );
-  
+  chprintf("Cosmological ICs: Loaded %d lines in file. \n", n_lines);
+
   // Allocate cpu and device memory for power spectrum
-  CP.n_pk         = n_lines;
-  CP.k_array      = (Real *)malloc( CP.n_pk*sizeof(Real) );
-  CP.pk_m_array   = (Real *)malloc( CP.n_pk*sizeof(Real) );
-  CP.pk_bc_array  = (Real *)malloc( CP.n_pk*sizeof(Real) );
-  
-  chprintf( "Cosmological ICs: Lbox = %f %f %f  n_grid = %d %d %d\n", P->xlen, P->ylen, P->zlen, P->nx, P->ny, P->nz );
-  
-  Real dx = P->xlen / P->nx; 
+  CP.n_pk        = n_lines;
+  CP.k_array     = (Real *)malloc(CP.n_pk * sizeof(Real));
+  CP.pk_m_array  = (Real *)malloc(CP.n_pk * sizeof(Real));
+  CP.pk_bc_array = (Real *)malloc(CP.n_pk * sizeof(Real));
+
+  chprintf("Cosmological ICs: Lbox = %f %f %f  n_grid = %d %d %d\n", P->xlen, P->ylen, P->zlen, P->nx, P->ny, P->nz);
+
+  Real dx = P->xlen / P->nx;
 
   // Rescale the cosmological power spectrum
 
@@ -628,18 +606,18 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
   // at k=1./195 h/kpc ~ 5.1 h/Mpc gives P(k) ~ 1.26 (times 1e9 if rescaled)
   // because the rms density fluctuations are 3.548910e+04
 
-  // if instead we adopt a Mpc unit system, we get 
+  // if instead we adopt a Mpc unit system, we get
   // at k=1./195 h/kpc ~ 5.1 h/Mpc gives P(k) ~ 1.26
 
   // So, evaluated at the same location in h/kpc or h/Mpc
   // returns the same P(k)
 
   // If we keep the h/Mpc units, then when filtering
-  // by the P(k) we get 
+  // by the P(k) we get
   // RMS of density field over entire grid = 4.583223e-01
 
   // If we keep the h/kpc units, then when filtering
-  // by the P(k) we get 
+  // by the P(k) we get
   // RMS of density field over entire grid = 1.449342e+04
 
   // The factor of the power spectrum is leaking through
@@ -647,58 +625,52 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
   // So the scaling factor should not have the Mpc->kpc conversion
   // unless we undo the scaling
 
-
-
   // Multiplying by the square root of the power spectrum
   // if we transfer forward, multiply by 1, and then backward, we get the same variance we input
-  Real pk_factor = 1.0e9*(nx_global*ny_global*nz_global)/(P->xlen*P->ylen*P->zlen);
-  //Real pk_factor = 0.5e9*(nx_global*ny_global*nz_global)/(P->xlen*P->ylen*P->zlen);
+  Real pk_factor = 1.0e9 * (nx_global * ny_global * nz_global) / (P->xlen * P->ylen * P->zlen);
+  // Real pk_factor = 0.5e9*(nx_global*ny_global*nz_global)/(P->xlen*P->ylen*P->zlen);
 
   // see if answer changes in different box
 
-  //Real pk_factor = 1.0e9; // convert (Mpc/h)^3 to (kpc/h)^3 RMS of density field over entire grid = 1.449342e+04
-  //Real pk_factor = 1.0e9/pow(50000,3); // convert (Mpc/h)^3 to (kpc/h)^3 1.296331e-03
-  //Real pk_factor = 1.0e9/pow(50000/(2*M_PI),3); // convert (Mpc/h)^3 to (kpc/h)^3 2e-2
-  //Real pk_factor = 1; // RMS of density field over entire grid = 4.583223e-01
-  //Real pk_factor = 1/(2.0*M_PI*M_PI); // RMS of density field over entire grid = 4.583223e-01
-  //Real pk_factor = pow(50,3)/(2.0); // RMS of density field over entire grid = 4.583223e-01
-  // (50/256)**3 = 0.007450580596923828
-  // (50000/256)**3 = 7450580.596923828
-
-
+  // Real pk_factor = 1.0e9; // convert (Mpc/h)^3 to (kpc/h)^3 RMS of density field over entire grid = 1.449342e+04
+  // Real pk_factor = 1.0e9/pow(50000,3); // convert (Mpc/h)^3 to (kpc/h)^3 1.296331e-03
+  // Real pk_factor = 1.0e9/pow(50000/(2*M_PI),3); // convert (Mpc/h)^3 to (kpc/h)^3 2e-2
+  // Real pk_factor = 1; // RMS of density field over entire grid = 4.583223e-01
+  // Real pk_factor = 1/(2.0*M_PI*M_PI); // RMS of density field over entire grid = 4.583223e-01
+  // Real pk_factor = pow(50,3)/(2.0); // RMS of density field over entire grid = 4.583223e-01
+  //  (50/256)**3 = 0.007450580596923828
+  //  (50000/256)**3 = 7450580.596923828
 
   // The value of the power spectrum at redshift 0 and a ~195 kpc/h ~ 5 h/Mpc cell is ~ 1
 
-  chprintf("Cosmological ICs: Power spectrum rescaling factor: %e\n",pk_factor);
+  chprintf("Cosmological ICs: Power spectrum rescaling factor: %e\n", pk_factor);
 
-  // note the pk_factor is supposed to remove the volume element from 
+  // note the pk_factor is supposed to remove the volume element from
   // the normalization of P(k), and needs to be in the units of the original P(k)
   // We are assuming P(k) has units of (Mpc/h)^3 and xlen, ylen, zlen are in kpc/h
-  
-  for (i=0; i<n_lines; i++ ){
-    CP.k_array[i]      = v[i][0] * 1e-3;       //Convert from 1/(Mpc/h) to  1/(kpc/h)
-    CP.pk_m_array[i]   = v[i][1] * pk_factor;  // P(k) rescaling
-    if(j==3)
-    {
-      CP.pk_bc_array[i] = v[i][2] * pk_factor; //P(k) rescaling
-    }else{
+
+  for (i = 0; i < n_lines; i++) {
+    CP.k_array[i]    = v[i][0] * 1e-3;       // Convert from 1/(Mpc/h) to  1/(kpc/h)
+    CP.pk_m_array[i] = v[i][1] * pk_factor;  // P(k) rescaling
+    if (j == 3) {
+      CP.pk_bc_array[i] = v[i][2] * pk_factor;  // P(k) rescaling
+    } else {
       CP.pk_bc_array[i] = 0;  // no baryon-cdm difference
     }
   }
 
-  // Allocate device P(k) arrays  
-  GPU_Error_Check(cudaMalloc((void**)&CP.d_n_pk,        sizeof(int)) );
-  GPU_Error_Check(cudaMalloc((void**)&CP.d_k_array,     CP.n_pk*sizeof(Real)) );
-  GPU_Error_Check(cudaMalloc((void**)&CP.d_pk_m_array,  CP.n_pk*sizeof(Real)) );
-  GPU_Error_Check(cudaMalloc((void**)&CP.d_pk_bc_array, CP.n_pk*sizeof(Real)) );
+  // Allocate device P(k) arrays
+  GPU_Error_Check(cudaMalloc((void **)&CP.d_n_pk, sizeof(int)));
+  GPU_Error_Check(cudaMalloc((void **)&CP.d_k_array, CP.n_pk * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void **)&CP.d_pk_m_array, CP.n_pk * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void **)&CP.d_pk_bc_array, CP.n_pk * sizeof(Real)));
 
   // Copy host P(k) to device P(k)
-  GPU_Error_Check(cudaMemcpy(CP.d_n_pk,       &CP.n_pk,        sizeof(int),  cudaMemcpyHostToDevice) );
-  GPU_Error_Check(cudaMemcpy(CP.d_k_array,     CP.k_array,     CP.n_pk*sizeof(Real), cudaMemcpyHostToDevice) );
-  GPU_Error_Check(cudaMemcpy(CP.d_pk_m_array,  CP.pk_m_array,  CP.n_pk*sizeof(Real), cudaMemcpyHostToDevice) );
-  GPU_Error_Check(cudaMemcpy(CP.d_pk_bc_array, CP.pk_bc_array, CP.n_pk*sizeof(Real), cudaMemcpyHostToDevice) );
+  GPU_Error_Check(cudaMemcpy(CP.d_n_pk, &CP.n_pk, sizeof(int), cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(CP.d_k_array, CP.k_array, CP.n_pk * sizeof(Real), cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(CP.d_pk_m_array, CP.pk_m_array, CP.n_pk * sizeof(Real), cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(CP.d_pk_bc_array, CP.pk_bc_array, CP.n_pk * sizeof(Real), cudaMemcpyHostToDevice));
 }
-
 
 /*! \fn void Allocate_Cosmo_Potential_Memory(void)
  *  \brief Allocate the memory allocated for cosmological ICs potentials */
@@ -706,38 +678,39 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
 {
   // allocate memory for the phi arrays
   // allocate all the memory to phi_1, to ensure contiguous memory
-  int n_cells = nx_local*ny_local*nz_local;
-  //int n_cells = H.n_cells;
+  int n_cells = nx_local * ny_local * nz_local;
+  // int n_cells = H.n_cells;
   int offset = n_cells;
 
   GPU_Error_Check(cudaHostAlloc((void **)&CP.host, CP.n_fields * n_cells * sizeof(Real), cudaHostAllocDefault));
-  chprintf("Cosmological ICs: Host memory allocated for %d fields in cosmological ICs initial deltas (n = %d).\n",CP.n_fields, n_cells);
+  chprintf("Cosmological ICs: Host memory allocated for %d fields in cosmological ICs initial deltas (n = %d).\n",
+           CP.n_fields, n_cells);
 
   // point potential variables to the appropriate locations on host
-  CP.delta_m    = CP.host;
-#ifndef ONLY_PARTICLES
-  CP.delta_bc   = &(CP.host[offset]);
+  CP.delta_m = CP.host;
+  #ifndef ONLY_PARTICLES
+  CP.delta_bc = &(CP.host[offset]);
   offset += n_cells;
-#endif
+  #endif
 
   // allocate memory for the conserved variable arrays on the device
   GPU_Error_Check(cudaMalloc((void **)&CP.device, CP.n_fields * n_cells * sizeof(Real)));
   cuda_utilities::initGpuMemory(CP.device, CP.n_fields * n_cells * sizeof(Real));
 
-  chprintf("Cosmological ICs: Device memory allocated for %d fields in cosmological ICs initial deltas (n = %d).\n",CP.n_fields, n_cells);
+  chprintf("Cosmological ICs: Device memory allocated for %d fields in cosmological ICs initial deltas (n = %d).\n",
+           CP.n_fields, n_cells);
 
   // point potential variables to the appropriate locations on the device
-  CP.d_delta_m   = CP.device;
-  offset = n_cells;
-#ifndef ONLY_PARTICLES
-  CP.d_delta_bc  = &(CP.device[offset]);
-#endif
+  CP.d_delta_m = CP.device;
+  offset       = n_cells;
+  #ifndef ONLY_PARTICLES
+  CP.d_delta_bc = &(CP.device[offset]);
+  #endif
 
   // initialize host array
   for (int i = 0; i < CP.n_fields * n_cells; i++) {
     CP.host[i] = 0.0;
   }
-
 
   // repeat for potentials
   // which include ghost cells
@@ -745,26 +718,28 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
   offset  = n_cells;
 
   GPU_Error_Check(cudaHostAlloc((void **)&CP.hostp, CP.n_fields * n_cells * sizeof(Real), cudaHostAllocDefault));
-  chprintf("Cosmological ICs: Host memory allocated for %d fields in cosmological ICs initial potentials (n = %d).\n",CP.n_fields, n_cells);
+  chprintf("Cosmological ICs: Host memory allocated for %d fields in cosmological ICs initial potentials (n = %d).\n",
+           CP.n_fields, n_cells);
 
   // point potential variables to the appropriate locations on host
-  CP.phi_1    = CP.hostp;
-#ifndef ONLY_PARTICLES
-  CP.phi_2    = &(CP.hostp[offset]);
-#endif
+  CP.phi_1 = CP.hostp;
+  #ifndef ONLY_PARTICLES
+  CP.phi_2 = &(CP.hostp[offset]);
+  #endif
 
   // allocate memory for the conserved variable arrays on the device
   GPU_Error_Check(cudaMalloc((void **)&CP.devicep, CP.n_fields * n_cells * sizeof(Real)));
   cuda_utilities::initGpuMemory(CP.devicep, CP.n_fields * n_cells * sizeof(Real));
 
-  chprintf("Cosmological ICs: Device memory allocated for %d fields in cosmological ICs initial potentials (n = %d).\n",CP.n_fields, n_cells);
+  chprintf("Cosmological ICs: Device memory allocated for %d fields in cosmological ICs initial potentials (n = %d).\n",
+           CP.n_fields, n_cells);
 
   // point potential variables to the appropriate locations on the device
   CP.d_phi_1 = CP.devicep;
-  offset = n_cells;
-#ifndef ONLY_PARTICLES
-  CP.d_phi_2  = &(CP.devicep[offset]);
-#endif
+  offset     = n_cells;
+  #ifndef ONLY_PARTICLES
+  CP.d_phi_2 = &(CP.devicep[offset]);
+  #endif
 
   // initialize host array
   for (int i = 0; i < CP.n_fields * n_cells; i++) {
@@ -789,52 +764,49 @@ void Grid3D::Free_Cosmo_Potential_Memory(void)
   GPU_Error_Check(cudaFree(CP.devicep));
 }
 
-
 /*! \fn void Generate_Normal_Random_Field(Real *d_field, rng_parallel_state_t *state)
  *  \brief Create a Gaussian random field on a grid */
 void Grid3D::Generate_Normal_Random_Field(Real *d_field, struct Parameters *P, rng_parallel_state_t *state)
 {
-	// Here, d_field has been pre-allocated on the device
-  int n_cells = nx_local*ny_local*nz_local;
-  //chprintf("nx_local %d ny_local %d nz_local %d\n",nx_local,ny_local,nz_local);
-  //chexit(0);
-  //int n_cells = H.nx * H.ny * H.nz;
+  // Here, d_field has been pre-allocated on the device
+  int n_cells = nx_local * ny_local * nz_local;
+  // chprintf("nx_local %d ny_local %d nz_local %d\n",nx_local,ny_local,nz_local);
+  // chexit(0);
+  // int n_cells = H.nx * H.ny * H.nz;
   cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Normal_Field_GPU, n_cells);
   hipLaunchKernelGGL(RNG_Normal_Field_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
-                     d_field, nx_local,ny_local,nz_local,nx_local_start,ny_local_start,nz_local_start,
-		     P->nx,P->ny,P->nz,P->seed,rng_states);
-		     //P->nx,P->ny,P->nz,0,rng_states);
-                     //d_field, nx_local, ny_local, nz_local, 0, state);
+                     d_field, nx_local, ny_local, nz_local, nx_local_start, ny_local_start, nz_local_start, P->nx,
+                     P->ny, P->nz, P->seed, rng_states);
+  // P->nx,P->ny,P->nz,0,rng_states);
+  // d_field, nx_local, ny_local, nz_local, 0, state);
 }
 
 /*! \fn void Rescale_Field(Real *d_x, Real A)
  *  \brief Rescale a field by a constant multiplicative factor. */
 void Grid3D::Rescale_Field(Real *d_x, Real A)
 {
-	// Here, d_x has been pre-allocated on the device
-	// Rescale the field by a multiplicative factor.
-  int n_cells = nx_local*ny_local*nz_local;
-  //int n_cells = H.nx * H.ny * H.nz;
+  // Here, d_x has been pre-allocated on the device
+  // Rescale the field by a multiplicative factor.
+  int n_cells = nx_local * ny_local * nz_local;
+  // int n_cells = H.nx * H.ny * H.nz;
   cuda_utilities::AutomaticLaunchParams static const launchParams(Rescale_Field_GPU, n_cells);
-  hipLaunchKernelGGL(Rescale_Field_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
-                     d_x, A, nx_local, ny_local, nz_local, 0);
+  hipLaunchKernelGGL(Rescale_Field_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0, d_x, A,
+                     nx_local, ny_local, nz_local, 0);
 }
-
 
 /*! \fn void Set_Boundary_Conditions_Field(Parameters P )
  *  \brief Set the boundary conditions for all components based on info in the
  * parameters structure. */
 void Grid3D::Set_Boundary_Conditions_Field(Parameters P, Real *field)
 {
-#ifndef MPI_CHOLLA
+  #ifndef MPI_CHOLLA
 
   int flags[6] = {0, 0, 0, 0, 0, 0};
 
   // Check for custom boundary conditions and set boundary flags
   // can use generic boundary check
   if (Check_Custom_Boundary(&flags[0], P)) {
-    chprintf("Error -- custom boundary not implemented for cosmo ics.")
-    chexit(-1);
+    chprintf("Error -- custom boundary not implemented for cosmo ics.") chexit(-1);
   }
 
   // set regular boundaries
@@ -851,15 +823,14 @@ void Grid3D::Set_Boundary_Conditions_Field(Parameters P, Real *field)
     Set_Boundaries_Field(5, flags, field);
   }
 
-#else /*MPI_CHOLLA*/
+  #else /*MPI_CHOLLA*/
 
   /*Set boundaries, including MPI exchanges*/
 
   Set_Boundaries_MPI_Field(P, field);
 
-#endif /*MPI_CHOLLA*/
+  #endif /*MPI_CHOLLA*/
 }
-
 
 /*! \fn void Set_Boundaries_Field(int dir, int flags[])
  *  \brief Apply boundary conditions to the grid. */
@@ -880,16 +851,16 @@ void Grid3D::Set_Boundaries_Field(int dir, int flags[], Real *field)
     return;
   }
 
-#ifdef MPI_CHOLLA
+  #ifdef MPI_CHOLLA
   /*if the cell face is an mpi boundary, exit */
   if (flags[dir] == 5) {
     return;
   }
-#endif /*MPI_CHOLLA*/
-  if(true) {
+  #endif /*MPI_CHOLLA*/
+  if (true) {
     if (flags[dir] == 1) {
-  // Set Periodic Boundaries for the ghost cells.
- 
+      // Set Periodic Boundaries for the ghost cells.
+
       if (dir == 0) {
         Set_Field_Boundaries_Periodic(0, 0, flags, field);
       }
@@ -912,7 +883,6 @@ void Grid3D::Set_Boundaries_Field(int dir, int flags[], Real *field)
     return;
   }
 }
-
 
 void Grid3D::Set_Field_Boundaries_Periodic(int direction, int side, int *flags, Real *field)
 {
@@ -983,10 +953,7 @@ void Grid3D::Set_Field_Boundaries_Periodic(int direction, int side, int *flags, 
   }
 }
 
-
-
-#ifdef MPI_CHOLLA
-
+  #ifdef MPI_CHOLLA
 
 void Grid3D::Allocate_Boundary_Conditions_Field_MPI()
 {
@@ -1008,7 +975,7 @@ void Grid3D::Allocate_Boundary_Conditions_Field_MPI()
     throw std::runtime_error("MPI buffer size failed to set.");
   }
 
-  #if defined(MPI_GPU) //these won't be allocated yet
+    #if defined(MPI_GPU)  // these won't be allocated yet
   h_send_buffer_x0 = (Real *)malloc(xbsize * sizeof(Real));
   h_send_buffer_x1 = (Real *)malloc(xbsize * sizeof(Real));
   h_recv_buffer_x0 = (Real *)malloc(xbsize * sizeof(Real));
@@ -1021,11 +988,11 @@ void Grid3D::Allocate_Boundary_Conditions_Field_MPI()
   h_send_buffer_z1 = (Real *)malloc(zbsize * sizeof(Real));
   h_recv_buffer_z0 = (Real *)malloc(zbsize * sizeof(Real));
   h_recv_buffer_z1 = (Real *)malloc(zbsize * sizeof(Real));
-  #endif
+    #endif
 }
 void Grid3D::Free_Boundary_Conditions_Field_MPI()
 {
-  #if defined(MPI_GPU) //these won't be allocated yet
+    #if defined(MPI_GPU)  // these won't be allocated yet
   free(h_send_buffer_x0);
   free(h_send_buffer_x1);
   free(h_recv_buffer_x0);
@@ -1038,15 +1005,14 @@ void Grid3D::Free_Boundary_Conditions_Field_MPI()
   free(h_send_buffer_z1);
   free(h_recv_buffer_z0);
   free(h_recv_buffer_z1);
-  #endif
+    #endif
 }
-
 
 void Grid3D::Set_Boundaries_MPI_Field(struct Parameters P, Real *field)
 {
   int flags[6] = {0, 0, 0, 0, 0, 0};
 
-  if (Check_Custom_Boundary(&flags[0], P)) { //returns zero of bcnd!=4
+  if (Check_Custom_Boundary(&flags[0], P)) {  // returns zero of bcnd!=4
     chprintf("Error -- custom boundary not implemented for cosmo ics.");
     chexit(-1);
   }
@@ -1056,7 +1022,6 @@ void Grid3D::Set_Boundaries_MPI_Field(struct Parameters P, Real *field)
 
 void Grid3D::Set_Boundaries_MPI_BLOCK_Field(int *flags, struct Parameters P, Real *field)
 {
-
   if (H.nx > 1) {
     /* Step 1 - Send MPI x-boundaries */
     if (flags[0] == 5 || flags[1] == 5) {
@@ -1107,7 +1072,6 @@ void Grid3D::Set_Boundaries_MPI_BLOCK_Field(int *flags, struct Parameters P, Rea
   }
 }
 
-
 void Grid3D::Load_and_Send_MPI_Comm_Buffers_Field(int dir, int *flags, Real *field)
 {
   int ireq;
@@ -1126,10 +1090,9 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_Field(int dir, int *flags, Real *fie
     if (flags[0] == 5) {
       // load left x communication buffer
 
-      buffer_length = Load_Field_To_Buffer(0, 0, h_send_buffer_x0, 0, field); //check
+      buffer_length = Load_Field_To_Buffer(0, 0, h_send_buffer_x0, 0, field);  // check
 
       if (transfer_main_buffer) {
-
         // post non-blocking receive left x communication buffer
         MPI_Irecv(h_recv_buffer_x0, buffer_length, MPI_CHREAL, source[0], 0, world, &recv_request[ireq]);
 
@@ -1148,7 +1111,6 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_Field(int dir, int *flags, Real *fie
       buffer_length = Load_Field_To_Buffer(0, 1, h_send_buffer_x1, 0, field);
 
       if (transfer_main_buffer) {
-
         // post non-blocking receive right x communication buffer
         MPI_Irecv(h_recv_buffer_x1, buffer_length, MPI_CHREAL, source[1], 1, world, &recv_request[ireq]);
 
@@ -1170,7 +1132,6 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_Field(int dir, int *flags, Real *fie
       buffer_length = Load_Field_To_Buffer(1, 0, h_send_buffer_y0, 0, field);
 
       if (transfer_main_buffer) {
-
         // post non-blocking receive left y communication buffer
         MPI_Irecv(h_recv_buffer_y0, buffer_length, MPI_CHREAL, source[2], 2, world, &recv_request[ireq]);
 
@@ -1210,7 +1171,6 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_Field(int dir, int *flags, Real *fie
       buffer_length = Load_Field_To_Buffer(2, 0, h_send_buffer_z0, 0, field);
 
       if (transfer_main_buffer) {
-
         // post non-blocking receive left z communication buffer
         MPI_Irecv(h_recv_buffer_z0, buffer_length, MPI_CHREAL, source[4], 4, world, &recv_request[ireq]);
 
@@ -1287,8 +1247,6 @@ void Grid3D::Wait_and_Unload_MPI_Comm_Buffers_Field(int dir, int *flags, Real *f
   }
 }
 
-
-
 /*! \fn void Grid3D::Unload_MPI_Comm_Buffers_Field(int index, Real *field)
  *  \brief Unload the MPI buffers for field comms. */
 void Grid3D::Unload_MPI_Comm_Buffers_Field(int index, Real *field)
@@ -1326,7 +1284,6 @@ void Grid3D::Unload_MPI_Comm_Buffers_Field(int index, Real *field)
     (this->*Fptr_Unload_Field)(2, 1, l_recv_buffer_z1, 0, field);
   }
 }
-
 
 /*! \fn void Grid3D::Load_Field_To_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *field)
  *  \brief Load the MPI buffers for field comms. */
@@ -1404,9 +1361,9 @@ void Grid3D::Unload_Field_from_Buffer(int direction, int side, Real *buffer, int
   int nGHST, nx_g, ny_g, nz_g;
   nGHST = N_GHOST_POTENTIAL;
 
-  nx_g  = nx_local + 2 * nGHST;
-  ny_g  = ny_local + 2 * nGHST;
-  nz_g  = nz_local + 2 * nGHST;
+  nx_g = nx_local + 2 * nGHST;
+  ny_g = ny_local + 2 * nGHST;
+  nz_g = nz_local + 2 * nGHST;
 
   // Load X boundaries
   if (direction == 0) {
@@ -1419,7 +1376,7 @@ void Grid3D::Unload_Field_from_Buffer(int direction, int side, Real *buffer, int
           if (side == 1) {
             indx = (nx_g - nGHST + i) + (j)*nx_g + (k)*nx_g * ny_g;
           }
-          indx_buff                = (j) + (k)*ny_g + i * ny_g * nz_g;
+          indx_buff   = (j) + (k)*ny_g + i * ny_g * nz_g;
           field[indx] = buffer[buffer_start + indx_buff];
         }
       }
@@ -1437,7 +1394,7 @@ void Grid3D::Unload_Field_from_Buffer(int direction, int side, Real *buffer, int
           if (side == 1) {
             indx = (i) + (ny_g - nGHST + j) * nx_g + (k)*nx_g * ny_g;
           }
-          indx_buff                = (i) + (k)*nx_g + j * nx_g * nz_g;
+          indx_buff   = (i) + (k)*nx_g + j * nx_g * nz_g;
           field[indx] = buffer[buffer_start + indx_buff];
         }
       }
@@ -1455,12 +1412,12 @@ void Grid3D::Unload_Field_from_Buffer(int direction, int side, Real *buffer, int
           if (side == 1) {
             indx = (i) + (j)*nx_g + (nz_g - nGHST + k) * nx_g * ny_g;
           }
-          indx_buff                = (i) + (j)*nx_g + k * nx_g * ny_g;
+          indx_buff   = (i) + (j)*nx_g + k * nx_g * ny_g;
           field[indx] = buffer[buffer_start + indx_buff];
         }
       }
     }
   }
 }
-#endif    // MPI_CHOLLA
-#endif //COSMOLOGY
+  #endif  // MPI_CHOLLA
+#endif    // COSMOLOGY

@@ -56,8 +56,8 @@ SpatialDomainProps SpatialDomainProps::From_Grid3D(Grid3D& grid, struct Paramete
   out.ny_total = P->ny;  // ny;
   out.nz_total = P->nz;  // nz;
 
-  //printf("o nx/ny/nz %d/%d/%d\n",out.nx_total,out.ny_total,out.nz_total);
-  //printf("P nx/ny/nz %d/%d/%d\n",P->nx,P->ny,P->nz);
+  // printf("o nx/ny/nz %d/%d/%d\n",out.nx_total,out.ny_total,out.nz_total);
+  // printf("P nx/ny/nz %d/%d/%d\n",P->nx,P->ny,P->nz);
 
   // Set Box local domain number of cells
   out.nx_local = grid.H.nx_real;  // nx_real;

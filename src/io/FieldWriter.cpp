@@ -15,8 +15,8 @@
 #include <string_view>
 #include <vector>
 
-#include "../grid/grid3D.h"
 #include "../grid/field_info.h"
+#include "../grid/grid3D.h"
 #include "../io/io.h"
 #include "../utils/error_handling.h"
 
@@ -295,8 +295,8 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
   #else
   size_t buffer_size = nx_dset * ny_dset * nz_dset;
   #endif
-  //T* dev_dataset_buf  = lazy_scratch_buf.get_buf_dev<T>(buffer_size);
-  //T* host_dataset_buf = lazy_scratch_buf.get_buf_host<T>(buffer_size);
+  // T* dev_dataset_buf  = lazy_scratch_buf.get_buf_dev<T>(buffer_size);
+  // T* host_dataset_buf = lazy_scratch_buf.get_buf_host<T>(buffer_size);
   Real* dev_dataset_buf  = lazy_scratch_buf.get_buf_dev<T>(buffer_size);
   Real* host_dataset_buf = lazy_scratch_buf.get_buf_host<T>(buffer_size);
 
@@ -364,45 +364,44 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
   #endif  // GRAVITY and OUTPUT_POTENTIAL
   }
 
-
   // Likely needs editing, check device or host array and offset
 
   #if defined(RT) && defined(OUTPUT_RADIATION)
-    const Rad3D& Rad = G.Rad;
+  const Rad3D& Rad = G.Rad;
 
-    // add the rsource field
-    //Write_Generic_HDF5_Field_GPU(H.nx_real + 2 * H.n_ghost, H.ny_real + 2 * H.n_ghost,
-    //                             H.nz_real + 2 * H.n_ghost, H.nx_real, H.ny_real, H.nz_real,
-    //                             H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf, Rad.rtFields.dev_rs,
-    //                             "/source");
-    Real* rtptr = Rad.rtFields.dev_rs;
-    Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, rtptr, "/source");
+  // add the rsource field
+  // Write_Generic_HDF5_Field_GPU(H.nx_real + 2 * H.n_ghost, H.ny_real + 2 * H.n_ghost,
+  //                             H.nz_real + 2 * H.n_ghost, H.nx_real, H.ny_real, H.nz_real,
+  //                             H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf, Rad.rtFields.dev_rs,
+  //                             "/source");
+  Real* rtptr = Rad.rtFields.dev_rs;
+  Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, rtptr, "/source");
 
     // loop over the number of radiation fields
-#ifdef OTVET
-    const char* rt_dset_names[7] = {"/intensity", "/rf_HI_near", "/rf_HeI_near","/rf_HeII_near","/rf_HI_far","/rf_HeI_far","/rf_HeII_far"};
-#endif
-#ifdef M1
-    const char* rt_dset_names[16] = {"/rf_intensity", "/rf_intensity_Mx", "/rf_intensity_My","/rf_intensity_Mz",
-                                     "/rf_HI",        "/rf_HI_Mx",        "/rf_HI_My",       "/rf_HI_Mz",
-                                     "/rf_HeI",       "/rf_HeI_Mx",       "/rf_HeI_My",      "/rf_HeI_Mz",
-                                     "/rf_HeII",      "/rf_HeII_Mx",      "/rf_HeII_My",     "/rf_HeII_Mz"};
-#endif
-    for (int n = 0; n < Rad.n_rf; n++) {
-      //char dataset[100];
-      //char number[10];
-      //sprintf(dataset,"/radiation_");
-      //sprintf(number,"%d",n);
-      //strcat(dataset, number);
-      //Write_Generic_HDF5_Field_GPU(H.nx_real + 2 * H.n_ghost, H.ny_real + 2 * H.n_ghost,
-      //                             H.nz_real + 2 * H.n_ghost, H.nx_real, H.ny_real, H.nz_real,
-      //                             H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf, &(Rad.rtFields.dev_rf[n * H.n_cells]),
-      //                             dataset);
-      rtptr = &Rad.rtFields.dev_rf[n * H.n_cells];
-      Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, rtptr, rt_dset_names[n]);
-    }
+    #ifdef OTVET
+  const char* rt_dset_names[7] = {"/intensity", "/rf_HI_near", "/rf_HeI_near", "/rf_HeII_near",
+                                  "/rf_HI_far", "/rf_HeI_far", "/rf_HeII_far"};
+    #endif
+    #ifdef M1
+  const char* rt_dset_names[16] = {"/rf_intensity", "/rf_intensity_Mx", "/rf_intensity_My", "/rf_intensity_Mz",
+                                   "/rf_HI",        "/rf_HI_Mx",        "/rf_HI_My",        "/rf_HI_Mz",
+                                   "/rf_HeI",       "/rf_HeI_Mx",       "/rf_HeI_My",       "/rf_HeI_Mz",
+                                   "/rf_HeII",      "/rf_HeII_Mx",      "/rf_HeII_My",      "/rf_HeII_Mz"};
+    #endif
+  for (int n = 0; n < Rad.n_rf; n++) {
+    // char dataset[100];
+    // char number[10];
+    // sprintf(dataset,"/radiation_");
+    // sprintf(number,"%d",n);
+    // strcat(dataset, number);
+    // Write_Generic_HDF5_Field_GPU(H.nx_real + 2 * H.n_ghost, H.ny_real + 2 * H.n_ghost,
+    //                              H.nz_real + 2 * H.n_ghost, H.nx_real, H.ny_real, H.nz_real,
+    //                              H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf, &(Rad.rtFields.dev_rf[n *
+    //                              H.n_cells]), dataset);
+    rtptr = &Rad.rtFields.dev_rf[n * H.n_cells];
+    Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, rtptr, rt_dset_names[n]);
+  }
   #endif  // RT and OUTPUT_RADIATION
-
 
   // close the file
   if (H5Fclose(file_id) < 0) {
@@ -576,7 +575,7 @@ void FieldWriter::operator()(Grid3D& G, Parameters P, int nfile, const FnameTemp
 
   switch (this->file_format_) {
     case FileFormat::H5_F32:
-      //Write_Fields_to_HDF5_helper_<true>(filename, G, this->dataset_spec_, *this->lazy_scratch_buf_);
+      // Write_Fields_to_HDF5_helper_<true>(filename, G, this->dataset_spec_, *this->lazy_scratch_buf_);
       Write_Fields_to_HDF5_helper_<false>(filename, G, this->dataset_spec_, *this->lazy_scratch_buf_);
       return;
     case FileFormat::H5_NATIVE_PRECISION:

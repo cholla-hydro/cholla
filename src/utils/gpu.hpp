@@ -110,13 +110,13 @@ static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
   #define cufftPlanMany      hipfftPlanMany
 
   #define curandStatePhilox4_32_10_t hiprandStatePhilox4_32_10_t
-  #define curandStateMRG32k3a_t hiprandStateMRG32k3a_t
-  #define curand_init           hiprand_init
-  #define curand                hiprand
-  #define curand_poisson        hiprand_poisson
-  #define curand_normal_double  hiprand_normal_double
-  #define curand_normal         hiprand_normal
-  #define curand_normal4        hiprand_normal4
+  #define curandStateMRG32k3a_t      hiprandStateMRG32k3a_t
+  #define curand_init                hiprand_init
+  #define curand                     hiprand
+  #define curand_poisson             hiprand_poisson
+  #define curand_normal_double       hiprand_normal_double
+  #define curand_normal              hiprand_normal
+  #define curand_normal4             hiprand_normal4
   #define curand_normal4_double      hiprand_normal4_double
   #define curand_uniform2            hiprand_uniform2
   #define curand_uniform2_double     hiprand_uniform2_double

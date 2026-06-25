@@ -107,9 +107,8 @@ void Cosmology::Initialize(struct Parameters *P, Grav3D &Grav, Particles3D &Part
 
   Set_Scale_Outputs(P);
 
-
   // Stop here for now
-  //chexit(0);
+  // chexit(0);
 }
 
 #endif

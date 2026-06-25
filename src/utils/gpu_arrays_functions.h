@@ -16,14 +16,14 @@ void Extend_GPU_Array(T **current_array_d, int current_size, int new_size, bool 
   }
 
   if (print_out) {
-    std::cout << " procID " << procID << " Extending GPU Array (T), current_size: " << current_size << "  new_size: " << new_size << std::endl;
+    std::cout << " procID " << procID << " Extending GPU Array (T), current_size: " << current_size
+              << "  new_size: " << new_size << std::endl;
   }
 
   /*if (print_out) {
     printf("procID %d About to check memory..\n",procID);
     fflush(stdout);
   }*/
-
 
   size_t global_free, global_total;
   GPU_Error_Check(cudaMemGetInfo(&global_free, &global_total));
@@ -75,32 +75,32 @@ void Extend_GPU_Array(T **current_array_d, int current_size, int new_size, bool 
   }*/
 
   // Replace the pointer of the original array with the new one
-  *current_array_d = new_array_d; // will this work?
-  
-/*
-  // BRANT changes 6/22/2026
-  // reallocate the current array
-  GPU_Error_Check(cudaMalloc((void **)&(*current_array_d), new_size * sizeof(T)));
-  cudaDeviceSynchronize();
-  if (print_out) {
-    std::cout << "procID " << procID << " GPU Array buffer re-allocated." << std::endl;
-    fflush(stdout);
-  }
+  *current_array_d = new_array_d;  // will this work?
 
-  // copy from existing buffer array back from new array to current array
-  GPU_Error_Check(cudaMemcpy(*current_array_d, new_array_d, current_size * sizeof(T), cudaMemcpyDeviceToDevice));
-  cudaDeviceSynchronize();
-  GPU_Error_Check();
+  /*
+    // BRANT changes 6/22/2026
+    // reallocate the current array
+    GPU_Error_Check(cudaMalloc((void **)&(*current_array_d), new_size * sizeof(T)));
+    cudaDeviceSynchronize();
+    if (print_out) {
+      std::cout << "procID " << procID << " GPU Array buffer re-allocated." << std::endl;
+      fflush(stdout);
+    }
+
+    // copy from existing buffer array back from new array to current array
+    GPU_Error_Check(cudaMemcpy(*current_array_d, new_array_d, current_size * sizeof(T), cudaMemcpyDeviceToDevice));
+    cudaDeviceSynchronize();
+    GPU_Error_Check();
 
 
-  if (print_out) {
-    std::cout << "procID " << procID << " GPU Array buffer transferred." << std::endl;
-    fflush(stdout);
-  }
+    if (print_out) {
+      std::cout << "procID " << procID << " GPU Array buffer transferred." << std::endl;
+      fflush(stdout);
+    }
 
-  // free new array
-  GPU_Error_Check(cudaFree(new_array_d));
-  */
+    // free new array
+    GPU_Error_Check(cudaFree(new_array_d));
+    */
 
   /*if (print_out) {
     std::cout << "procID " << procID << " GPU array of size  " << new_size << " successfully allocated." << std::endl;

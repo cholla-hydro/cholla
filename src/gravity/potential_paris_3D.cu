@@ -116,99 +116,99 @@ void PotentialParis3D::Get_Potential(const Real *const density, Real *const pote
   GPU_Error_Check(cudaMemcpy(potential, db, potentialBytes_, cudaMemcpyDeviceToHost));
   #endif
 }
-#ifdef RT
+  #ifdef RT
 void PotentialParis3D::Get_EddingtonTensor(int nghost, const Real *source, Real **et, Real *ot)
 {
-/*
-  assert(da_);
-  Real *const da = da_;
-  Real *const db = db_;
-  assert(source);
+  /*
+    assert(da_);
+    Real *const da = da_;
+    Real *const db = db_;
+    assert(source);
 
-  int ni = dn_[2];
-  int nj = dn_[1];
-  int nk = dn_[0];
+    int ni = dn_[2];
+    int nj = dn_[1];
+    int nk = dn_[0];
 
-  int nwi = dn_[2] + 2*nghost;
-  int nwj = dn_[1] + 2*nghost;
-  //int nwk = dn_[0] + 2*nghost;
+    int nwi = dn_[2] + 2*nghost;
+    int nwj = dn_[1] + 2*nghost;
+    //int nwk = dn_[0] + 2*nghost;
 
-  for(int comp=0; comp<7; comp++)
-  {
+    for(int comp=0; comp<7; comp++)
+    {
+      #ifdef GRAVITY_GPU
+      gpuFor(nk, nj, ni, GPU_LAMBDA(const int k, const int j, const int i)
+      {
+          const int ia = i + ni * (j + nj * k);
+          const int is = i + nghost + nwi * (j + nghost + nwj * (k + nghost));
+          da[ia] = source[is];
+      });
+      #else
+      #error "Not implemented."
+      #endif
+
+      pp_->solveEddingtonTensor(minBytes_, da, db, comp);
+
+      if(comp < 6)
+      {
+          assert(et[comp]);
+          Real *etGPU = et[comp];
+          #ifdef GRAVITY_GPU
+          gpuFor(nk, nj, ni, GPU_LAMBDA(const int k, const int j, const int i)
+          {
+              const int ib = i + ni * (j + nj * k);
+              const int it = i + nghost + nwi * (j + nghost + nwj * (k + nghost));
+              etGPU[it] = db[ib];
+          });
+          #else
+          #error "Not implemented."
+          #endif
+      }
+      else
+      {
+          assert(ot);
+          #ifdef GRAVITY_GPU
+          gpuFor(nk, nj, ni, GPU_LAMBDA(const int k, const int j, const int i)
+          {
+              const int ib = i + ni * (j + nj * k);
+              const int it = i + nghost + nwi * (j + nghost + nwj * (k + nghost));
+              ot[it] = db[ib];
+          });
+          #else
+          #error "Not implemented."
+          #endif
+      }
+    }
+
+    //
+    //  Normalize the Eddington tensor
+    //
+    Real *etXX = et[0];
+    Real *etXY = et[1];
+    Real *etYY = et[2];
+    Real *etXZ = et[3];
+    Real *etYZ = et[4];
+    Real *etZZ = et[5];
     #ifdef GRAVITY_GPU
     gpuFor(nk, nj, ni, GPU_LAMBDA(const int k, const int j, const int i)
     {
-        const int ia = i + ni * (j + nj * k);
-        const int is = i + nghost + nwi * (j + nghost + nwj * (k + nghost));
-        da[ia] = source[is];
+        const int it = i + nghost + nwi * (j + nghost + nwj * (k + nghost));
+        const Real w = etXX[it] + etYY[it] + etZZ[it];
+        if(w > 0)
+        {
+          etXX[it] /= w;
+          etXY[it] /= w;
+          etYY[it] /= w;
+          etXZ[it] /= w;
+          etYZ[it] /= w;
+          etZZ[it] /= w;
+        }
     });
     #else
     #error "Not implemented."
     #endif
-
-    pp_->solveEddingtonTensor(minBytes_, da, db, comp);
-
-    if(comp < 6)
-    {
-        assert(et[comp]);
-        Real *etGPU = et[comp];
-        #ifdef GRAVITY_GPU
-        gpuFor(nk, nj, ni, GPU_LAMBDA(const int k, const int j, const int i)
-        {
-            const int ib = i + ni * (j + nj * k);
-            const int it = i + nghost + nwi * (j + nghost + nwj * (k + nghost));
-            etGPU[it] = db[ib];
-        });
-        #else
-        #error "Not implemented."
-        #endif
-    }
-    else
-    {
-        assert(ot);
-        #ifdef GRAVITY_GPU
-        gpuFor(nk, nj, ni, GPU_LAMBDA(const int k, const int j, const int i)
-        {
-            const int ib = i + ni * (j + nj * k);
-            const int it = i + nghost + nwi * (j + nghost + nwj * (k + nghost));
-            ot[it] = db[ib];
-        });
-        #else
-        #error "Not implemented."
-        #endif
-    }
-  }
-
-  //
-  //  Normalize the Eddington tensor
-  //
-  Real *etXX = et[0];
-  Real *etXY = et[1];
-  Real *etYY = et[2];
-  Real *etXZ = et[3];
-  Real *etYZ = et[4];
-  Real *etZZ = et[5];
-  #ifdef GRAVITY_GPU
-  gpuFor(nk, nj, ni, GPU_LAMBDA(const int k, const int j, const int i)
-  {
-      const int it = i + nghost + nwi * (j + nghost + nwj * (k + nghost));
-      const Real w = etXX[it] + etYY[it] + etZZ[it];
-      if(w > 0)
-      {
-        etXX[it] /= w;
-        etXY[it] /= w;
-        etYY[it] /= w;
-        etXZ[it] /= w;
-        etYZ[it] /= w;
-        etZZ[it] /= w;
-      }
-  });
-  #else
-  #error "Not implemented."
-  #endif
-*/
+  */
 }
-#endif // RT
+  #endif  // RT
 void PotentialParis3D::Initialize(const Real lx, const Real ly, const Real lz, const Real xMin, const Real yMin,
                                   const Real zMin, const int nx, const int ny, const int nz, const int nxReal,
                                   const int nyReal, const int nzReal, const Real dx, const Real dy, const Real dz)

@@ -228,9 +228,9 @@ struct Parameters {
   int nz;
   double tout;
   double outstep;
-  Real outstep_dexinc = 0; //BRANT
-  Real max_timestep_dexinc = 0; //BRANT
-  Real max_timestep        = 0; //BRANT
+  Real outstep_dexinc      = 0;  // BRANT
+  Real max_timestep_dexinc = 0;  // BRANT
+  Real max_timestep        = 0;  // BRANT
   int n_steps_output;
   Real gamma = 1.01;
   char init[MAXLEN];
@@ -326,11 +326,11 @@ struct Parameters {
   Real Init_redshift;
   Real End_redshift;
   Real T_init;
-  unsigned long long seed; //Cosmological ICs seed
+  unsigned long long seed;  // Cosmological ICs seed
   char cosmo_ics_pk_file[MAXLEN];
-  Real YHe;  // helium mass fraction
-  Real xHp;  // hydrogen ionization fraction
-  Real xHep; // helium ionization fraction
+  Real YHe;   // helium mass fraction
+  Real xHp;   // hydrogen ionization fraction
+  Real xHep;  // helium ionization fraction
 
   std::string wDE_file;  // File with equation of state as function of redshift
 

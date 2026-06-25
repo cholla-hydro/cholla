@@ -617,9 +617,9 @@ class Grid3D
 
   void Chemistry_Test(struct Parameters P);
 
-  void Iliev0( struct Parameters P);
+  void Iliev0(struct Parameters P);
   void Iliev15(struct Parameters P, int test);
-  void Iliev6( struct Parameters P);
+  void Iliev6(struct Parameters P);
 
 #ifdef MHD
   /*!
@@ -822,12 +822,10 @@ class Grid3D
   void Field_Elementwise_Product(Real *d_x, Real *d_y);
   void FFT_Populate_Wavevectors(Real *d_kx, Real *d_ky, Real *d_kz, Real *d_kk);
   void FFT_Field_Reverse_Laplacian(Real *d_x_k, Real *d_kk);
-  //void Generate_Normal_Random_Field(Real *d_field, rng_parallel_state_t *state);
+  // void Generate_Normal_Random_Field(Real *d_field, rng_parallel_state_t *state);
   void Generate_Normal_Random_Field(Real *d_field, struct Parameters *P, rng_parallel_state_t *state);
 
-
   struct Cosmo_Potentials {
-
     /*! number of cosmo potential fields */
     int n_fields;
 
@@ -847,18 +845,18 @@ class Grid3D
     Real *hostp;
 
     /*! pointer to first potential */
-    Real *phi_1; // initial potential sourced by total overdensity
+    Real *phi_1;  // initial potential sourced by total overdensity
 
     // derivatives of the potential
-    Real *d2phidx2; // second spatial derivative of potential
-    Real *d2phidy2; // second spatial derivative of potential
-    Real *d2phidz2; // second spatial derivative of potential
+    Real *d2phidx2;  // second spatial derivative of potential
+    Real *d2phidy2;  // second spatial derivative of potential
+    Real *d2phidz2;  // second spatial derivative of potential
 
-    Real *delta_m; // matter overdensity
+    Real *delta_m;  // matter overdensity
 
-#ifndef ONLY_PARTICLES
-    Real *delta_bc; // baryon - cdm overdensity
-#endif 
+  #ifndef ONLY_PARTICLES
+    Real *delta_bc;  // baryon - cdm overdensity
+  #endif
 
     /*! pointer to second potential */
     Real *phi_2;
@@ -875,9 +873,9 @@ class Grid3D
     /*! pointer to first potential on device */
     Real *d_delta_m;
 
-#ifndef ONLY_PARTICLES
+  #ifndef ONLY_PARTICLES
     Real *d_delta_bc;
-#endif
+  #endif
 
     /*! pointer to second potential on device */
     Real *d_phi_2;
@@ -912,20 +910,19 @@ class Grid3D
   void Set_Boundaries_Field(int dir, int flags[], Real *field);
   int Load_Field_To_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *field);
   void Unload_Field_from_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *field);
-#ifdef MPI_CHOLLA
+  #ifdef MPI_CHOLLA
   void Unload_MPI_Comm_Buffers_Field(int index, Real *field);
   void Wait_and_Unload_MPI_Comm_Buffers_Field(int dir, int *flags, Real *field);
   void Load_and_Send_MPI_Comm_Buffers_Field(int dir, int *flags, Real *field);
   void Set_Boundaries_MPI_BLOCK_Field(int *flags, struct Parameters P, Real *field);
   void Set_Boundaries_MPI_Field(struct Parameters P, Real *field);
-#endif //MPI_CHOLLA
+  #endif  // MPI_CHOLLA
 
-
-#endif    // COSMOLOGY
+#endif  // COSMOLOGY
 
 #ifdef FFT
   FFT_3D fft;
-#endif 
+#endif
 
 #ifdef COOLING_GRACKLE
   void Initialize_Grackle(struct Parameters *P);

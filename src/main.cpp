@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 #ifdef RT
   // BRANT limit max time, added for RT tests
   Real dt_max = 0.0;  // maximum allowed time step
-#endif // RT
+#endif                // RT
 
   // input parameter variables
   char *param_file;
@@ -142,13 +142,13 @@ int main(int argc, char *argv[])
 
   // Set initial conditions
   chprintf("Setting initial conditions...\n");
-  chprintf("basic nx/ny/nz %d/%d/%d\n",P.nx,P.ny,P.nz);
-  //chprintf("Gamma here %e\n",P.gamma);
+  chprintf("basic nx/ny/nz %d/%d/%d\n", P.nx, P.ny, P.nz);
+  // chprintf("Gamma here %e\n",P.gamma);
   G.Set_Initial_Conditions(P, pmap);
   chprintf("Initial conditions set.\n");
 
   // BRANT
-  //chexit(0);
+  // chexit(0);
 
   // set main variables for Read_Grid and Read_Grid_Cat initial conditions
   if (is_restart) {
@@ -227,10 +227,10 @@ int main(int argc, char *argv[])
 #ifdef GRAVITY
   // Get the gravitational potential for the first timestep
   G.Compute_Gravitational_Potential(&P);
-#if defined(RT)&&defined(OTVET)
+  #if defined(RT) && defined(OTVET)
   chprintf("RT: Setting Eddington Tensor...\n");
-  G.Rad.ComputeEddingtonTensor(P,G.Grav);
-#endif
+  G.Rad.ComputeEddingtonTensor(P, G.Grav);
+  #endif
 #endif
 
 #ifdef RT
@@ -293,9 +293,8 @@ int main(int argc, char *argv[])
   message = "Starting calculations.";
   Write_Message_To_Log_File(message.c_str());
 
-
   // BRANT -- stop after generating ICs
-  //chexit(0);
+  // chexit(0);
 
   // Compute inverse timestep for the first time
   dti = G.Calc_Inverse_Timestep();
@@ -305,7 +304,7 @@ int main(int argc, char *argv[])
   if (P.max_timestep != 0) {
     dt_max = P.max_timestep;
   }
-#endif //RT 
+#endif  // RT
 
   while (G.H.t < P.tout) {
 // get the start time
@@ -322,7 +321,7 @@ int main(int argc, char *argv[])
         dti = 1.0 / dt_max;
       }
     }
-#endif //RT
+#endif  // RT
 
     // calculate the timestep by calling MPI_Allreduce
     G.set_dt(dti);
@@ -333,14 +332,12 @@ int main(int argc, char *argv[])
       G.H.dt = next_scheduled_time - G.H.t;
     }
 
-
 #ifdef RT
     // update the log timestep // BRANT
     if (P.max_timestep_dexinc != 0) {
       dt_max *= pow(10.0, P.max_timestep_dexinc);
     }
-#endif //RT
-
+#endif  // RT
 
 #if defined(FEEDBACK) && defined(PARTICLE_AGE)
     feedback::Cluster_Feedback(G, sn_analysis);
@@ -351,8 +348,8 @@ int main(int argc, char *argv[])
     // and positions are updated by dt
     G.Advance_Particles(1);
 
-    //chprintf("About to transfer particle boundaries\n");
-    // Transfer the particles that moved outside the local domain
+    // chprintf("About to transfer particle boundaries\n");
+    //  Transfer the particles that moved outside the local domain
     G.Transfer_Particles_Boundaries(P);
 #endif
 
@@ -371,9 +368,9 @@ int main(int argc, char *argv[])
     // Compute Gravitational potential for next step
     G.Compute_Gravitational_Potential(&P);
 
-#if defined(RT)&&defined(OTVET)
-    G.Rad.ComputeEddingtonTensor(P,G.Grav);
-#endif
+  #if defined(RT) && defined(OTVET)
+    G.Rad.ComputeEddingtonTensor(P, G.Grav);
+  #endif
 #endif
 
 #ifdef RT
@@ -441,14 +438,12 @@ int main(int argc, char *argv[])
       nfile++;
 #endif  // OUTPUT
       if (G.H.t == outtime) {
-        
         // update to the next output time, for logarithmic stepping
         if (P.outstep_dexinc != 0) P.outstep *= pow(10.0, P.outstep_dexinc);
 
         outtime += P.outstep;  // update to the next output time
 
-        if(outtime>P.tout)
-          outtime=P.tout;
+        if (outtime > P.tout) outtime = P.tout;
       }
     }
 
@@ -477,7 +472,7 @@ int main(int argc, char *argv[])
     mhd::checkMagneticDivergence(G);
 #endif  // MHD
 
-  }     /*end loop over timesteps*/
+  } /*end loop over timesteps*/
 
 #ifdef CPU_TIME
   // Print timing statistics

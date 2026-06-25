@@ -74,7 +74,6 @@ Grid3D::Grid3D(void) : field_info(FieldInfo::create()), Rad(this->H)
   // Set the number of ghost cells high enough for MHD. MHD needs one extra for the left most face
   H.n_ghost++;
 #endif  // MHD
-
 }
 
 /*! \fn void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real
@@ -205,8 +204,6 @@ void Grid3D::Initialize(struct Parameters *P)
   // Set output to true when data has to be written to file;
   H.Output_Now = false;
 
-
-
 // Values for lower limit for density and temperature
 #ifdef TEMPERATURE_FLOOR
   H.temperature_floor = P->temperature_floor;
@@ -232,13 +229,11 @@ void Grid3D::Initialize(struct Parameters *P)
 
   H.Output_Initial = true;
 
-
-  Set_Domain_Properties(*P); // move the domain info forward
-
+  Set_Domain_Properties(*P);  // move the domain info forward
 
 #ifdef COSMOLOGY
-  Generate_Cosmo_Phi_Init(P); // memory intensive -- before grid allocation
-  //chprintf("D info before main %d %d\n",Cosmo.D_array.size(),Cosmo.a_array.size());
+  Generate_Cosmo_Phi_Init(P);  // memory intensive -- before grid allocation
+  // chprintf("D info before main %d %d\n",Cosmo.D_array.size(),Cosmo.a_array.size());
 
 #endif
 
@@ -248,7 +243,7 @@ void Grid3D::Initialize(struct Parameters *P)
 
 /*! \fn void AllocateMemory(void)
  *  \brief Allocate memory for the arrays. */
-void Grid3D::AllocateMemory(void) 
+void Grid3D::AllocateMemory(void)
 {
   // allocate memory for the conserved variable arrays
   // allocate all the memory to density, to insure contiguous memory
@@ -419,19 +414,19 @@ void Grid3D::Execute_Hydro_Integrator(void)
                          error_code_buffer.data());
 #endif  // VL
 #ifdef SIMPLE
-    //chprintf("Before Simple Execute Hydro Integrator\n");
-#ifdef CHEMISTRY_GPU
+    // chprintf("Before Simple Execute Hydro Integrator\n");
+  #ifdef CHEMISTRY_GPU
     Do_Print_Chemistry(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields);
-#endif //CHEMISTRY_GPU
+  #endif  // CHEMISTRY_GPU
     Simple_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
                              H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, H.density_floor,
                              C.Grav_potential, SlowCellConditionChecker(1.0 / H.min_dt_slow, H.dx, H.dy, H.dz),
                              error_code_buffer.data());
-    //chprintf("After Simple Execute Hydro Integrator\n");
-#ifdef CHEMISTRY_GPU
+    // chprintf("After Simple Execute Hydro Integrator\n");
+  #ifdef CHEMISTRY_GPU
     Do_Print_Chemistry(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields);
-#endif //CHEMISTRY_GPU
-#endif  // SIMPLE
+  #endif  // CHEMISTRY_GPU
+#endif    // SIMPLE
   } else {
     chprintf("Error: Grid dimensions nx: %d  ny: %d  nz: %d  not supported.\n", H.nx, H.ny, H.nz);
     chexit(-1);
@@ -463,14 +458,13 @@ Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &chemistry_callback
   Extrapolate_Grav_Potential();
 #endif  // GRAVITY
 
-
-  //chprintf("Before Execute Hydro Integrator\n");
-  //Do_Print_Chemistry(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields);
+  // chprintf("Before Execute Hydro Integrator\n");
+  // Do_Print_Chemistry(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields);
 
   Execute_Hydro_Integrator();
 
-  //chprintf("After Execute Hydro Integrator\n");
-  //Do_Print_Chemistry(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields);
+  // chprintf("After Execute Hydro Integrator\n");
+  // Do_Print_Chemistry(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields);
 
 #ifdef TEMPERATURE_FLOOR
   // Set the lower limit temperature (Internal Energy)

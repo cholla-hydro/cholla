@@ -155,8 +155,8 @@ void Write_Grid_HDF5_Field_GPU(Header H, hid_t file_id, Real* dataset_buffer, Re
 
 /*! Generic field writer from GPU */
 void Write_Generic_HDF5_Field_GPU(int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, int n_ghost,
-                                  hid_t file_id, Real *dataset_buffer, Real *device_hdf5_buffer, Real *source_buffer,
-                                  const char *name);
+                                  hid_t file_id, Real* dataset_buffer, Real* device_hdf5_buffer, Real* source_buffer,
+                                  const char* name);
 
 // From io/io_gpu.cu
 // Use GPU to pack source -> device_buffer, then copy device_buffer -> buffer,

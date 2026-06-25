@@ -96,10 +96,9 @@ class Cosmology
   std::vector<Real> a_array;
   std::vector<Real> D_array;
   std::vector<Real> dDdt_array;
-  //Real OmegaDEz(Real z);
-  //std::vector<Real> growth_factor_system(Real z, std::vector<Real> y, std::vector<Real> params);
+  // Real OmegaDEz(Real z);
+  // std::vector<Real> growth_factor_system(Real z, std::vector<Real> y, std::vector<Real> params);
 
-  
   // write expansion history log file
   void Create_Expansion_History_File(struct Parameters *P);
   void Write_Expansion_History_Entry(void);

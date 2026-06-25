@@ -293,11 +293,11 @@ void DomainDecompositionBLOCK(struct Parameters *P, struct Header *H, int nx_gin
   /*tile the MPI processes in blocks*/
   /*this sets nproc_x, nproc_y, nproc_z */
   // chprintf("About to enter tiling block decomp\n");
-  //printf("Before TBD P nxp %d nyp %d nzp %d\n",P->n_proc_x,P->n_proc_y,P->n_proc_z);
+  // printf("Before TBD P nxp %d nyp %d nzp %d\n",P->n_proc_x,P->n_proc_y,P->n_proc_z);
 
   MPI_Barrier(world);
   TileBlockDecomposition();
-  //printf("After TBD P nxp %d nyp %d nzp %d\n",P->n_proc_x,P->n_proc_y,P->n_proc_z);
+  // printf("After TBD P nxp %d nyp %d nzp %d\n",P->n_proc_x,P->n_proc_y,P->n_proc_z);
 
   if (nz_global > nx_global) {
     int tmp;
@@ -305,7 +305,7 @@ void DomainDecompositionBLOCK(struct Parameters *P, struct Header *H, int nx_gin
     nproc_x = nproc_z;
     nproc_z = tmp;
   }
-  //printf("Before setting MPI grid P nxp %d nyp %d nzp %d\n",P->n_proc_x,P->n_proc_y,P->n_proc_z);
+  // printf("Before setting MPI grid P nxp %d nyp %d nzp %d\n",P->n_proc_x,P->n_proc_y,P->n_proc_z);
 
   if ((P->n_proc_x > 0) or (P->n_proc_y > 0) or (P->n_proc_z > 0)) {
     // (in reality all or none of the parameters will be 0)
@@ -555,18 +555,18 @@ void Allocate_MPI_DeviceBuffers(struct Header *H)
     ybsize = H->n_fields * H->n_ghost * (H->nx) * (H->nz - 2 * H->n_ghost);
     zbsize = H->n_fields * H->n_ghost * (H->nx) * (H->ny);
   #ifdef RT
-  #ifdef OTVET
+    #ifdef OTVET
     // Assuming n_freq = 3
     xbsize = std::max(xbsize, 12 * H->n_ghost * H->ny * H->nz);
     ybsize = std::max(ybsize, 12 * H->n_ghost * H->nx * H->nz);
     zbsize = std::max(zbsize, 12 * H->n_ghost * H->nx * H->ny);
-  #endif //OTVET
-  #ifdef M1
+    #endif  // OTVET
+    #ifdef M1
     // Assuming n_freq = 4, n_fpfreq = 4
     xbsize = std::max(xbsize, 16 * H->n_ghost * H->ny * H->nz);
     ybsize = std::max(ybsize, 16 * H->n_ghost * H->nx * H->nz);
     zbsize = std::max(zbsize, 16 * H->n_ghost * H->nx * H->ny);
-  #endif //M1
+    #endif  // M1
   #endif
   } else {
     throw std::runtime_error("MPI buffer size failed to set.");
@@ -578,13 +578,13 @@ void Allocate_MPI_DeviceBuffers(struct Header *H)
 
   #ifdef PARTICLES
   // Set Initial sizes for particles buffers
-  int n_max            = std::max(H->nx, H->ny);
-  n_max                = std::max(H->nz, n_max);
-  int factor           = 2; //BRANT ORIG
-  //int factor           = 3;
-  //int factor           = 5;
-  //int factor           = 6;
-  //int factor           = 8;
+  int n_max  = std::max(H->nx, H->ny);
+  n_max      = std::max(H->nz, n_max);
+  int factor = 2;  // BRANT ORIG
+  // int factor           = 3;
+  // int factor           = 5;
+  // int factor           = 6;
+  // int factor           = 8;
   N_PARTICLES_TRANSFER = n_max * n_max * factor;
 
   // Set the number of values that will be transferred for each particle

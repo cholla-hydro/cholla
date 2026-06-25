@@ -45,15 +45,15 @@ class Particles3D
   Real particle_mass;
 
     #ifdef COSMOLOGY
-  Real current_z; //current redshift
-  Real current_a; //current scale factor
+  Real current_z;  // current redshift
+  Real current_a;  // current scale factor
   struct Cosmo_ICs {
-    Real *phi_1;  // pointer to initial potential
-    Real *phi_bc; // pointer to baryon-cdm fluctuations
-    Real D;       // growth function at initial redshift
-    Real dDdt;    // growth function time derivative
-    Real dDda;    // growth function scale factor derivative
-    Real Ha;      // Hubble parameter at initial redshift
+    Real *phi_1;   // pointer to initial potential
+    Real *phi_bc;  // pointer to baryon-cdm fluctuations
+    Real D;        // growth function at initial redshift
+    Real dDdt;     // growth function time derivative
+    Real dDda;     // growth function scale factor derivative
+    Real Ha;       // Hubble parameter at initial redshift
   } CP;
   struct Cosmo_Header {
     int nx;
@@ -66,8 +66,8 @@ class Particles3D
     Real xbound;
     Real ybound;
     Real zbound;
-  } H;      // carry some information from Grid's header
-  
+  } H;  // carry some information from Grid's header
+
   /*! \fn void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real
    * *zpos) \brief Get the cell-centered position based on cell index */
   void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real *zpos) const;
@@ -312,12 +312,12 @@ class Particles3D
                                                       Real Omega_R, Real w0, Real wa);
   part_int_t Compute_Particles_GPU_Array_Size(part_int_t n);
   int Select_Particles_to_Transfer_GPU(int direction, int side);
-  //void Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, Real *send_buffer,
-   //                                          int buffer_length);
-  //void Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, int buffer_length);
-  //Real *Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, int buffer_length);
+  // void Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, Real *send_buffer,
+  //                                           int buffer_length);
+  // void Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, int buffer_length);
+  // Real *Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, int buffer_length);
   Real *Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, int *buffer_length);
-                                             
+
   void Replace_Transferred_Particles_GPU(int n_transfer);
   void Unload_Particles_from_Buffer_GPU(int direction, int side, Real *recv_buffer_h, int n_recv);
   void Copy_Transfer_Particles_from_Buffer_GPU(int n_recv, Real *recv_buffer_d);
@@ -345,8 +345,8 @@ class Particles3D
 
   void Initialize_Adiabatic_Expansion(struct Parameters *P);
 
-  void Initialize_Cosmological_ICs_Particles(struct Parameters *P, Real xbound, Real ybound, Real zbound,
-                                             Real xdglobal, Real ydglobal, Real zdglobal);
+  void Initialize_Cosmological_ICs_Particles(struct Parameters *P, Real xbound, Real ybound, Real zbound, Real xdglobal,
+                                             Real ydglobal, Real zdglobal);
 
   void Load_Particles_Data(struct Parameters *P);
 
@@ -390,10 +390,10 @@ class Particles3D
       #ifdef PARTICLES_GPU
   void Allocate_Memory_GPU_MPI();
   void ReAllocate_Memory_GPU_MPI();
-  //void Load_Particles_to_Buffer_GPU(int direction, int side, Real *send_buffer, int buffer_length);
-  //void Load_Particles_to_Buffer_GPU(int direction, int side, int buffer_length);
-  //Real * Load_Particles_to_Buffer_GPU(int direction, int side, int buffer_length);
-  Real * Load_Particles_to_Buffer_GPU(int direction, int side, int *buffer_length);
+  // void Load_Particles_to_Buffer_GPU(int direction, int side, Real *send_buffer, int buffer_length);
+  // void Load_Particles_to_Buffer_GPU(int direction, int side, int buffer_length);
+  // Real * Load_Particles_to_Buffer_GPU(int direction, int side, int buffer_length);
+  Real *Load_Particles_to_Buffer_GPU(int direction, int side, int *buffer_length);
 
       #endif  // PARTICLES_GPU
     #endif

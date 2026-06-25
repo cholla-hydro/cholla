@@ -35,7 +35,7 @@ void Set_Gammas(Real gamma_in)
 {
   // set gamma
   gama = gamma_in;
-  //chprintf("gamma = %e\n",gamma_in);
+  // chprintf("gamma = %e\n",gamma_in);
   CHOLLA_ASSERT(gama > 1.0, "Gamma must be greater than one.");
 }
 
@@ -104,12 +104,29 @@ char *Trim(char *s)
 
 // NOLINTNEXTLINE(cert-err58-cpp)
 // NOLINTNEXTLINE(*)
-const std::set<std::string> optionalParams = {"flag_delta",   "ddelta_dt",  "n_delta", "Lz",  "Lx", "phi",
-                                              "theta",        "delta",      "nzr",     "nxr", "H0", "Omega_M",
-                                              "Omega_L",      "Omega_R",    "Omega_K", "w0",  "wa", "Init_redshift",
-                                              "End_redshift", "tile_length", "outstep_dexinc", "max_timestep_dexinc",
+const std::set<std::string> optionalParams = {"flag_delta",
+                                              "ddelta_dt",
+                                              "n_delta",
+                                              "Lz",
+                                              "Lx",
+                                              "phi",
+                                              "theta",
+                                              "delta",
+                                              "nzr",
+                                              "nxr",
+                                              "H0",
+                                              "Omega_M",
+                                              "Omega_L",
+                                              "Omega_R",
+                                              "Omega_K",
+                                              "w0",
+                                              "wa",
+                                              "Init_redshift",
+                                              "End_redshift",
+                                              "tile_length",
+                                              "outstep_dexinc",
+                                              "max_timestep_dexinc",
                                               "max_timestep"};  // NOLINT //BRANT
-
 
 void Warn_Unused_Params(ParameterMap &pmap) { pmap.warn_unused_parameters(optionalParams); }
 
@@ -173,7 +190,6 @@ Parameters::Parameters(ParameterMap &pmap)
     parms->n_proc_z = 0;
   }
 
-
   // load boundary conditions
   parms->xl_bcnd = pmap.value<int>("xl_bcnd");
   parms->xu_bcnd = pmap.value<int>("xu_bcnd");
@@ -189,23 +205,22 @@ Parameters::Parameters(ParameterMap &pmap)
   parms->tout = pmap.value<double>("tout");  // aborts if missing
   CHOLLA_ASSERT(parms->tout >= 0.0, "tout parameter must be non-negative");
 
-  parms->outstep        = pmap.value<double>("outstep");  // aborts if missing
-  parms->outstep_dexinc = Real(pmap.value_or("outstep_dexinc",double(0))); // BRANT
-  parms->max_timestep_dexinc = Real(pmap.value_or("max_timestep_dexinc",double(0))); // BRANT
-  parms->max_timestep        = Real(pmap.value_or("max_timestep",double(0))); // BRANT
-  parms->n_steps_output = pmap.value_or("n_steps_output",0);
+  parms->outstep             = pmap.value<double>("outstep");                          // aborts if missing
+  parms->outstep_dexinc      = Real(pmap.value_or("outstep_dexinc", double(0)));       // BRANT
+  parms->max_timestep_dexinc = Real(pmap.value_or("max_timestep_dexinc", double(0)));  // BRANT
+  parms->max_timestep        = Real(pmap.value_or("max_timestep", double(0)));         // BRANT
+  parms->n_steps_output      = pmap.value_or("n_steps_output", 0);
 
   // in the future, maybe we should provide a default value of 5/3 for gamma
   parms->gamma = Real(pmap.value<double>("gamma"));
   CHOLLA_ASSERT(parms->gamma > 1.0, "gamma parameter must be greater than one.");
-  chprintf("Gamma = %f\n",parms->gamma);
+  chprintf("Gamma = %f\n", parms->gamma);
 
   // load in a handful of string parameters (this would look a lot more like parsing other parameters if we
   // stored the values as std::string values)
   Load_String_Param_Into_Char_Buffer(pmap, "init", parms->init, "");
   Load_String_Param_Into_Char_Buffer(pmap, "custom_bcnd", parms->custom_bcnd, "");
   Load_String_Param_Into_Char_Buffer(pmap, "indir", parms->indir, "");
-
 
   // ideally, we would only try to parse this for certain values of parms->init
   parms->nfile = pmap.value_or("nfile", 0);
@@ -340,14 +355,14 @@ Parameters::Parameters(ParameterMap &pmap)
   parms->wa            = pmap.value_or("wa", 0.0);
   parms->seed          = pmap.value_or("seed", 1337);
   // Hydrogen, Helium ionization fractions and helium mass fraction
-  parms->YHe           = pmap.value_or("YHe",  0.24);
-  parms->xHp           = pmap.value_or("xHp",  0.0);
-  parms->xHep          = pmap.value_or("xHep", 0.0);
+  parms->YHe  = pmap.value_or("YHe", 0.24);
+  parms->xHp  = pmap.value_or("xHp", 0.0);
+  parms->xHep = pmap.value_or("xHep", 0.0);
   if (not pmap.has_param("cosmo_ics_pk_file")) {
     CHOLLA_ERROR("Cosmology sims must specify a power spectrum cosmo_ics_pk_file");
   }
   Load_String_Param_Into_Char_Buffer(pmap, "cosmo_ics_pk_file", parms->cosmo_ics_pk_file, "Pk.txt");
-  chprintf("Power spectrum file: %s\n",parms->cosmo_ics_pk_file);
+  chprintf("Power spectrum file: %s\n", parms->cosmo_ics_pk_file);
 
   // if the wDE table isn't provided, store an empty string
   parms->wDE_file = pmap.value_or("wDE_file", "");
@@ -356,9 +371,9 @@ Parameters::Parameters(ParameterMap &pmap)
 
 #if defined(CHEMISTRY_GPU) || defined(COOLING_GRACKLE)
   // Not all chemistry_gpu will have a rates file
-  if(pmap.has_param("UVB_rates_file")) {
+  if (pmap.has_param("UVB_rates_file")) {
     Load_String_Param_Into_Char_Buffer(pmap, "UVB_rates_file", parms->UVB_rates_file, nullptr);
-    chprintf("UVB_rates_file %s\n",parms->UVB_rates_file);
+    chprintf("UVB_rates_file %s\n", parms->UVB_rates_file);
   }
 #endif
 

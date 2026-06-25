@@ -20,8 +20,8 @@
 #include "../io/io.h"
 #include "../utils/error_handling.h"
 #ifdef RT
-#include "../radiation/radiation.h"
-#endif 
+  #include "../radiation/radiation.h"
+#endif
 
 io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const FieldInfo& field_info)
     : fname_template_(FnameTemplate::from_pmap(pmap))
@@ -108,7 +108,7 @@ io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const 
   auto write_rt = [](Grid3D& G, Parameters P, int nfile, const FnameTemplate& fname_template) {
     G.Rad.Write_Restart_HDF5(&P, nfile, fname_template);
   };
-  int n_rt = 1; // undocumented?
+  int n_rt = 1;  // undocumented?
   packs_.push_back(io::detail::WriterPack{"rt", n_rt, write_rt});
 #endif
 }
