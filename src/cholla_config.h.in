@@ -117,6 +117,7 @@
 #configurefile_define COSMOLOGY
 #configurefile_define PRINT_INITIAL_STATS
 #configurefile_define TILED_INITIAL_CONDITIONS
+#configurefile_define FFT
 
 
 // =====================
