@@ -18,8 +18,8 @@ or create your own fork on github and clone that (recommended if you plan to con
 
 ## Compiling the code
 
-The main repository contains a Makefile that is used to configure the code, and a 'builds' directory where you can define your own make types (see [Compiling Cholla](./CompilingCholla.md)).
-Once you have downloaded the required compilers and libraries and added your machine to the builds, you should be able to compile Cholla by typing
+The main repository contains a Makefile that is used to configure the code, and a {repository-dir}`config` directory where you can define your own make types (see [Compiling Cholla](./CompilingCholla.md)).
+Once you have downloaded the required compilers and libraries and added your machine to the {repository-dir}`config` directory, you should be able to compile Cholla by typing
 
 ```shell-session
 $ make

@@ -66,7 +66,6 @@ int main(int argc, char *argv[])
 
   // input parameter variables
   char *param_file;
-  struct Parameters P;
   int nfile    = 0;  // number of output files
   Real outtime = 0;  // current output time
 
@@ -86,9 +85,15 @@ int main(int argc, char *argv[])
   // read in contents from the parameter file
   ParameterMap pmap(param_file, argc, argv);
 
-  // use this parameter information to populate the Parameter object
-  Parse_Params(pmap, &P);
-  // and output to screen
+  // construct P, a `Parameters` instance, using information from pmap
+  // - `Parameters` is a legacy type that we're phasing out (see docstring for details)
+  // - a highlevel description of the legacy/modern control flows:
+  //   -> legacy: parameter vals are copied from pmap into P, and subsequent code
+  //              initializes the simulation using parameter values from P
+  //   -> modern: code initializes the simulation by getting values directly from pmap
+  Parameters P(pmap);
+
+  // write a description of simulation configuration to console
   chprintf("Git Commit Hash = %s\n", GIT_HASH);
   chprintf("Macro Flags     = %s\n", MACRO_FLAGS);
   chprintf(

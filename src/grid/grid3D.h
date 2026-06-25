@@ -60,10 +60,7 @@
   #include "../analysis/analysis.h"
 #endif
 
-namespace io
-{
-struct Rotation;
-}  // namespace io
+class AttrRecorderInterface;
 
 struct Header {
   /*! \var n_cells
@@ -433,30 +430,17 @@ class Grid3D
   Real Update_Hydro_Grid(std::function<void(Grid3D &)> &chemistry_callback);
 
   void Update_Time();
-  /*! \fn void Write_Header_Text(FILE *fp)
-   *  \brief Write the relevant header info to a text output file. */
-  void Write_Header_Text(FILE *fp) const;
 
-#ifdef HDF5
-  /*! \fn void Write_Header_HDF5(hid_t file_id)
-   *  \brief Write the relevant header info to the HDF5 file. */
-  void Write_Header_HDF5(hid_t file_id);
-
-  /*! \fn void Write_Projection_HDF5(hid_t file_id)
-   *  \brief Write projected density and temperature data to a file. */
-  void Write_Projection_HDF5(hid_t file_id);
-
-  /*! \fn void Write_Header_Rotated_HDF5(hid_t file_id)
-   *  \brief Write the relevant header info to the HDF5 file for rotated
-   * projection. */
-  void Write_Header_Rotated_HDF5(hid_t file_id, io::Rotation &R);
-
-  /*! \fn void Write_Rotated_Projection_HDF5(hid_t file_id)
-   *  \brief Write rotated projected data to a file, at the current simulation
-   * time. */
-  void Write_Rotated_Projection_HDF5(hid_t file_id, const io::Rotation &R);
-
-#endif
+  /*! records the relevant file header information
+   *
+   *  This has been written so that the logic can be used for both text outputs and HDF5
+   *  outputs. By employing inheritance, there is minor runtime overhead (from using
+   *  virtual functions) when we record each item to the output
+   *
+   *  \param attr_recorder Attribute recorder implementing the interface specified by
+   *      the \ref AttrRecorderInterface
+   */
+  void Write_Header(AttrRecorderInterface &attr_recorder) const;
 
   /*! \fn void Read_Grid(struct Parameters P)
    *  \brief Read in grid data from 1-per-process output files. */
@@ -773,7 +757,13 @@ class Grid3D
   void OutputData_Particles(struct Parameters P, int nfile, const FnameTemplate &fname_template);
   void Load_Particles_Data(struct Parameters P);
   #ifdef HDF5
-  void Write_Particles_Header_HDF5(hid_t file_id);
+
+  /*! records the relevant file header information
+   *
+   *  \param attr_recorder Attribute recorder implementing the interface specified by
+   *      the \ref AttrRecorderInterface
+   */
+  void Write_Particles_Header(AttrRecorderInterface &attr_recorder);
   void Write_Particles_Data_HDF5(hid_t file_id);
   void Load_Particles_Data_HDF5(hid_t file_id, int nfile);
   #endif  // HDF5

@@ -110,183 +110,8 @@ const std::set<std::string> optionalParams = {"flag_delta",   "ddelta_dt",  "n_d
                                               "End_redshift", "tile_length", "outstep_dexinc", "max_timestep_dexinc",
                                               "max_timestep"};  // NOLINT //BRANT
 
-bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameters *parms);
-
-void Init_Param_Struct_Members(ParameterMap &param, struct Parameters *parms);
-
-void Parse_Params(ParameterMap &pmap, struct Parameters *parms)
-{
-#ifdef COSMOLOGY
-  // Initialize file name as an empty string
-  parms->scale_outputs_file[0] = '\0';
-#endif
-
-  // the plan is eventually replace Old_Style_Parse_Param entirely with
-  // Init_Param_Struct_Members.
-  auto fn = [&](const char *name, const char *value) -> bool { return Old_Style_Parse_Param(name, value, parms); };
-
-  pmap.pass_entries_to_legacy_parse_param(fn);
-
-  chprintf("xu_bcnd %d\n",parms->xu_bcnd);
-  chprintf("xl_bcnd %d\n",parms->xl_bcnd);
-
-  // the plan is to eventually, use the new parsing functions from Parse_Param like the following
-  Init_Param_Struct_Members(pmap, parms);
-
-}
 
 void Warn_Unused_Params(ParameterMap &pmap) { pmap.warn_unused_parameters(optionalParams); }
-
-/*! \fn void Parse_Param(char *name,char *value, struct Parameters *parms);
- *  \brief Parses and sets a single param based on name and value.
- *
- *  \returns true if the parameter was actually used. false otherwise.
- */
-bool Old_Style_Parse_Param(const char *name, const char *value, struct Parameters *parms)
-{
-  /* Copy into correct entry in parameters struct */
-  if (strcmp(name, "nfile") == 0) {
-    parms->nfile = atoi(value);
-  } else if (strcmp(name, "output_always") == 0) {
-    int tmp = atoi(value);
-    // In this case the CHOLLA_ASSERT macro runs into issuse with the readability-simplify-boolean-expr clang-tidy check
-    // due to some weird macro expansion stuff. That check has been disabled here for now but in clang-tidy 18 the
-    // IgnoreMacro option should be used instead.
-    // NOLINTNEXTLINE(readability-simplify-boolean-expr)
-    CHOLLA_ASSERT((tmp == 0) or (tmp == 1), "output_always must be 1 or 0.");
-    parms->output_always = tmp;
-  } else if (strcmp(name, "legacy_flat_outdir") == 0) {
-    int tmp = atoi(value);
-    CHOLLA_ASSERT((tmp == 0) or (tmp == 1), "legacy_flat_outdir must be 1 or 0.");
-    parms->legacy_flat_outdir = tmp;
-  } else if (strcmp(name, "n_steps_limit") == 0) {
-    parms->n_steps_limit = atof(value);
-  } else if (strcmp(name, "xmin") == 0) {
-    parms->xmin = atof(value);
-  } else if (strcmp(name, "ymin") == 0) {
-    parms->ymin = atof(value);
-  } else if (strcmp(name, "zmin") == 0) {
-    parms->zmin = atof(value);
-  } else if (strcmp(name, "xlen") == 0) {
-    parms->xlen = atof(value);
-  } else if (strcmp(name, "ylen") == 0) {
-    parms->ylen = atof(value);
-  } else if (strcmp(name, "zlen") == 0) {
-    parms->zlen = atof(value);
-  } else if (strcmp(name, "xl_bcnd") == 0) {
-    parms->xl_bcnd = atoi(value);
-  } else if (strcmp(name, "xu_bcnd") == 0) {
-    parms->xu_bcnd = atoi(value);
-  } else if (strcmp(name, "yl_bcnd") == 0) {
-    parms->yl_bcnd = atoi(value);
-  } else if (strcmp(name, "yu_bcnd") == 0) {
-    parms->yu_bcnd = atoi(value);
-  } else if (strcmp(name, "zl_bcnd") == 0) {
-    parms->zl_bcnd = atoi(value);
-  } else if (strcmp(name, "zu_bcnd") == 0) {
-    parms->zu_bcnd = atoi(value);
-  } else if (strcmp(name, "rho") == 0) {
-    parms->rho = atof(value);
-  } else if (strcmp(name, "vx") == 0) {
-    parms->vx = atof(value);
-  } else if (strcmp(name, "vy") == 0) {
-    parms->vy = atof(value);
-  } else if (strcmp(name, "vz") == 0) {
-    parms->vz = atof(value);
-  } else if (strcmp(name, "P") == 0) {
-    parms->P = atof(value);
-  } else if (strcmp(name, "Bx") == 0) {
-    parms->Bx = atof(value);
-  } else if (strcmp(name, "By") == 0) {
-    parms->By = atof(value);
-  } else if (strcmp(name, "Bz") == 0) {
-    parms->Bz = atof(value);
-  } else if (strcmp(name, "A") == 0) {
-    parms->A = atof(value);
-  } else if (strcmp(name, "rho_l") == 0) {
-    parms->rho_l = atof(value);
-  } else if (strcmp(name, "vx_l") == 0) {
-    parms->vx_l = atof(value);
-  } else if (strcmp(name, "vy_l") == 0) {
-    parms->vy_l = atof(value);
-  } else if (strcmp(name, "vz_l") == 0) {
-    parms->vz_l = atof(value);
-  } else if (strcmp(name, "P_l") == 0) {
-    parms->P_l = atof(value);
-  } else if (strcmp(name, "Bx_l") == 0) {
-    parms->Bx_l = atof(value);
-  } else if (strcmp(name, "By_l") == 0) {
-    parms->By_l = atof(value);
-  } else if (strcmp(name, "Bz_l") == 0) {
-    parms->Bz_l = atof(value);
-  } else if (strcmp(name, "rho_r") == 0) {
-    parms->rho_r = atof(value);
-  } else if (strcmp(name, "vx_r") == 0) {
-    parms->vx_r = atof(value);
-  } else if (strcmp(name, "vy_r") == 0) {
-    parms->vy_r = atof(value);
-  } else if (strcmp(name, "vz_r") == 0) {
-    parms->vz_r = atof(value);
-  } else if (strcmp(name, "P_r") == 0) {
-    parms->P_r = atof(value);
-  } else if (strcmp(name, "Bx_r") == 0) {
-    parms->Bx_r = atof(value);
-  } else if (strcmp(name, "By_r") == 0) {
-    parms->By_r = atof(value);
-  } else if (strcmp(name, "Bz_r") == 0) {
-    parms->Bz_r = atof(value);
-  } else if (strcmp(name, "diaph") == 0) {
-    parms->diaph = atof(value);
-  } else if (strcmp(name, "rEigenVec_rho") == 0) {
-    parms->rEigenVec_rho = atof(value);
-  } else if (strcmp(name, "rEigenVec_MomentumX") == 0) {
-    parms->rEigenVec_MomentumX = atof(value);
-  } else if (strcmp(name, "rEigenVec_MomentumY") == 0) {
-    parms->rEigenVec_MomentumY = atof(value);
-  } else if (strcmp(name, "rEigenVec_MomentumZ") == 0) {
-    parms->rEigenVec_MomentumZ = atof(value);
-  } else if (strcmp(name, "rEigenVec_E") == 0) {
-    parms->rEigenVec_E = atof(value);
-  } else if (strcmp(name, "rEigenVec_Bx") == 0) {
-    parms->rEigenVec_Bx = atof(value);
-  } else if (strcmp(name, "rEigenVec_By") == 0) {
-    parms->rEigenVec_By = atof(value);
-  } else if (strcmp(name, "rEigenVec_Bz") == 0) {
-    parms->rEigenVec_Bz = atof(value);
-  } else if (strcmp(name, "pitch") == 0) {
-    parms->pitch = atof(value);
-  } else if (strcmp(name, "yaw") == 0) {
-    parms->yaw = atof(value);
-  } else if (strcmp(name, "polarization") == 0) {
-    parms->polarization = atof(value);
-  } else if (strcmp(name, "radius") == 0) {
-    parms->radius = atof(value);
-  } else if (strcmp(name, "P_blast") == 0) {
-    parms->P_blast = atof(value);
-  } else if (strcmp(name, "wave_length") == 0) {
-    parms->wave_length = atof(value);
-#ifdef PARTICLES
-  } else if (strcmp(name, "prng_seed") == 0) {
-    parms->prng_seed = atoi(value);
-#endif  // PARTICLES
-#ifdef TILED_INITIAL_CONDITIONS
-  } else if (strcmp(name, "tile_length") == 0) {
-    parms->tile_length = atof(value);
-#endif  // TILED_INITIAL_CONDITIONS
-
-  } else if (strcmp(name, "bc_potential_type") == 0) {
-    parms->bc_potential_type = atoi(value);
-#ifdef SCALAR
-  #ifdef DUST
-  } else if (strcmp(name, "grain_radius") == 0) {
-    parms->grain_radius = atoi(value);
-  #endif
-#endif
-  } else {
-    return false;
-  }
-  return true;
-}
 
 /*! \brief this would be entirely unnecessary if the Parameters struct directly stored a std::string
  */
@@ -307,18 +132,28 @@ static void Load_String_Param_Into_Char_Buffer(ParameterMap &pmap, const std::st
   strncpy(dest_buffer, tmp.c_str(), MAXLEN);
 }
 
-/*! \brief Parses and sets a bunch of members of parms from pmap.
- *
- *  The goal is eventually get rid of the old-style function
- */
-void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
+Parameters::Parameters(ParameterMap &pmap)
 {
+  Parameters *parms = this;  // <- this is a minor hack to avoid making an enormous diff
+
   // load the domain dimensions (abort with an error if one of these is missing)
   parms->nx = pmap.value<int>("nx");
   parms->ny = pmap.value<int>("ny");
   parms->nz = pmap.value<int>("nz");
 
   CHOLLA_ASSERT((parms->nx >= 0) and (parms->ny >= 0) and (parms->nz >= 0), "domain dimensions must be positive");
+
+  // parse the position of the lower left corner of the simulation domain
+  parms->xmin = pmap.value<double>("xmin");
+  parms->ymin = pmap.value<double>("ymin");
+  parms->zmin = pmap.value<double>("zmin");
+
+  // parse the lengths of each domain dimension
+  parms->xlen = pmap.value<double>("xlen");
+  parms->ylen = pmap.value<double>("ylen");
+  parms->zlen = pmap.value<double>("zlen");
+  CHOLLA_ASSERT((parms->xlen > 0) and (parms->ylen > 0) and (parms->zlen > 0), "xlen, ylen, & zlen must be positive");
+
   // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z]
   if (pmap.has_param("n_proc_x") or pmap.has_param("n_proc_y") or pmap.has_param("n_proc_z")) {
     parms->n_proc_x = pmap.value<int>("n_proc_x");
@@ -338,7 +173,14 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
     parms->n_proc_z = 0;
   }
 
-  chprintf("n_proc_x %d n_proc_y %d n_proc_z %d\n",parms->n_proc_x,parms->n_proc_y,parms->n_proc_z);
+
+  // load boundary conditions
+  parms->xl_bcnd = pmap.value<int>("xl_bcnd");
+  parms->xu_bcnd = pmap.value<int>("xu_bcnd");
+  parms->yl_bcnd = pmap.value<int>("yl_bcnd");
+  parms->yu_bcnd = pmap.value<int>("yu_bcnd");
+  parms->zl_bcnd = pmap.value<int>("zl_bcnd");
+  parms->zu_bcnd = pmap.value<int>("zu_bcnd");
 
 #ifdef STATIC_GRAV
   parms->custom_grav = pmap.value_or("custom_grav", 0);
@@ -362,10 +204,98 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   // stored the values as std::string values)
   Load_String_Param_Into_Char_Buffer(pmap, "init", parms->init, "");
   Load_String_Param_Into_Char_Buffer(pmap, "custom_bcnd", parms->custom_bcnd, "");
-  Load_String_Param_Into_Char_Buffer(pmap, "outdir", parms->outdir, "");
   Load_String_Param_Into_Char_Buffer(pmap, "indir", parms->indir, "");
 
-  chprintf("outdir %s\n",parms->outdir);
+
+  // ideally, we would only try to parse this for certain values of parms->init
+  parms->nfile = pmap.value_or("nfile", 0);
+
+  // load in values related to initial conditions
+  //
+  // In the future, we **REALLY**, want to only load the values when/where we use them.
+  // - This usually (maybe always?) means, within the initial-condition method of Grid3D
+  // - The benefit of doing this: we will be able to warn if a parameter is specified
+  //   but not used (this is REALLY easy to accidentally do)
+  //
+  // We need to keep 2 things in mind while doing that:
+  // 1. We want to be EXTREMELY sure that a single execution of Cholla never reads a
+  //    parameter more than once
+  //    - in this scenario, it would be extremely easy for different parts of the code
+  //      to accidentally start using different default values, which would introduce
+  //      lots of hard to debug issues
+  //    - while there are some potential workarounds to this, I think they might
+  //      produce some undesired long-term behavior (plus, they are imperfect)
+  // 2. We may want to consider renaming the parameters. For example, maybe
+  //    Grid3D::Sound_Wave should read in "IC.Sound_Wave.rho" instead of just "rho".
+  //    This is useful in 2 regards:
+  //    a) this helps us avoid situations where we accidentally read in a parameter
+  //       more than once
+  //    b) we can reduce the number of parameters with extremely generic names in the
+  //       parameter file
+  parms->rho                 = pmap.value_or("rho", 0.0);
+  parms->vx                  = pmap.value_or("vx", 0.0);
+  parms->vy                  = pmap.value_or("vy", 0.0);
+  parms->vz                  = pmap.value_or("vz", 0.0);
+  parms->P                   = pmap.value_or("P", 0.0);
+  parms->Bx                  = pmap.value_or("Bx", 0.0);
+  parms->By                  = pmap.value_or("By", 0.0);
+  parms->Bz                  = pmap.value_or("Bz", 0.0);
+  parms->A                   = pmap.value_or("A", 0.0);
+  parms->rho_l               = pmap.value_or("rho_l", 0.0);
+  parms->vx_l                = pmap.value_or("vx_l", 0.0);
+  parms->vy_l                = pmap.value_or("vy_l", 0.0);
+  parms->vz_l                = pmap.value_or("vz_l", 0.0);
+  parms->P_l                 = pmap.value_or("P_l", 0.0);
+  parms->Bx_l                = pmap.value_or("Bx_l", 0.0);
+  parms->By_l                = pmap.value_or("By_l", 0.0);
+  parms->Bz_l                = pmap.value_or("Bz_l", 0.0);
+  parms->rho_r               = pmap.value_or("rho_r", 0.0);
+  parms->vx_r                = pmap.value_or("vx_r", 0.0);
+  parms->vy_r                = pmap.value_or("vy_r", 0.0);
+  parms->vz_r                = pmap.value_or("vz_r", 0.0);
+  parms->P_r                 = pmap.value_or("P_r", 0.0);
+  parms->Bx_r                = pmap.value_or("Bx_r", 0.0);
+  parms->By_r                = pmap.value_or("By_r", 0.0);
+  parms->Bz_r                = pmap.value_or("Bz_r", 0.0);
+  parms->diaph               = pmap.value_or("diaph", 0.0);
+  parms->rEigenVec_rho       = pmap.value_or("rEigenVec_rho", 0.0);
+  parms->rEigenVec_MomentumX = pmap.value_or("rEigenVec_MomentumX", 0.0);
+  parms->rEigenVec_MomentumY = pmap.value_or("rEigenVec_MomentumY", 0.0);
+  parms->rEigenVec_MomentumZ = pmap.value_or("rEigenVec_MomentumZ", 0.0);
+  parms->rEigenVec_E         = pmap.value_or("rEigenVec_E", 0.0);
+  parms->rEigenVec_Bx        = pmap.value_or("rEigenVec_Bx", 0.0);
+  parms->rEigenVec_By        = pmap.value_or("rEigenVec_By", 0.0);
+  parms->rEigenVec_Bz        = pmap.value_or("rEigenVec_Bz", 0.0);
+  parms->pitch               = pmap.value_or("pitch", 0.0);
+  parms->yaw                 = pmap.value_or("yaw", 0.0);
+  parms->polarization        = pmap.value_or("polarization", 0.0);
+  parms->radius              = pmap.value_or("radius", 0.0);
+  parms->P_blast             = pmap.value_or("P_blast", 0.0);
+  parms->wave_length         = pmap.value_or("wave_length", 1.0);
+
+#ifdef TILED_INITIAL_CONDITIONS
+  parms->tile_length = pmap.value<double>("tile_length");
+#endif  // TILED_INITIAL_CONDITIONS
+
+  // parse some assorted values (we should parse them only where we need them)
+  {
+    int tmp = pmap.value_or("output_always", 0);
+    CHOLLA_ASSERT((tmp == 0) or (tmp == 1), "output_always must be 1 or 0.");
+    parms->output_always = tmp;
+  }
+
+  parms->n_steps_limit = pmap.value_or("n_steps_limit", -1);
+
+#ifdef PARTICLES
+  parms->prng_seed = pmap.value_or("prng_seed", 0);
+#endif  // PARTICLES
+
+  // a negative value means that the parameter wasn't set
+  parms->bc_potential_type = pmap.value_or("bc_potential_type", -1);
+
+#if defined(SCALAR) && defined(DUST)
+  parms->grain_radius = pmap.value<double>("grain_radius");
+#endif  // defined(SCALAR) && defined(DUST)
 
   // in the future, the feedback module will read in its own parameters (the global Parameter struct won't
   // know anything about it)
@@ -389,6 +319,7 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   // were specified (& there were no default values). Now cosmological simulations will loudly fail if a user forgets
   // parameters like H0, Omega_M, Omega_L, Omega_b, etc.
 #ifdef COSMOLOGY
+  parms->scale_outputs_file[0] = '\0';  // <- unclear how necessary this is
   if (not pmap.has_param("End_redshift") and not pmap.has_param("scale_outputs_file")) {
     CHOLLA_ERROR("either the scale_outputs_file or End_redshift parameter must be provided in Cosmology sims");
   } else {
@@ -417,6 +348,10 @@ void Init_Param_Struct_Members(ParameterMap &pmap, struct Parameters *parms)
   }
   Load_String_Param_Into_Char_Buffer(pmap, "cosmo_ics_pk_file", parms->cosmo_ics_pk_file, "Pk.txt");
   chprintf("Power spectrum file: %s\n",parms->cosmo_ics_pk_file);
+
+  // if the wDE table isn't provided, store an empty string
+  parms->wDE_file = pmap.value_or("wDE_file", "");
+
 #endif  // COSMOLOGY
 
 #if defined(CHEMISTRY_GPU) || defined(COOLING_GRACKLE)

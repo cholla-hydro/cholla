@@ -1,11 +1,13 @@
 # 2D Rayleigh-Taylor Test
 
-This test demonstrates the mixing resulting from a dense fluid placed on top of a less dense fluid. The bottom half of the grid is given of density of 1.0 while the top has a value of 2.0. Y velocities across the grid are set as a small pertubation tapering off from the center. For both halves, pressure is initialized as decreasing with increasing y position. Gamma is set to 1.4. This test is performed with the static gravity build (`cholla/builds/make.type.static_grav`) and Van Leer integrator.
+This test demonstrates the mixing resulting from a dense fluid placed on top of a less dense fluid. The bottom half of the grid is given of density of 1.0 while the top has a value of 2.0. Y velocities across the grid are set as a small pertubation tapering off from the center. For both halves, pressure is initialized as decreasing with increasing y position. Gamma is set to 1.4. This test is performed with the static gravity build ({repository-file}`config/make.type.static_grav`) and Van Leer integrator.
 Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Rayleigh_Taylor()`. 
+
+The parameter file can be found at: {repository-file}`examples/2D/Rayleigh_Taylor.txt`
 
 ## Parameter file:
 
-This parameter file can be found in [examples/2D/Rayleigh_Taylor.txt](https://github.com/cholla-hydro/cholla/blob/main/examples/2D/Rayleigh_Taylor.txt) on the `dev` branch.
+Parameter file can be found on the `dev` branch.
 ```
 #
 # Parameter File for the 2D Rayleigh-Taylor test.
@@ -53,7 +55,7 @@ You must add the following lines to `src/gravity/static_grav.h` under the functi
 ```
 Any other values assigned to `*gx` and `*gy` should be commented out.  
   
-Upon completion, you should obtain 101 output files. The initial, intermediate, and final density and pressure (in code units) is shown below. Examples of how to plot projections and slices can be found in `cholla/python_scripts/Projection_Slice_Tutorial.ipynb`. 
+Upon completion, you should obtain 101 output files. The initial, intermediate, and final density and pressure (in code units) is shown below. Examples of how to plot projections and slices can be found in the [General 2D plotting example](../../PythonExamples/2D-plotting.md).
 :::{figure} rayleigh_taylor_2D_xy.png
 Rayleigh-Taylor test solution from Cholla.
 ::: 

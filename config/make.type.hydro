@@ -1,0 +1,38 @@
+#-- Default hydro only build
+
+DFLAGS    += -DMPI_CHOLLA
+DFLAGS    += -DPRECISION=2
+DFLAGS    += -DHLLC
+
+# Integrator
+ifeq ($(findstring cosmology,$(TYPE)),cosmology)
+DFLAGS    += -DSIMPLE
+DFLAGS    += -DPPMP
+else
+DFLAGS    += -DVL
+DFLAGS    += -DPLMC
+endif
+
+# Apply a density and temperature floor
+DFLAGS    += -DDENSITY_FLOOR
+DFLAGS    += -DTEMPERATURE_FLOOR
+
+# Solve the Gas Internal Energy using a Dual Energy Formalism
+#DFLAGS    += -DDE
+
+# Apply cooling on the GPU from precomputed tables
+#DFLAGS    += -DCOOLING_GPU
+
+# Measure the Timing of the different stages
+#DFLAGS    += -DCPU_TIME
+
+# Select output format
+# Can also add -DSLICES and -DPROJECTION
+OUTPUT    ?=  -DOUTPUT -DHDF5
+DFLAGS    += $(OUTPUT)
+
+#Select if the Hydro Conserved data will reside in the GPU
+#and the MPI transfers are done from the GPU
+#If not specified, MPI_GPU is off by default
+#This is set in the system make.host file
+DFLAGS    += $(MPI_GPU)

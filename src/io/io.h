@@ -6,14 +6,18 @@
 
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <sstream>
+#include <type_traits>  // std::is_same
+#include <utility>      // std::swap, std::move
 
 #include "../global/global.h"
 #include "../grid/grid3D.h"
+#include "../io/AttrRecorderInterface.h"
 #include "../io/FieldWriter.h"
 #include "../io/FnameTemplate.h"
-#include "../io/RotatedProjWriter.h"  // io::Rotation
 #include "../io/WriterManager.h"
+#include "../utils/error_handling.h"
 
 /*! Local function that designates whether we are using a root-process. It gives
  *  a sensible result regardless of whether we are using MPI
@@ -31,9 +35,6 @@ void Print_Stats(Grid3D& G);
  *  \param writer_manager Manages the data writers.
  */
 void Write_Data(Grid3D& G, struct Parameters P, int nfile, const io::WriterManager& write_manager);
-
-/* Output a projection of the grid data to file. */
-void Output_Projected_Data(Grid3D& G, struct Parameters P, int nfile, const FnameTemplate& fname_template);
 
 /* MPI-safe printf routine */
 int chprintf(const char* __restrict sdata, ...);
@@ -70,8 +71,70 @@ void Ensure_Dir_Exists(std::string dir_path);
 #ifdef HDF5
 // From io/io.cpp
 
-herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, double* attribute, const char* name);
-herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, int* attribute, const char* name);
+/*! Encapsulates a simple 1D H5 dataspace
+ *
+ *  After a LOT of debugging, it turns out that we need to preserve the pointer used
+ *  used to call @ref H5Screate_simple. This class does that for us in a convenient way
+ *  for implementing @ref H5AttrRecorder
+ */
+class H5Space1D
+{
+  std::unique_ptr<hsize_t> dim_;
+  hid_t id_;
+
+ public:
+  H5Space1D() : dim_(nullptr), id_{H5I_INVALID_HID} {}
+  H5Space1D(hsize_t dim) : H5Space1D() { this->ensure_dim(dim); }
+  H5Space1D(H5Space1D&& other) noexcept : H5Space1D() { *this = std::move(other); }
+
+  /*! Move Assignment */
+  H5Space1D& operator=(H5Space1D&& other) noexcept;
+
+  ~H5Space1D()
+  {
+    if (this->id_ != H5I_INVALID_HID) H5Sclose(this->id_);
+  }
+
+  /*! get the dataspace id */
+  hid_t id() const { return this->id_; }
+
+  /*! ensure that the underlying dataspace dimension is `dim` (dataspace id may change) */
+  H5Space1D& ensure_dim(hsize_t dim);
+};
+
+/*! Provides a nice wrapper around an hdf5 file handle for the purpose of recording
+ *  attributes
+ */
+class H5AttrRecorder : public AttrRecorderInterface
+{
+  hid_t file_id_;
+  hid_t stringType_;
+  H5Space1D cached_dataspace_;
+
+  hid_t make_attr_1d_(const char* name, hid_t type_id, hsize_t n_elem);
+
+ public:
+  H5AttrRecorder() = delete;
+
+  explicit H5AttrRecorder(hid_t file_id)
+  {
+    this->file_id_    = file_id;
+    this->stringType_ = H5Tcopy(H5T_C_S1);
+    CHOLLA_ASSERT(H5Tset_size(this->stringType_, H5T_VARIABLE) >= 0, "error creating the string type");
+  }
+
+  ~H5AttrRecorder() override { H5Tclose(this->stringType_); }
+
+  void record_arr(const char* name, const double* arr, int length) override;
+  void record_arr(const char* name, const int* arr, int length) override;
+  void record_arr(const char* name, const long* arr, int length) override;
+  void record(const char* name, const char* val) override;
+
+  // for historical consistency scalar arithmetic values are saved as 1-element arrays
+  void record(const char* name, double val) override { this->record_arr(name, &val, 1); }
+  void record(const char* name, int val) override { this->record_arr(name, &val, 1); }
+  void record(const char* name, long val) override { this->record_arr(name, &val, 1); }
+};
 
 herr_t Read_HDF5_Dataset(hid_t file_id, double* dataset_buffer, const char* name);
 herr_t Read_HDF5_Dataset(hid_t file_id, float* dataset_buffer, const char* name);

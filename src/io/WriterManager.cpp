@@ -14,6 +14,7 @@
 #include "../gravity/grav3D.h"
 #include "../io/FieldWriter.h"        // FieldWriter
 #include "../io/ParameterMap.h"       // define ParameterMap
+#include "../io/ProjectionWriter.h"   // ProjectionWriter
 #include "../io/RotatedProjWriter.h"  // RotatedProjWriter
 #include "../io/SliceWriter.h"        // SliceWriter
 #include "../io/io.h"
@@ -23,7 +24,7 @@
 #endif 
 
 io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const FieldInfo& field_info)
-    : fname_template_(P)
+    : fname_template_(FnameTemplate::from_pmap(pmap))
 {
   int ndim;
   if ((P.nx > 1) and (P.ny > 1) and (P.nz > 1)) {
@@ -73,7 +74,7 @@ io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const 
   }
 
 #ifdef PROJECTION
-  packs_.push_back(io::detail::WriterPack{"projection", pmap.value_or("n_projection", 1), &Output_Projected_Data});
+  packs_.push_back(io::detail::WriterPack{"projection", pmap.value_or("n_projection", 1), ProjectionWriter()});
 #endif /*PROJECTION*/
 
 #ifdef ROTATED_PROJECTION
