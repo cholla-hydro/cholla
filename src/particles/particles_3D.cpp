@@ -269,7 +269,7 @@ void Particles3D::Initialize(Parameters *P, const SpatialDomainProps &spatial_pr
 #ifdef COSMOLOGY
   } else if (strcmp(P->init, "Cosmological_ICs") == 0) {
     Initialize_Cosmological_ICs_Particles(P, xbound, ybound, zbound, xdglobal, ydglobal, zdglobal);
-#end 
+#endif
   } else if (strcmp(P->init, "Read_Grid") == 0) {
     Load_Particles_Data(P);
   } else if (strcmp(P->init, "Isolated_Stellar_Cluster") == 0) {
