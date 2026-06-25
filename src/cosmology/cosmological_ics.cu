@@ -1,17 +1,18 @@
 #ifdef COSMOLOGY
-  #include <fstream>
-  #include <cstdio>
   #include <hdf5.h>
 
+  #include <cstdio>
+  #include <fstream>
+
+  #include "../fft/fft_3D.h"
   #include "../global/global.h"
   #include "../grid/grid3D.h"
   #include "../grid/grid_enum.h"
   #include "../io/io.h"
   #include "../utils/cuda_utilities.h"
   #include "../utils/gpu.hpp"
-  #include "../fft/fft_3D.h"
-  #include "rng.h"
   #include "field_operations.h"
+  #include "rng.h"
 
 /*! \fn void Generate_Cosmo_Phi_Init(void)
  *  \brief Create the potentials for cosmological ICs */
@@ -329,7 +330,7 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
   Real *phi_out;  // output cosmological potential
 
   // Create a file name for each hdf5 output
-  //sprintf(fname, "%s0/delta_ini.h5.%d", P->outdir, procID);
+  // sprintf(fname, "%s0/delta_ini.h5.%d", P->outdir, procID);
   sprintf(fname, "delta_ini.h5.%d", procID);
 
   // create a file

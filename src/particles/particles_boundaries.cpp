@@ -988,7 +988,7 @@ Real *Particles3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dir
     Extend_GPU_Array(&send_buffer_d, *buffer_size,
                      G.gpu_allocation_factor * (*n_send + n_transfer) * N_DATA_PER_PARTICLE_TRANSFER, true);
     //*buffer_size = (part_int_t)G.gpu_allocation_factor * (*n_send + n_transfer) * N_DATA_PER_PARTICLE_TRANSFER; //
-    //This is wrong
+    // This is wrong
     *buffer_size   = (part_int_t)(G.gpu_allocation_factor * (*n_send + n_transfer) *
                                 N_DATA_PER_PARTICLE_TRANSFER);  // BRANT DO WE NEED TO MATCH??
     *buffer_length = *buffer_size;

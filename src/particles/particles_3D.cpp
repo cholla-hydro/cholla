@@ -266,10 +266,10 @@ void Particles3D::Initialize(Parameters *P, const SpatialDomainProps &spatial_pr
     Initialize_Zeldovich_Pancake(P);
   } else if (strcmp(P->init, "Adiabatic_Expansion") == 0) {
     Initialize_Adiabatic_Expansion(P);
-#ifdef COSMOLOGY
+  #ifdef COSMOLOGY
   } else if (strcmp(P->init, "Cosmological_ICs") == 0) {
     Initialize_Cosmological_ICs_Particles(P, xbound, ybound, zbound, xdglobal, ydglobal, zdglobal);
-#endif
+  #endif
   } else if (strcmp(P->init, "Read_Grid") == 0) {
     Load_Particles_Data(P);
   } else if (strcmp(P->init, "Isolated_Stellar_Cluster") == 0) {

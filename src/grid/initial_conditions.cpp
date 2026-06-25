@@ -2550,7 +2550,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         C.HeI_density[id]   = (1 - xHep) * YHe * dens;       // HeI   density
         C.HeII_density[id]  = xHep * YHe * dens;             // HeII  density
         C.HeIII_density[id] = 0;                             // HeIII density
-            // C.e_density[id]     = dens_factor;
+                                                             // C.e_density[id]     = dens_factor;
     #endif
 
         // compute the momenta
