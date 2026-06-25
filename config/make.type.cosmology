@@ -1,4 +1,4 @@
-include builds/make.type.particles
+include config/make.type.particles
 
 # Solve the equation of motion (Particles and Hydro) on a comoving frame
 DFLAGS += -DCOSMOLOGY

@@ -1,4 +1,4 @@
-include builds/make.type.hydro
+include config/make.type.hydro
 
 # Turn on Radiative Transfer
 DFLAGS += -DRT -DSCALAR -DCHEMISTRY_GPU

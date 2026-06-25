@@ -1,4 +1,4 @@
-include builds/make.type.gravity
+include config/make.type.gravity
 
 # Turn on Radiative Transfer
 DFLAGS += -DRT -DSCALAR -DCHEMISTRY_GPU
