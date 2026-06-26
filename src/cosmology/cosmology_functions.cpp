@@ -25,6 +25,11 @@ void Grid3D::Initialize_Cosmology(struct Parameters *P)
     H.Output_Now = true;
   }
 
+  if (strcmp(P->init, "Cosmological_ICs")) {
+    //Here, we free the ICs fields
+    Free_Cosmo_Potential_Memory();
+  }
+
   chprintf("Cosmology Successfully Initialized. \n\n");
 }
 
