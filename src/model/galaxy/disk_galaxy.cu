@@ -2,19 +2,6 @@
 #include "disk_galaxy.h"
 #include "potentials.h"
 
-DiskGalaxy galaxies::make_MW_model(ParameterMap& pmap)
-{
-  // The first snippet is intended to approximate a Milky Way -like Galaxy
-  // For consistency with the CGOLs style model: upper cluster-mass limit of 2e5 Msun
-  return DiskGalaxy(ClusterMassDistribution(pmap), MiyamotoNagaiPotential(pmap), GasDiskProps::Create(pmap),
-                    NFWHaloPotential::Create(pmap), 157.0);
-  // the following shows our historical parametrization for M82:
-  // return DiskGalaxy(MiyamotoNagaiPotential(pmap),  // stellar_disk
-  //                   GasDiskProps::Create(pmap), NFWHaloPotential::Create(pmap), 100.0);
-}
-
-// here we define the methods
-
 ClusterMassDistribution::ClusterMassDistribution(ParameterMap& pmap)
     : ClusterMassDistribution(pmap.value<double>("model.galaxy.cluster_mass_dist.lo_Msun"),
                               pmap.value<double>("model.galaxy.cluster_mass_dist.hi_Msun"),
@@ -27,14 +14,17 @@ ClusterMassDistribution::ClusterMassDistribution(ParameterMap& pmap)
 //  classes aren't available when define DiskGalaxy)
 DiskGalaxy::~DiskGalaxy() {}
 
-DiskGalaxy::DiskGalaxy(const MiyamotoNagaiPotential& stellar_disk, const GasDiskProps& gas_disk,
-                       const NFWHaloPotential& halo_potential, Real rcool)
-    : stellar_disk(new MiyamotoNagaiPotential(stellar_disk)),
-      gas_disk(new GasDiskProps(gas_disk)),
-      halo_potential(new NFWHaloPotential(halo_potential)),
-      cluster_mass_distribution_{nullptr}
+DiskGalaxy::DiskGalaxy(ParameterMap& pmap)
+    : stellar_disk(new MiyamotoNagaiPotential(pmap)),
+      gas_disk(new GasDiskProps(GasDiskProps::Create(pmap))),
+      halo_potential(new NFWHaloPotential(NFWHaloPotential::Create(pmap))),
+      cluster_mass_distribution_{nullptr},
+      r_cool(pmap.value<double>("model.galaxy.initial_cool_radius_kpc"))
 {
-  r_cool = rcool;
+  CHOLLA_ASSERT(r_cool > 0, "initial_cool_radius must be positive: %g", r_cool);
+  if (pmap.Contains_Table("model.galaxy.cluster_mass_dist")) {
+    cluster_mass_distribution_ = std::make_shared<ClusterMassDistribution>(pmap);
+  }
 }
 
 Real DiskGalaxy::gr_disk_D3D(Real R, Real z) const noexcept { return stellar_disk->gr_disk_D3D(R, z); }

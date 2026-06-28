@@ -58,6 +58,9 @@ boundary_strategy=snap
 # ==============================================
 # These parameters were chosen to approximate a Milky Way-like galaxy
 
+[model.galaxy]
+initial_cool_radius_kpc=157
+
 [model.galaxy.cluster_mass_dist]
 # specify parameters for the cluster mass PDF, which is written as
 #     P(M_cluster) = / A * M^(-alpha),  for lo <= M < hi

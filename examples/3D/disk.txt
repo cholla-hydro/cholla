@@ -49,6 +49,9 @@ outdir=./
 # ==============================================
 # These parameters were chosen to approximate a Milky Way-like galaxy
 
+[model.galaxy]
+initial_cool_radius_kpc=157
+
 [model.galaxy.gas_disk]
 # the gas disk mass was selected to be 15% of old-stellar disk mass
 mass_Msun=9.75e9
@@ -84,6 +87,9 @@ scale_height_kpc=0.7
 # historical parameterization of a disk galaxy model approximating M82:
 # =====================================================================
 # NOTE: the following were all previously hardcoded in the codebase
+#
+# [model.galaxy]
+# initial_cool_radius_kpc=100
 #
 # [model.galaxy.gas_disk]
 # # the gas disk mass was selected to be 25% of old-stellar disk mass
