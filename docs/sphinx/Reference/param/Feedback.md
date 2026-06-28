@@ -54,4 +54,4 @@ More details are provided {ref}`here <SNe-Prescription-Descriptions>`.
 
 When `"table"` (the default value) is specified, Cholla determines the rate from a table.
 `"immediate_sn"` schedules a single supernova to occur, immediately after the simulation starts.
-More details are provided ({ref}`here <general-SNe-rate>`
+More details are provided {ref}`here <general-SNe-rate>`.

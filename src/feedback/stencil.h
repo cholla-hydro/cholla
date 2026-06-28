@@ -562,8 +562,6 @@ static __forceinline__ __device__ void for_each_sphere_(hydro_utilities::VectorX
   const int leftmost_indx_y = int(pos_indU[1] - l_offset);
   const int leftmost_indx_z = int(pos_indU[2] - l_offset);
 
-  static_assert(CellsPerDiameter == 2);  // this is temporary!
-
   // Step 2: get the number of super-samples within each of the 27 possible cells (This is not
   //         actually necessary for some stencil evaluation-flavors)
 
