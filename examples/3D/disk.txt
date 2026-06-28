@@ -50,8 +50,19 @@ mass_Msun=1.012e12
 virial_radius_kpc=261
 concentration=18
 
+[model.galaxy.static_potential.old_stellar_disk]
+mass_Msun=6.5e10
+scale_radius_kpc=2.7
+scale_height_kpc=0.7
+
 # approximate (historical) M82 vals:
+#
 # [model.galaxy.static_potential.halo]
 # mass_Msun=4.0e10
 # virial_radius_kpc=53.333333333333333
 # concentration=10
+#
+# [model.galaxy.static_potential.old_stellar_disk]
+# mass_Msun=1.0e10
+# scale_radius_kpc=0.8
+# scale_height_kpc=0.15

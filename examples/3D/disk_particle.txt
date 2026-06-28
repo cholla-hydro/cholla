@@ -58,3 +58,8 @@ boundary_strategy=snap
 mass_Msun=1.012e12
 virial_radius_kpc=261
 concentration=18
+
+[model.galaxy.static_potential.old_stellar_disk]
+mass_Msun=6.5e10
+scale_radius_kpc=2.7
+scale_height_kpc=0.7

@@ -137,9 +137,9 @@ struct MiyamotoNagaiPotential {
 
   /*! \brief Construct an instance from a parameter map */
   __host__ explicit MiyamotoNagaiPotential(ParameterMap& pmap)
-      : MiyamotoNagaiPotential(pmap.value<double>("model.galaxy.static_potential.stellar_disk.mass_Msun"),
-                               pmap.value<double>("model.galaxy.static_potential.stellar_disk.scale_radius_kpc"),
-                               pmap.value<double>("model.galaxy.static_potential.stellar_disk.scale_height_kpc"))
+      : MiyamotoNagaiPotential(pmap.value<double>("model.galaxy.static_potential.old_stellar_disk.mass_Msun"),
+                               pmap.value<double>("model.galaxy.static_potential.old_stellar_disk.scale_radius_kpc"),
+                               pmap.value<double>("model.galaxy.static_potential.old_stellar_disk.scale_height_kpc"))
   {
     CHOLLA_ASSERT(M_d > 0, "disk mass must be positive: %g", M_d);
   }
