@@ -5,13 +5,23 @@
 
 // all masses in M_sun and all distances in kpc
 
+// Original Philosophy
+// -------------------
 // For the MilkyWay model, we adopt radial scale lengths of 2.5 kpc and 3.5 kpc for
 // the stellar and gas disks, respectively. If the newly formed stars follow the
 // Kennicut-Schmidt law with a power of 1.4, the newly formed stars will organize
-// into a disk with scale-length of 2.5 kpc
-const ClusteredDiskGalaxy galaxies::MW(ClusterMassDistribution{1e2, 5e5, 2.0},
-                                       MiyamotoNagaiPotential{6.5e10, 2.5, 0.7},                // stellar_disk
-                                       GasDiskProps{0.15 * 6.5e10, 3.5, 0.7, 1e4, true, 0.02},  // gas_disk
+// into a disk with scale-length of 2.5 kpc.
+// We also liked an upper cluster-mass limit of 5e5 Msun
+//
+// Actual Choice
+// -------------
+// For consistency with the CGOLs style model:
+//  -> stellar disk scale-length of 2.7 kpc
+//  -> gas disk scale-length of 5.4 kpc
+//  -> upper cluster-mass limit of 2e5 Msun
+const ClusteredDiskGalaxy galaxies::MW(ClusterMassDistribution{1e2, 2e5, 2.0},
+                                       MiyamotoNagaiPotential{6.5e10, 2.7, 0.7},                // stellar_disk
+                                       GasDiskProps{0.15 * 6.5e10, 5.4, 0.7, 1e4, true, 0.02},  // gas_disk
                                        1.077e12, 261, 18, 157.0);
 const DiskGalaxy galaxies::M82(MiyamotoNagaiPotential{1.0e10, 0.8, 0.15},                       // stellar_disk
                                GasDiskProps{0.25 * 1.0e10, 2 * 0.8, 0.15, 1e4, true, 2 * 0.8},  // gas_disk

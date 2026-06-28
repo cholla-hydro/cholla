@@ -15,6 +15,3 @@ FFTW_ROOT    = /home/bruno/apps/fftw-3.3.5
 PFFT_ROOT    = /home/bruno/apps/pfft-1.0.8-alpha
 GRACKLE_ROOT = /home/bruno/code/grackle
 
-POISSON_SOLVER = -DCUFFT
-
-

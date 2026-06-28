@@ -17,6 +17,8 @@ void Grav3D::AllocateMemory_GPU()
 
     #ifdef GRAVITY_ANALYTIC_COMP
   GPU_Error_Check(cudaMalloc((void **)&F.analytic_potential_d, n_cells_potential * sizeof(Real)));
+    #else
+  F.analytic_potential_d = nullptr;
     #endif
 
     #ifdef GRAV_ISOLATED_BOUNDARY_X

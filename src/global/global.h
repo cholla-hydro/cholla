@@ -7,6 +7,7 @@
 #include <string>
 
 #include "../grid/grid_enum.h"  // defines NSCALARS
+#include "cholla_config.h"
 
 #ifdef PARTICLES
   #include <cstdint>
@@ -123,16 +124,17 @@ typedef double Real;
 typedef long int grav_int_t;
 #endif
 
-#ifdef PARTICLES
-  #ifdef PARTICLES_LONG_INTS
+#ifdef PARTICLES_LONG_INTS
 typedef long int part_int_t;
-  #else
+#else
 typedef int part_int_t;
-  #endif  // PARTICLES_LONG_INTS
+#endif  // PARTICLES_LONG_INTS
 
-  #include <vector>
+#include <vector>
 typedef std::vector<Real> real_vector_t;
 typedef std::vector<part_int_t> int_vector_t;
+
+#ifdef PARTICLES
   #ifdef MPI_CHOLLA
 // Constants for the inital size of the buffers for particles transfer
 // and the number of data transferred for each particle
@@ -231,6 +233,9 @@ struct Parameters {
   Real gamma;
   char init[MAXLEN];
   int nfile;
+  // At the moment, the following flag is only meaningful when GRAVITY and GRAVITY_ANALYTIC_COMP
+  // are defined. In other cases, we force this to initialize to a sensible value
+  bool gas_only_use_static_grav;
   bool output_always = false;
   int n_steps_limit  = -1;  // Note that negative values indicate that there is no limit
 #ifdef STATIC_GRAV
@@ -303,14 +308,6 @@ struct Parameters {
   // machine dependent seed will be generated.
   std::uint_fast64_t prng_seed = 0;
 #endif  // PARTICLES
-#ifdef FEEDBACK
-  #ifndef NO_SN_FEEDBACK
-  char snr_filename[MAXLEN];
-  #endif
-  #ifndef NO_WIND_FEEDBACK
-  char sw_filename[MAXLEN];
-  #endif
-#endif
 #ifdef COSMOLOGY
   Real H0;
   Real Omega_M;
