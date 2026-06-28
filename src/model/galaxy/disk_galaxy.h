@@ -98,7 +98,7 @@ class DiskGalaxy
   std::shared_ptr<GasDiskProps> gas_disk;
   std::shared_ptr<NFWHaloPotential> halo_potential;
   std::shared_ptr<ClusterMassDistribution> cluster_mass_distribution_;
-  Real M_vir, R_vir, r_cool;
+  Real r_cool;
 
  public:
   /* To properly deallocate the internally tracked shared pointers we need to define a
@@ -182,8 +182,6 @@ class DiskGalaxy
   const MiyamotoNagaiPotential& getStaticStellarDiskPotential() const;
   const GasDiskProps& getGasDisk() const;
   const NFWHaloPotential& getHaloPotential() const;
-  Real getM_vir() const { return M_vir; };
-  Real getR_vir() const { return R_vir; };
   Real getR_cool() const { return r_cool; };
 
   const ClusterMassDistribution* tryGetClusterMassDistribution() const

@@ -45,8 +45,6 @@ DiskGalaxy::DiskGalaxy(const MiyamotoNagaiPotential& stellar_disk, const GasDisk
                                           /* scale length:*/ (rvir / cvir), cvir}),
       cluster_mass_distribution_{nullptr}
 {
-  M_vir  = mvir;
-  R_vir  = rvir;
   r_cool = rcool;
 }
 
