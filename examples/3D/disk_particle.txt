@@ -48,8 +48,8 @@ ddelta_dt=-0.001
 outdir=./
 prng_seed=41
 
-
-feedback.snr_filename=./src/feedback/starburst99_snr.txt
-feedback.sw_filename=./src/feedback/starburst99_sw.txt
-feedback.sn_model=legacy
-feedback.boundary_strategy=snap
+[feedback]
+snr_filename=./src/feedback/starburst99_snr.txt
+sw_filename=./src/feedback/starburst99_sw.txt
+sn_model=legacy
+boundary_strategy=snap
