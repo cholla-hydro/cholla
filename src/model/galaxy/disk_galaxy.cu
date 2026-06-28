@@ -6,7 +6,7 @@ DiskGalaxy galaxies::make_MW_model(ParameterMap& pmap)
 {
   // The first snippet is intended to approximate a Milky Way -like Galaxy
   // For consistency with the CGOLs style model: upper cluster-mass limit of 2e5 Msun
-  return DiskGalaxy(ClusterMassDistribution{1e2, 2e5, 2.0}, MiyamotoNagaiPotential(pmap), GasDiskProps::Create(pmap),
+  return DiskGalaxy(ClusterMassDistribution(pmap), MiyamotoNagaiPotential(pmap), GasDiskProps::Create(pmap),
                     NFWHaloPotential::Create(pmap), 157.0);
   // the following shows our historical parametrization for M82:
   // return DiskGalaxy(MiyamotoNagaiPotential(pmap),  // stellar_disk
@@ -14,6 +14,13 @@ DiskGalaxy galaxies::make_MW_model(ParameterMap& pmap)
 }
 
 // here we define the methods
+
+ClusterMassDistribution::ClusterMassDistribution(ParameterMap& pmap)
+    : ClusterMassDistribution(pmap.value<double>("model.galaxy.cluster_mass_dist.lo_Msun"),
+                              pmap.value<double>("model.galaxy.cluster_mass_dist.hi_Msun"),
+                              pmap.value<double>("model.galaxy.cluster_mass_dist.alpha"))
+{
+}
 
 // this is empty since the std::shared_ptr automatically handles things
 // (but we need to explicitly handle the case since the definitions of the wrapped

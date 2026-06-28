@@ -58,6 +58,16 @@ boundary_strategy=snap
 # ==============================================
 # These parameters were chosen to approximate a Milky Way-like galaxy
 
+[model.galaxy.cluster_mass_dist]
+# specify parameters for the cluster mass PDF, which is written as
+#     P(M_cluster) = / A * M^(-alpha),  for lo <= M < hi
+#                    \ 0,               otherwise
+# where A is a normalization constant so that the integral from lo to hi
+# produces a value of 1
+lo_Msun=1.0e2
+hi_Msun=2.0e5
+alpha=2.0
+
 [model.galaxy.gas_disk]
 # the gas disk mass was selected to be 15% of old-stellar disk mass
 mass_Msun=9.75e9

@@ -31,7 +31,7 @@ struct NFWHaloPotential;
 struct MiyamotoNagaiPotential;
 struct GasDiskProps;
 
-/* Encapsulates the cluster-mass distribution function
+/*! \brief Encapsulates the cluster-mass distribution function
  *
  * There is 0 probability of drawing a cluster with mass M < lower_mass or M >= higher_mass.
  * The probability of drawing a cluster mass M, satisfying lower_mass <= M < higher_mass is given
@@ -52,6 +52,8 @@ class ClusterMassDistribution
     CHOLLA_ASSERT(higher_mass > lower_mass, "The max mass must exceed the min mass");
     CHOLLA_ASSERT(alpha_ > 1.0, "alpha must exceed 1.0");
   }
+
+  explicit ClusterMassDistribution(ParameterMap& pmap);
 
   Real getLowerClusterMass() const { return lo_mass_; }
   Real getHigherClusterMass() const { return hi_mass_; }
