@@ -97,6 +97,7 @@ class DiskGalaxy
   std::shared_ptr<MiyamotoNagaiPotential> stellar_disk;
   std::shared_ptr<GasDiskProps> gas_disk;
   std::shared_ptr<NFWHaloPotential> halo_potential;
+  std::shared_ptr<ClusterMassDistribution> cluster_mass_distribution_;
   Real M_vir, R_vir, r_cool;
 
  public:
@@ -113,6 +114,14 @@ class DiskGalaxy
 
   DiskGalaxy(const MiyamotoNagaiPotential& stellar_disk, const GasDiskProps& gas_disk, Real mvir, Real rvir, Real cvir,
              Real rcool);
+
+  DiskGalaxy(ClusterMassDistribution cluster_mass_distribution, const MiyamotoNagaiPotential& stellar_disk,
+             const GasDiskProps& gas_disk, Real mvir, Real rvir, Real cvir, Real rcool)
+      : DiskGalaxy(stellar_disk, gas_disk, mvir, rvir, cvir, rcool)
+  {
+    cluster_mass_distribution_ =
+        std::shared_ptr<ClusterMassDistribution>(new ClusterMassDistribution(cluster_mass_distribution));
+  }
 
   /* Radial acceleration in miyamoto nagai */
   Real gr_disk_D3D(Real R, Real z) const noexcept;
@@ -176,27 +185,11 @@ class DiskGalaxy
   Real getM_vir() const { return M_vir; };
   Real getR_vir() const { return R_vir; };
   Real getR_cool() const { return r_cool; };
-};
 
-// TODO: consider doing away with the ClusteredDiskGalaxy class and instead storing
-//       cluster_mass_distribution_ as an optional attribute of DiskGalaxy
-class ClusteredDiskGalaxy : public DiskGalaxy
-{
- private:
-  ClusterMassDistribution cluster_mass_distribution_;
-
- public:
-  ClusteredDiskGalaxy(ClusterMassDistribution cluster_mass_distribution, const MiyamotoNagaiPotential& stellar_disk,
-                      const GasDiskProps& gas_disk, Real mvir, Real rvir, Real cvir, Real rcool)
-      : DiskGalaxy{stellar_disk, gas_disk, mvir, rvir, cvir, rcool},
-        cluster_mass_distribution_(cluster_mass_distribution)
-  {
-  }
-
-  ClusterMassDistribution getClusterMassDistribution() const
+  const ClusterMassDistribution* tryGetClusterMassDistribution() const
   {
     // we should return a CONST reference or a copy (so that the internal object isn't mutated)
-    return cluster_mass_distribution_;
+    return cluster_mass_distribution_.get();
   }
 };
 
@@ -219,7 +212,7 @@ namespace galaxies
 
 // temporary helper function that is being used while we transition
 // to dynamically construct the galaxy model from the parameter file
-ClusteredDiskGalaxy make_MW_model();
+DiskGalaxy make_MW_model();
 
 };  // namespace galaxies
 

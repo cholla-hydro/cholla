@@ -937,7 +937,7 @@ struct StarClusterInitRsltPack {
  */
 template <bool UsePoissonPointProcess = false>
 StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64 &generator, const Real R_max, const Real t_max,
-                                                   const Particles3D::Grid &G, const ClusteredDiskGalaxy &model_galaxy)
+                                                   const Particles3D::Grid &G, const DiskGalaxy &model_galaxy)
 {
   // todo: move away from using the distribution functions defined in the standard library
   //  -> apparently, the results of distribution functions are not portable across different
@@ -1001,8 +1001,12 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64 &generator, c
   std::uniform_real_distribution<Real> phiDist(0, 2 * M_PI);  // for generating phi
   std::normal_distribution<Real> speedDist(0, 1);             // for generating random speeds.
 
-  ClusterCreator<UsePoissonPointProcess> cluster_creator(model_galaxy.getClusterMassDistribution(), SFR,
-                                                         earliest_t_formation);
+  const ClusterMassDistribution *cluster_mass_dist = model_galaxy.tryGetClusterMassDistribution();
+  if (cluster_mass_dist == nullptr) {
+    CHOLLA_ERROR("the galaxy model doesn't have an associated cluster mass distribution");
+  }
+
+  ClusterCreator<UsePoissonPointProcess> cluster_creator(*cluster_mass_dist, SFR, earliest_t_formation);
 
   // initialize the std::map instances of vectors used to hold the output properties
   // part a: Initialize the maps in the output struct
@@ -1110,7 +1114,7 @@ void Particles3D::Initialize_Disk_Stellar_Clusters(struct Parameters *P, const M
   // properties (e.g. "age", "mass", "ids"). These assumptions are explicitly checked
   // for us within Initialize_Stellar_Clusters_Helper_ at runtime
 
-  const ClusteredDiskGalaxy *galaxy_model = model_collection.try_get<ClusteredDiskGalaxy>();
+  const DiskGalaxy *galaxy_model = model_collection.try_get<DiskGalaxy>();
   CHOLLA_ASSERT(galaxy_model != nullptr, "no galaxy model was initialized");
 
   chprintf(" Initializing Particles Stellar Disk\n");

@@ -1,7 +1,7 @@
 #include "disk_galaxy.h"
 #include "potentials.h"
 
-ClusteredDiskGalaxy galaxies::make_MW_model()
+DiskGalaxy galaxies::make_MW_model()
 {
   // Here we actually define the galaxy models that are accessed from elsewhere
 
@@ -21,10 +21,9 @@ ClusteredDiskGalaxy galaxies::make_MW_model()
   //  -> stellar disk scale-length of 2.7 kpc
   //  -> gas disk scale-length of 5.4 kpc
   //  -> upper cluster-mass limit of 2e5 Msun
-  return ClusteredDiskGalaxy(ClusterMassDistribution{1e2, 2e5, 2.0},
-                             MiyamotoNagaiPotential{6.5e10, 2.7, 0.7},                // stellar_disk
-                             GasDiskProps{0.15 * 6.5e10, 5.4, 0.7, 1e4, true, 0.02},  // gas_disk
-                             1.077e12, 261, 18, 157.0);
+  return DiskGalaxy(ClusterMassDistribution{1e2, 2e5, 2.0}, MiyamotoNagaiPotential{6.5e10, 2.7, 0.7},  // stellar_disk
+                    GasDiskProps{0.15 * 6.5e10, 5.4, 0.7, 1e4, true, 0.02},                            // gas_disk
+                    1.077e12, 261, 18, 157.0);
   // DiskGalaxy M82(MiyamotoNagaiPotential{1.0e10, 0.8, 0.15},                       // stellar_disk
   //                GasDiskProps{0.25 * 1.0e10, 2 * 0.8, 0.15, 1e4, true, 2 * 0.8},  // gas_disk
   //                5.0e10, 0.8 / 0.015, 10, 100.0);
@@ -43,7 +42,8 @@ DiskGalaxy::DiskGalaxy(const MiyamotoNagaiPotential& stellar_disk, const GasDisk
     : stellar_disk(new MiyamotoNagaiPotential(stellar_disk)),
       gas_disk(new GasDiskProps(gas_disk)),
       halo_potential(new NFWHaloPotential{/* halo mass: */ mvir - stellar_disk.M_d,
-                                          /* scale length:*/ (rvir / cvir), cvir})
+                                          /* scale length:*/ (rvir / cvir), cvir}),
+      cluster_mass_distribution_{nullptr}
 {
   M_vir  = mvir;
   R_vir  = rvir;

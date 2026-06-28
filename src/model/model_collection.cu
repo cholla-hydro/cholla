@@ -20,7 +20,7 @@ ModelCollection::ModelCollection(ParameterMap& pmap)
 
   // the galaxy_model is still a special case, we will start treating it like a normal
   // case soon
-  ClusteredDiskGalaxy galaxy_model = galaxies::make_MW_model();
+  DiskGalaxy galaxy_model = galaxies::make_MW_model();
   vec_.emplace_back(galaxy_model);
 
   // once we parse at least one model in the "normal way," we should insert

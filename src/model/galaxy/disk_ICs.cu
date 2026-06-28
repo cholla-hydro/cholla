@@ -832,7 +832,7 @@ void Grid3D::Disk_3D(Parameters p)
   Real K_eos, rho_eos, cs, rho_eos_h;
 
   // load the galaxy model
-  const ClusteredDiskGalaxy* tmp = models().try_get<ClusteredDiskGalaxy>();
+  const DiskGalaxy* tmp = models().try_get<DiskGalaxy>();
   CHOLLA_ASSERT(tmp != nullptr, "no galaxy model was initialized");
   const DiskGalaxy& galaxy = *tmp;
 
