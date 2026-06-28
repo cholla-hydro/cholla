@@ -1,4 +1,4 @@
-include builds/make.type.gravity
+include config/make.type.gravity
 
 #Include Particles
 DFLAGS += -DPARTICLES
@@ -28,7 +28,13 @@ DFLAGS += -DSINGLE_PARTICLE_MASS
 
 
 #If the particles are solved on the CPU, use OpenMP for better performance
-DFLAGS += -DPARALLEL_OMP
 #-- OMP_NUM_THREADS should be set in make.host.*
-DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
+# (take some care to ensure the variable isn't set twicee)
+ifneq ($(findstring -DPARALLEL_OMP,$(DFLAGS)),-DPARALLEL_OMP)
+  DFLAGS += -DPARALLEL_OMP
+endif
 
+# (take some care to ensure the variable isn't set twicee)
+ifneq ($(findstring -DN_OMP_THREADS,$(DFLAGS)),-DN_OMP_THREADS)
+  DFLAGS += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
+endif

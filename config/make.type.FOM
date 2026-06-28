@@ -1,7 +1,7 @@
 
 POISSON_SOLVER ?= -DPARIS
 
-include builds/make.type.gravity
+include config/make.type.gravity
 
 DFLAGS += $(POISSON_SOLVER)
 DFLAGS += -DDE

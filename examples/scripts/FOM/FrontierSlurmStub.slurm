@@ -16,7 +16,7 @@ ln -s ${FOM_DATA}/scale_output_files
 
 EXECUTABLE=${CHOLLA_HOME}/bin/cholla.FOM.frontier
 
-source ${CHOLLA_HOME}/builds/setup.frontier.cce.sh
+source ${CHOLLA_HOME}/config/setup.frontier.cce.sh
 
 export MPICH_ALLTOALL_SYNC_FREQ=2
 export LD_LIBRARY_PATH="${CRAY_LD_LIBRARY_PATH}:${LD_LIBRARY_PATH}"

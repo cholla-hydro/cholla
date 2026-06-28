@@ -1,5 +1,5 @@
 # 1D Sod Shock Tube
-This test highlights the ability of a code to resolve shocks and contact discontinuities over a narrow region. Parameters from Sod (1978). The setup consists of a density and pressure of 1.0 for x \< 0 and 0.1 for x \> 0.5. Gamma is set to 1.4. This test was performed with the hydro build (`cholla/builds/make.type.hydro`) and Van Leer integrator. Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Riemann()`. 
+This test highlights the ability of a code to resolve shocks and contact discontinuities over a narrow region. Parameters from Sod (1978). The setup consists of a density and pressure of 1.0 for x \< 0 and 0.1 for x \> 0.5. Gamma is set to 1.4. This test was performed with the hydro build ({repository-file}`config/make.type.hydro`) and Van Leer integrator. Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Riemann()`. 
 
 
 The parameter file can be found at {repository-file}`examples/1D/sod.txt`

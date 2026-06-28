@@ -29,6 +29,9 @@ case $FQDN in
   *vista.tacc* )
     echo "vista"
     exit 0 ;;
+  *betty* | *dgx* | *parcc*)
+    echo "betty"
+    exit 0 ;;
   *)
     host=$(hostname)
     echo "Using default hostname, expecting make.host.$host" >&2

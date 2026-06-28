@@ -41,7 +41,7 @@ As of 10-27-2023 on the main branch, the static gravitational field is hard-code
 In addition to static gravity, Cholla has an FFT-based self gravity solver.
 Only one or the other may be used.
 The self-gravity solver is turned on with the ``GRAVITY`` macro in the makefile.
-The default behavior in the [make.type.gravity](https://github.com/cholla-hydro/cholla/blob/dev/builds/make.type.gravity) build (and builds that depend on it) is also to turn on the ``GRAVITY_GPU`` macro, which ensures that gravity fields reside on the GPU (required for gpu-based MPI communications), and the 
+The default behavior in the {repository-file}`config/make.type.gravity} build (and builds that depend on it) is also to turn on the ```GRAVITY_GPU``` macro, which ensures that gravity fields reside on the GPU (required for gpu-based MPI communications), and the ```PARIS``` macro, which specifies that the Poisson solve will be carried out on the GPU by the cuFFT or rocFFT libraries.
 Cholla does also have CPU-based gravity solvers, although they are not currently maintained.
 Definitions of other macros options associated with the gravity solver are given below.
 

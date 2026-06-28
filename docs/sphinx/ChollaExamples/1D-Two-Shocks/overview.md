@@ -1,5 +1,5 @@
 # 1D Two Shocks
-This test highlights a collision between two shocks. This test is from Toro's *Riemann solvers and numerical methods for fluid dynamics* Sec. 6.4, test 4.The test consists of left and right states separated at x = 0.4 with velocities 19.5975 and -6.19633, respectively. Density of the left side is 5.99924 and pressure is 460.894. For the right side, density is 5.99242 while pressure is 46.095. Gamma is set to 1.4. This test is performed with the hydro build (`cholla/builds/make.type.hydro`). Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Riemann()`.  
+This test highlights a collision between two shocks. This test is from Toro's *Riemann solvers and numerical methods for fluid dynamics* Sec. 6.4, test 4.The test consists of left and right states separated at x = 0.4 with velocities 19.5975 and -6.19633, respectively. Density of the left side is 5.99924 and pressure is 460.894. For the right side, density is 5.99242 while pressure is 46.095. Gamma is set to 1.4. This test is performed with the hydro build ({repository-file}`config/make.type.hydro`). Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Riemann()`.  
 
 The parameter file can be found at: {repository-file}`examples/1D/two_shocks.txt`
 

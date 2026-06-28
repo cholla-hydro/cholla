@@ -1,4 +1,4 @@
-#-- Default hydro build with BASIC_SCALAR
+#-- Default hydro only build with rotated projection
 
 DFLAGS    += -DMPI_CHOLLA
 DFLAGS    += -DPRECISION=2
@@ -13,11 +13,6 @@ DFLAGS    += -DVL
 DFLAGS    += -DDENSITY_FLOOR
 DFLAGS    += -DTEMPERATURE_FLOOR
 
-# Toggle scalar fields in general
-DFLAGS += -DSCALAR
-# Toggle Basic scalar field
-DFLAGS += -DBASIC_SCALAR
-
 # Solve the Gas Internal Energy usisng a Dual Energy Formalism
 #DFLAGS    += -DDE
 
@@ -28,6 +23,8 @@ DFLAGS += -DBASIC_SCALAR
 #DFLAGS    += -DCPU_TIME
 
 # Select output format
-# Can also add -DSLICES and -DPROJECTIONS
+# Can also add -DSLICES and -DPROJECTION
 OUTPUT    ?=  -DOUTPUT -DHDF5
 DFLAGS    += $(OUTPUT)
+
+DFLAGS    += -DROTATED_PROJECTION
