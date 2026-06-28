@@ -13,6 +13,36 @@ struct NFWHaloPotential {
   Real R_h;   /*!< halo scale length (NOT the virial radius) */
   Real c_vir; /*!< halo concentration parameter (to account for adiabatic contraction) */
 
+  /*! \brief Historical Constructor */
+  __host__ NFWHaloPotential(Real M_h, Real R_h, Real c_vir) : M_h(M_h), R_h(R_h), c_vir(c_vir)
+  {
+    CHOLLA_ASSERT(M_h > 0, "halo mass must be positive");
+    CHOLLA_ASSERT(R_h > 0, "halo scale length must be positive");
+    CHOLLA_ASSERT(c_vir > 0, "concentration must be positive");
+  }
+
+  /*! \brief factory method that creates an instance using the virial radius
+   *
+   *  \important
+   *  Unlike the preceeding constructor, this creates an instance from the virial
+   *  radius, rather than the scale length.
+   */
+  __host__ static NFWHaloPotential Create_Using_Rvir(Real M_h, Real R_vir, Real c_vir)
+  {
+    CHOLLA_ASSERT(R_vir > 0, "halo virial radius must be positive");
+    CHOLLA_ASSERT(c_vir > 0, "concentration must be positive");
+    return NFWHaloPotential(M_h, R_vir / c_vir, c_vir);
+  }
+
+  // we don't need to prefix __host__ __default__ on functions like the following that
+  // use the default implementation
+  // TODO: delete default constructor for NFWHaloPotential
+  NFWHaloPotential()                                   = default;
+  NFWHaloPotential(const NFWHaloPotential&)            = default;
+  NFWHaloPotential& operator=(const NFWHaloPotential&) = default;
+  NFWHaloPotential(NFWHaloPotential&&)                 = default;
+  NFWHaloPotential& operator=(NFWHaloPotential&&)      = default;
+
   /* function with logarithms used in NFW definitions */
   __host__ __device__ static Real log_func(Real y) { return log(1 + y) - y / (1 + y); };
 

@@ -22,25 +22,17 @@ DiskGalaxy galaxies::make_MW_model()
   //  -> gas disk scale-length of 5.4 kpc
   //  -> upper cluster-mass limit of 2e5 Msun
   {
-    double Mvir_dm_only  = 1.077e12 - 6.5e10;
-    double Rvir_halo_kpc = 261;
-    double c_vir         = 18;
-    NFWHaloPotential halo_potential{/* halo mass: */ Mvir_dm_only,
-                                    /* scale length:*/ (Rvir_halo_kpc / c_vir), c_vir};
+    double Mvir_dm_only = 1.077e12 - 6.5e10;
     return DiskGalaxy(ClusterMassDistribution{1e2, 2e5, 2.0}, MiyamotoNagaiPotential{6.5e10, 2.7, 0.7},  // stellar_disk
                       GasDiskProps{0.15 * 6.5e10, 5.4, 0.7, 1e4, true, 0.02},                            // gas_disk
-                      halo_potential, 157.0);
+                      NFWHaloPotential::Create_Using_Rvir(Mvir_dm_only, 261, 18), 157.0);
   }
   //
   // {
   //   double Mvir_dm_only = 5.0e10 - 1.0e10;
-  //   double Rvir_halo_kpc = 0.8 / 0.015;
-  //   double c_vir = 10;
-  //   NFWHaloPotential halo_potential{/* halo mass: */ Mvir_dm_only,
-  //                                   /* scale length:*/ (Rvir_halo_kpc / c_vir), c_vir};
   //   DiskGalaxy M82(MiyamotoNagaiPotential{1.0e10, 0.8, 0.15},                       // stellar_disk
   //                  GasDiskProps{0.25 * 1.0e10, 2 * 0.8, 0.15, 1e4, true, 2 * 0.8},  // gas_disk
-  //                  halo_potential, 100.0);
+  //                  NFWHaloPotential::Create_Using_Rvir(Mvir_dm_only, 0.8 / 0.015, 10), 100.0);
   //   return M82;
   // }
 }
