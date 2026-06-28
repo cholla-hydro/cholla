@@ -29,6 +29,59 @@ struct NFWHaloPotential;
 struct MiyamotoNagaiPotential;
 struct GasDiskProps;
 
+/* Encapsulates the cluster-mass distribution function
+ *
+ * There is 0 probability of drawing a cluster with mass M < lower_mass or M >= higher_mass.
+ * The probability of drawing a cluster mass M, satisfying lower_mass <= M < higher_mass is given
+ * by a pdf that is proportional to std::pow(M, -1 * alpha);
+ * -> alpha is not allowed to be 1 (that corresponds to the log-uniform distribution)
+ * -> when you have N particles and alpha = 2, then the total mass particles in equal sized
+ *    logarithmic mass bins is constant
+ */
+class ClusterMassDistribution
+{
+ public:  // interface
+  ClusterMassDistribution() = delete;
+
+  ClusterMassDistribution(Real lower_mass, Real higher_mass, Real alpha)
+      : lo_mass_(lower_mass), hi_mass_(higher_mass), alpha_(alpha)
+  {
+    CHOLLA_ASSERT(lower_mass > 0.0, "The minimum cluster-mass must exceed 0");
+    CHOLLA_ASSERT(higher_mass > lower_mass, "The max mass must exceed the min mass");
+    CHOLLA_ASSERT(alpha_ > 1.0, "alpha must exceed 1.0");
+  }
+
+  Real getLowerClusterMass() const { return lo_mass_; }
+  Real getHigherClusterMass() const { return hi_mass_; }
+
+  Real meanClusterMass() const
+  {
+    Real normalization = (1 - alpha_) / (std::pow(hi_mass_, 1 - alpha_) - std::pow(lo_mass_, 1 - alpha_));
+    if (alpha_ == 2.0) {
+      return normalization * std::log(hi_mass_ / lo_mass_);
+    } else {
+      CHOLLA_ERROR("UNTESTED LOGIC");
+      return normalization * (std::pow(hi_mass_, 2 - alpha_) - std::pow(lo_mass_, 2 - alpha_)) / (2 - alpha_);
+    }
+  }
+
+  Real singleClusterMass(std::mt19937_64 generator) const
+  {
+    std::uniform_real_distribution<Real> uniform_distro(0, 1);
+    Real X      = uniform_distro(generator);
+    Real mclmin = lo_mass_;
+    Real mclmax = hi_mass_;
+
+    Real tmp = std::pow(mclmin, -alpha_ + 1) - (std::pow(mclmin, -alpha_ + 1) - std::pow(mclmax, -alpha_ + 1)) * X;
+    return std::pow(tmp, 1.0 / (-alpha_ + 1));
+  }
+
+ private:  // attributes
+  Real lo_mass_;
+  Real hi_mass_;
+  Real alpha_;
+};
+
 /* Intended to serve as a centralized location where all properties of the underlying galaxy-model
  * are agregated.
  *
@@ -123,59 +176,6 @@ class DiskGalaxy
   Real getM_vir() const { return M_vir; };
   Real getR_vir() const { return R_vir; };
   Real getR_cool() const { return r_cool; };
-};
-
-/* Encapsulates the cluster-mass distribution function
- *
- * There is 0 probability of drawing a cluster with mass M < lower_mass or M >= higher_mass.
- * The probability of drawing a cluster mass M, satisfying lower_mass <= M < higher_mass is given
- * by a pdf that is proportional to std::pow(M, -1 * alpha);
- * -> alpha is not allowed to be 1 (that corresponds to the log-uniform distribution)
- * -> when you have N particles and alpha = 2, then the total mass particles in equal sized
- *    logarithmic mass bins is constant
- */
-class ClusterMassDistribution
-{
- public:  // interface
-  ClusterMassDistribution() = delete;
-
-  ClusterMassDistribution(Real lower_mass, Real higher_mass, Real alpha)
-      : lo_mass_(lower_mass), hi_mass_(higher_mass), alpha_(alpha)
-  {
-    CHOLLA_ASSERT(lower_mass > 0.0, "The minimum cluster-mass must exceed 0");
-    CHOLLA_ASSERT(higher_mass > lower_mass, "The max mass must exceed the min mass");
-    CHOLLA_ASSERT(alpha_ > 1.0, "alpha must exceed 1.0");
-  }
-
-  Real getLowerClusterMass() const { return lo_mass_; }
-  Real getHigherClusterMass() const { return hi_mass_; }
-
-  Real meanClusterMass() const
-  {
-    Real normalization = (1 - alpha_) / (std::pow(hi_mass_, 1 - alpha_) - std::pow(lo_mass_, 1 - alpha_));
-    if (alpha_ == 2.0) {
-      return normalization * std::log(hi_mass_ / lo_mass_);
-    } else {
-      CHOLLA_ERROR("UNTESTED LOGIC");
-      return normalization * (std::pow(hi_mass_, 2 - alpha_) - std::pow(lo_mass_, 2 - alpha_)) / (2 - alpha_);
-    }
-  }
-
-  Real singleClusterMass(std::mt19937_64 generator) const
-  {
-    std::uniform_real_distribution<Real> uniform_distro(0, 1);
-    Real X      = uniform_distro(generator);
-    Real mclmin = lo_mass_;
-    Real mclmax = hi_mass_;
-
-    Real tmp = std::pow(mclmin, -alpha_ + 1) - (std::pow(mclmin, -alpha_ + 1) - std::pow(mclmax, -alpha_ + 1)) * X;
-    return std::pow(tmp, 1.0 / (-alpha_ + 1));
-  }
-
- private:  // attributes
-  Real lo_mass_;
-  Real hi_mass_;
-  Real alpha_;
 };
 
 // TODO: consider doing away with the ClusteredDiskGalaxy class and instead storing
