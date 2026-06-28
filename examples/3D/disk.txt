@@ -44,3 +44,14 @@ flag_delta=2
 ddelta_dt=-0.001
 # path to output directory
 outdir=./
+
+[model.galaxy.static_potential.halo]
+mass_Msun=1.012e12
+virial_radius_kpc=261
+concentration=18
+
+# approximate (historical) M82 vals:
+# [model.galaxy.static_potential.halo]
+# mass_Msun=4.0e10
+# virial_radius_kpc=53.333333333333333
+# concentration=10

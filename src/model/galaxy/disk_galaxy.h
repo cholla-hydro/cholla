@@ -9,6 +9,8 @@
 #include "../../global/global.h"
 #include "../../utils/error_handling.h"
 
+struct ParameterMap;
+
 // we are bending over backwards to ensure that the functionality defined in
 // "potentials.h" can be used on CPUs and on GPUs
 // -> previously, this functionality was simply duplicated in a number of places
@@ -210,7 +212,7 @@ namespace galaxies
 
 // temporary helper function that is being used while we transition
 // to dynamically construct the galaxy model from the parameter file
-DiskGalaxy make_MW_model();
+DiskGalaxy make_MW_model(ParameterMap& pmap);
 
 };  // namespace galaxies
 

@@ -20,10 +20,12 @@ ModelCollection::ModelCollection(ParameterMap& pmap)
 
   // the galaxy_model is still a special case, we will start treating it like a normal
   // case soon
-  DiskGalaxy galaxy_model = galaxies::make_MW_model();
-  vec_.emplace_back(galaxy_model);
+  if (pmap.Contains_Table("model.galaxy")) {
+    DiskGalaxy galaxy_model = galaxies::make_MW_model(pmap);
+    vec_.emplace_back(galaxy_model);
+  }
 
-  // once we parse at least one model in the "normal way," we should insert
+  // TODO: we should insert
   //    pmap.Enforce_Table_Content_Uniform_Access_Status("model", false);
   // to abort if we haven't read all parameters from within the "model" table
 }

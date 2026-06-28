@@ -6,6 +6,7 @@
 #include <cmath>
 
 #include "../../global/global.h"
+#include "../../io/ParameterMap.h"
 #include "../../utils/error_handling.h"
 
 struct NFWHaloPotential {
@@ -16,9 +17,9 @@ struct NFWHaloPotential {
   /*! \brief Historical Constructor */
   __host__ NFWHaloPotential(Real M_h, Real R_h, Real c_vir) : M_h(M_h), R_h(R_h), c_vir(c_vir)
   {
-    CHOLLA_ASSERT(M_h > 0, "halo mass must be positive");
-    CHOLLA_ASSERT(R_h > 0, "halo scale length must be positive");
-    CHOLLA_ASSERT(c_vir > 0, "concentration must be positive");
+    CHOLLA_ASSERT(M_h > 0, "halo mass must be positive: %g", M_h);
+    CHOLLA_ASSERT(R_h > 0, "halo scale length must be positive: %g", R_h);
+    CHOLLA_ASSERT(c_vir > 0, "concentration must be positive: %g", c_vir);
   }
 
   /*! \brief factory method that creates an instance using the virial radius
@@ -29,14 +30,23 @@ struct NFWHaloPotential {
    */
   __host__ static NFWHaloPotential Create_Using_Rvir(Real M_h, Real R_vir, Real c_vir)
   {
-    CHOLLA_ASSERT(R_vir > 0, "halo virial radius must be positive");
-    CHOLLA_ASSERT(c_vir > 0, "concentration must be positive");
+    CHOLLA_ASSERT(R_vir > 0, "halo virial radius must be positive: %g", R_vir);
+    CHOLLA_ASSERT(c_vir > 0, "concentration must be positive: %g", c_vir);
     return NFWHaloPotential(M_h, R_vir / c_vir, c_vir);
+  }
+
+  /*! \brief Construct an instance from a parameter map */
+  __host__ static NFWHaloPotential Create(ParameterMap& pmap)
+  {
+    Real M_h   = pmap.value<double>("model.galaxy.static_potential.halo.mass_Msun");
+    Real R_vir = pmap.value<double>("model.galaxy.static_potential.halo.virial_radius_kpc");
+    Real c_vir = pmap.value<double>("model.galaxy.static_potential.halo.concentration");
+    return NFWHaloPotential::Create_Using_Rvir(M_h, R_vir, c_vir);
   }
 
   // we don't need to prefix __host__ __default__ on functions like the following that
   // use the default implementation
-  // TODO: delete default constructor for NFWHaloPotential
+  // TODO: delete default constructor
   NFWHaloPotential()                                   = default;
   NFWHaloPotential(const NFWHaloPotential&)            = default;
   NFWHaloPotential& operator=(const NFWHaloPotential&) = default;
@@ -116,6 +126,32 @@ struct MiyamotoNagaiPotential {
   Real M_d; /*!< total mass (in Msolar) */
   Real R_d; /*!< scale-length (in kpc) */
   Real Z_d; /*!< scale-height (in kpc). */
+
+  /*! \brief Historical Constructor */
+  __host__ MiyamotoNagaiPotential(Real M_d, Real R_d, Real Z_d) : M_d(M_d), R_d(R_d), Z_d(Z_d)
+  {
+    // the ApproxExponentialDisk3MN class needs to be able to specify a negative M_d
+    CHOLLA_ASSERT(R_d > 0, "disk scale radius must be positive: %g", R_d);
+    CHOLLA_ASSERT(Z_d > 0, "disk scale height must be positive: %g", Z_d);
+  }
+
+  /*! \brief Construct an instance from a parameter map */
+  __host__ explicit MiyamotoNagaiPotential(ParameterMap& pmap)
+      : MiyamotoNagaiPotential(pmap.value<double>("model.galaxy.static_potential.stellar_disk.mass_Msun"),
+                               pmap.value<double>("model.galaxy.static_potential.stellar_disk.scale_radius_kpc"),
+                               pmap.value<double>("model.galaxy.static_potential.stellar_disk.scale_height_kpc"))
+  {
+    CHOLLA_ASSERT(M_d > 0, "disk mass must be positive: %g", M_d);
+  }
+
+  // we don't need to prefix __host__ __default__ on functions like the following that
+  // use the default implementation
+  // TODO: consider deleting default constructor
+  MiyamotoNagaiPotential()                                         = default;
+  MiyamotoNagaiPotential(const MiyamotoNagaiPotential&)            = default;
+  MiyamotoNagaiPotential& operator=(const MiyamotoNagaiPotential&) = default;
+  MiyamotoNagaiPotential(MiyamotoNagaiPotential&&)                 = default;
+  MiyamotoNagaiPotential& operator=(MiyamotoNagaiPotential&&)      = default;
 
   /* Radial acceleration in miyamoto nagai */
   Real gr_disk_D3D(Real R, Real z) const noexcept

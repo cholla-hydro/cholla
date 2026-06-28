@@ -53,3 +53,8 @@ snr_filename=./src/feedback/starburst99_snr.txt
 sw_filename=./src/feedback/starburst99_sw.txt
 sn_model=legacy
 boundary_strategy=snap
+
+[model.galaxy.static_potential.halo]
+mass_Msun=1.012e12
+virial_radius_kpc=261
+concentration=18
