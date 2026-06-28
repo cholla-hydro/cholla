@@ -112,12 +112,12 @@ class DiskGalaxy
    */
   virtual ~DiskGalaxy();
 
-  DiskGalaxy(const MiyamotoNagaiPotential& stellar_disk, const GasDiskProps& gas_disk, Real mvir, Real rvir, Real cvir,
-             Real rcool);
+  DiskGalaxy(const MiyamotoNagaiPotential& stellar_disk, const GasDiskProps& gas_disk,
+             const NFWHaloPotential& halo_potential, Real rcool);
 
   DiskGalaxy(ClusterMassDistribution cluster_mass_distribution, const MiyamotoNagaiPotential& stellar_disk,
-             const GasDiskProps& gas_disk, Real mvir, Real rvir, Real cvir, Real rcool)
-      : DiskGalaxy(stellar_disk, gas_disk, mvir, rvir, cvir, rcool)
+             const GasDiskProps& gas_disk, const NFWHaloPotential& halo_potential, Real rcool)
+      : DiskGalaxy(stellar_disk, gas_disk, halo_potential, rcool)
   {
     cluster_mass_distribution_ =
         std::shared_ptr<ClusterMassDistribution>(new ClusterMassDistribution(cluster_mass_distribution));
