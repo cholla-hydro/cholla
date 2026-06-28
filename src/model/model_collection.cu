@@ -9,6 +9,6 @@
 ModelCollection::ModelCollection(ParameterMap& pmap)
 {
   // in the future, we will dynamically build this thing from pmap
-  ClusteredDiskGalaxy galaxy_model = galaxies::get_MW_model();
+  ClusteredDiskGalaxy galaxy_model = galaxies::make_MW_model();
   vec_.emplace_back(galaxy_model);
 }

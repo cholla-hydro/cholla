@@ -219,7 +219,7 @@ namespace galaxies
 
 // temporary helper function that is being used while we transition
 // to dynamically construct the galaxy model from the parameter file
-const ClusteredDiskGalaxy& get_MW_model();
+ClusteredDiskGalaxy make_MW_model();
 
 };  // namespace galaxies
 
