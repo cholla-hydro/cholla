@@ -344,6 +344,20 @@ struct GasDiskProps {
   {
   }
 
+  __host__ static GasDiskProps Create(ParameterMap& pmap)
+  {
+    // maybe we want to make more explicit distinction b/t initial
+    // condition properties and general properties?
+    Real M_d        = pmap.value<double>("model.galaxy.gas_disk.mass_Msun");
+    Real R_d        = pmap.value<double>("model.galaxy.gas_disk.scale_radius_kpc");
+    Real H_d        = pmap.value<double>("model.galaxy.gas_disk.initial_scale_height_guess_kpc");
+    Real T_d        = pmap.value<double>("model.galaxy.gas_disk.initial_temperature");
+    bool isothermal = pmap.value<bool>("model.galaxy.gas_disk.initialize_isothermal");
+    Real selfgrav_scale_height_estimate =
+        pmap.value<double>("model.galaxy.gas_disk.selfgrav_scale_height_estimate_kpc");
+    return GasDiskProps(M_d, R_d, H_d, T_d, isothermal, selfgrav_scale_height_estimate);
+  }
+
   /* Returns Sigma_0. This is just
    * \f$\Sigma_0 = \frac{M_d}{\int Sigma(r)\ dA} =  \frac{M_d}{2\pi \int_0^\infty r\ \Sigma\ dr} \f$
    */

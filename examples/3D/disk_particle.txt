@@ -54,6 +54,32 @@ sw_filename=./src/feedback/starburst99_sw.txt
 sn_model=legacy
 boundary_strategy=snap
 
+# configure properties for the disk-galaxy model
+# ==============================================
+# These parameters were chosen to approximate a Milky Way-like galaxy
+
+[model.galaxy.gas_disk]
+# the gas disk mass was selected to be 15% of old-stellar disk mass
+mass_Msun=9.75e9
+
+# the exponential scale radius
+scale_radius_kpc=5.4
+
+# when true, the gas disk is initialized with an isothermal profile
+initialize_isothermal=true
+
+# the temperature to use in the isothermal profile
+initial_temperature=1.0e4
+
+# the following is used as an initial guess when initializing the
+# gas distribution. This is used for an isothermal profile, under
+# self-gravity. (DOES THIS PARMETER NEED TO EXIST?)
+initial_scale_height_guess_kpc=0.7
+
+# the following scale height is used in the model for estimating the
+# self-gravity of the gas disk
+selfgrav_scale_height_estimate_kpc=0.02
+
 [model.galaxy.static_potential.halo]
 mass_Msun=1.012e12
 virial_radius_kpc=261
