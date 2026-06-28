@@ -16,8 +16,8 @@ DiskGalaxy::~DiskGalaxy() {}
 
 DiskGalaxy::DiskGalaxy(ParameterMap& pmap)
     : stellar_disk(new MiyamotoNagaiPotential(pmap)),
-      gas_disk(new GasDiskProps(GasDiskProps::Create(pmap))),
-      halo_potential(new NFWHaloPotential(NFWHaloPotential::Create(pmap))),
+      gas_disk(new GasDiskProps(pmap)),
+      halo_potential(new NFWHaloPotential(pmap)),
       cluster_mass_distribution_{nullptr},
       r_cool(pmap.value<double>("model.galaxy.initial_cool_radius_kpc"))
 {

@@ -14,34 +14,16 @@ struct NFWHaloPotential {
   Real R_h;   /*!< halo scale length (NOT the virial radius) */
   Real c_vir; /*!< halo concentration parameter (to account for adiabatic contraction) */
 
-  /*! \brief Historical Constructor */
-  __host__ NFWHaloPotential(Real M_h, Real R_h, Real c_vir) : M_h(M_h), R_h(R_h), c_vir(c_vir)
+  /*! \brief Construct an instance from a parameter map */
+  __host__ explicit NFWHaloPotential(ParameterMap& pmap)
+      : M_h{pmap.value<double>("model.galaxy.static_potential.halo.mass_Msun")},
+        c_vir{pmap.value<double>("model.galaxy.static_potential.halo.concentration")}
   {
     CHOLLA_ASSERT(M_h > 0, "halo mass must be positive: %g", M_h);
-    CHOLLA_ASSERT(R_h > 0, "halo scale length must be positive: %g", R_h);
     CHOLLA_ASSERT(c_vir > 0, "concentration must be positive: %g", c_vir);
-  }
-
-  /*! \brief factory method that creates an instance using the virial radius
-   *
-   *  \important
-   *  Unlike the preceeding constructor, this creates an instance from the virial
-   *  radius, rather than the scale length.
-   */
-  __host__ static NFWHaloPotential Create_Using_Rvir(Real M_h, Real R_vir, Real c_vir)
-  {
-    CHOLLA_ASSERT(R_vir > 0, "halo virial radius must be positive: %g", R_vir);
-    CHOLLA_ASSERT(c_vir > 0, "concentration must be positive: %g", c_vir);
-    return NFWHaloPotential(M_h, R_vir / c_vir, c_vir);
-  }
-
-  /*! \brief Construct an instance from a parameter map */
-  __host__ static NFWHaloPotential Create(ParameterMap& pmap)
-  {
-    Real M_h   = pmap.value<double>("model.galaxy.static_potential.halo.mass_Msun");
     Real R_vir = pmap.value<double>("model.galaxy.static_potential.halo.virial_radius_kpc");
-    Real c_vir = pmap.value<double>("model.galaxy.static_potential.halo.concentration");
-    return NFWHaloPotential::Create_Using_Rvir(M_h, R_vir, c_vir);
+    CHOLLA_ASSERT(R_vir > 0, "halo virial radius must be positive: %g", R_vir);
+    R_h = R_vir / c_vir;
   }
 
   // we don't need to prefix __host__ __default__ on functions like the following that
@@ -320,11 +302,11 @@ struct ApproxExponentialDisk3MN {
 struct GasDiskProps {
   Real M_d;        /*!< total mass (in Msolar) */
   Real R_d;        /*!< scale-length (in kpc) */
-  Real H_d;        /*!< initial guess at the scale-height (in kpc) */
-  Real T_d;        /*!< gas temperature */
   bool isothermal; /*!< Indicates whether to initialize an isothermal or adiabatic disk
                     *!< (it's unclear whether the adiabatic configuration still works)
                     */
+  Real H_d;        /*!< initial guess at the scale-height (in kpc) */
+  Real T_d;        /*!< gas temperature */
 
   /* A rough approximation for the gravitational potential produced by self-gravity.
    * - It is generally used to help initialize the circular-velocity in the ICs.
@@ -334,28 +316,18 @@ struct GasDiskProps {
    */
   ApproxExponentialDisk3MN selfgrav_approx_potential;
 
-  GasDiskProps(Real M_d, Real R_d, Real H_d, Real T_d, bool isothermal, Real selfgrav_scale_height_estimate)
-      : M_d(M_d),
-        R_d(R_d),
-        H_d(H_d),
-        T_d(T_d),
-        isothermal(isothermal),
-        selfgrav_approx_potential(ApproxExponentialDisk3MN::create(M_d, R_d, selfgrav_scale_height_estimate, true))
+  __host__ explicit GasDiskProps(ParameterMap& pmap)
+      : M_d{pmap.value<double>("model.galaxy.gas_disk.mass_Msun")},
+        R_d{pmap.value<double>("model.galaxy.gas_disk.scale_radius_kpc")},
+        isothermal{pmap.value<bool>("model.galaxy.gas_disk.initialize_isothermal")},
+        H_d{pmap.value<double>("model.galaxy.gas_disk.initial_scale_height_guess_kpc")},
+        T_d{pmap.value<double>("model.galaxy.gas_disk.initial_temperature")},
+        // the following line reads from the already initialized values of the M_d &
+        // R_d data members. This is ok since M_d & R_d are declared as class members
+        // before selfgrav_aprox_potential (the order of the current list is irrelevant)
+        selfgrav_approx_potential(ApproxExponentialDisk3MN::create(
+            M_d, R_d, pmap.value<double>("model.galaxy.gas_disk.selfgrav_scale_height_estimate_kpc"), true))
   {
-  }
-
-  __host__ static GasDiskProps Create(ParameterMap& pmap)
-  {
-    // maybe we want to make more explicit distinction b/t initial
-    // condition properties and general properties?
-    Real M_d        = pmap.value<double>("model.galaxy.gas_disk.mass_Msun");
-    Real R_d        = pmap.value<double>("model.galaxy.gas_disk.scale_radius_kpc");
-    Real H_d        = pmap.value<double>("model.galaxy.gas_disk.initial_scale_height_guess_kpc");
-    Real T_d        = pmap.value<double>("model.galaxy.gas_disk.initial_temperature");
-    bool isothermal = pmap.value<bool>("model.galaxy.gas_disk.initialize_isothermal");
-    Real selfgrav_scale_height_estimate =
-        pmap.value<double>("model.galaxy.gas_disk.selfgrav_scale_height_estimate_kpc");
-    return GasDiskProps(M_d, R_d, H_d, T_d, isothermal, selfgrav_scale_height_estimate);
   }
 
   /* Returns Sigma_0. This is just
