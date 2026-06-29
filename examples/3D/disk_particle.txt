@@ -67,16 +67,6 @@ T_anchor=1.0e6
 # the following is roughly n_H = 10^-3.5
 rho_anchor_Msun_per_kpc3=3.0e3
 
-[model.galaxy.cluster_mass_dist]
-# specify parameters for the cluster mass PDF, which is written as
-#     P(M_cluster) = / A * M^(-alpha),  for lo <= M < hi
-#                    \ 0,               otherwise
-# where A is a normalization constant so that the integral from lo to hi
-# produces a value of 1
-lo_Msun=1.0e2
-hi_Msun=2.0e5
-alpha=2.0
-
 [model.galaxy.gas_disk]
 # the gas disk mass was selected to be 15% of old-stellar disk mass
 mass_Msun=9.75e9
@@ -92,6 +82,22 @@ selfgrav_scale_height_estimate_kpc=0.02
 profile_kind=isothermal
 T_anchor=1.0e4
 initial_scale_height_guess_kpc=0.7
+
+[model.galaxy.star_forming_disk]
+# specify the global star formation rate across the entire disk
+global_sfr_Msun_per_kyr=2.0e3
+
+poisson_point_process=true
+
+[model.galaxy.star_forming_disk.cluster_mass_dist]
+# specify parameters for the cluster mass PDF, which is written as
+#     P(M_cluster) = / A * M^(-alpha),  for lo <= M < hi
+#                    \ 0,               otherwise
+# where A is a normalization constant so that the integral from lo to hi
+# produces a value of 1
+lo_Msun=1.0e2
+hi_Msun=2.0e5
+alpha=2.0
 
 [model.galaxy.static_potential.halo]
 mass_Msun=1.012e12

@@ -92,6 +92,14 @@ class ClusterMassDistribution
   Real alpha_;
 };
 
+struct StarFormingDiskProps {
+  ClusterMassDistribution cluster_mass_distribution;
+  double global_sfr_Msun_per_kyr;
+  bool poisson_point_process;
+
+  explicit StarFormingDiskProps(ParameterMap& pmap);
+};
+
 /* Intended to serve as a centralized location where all properties of the underlying galaxy-model
  * are agregated.
  *
@@ -107,11 +115,13 @@ class DiskGalaxy
   std::shared_ptr<MiyamotoNagaiPotential> stellar_disk;
   std::shared_ptr<GasDiskProps> gas_disk;
   std::shared_ptr<NFWHaloPotential> halo_potential;
-  std::shared_ptr<ClusterMassDistribution> cluster_mass_distribution_;
   // the following parameter is always non-null. The ONLY reason it's declared as a
   // pointer is so that we can avoid a transitive dependence on the current header on
   // the ParameterMap header file)
   std::shared_ptr<galaxy_detail::InitialCGMProps> initial_cgm_props;
+  // the following member is pretty the only one that should ever be allowed to be
+  // a nullptr
+  std::shared_ptr<StarFormingDiskProps> star_forming_disk_props_;
 
  public:
   /* To properly deallocate the internally tracked shared pointers we need to define a
@@ -191,10 +201,10 @@ class DiskGalaxy
   // an important invariant: initial_cgm_props is NEVER a nullptr
   const galaxy_detail::InitialCGMProps& getInitialCGMProps() const { return *initial_cgm_props; }
 
-  const ClusterMassDistribution* tryGetClusterMassDistribution() const
+  const StarFormingDiskProps* tryGetStarFormingDiskProps() const
   {
     // we should return a CONST reference or a copy (so that the internal object isn't mutated)
-    return cluster_mass_distribution_.get();
+    return star_forming_disk_props_.get();
   }
 };
 

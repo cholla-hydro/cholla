@@ -943,11 +943,18 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64 &generator, c
   //  -> apparently, the results of distribution functions are not portable across different
   //     implementions (the C++ standard was not precise enough to guarantee this)
   //  -> with that said, it's fine to use the generator classes (e.g. std::mt19937_64)
+
+  const StarFormingDiskProps *star_forming_disk_props = model_galaxy.tryGetStarFormingDiskProps();
+  if (star_forming_disk_props == nullptr) {
+    CHOLLA_ERROR("the galaxy model doesn't have star forming disk properties");
+  }
+
   const bool provide_summary = true;
 
   // fetch governing physical parameters:
   // todo: store the following directly within the Galaxy object
-  const Real SFR               = 2e3;                           // global MW SFR: 2 SM / yr
+  const Real SFR = 2e3;  // global MW SFR: 2 SM / yr
+  CHOLLA_ASSERT(SFR == star_forming_disk_props->global_sfr_Msun_per_kyr, "got unexpected SFR");
   const Real Rgas_scale_length = model_galaxy.getGasDiskR_d();  // gas-disk scale length
   // the following are theoretically tunable
   const Real k_s_power = 1.4;              // the power in the Kennicut-Schmidt law
@@ -1001,12 +1008,8 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64 &generator, c
   std::uniform_real_distribution<Real> phiDist(0, 2 * M_PI);  // for generating phi
   std::normal_distribution<Real> speedDist(0, 1);             // for generating random speeds.
 
-  const ClusterMassDistribution *cluster_mass_dist = model_galaxy.tryGetClusterMassDistribution();
-  if (cluster_mass_dist == nullptr) {
-    CHOLLA_ERROR("the galaxy model doesn't have an associated cluster mass distribution");
-  }
-
-  ClusterCreator<UsePoissonPointProcess> cluster_creator(*cluster_mass_dist, SFR, earliest_t_formation);
+  ClusterCreator<UsePoissonPointProcess> cluster_creator(star_forming_disk_props->cluster_mass_distribution, SFR,
+                                                         earliest_t_formation);
 
   // initialize the std::map instances of vectors used to hold the output properties
   // part a: Initialize the maps in the output struct
@@ -1116,6 +1119,10 @@ void Particles3D::Initialize_Disk_Stellar_Clusters(struct Parameters *P, const M
 
   const DiskGalaxy *galaxy_model = model_collection.try_get<DiskGalaxy>();
   CHOLLA_ASSERT(galaxy_model != nullptr, "no galaxy model was initialized");
+  const StarFormingDiskProps *star_forming_disk_props = galaxy_model->tryGetStarFormingDiskProps();
+  if (star_forming_disk_props == nullptr) {
+    CHOLLA_ERROR("the galaxy model doesn't have star forming disk properties");
+  }
 
   chprintf(" Initializing Particles Stellar Disk\n");
 
@@ -1127,7 +1134,7 @@ void Particles3D::Initialize_Disk_Stellar_Clusters(struct Parameters *P, const M
 
   // in the future, we may want to let users adjust this parameter OR we may want
   // to remove the older strategy of determining cluster formation times
-  bool poisson_process_formation_strat = true;
+  bool poisson_process_formation_strat = star_forming_disk_props->poisson_point_process;
 
   StarClusterInitRsltPack pack =
       (poisson_process_formation_strat)

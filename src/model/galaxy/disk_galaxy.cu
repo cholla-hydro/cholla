@@ -4,10 +4,19 @@
 #include "potentials.h"
 
 ClusterMassDistribution::ClusterMassDistribution(ParameterMap& pmap)
-    : ClusterMassDistribution(pmap.value<double>("model.galaxy.cluster_mass_dist.lo_Msun"),
-                              pmap.value<double>("model.galaxy.cluster_mass_dist.hi_Msun"),
-                              pmap.value<double>("model.galaxy.cluster_mass_dist.alpha"))
+    : ClusterMassDistribution(pmap.value<double>("model.galaxy.star_forming_disk.cluster_mass_dist.lo_Msun"),
+                              pmap.value<double>("model.galaxy.star_forming_disk.cluster_mass_dist.hi_Msun"),
+                              pmap.value<double>("model.galaxy.star_forming_disk.cluster_mass_dist.alpha"))
 {
+}
+
+StarFormingDiskProps::StarFormingDiskProps(ParameterMap& pmap)
+    : cluster_mass_distribution(pmap),
+      global_sfr_Msun_per_kyr(pmap.value<double>("model.galaxy.star_forming_disk.global_sfr_Msun_per_kyr")),
+      poisson_point_process(pmap.value<bool>("model.galaxy.star_forming_disk.poisson_point_process"))
+{
+  CHOLLA_ASSERT(global_sfr_Msun_per_kyr >= 0.0, "global_sfr_Msun_per_kyr must be non-negative: %g",
+                global_sfr_Msun_per_kyr);
 }
 
 // this is empty since the std::shared_ptr automatically handles things
@@ -19,11 +28,11 @@ DiskGalaxy::DiskGalaxy(ParameterMap& pmap)
     : stellar_disk(new MiyamotoNagaiPotential(pmap)),
       gas_disk(new GasDiskProps(pmap)),
       halo_potential(new NFWHaloPotential(pmap)),
-      cluster_mass_distribution_{nullptr},
-      initial_cgm_props(new galaxy_detail::InitialCGMProps(pmap))
+      initial_cgm_props(new galaxy_detail::InitialCGMProps(pmap)),
+      star_forming_disk_props_{nullptr}
 {
-  if (pmap.Contains_Table("model.galaxy.cluster_mass_dist")) {
-    cluster_mass_distribution_ = std::make_shared<ClusterMassDistribution>(pmap);
+  if (pmap.Contains_Table("model.galaxy.star_forming_disk")) {
+    star_forming_disk_props_ = std::make_shared<StarFormingDiskProps>(pmap);
   }
 }
 
