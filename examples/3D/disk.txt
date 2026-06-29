@@ -49,8 +49,14 @@ outdir=./
 # ==============================================
 # These parameters were chosen to approximate a Milky Way-like galaxy
 
-[model.galaxy]
-initial_cool_radius_kpc=157
+[model.galaxy.cgm_init]
+# gas in the halo follows an isentropic profile. At a spherical radius of
+# R_anchor, the gas has the properties of rho_anchor and T_anchor
+R_anchor_kpc=157
+profile_kind=isentropic
+T_anchor=1.0e6
+# the following is roughly n_H = 10^-3.5
+rho_anchor_Msun_per_kpc3=3.0e3
 
 [model.galaxy.gas_disk]
 # the gas disk mass was selected to be 15% of old-stellar disk mass
@@ -65,7 +71,7 @@ selfgrav_scale_height_estimate_kpc=0.02
 
 [model.galaxy.gas_disk.init]
 profile_kind=isothermal
-temperature=1.0e4
+T_anchor=1.0e4
 initial_scale_height_guess_kpc=0.7
 
 
@@ -83,8 +89,16 @@ scale_height_kpc=0.7
 # =====================================================================
 # NOTE: the following were all previously hardcoded in the codebase
 #
-# [model.galaxy]
-# initial_cool_radius_kpc=100
+# [model.galaxy.cgm_init]
+# # gas in the halo follows an isentropic profile. At a spherical radius of
+# # R_anchor, the gas has the properties of rho_anchor and T_anchor
+# R_anchor_kpc=100
+# profile_kind=isentropic
+# # these are the values that were hardcoded for the MW-like galaxy, it's
+# # unclear whether the M82-like galaxy used different values
+# T_anchor=1.0e6
+# # the following is roughly n_H = 10^-3.5
+# rho_anchor_Msun_per_kpc3=3.0e3
 #
 # [model.galaxy.gas_disk]
 # # the gas disk mass was selected to be 25% of old-stellar disk mass
@@ -97,7 +111,7 @@ scale_height_kpc=0.7
 #
 # [model.galaxy.gas_disk.init]
 # profile_kind=isothermal
-# temperature=1.0e4
+# T_anchor=1.0e4
 # initial_scale_height_guess_kpc=0.15
 #
 # [model.galaxy.static_potential.halo]

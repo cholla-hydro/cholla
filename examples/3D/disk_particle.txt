@@ -58,8 +58,14 @@ boundary_strategy=snap
 # ==============================================
 # These parameters were chosen to approximate a Milky Way-like galaxy
 
-[model.galaxy]
-initial_cool_radius_kpc=157
+[model.galaxy.cgm_init]
+# gas in the halo follows an isentropic profile. At a spherical radius of
+# R_anchor, the gas has the properties of rho_anchor and T_anchor
+R_anchor_kpc=157
+profile_kind=isentropic
+T_anchor=1.0e6
+# the following is roughly n_H = 10^-3.5
+rho_anchor_Msun_per_kpc3=3.0e3
 
 [model.galaxy.cluster_mass_dist]
 # specify parameters for the cluster mass PDF, which is written as
@@ -84,7 +90,7 @@ selfgrav_scale_height_estimate_kpc=0.02
 
 [model.galaxy.gas_disk.init]
 profile_kind=isothermal
-temperature=1.0e4
+T_anchor=1.0e4
 initial_scale_height_guess_kpc=0.7
 
 [model.galaxy.static_potential.halo]

@@ -9,7 +9,13 @@
 #include "../../global/global.h"
 #include "../../utils/error_handling.h"
 
+// forward declarations to avoid directly (or indirectly) including the ParameterMap
+// header file
 struct ParameterMap;
+namespace galaxy_detail
+{
+struct InitialCGMProps;
+}
 
 // we are bending over backwards to ensure that the functionality defined in
 // "potentials.h" can be used on CPUs and on GPUs
@@ -102,7 +108,10 @@ class DiskGalaxy
   std::shared_ptr<GasDiskProps> gas_disk;
   std::shared_ptr<NFWHaloPotential> halo_potential;
   std::shared_ptr<ClusterMassDistribution> cluster_mass_distribution_;
-  Real r_cool;
+  // the following parameter is always non-null. The ONLY reason it's declared as a
+  // pointer is so that we can avoid a transitive dependence on the current header on
+  // the ParameterMap header file)
+  std::shared_ptr<galaxy_detail::InitialCGMProps> initial_cgm_props;
 
  public:
   /* To properly deallocate the internally tracked shared pointers we need to define a
@@ -178,7 +187,9 @@ class DiskGalaxy
   const MiyamotoNagaiPotential& getStaticStellarDiskPotential() const;
   const GasDiskProps& getGasDisk() const;
   const NFWHaloPotential& getHaloPotential() const;
-  Real getR_cool() const { return r_cool; };
+
+  // an important invariant: initial_cgm_props is NEVER a nullptr
+  const galaxy_detail::InitialCGMProps& getInitialCGMProps() const { return *initial_cgm_props; }
 
   const ClusterMassDistribution* tryGetClusterMassDistribution() const
   {

@@ -837,19 +837,25 @@ void Grid3D::Disk_3D(Parameters p)
   CHOLLA_ASSERT(tmp != nullptr, "no galaxy model was initialized");
   const DiskGalaxy& galaxy = *tmp;
 
-  const MiyamotoNagaiPotential stellar_disk = galaxy.getStaticStellarDiskPotential();
-  const GasDiskProps gas_disk               = galaxy.getGasDisk();
+  const MiyamotoNagaiPotential stellar_disk            = galaxy.getStaticStellarDiskPotential();
+  const GasDiskProps gas_disk                          = galaxy.getGasDisk();
+  const galaxy_detail::InitialCGMProps& cgm_init_props = galaxy.getInitialCGMProps();
 
   T_h       = 1.0e6;  // halo temperature, at density floor
   rho_eos   = 1.0e7;  // gas eos normalized at 1e7 Msun/kpc^3
   rho_eos_h = 3.0e3;  // gas eos normalized at 3e3 Msun/kpc^3 (about n_h = 10^-3.5)
   mu        = 0.6;
 
+  // todo: fix me
+  CHOLLA_ASSERT(T_h == cgm_init_props.profile.temperature_anchor(), "unexpected cgm anchor temperature");
+  CHOLLA_ASSERT(rho_eos_h == cgm_init_props.profile.rho_anchor_Msun_per_kpc3(), "unexpected cgm anchor density: %g",
+                cgm_init_props.profile.rho_anchor_Msun_per_kpc3());
+
   Real Sigma_0 = gas_disk.CentralSurfaceDensity();  // (in Msun/kpc^2)
   // changing the following 3 lines directly assign T_d the value stored in gas_disk.T_d slightly
   // changes the result of the simulation (its worrying that I can't explain why!)
   T_d = 1.0e4;
-  if (T_d != gas_disk.init_props.T_d) {
+  if (T_d != gas_disk.init_props.profile.temperature_anchor()) {
     CHOLLA_ERROR("unexpected disk temperature");
   }
 
@@ -876,7 +882,7 @@ void Grid3D::Disk_3D(Parameters p)
   hdp.H_g            = gas_disk.init_props.H_d;  // initial guess for gas scale height (kpc)
   hdp.gamma          = p.gamma;
 
-  if (gas_disk.init_props.profile == galaxy_detail::GasProfileKind::ISOTHERMAL) {
+  if (gas_disk.init_props.profile.is_isothermal()) {
     // determine rho_eos by setting central density of disk based on central temperature
     rho_eos = determine_rho_eos_D3D(cs, Sigma_0, hdp);
     K_eos   = cs * cs * rho_eos;  // CHANGED FOR ISOTHERMAL
@@ -923,10 +929,10 @@ void Grid3D::Disk_3D(Parameters p)
   // since we are adding contributions from the halo across the entire domain, let's initialize it
   // first (we will need to account for its influence on the radial pressure gradients when
   // initializing the circular velocity of the disk)
-  CGMInitializer cgm_initializer(p, hdp, mu, rho_eos_h, T_h, galaxy.getR_cool());
+  CGMInitializer cgm_initializer(p, hdp, mu, rho_eos_h, T_h, cgm_init_props.R_anchor_kpc);
   partial_initialize_halo(this->H, *this, this->C, cgm_initializer);
 
-  if (gas_disk.init_props.profile == galaxy_detail::GasProfileKind::ISOTHERMAL) {
+  if (gas_disk.init_props.profile.is_isothermal()) {
     if (self_gravity) {
       // nongas_phi calculates the gravitational potential contributed by material other than the
       // gas disk at a given (R,z), where R is cylindrical radius

@@ -1,5 +1,6 @@
 #include "../../io/ParameterMap.h"
 #include "disk_galaxy.h"
+#include "gas_props.h"
 #include "potentials.h"
 
 ClusterMassDistribution::ClusterMassDistribution(ParameterMap& pmap)
@@ -19,9 +20,8 @@ DiskGalaxy::DiskGalaxy(ParameterMap& pmap)
       gas_disk(new GasDiskProps(pmap)),
       halo_potential(new NFWHaloPotential(pmap)),
       cluster_mass_distribution_{nullptr},
-      r_cool(pmap.value<double>("model.galaxy.initial_cool_radius_kpc"))
+      initial_cgm_props(new galaxy_detail::InitialCGMProps(pmap))
 {
-  CHOLLA_ASSERT(r_cool > 0, "initial_cool_radius must be positive: %g", r_cool);
   if (pmap.Contains_Table("model.galaxy.cluster_mass_dist")) {
     cluster_mass_distribution_ = std::make_shared<ClusterMassDistribution>(pmap);
   }
