@@ -1,4 +1,4 @@
-#ifdef COSMOLOGY
+#if defined(COSMOLOGY)&defined(FFT)
   #include <hdf5.h>
 
   #include <cstdio>
