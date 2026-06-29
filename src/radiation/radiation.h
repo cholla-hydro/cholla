@@ -11,6 +11,10 @@
 
     #define TPB_RT 1024
 
+#ifdef HDF5
+    #include<hdf5.h>
+#endif
+
 struct Header;
 class Grav3D;
 
@@ -114,8 +118,12 @@ class Rad3D
 
   // io
   void Radiation_Restart_Filename(char *filename, char *dirname, int nfile);
+#ifdef HDF5
   void Read_Restart_HDF5(Parameters *P, int nfile);
   void Write_Restart_HDF5(Parameters *P, int nfile, const FnameTemplate &fname_template);
+  herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, int *attribute, const char *name);
+  herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, double *attribute, const char *name);
+#endif 
 
   void rtBoundaries();
 

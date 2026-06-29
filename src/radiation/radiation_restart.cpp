@@ -18,14 +18,34 @@
 void Rad3D::Radiation_Restart_Filename(char* filename, char* dirname, int nfile)
 {
   #ifdef MPI_CHOLLA
-  sprintf(filename, "%s%d_rt.h5.%d", dirname, nfile, procID);
+  const std::string base_fname = dirname+(std::to_string(nfile) + "_rt.h5." + std::to_string(procID));
   #else
-  sprintf(filename, "%s%d_rt.h5", dirname, nfile);
+  const std::string base_fname = dirname+(std::to_string(nfile) + "_rt.h5." + std::to_string(procID));
   #endif
+
+  std::strcpy(filename,base_fname.c_str());
+
 }
 #endif
 
 #if defined(RT) && defined(HDF5)
+
+herr_t Rad3D::Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, int *attribute, const char *name)
+{
+  hid_t attribute_id = H5Acreate(file_id, name, H5T_STD_I32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  herr_t status      = H5Awrite(attribute_id, H5T_NATIVE_INT, attribute);
+  status             = H5Aclose(attribute_id);
+  return status;
+}
+herr_t Rad3D::Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, double *attribute, const char *name)
+{
+  hid_t attribute_id = H5Acreate(file_id, name, H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  herr_t status      = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, attribute);
+  status             = H5Aclose(attribute_id);
+  return status;
+}
+
+
 void Rad3D::Read_Restart_HDF5(Parameters* P, int nfile)
 {
   H5open();
