@@ -1665,7 +1665,7 @@ void Grid3D::Adiabatic_Expansion(struct Parameters P)
 
 void Grid3D::Cosmological_ICs(struct Parameters const P)
 {
-#if !defined(COSMOLOGY)|!defined(FFT)
+#if !defined(COSMOLOGY) | !defined(FFT)
   chprintf("To run a Cosmological ICs simulation, COSMOLOGY and FFT have to be turned ON \n");
   exit(-1);
 #else
