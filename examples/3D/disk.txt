@@ -59,20 +59,15 @@ mass_Msun=9.75e9
 # the exponential scale radius
 scale_radius_kpc=5.4
 
-# when true, the gas disk is initialized with an isothermal profile
-initialize_isothermal=true
-
-# the temperature to use in the isothermal profile
-initial_temperature=1.0e4
-
-# the following is used as an initial guess when initializing the
-# gas distribution. This is used for an isothermal profile, under
-# self-gravity. (DOES THIS PARMETER NEED TO EXIST?)
-initial_scale_height_guess_kpc=0.7
-
 # the following scale height is used in the model for estimating the
 # self-gravity of the gas disk
 selfgrav_scale_height_estimate_kpc=0.02
+
+[model.galaxy.gas_disk.init]
+profile_kind=isothermal
+temperature=1.0e4
+initial_scale_height_guess_kpc=0.7
+
 
 [model.galaxy.static_potential.halo]
 mass_Msun=1.012e12
@@ -95,13 +90,15 @@ scale_height_kpc=0.7
 # # the gas disk mass was selected to be 25% of old-stellar disk mass
 # mass_Msun=2.5e9
 # scale_radius_kpc=1.6
-# initialize_isothermal=true
-# initial_temperature=1.0e4
-# initial_scale_height_guess_kpc=0.15
 # # the following value is probably wrong, (I suspect a dummy value was just
 # # slotted into the codebase to get the code compile, but the resulting model
 # # was never actually used)
 # selfgrav_scale_height_estimate_kpc=1.6
+#
+# [model.galaxy.gas_disk.init]
+# profile_kind=isothermal
+# temperature=1.0e4
+# initial_scale_height_guess_kpc=0.15
 #
 # [model.galaxy.static_potential.halo]
 # mass_Msun=4.0e10

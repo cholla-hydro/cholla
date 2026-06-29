@@ -19,6 +19,7 @@
 #include "../../utils/error_handling.h"
 #include "../../utils/math_utilities.h"
 #include "disk_galaxy.h"
+#include "gas_props.h"
 #include "potentials.h"
 #include "selfgrav_hydrostatic_col.h"
 
@@ -848,7 +849,7 @@ void Grid3D::Disk_3D(Parameters p)
   // changing the following 3 lines directly assign T_d the value stored in gas_disk.T_d slightly
   // changes the result of the simulation (its worrying that I can't explain why!)
   T_d = 1.0e4;
-  if (T_d != gas_disk.T_d) {
+  if (T_d != gas_disk.init_props.T_d) {
     CHOLLA_ERROR("unexpected disk temperature");
   }
 
@@ -872,10 +873,10 @@ void Grid3D::Disk_3D(Parameters p)
   hdp.T_d            = T_d;
   hdp.Sigma_0        = Sigma_0;
   hdp.R_g            = gas_disk.R_d;
-  hdp.H_g            = gas_disk.H_d;  // initial guess for gas scale height (kpc)
+  hdp.H_g            = gas_disk.init_props.H_d;  // initial guess for gas scale height (kpc)
   hdp.gamma          = p.gamma;
 
-  if (gas_disk.isothermal) {
+  if (gas_disk.init_props.profile == galaxy_detail::GasProfileKind::ISOTHERMAL) {
     // determine rho_eos by setting central density of disk based on central temperature
     rho_eos = determine_rho_eos_D3D(cs, Sigma_0, hdp);
     K_eos   = cs * cs * rho_eos;  // CHANGED FOR ISOTHERMAL
@@ -925,7 +926,7 @@ void Grid3D::Disk_3D(Parameters p)
   CGMInitializer cgm_initializer(p, hdp, mu, rho_eos_h, T_h, galaxy.getR_cool());
   partial_initialize_halo(this->H, *this, this->C, cgm_initializer);
 
-  if (gas_disk.isothermal) {
+  if (gas_disk.init_props.profile == galaxy_detail::GasProfileKind::ISOTHERMAL) {
     if (self_gravity) {
       // nongas_phi calculates the gravitational potential contributed by material other than the
       // gas disk at a given (R,z), where R is cylindrical radius
@@ -939,7 +940,7 @@ void Grid3D::Disk_3D(Parameters p)
       // equivalent to:  `(isothermal_sound_speed)^2` OR `(adiabatic_sound_speed)^2/gamma` OR
       //                 `(gamma - 1) * specific_internal_energy`
       Real isoth_term                     = hdp.cs * hdp.cs;  // <- square of the isothermal sound speed
-      Real initial_gas_scale_height_guess = gas_disk.H_d;
+      Real initial_gas_scale_height_guess = gas_disk.init_props.H_d;
       SelfGravHydroStaticColMaker col_maker(H.n_ghost, ZGridProps(p.zmin, p.zlen, p.nz), isoth_term, nongas_phi_fn,
                                             initial_gas_scale_height_guess);
 
