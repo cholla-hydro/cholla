@@ -952,16 +952,10 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64 &generator, c
   const bool provide_summary = true;
 
   // fetch governing physical parameters:
-  // todo: store the following directly within the Galaxy object
-  const Real SFR = 2e3;  // global MW SFR: 2 SM / yr
-  CHOLLA_ASSERT(SFR == star_forming_disk_props->global_sfr_Msun_per_kyr, "got unexpected SFR");
-  const Real Rgas_scale_length = model_galaxy.getGasDiskR_d();  // gas-disk scale length
-  // the following are theoretically tunable
-  const Real k_s_power = 1.4;  // the power in the Kennicut-Schmidt law
-  CHOLLA_ASSERT(k_s_power == star_forming_disk_props->kennicut_schmidt_power, "got unexpected earliest_t_formation");
-  const Real earliest_t_formation = -4e4;  // earliest cluster time
-  CHOLLA_ASSERT(earliest_t_formation == star_forming_disk_props->earliest_t_formation,
-                "got unexpected earliest_t_formation");
+  const Real SFR                  = star_forming_disk_props->global_sfr_Msun_per_kyr;
+  const Real Rgas_scale_length    = model_galaxy.getGasDiskR_d();  // gas-disk scale length
+  const Real k_s_power            = star_forming_disk_props->kennicut_schmidt_power;
+  const Real earliest_t_formation = star_forming_disk_props->earliest_t_formation;
 
   if (provide_summary) {
     chprintf(
