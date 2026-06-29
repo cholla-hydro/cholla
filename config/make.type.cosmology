@@ -3,16 +3,18 @@ include config/make.type.particles
 # Solve the equation of motion (Particles and Hydro) on a comoving frame
 DFLAGS += -DCOSMOLOGY
 
-# Include the FFT subroutines
-DFLAGS += -DFFT
 
 # Use Grackle for cooling and chemistry in cosmological simulations
 #DFLAGS += -DCOOLING_GRACKLE -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY -DN_OMP_THREADS_GRACKLE=$(OMP_NUM_THREADS)
 #DFLAGS += -DGRACKLE_METALS
 
 
+# Include the FFT subroutines
+#DFLAGS += -DFFT
+
+
 # Solve the Primordial Chemical Network (H+He) on the GPU (Includes Radiative Cooling, Photoheating and Photoionization)
-DFLAGS += -DCHEMISTRY_GPU -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY
+#DFLAGS += -DCHEMISTRY_GPU -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY
 
 
 # Perform In-The-Fly analysis of Cosmological Simulations
