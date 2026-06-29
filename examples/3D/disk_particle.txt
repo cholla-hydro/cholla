@@ -86,8 +86,10 @@ initial_scale_height_guess_kpc=0.7
 [model.galaxy.star_forming_disk]
 # specify the global star formation rate across the entire disk
 global_sfr_Msun_per_kyr=2.0e3
-
 poisson_point_process=true
+# the following is loosely based on the maximum delay for feedback after
+# a cluster is born
+earliest_t_formation=-4e4
 
 [model.galaxy.star_forming_disk.cluster_mass_dist]
 # specify parameters for the cluster mass PDF, which is written as

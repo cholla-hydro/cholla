@@ -12,11 +12,19 @@ ClusterMassDistribution::ClusterMassDistribution(ParameterMap& pmap)
 
 StarFormingDiskProps::StarFormingDiskProps(ParameterMap& pmap)
     : cluster_mass_distribution(pmap),
-      global_sfr_Msun_per_kyr(pmap.value<double>("model.galaxy.star_forming_disk.global_sfr_Msun_per_kyr")),
-      poisson_point_process(pmap.value<bool>("model.galaxy.star_forming_disk.poisson_point_process"))
+      global_sfr_Msun_per_kyr{pmap.value<double>("model.galaxy.star_forming_disk.global_sfr_Msun_per_kyr")},
+      poisson_point_process{pmap.value<bool>("model.galaxy.star_forming_disk.poisson_point_process")},
+      kennicut_schmidt_power{pmap.value_or("model.galaxy.star_forming_disk.kennicut_schmidt_power", 1.4)},
+      earliest_t_formation{pmap.value<double>("model.galaxy.star_forming_disk.earliest_t_formation")},
+      latest_t_formation()
 {
   CHOLLA_ASSERT(global_sfr_Msun_per_kyr >= 0.0, "global_sfr_Msun_per_kyr must be non-negative: %g",
                 global_sfr_Msun_per_kyr);
+
+  std::string latest_t_formation_param_name = "model.galaxy.star_forming_disk.latest_t_formation";
+  if (pmap.has_param(latest_t_formation_param_name)) {
+    latest_t_formation = std::make_optional<double>(pmap.value<double>(latest_t_formation_param_name));
+  }
 }
 
 // this is empty since the std::shared_ptr automatically handles things

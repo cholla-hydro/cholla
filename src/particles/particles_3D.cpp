@@ -957,9 +957,11 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64 &generator, c
   CHOLLA_ASSERT(SFR == star_forming_disk_props->global_sfr_Msun_per_kyr, "got unexpected SFR");
   const Real Rgas_scale_length = model_galaxy.getGasDiskR_d();  // gas-disk scale length
   // the following are theoretically tunable
-  const Real k_s_power = 1.4;              // the power in the Kennicut-Schmidt law
-                                           // (at the moment, this isn't tunable)
+  const Real k_s_power = 1.4;  // the power in the Kennicut-Schmidt law
+  CHOLLA_ASSERT(k_s_power == star_forming_disk_props->kennicut_schmidt_power, "got unexpected earliest_t_formation");
   const Real earliest_t_formation = -4e4;  // earliest cluster time
+  CHOLLA_ASSERT(earliest_t_formation == star_forming_disk_props->earliest_t_formation,
+                "got unexpected earliest_t_formation");
 
   if (provide_summary) {
     chprintf(
@@ -970,6 +972,11 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64 &generator, c
         "  earliest-cluster-formation time: %.3e kyr\n",
         SFR, Rgas_scale_length, k_s_power, earliest_t_formation);
   }
+
+  CHOLLA_ASSERT(earliest_t_formation < t_max,
+                "latest cluster formation time (%g) must exceed earliest cluster "
+                "formation time (%g)",
+                t_max, earliest_t_formation);
 
   // define distribution for generating cyclindrical radii
   std::gamma_distribution<Real> radialDistHelper(2, 1);
@@ -1130,7 +1137,14 @@ void Particles3D::Initialize_Disk_Stellar_Clusters(struct Parameters *P, const M
   std::mt19937_64 generator(P->prng_seed);
 
   Real R_max = Get_StarCluster_Truncation_Radius(*P);
-  Real t_max = P->tout;
+  Real t_max;
+  if (star_forming_disk_props->latest_t_formation.has_value()) {
+    t_max = star_forming_disk_props->latest_t_formation.value();
+    chprintf("  -> max formation time explicitly set by user: %g\n", t_max);
+  } else {
+    t_max = P->tout;
+    chprintf("  -> infer max formation time from stopping time: %g\n", t_max);
+  }
 
   // in the future, we may want to let users adjust this parameter OR we may want
   // to remove the older strategy of determining cluster formation times

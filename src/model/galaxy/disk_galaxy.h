@@ -94,8 +94,21 @@ class ClusterMassDistribution
 
 struct StarFormingDiskProps {
   ClusterMassDistribution cluster_mass_distribution;
+  /*! specfies the disk-wide integrated star formation rate */
   double global_sfr_Msun_per_kyr;
+  /*! indicates whether a Poisson Point Process is used to model star formation */
   bool poisson_point_process;
+  /*! the exponent used for the kennicut-schmidt law */
+  double kennicut_schmidt_power;
+  /*! specifies the earliest cluster formation time */
+  double earliest_t_formation;
+
+  /*! specifies the latest cluster formation time. When set to a std::nullopt (i.e. the
+   *  default when no parameter is provided), this uses the simulation stopping time.
+   *
+   *  when this matches earliest_t_formation, no clusters are formed.
+   */
+  std::optional<double> latest_t_formation;
 
   explicit StarFormingDiskProps(ParameterMap& pmap);
 };
