@@ -231,7 +231,7 @@ void Grid3D::Initialize(struct Parameters *P)
 
   Set_Domain_Properties(*P);  // move the domain info forward
 
-#ifdef COSMOLOGY
+#if defined(COSMOLOGY)&defined(FFT)
   Generate_Cosmo_Phi_Init(P);  // memory intensive -- before grid allocation
   // chprintf("D info before main %d %d\n",Cosmo.D_array.size(),Cosmo.a_array.size());
 
