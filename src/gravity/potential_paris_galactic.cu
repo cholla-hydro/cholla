@@ -5,8 +5,8 @@
   #include "../global/global.h"
   #include "../gravity/potential_paris_galactic.h"
   #include "../io/io.h"
-  #include "../model/disk_galaxy.h"
-  #include "../model/potentials.h"
+  #include "../model/galaxy/disk_galaxy.h"
+  #include "../model/galaxy/potentials.h"
   #include "../utils/error_handling.h"
   #include "../utils/gpu.hpp"
 

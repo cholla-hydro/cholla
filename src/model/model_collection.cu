@@ -3,7 +3,7 @@
  */
 
 #include "../io/ParameterMap.h"
-#include "disk_galaxy.h"
+#include "galaxy/disk_galaxy.h"
 #include "model_collection.h"
 
 ModelCollection::ModelCollection(ParameterMap& pmap)

@@ -12,12 +12,12 @@
 #include <cmath>
 #include <vector>
 
-#include "../global/global.h"
-#include "../grid/grid3D.h"
-#include "../io/io.h"
-#include "../mpi/mpi_routines.h"
-#include "../utils/error_handling.h"
-#include "../utils/math_utilities.h"
+#include "../../global/global.h"
+#include "../../grid/grid3D.h"
+#include "../../io/io.h"
+#include "../../mpi/mpi_routines.h"
+#include "../../utils/error_handling.h"
+#include "../../utils/math_utilities.h"
 #include "disk_galaxy.h"
 #include "potentials.h"
 #include "selfgrav_hydrostatic_col.h"

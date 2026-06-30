@@ -11,7 +11,7 @@
 
   #include "../grid/grid3D.h"
   #include "../io/io.h"
-  #include "../model/disk_galaxy.h"
+  #include "../model/galaxy/disk_galaxy.h"
   #include "../utils/error_handling.h"
   #include "../utils/prng_utilities.h"
 

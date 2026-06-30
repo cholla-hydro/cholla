@@ -30,8 +30,6 @@
   #include "../particles/particles_3D.h"
 #endif
 
-#include "../model/disk_galaxy.h"
-
 #ifdef COSMOLOGY
   #include "../cosmology/cosmology.h"
 #endif

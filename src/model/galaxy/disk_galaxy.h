@@ -6,8 +6,8 @@
 #include <memory>
 #include <random>
 
-#include "../global/global.h"
-#include "../utils/error_handling.h"
+#include "../../global/global.h"
+#include "../../utils/error_handling.h"
 
 // we are bending over backwards to ensure that the functionality defined in
 // "potentials.h" can be used on CPUs and on GPUs

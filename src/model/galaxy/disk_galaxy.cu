@@ -1,5 +1,5 @@
-#include "../model/potentials.h"
 #include "disk_galaxy.h"
+#include "potentials.h"
 
 ClusteredDiskGalaxy galaxies::make_MW_model()
 {

@@ -18,7 +18,7 @@
   #endif
 
   // #ifdef PARTICLES
-  #include "../model/disk_galaxy.h"
+  #include "../model/galaxy/disk_galaxy.h"
 // #endif
 
 // Set delta_t when using gravity

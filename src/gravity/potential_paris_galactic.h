@@ -3,7 +3,7 @@
 #ifdef PARIS_GALACTIC
 
   #include "../global/global.h"
-  #include "../model/disk_galaxy.h"
+  #include "../model/galaxy/disk_galaxy.h"
   #include "paris/PoissonZero3DBlockedGPU.hpp"
 
 class PotentialParisGalactic

@@ -1,7 +1,7 @@
 #include "feedback_analysis.h"
 
 #include "../io/io.h"
-#include "../model/disk_galaxy.h"
+#include "../model/galaxy/disk_galaxy.h"
 #include "../model/model_collection.h"
 #include "../utils/error_handling.h"
 

@@ -10,7 +10,7 @@
 
 #include "../io/ParameterMap.h"
 #include "../utils/error_handling.h"  // always_false
-#include "disk_galaxy.h"
+#include "galaxy/disk_galaxy.h"
 
 /*! \defgroup modelgrp Model Group
  *
