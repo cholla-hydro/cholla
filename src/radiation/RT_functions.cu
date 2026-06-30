@@ -24,29 +24,29 @@
 
 void Rad3D::Initialize_GPU()
 {
-  #ifdef OTVET
+  #ifdef RT_OTVET
   // copy over data from CPU fields
   GPU_Error_Check(cudaMemcpy(rtFields.dev_rf, rtFields.rf, (1 + n_fpfreq * n_freq) * grid.n_cells * sizeof(Real),
                              cudaMemcpyHostToDevice));
-  #endif  // OTVET
-  #ifdef M1
+  #endif  // RT_OTVET
+  #ifdef RT_M1
   // copy over data from CPU fields
   GPU_Error_Check(cudaMemcpy(rtFields.dev_rf, rtFields.rf, n_fpfreq * n_freq * grid.n_cells * sizeof(Real),
                              cudaMemcpyHostToDevice));
-  #endif  // M1
+  #endif  // RT_M1
 
   // initialize values for the other fields:
   //   if these fields exist on CPU, just copy them
   //   if not, set to 0
 
-  // eddington tensor for OTVET
-  #ifdef OTVET
+  // eddington tensor for RT_OTVET
+  #ifdef RT_OTVET
   if (rtFields.et != nullptr) {
     GPU_Error_Check(cudaMemcpy(rtFields.dev_et, rtFields.et, 6 * grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
   } else {
     GPU_Error_Check(cudaMemset(rtFields.dev_et, 0, 6 * grid.n_cells * sizeof(Real)));
   }
-  #endif  // OTVET
+  #endif  // RT_OTVET
 
   // source radiation field
   if (rtFields.rs != nullptr) {
@@ -58,15 +58,15 @@ void Rad3D::Initialize_GPU()
 
 void Rad3D::Copy_RT_Fields(void)
 {
-  #ifdef OTVET
+  #ifdef RT_OTVET
   // copy data back from GPU to CPU
   GPU_Error_Check(cudaMemcpy(rtFields.rf, rtFields.dev_rf, (1 + n_fpfreq * n_freq) * grid.n_cells * sizeof(Real),
                              cudaMemcpyDeviceToHost));
 
   GPU_Error_Check(cudaMemcpy(rtFields.et, rtFields.dev_et, 6 * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
-  #endif  // OTVET
+  #endif  // RT_OTVET
 
-  #ifdef M1
+  #ifdef RT_M1
   // copy data back from GPU to CPU
   GPU_Error_Check(cudaMemcpy(rtFields.rf, rtFields.dev_rf, n_fpfreq * n_freq * grid.n_cells * sizeof(Real),
                              cudaMemcpyDeviceToHost));
@@ -230,15 +230,15 @@ void Rad3D::Calc_Absorption(Real* dev_scalar)
                      dev_scalar, rtFields.dev_abc);
 }
 
-  #ifdef OTVET
-// Function to launch the OTVETIteration kernel
+  #ifdef RT_OTVET
+// Function to launch the RT_OTVETIteration kernel
 // should function the way "LAUNCH" does on slack
-void __global__ OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real dx, bool lastIteration,
+void __global__ RT_OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real dx, bool lastIteration,
                                       const Real rsFarFactor, const Real* __restrict__ rs, const Real* __restrict__ et,
                                       const Real* __restrict__ rfOT, const Real* __restrict__ rfNear,
                                       const Real* __restrict__ rfFar, const Real* __restrict__ abc,
                                       Real* __restrict__ rfNearNew, Real* __restrict__ rfFarNew, int deb);
-  #endif  // OTVET
+  #endif  // RT_OTVET
 
 // Function to launch the StepRFiIteration kernel
 // should function the way "LAUNCH" does on slack
@@ -255,13 +255,13 @@ void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* 
 
 // Functor to make the pressure tensor
 // void __global__ GLFMakeP_Kernel(int nx, int ny, int nz, int n_ghost, Real dx, const Real* rfi, Real* pij,
-// PijFunctorM1 pf, int deb);
+// PijFunctorRT_M1 pf, int deb);
 
-  #ifdef OTVET
-// This function performs the OTVET iteration on the GPU
+  #ifdef RT_OTVET
+// This function performs the RT_OTVET iteration on the GPU
 // and copies the newly updated fields ("New") back onto
 // the old ones
-void Rad3D::OTVETIteration(void)
+void Rad3D::RT_OTVETIteration(void)
 {
   const int numThreadsPerBlock = 256;
   int ngrid                    = (grid.n_cells + numThreadsPerBlock - 1) / numThreadsPerBlock;
@@ -277,21 +277,21 @@ void Rad3D::OTVETIteration(void)
     auto rfOT      = rtFields.dev_rf;
     auto rfNearOld = rtFields.dev_rf + grid.n_cells * (1 + freq);
     auto rfFarOld  = rtFields.dev_rf + grid.n_cells * (1 + n_freq + freq);  // Suspicious -- BRANT, n_fpfreq hiding
-    auto rfNearNew = rtFields.dev_rfNew + grid.n_cells * 0;  // Suspicious -- BRANT, n_fpfreq hiding -- OK for OTVET?
-    auto rfFarNew  = rtFields.dev_rfNew + grid.n_cells * 1;  // Suspicious -- BRANT, n_fpfreq hiding -- OK for OTVET?
+    auto rfNearNew = rtFields.dev_rfNew + grid.n_cells * 0;  // Suspicious -- BRANT, n_fpfreq hiding -- OK for RT_OTVET?
+    auto rfFarNew  = rtFields.dev_rfNew + grid.n_cells * 1;  // Suspicious -- BRANT, n_fpfreq hiding -- OK for RT_OTVET?
 
-    hipLaunchKernelGGL(OTVETIteration_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost,
+    hipLaunchKernelGGL(RT_OTVETIteration_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost,
                        grid.dx, lastIteration, rsFarFactor, rtFields.dev_rs, rtFields.dev_et, rfOT, rfNearOld, rfFarOld,
                        rtFields.dev_abc + freq * grid.n_cells, rfNearNew, rfFarNew, (freq == 0 ? 1 : 0));
     GPU_Error_Check(cudaMemcpyAsync(rfNearOld, rfNearNew, grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
     GPU_Error_Check(cudaMemcpyAsync(rfFarOld, rfFarNew, grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
   }
 }
-  #endif  // OTVET
+  #endif  // RT_OTVET
 
-  #ifdef M1
+  #ifdef RT_M1
 
-struct DEVICE_ALIGN_DECL PijFunctorM1 {
+struct DEVICE_ALIGN_DECL PijFunctorRT_M1 {
   //__global__ void operator()(int offset, int nx, int ny, int nz,
   __device__ void operator()(int offset, int nx, int ny, int nz, int ic, int jc, int kc, const Real* rfi, Real* pij,
                              int deb)
@@ -340,14 +340,14 @@ struct DEVICE_ALIGN_DECL PijFunctorM1 {
   }
 };
 
-// Perform the M1 iteration
+// Perform the RT_M1 iteration
 void Rad3D::StepRFiIteration(Real cdt2dxRSL, Real gamma_sis)
 {
   const int numThreadsPerBlock = 256;
   int ngrid                    = (grid.n_cells + numThreadsPerBlock - 1) / numThreadsPerBlock;
 
-  // PijFunctorM1& pf;
-  PijFunctorM1 pf;
+  // PijFunctorRT_M1& pf;
+  PijFunctorRT_M1 pf;
 
   // set values for GPU kernels
   // number of blocks per 1D grid
@@ -359,7 +359,7 @@ void Rad3D::StepRFiIteration(Real cdt2dxRSL, Real gamma_sis)
   GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_pij, 6 * grid.n_cells * sizeof(Real)));
 
   // Launch the StepRFiIteration kernel for one frequency at a time
-  for (int freq = 0; freq < n_freq; freq++) {  /// hold -- 4 fields per freq * number of freq in M1
+  for (int freq = 0; freq < n_freq; freq++) {  /// hold -- 4 fields per freq * number of freq in RT_M1
     auto rfOld = rtFields.dev_rf + grid.n_cells * (n_fpfreq * freq);  // old radiation fields at this frequency
     auto rfNew = rtFields.dev_rfNew;                                  // updated radiation fields at this frequency
     auto abc   = rtFields.dev_abc + freq * grid.n_cells;              // absorption coefficients at this frequency
@@ -382,7 +382,7 @@ void Rad3D::StepRFiIteration(Real cdt2dxRSL, Real gamma_sis)
   cudaFree(rtFields.dev_pij);
 }
 
-// Apply the limiter on the RFi after the M1 iteration
+// Apply the limiter on the RFi after the RT_M1 iteration
 void Rad3D::ClipRFiIteration(void)
 {
   const int numThreadsPerBlock = 256;
@@ -410,7 +410,7 @@ void Rad3D::ClipRFiIteration(void)
   }
   GPU_Error_Check(cudaDeviceSynchronize());
 }
-  #endif  // M1
+  #endif  // RT_M1
 
 // CPU function that calls the GPU-based RT functions
 void Rad3D::rtSolve(Real* dev_scalar)
@@ -425,22 +425,22 @@ void Rad3D::rtSolve(Real* dev_scalar)
 
   int n_iters_check = 0;  // check the number of iterations
 
-  #ifdef OTVET
+  #ifdef RT_OTVET
 
-  // original OTVET
+  // original RT_OTVET
   int niters2 = (dt > 0 ? static_cast<int>(1 + speedOfLightInCodeUnits * dt / grid.dx) : niters);
   if (niters > niters2) niters = niters2;
 
   for (int iter = 0; iter < niters; iter++) {
     this->lastIteration = (iter == niters - 1);
 
-    // then call OTVET iteration kernel
-    OTVETIteration();
+    // then call RT_OTVET iteration kernel
+    RT_OTVETIteration();
   #endif
 
-  #ifdef M1
+  #ifdef RT_M1
 
-    // In M1, the number of iterations per hydro step will be determined
+    // In RT_M1, the number of iterations per hydro step will be determined
     // by the speed of light
     //
     // cdt2dxRSL is cbar*dt/dx, cbar is the effective speed of light which can be less than c

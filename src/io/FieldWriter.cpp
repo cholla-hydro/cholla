@@ -378,11 +378,11 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
   Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, rtptr, "/source");
 
     // loop over the number of radiation fields
-    #ifdef OTVET
+    #ifdef RT_OTVET
   const char* rt_dset_names[7] = {"/intensity", "/rf_HI_near", "/rf_HeI_near", "/rf_HeII_near",
                                   "/rf_HI_far", "/rf_HeI_far", "/rf_HeII_far"};
     #endif
-    #ifdef M1
+    #ifdef RT_M1
   const char* rt_dset_names[16] = {"/rf_intensity", "/rf_intensity_Mx", "/rf_intensity_My", "/rf_intensity_Mz",
                                    "/rf_HI",        "/rf_HI_Mx",        "/rf_HI_My",        "/rf_HI_Mz",
                                    "/rf_HeI",       "/rf_HeI_Mx",       "/rf_HeI_My",       "/rf_HeI_Mz",

@@ -179,8 +179,8 @@
 // RADIATION CONFIGURATION
 // ====================
 #configurefile_define RT
-#configurefile_define OTVET
-#configurefile_define M1
+#configurefile_define RT_OTVET
+#configurefile_define RT_M1
 #configurefile_define OUTPUT_RADIATION
 
 // ============

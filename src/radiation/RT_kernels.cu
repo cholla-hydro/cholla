@@ -46,13 +46,13 @@ __global__ void Load_RT_Buffer_kernel(int direction, int side, int size_buffer, 
   }
 
   // rewrite once we're confident in the general sizing
-  #ifdef OTVET
-  for (int i = 0; i < n_freq; i++) {  // Suspicious -- valid only for OTVET
+  #ifdef RT_OTVET
+  for (int i = 0; i < n_freq; i++) {  // Suspicious -- valid only for RT_OTVET
     transfer_buffer_d[tid_buffer + i * size_buffer]            = rtFields.dev_rf[tid_rf + (1 + i) * n_cells];
     transfer_buffer_d[tid_buffer + (n_freq + i) * size_buffer] = rtFields.dev_rf[tid_rf + (1 + n_freq + i) * n_cells];
   }
-  #endif  // OTVET
-  #ifdef M1
+  #endif  // RT_OTVET
+  #ifdef RT_M1
 
   // WHY IS THIS INDEXED FROM ONE?
   for (int j = 0; j < n_fpfreq; j++) {
@@ -68,7 +68,7 @@ __global__ void Load_RT_Buffer_kernel(int direction, int side, int size_buffer, 
       // n_cells];
     }
   }
-  #endif  // M1
+  #endif  // RT_M1
 }
 
 __global__ void Unload_RT_Buffer_kernel(int direction, int side, int size_buffer, int n_i, int n_j, int nx, int ny,
@@ -103,13 +103,13 @@ __global__ void Unload_RT_Buffer_kernel(int direction, int side, int size_buffer
   }
 
   // update after we are confident in the bueffer sizing
-  #ifdef OTVET
-  for (int i = 0; i < n_freq; i++) {  // Suspicious -- valid only for OTVET
+  #ifdef RT_OTVET
+  for (int i = 0; i < n_freq; i++) {  // Suspicious -- valid only for RT_OTVET
     rtFields.dev_rf[tid_rf + (1 + i) * n_cells]          = transfer_buffer_d[tid_buffer + i * size_buffer];
     rtFields.dev_rf[tid_rf + (1 + n_freq + i) * n_cells] = transfer_buffer_d[tid_buffer + (n_freq + i) * size_buffer];
   }
-  #endif  // OTVET
-  #ifdef M1
+  #endif  // RT_OTVET
+  #ifdef RT_M1
 
   // WHY IS THIS INDEXED FROM ONE?
   /*for (int i = 0; i < n_freq; i++) { // Suspicious -- BRANT  DEFINITELY NEEDS ALTERATION ERROR
@@ -129,7 +129,7 @@ __global__ void Unload_RT_Buffer_kernel(int direction, int side, int size_buffer
       // size_buffer];
     }
   }
-  #endif  // M1
+  #endif  // RT_M1
 }
 
 __global__ void Set_RT_Boundaries_Periodic_Kernel(int direction, int side, int n_i, int n_j, int nx, int ny, int nz,
@@ -167,13 +167,13 @@ __global__ void Set_RT_Boundaries_Periodic_Kernel(int direction, int side, int n
   }
 
   // update after we are confident in the bueffer sizing
-  #ifdef OTVET
-  for (int i = 0; i < n_freq; i++) {  // Suspicious -- valid only for OTVET
+  #ifdef RT_OTVET
+  for (int i = 0; i < n_freq; i++) {  // Suspicious -- valid only for RT_OTVET
     rtFields.dev_rf[tid_dst + (1 + i) * n_cells]          = rtFields.dev_rf[tid_src + (1 + i) * n_cells];
     rtFields.dev_rf[tid_dst + (1 + n_freq + i) * n_cells] = rtFields.dev_rf[tid_src + (1 + n_freq + i) * n_cells];
   }
-  #endif  // OTVET
-  #ifdef M1
+  #endif  // RT_OTVET
+  #ifdef RT_M1
   // WHY IS THIS INDEXED FROM ONE?
   /*for (int i = 0; i < n_freq; i++) { // Suspicious -- BRANT  DEFINITELY NEEDS ALTERATION ERROR
     rtFields.dev_rf[tid_dst + (1 + i) * n_cells]          = rtFields.dev_rf[tid_src + (1 + i) * n_cells];
@@ -184,7 +184,7 @@ __global__ void Set_RT_Boundaries_Periodic_Kernel(int direction, int side, int n
       rtFields.dev_rf[tid_dst + (j * n_freq + i) * n_cells] = rtFields.dev_rf[tid_src + (j * n_freq + i) * n_cells];
     }
   }
-  #endif  // M1
+  #endif  // RT_M1
 }
 
 void __global__ Calc_Absorption_Kernel(int nx, int ny, int nz, Real dx, CrossSectionInCU xs,
@@ -212,7 +212,7 @@ void __global__ Calc_Absorption_Kernel(int nx, int ny, int nz, Real dx, CrossSec
   #define PV(TT, I, J, K) \
     rfFar[i + I + nx * (j + J + ny * (k + K))] * (1.0f / 3.0f)  // et for the far field is unitary matrix/3
 
-void __global__ OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real dx, bool lastIteration,
+void __global__ RT_OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real dx, bool lastIteration,
                                       const Real rsFarFactor, const Real* __restrict__ rs, const Real* __restrict__ et,
                                       const Real* __restrict__ rfOT, const Real* __restrict__ rfNear,
                                       const Real* __restrict__ rfFar, const Real* __restrict__ abc,
@@ -416,8 +416,8 @@ template<bool Split> void __global__ StepRFiIteration_Kernel( int nx, int ny, in
                                                               Real* __restrict__ rfiNew, int deb)
 */
 
-  #ifdef M1
-// This is our M1 kernel, which is called
+  #ifdef RT_M1
+// This is our RT_M1 kernel, which is called
 // for each of 4 frequencies
 void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real dx, Real cdt2dxRSL, Real gamma,
                                         const Real* __restrict__ rs, const Real* __restrict__ rfi,
@@ -647,8 +647,8 @@ void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* 
   /*
   //  Compute pressure tensor - has to be a separate kernel since
   //  pij is needed in its entirety for the step
-  template<class PijFunctorM1> void __global__ GLFMakeP_Kernel(int nx, int ny, int nz, int n_ghost, float dx,
-                                                      const float* rfi, float* pij, PijFunctorM1 pf, int deb)
+  template<class PijFunctorRT_M1> void __global__ GLFMakeP_Kernel(int nx, int ny, int nz, int n_ghost, float dx,
+                                                      const float* rfi, float* pij, PijFunctorRT_M1 pf, int deb)
   {
       const int nw3 = nx*ny*nz;
       const int tid = threadIdx.x + blockIdx.x*blockDim.x;
@@ -664,7 +664,7 @@ void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* 
   */
 
   /*
-  struct DEVICE_ALIGN_DECL PijFunctorM1
+  struct DEVICE_ALIGN_DECL PijFunctorRT_M1
   {
       __global__ void operator()(int offset, int nx, int ny, int nz,
                       int ic, int jc, int kc, const Real* rfi, Real* pij, int deb)
@@ -718,6 +718,6 @@ void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* 
       }
   };
   */
-  #endif  // M1
+  #endif  // RT_M1
 
 #endif  // RT

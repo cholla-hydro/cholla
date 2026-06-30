@@ -279,7 +279,7 @@ __device__ void Get_Current_UVB_Rates(Real current_z, ChemistryHeader &Chem_H, c
 {
   #ifdef RT
 
-    #ifdef OTVET
+    #ifdef RT_OTVET
   const int stride_0     = 0;  // N0    -- near field
   const int stride_HI    = 1;  // NHI   -- near field HI
   const int stride_HeI   = 2;  // NHeI  -- near field HeI
@@ -287,21 +287,21 @@ __device__ void Get_Current_UVB_Rates(Real current_z, ChemistryHeader &Chem_H, c
   const int stride_FHI   = 4;  // FHI   -- far field HI
   const int stride_FHeI  = 5;  // FHeI  -- far field HeI
   const int stride_FHeII = 6;  // FHeII -- far field HeII
-    #endif                     // OTVET
+    #endif                     // RT_OTVET
 
-    #ifdef M1
+    #ifdef RT_M1
   const int stride_0    = 0;             // 0    -- intensity field
   const int stride_HI   = n_fpfreq;      // HI   -- intensity field
   const int stride_HeI  = 2 * n_fpfreq;  // HeI  -- intensity field
   const int stride_HeII = 3 * n_fpfreq;  // HeII -- intensity field
-    #endif                               // M1
+    #endif                               // RT_M1
 
   // This applies to all methods
-  // For OTVET, this is the near field
-  // For M1, this is the intensity field
+  // For RT_OTVET, this is the near field
+  // For RT_M1, this is the intensity field
   if (rf != nullptr) {
     const float rfN0    = rf[id + stride_0 * ncells];    // BRANT: NOTE there are 4 frequencies here
-    const float rfNHI   = rf[id + stride_HI * ncells];   // so in M1 we need to call this 4 times
+    const float rfNHI   = rf[id + stride_HI * ncells];   // so in RT_M1 we need to call this 4 times
     const float rfNHeI  = rf[id + stride_HeI * ncells];  // and skip the fluxes -- multiply by n_fpfreq? or n_fpfreq-1?
     const float rfNHeII = rf[id + stride_HeII * ncells];
 
@@ -317,12 +317,12 @@ __device__ void Get_Current_UVB_Rates(Real current_z, ChemistryHeader &Chem_H, c
       pRates[i] *= rfN0;
     }
 
-    #ifdef OTVET
+    #ifdef RT_OTVET
 
-    // The following only applies to OTVET
+    // The following only applies to RT_OTVET
     // where this computes the far-field contribution
     if (Chem_H.dTables[1] != nullptr) {
-      const float rfFHI   = rf[id + stride_FHI * ncells];  // BRANT: BE CAREFUL HERE TOO FOR M1
+      const float rfFHI   = rf[id + stride_FHI * ncells];  // BRANT: BE CAREFUL HERE TOO FOR RT_M1
       const float rfFHeI  = rf[id + stride_FHeI * ncells];
       const float rfFHeII = rf[id + stride_FHeII * ncells];
 
@@ -341,7 +341,7 @@ __device__ void Get_Current_UVB_Rates(Real current_z, ChemistryHeader &Chem_H, c
         pRates[i] += pRates2[i];
       }
     }
-    #endif  // OTVET
+    #endif  // RT_OTVET
 
     photo_i_HI   = pRates[0] * Chem_H.unitPhotoIonization;
     photo_h_HI   = pRates[1] * Chem_H.unitPhotoHeating;

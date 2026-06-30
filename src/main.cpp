@@ -227,7 +227,7 @@ int main(int argc, char *argv[])
 #ifdef GRAVITY
   // Get the gravitational potential for the first timestep
   G.Compute_Gravitational_Potential(&P);
-  #if defined(RT) && defined(OTVET)
+  #if defined(RT) && defined(RT_OTVET)
   chprintf("RT: Setting Eddington Tensor...\n");
   G.Rad.ComputeEddingtonTensor(P, G.Grav);
   #endif
@@ -368,7 +368,7 @@ int main(int argc, char *argv[])
     // Compute Gravitational potential for next step
     G.Compute_Gravitational_Potential(&P);
 
-  #if defined(RT) && defined(OTVET)
+  #if defined(RT) && defined(RT_OTVET)
     G.Rad.ComputeEddingtonTensor(P, G.Grav);
   #endif
 #endif

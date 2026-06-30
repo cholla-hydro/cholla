@@ -37,20 +37,20 @@ class Rad3D
   // flag for the last iteration
   bool lastIteration = false;
 
-    #ifdef OTVET
+    #ifdef RT_OTVET
   // number of frequencies
   const static int n_freq = 3;  // 3 frequencies plus the 0 field is not included
 
   // number of fields per frequency
-  const static int n_fpfreq = 2;  // original OTVET, near and far
-    #endif                        // OTVET
+  const static int n_fpfreq = 2;  // original RT_OTVET, near and far
+    #endif                        // RT_OTVET
 
-    #ifdef M1
+    #ifdef RT_M1
   // number of frequencies
   const static int n_freq = 4;  // 3 frequencies plus the 0 field
 
   // number of fields per frequency
-  const static int n_fpfreq = 4;  // M1 has four fields per frequencies
+  const static int n_fpfreq = 4;  // RT_M1 has four fields per frequencies
     #endif
 
   // array of boundary flags
@@ -65,19 +65,19 @@ class Rad3D
     Real *rf;
     Real *dev_rf;
 
-    #ifdef OTVET
+    #ifdef RT_OTVET
     // Eddington tensor. By default it is not needed on host, but some tests require it.
     Real *et = nullptr;
     Real *dev_et;
-    #endif  // OTVET
+    #endif  // RT_OTVET
 
     // radiation source field. By default it is not needed on host, but some tests require it.
     Real *rs = nullptr;
     Real *dev_rs;
 
-    #ifdef M1
+    #ifdef RT_M1
     Real *dev_pij;  // Pressure fields on the device
-    #endif          // M1
+    #endif          // RT_M1
 
     // additional temporary fields
     // absorption coefficient;
@@ -109,12 +109,12 @@ class Rad3D
 
   void Calc_Absorption(Real *dev_scalar);
 
-  void OTVETIteration();  // original OTVET implementation
-    #ifdef M1
+  void RT_OTVETIteration();  // original RT_OTVET implementation
+    #ifdef RT_M1
   void StepRFiIteration(Real cdt2dxRSL,
-                        Real gamma_sis);  // For M1, ported from OTVET + Altair, step the radiation fields
-  void ClipRFiIteration();                // For M1, limit the radiation fields
-    #endif                                // M1
+                        Real gamma_sis);  // For RT_M1, ported from RT_OTVET + Altair, step the radiation fields
+  void ClipRFiIteration();                // For RT_M1, limit the radiation fields
+    #endif                                // RT_M1
 
   // io
   void Radiation_Restart_Filename(char *filename, char *dirname, int nfile);

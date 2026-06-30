@@ -92,9 +92,9 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
   //  hid_t attribute_id = H5Acreate(file_id, "dt_now", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
   // herr_t status      = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &dt_now);
   //  status             = H5Aclose(attribute_id);
-  int rt_mode = 0;  // default OTVET
-  #ifdef M1
-  rt_mode = 1;  // M1
+  int rt_mode = 0;  // default RT_OTVET
+  #ifdef RT_M1
+  rt_mode = 1;  // RT_M1
   #endif
 
   hid_t attribute_id = H5Acreate(file_id, "rt_mode", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
