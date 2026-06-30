@@ -1,0 +1,180 @@
+/*! \file
+ *  Holds configuration parameters set at compile time
+ *
+ *  There are generally 2 versions of this file
+ *  1. The template file (i.e. cholla_config.h.in)
+ *  2. The generated file (i.e. cholla_config.h). This is generated from the template
+ *     file using configure_file.py
+ *
+ *  NEVER directly mutate the generated file
+ *
+ *  Before you add or modify any entries in this file, make sure you familiarize
+ *  yourself with the best-practices described within
+ *  https://cholla.readthedocs.io/en/latest/Development/build-time-config.html
+ */
+
+#pragma once
+
+#define GIT_HASH "@GIT_HASH@"
+#define MACRO_FLAGS "@MACRO_FLAGS@"
+
+// sets the precision of REAL
+#define PRECISION @PRECISION@
+#if (PRECISION != 1) && (PRECISION != 2)
+  #error "PRECISION MUST BE 1 or 2"
+#endif
+
+// ==================
+// Parallelism Config
+// ==================
+// Do we actually need to define the following 2 macros? They seems like
+// the sorts of things that would be defined by the compiler for us (or
+// that could be inferred from the compiler's builtin macros)
+#configurefile_define O_HIP
+
+#configurefile_define DISABLE_GPU_ERROR_CHECKING
+
+#configurefile_define MPI_CHOLLA
+#configurefile_define MPI_GPU
+
+#configurefile_define PARALLEL_OMP
+#configurefile_define N_OMP_THREADS
+// this pertains to Grackle
+#configurefile_define N_OMP_THREADS_GRACKLE
+// this pertains to particles
+#configurefile_define PRINT_OMP_DOMAIN
+
+// =======================
+// HYDRO/MHD Configuration
+// =======================
+// when MHD isn't defined, cholla uses pure HYDRO
+#configurefile_define MHD
+
+// integrator choice:
+#configurefile_define SIMPLE
+#configurefile_define VL
+
+// reconstruction choices (Only 1 of these is allowed to be defined at a time)
+#configurefile_define PCM
+#configurefile_define PLMC
+#configurefile_define PLMP
+#configurefile_define PPMC
+#configurefile_define PPMP
+
+// reconstruction parameter:
+#configurefile_define CTU
+
+// Riemann Solver choices (Only 1 of these should be defined)
+#configurefile_define HLLC
+#configurefile_define HLLD
+#configurefile_define ROE
+#configurefile_define EXACT
+
+
+// "fudging" schemes to deal with challenging hydro conditions
+#configurefile_define AVERAGE_SLOW_CELLS
+#configurefile_define DENSITY_FLOOR
+#configurefile_define SCALAR_FLOOR
+#configurefile_define TEMPERATURE_CEILING
+#configurefile_define TEMPERATURE_FLOOR
+
+// When defined, the dual-energy formalism is enabled
+#configurefile_define DE
+
+// Passive-Scalar Configuration and Modules:
+#configurefile_define SCALAR
+#configurefile_define BASIC_SCALAR
+#configurefile_define DUST
+
+// ======================
+// Analysis Configuration
+// ======================
+#configurefile_define ANALYSIS
+#configurefile_define LYA_STATISTICS
+#configurefile_define PHASE_DIAGRAM
+
+
+// ===============================
+// Cooling/Chemistry Configuration
+// ===============================
+
+#configurefile_define CHEMISTRY_GPU
+#configurefile_define CLOUDY_COOL
+#configurefile_define COOLING_GPU
+#configurefile_define COOLING_GRACKLE
+
+#configurefile_define GRACKLE_METALS
+// the following is grackle-related
+// - originally, you had to configure this parameter to match the precision
+//   that Grackle was configured with...
+// - this hasn't been necessary for several years... (Grackle now provides
+//   these macros)
+#configurefile_define CONFIG_BFLOAT_8
+
+// =======================
+// Cosmology Configuration
+// =======================
+#configurefile_define COSMOLOGY
+#configurefile_define PRINT_INITIAL_STATS
+#configurefile_define TILED_INITIAL_CONDITIONS
+
+
+// =====================
+// Gravity Configuration
+// =====================
+#configurefile_define GRAVITY
+#configurefile_define GRAVITY_5_POINTS_GRADIENT
+#configurefile_define GRAVITY_ANALYTIC_COMP
+#configurefile_define GRAVITY_GPU
+#configurefile_define GRAVITY_LONG_INTS
+#configurefile_define PARIS
+#configurefile_define PARIS_3PT
+#configurefile_define PARIS_5PT
+#configurefile_define PARIS_GALACTIC
+#configurefile_define PARIS_NO_GPU_MPI
+#configurefile_define SOR
+#configurefile_define STATIC_GRAV
+
+// ======================
+// Feedback Configuration
+// ======================
+// Once PR # 386 is merged, we should look into removing some (all?) of
+// these
+#configurefile_define FEEDBACK
+#configurefile_define NO_SN_FEEDBACK
+#configurefile_define NO_WIND_FEEDBACK
+#configurefile_define ONLY_RESOLVED
+
+// ======================
+// Particle Configuration
+// ======================
+#configurefile_define ONLY_PARTICLES
+#configurefile_define PARTICLES
+#configurefile_define PARTICLES_CPU
+#configurefile_define PARTICLES_GPU
+#configurefile_define PARTICLES_KDK
+#configurefile_define PARTICLES_LONG_INTS
+#configurefile_define PARTICLE_AGE
+#configurefile_define PARTICLE_IDS
+#configurefile_define SINGLE_PARTICLE_MASS
+
+// ====================
+// OUTPUT CONFIGURATION
+// ====================
+#configurefile_define HDF5
+#configurefile_define OUTPUT
+#configurefile_define OUTPUT_ALWAYS
+#configurefile_define OUTPUT_CHEMISTRY
+#configurefile_define OUTPUT_POTENTIAL
+#configurefile_define OUTPUT_SKEWERS
+#configurefile_define OUTPUT_TEMPERATURE
+#configurefile_define PROJECTION
+#configurefile_define ROTATED_PROJECTION
+#configurefile_define SLICES
+#configurefile_define N_OUTPUT_COMPLETE
+
+// ============
+// Misc Options
+// ============
+#configurefile_define CPU_TIME
+#configurefile_define DISK_ICS

@@ -663,7 +663,7 @@ void Grid3D::Print_Grid_Stats(void)
   }
   mean_l /= ((H.nz_real) * (H.ny_real) * (H.nx_real));
 
-    #if MPI_CHOLLA
+    #ifdef MPI_CHOLLA
   mean_g = ReduceRealAvg(mean_l);
   max_g  = ReduceRealMax(max_l);
   min_g  = ReduceRealMin(min_l);
@@ -692,7 +692,7 @@ void Grid3D::Print_Grid_Stats(void)
   }
   mean_l /= ((H.nz_real) * (H.ny_real) * (H.nx_real));
 
-    #if MPI_CHOLLA
+    #ifdef MPI_CHOLLA
   mean_g = ReduceRealAvg(mean_l);
   max_g  = ReduceRealMax(max_l);
   min_g  = ReduceRealMin(min_l);
@@ -719,7 +719,7 @@ void Grid3D::Print_Grid_Stats(void)
   }
   mean_l /= ((H.nz_real) * (H.ny_real) * (H.nx_real));
 
-    #if MPI_CHOLLA
+    #ifdef MPI_CHOLLA
   mean_g = ReduceRealAvg(mean_l);
   max_g  = ReduceRealMax(max_l);
   min_g  = ReduceRealMin(min_l);
@@ -746,7 +746,7 @@ void Grid3D::Print_Grid_Stats(void)
   }
   mean_l /= ((H.nz_real) * (H.ny_real) * (H.nx_real));
 
-    #if MPI_CHOLLA
+    #ifdef MPI_CHOLLA
   mean_g = ReduceRealAvg(mean_l);
   max_g  = ReduceRealMax(max_l);
   min_g  = ReduceRealMin(min_l);
@@ -773,7 +773,7 @@ void Grid3D::Print_Grid_Stats(void)
   }
   mean_l /= ((H.nz_real) * (H.ny_real) * (H.nx_real));
 
-    #if MPI_CHOLLA
+    #ifdef MPI_CHOLLA
   mean_g = ReduceRealAvg(mean_l);
   max_g  = ReduceRealMax(max_l);
   min_g  = ReduceRealMin(min_l);
@@ -815,7 +815,7 @@ void Grid3D::Print_Grid_Stats(void)
   mean_l /= (H.nz_real * H.ny_real * H.nx_real);
   temp_mean_l /= (H.nz_real * H.ny_real * H.nx_real);
 
-    #if MPI_CHOLLA
+    #ifdef MPI_CHOLLA
   mean_g      = ReduceRealAvg(mean_l);
   max_g       = ReduceRealMax(max_l);
   min_g       = ReduceRealMin(min_l);
@@ -859,7 +859,7 @@ void Grid3D::Print_Grid_Stats(void)
   mean_l /= (H.nz_real * H.ny_real * H.nx_real);
   temp_mean_l /= (H.nz_real * H.ny_real * H.nx_real);
 
-      #if MPI_CHOLLA
+      #ifdef MPI_CHOLLA
   mean_g      = ReduceRealAvg(mean_l);
   max_g       = ReduceRealMax(max_l);
   min_g       = ReduceRealMin(min_l);
@@ -1003,7 +1003,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
     }
     mean_l /= ((H.nz_real + 1) * (H.ny_real) * (H.nx_real));
 
-    #if MPI_CHOLLA
+    #ifdef MPI_CHOLLA
     mean_g = ReduceRealAvg(mean_l);
     max_g  = ReduceRealMax(max_l);
     min_g  = ReduceRealMin(min_l);
@@ -1046,7 +1046,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
     }
     mean_l /= ((H.nz_real) * (H.ny_real + 1) * (H.nx_real));
 
-    #if MPI_CHOLLA
+    #ifdef MPI_CHOLLA
     mean_g = ReduceRealAvg(mean_l);
     max_g  = ReduceRealMax(max_l);
     min_g  = ReduceRealMin(min_l);
@@ -1089,7 +1089,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
     }
     mean_l /= ((H.nz_real) * (H.ny_real) * (H.nx_real + 1));
 
-    #if MPI_CHOLLA
+    #ifdef MPI_CHOLLA
     mean_g = ReduceRealAvg(mean_l);
     max_g  = ReduceRealMax(max_l);
     min_g  = ReduceRealMin(min_l);

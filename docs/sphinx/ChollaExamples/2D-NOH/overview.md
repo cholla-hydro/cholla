@@ -1,5 +1,5 @@
 # 2D Noh Strong Shock
-This test highlights the ability of a code to track a high Mach number shock. Parameters from Liska and Wendroff 2003. The test consists of an infinitely strong circular shock radiating from the origin. There is initially a constant density of 1.0 across the grid and a velocity of 1.0 towards the center everywhere. Pressure is set to $10^{-6}$ everywhere. Gamma is set to 1.66666667. This test is performed with the default hydro build (`cholla/builds/make.type.hydro`) and Van Leer integrator. Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Noh_2D()`. 
+This test highlights the ability of a code to track a high Mach number shock. Parameters from Liska and Wendroff 2003. The test consists of an infinitely strong circular shock radiating from the origin. There is initially a constant density of 1.0 across the grid and a velocity of 1.0 towards the center everywhere. Pressure is set to $10^{-6}$ everywhere. Gamma is set to 1.66666667. This test is performed with the default hydro build ({repository-file}`config/make.type.hydro`) and Van Leer integrator. Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Noh_2D()`. 
 
 The parameter file can be found at: {repository-file}`examples/2D/Noh_2D.txt`
 

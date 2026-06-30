@@ -1,6 +1,6 @@
 # 3D Adaibatic Expansion Test
 
-This test demonstrates simple adiabatic expansion in a cosmological frame.  The initial conditions are the critical density in baryons at the starting redshift, T=100K, and no bulk velocity. Gamma is set to 5/3. This test is performed with the cosmology build (`cholla/builds/make.type.cosmology`) and SIMPLE integrator.
+This test demonstrates simple adiabatic expansion in a cosmological frame.  The initial conditions are the critical density in baryons at the starting redshift, T=100K, and no bulk velocity. Gamma is set to 5/3. This test is performed with the cosmology build ({repository-file}`config/make.type.cosmology`) and SIMPLE integrator.
 Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Adiabatic_Expansion()`. 
 
 ## Parameter file:
