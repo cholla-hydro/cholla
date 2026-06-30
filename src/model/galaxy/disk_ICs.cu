@@ -829,9 +829,6 @@ void partial_initialize_halo(const Header& H, const Grid3D& grid, const Grid3D::
  *  \brief Initialize the grid with a 3D disk. */
 void Grid3D::Disk_3D(Parameters p)
 {
-  Real T_d, T_h, mu;
-  Real K_eos, rho_eos, cs, rho_eos_h;
-
   // load the galaxy model
   const DiskGalaxy* tmp = models().try_get<DiskGalaxy>();
   CHOLLA_ASSERT(tmp != nullptr, "no galaxy model was initialized");
@@ -841,23 +838,12 @@ void Grid3D::Disk_3D(Parameters p)
   const GasDiskProps gas_disk                          = galaxy.getGasDisk();
   const galaxy_detail::InitialCGMProps& cgm_init_props = galaxy.getInitialCGMProps();
 
-  T_h       = 1.0e6;  // halo temperature, at density floor
-  rho_eos   = 1.0e7;  // gas eos normalized at 1e7 Msun/kpc^3
-  rho_eos_h = 3.0e3;  // gas eos normalized at 3e3 Msun/kpc^3 (about n_h = 10^-3.5)
-  mu        = 0.6;
-
-  // todo: fix me
-  CHOLLA_ASSERT(T_h == cgm_init_props.profile.temperature_anchor(), "unexpected cgm anchor temperature");
-  CHOLLA_ASSERT(rho_eos_h == cgm_init_props.profile.rho_anchor_Msun_per_kpc3(), "unexpected cgm anchor density: %g",
-                cgm_init_props.profile.rho_anchor_Msun_per_kpc3());
+  const Real T_d       = gas_disk.init_props.profile.temperature_anchor();
+  const Real T_h       = cgm_init_props.profile.temperature_anchor();
+  const Real rho_eos_h = cgm_init_props.profile.rho_anchor_Msun_per_kpc3();
+  const Real mu        = MU;
 
   Real Sigma_0 = gas_disk.CentralSurfaceDensity();  // (in Msun/kpc^2)
-  // changing the following 3 lines directly assign T_d the value stored in gas_disk.T_d slightly
-  // changes the result of the simulation (its worrying that I can't explain why!)
-  T_d = 1.0e4;
-  if (T_d != gas_disk.init_props.profile.temperature_anchor()) {
-    CHOLLA_ERROR("unexpected disk temperature");
-  }
 
   chprintf("\nNominal Disk properties:\n");
   chprintf("                                            Stellar            Gas\n");
@@ -870,7 +856,7 @@ void Grid3D::Disk_3D(Parameters p)
   chprintf("\n");
 
   // EOS info
-  cs = Isothermal_Sound_Speed_CodeU(T_d, mu);  // sound speed in kpc/kyr
+  Real cs = Isothermal_Sound_Speed_CodeU(T_d, mu);  // sound speed in kpc/kyr
   // set some initial Parameters
   // these Parameters are mostly passed to hydrostatic column
   DataPack hdp;  // Parameters
@@ -882,11 +868,13 @@ void Grid3D::Disk_3D(Parameters p)
   hdp.H_g            = gas_disk.init_props.H_d;  // initial guess for gas scale height (kpc)
   hdp.gamma          = p.gamma;
 
+  Real rho_eos, K_eos;
   if (gas_disk.init_props.profile.is_isothermal()) {
     // determine rho_eos by setting central density of disk based on central temperature
     rho_eos = determine_rho_eos_D3D(cs, Sigma_0, hdp);
     K_eos   = cs * cs * rho_eos;  // CHANGED FOR ISOTHERMAL
   } else {
+    rho_eos = gas_disk.init_props.profile.rho_anchor_Msun_per_kpc3();
     CHOLLA_ERROR("Initializing a non-isothermal gas disk hasn't been tested");
     // this branch represents older logic that was partially commented out throughout
     // this function
