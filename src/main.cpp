@@ -141,6 +141,8 @@ int main(int argc, char *argv[])
     nfile = P.nfile;
   }
 
+  chprintf("3 metal_density = %e, d_metal_density = %e\n", G.C.metal_density, G.C.d_metal_density);
+
 #ifdef DE
   chprintf("\nUsing Dual Energy Formalism:\n eta_1: %0.3f   eta_2: %0.4f\n", DE_ETA_1, DE_ETA_2);
   message = " eta_1: " + std::to_string(DE_ETA_1) + "   eta_2: " + std::to_string(DE_ETA_2);

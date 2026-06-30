@@ -220,6 +220,10 @@ auto __device__ __inline__ PLM_Reconstruction(Real *dev_conserved, int const xid
   // Compute the total number of cells
   int const n_cells = nx * ny * nz;
 
+  if (xid == is && yid == js && zid == ks) {
+    printf("d_metals direct = %e\n", dev_conserved[grid_enum::metal_density * n_cells + id]);
+}
+
   // load the 3-cell stencil into registers
   // cell i
   hydro_utilities::Primitive const cell_i =
