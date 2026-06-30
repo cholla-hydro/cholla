@@ -31,10 +31,9 @@ __global__ void RNG_Init_GPU(int nx_local, int ny_local, int nz_local, int nx_lo
   uint64_t xid = threadId - zid * nx_local * ny_local - yid * nx_local;
 
   // only real cells participate
-  //if ((xid >= 0) & (xid < nx_local) & (yid >= 0) & (yid < ny_local) & (zid >= 0) &
+  // if ((xid >= 0) & (xid < nx_local) & (yid >= 0) & (yid < ny_local) & (zid >= 0) &
   //    (zid < nz_local)) {  // all cells are real
   if ((xid < nx_local) & (yid < ny_local) & (zid < nz_local)) {  // all cells are real
-      
 
     // create a global real-cell index
     // uint64_t global_idx = (xid + nx_local_start);
@@ -134,10 +133,9 @@ __global__ void RNG_Normal_Field_GPU(Real *d_field, int nx_local, int ny_local, 
   uint64_t xid = threadId - zid * nx_local * ny_local - yid * nx_local;
 
   // only real cells participate
-  //if ((xid >= 0) & (xid < nx_local) & (yid >= 0) & (yid < ny_local) & (zid >= 0) &
+  // if ((xid >= 0) & (xid < nx_local) & (yid >= 0) & (yid < ny_local) & (zid >= 0) &
   //    (zid < nz_local)) {  // all cells are real
   if ((xid < nx_local) & (yid < ny_local) & (zid < nz_local)) {  // all cells are real
-      
 
     // create a global real-cell index
     uint64_t global_idx = (xid + nx_local_start);

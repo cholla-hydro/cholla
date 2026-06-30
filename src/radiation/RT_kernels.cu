@@ -213,10 +213,11 @@ void __global__ Calc_Absorption_Kernel(int nx, int ny, int nz, Real dx, CrossSec
     rfFar[i + I + nx * (j + J + ny * (k + K))] * (1.0f / 3.0f)  // et for the far field is unitary matrix/3
 
 void __global__ RT_OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real dx, bool lastIteration,
-                                      const Real rsFarFactor, const Real* __restrict__ rs, const Real* __restrict__ et,
-                                      const Real* __restrict__ rfOT, const Real* __restrict__ rfNear,
-                                      const Real* __restrict__ rfFar, const Real* __restrict__ abc,
-                                      Real* __restrict__ rfNearNew, Real* __restrict__ rfFarNew, int deb)
+                                         const Real rsFarFactor, const Real* __restrict__ rs,
+                                         const Real* __restrict__ et, const Real* __restrict__ rfOT,
+                                         const Real* __restrict__ rfNear, const Real* __restrict__ rfFar,
+                                         const Real* __restrict__ abc, Real* __restrict__ rfNearNew,
+                                         Real* __restrict__ rfFarNew, int deb)
 {
   const Real alpha     = 0.8;  // Parameters from cpp code
   const Real gamma     = 1;
