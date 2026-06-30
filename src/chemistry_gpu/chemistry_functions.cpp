@@ -37,9 +37,9 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   if (Chem.H.H_fraction == 0) {
     Chem.H.H_fraction = INITIAL_FRACTION_HI + INITIAL_FRACTION_HII;
   }
-  // #ifdef RT // BRANT ALTER -- this likely needs to be set elsewhere
-  // Chem.H.H_fraction = 1.;
-  // #endif
+  //#ifdef RT // BRANT ALTER -- this likely needs to be set elsewhere
+  //Chem.H.H_fraction = 1.;
+  //#endif
 
   #ifdef COSMOLOGY
   Chem.H.H0      = P->H0;

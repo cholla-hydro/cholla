@@ -451,7 +451,8 @@ void Rad3D::rtSolve(Real* dev_scalar)
     //
     //  gamma=0 is the Aubert & Teyssier 2008 scheme.
 
-    int scheme_    = 0;
+    int scheme_    = 1;
+    //int scheme_    = 0;
     Real gamma_sis = 0.5;  // semi-implicit scheme parameter
     Real CFL_RT    = 0.5;  // default case 1
     switch (scheme_) {
@@ -478,7 +479,15 @@ void Rad3D::rtSolve(Real* dev_scalar)
     }
 
     int niters_cfl = 1 + speedOfLightInCodeUnits * dt / (CFL_RT * grid.dx);
-    if (niters_cfl < this->num_iterations) niters_cfl = this->num_iterations;
+    // if (niters_cfl < this->num_iterations) niters_cfl = this->num_iterations;
+
+    //int niters2 = (dt > 0 ? static_cast<int>(1 + speedOfLightInCodeUnits * dt / grid.dx) : niters);
+    int niters2 = (dt > 0 ? static_cast<int>(niters_cfl) : niters);
+    if (niters > niters2) niters = niters2;
+    niters_cfl = niters; //NEED TO SORT CFL ISSUES AFTER TESTING
+    //niters_cfl = this->num_iterations;
+    if(niters_cfl>this->num_iterations) niters_cfl = this->num_iterations;
+
     Real cdt2dxRSL = fminf(CFL_RT, speedOfLightInCodeUnits * dt / (grid.dx * niters_cfl));
 
     // the following triggers niters=1, need to set correctly

@@ -2,9 +2,15 @@ include config/make.type.hydro
 
 # Turn on Radiative Transfer
 DFLAGS += -DRT -DOTVET
-DFLAGS += -DSCALAR -DCHEMISTRY_GPU
+#DFLAGS += -DSCALAR -DCHEMISTRY_GPU
+DFLAGS += -DCHEMISTRY_GPU
 
 # Output abundances
 DFLAGS += -DOUTPUT_CHEMISTRY
 # Output radiation fields
 DFLAGS += -DOUTPUT_RADIATION
+
+# adjust hydro integrator
+DFLAGS := $(filter-out -DPLMC -DPPMP -DVL, $(DFLAGS))
+DFLAGS += -DSIMPLE
+DFLAGS += -DPLMP
