@@ -178,10 +178,15 @@
 // ====================
 // RADIATION CONFIGURATION
 // ====================
-#configurefile_define RT
 #configurefile_define RT_OTVET
 #configurefile_define RT_M1
 #configurefile_define OUTPUT_RADIATION
+
+#if defined(RT_OTVET) && defined(RT_M1)
+  #error "RT_OTVET and RT_M1 are mutually exclusive."
+#elif defined(RT_OTVET) || defined(RT_M1)
+  #define RT
+#endif
 
 // ============
 // Misc Options
