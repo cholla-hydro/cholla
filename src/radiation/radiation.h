@@ -1,13 +1,14 @@
 /*! \file RT.h
  *  \brief Declarations for the radiative transfer functions */
 
-#ifdef RT
+#ifndef RT_H
+#define RT_H
 
-  #ifndef RT_H
-    #define RT_H
 
     #include "../global/global.h"
     #include "../io/FnameTemplate.h"
+
+#ifdef RT
 
     #define TPB_RT 1024
 
