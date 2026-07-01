@@ -103,6 +103,16 @@ Real Particles3D::Calc_Particles_dt_GPU_function(int ngrid, part_int_t n_particl
   // Initialize dt values
   Real max_dti = 0;
   // copy the dti array onto the CPU
+/*
+Current_z: 3.187882
+GPU_Error_Check: Failed at Line: 106, File: src/particles/particles_dynamics_gpu.cu, Function: Calc_Particles_dt_GPU_function, with code: invalid argument
+MPICH ERROR [Rank 19327] [job id 4917381.0] [Wed Jul  1 00:31:59 2026] [frontier02474] - Abort(1) (rank 19327 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 19327
+
+aborting job:
+application called MPI_Abort(MPI_COMM_WORLD, 1) - process 19327
+srun: error: frontier02474: task 19327: Exited with exit code 255
+srun: Terminating StepId=4917381.0
+*/
   GPU_Error_Check(cudaMemcpy(dti_array_host, dti_array_dev, ngrid * sizeof(Real), cudaMemcpyDeviceToHost));
   // find maximum inverse timestep from CFL condition
   for (int i = 0; i < ngrid; i++) {
