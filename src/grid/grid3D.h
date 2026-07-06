@@ -193,6 +193,9 @@ struct Header {
   Real sphere_center_y;
   Real sphere_center_z;
 
+  // only meaningful when GRAVITY and GRAVITY_ANALYTIC_COMP are defined
+  bool gas_only_use_static_grav;
+
 #ifdef GRAVITY
   /*! \var n_ghost_potential_offset
    *  \brief Number of offset betewen hydro_ghost_cells and
@@ -361,7 +364,9 @@ class Grid3D
     Real *d_density, *d_momentum_x, *d_momentum_y, *d_momentum_z, *d_Energy, *d_scalar, *d_basic_scalar,
         *d_dust_density, *d_magnetic_x, *d_magnetic_y, *d_magnetic_z, *d_GasEnergy;
 
-    /*! pointer to gravitational potential on device */
+    /*! pointer to gravitational potential on device
+     *  - This is primarily used to hold the extrapolated potential
+     */
     Real *d_Grav_potential;
   } C;
 
@@ -409,11 +414,15 @@ class Grid3D
   /*! \fn void Update_Hydro_Grid(void)
    *  \brief Do all steps to update the hydro.
    *
+   *  \param feedback_callback is a crude way to optionally provide a feedback
+   *  function that is invoked after the hydro-integrator, but before
+   *  heating/cooling/chemistry
    *  \param chemistry_callback is a crude way to optionally provide a cooling
    *  function that is invoked after the hydro-integrator. At the moment,
    *  this does not support chemistry.
    */
-  Real Update_Hydro_Grid(std::function<void(Grid3D &)> &chemistry_callback);
+  Real Update_Hydro_Grid(std::function<void(Grid3D &)> &feedback_callback,
+                         std::function<void(Grid3D &)> &chemistry_callback);
 
   void Update_Time();
 
