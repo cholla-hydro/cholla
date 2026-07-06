@@ -235,7 +235,8 @@ In this scenario, you may want to set this based on the file provided to {par:pa
 When this isn't provided, the final simulation time is used for setting this parameter.
 :::
 
----
+(Reference-GalaxyModel-RuntimeParams-ClusterMassDist)=
+#### Cluster Mass Distribution
 
 ::::{par:parameter} model.galaxy.star_forming_disk.cluster_mass_dist.alpha
 
@@ -282,7 +283,8 @@ Strictly speaking, this upper bound is exclusive (i.e. a cluster mass can never 
 
 :::
 
-### Static Potential
+(Reference-GalaxyModel-RuntimeParams-HaloPotential)=
+### Static Potential: Halo
 
 :::{par:parameter} model.galaxy.static_potential.halo.mass_Msun
 
@@ -321,7 +323,8 @@ For added context, the "scale radius" directly parametrizes the NFW density prof
 
 :::
 
----
+(Reference-GalaxyModel-RuntimeParams-OldStellarPotential)=
+### Static Potential: Old Stars
 
 :::{par:parameter} model.galaxy.static_potential.old_stellar_disk.mass_Msun
 
