@@ -198,16 +198,88 @@ This means that all clusters can form simultaneously and, depending on sampling,
 Otherwise, clusters are formed one-at-a-time to ensure that the star formation rate is a constant value.
 :::
 
-% :::{par:parameter} model.galaxy.star_forming_disk.kennicut_schmidt_power
-% 
-% :Summary: *ADD ME*
-% :Type: {par:typefmt}`floating-point`
-% :Default: 1.4
-% 
-% :::
+---
 
-:::{note}
-ADD REMAINING PARAMETERS
+:::{par:parameter} model.galaxy.star_forming_disk.kennicut_schmidt_power
+
+:Summary: *The power used in the Kennicut-Schmidt relation*
+:Type: {par:typefmt}`floating-point`
+:Default: 1.4
+
+For some added context, this parameter specifies the value {math}`s` in the relation {math}`\Sigma_{\rm SFR} \propto \Sigma_{\rm gas}^s`.
+Typically, this is quoted with a value of 1.4.
+
+:::
+
+---
+
+:::{par:parameter} model.galaxy.star_forming_disk.earliest_t_formation
+
+:Summary: *The earliest time for forming a cluster particle*
+:Type: {par:typefmt}`floating-point`
+:Default: *None: must be provided*
+
+This can be (and typically is) a negative value.
+This parameter might be used so that that clusters of various ages already exist when you start a simulation so that feedback immediately occurs.
+In this scenario, you may want to set this based on the file provided to {par:param}`feedback.snr_feedback`.
+:::
+
+---
+
+:::{par:parameter} model.galaxy.star_forming_disk.latest_t_formation
+
+:Summary: *The latest time for forming a cluster particle*
+:Type: {par:typefmt}`floating-point`
+:Default: *None: must be provided*
+
+When this isn't provided, the final simulation time is used for setting this parameter.
+:::
+
+---
+
+::::{par:parameter} model.galaxy.star_forming_disk.cluster_mass_dist.alpha
+
+:Summary: *Parametrizes the intial cluster mass probability density function*
+:Type: {par:typefmt}`floating-point`
+:Default: *None: must be provided*
+
+The probability of drawing an initial cluster mass {math}`M_{\rm cl}` 
+
+:::{math}
+p(m) =
+\begin{cases}
+A\, M^{-\alpha}, & \text{if}\ M_{\rm lo} \leq M_{\rm cl} < M_{\rm hi} \\
+0, & \text{otherwise}
+\end{cases}
+:::
+
+where {math}`A` is a normalization constant and {math}`\alpha` is specified by this function.
+
+::::
+
+---
+
+:::{par:parameter} model.galaxy.star_forming_disk.cluster_mass_dist.lo_Msun
+
+:Summary: *Minimum initial cluster mass (in solar masses)*
+:Type: {par:typefmt}`floating-point`
+:Default: *None: must be provided*
+
+This must be positive.
+
+:::
+
+---
+
+:::{par:parameter} model.galaxy.star_forming_disk.cluster_mass_dist.hi_Msun
+
+:Summary: *Maximum initial cluster mass (in solar masses)*
+:Type: {par:typefmt}`floating-point`
+:Default: *None: must be provided*
+
+This must exceed {par:param}`model.galaxy.star_forming_disk.cluster_mass_dist.lo_Msun`.
+Strictly speaking, this upper bound is exclusive (i.e. a cluster mass can never be exactly equal to this value).
+
 :::
 
 ### Static Potential
@@ -223,7 +295,7 @@ ADD REMAINING PARAMETERS
 ---
 
 
-:::{par:parameter} model.galaxy.static_potential.halo.concentration
+::::{par:parameter} model.galaxy.static_potential.halo.concentration
 
 :Summary: *The concentration parameter for the NFW profile*
 :Type: {par:typefmt}`floating-point`
@@ -233,15 +305,13 @@ This is the ratio between scale the virial radius and the "scale radius," {math}
 
 For added context, the "scale radius" directly parametrizes the NFW density profile
 
-::::{math}
+:::{math}
 \rho(r)\equiv \rho_0 \frac{R_s}{r} \left(1+ \frac{r}{R_s}\right)^{-2}.
-::::
-
 :::
 
-% Uncommenting the next line is problematic
-% (is it because of the preceeding equation?)
-%---
+::::
+
+---
 
 :::{par:parameter} model.galaxy.static_potential.halo.virial_radius_kpc
 
