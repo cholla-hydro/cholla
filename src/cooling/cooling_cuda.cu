@@ -163,7 +163,6 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
 #endif
 if (xid == is && yid == js && zid == ks) {
     printf("n_cells = %d, n_fields = %d\n", n_cells, n_fields);
-    printf("d = %e\n", dev_conserved[id]);
     printf("d_metals = %e\n", dev_conserved[grid_enum::metal_density * n_cells + id]);
 }
 #ifdef DE
