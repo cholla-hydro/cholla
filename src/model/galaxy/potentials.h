@@ -114,8 +114,8 @@ struct MiyamotoNagaiPotential {
   __host__ MiyamotoNagaiPotential(Real M_d, Real R_d, Real Z_d) : M_d(M_d), R_d(R_d), Z_d(Z_d)
   {
     // the ApproxExponentialDisk3MN class needs to be able to specify a negative M_d
+    // and a negative Z_d
     CHOLLA_ASSERT(R_d > 0, "disk scale radius must be positive: %g", R_d);
-    CHOLLA_ASSERT(Z_d > 0, "disk scale height must be positive: %g", Z_d);
   }
 
   /*! \brief Construct an instance from a parameter map */
@@ -125,6 +125,7 @@ struct MiyamotoNagaiPotential {
                                pmap.value<double>("model.galaxy.static_potential.old_stellar_disk.scale_height_kpc"))
   {
     CHOLLA_ASSERT(M_d > 0, "disk mass must be positive: %g", M_d);
+    CHOLLA_ASSERT(Z_d > 0, "disk scale height must be positive: %g", Z_d);
   }
 
   // we don't need to prefix __host__ __default__ on functions like the following that
