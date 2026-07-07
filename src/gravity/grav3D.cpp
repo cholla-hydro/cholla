@@ -16,23 +16,16 @@
 
 Grav3D::Grav3D(void) {}
 
-void Grav3D::Initialize(const SpatialDomainProps &spatial_props, Real Lx, Real Ly, Real Lz, int n_ghost_pot_offset,
-                        Parameters *P)
+void Grav3D::Initialize(const SpatialDomainProps &external_spatial_props, Real Lx, Real Ly, Real Lz,
+                        int n_ghost_pot_offset, Parameters *P)
 {
   // Set Box Size
   Lbox_x = Lx;
   Lbox_y = Ly;
   Lbox_z = Lz;
 
-  // Set Box Left boundary positions
-  xMin = spatial_props.xMin;
-  yMin = spatial_props.yMin;
-  zMin = spatial_props.zMin;
-
-  // Set Box Right boundary positions
-  xMax = spatial_props.xMax;
-  yMax = spatial_props.yMax;
-  zMax = spatial_props.zMax;
+  // store a copy of the spatial properties
+  spatial_props = external_spatial_props;
 
   // Set uniform ( dx, dy, dz )
   dx = spatial_props.dx;
@@ -107,11 +100,11 @@ void Grav3D::Initialize(const SpatialDomainProps &spatial_props, Real Lx, Real L
   chprintf("  N OMP Threads per MPI process: %d\n", N_OMP_THREADS);
   #endif
 
-  Poisson_solver.Initialize(Lbox_x, Lbox_y, Lbox_z, xMin, yMin, zMin, nx_total, ny_total, nz_total, nx_local, ny_local,
-                            nz_local, dx, dy, dz);
+  Poisson_solver.Initialize(Lbox_x, Lbox_y, Lbox_z, spatial_props.xMin, spatial_props.yMin, spatial_props.zMin,
+                            nx_total, ny_total, nz_total, nx_local, ny_local, nz_local, dx, dy, dz);
   #if defined(PARIS_TEST) || defined(PARIS_GALACTIC_TEST)
-  Poisson_solver_test.Initialize(Lbox_x, Lbox_y, Lbox_z, xMin, yMin, zMin, nx_total, ny_total, nz_total, nx_local,
-                                 ny_local, nz_local, dx, dy, dz);
+  Poisson_solver_test.Initialize(Lbox_x, Lbox_y, Lbox_z, spatial_props.xMin, spatial_props.yMin, spatial_props.zMin,
+                                 nx_total, ny_total, nz_total, nx_local, ny_local, nz_local, dx, dy, dz);
   #endif
 
   // At the end of initializing, set restart state if needed

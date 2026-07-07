@@ -177,29 +177,29 @@ static void Compute_Potential_Isolated_Boundary_Helper(Real *pot_boundary, const
         // calculate the position
         Real pos_x, pos_y, pos_z;
         if (direction == 0) {
-          // pos_x = Grav.xMin - ( nGHST + k + 0.5 ) * Grav.dx;
-          pos_x = Grav.xMin + (k + 0.5 - nGHST) * Grav.dx;
+          // pos_x = Grav.spatial_props.xMin - ( nGHST + k + 0.5 ) * Grav.dx;
+          pos_x = Grav.spatial_props.xMin + (k + 0.5 - nGHST) * Grav.dx;
           if (side == 1) {
             pos_x += Lx_local + nGHST * Grav.dx;
           }
-          pos_y = Grav.yMin + (i + 0.5) * Grav.dy;
-          pos_z = Grav.zMin + (j + 0.5) * Grav.dz;
+          pos_y = Grav.spatial_props.yMin + (i + 0.5) * Grav.dy;
+          pos_z = Grav.spatial_props.zMin + (j + 0.5) * Grav.dz;
         } else if (direction == 1) {
-          // pos_y = Grav.yMin - ( nGHST + k + 0.5 ) * Grav.dy;
-          pos_y = Grav.yMin + (k + 0.5 - nGHST) * Grav.dy;
+          // pos_y = Grav.spatial_props.yMin - ( nGHST + k + 0.5 ) * Grav.dy;
+          pos_y = Grav.spatial_props.yMin + (k + 0.5 - nGHST) * Grav.dy;
           if (side == 1) {
             pos_y += Ly_local + nGHST * Grav.dy;
           }
-          pos_x = Grav.xMin + (i + 0.5) * Grav.dx;
-          pos_z = Grav.zMin + (j + 0.5) * Grav.dz;
+          pos_x = Grav.spatial_props.xMin + (i + 0.5) * Grav.dx;
+          pos_z = Grav.spatial_props.zMin + (j + 0.5) * Grav.dz;
         } else {  // (direction == 2)
-          // pos_z = Grav.zMin - ( nGHST + k + 0.5 ) * Grav.dz;
-          pos_z = Grav.zMin + (k + 0.5 - nGHST) * Grav.dz;
+          // pos_z = Grav.spatial_props.zMin - ( nGHST + k + 0.5 ) * Grav.dz;
+          pos_z = Grav.spatial_props.zMin + (k + 0.5 - nGHST) * Grav.dz;
           if (side == 1) {
             pos_z += Lz_local + nGHST * Grav.dz;
           }
-          pos_x = Grav.xMin + (i + 0.5) * Grav.dx;
-          pos_y = Grav.yMin + (j + 0.5) * Grav.dy;
+          pos_x = Grav.spatial_props.xMin + (i + 0.5) * Grav.dx;
+          pos_y = Grav.spatial_props.yMin + (j + 0.5) * Grav.dy;
         }
         pot_boundary[id] = fn(pos_x, pos_y, pos_z);
       }

@@ -3,34 +3,7 @@
 #include "../gravity/grav3D.h"
 #include "../grid/grid3D.h"
 
-SpatialDomainProps SpatialDomainProps::From_Grav3D(Grav3D& grav)
-{
-  SpatialDomainProps out;
-
-  out.nx_local = grav.nx_local;
-  out.ny_local = grav.ny_local;
-  out.nz_local = grav.nz_local;
-
-  out.nx_total = grav.nx_total;
-  out.ny_total = grav.ny_total;
-  out.nz_total = grav.nz_total;
-
-  out.dx = grav.dx;
-  out.dy = grav.dy;
-  out.dz = grav.dz;
-
-  // Left boundaries of the local domain
-  out.xMin = grav.xMin;
-  out.yMin = grav.yMin;
-  out.zMin = grav.zMin;
-
-  // Right boundaries of the local domain
-  out.xMax = grav.xMax;
-  out.yMax = grav.yMax;
-  out.zMax = grav.zMax;
-
-  return out;
-}
+SpatialDomainProps SpatialDomainProps::From_Grav3D(Grav3D& grav) { return grav.spatial_props; }
 
 SpatialDomainProps SpatialDomainProps::From_Grid3D(Grid3D& grid, struct Parameters* P)
 {
