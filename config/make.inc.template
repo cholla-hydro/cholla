@@ -48,10 +48,6 @@ DFLAGS += -DTEMPERATURE_FLOOR
 # Average Slow cell when the cell delta_t is very small
 #DFLAGS += -DAVERAGE_SLOW_CELLS
 
-# Set the cooling function
-#DFLAGS += -DCOOLING_GPU
-#DFLAGS += -DCLOUDY_COOL
-
 # Use Tiled Iitial Conditions for Scaling Tets
 #DFLAGS += -DTILED_INITIAL_CONDITIONS
 
