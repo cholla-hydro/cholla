@@ -64,16 +64,6 @@ class Grav3D
    *  \brief Local number of cells in the z-dimension */
   int nz_local;
 
-  /*! \var dx
-   *  \brief x-width of cells */
-  Real dx;
-  /*! \var dy
-   *  \brief y-width of cells */
-  Real dy;
-  /*! \var dz
-   *  \brief z-width of cells */
-  Real dz;
-
 #ifdef COSMOLOGY
   Real current_a;
 #endif

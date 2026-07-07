@@ -381,23 +381,23 @@ void Grid3D::Initialize_Gravity(struct Parameters *P)
     std::vector<Real> exact(Grav.n_cells_potential);
     std::vector<Real> potential(Grav.n_cells_potential);
     const Real scale      = 4.0 * M_PI * Grav.Gconst;
-    const Real ddx        = 1.0 / (scale * Grav.dx * Grav.dx);
-    const Real ddy        = 1.0 / (scale * Grav.dy * Grav.dy);
-    const Real ddz        = 1.0 / (scale * Grav.dz * Grav.dz);
+    const Real ddx        = 1.0 / (scale * spatial_props.dx * spatial_props.dx);
+    const Real ddy        = 1.0 / (scale * spatial_props.dy * spatial_props.dy);
+    const Real ddz        = 1.0 / (scale * spatial_props.dz * spatial_props.dz);
     const Real *const phi = Grav.F.potential_h;
     const int nij         = ni * nj;
     const Real a0         = galaxy_model->phi_disk_D3D(0, 0);
     const Real da0        = 2.0 / (25.0 * scale);
     #pragma omp parallel for
     for (int k = 0; k < nk; k++) {
-      const Real z  = spatial_props.zMin + Grav.dz * (k + dr);
+      const Real z  = spatial_props.zMin + spatial_props.dz * (k + dr);
       const int njk = nj * k;
       for (int j = 0; j < nj; j++) {
-        const Real y   = spatial_props.yMin + Grav.dy * (j + dr);
+        const Real y   = spatial_props.yMin + spatial_props.dy * (j + dr);
         const Real yy  = y * y;
         const int nijk = ni * (j + njk);
         for (int i = 0; i < ni; i++) {
-          const Real x  = spatial_props.xMin + Grav.dx * (i + dr);
+          const Real x  = spatial_props.xMin + spatial_props.dx * (i + dr);
           const Real r  = sqrt(x * x + yy);
           const int ijk = i + nijk;
           exact[ijk] = potential[ijk] = Grav.F.potential_h[ijk] = galaxy_model->phi_disk_D3D(r, z);
@@ -406,15 +406,15 @@ void Grid3D::Initialize_Gravity(struct Parameters *P)
     }
     #pragma omp parallel for
     for (int k = 0; k < Grav.nz_local; k++) {
-      const Real z  = spatial_props.zMin + Grav.dz * (k + 0.5);
+      const Real z  = spatial_props.zMin + spatial_props.dz * (k + 0.5);
       const Real zz = z * z;
       const int njk = Grav.ny_local * k;
       for (int j = 0; j < Grav.ny_local; j++) {
-        const Real y   = spatial_props.yMin + Grav.dy * (j + 0.5);
+        const Real y   = spatial_props.yMin + spatial_props.dy * (j + 0.5);
         const Real yy  = y * y;
         const int nijk = Grav.nx_local * (j + njk);
         for (int i = 0; i < Grav.nx_local; i++) {
-          const Real x          = spatial_props.xMin + Grav.dx * (i + 0.5);
+          const Real x          = spatial_props.xMin + spatial_props.dx * (i + 0.5);
           const Real r          = sqrt(x * x + yy);
           const int ijk         = i + nijk;
           const Real rr         = x * x + yy + zz;
@@ -438,14 +438,14 @@ void Grid3D::Initialize_Gravity(struct Parameters *P)
     chprintf(" Initializing disk analytic potential\n");
     #pragma omp parallel for
     for (int k = 0; k < nk; k++) {
-      const Real z  = spatial_props.zMin + Grav.dz * (k + dr);
+      const Real z  = spatial_props.zMin + spatial_props.dz * (k + dr);
       const int njk = nj * k;
       for (int j = 0; j < nj; j++) {
-        const Real y   = spatial_props.yMin + Grav.dy * (j + dr);
+        const Real y   = spatial_props.yMin + spatial_props.dy * (j + dr);
         const Real yy  = y * y;
         const int nijk = ni * (j + njk);
         for (int i = 0; i < ni; i++) {
-          const Real x            = spatial_props.xMin + Grav.dx * (i + dr);
+          const Real x            = spatial_props.xMin + spatial_props.dx * (i + dr);
           const Real r            = sqrt(x * x + yy);
           const int ijk           = i + nijk;
           Grav.F.potential_h[ijk] = galaxy_model->phi_disk_D3D(r, z);
@@ -696,11 +696,11 @@ void Grid3D::Setup_Analytic_Galaxy_Potential(int g_start, int g_end, const DiskG
   for (k = g_start; k < g_end; k++) {
     for (j = 0; j < ny; j++) {
       for (i = 0; i < nx; i++) {
-        id                              = i + j * nx + k * nx * ny;
-        x_pos                           = spatial_props.xMin + Grav.dx * (i - N_GHOST_POTENTIAL) + 0.5 * Grav.dx;
-        y_pos                           = spatial_props.yMin + Grav.dy * (j - N_GHOST_POTENTIAL) + 0.5 * Grav.dy;
-        z_pos                           = spatial_props.zMin + Grav.dz * (k - N_GHOST_POTENTIAL) + 0.5 * Grav.dz;
-        R                               = sqrt(x_pos * x_pos + y_pos * y_pos);
+        id    = i + j * nx + k * nx * ny;
+        x_pos = spatial_props.xMin + spatial_props.dx * (i - N_GHOST_POTENTIAL) + 0.5 * spatial_props.dx;
+        y_pos = spatial_props.yMin + spatial_props.dy * (j - N_GHOST_POTENTIAL) + 0.5 * spatial_props.dy;
+        z_pos = spatial_props.zMin + spatial_props.dz * (k - N_GHOST_POTENTIAL) + 0.5 * spatial_props.dz;
+        R     = sqrt(x_pos * x_pos + y_pos * y_pos);
         Grav.F.analytic_potential_h[id] = gal.phi_disk_D3D(R, z_pos) + gal.phi_halo_D3D(R, z_pos);
       }
     }

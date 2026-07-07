@@ -27,11 +27,6 @@ void Grav3D::Initialize(const SpatialDomainProps &external_spatial_props, Real L
   // store a copy of the spatial properties
   spatial_props = external_spatial_props;
 
-  // Set uniform ( dx, dy, dz )
-  dx = spatial_props.dx;
-  dy = spatial_props.dy;
-  dz = spatial_props.dz;
-
   // Set Box Total number of cells
   nx_total = spatial_props.nx_total;
   ny_total = spatial_props.ny_total;
@@ -89,7 +84,7 @@ void Grav3D::Initialize(const SpatialDomainProps &external_spatial_props, Real L
       "Global: %d %d %d \n",
       Lbox_x, Lbox_y, Lbox_z, nx_local, ny_local, nz_local, nx_total, ny_total, nz_total);
 
-  chprintf(" dx:%f  dy:%f  dz:%f\n", dx, dy, dz);
+  chprintf(" dx:%f  dy:%f  dz:%f\n", spatial_props.dx, spatial_props.dy, spatial_props.dz);
   chprintf(" N ghost potential: %d\n", N_GHOST_POTENTIAL);
   chprintf(" N ghost offset: %d\n", n_ghost_pot_offset);
 
@@ -101,10 +96,12 @@ void Grav3D::Initialize(const SpatialDomainProps &external_spatial_props, Real L
   #endif
 
   Poisson_solver.Initialize(Lbox_x, Lbox_y, Lbox_z, spatial_props.xMin, spatial_props.yMin, spatial_props.zMin,
-                            nx_total, ny_total, nz_total, nx_local, ny_local, nz_local, dx, dy, dz);
+                            nx_total, ny_total, nz_total, nx_local, ny_local, nz_local, spatial_props.dx,
+                            spatial_props.dy, spatial_props.dz);
   #if defined(PARIS_TEST) || defined(PARIS_GALACTIC_TEST)
   Poisson_solver_test.Initialize(Lbox_x, Lbox_y, Lbox_z, spatial_props.xMin, spatial_props.yMin, spatial_props.zMin,
-                                 nx_total, ny_total, nz_total, nx_local, ny_local, nz_local, dx, dy, dz);
+                                 nx_total, ny_total, nz_total, nx_local, ny_local, nz_local, spatial_props.dx,
+                                 spatial_props.dy, spatial_props.dz);
   #endif
 
   // At the end of initializing, set restart state if needed
