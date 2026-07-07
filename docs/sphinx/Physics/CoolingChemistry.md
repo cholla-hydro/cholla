@@ -36,7 +36,7 @@ The choice of simple-solver is specified through the {par:param}`chemistry.kind`
 * - "none"
   - No chemistry or cooling (this is the default)
 * - "tabulated-cloudy"
-  - path to data file used by "tabulated-cooling" solver
+  - Cooling and heating are computed from the specified table using bilinear interpolation
 * - "piecewise-cie"
   - piecewise-parabolic fit to a collisional ionization equilibrium (CIE)
 * - "piecewise-ti+cie"
