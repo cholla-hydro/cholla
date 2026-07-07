@@ -44,16 +44,6 @@ class Grav3D
   /// Aggregates spatial properties
   SpatialDomainProps spatial_props;
 
-  /*! \var nx_local
-   *  \brief Local number of cells in the x-dimension */
-  int nx_local;
-  /*! \var ny_local
-   *  \brief Local number of cells in the y-dimension */
-  int ny_local;
-  /*! \var nz_local
-   *  \brief Local number of cells in the z-dimension */
-  int nz_local;
-
 #ifdef COSMOLOGY
   Real current_a;
 #endif

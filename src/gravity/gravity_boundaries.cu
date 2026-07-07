@@ -26,23 +26,25 @@ struct BoundaryBufProps {
   CHOLLA_ASSERT(0 <= direction and direction <= 2, "sanity check failed");
   CHOLLA_ASSERT(side == 0 or side == 1, "sanity check failed");
 
+  const SpatialDomainProps &spatial_props = Grav.spatial_props;
+
   int n_i, n_j;
   Real *pot_boundary = nullptr;
   if (direction == 0) {
-    n_i = Grav.ny_local;
-    n_j = Grav.nz_local;
+    n_i = spatial_props.ny_local;
+    n_j = spatial_props.nz_local;
   #ifdef GRAV_ISOLATED_BOUNDARY_X
     pot_boundary = (side == 0) ? Grav.F.pot_boundary_x0 : Grav.F.pot_boundary_x1;
   #endif
   } else if (direction == 1) {
-    n_i = Grav.nx_local;
-    n_j = Grav.nz_local;
+    n_i = spatial_props.nx_local;
+    n_j = spatial_props.nz_local;
   #ifdef GRAV_ISOLATED_BOUNDARY_Y
     pot_boundary = (side == 0) ? Grav.F.pot_boundary_y0 : Grav.F.pot_boundary_y1;
   #endif
   } else {  // direction == 2
-    n_i = Grav.nx_local;
-    n_j = Grav.ny_local;
+    n_i = spatial_props.nx_local;
+    n_j = spatial_props.ny_local;
   #ifdef GRAV_ISOLATED_BOUNDARY_Z
     pot_boundary = (side == 0) ? Grav.F.pot_boundary_z0 : Grav.F.pot_boundary_z1;
   #endif
@@ -89,14 +91,12 @@ void Grid3D::Set_Potential_Boundaries_Isolated(int direction, int side, int *fla
   int n_j                                 = tmp.second.n_j;
   int nGHST                               = tmp.second.nGHST;
 
-  int nx_g, ny_g, nz_g;
-  int nx_local, ny_local, nz_local;
-  nx_g     = Grav.nx_local + 2 * nGHST;
-  ny_g     = Grav.ny_local + 2 * nGHST;
-  nz_g     = Grav.nz_local + 2 * nGHST;
-  nx_local = Grav.nx_local;
-  ny_local = Grav.ny_local;
-  nz_local = Grav.nz_local;
+  int nx_g     = Grav.spatial_props.nx_local + 2 * nGHST;
+  int ny_g     = Grav.spatial_props.ny_local + 2 * nGHST;
+  int nz_g     = Grav.spatial_props.nz_local + 2 * nGHST;
+  int nx_local = Grav.spatial_props.nx_local;
+  int ny_local = Grav.spatial_props.ny_local;
+  int nz_local = Grav.spatial_props.nz_local;
 
   int i, j, k, id_buffer, id_grid;
 
@@ -163,9 +163,9 @@ static void Compute_Potential_Isolated_Boundary_Helper(Real *pot_boundary, const
 {
   const SpatialDomainProps &spatial_props = Grav.spatial_props;
 
-  Real Lx_local = Grav.nx_local * spatial_props.dx;
-  Real Ly_local = Grav.ny_local * spatial_props.dy;
-  Real Lz_local = Grav.nz_local * spatial_props.dz;
+  Real Lx_local = spatial_props.nx_local * spatial_props.dx;
+  Real Ly_local = spatial_props.ny_local * spatial_props.dy;
+  Real Lz_local = spatial_props.nz_local * spatial_props.dz;
 
   int n_i   = boundary_buf_props.n_i;
   int n_j   = boundary_buf_props.n_j;
@@ -282,9 +282,9 @@ void Grid3D::Set_Potential_Boundaries_Periodic(int direction, int side, int *fla
   int i, j, k, indx_src, indx_dst;
   int nGHST, nx_g, ny_g, nz_g;
   nGHST = N_GHOST_POTENTIAL;
-  nx_g  = Grav.nx_local + 2 * nGHST;
-  ny_g  = Grav.ny_local + 2 * nGHST;
-  nz_g  = Grav.nz_local + 2 * nGHST;
+  nx_g  = Grav.spatial_props.nx_local + 2 * nGHST;
+  ny_g  = Grav.spatial_props.ny_local + 2 * nGHST;
+  nz_g  = Grav.spatial_props.nz_local + 2 * nGHST;
 
   // Copy X boundaries
   if (direction == 0) {
@@ -350,9 +350,9 @@ int Grid3D::Load_Gravity_Potential_To_Buffer(int direction, int side, Real *buff
   int i, j, k, indx, indx_buff, length;
   int nGHST, nx_g, ny_g, nz_g;
   nGHST = N_GHOST_POTENTIAL;
-  nx_g  = Grav.nx_local + 2 * nGHST;
-  ny_g  = Grav.ny_local + 2 * nGHST;
-  nz_g  = Grav.nz_local + 2 * nGHST;
+  nx_g  = Grav.spatial_props.nx_local + 2 * nGHST;
+  ny_g  = Grav.spatial_props.ny_local + 2 * nGHST;
+  nz_g  = Grav.spatial_props.nz_local + 2 * nGHST;
 
   // Load X boundaries
   if (direction == 0) {
@@ -418,9 +418,9 @@ void Grid3D::Unload_Gravity_Potential_from_Buffer(int direction, int side, Real 
   int i, j, k, indx, indx_buff;
   int nGHST, nx_g, ny_g, nz_g;
   nGHST = N_GHOST_POTENTIAL;
-  nx_g  = Grav.nx_local + 2 * nGHST;
-  ny_g  = Grav.ny_local + 2 * nGHST;
-  nz_g  = Grav.nz_local + 2 * nGHST;
+  nx_g  = Grav.spatial_props.nx_local + 2 * nGHST;
+  ny_g  = Grav.spatial_props.ny_local + 2 * nGHST;
+  nz_g  = Grav.spatial_props.nz_local + 2 * nGHST;
 
   // Load X boundaries
   if (direction == 0) {

@@ -27,16 +27,12 @@ void Grav3D::Initialize(const SpatialDomainProps &external_spatial_props, Real L
   // store a copy of the spatial properties
   spatial_props = external_spatial_props;
 
-  // Set Box local domain number of cells
-  nx_local = spatial_props.nx_local;
-  ny_local = spatial_props.ny_local;
-  nz_local = spatial_props.nz_local;
-
   // Local n_cells without ghost cells
-  n_cells = nx_local * ny_local * nz_local;
+  n_cells = spatial_props.nx_local * spatial_props.ny_local * spatial_props.nz_local;
   // Local n_cells including ghost cells for the potential array
-  n_cells_potential =
-      (nx_local + 2 * N_GHOST_POTENTIAL) * (ny_local + 2 * N_GHOST_POTENTIAL) * (nz_local + 2 * N_GHOST_POTENTIAL);
+  n_cells_potential = (spatial_props.nx_local + 2 * N_GHOST_POTENTIAL) *
+                      (spatial_props.ny_local + 2 * N_GHOST_POTENTIAL) *
+                      (spatial_props.nz_local + 2 * N_GHOST_POTENTIAL);
 
   // Set Initial and dt used for the extrapolation of the potential;
   // The first timestep the potential in not extrapolated ( INITIAL = TRUE )
@@ -77,8 +73,8 @@ void Grav3D::Initialize(const SpatialDomainProps &external_spatial_props, Real L
   chprintf(
       "Gravity Initialized: \n Lbox: %0.2f %0.2f %0.2f \n Local: %d %d %d \n "
       "Global: %d %d %d \n",
-      Lbox_x, Lbox_y, Lbox_z, nx_local, ny_local, nz_local, spatial_props.nx_total, spatial_props.ny_total,
-      spatial_props.nz_total);
+      Lbox_x, Lbox_y, Lbox_z, spatial_props.nx_local, spatial_props.ny_local, spatial_props.nz_local,
+      spatial_props.nx_total, spatial_props.ny_total, spatial_props.nz_total);
 
   chprintf(" dx:%f  dy:%f  dz:%f\n", spatial_props.dx, spatial_props.dy, spatial_props.dz);
   chprintf(" N ghost potential: %d\n", N_GHOST_POTENTIAL);
@@ -92,12 +88,14 @@ void Grav3D::Initialize(const SpatialDomainProps &external_spatial_props, Real L
   #endif
 
   Poisson_solver.Initialize(Lbox_x, Lbox_y, Lbox_z, spatial_props.xMin, spatial_props.yMin, spatial_props.zMin,
-                            spatial_props.nx_total, spatial_props.ny_total, spatial_props.nz_total, nx_local, ny_local,
-                            nz_local, spatial_props.dx, spatial_props.dy, spatial_props.dz);
+                            spatial_props.nx_total, spatial_props.ny_total, spatial_props.nz_total,
+                            spatial_props.nx_local, spatial_props.ny_local, spatial_props.nz_local, spatial_props.dx,
+                            spatial_props.dy, spatial_props.dz);
   #if defined(PARIS_TEST) || defined(PARIS_GALACTIC_TEST)
   Poisson_solver_test.Initialize(Lbox_x, Lbox_y, Lbox_z, spatial_props.xMin, spatial_props.yMin, spatial_props.zMin,
-                                 spatial_props.nx_total, spatial_props.ny_total, spatial_props.nz_total, nx_local,
-                                 ny_local, nz_local, spatial_props.dx, spatial_props.dy, spatial_props.dz);
+                                 spatial_props.nx_total, spatial_props.ny_total, spatial_props.nz_total,
+                                 spatial_props.nx_local, spatial_props.ny_local, spatial_props.nz_local,
+                                 spatial_props.dx, spatial_props.dy, spatial_props.dz);
   #endif
 
   // At the end of initializing, set restart state if needed
@@ -118,19 +116,22 @@ void Grav3D::AllocateMemory_CPU(void)
   boundary_flags = (int *)malloc(6 * sizeof(int));       // array for the gravity boundary flags
 
   #ifdef GRAV_ISOLATED_BOUNDARY_X
-  F.pot_boundary_x0 = (Real *)malloc(N_GHOST_POTENTIAL * ny_local * nz_local *
+  F.pot_boundary_x0 = (Real *)malloc(N_GHOST_POTENTIAL * spatial_props.ny_local * spatial_props.nz_local *
                                      sizeof(Real));  // array for the potential isolated boundary
-  F.pot_boundary_x1 = (Real *)malloc(N_GHOST_POTENTIAL * ny_local * nz_local * sizeof(Real));
+  F.pot_boundary_x1 =
+      (Real *)malloc(N_GHOST_POTENTIAL * spatial_props.ny_local * spatial_props.nz_local * sizeof(Real));
   #endif
   #ifdef GRAV_ISOLATED_BOUNDARY_Y
-  F.pot_boundary_y0 = (Real *)malloc(N_GHOST_POTENTIAL * nx_local * nz_local *
+  F.pot_boundary_y0 = (Real *)malloc(N_GHOST_POTENTIAL * spatial_props.nx_local * spatial_props.nz_local *
                                      sizeof(Real));  // array for the potential isolated boundary
-  F.pot_boundary_y1 = (Real *)malloc(N_GHOST_POTENTIAL * nx_local * nz_local * sizeof(Real));
+  F.pot_boundary_y1 =
+      (Real *)malloc(N_GHOST_POTENTIAL * spatial_props.nx_local * spatial_props.nz_local * sizeof(Real));
   #endif
   #ifdef GRAV_ISOLATED_BOUNDARY_Z
-  F.pot_boundary_z0 = (Real *)malloc(N_GHOST_POTENTIAL * nx_local * ny_local *
+  F.pot_boundary_z0 = (Real *)malloc(N_GHOST_POTENTIAL * spatial_props.nx_local * spatial_props.ny_local *
                                      sizeof(Real));  // array for the potential isolated boundary
-  F.pot_boundary_z1 = (Real *)malloc(N_GHOST_POTENTIAL * nx_local * ny_local * sizeof(Real));
+  F.pot_boundary_z1 =
+      (Real *)malloc(N_GHOST_POTENTIAL * spatial_props.nx_local * spatial_props.ny_local * sizeof(Real));
   #endif
 
   #ifdef GRAVITY_ANALYTIC_COMP
