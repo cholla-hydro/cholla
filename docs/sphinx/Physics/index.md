@@ -9,6 +9,7 @@ Port over more from the wiki
 
 CoolingChemistry.md
 Cosmology.md
+DiskModel.md
 Dual-Energy-Formalism.md
 Dust.md
 Feedback.md

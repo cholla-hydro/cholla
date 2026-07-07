@@ -205,13 +205,13 @@ class ClusteredDiskGalaxy : public DiskGalaxy
 inline Real Get_StarCluster_Truncation_Radius(const Parameters& p)
 {
   if ((20.4 < p.xlen) and (p.xlen < 20.5)) return 9.5;
-  return p.xlen / 2.0 - 0.2;
+  return p.xlen / 2.0 - 0.5;
 }
 
 inline Real Get_Gas_Truncation_Radius(const Parameters& p)
 {
   if ((20.4 < p.xlen) and (p.xlen < 20.5)) return 9.9;
-  return p.xlen / 2.0 - 0.1;
+  return p.xlen / 2.0 - 0.3;
 }
 
 // Forward declare galaxy instances. These are defined in disk_galaxy.cu
