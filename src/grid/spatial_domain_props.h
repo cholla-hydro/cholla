@@ -6,7 +6,6 @@
 
 #include "../global/global.h"
 
-class Grav3D;
 class Grid3D;
 struct Parameters;
 
@@ -31,6 +30,5 @@ struct SpatialDomainProps {
   /// cell widths
   Real dx, dy, dz;
 
-  static SpatialDomainProps From_Grav3D(Grav3D& grav);
   static SpatialDomainProps From_Grid3D(Grid3D& grid, Parameters* P);
 };

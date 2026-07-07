@@ -3,8 +3,6 @@
 #include "../gravity/grav3D.h"
 #include "../grid/grid3D.h"
 
-SpatialDomainProps SpatialDomainProps::From_Grav3D(Grav3D& grav) { return grav.spatial_props; }
-
 SpatialDomainProps SpatialDomainProps::From_Grid3D(Grid3D& grid, struct Parameters* P)
 {
   SpatialDomainProps out;
