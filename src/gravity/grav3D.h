@@ -44,16 +44,6 @@ class Grav3D
   /// Aggregates spatial properties
   SpatialDomainProps spatial_props;
 
-  /*! \var nx
-   *  \brief Total number of cells in the x-dimension */
-  int nx_total;
-  /*! \var ny
-   *  \brief Total number of cells in the y-dimension */
-  int ny_total;
-  /*! \var nz
-   *  \brief Total number of cells in the z-dimension */
-  int nz_total;
-
   /*! \var nx_local
    *  \brief Local number of cells in the x-dimension */
   int nx_local;
