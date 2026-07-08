@@ -26,9 +26,6 @@ Supported options include:
 ### Selecting your solver
 
 The choice of simple-solver is specified through the {par:param}`chemistry.kind` parameter.
-For backwards compatibility, we set the default based on the presence of Makefile parameters.
-When no Makefile parameters are provided, the parameter defaults to "none."
-The following table summarizes the available choices (and the conditions where they become defaults):
 
 :::{list-table}
 :widths: auto
@@ -36,24 +33,15 @@ The following table summarizes the available choices (and the conditions where t
 
 * - Name
   - Meaning
-  - Macros that make this the default
 * - "none"
-  - No chemistry or cooling
-  - N/A
+  - No chemistry or cooling (this is the default)
 * - "tabulated-cloudy"
-  - path to data file used by "tabulated-cooling" solver
-  - `COOLING_GPU` && `CLOUDY_COOL`
+  - Cooling and heating are computed from the specified table using bilinear interpolation
 * - "piecewise-cie"
   - piecewise-parabolic fit to a collisional ionization equilibrium (CIE)
-  - `COOLING_GPU` **without** `CLOUDY_COOL`
 * - "piecewise-ti+cie"
   - Analytic cooling/heating recipe that roughly matches the "TI" cooling runs shown in
  in [Kim & Ostriker 2015](https://ui.adsabs.harvard.edu/abs/2015ApJ...802...99K/abstract)
-  - N/A
-:::
-
-:::{important}
-We are planning to phase out the `COOLING_GPU` && `CLOUDY_COOL` Makefile parameters.
 :::
 
 ### More about the solvers
@@ -66,7 +54,7 @@ Not currently compatible with photoelectric heating.
 
 #### "piecewise-ti+cie"
 
-This solver uses the same analytic fit as "piecewise-cie" above 1e4K and extends the fit at lower temperatures.
+This solver uses the same analytic fit as "piecewise-cie" above 1e4K and extends the fit at lower temperatures using the analytic fit from [Koyama & Inutsuka (2002)](https://ui.adsabs.harvard.edu/abs/2002ApJ...564L..97K/abstract), eq. 4 & 5.
 
 **Compatible with photoelectric heating.**
 
@@ -77,16 +65,16 @@ A copy of the Cloudy table can be found at {repository-file}`src/cooling/cloudy_
 
 The provided table spans densities `log(n) = -6` to `log(n) = 6` (cm^-3) and temperatures from `log(T) = 1` to `log(T) = 9` (K) with no cooling for temperatures below 10 K.
 
-Cooling is computed from the table using bilinear interpolation.
+Cooling and heating are computed from the table using bilinear interpolation.
 A custom function is used for double precision because the CUDA built-in performs interpolation using 8-bit accuracy.
 
 **Compatible with photoelectric heating.**
 
 ### Modelling Photoelectric Heating
 
-Several of our solvers are described above can be configured so that they also model the effect of photoelectric heating.
+Several of the solvers described above can be configured so that they also model the effect of photoelectric heating.
 To enable photoelectric heating, you can use the {par:param}`chemistry.photoelectric_heating` option.
-When photoelectric heating is enabled, you can control the assumed average number density with the {par:param}`chemistry.photoelectric_n_av_cgs` parameter.
+When photoelectric heating is enabled, you can control the assumed average number density (used to scale the normalization of the assumed ISRF) with the {par:param}`chemistry.photoelectric_n_av_cgs` parameter.
 
 :::{todo}
 It would be great to show the actual equations that get used
@@ -104,7 +92,7 @@ There are currently 2 choices of solvers:
 
   - this is hardcoded to use Grackle's `primordial_chemistry=1` chemical network
 
-- `"chemistry-gpu"`: uses logic implemented directly as part of Cholla to run chemistry on GPUs (the logic was closely modelled after chemisry
+- `"chemistry-gpu"`: uses logic implemented directly as part of Cholla to run chemistry on GPUs (cooling functions match those in the Grackle library)
 
 Time-dependent UVB phothoheating and photoionization rates are passed as a text file, with an input parameter specifying the text file name.
 

@@ -48,6 +48,8 @@ ddelta_dt=-0.001
 outdir=./
 prng_seed=41
 
+[chemistry]
+kind=piecewise-cie
 [feedback]
 snr_filename=./src/feedback/starburst99_snr.txt
 sw_filename=./src/feedback/starburst99_sw.txt
