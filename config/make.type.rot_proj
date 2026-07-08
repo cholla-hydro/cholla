@@ -16,9 +16,6 @@ DFLAGS    += -DTEMPERATURE_FLOOR
 # Solve the Gas Internal Energy usisng a Dual Energy Formalism
 #DFLAGS    += -DDE
 
-# Apply cooling on the GPU from precomputed tables
-#DFLAGS    += -DCOOLING_GPU
-
 # Measure the Timing of the different stages
 #DFLAGS    += -DCPU_TIME
 
