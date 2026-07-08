@@ -45,6 +45,9 @@ ddelta_dt=-0.001
 # path to output directory
 outdir=./
 
+[chemistry]
+kind=piecewise-cie
+
 # configure properties for the disk-galaxy model
 # ==============================================
 # These parameters were chosen to approximate a Milky Way-like galaxy
