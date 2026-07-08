@@ -198,6 +198,31 @@ Parameters::Parameters(ParameterMap &pmap)
   Load_String_Param_Into_Char_Buffer(pmap, "custom_bcnd", parms->custom_bcnd, "");
   Load_String_Param_Into_Char_Buffer(pmap, "indir", parms->indir, "");
 
+  // Deal with the gravity.gas_only_use_static_grav parameter
+  // - it would be great to move reading of this parameter to the Gravity class (that would probably
+  //   require us to unify STATIC_GRAV and GRAVITY)
+  // - the following flag is only meaningful when GRAVITY and GRAVITY_ANALYTIC_COMP
+  //   are defined.
+  // - In other cases, we raise an error if specified without a sensible value.
+#if defined(GRAVITY) && defined(GRAVITY_ANALYTIC_COMP)
+  parms->gas_only_use_static_grav = pmap.value_or("gravity.gas_only_use_static_grav", false);
+#elif defined(GRAVITY)
+  parms->gas_only_use_static_grav = pmap.value_or("gravity.gas_only_use_static_grav", false);
+  CHOLLA_ASSERT(parms->gas_only_use_static_grav == false,
+                "It is an error to set gravity.gas_only_use_static_grav to `true` when Cholla is compiled with "
+                "GRAVITY but not GRAVITY_ANALYTIC_COMP");
+#elif defined(STATIC_GRAV)
+  parms->gas_only_use_static_grav = pmap.value_or("gravity.gas_only_use_static_grav", true);
+  CHOLLA_ASSERT(
+      parms->gas_only_use_static_grav == true,
+      "It is an error to set gravity.gas_only_use_static_grav to `true` when Cholla is compiled with STATIC_GRAV");
+#else
+  CHOLLA_ASSERT(not pmap.has_param("gravity.gas_only_use_static_grav"),
+                "it doesn't make sense to specify gravity.gas_only_use_static_grav when cholla isn't compiled "
+                "with gravity");
+  parms->gas_only_use_static_grav = false;
+#endif
+
   // ideally, we would only try to parse this for certain values of parms->init
   parms->nfile = pmap.value_or("nfile", 0);
 
@@ -287,17 +312,6 @@ Parameters::Parameters(ParameterMap &pmap)
 #if defined(SCALAR) && defined(DUST)
   parms->grain_radius = pmap.value<double>("grain_radius");
 #endif  // defined(SCALAR) && defined(DUST)
-
-  // in the future, the feedback module will read in its own parameters (the global Parameter struct won't
-  // know anything about it)
-#ifdef FEEDBACK
-  #ifndef NO_SN_FEEDBACK
-  Load_String_Param_Into_Char_Buffer(pmap, "snr_filename", parms->snr_filename, "");
-  #endif
-  #ifndef NO_WIND_FEEDBACK
-  Load_String_Param_Into_Char_Buffer(pmap, "sw_filename", parms->sw_filename, "");
-  #endif
-#endif
 
   // in the future, it would probably be good to move this logic into Cosmology::Initialize (or somewhere similar)
   // and remove these parameters from the global struct. This would provide a few benefits:

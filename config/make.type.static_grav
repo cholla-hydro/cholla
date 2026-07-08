@@ -18,9 +18,6 @@ DFLAGS    += -DTEMPERATURE_FLOOR
 
 DFLAGS    += -DSTATIC_GRAV
 
-# Apply cooling on the GPU from precomputed tables
-#DFLAGS    += -DCOOLING_GPU
-
 # Measure the Timing of the different stages
 #DFLAGS    += -DCPU_TIME
 

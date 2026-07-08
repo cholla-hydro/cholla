@@ -44,3 +44,6 @@ flag_delta=2
 ddelta_dt=-0.001
 # path to output directory
 outdir=./
+
+[chemistry]
+kind=piecewise-cie
