@@ -15,8 +15,7 @@ StarFormingDiskProps::StarFormingDiskProps(ParameterMap& pmap)
       global_sfr_Msun_per_kyr{pmap.value<double>("model.galaxy.star_forming_disk.global_sfr_Msun_per_kyr")},
       poisson_point_process{pmap.value<bool>("model.galaxy.star_forming_disk.poisson_point_process")},
       kennicut_schmidt_power{pmap.value_or("model.galaxy.star_forming_disk.kennicut_schmidt_power", 1.4)},
-      earliest_t_formation{pmap.value<double>("model.galaxy.star_forming_disk.earliest_t_formation")},
-      latest_t_formation()
+      earliest_t_formation{pmap.value<double>("model.galaxy.star_forming_disk.earliest_t_formation")}
 {
   CHOLLA_ASSERT(global_sfr_Msun_per_kyr >= 0.0, "global_sfr_Msun_per_kyr must be non-negative: %g",
                 global_sfr_Msun_per_kyr);
