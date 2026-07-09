@@ -134,6 +134,7 @@ TEST(tALLTabulatedDynamicalDarkEnergyEoSDeathTest, ThreeElemsOnLine2)
 
 // define parametrized tests where we try to read files without real contents
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tALLTabulatedDynamicalDarkEnergyEoSNoContentsDeathTest : public testing::TestWithParam<FileVariation>
 {
 };

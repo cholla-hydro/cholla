@@ -44,7 +44,7 @@ io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const 
     // setup the data output routine for Hydro data
     std::pair<io::WriterFn, std::string> rslt = io::FieldWriter::try_create(ndim, pmap, field_info, false);
     if (rslt.first) {
-      packs_.push_back(io::detail::WriterPack{"hydro", n_hydro, rslt.first});
+      packs_.emplace_back(io::detail::WriterPack{"hydro", n_hydro, rslt.first});
     } else {
       chprintf("WARNING: %s\n", rslt.second.c_str());
     }
@@ -67,20 +67,21 @@ io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const 
     if (not rslt.first) {
       CHOLLA_ERROR("Error while preparing dumps for f32 hdf5 outputs: %s", rslt.second.c_str());
     }
-    packs_.push_back(io::detail::WriterPack{"hydro-f32", cadence, rslt.first});
+    packs_.emplace_back(io::detail::WriterPack{"hydro-f32", cadence, rslt.first});
   }
 
 #ifdef PROJECTION
-  packs_.push_back(io::detail::WriterPack{"projection", pmap.value_or("n_projection", 1), ProjectionWriter()});
+  packs_.emplace_back(io::detail::WriterPack{"projection", pmap.value_or("n_projection", 1), ProjectionWriter()});
 #endif /*PROJECTION*/
 
 #ifdef ROTATED_PROJECTION
-  packs_.push_back(io::detail::WriterPack{
+  packs_.emplace_back(io::detail::WriterPack{
       "rotated_projection", pmap.value_or("n_rotated_projection", 1), {io::RotatedProjWriter(pmap)}});
 #endif /*ROTATED_PROJECTION*/
 
 #ifdef SLICES
-  packs_.push_back(io::detail::WriterPack{"slice", pmap.value_or("n_slice", 1), {io::SliceWriter(pmap, field_info)}});
+  packs_.emplace_back(
+      io::detail::WriterPack{"slice", pmap.value_or("n_slice", 1), {io::SliceWriter(pmap, field_info)}});
 #endif /*SLICES*/
 
 #ifdef PARTICLES
@@ -88,7 +89,7 @@ io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const 
   auto write_particle = [](Grid3D& G, Parameters P, int nfile, const FnameTemplate& fname_template) {
     G.WriteData_Particles(P, nfile, fname_template);
   };
-  packs_.push_back(io::detail::WriterPack{"particle", pmap.value_or("n_particle", 1), write_particle});
+  packs_.emplace_back(io::detail::WriterPack{"particle", pmap.value_or("n_particle", 1), write_particle});
 
 #endif
 
@@ -97,7 +98,7 @@ io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const 
     G.Grav.Write_Restart_HDF5(&P, nfile, fname_template);
   };
   int n_gravity = 1;  // <- this is the historical choice
-  packs_.push_back(io::detail::WriterPack{"gravity", n_gravity, write_gravity});
+  packs_.emplace_back(io::detail::WriterPack{"gravity", n_gravity, write_gravity});
 
 #endif
 }
