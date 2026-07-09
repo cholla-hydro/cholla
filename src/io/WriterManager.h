@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <string>
+#include <utility>  // std::move
 #include <vector>
 
 #include "../global/global.h"
@@ -40,7 +41,10 @@ struct WriterPack {
    *  initialization" but lets you surround the arguments in parentheses (in c++20, we
    *  can get rid of this)
    */
-  WriterPack(std::string name, int cadence, WriterFn fn) noexcept : name(name), cadence{cadence}, fn(fn) {}
+  WriterPack(std::string name, int cadence, WriterFn fn) noexcept
+      : name(std::move(name)), cadence{cadence}, fn(std::move(fn))
+  {
+  }
 };
 
 }  // namespace detail
