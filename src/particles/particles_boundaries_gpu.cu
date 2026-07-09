@@ -382,7 +382,7 @@ part_int_t Select_Particles_to_Transfer_GPU_function(part_int_t n_local, int sid
                      n_transfer_h[0], transfer_flags_d, transfer_prefix_sum_d, replace_indices_d);
   GPU_Error_Check();
 
-  //if ( n_transfer_h[0] > 0 )printf( "procID %d N transfer: %d\n", procID, n_transfer_h[0]);
+  // if ( n_transfer_h[0] > 0 )printf( "procID %d N transfer: %d\n", procID, n_transfer_h[0]);
   return n_transfer_h[0];
 }
 

@@ -52,11 +52,11 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
   Real wa             = P->wa;
   Real H0             = P->H0 / 1000;  // km/s/kpc
   Particles.CP.Ha     = Hubble_Growth_Function(a_init, H0, Omega_r, Omega_m, Omega_DE, w0, wa);
-  Particles.G.n_ghost = H.n_ghost; // ghost cells are not carried
+  Particles.G.n_ghost = H.n_ghost;  // ghost cells are not carried
 
   // convert dDdt from km/s/kpc to 1/kyr
 
-  chprintf("Cosmological ICs: a %e\n",a_init);
+  chprintf("Cosmological ICs: a %e\n", a_init);
   chprintf("Cosmological ICs: Particles.CP.D    %e\n", Particles.CP.D);
   chprintf("Cosmological ICs: Particles.CP.dDdt %e [km/s/kpc]\n", Particles.CP.dDdt);
   chprintf("Cosmological ICs: Particles.CP.dDda %e\n", Particles.CP.dDda);
@@ -1212,16 +1212,16 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
   int i, j, k, id;
 
   // cell sizes
-  Real dx = G.dx;
-  Real dy = G.dy;
-  Real dz = G.dz;
+  Real dx      = G.dx;
+  Real dy      = G.dy;
+  Real dz      = G.dz;
   int nx_local = G.nx_local;
   int ny_local = G.ny_local;
   int nz_local = G.nz_local;
   int n_ghost  = G.n_ghost;
-  int nx = nx_local + 2*n_ghost;
-  int ny = ny_local + 2*n_ghost;
-  int nz = nz_local + 2*n_ghost;
+  int nx       = nx_local + 2 * n_ghost;
+  int ny       = ny_local + 2 * n_ghost;
+  int nz       = nz_local + 2 * n_ghost;
 
   // Set the number of particles equal to the number of grid cells
   part_int_t n_particles_local = ((part_int_t)G.nx_local) * ((part_int_t)G.ny_local) * ((part_int_t)G.nz_local);
@@ -1581,7 +1581,6 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         x_pos = x_pos + xi_x;
         y_pos = y_pos + xi_y;
         z_pos = z_pos + xi_z;
-
 
     #ifdef PARTICLES_CPU
         // Copy the particle data to the particles vectors

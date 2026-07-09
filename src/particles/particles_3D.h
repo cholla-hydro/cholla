@@ -164,7 +164,7 @@ class Particles3D
     int boundary_type_z0, boundary_type_z1;
 
     int n_ghost_particles_grid;
-    int n_ghost; // hydro grid
+    int n_ghost;  // hydro grid
     int n_cells;
     #ifdef PARTICLES_GPU
     Real gpu_allocation_factor;
