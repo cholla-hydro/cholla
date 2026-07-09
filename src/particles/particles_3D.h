@@ -55,18 +55,6 @@ class Particles3D
     Real dDda;     // growth function scale factor derivative
     Real Ha;       // Hubble parameter at initial redshift
   } CP;
-  struct Cosmo_Header {
-    int nx;
-    int ny;
-    int nz;
-    int n_ghost;
-    Real dx;
-    Real dy;
-    Real dz;
-    Real xbound;
-    Real ybound;
-    Real zbound;
-  } H;  // carry some information from Grid's header
 
   /*! \fn void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real
    * *zpos) \brief Get the cell-centered position based on cell index */
@@ -176,6 +164,7 @@ class Particles3D
     int boundary_type_z0, boundary_type_z1;
 
     int n_ghost_particles_grid;
+    int n_ghost; // hydro grid
     int n_cells;
     #ifdef PARTICLES_GPU
     Real gpu_allocation_factor;

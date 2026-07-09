@@ -453,7 +453,7 @@ void Grid3D::Load_and_Send_Particles_X0(int ireq_n_particles, int ireq_particles
 
     #ifdef PARTICLES_GPU
   // send_buffer_x0_particles = d_send_buffer_x0_particles;
-  // printf("procID %d Loading %d to send x0\n",procID,buffer_length_particles_x0_send);
+      //printf("procID %d Loading %d to send x0\n",procID,buffer_length_particles_x0_send);
   // fflush(stdout);
   // Particles.Load_Particles_to_Buffer_GPU(0, 0, send_buffer_x0_particles, buffer_length_particles_x0_send);
   // send_buffer_x0_particles = Particles.Load_Particles_to_Buffer_GPU(0, 0, buffer_length_particles_x0_send);
@@ -879,8 +879,9 @@ int Particles3D::Select_Particles_to_Transfer_GPU(int direction, int side)
     domainMax = G.zMax;
     domainMin = G.zMin;
   }
-  // chprintf("n_local=%d SELECT PARTICLES: %d dir, %d side. Max/Min %.4e/%.4e
-  // \n", n_local, direction, side, domainMax, domainMin); Set the number of
+  //chprintf("procID %d n_local=%d SELECT PARTICLES: %d dir, %d side. Max/Min %.4e/%.4e\n", procID, n_local, direction, side, domainMax, domainMin); 
+
+  // Set the number of
   // particles that will be sent and load the particles data into the transfer
   // buffers
   n_transfer = Select_Particles_to_Transfer_GPU_function(
@@ -981,7 +982,7 @@ Real *Particles3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dir
   if ((*n_send + n_transfer) * N_DATA_PER_PARTICLE_TRANSFER > *buffer_size) {
     flag_resize = true;  // HERE
     printf(
-        "Extending Particles Transfer send Buffer procID %d n_send %d n_transfer %d NDPPT %d product %d buffer_size %d "
+        "Extending Particles Transfer send Buffer procID %d n_send %ld n_transfer %d NDPPT %d product %ld buffer_size %d "
         "gpu_alloc_fac %3.2f ",
         procID, (*n_send), n_transfer, N_DATA_PER_PARTICLE_TRANSFER,
         (*n_send + n_transfer) * N_DATA_PER_PARTICLE_TRANSFER, *buffer_size, G.gpu_allocation_factor);
