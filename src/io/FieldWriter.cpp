@@ -375,7 +375,12 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
   //                             H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf, Rad.rtFields.dev_rs,
   //                             "/source");
   Real* rtptr = Rad.rtFields.dev_rs;
-  Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, rtptr, "/source");
+  if constexpr (ForceF32Output) {
+    Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf,
+                        rtptr, "/source");
+  } else {
+    Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, rtptr, "/source");
+  }
 
     // loop over the number of radiation fields
     #ifdef RT_OTVET
@@ -389,17 +394,13 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
                                    "/rf_HeII",      "/rf_HeII_Mx",      "/rf_HeII_My",      "/rf_HeII_Mz"};
     #endif
   for (int n = 0; n < Rad.n_rf; n++) {
-    // char dataset[100];
-    // char number[10];
-    // sprintf(dataset,"/radiation_");
-    // sprintf(number,"%d",n);
-    // strcat(dataset, number);
-    // Write_Generic_HDF5_Field_GPU(H.nx_real + 2 * H.n_ghost, H.ny_real + 2 * H.n_ghost,
-    //                              H.nz_real + 2 * H.n_ghost, H.nx_real, H.ny_real, H.nz_real,
-    //                              H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf, &(Rad.rtFields.dev_rf[n *
-    //                              H.n_cells]), dataset);
     rtptr = &Rad.rtFields.dev_rf[n * H.n_cells];
-    Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, rtptr, rt_dset_names[n]);
+    if constexpr (ForceF32Output) {
+      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf,
+                          rtptr, "/source");
+    } else {
+      Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, rtptr, rt_dset_names[n]);
+    }
   }
   #endif  // RT and OUTPUT_RADIATION
 
