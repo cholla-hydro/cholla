@@ -32,7 +32,6 @@ __global__ void PhotoRatesCSIUpdateTableKernel(unsigned int n, const StaticTable
   auto thr = dXS->thresholds;
 
   float values[7] = {};  // all entries initialized to zero
-  for (int m = 0; m < n; m++) values[m] = 0;
 
   const float tauHI   = dStretch->x2tau(dStretch->xMin + dStretch->xBin * i);
   const float tauHeI  = dStretch->x2tau(dStretch->xMin + dStretch->xBin * j);
