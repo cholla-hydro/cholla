@@ -576,7 +576,7 @@ void FieldWriter::operator()(Grid3D& G, Parameters P, int nfile, const FnameTemp
   switch (this->file_format_) {
     case FileFormat::H5_F32:
       Write_Fields_to_HDF5_helper_<true>(filename, G, this->dataset_spec_, *this->lazy_scratch_buf_);
-      //Write_Fields_to_HDF5_helper_<false>(filename, G, this->dataset_spec_, *this->lazy_scratch_buf_);
+      // Write_Fields_to_HDF5_helper_<false>(filename, G, this->dataset_spec_, *this->lazy_scratch_buf_);
       return;
     case FileFormat::H5_NATIVE_PRECISION:
       Write_Fields_to_HDF5_helper_<false>(filename, G, this->dataset_spec_, *this->lazy_scratch_buf_);
