@@ -295,10 +295,10 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
   #else
   size_t buffer_size = nx_dset * ny_dset * nz_dset;
   #endif
-  // T* dev_dataset_buf  = lazy_scratch_buf.get_buf_dev<T>(buffer_size);
-  // T* host_dataset_buf = lazy_scratch_buf.get_buf_host<T>(buffer_size);
-  Real* dev_dataset_buf  = lazy_scratch_buf.get_buf_dev<T>(buffer_size);
-  Real* host_dataset_buf = lazy_scratch_buf.get_buf_host<T>(buffer_size);
+  T* dev_dataset_buf  = lazy_scratch_buf.get_buf_dev<T>(buffer_size);
+  T* host_dataset_buf = lazy_scratch_buf.get_buf_host<T>(buffer_size);
+  // Real* dev_dataset_buf  = lazy_scratch_buf.get_buf_dev<T>(buffer_size);
+  // Real* host_dataset_buf = lazy_scratch_buf.get_buf_host<T>(buffer_size);
 
   // write out regular cell-centered fields
   for (const io::DatasetSpecEntry& cur_spec : dataset_spec.cc_dataset_entries) {
@@ -575,8 +575,8 @@ void FieldWriter::operator()(Grid3D& G, Parameters P, int nfile, const FnameTemp
 
   switch (this->file_format_) {
     case FileFormat::H5_F32:
-      // Write_Fields_to_HDF5_helper_<true>(filename, G, this->dataset_spec_, *this->lazy_scratch_buf_);
-      Write_Fields_to_HDF5_helper_<false>(filename, G, this->dataset_spec_, *this->lazy_scratch_buf_);
+      Write_Fields_to_HDF5_helper_<true>(filename, G, this->dataset_spec_, *this->lazy_scratch_buf_);
+      //Write_Fields_to_HDF5_helper_<false>(filename, G, this->dataset_spec_, *this->lazy_scratch_buf_);
       return;
     case FileFormat::H5_NATIVE_PRECISION:
       Write_Fields_to_HDF5_helper_<false>(filename, G, this->dataset_spec_, *this->lazy_scratch_buf_);
