@@ -36,7 +36,7 @@ void Cosmology::Initialize(struct Parameters *P, Grav3D &Grav, Particles3D &Part
     Particles.current_z = current_z;
     Particles.current_a = current_a;
   }
- 
+
   // Set Scale factor in Gravity
   Grav.current_a = current_a;
 

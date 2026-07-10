@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
   chprintf("Output directory:  %s\n", writer_manager.fname_template().nominal_output_dir_path().c_str());
 
   // Check the configuration
-  //Check_Configuration(P);
+  // Check_Configuration(P);
 
   // Create a Log file to output run-time messages and output the git hash and
   // macro flags used
@@ -140,7 +140,6 @@ int main(int argc, char *argv[])
   G.Rad.Initialize_Start(P);
 #endif
 
-
   // Set initial conditions
   chprintf("Setting initial conditions...\n");
   chprintf("basic nx/ny/nz %d/%d/%d\n", P.nx, P.ny, P.nz);
@@ -149,7 +148,7 @@ int main(int argc, char *argv[])
   chprintf("Initial conditions set.\n");
 
   // BRANT
-  //chexit(0);
+  // chexit(0);
 
   // set main variables for Read_Grid and Read_Grid_Cat initial conditions
   if (is_restart) {
@@ -166,7 +165,6 @@ int main(int argc, char *argv[])
   message = " eta_1: " + std::to_string(DE_ETA_1) + "   eta_2: " + std::to_string(DE_ETA_2);
   Write_Message_To_Log_File(message.c_str());
 #endif
-
 
 #ifdef CPU_TIME
   G.Timer.Initialize();

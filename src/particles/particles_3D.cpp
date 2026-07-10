@@ -39,7 +39,6 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
 
   // Check for cosmological ICs
   if (strcmp(P->init, "Cosmological_ICs") == 0) {
-
     // Initialize a pointer to the cosmological ics
     // potentials. These are used for Cosmological_ICs
     Real z_init         = P->Init_redshift;
