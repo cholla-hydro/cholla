@@ -372,11 +372,13 @@ Parameters::Parameters(ParameterMap &pmap)
   parms->YHe  = pmap.value_or("YHe", 0.24);
   parms->xHp  = pmap.value_or("xHp", 0.0);
   parms->xHep = pmap.value_or("xHep", 0.0);
-  if (not pmap.has_param("cosmo_ics_pk_file")) {
+  /*if (not pmap.has_param("cosmo_ics_pk_file")) {
     CHOLLA_ERROR("Cosmology sims must specify a power spectrum cosmo_ics_pk_file");
-  }
+  }*/
   Load_String_Param_Into_Char_Buffer(pmap, "cosmo_ics_pk_file", parms->cosmo_ics_pk_file, "Pk.txt");
-  chprintf("Power spectrum file: %s\n", parms->cosmo_ics_pk_file);
+  if (pmap.has_param("cosmo_ics_pk_file")) {
+    chprintf("Power spectrum file: %s\n", parms->cosmo_ics_pk_file);
+  }
 
   // if the wDE table isn't provided, store an empty string
   parms->wDE_file = pmap.value_or("wDE_file", "");

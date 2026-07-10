@@ -112,6 +112,7 @@ void Grid3D::Set_Initial_Conditions(Parameters P, const ParameterMap &pmap)
     chexit(-1);
   }
 
+
   if (C.device != NULL) {
     GPU_Error_Check(cudaMemcpy(C.device, C.density, H.n_fields * H.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
   }

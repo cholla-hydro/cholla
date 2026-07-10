@@ -36,31 +36,34 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
   #endif
 
   #ifdef COSMOLOGY
-  // Initialize a pointer to the cosmological ics
-  // potentials. These are used for Cosmological_ICs
-  Real z_init         = P->Init_redshift;
-  Real a_init         = 1. / (1. + z_init);
-  Particles.CP.phi_1  = CP.phi_1;
-  Particles.CP.phi_bc = CP.phi_2;  // delta_bc has been replaced by phi_bc
-  Particles.CP.D      = Cosmo.D_Growth(a_init);
-  Particles.CP.dDdt   = Cosmo.dDdt_Growth(a_init);
-  Particles.CP.dDda   = Cosmo.dDda_Growth(a_init);
-  Real Omega_m        = P->Omega_M;
-  Real Omega_r        = P->Omega_R;
-  Real Omega_DE       = P->Omega_L;
-  Real w0             = P->w0;
-  Real wa             = P->wa;
-  Real H0             = P->H0 / 1000;  // km/s/kpc
-  Particles.CP.Ha     = Hubble_Growth_Function(a_init, H0, Omega_r, Omega_m, Omega_DE, w0, wa);
-  Particles.G.n_ghost = H.n_ghost;  // ghost cells are not carried
 
-  // convert dDdt from km/s/kpc to 1/kyr
+  // Check for cosmological ICs
+  if (strcmp(P->init, "Cosmological_ICs") == 0) {
 
-  chprintf("Cosmological ICs: a %e\n", a_init);
-  chprintf("Cosmological ICs: Particles.CP.D    %e\n", Particles.CP.D);
-  chprintf("Cosmological ICs: Particles.CP.dDdt %e [km/s/kpc]\n", Particles.CP.dDdt);
-  chprintf("Cosmological ICs: Particles.CP.dDda %e\n", Particles.CP.dDda);
-  chprintf("Cosmological ICs: Particles.CP.Ha   %e\n", Particles.CP.Ha);
+    // Initialize a pointer to the cosmological ics
+    // potentials. These are used for Cosmological_ICs
+    Real z_init         = P->Init_redshift;
+    Real a_init         = 1. / (1. + z_init);
+    Particles.CP.phi_1  = CP.phi_1;
+    Particles.CP.phi_bc = CP.phi_2;  // delta_bc has been replaced by phi_bc
+    Particles.CP.D      = Cosmo.D_Growth(a_init);
+    Particles.CP.dDdt   = Cosmo.dDdt_Growth(a_init);
+    Particles.CP.dDda   = Cosmo.dDda_Growth(a_init);
+    Real Omega_m        = P->Omega_M;
+    Real Omega_r        = P->Omega_R;
+    Real Omega_DE       = P->Omega_L;
+    Real w0             = P->w0;
+    Real wa             = P->wa;
+    Real H0             = P->H0 / 1000;  // km/s/kpc
+    Particles.CP.Ha     = Hubble_Growth_Function(a_init, H0, Omega_r, Omega_m, Omega_DE, w0, wa);
+    Particles.G.n_ghost = H.n_ghost;  // ghost cells are not carried
+
+    chprintf("Cosmological ICs: a %e\n", a_init);
+    chprintf("Cosmological ICs: Particles.CP.D    %e\n", Particles.CP.D);
+    chprintf("Cosmological ICs: Particles.CP.dDdt %e [km/s/kpc]\n", Particles.CP.dDdt);
+    chprintf("Cosmological ICs: Particles.CP.dDda %e\n", Particles.CP.dDda);
+    chprintf("Cosmological ICs: Particles.CP.Ha   %e\n", Particles.CP.Ha);
+  }
 
   #endif
 
