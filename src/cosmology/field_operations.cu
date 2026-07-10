@@ -17,10 +17,7 @@ __global__ void Rescale_Field_GPU(Real *d_x, const Real A, int nx, int ny, int n
   xid = id - zid * nx * ny - yid * nx;
 
   // only real cells participate
-  /*if (xid > n_ghost - 1 && xid < nx - n_ghost && yid > n_ghost - 1 && yid < ny - n_ghost && zid > n_ghost - 1 &&
-      zid < nz - n_ghost) {*/
-  if ((xid >= 0) & (xid < nx) & (yid >= 0) & (yid < ny) & (zid >= 0) & (zid < nz)) {  // all cells are real
-
+  if ((xid >= 0) and (xid < nx) and (yid >= 0) and (yid < ny) and (zid >= 0) and (zid < nz)) {  // all cells are real
     // rescale the field
     d_x[id] *= A;
   }
