@@ -151,7 +151,7 @@ inline void HostBuffer<T>::Alloc(size_t count)
 {
   if (count != 0) {
     mCount = count;
-    cudaHostAlloc(&mPtr, sizeof(T) * count, 0);
+    cudaHostAlloc(&mPtr, sizeof(T) * count, 0);  // NOLINT(bugprone-sizeof-expression)
   }
 }
 
