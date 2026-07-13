@@ -8,7 +8,7 @@
 
 void SpectralShape::Normalize(std::vector<float>& s)
 {
-  auto xs = Physics::AtomicData::CrossSections();
+  const auto *xs = Physics::AtomicData::CrossSections();
 
   float w = 0;
   for (unsigned int i = xs->thresholds[Physics::AtomicData::CrossSection::IonizationHI].idx; i < xs->nxi; i++) {
