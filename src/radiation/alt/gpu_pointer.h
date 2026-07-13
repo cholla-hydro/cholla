@@ -159,7 +159,7 @@ template <typename T>
 inline void HostBuffer<T>::Free()
 {
   if (mPtr != nullptr) {
-    cudaFreeHost(mPtr);
+    cudaFreeHost(mPtr);  // NOLINT(bugprone-sizeof-expression)
     mPtr = nullptr;
   }
 }
