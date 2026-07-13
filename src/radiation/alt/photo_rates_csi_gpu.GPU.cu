@@ -98,6 +98,16 @@ __global__ void PhotoRatesCSIUpdateTableKernel(unsigned int n, const StaticTable
     }
   };
 
+  // The recasting of dTable->GetFullData() here has been flagged as dangerous.
+  // The PhotoRatesCSIUpdateTableKernel() function should be refactored to avoid this.
+  // Matthew suggests: "The more correct way to fix this: is to pass a 
+  // StaticTableGPU<float, 3, 'x'> * to this function rather than a 
+  // const StaticTableGPU<float, 3, 'x'> * and to add a new member function to the 
+  // TableBase struct. It would probably have the form
+  // DEVICE_LOCAL_DECL inline value_t* GetFullData() { return mYs; }
+  // This member function would exist alongside the existing 
+  // const-qualified member of the same name."
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   auto out = const_cast<float*>(dTable->GetFullData()) + dTable->Lidx(i + si * (j + sj * k), 0);
   for (int m = 0; m < n; m++) {
     out[m] = values[m] * norm;
