@@ -8,7 +8,7 @@
 using namespace std;
 
 // Initialize the RK integrator
-void RK_Integrator::InitializeRK(int ny_in)
+void RKIntegrator::InitializeRK(int ny_in)
 {
   // integer
   ny = ny_in;
@@ -37,7 +37,7 @@ void RK_Integrator::InitializeRK(int ny_in)
 }
 
 // Free RK integrator memory
-void RK_Integrator::FreeMemory(void)
+void RKIntegrator::FreeMemory(void)
 {
   ai.clear();
   ci.clear();
@@ -59,9 +59,9 @@ void RK_Integrator::FreeMemory(void)
 /*! \fn void rk4_ode(Real* (*dydx)(Real x, Real *y, int iy, void *params, int np), Real x, Real *y, Real *h, Real
  * *hpass, void *params, int np, Real *yp, int iy, Real *error) \brief Evolve the ODE system one time step using the RK
  * method */
-// void RK_Integrator::rk4_ode( Real* (*dydx) (Real x, Real *y, int ny, void *params, int np), Real x, Real *y, Real
+// void RKIntegrator::rk4_ode( Real* (*dydx) (Real x, Real *y, int ny, void *params, int np), Real x, Real *y, Real
 // *h_this, Real *h_pass, void *params, int np, Real *yp, int ny, Real *error_pass)
-void RK_Integrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y, std::vector<Real> params), Real x,
+void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y, std::vector<Real> params), Real x,
                             std::vector<Real> y, Real *h_this, Real *h_pass, std::vector<Real> params,
                             std::vector<Real> &yp, Real *error_pass)
 {
@@ -220,7 +220,7 @@ int main(int argc, char **argv)
         Real z = 10.0;
         Real dz = -1.0e-3;
 
-        RK_Integrator RK;
+        RKIntegrator RK;
 
         RK.InitializeRK(3);
 

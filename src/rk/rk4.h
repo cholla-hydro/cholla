@@ -6,11 +6,11 @@
 
   #include "../global/global.h"
 
-/*! \class RK_Integrator
+/*! \class RKIntegrator
  *  \brief Class for evolving coupled
  *   differential equations using the
  *   Runga-Kutta method. */
-class RK_Integrator
+class RKIntegrator
 {
  public:
   /*! \var int nrk
