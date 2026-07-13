@@ -2445,7 +2445,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         det_grad_x = grad_x_T[0][0] * (grad_x_T[1][1] * grad_x_T[2][2] - grad_x_T[2][1] * grad_x_T[1][2]);
         det_grad_x -= grad_x_T[0][1] * (grad_x_T[1][0] * grad_x_T[2][2] - grad_x_T[2][0] * grad_x_T[1][2]);
         det_grad_x += grad_x_T[0][2] * (grad_x_T[1][0] * grad_x_T[2][1] - grad_x_T[2][0] * grad_x_T[1][1]);
-        det_grad_x = grad_x_T[0][0] * grad_x_T[1][1] * grad_x_T[2][2];  // first order
+        //det_grad_x = grad_x_T[0][0] * grad_x_T[1][1] * grad_x_T[2][2];  // first order
 
         if (det_grad_x < det_grad_x_min) det_grad_x_min = det_grad_x;
         if (det_grad_x > det_grad_x_max) det_grad_x_max = det_grad_x;
