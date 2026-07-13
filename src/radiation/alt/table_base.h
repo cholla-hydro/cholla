@@ -29,12 +29,11 @@ struct DEVICE_ALIGN_DECL TableBase {
       return 0;
     }
   }
-  DEVICE_LOCAL_DECL inline value_t GetXmax(unsigned int n) const
-  {
-    if (n < N)
+    if (n < N) {
       return mXmax[n];
-    else
+    } else {
       return 0;
+    }
   }
   DEVICE_LOCAL_DECL inline value_t GetXbin(unsigned int n) const
   {
