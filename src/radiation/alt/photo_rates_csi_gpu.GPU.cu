@@ -105,8 +105,10 @@ __global__ void PhotoRatesCSIUpdateTableKernel(unsigned int n, const StaticTable
   }
 }
 
+// NOLINTBEGIN(readability-identifier-naming)
 namespace PhotoRatesCSI
 {
+// NOLINTEND(readability-identifier-naming)
 StaticTableGPU<float, 3, 'x'>* CreateTable(float* data, unsigned int numRates, const PhotoRateTableStretchCSI& stretch)
 {
   StaticTableGPU<float, 3, 'x'>* d;
