@@ -46,10 +46,12 @@ struct DEVICE_ALIGN_DECL TableBase {
   }
   DEVICE_LOCAL_DECL inline unsigned int GetSize(unsigned int n) const
   {
-    if (n < N)
+    if (n < N) {
       return mSize[n];
-    else
+    } else {
       return 0;
+    }
+  }
   }
 
   //
