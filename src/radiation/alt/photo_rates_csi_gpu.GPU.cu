@@ -29,7 +29,7 @@ __global__ void PhotoRatesCSIUpdateTableKernel(unsigned int n, const StaticTable
   const float* csHeII = dXS->cs[Physics::AtomicData::CrossSection::IonizationHeII];
   // const float* csCVI = dXS->cs[Physics::AtomicData::CrossSection::IonizationCVI];
 
-  auto thr = dXS->thresholds;
+  const auto *thr = dXS->thresholds;
 
   float values[7] = {};  // all entries initialized to zero
 
