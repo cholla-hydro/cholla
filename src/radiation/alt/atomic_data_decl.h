@@ -14,10 +14,12 @@ class StaticTable;
 template <typename value_t, unsigned int N, char Mode>
 class StaticTableGPU;
 
+// NOLINTBEGIN(readability-identifier-naming)
 namespace Physics
 {
 namespace AtomicData
 {
+// NOLINTEND(readability-identifier-naming)
 constexpr double TionHI   = 157807.0;  // ionization threshold in K
 constexpr double TionHeI  = 285335.0;  // ionization threshold in K
 constexpr double TionHeII = 631515.0;  // ionization threshold in K
