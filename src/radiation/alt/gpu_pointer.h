@@ -7,8 +7,10 @@
 
 #include "../../global/global_cuda.h"
 
+// NOLINTBEGIN(readability-identifier-naming)
 namespace GPU
 {
+// NOLINTEND(readability-identifier-naming)
 template <typename T>
 class DeviceBuffer;
 
