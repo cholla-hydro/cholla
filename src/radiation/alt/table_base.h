@@ -29,43 +29,45 @@ struct DEVICE_ALIGN_DECL TableBase {
       return 0;
     }
   }
-  if (n < N) {
-    return mXmax[n];
-  } else {
-    return 0;
+  DEVICE_LOCAL_DECL inline value_t GetXmax(unsigned int n) const
+  {
+    if (n < N) {
+      return mXmax[n];
+    } else {
+      return 0;
+    }
   }
-} DEVICE_LOCAL_DECL inline value_t GetXbin(unsigned int n) const
-{
-  if (n < N) {
-    return mXbin[n];
-  } else {
-    return 0;
+  DEVICE_LOCAL_DECL inline value_t GetXbin(unsigned int n) const
+  {
+    if (n < N) {
+      return mXbin[n];
+    } else {
+      return 0;
+    }
   }
-}
-}
-DEVICE_LOCAL_DECL inline unsigned int GetSize(unsigned int n) const
-{
-  if (n < N) {
-    return mSize[n];
-  } else {
-    return 0;
-  }
-}
-}
 
-//
-//  The whole data array may be needed for integration or transfer to devices
-//
-DEVICE_LOCAL_DECL inline const value_t* GetFullData() const { return mYs; }
-DEVICE_LOCAL_DECL inline unsigned int GetFullDataCount() const { return mNumVars * mVolume; }
+  DEVICE_LOCAL_DECL inline unsigned int GetSize(unsigned int n) const
+  {
+    if (n < N) {
+      return mSize[n];
+    } else {
+      return 0;
+    }
+  }
 
-//
-//  Index transform.
-//
-DEVICE_LOCAL_DECL inline unsigned int Lidx(unsigned int idx, unsigned int var) const
-{
-  return (VarFirst ? (var + mNumVars * idx) : (idx + mVolume * var));
-}
+  //
+  //  The whole data array may be needed for integration or transfer to devices
+  //
+  DEVICE_LOCAL_DECL inline const value_t* GetFullData() const { return mYs; }
+  DEVICE_LOCAL_DECL inline unsigned int GetFullDataCount() const { return mNumVars * mVolume; }
+
+  //
+  //  Index transform.
+  //
+  DEVICE_LOCAL_DECL inline unsigned int Lidx(unsigned int idx, unsigned int var) const
+  {
+    return (VarFirst ? (var + mNumVars * idx) : (idx + mVolume * var));
+  }
 
 protected:
 //
