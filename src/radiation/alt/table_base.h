@@ -23,10 +23,11 @@ struct DEVICE_ALIGN_DECL TableBase {
   DEVICE_LOCAL_DECL inline unsigned int NumVars() const { return mNumVars; }
   DEVICE_LOCAL_DECL inline value_t GetXmin(unsigned int n) const
   {
-    if (n < N)
+    if (n < N) {
       return mXmin[n];
-    else
+    } else {
       return 0;
+    }
   }
   DEVICE_LOCAL_DECL inline value_t GetXmax(unsigned int n) const
   {
