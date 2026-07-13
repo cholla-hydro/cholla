@@ -2144,6 +2144,8 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   Real grad_x_T[3][3], det_grad_x;
   Real det_grad_x_min = 1e9;
   Real det_grad_x_max = -1e9;
+  Real dens_min = 1e9;
+  Real dens_max = -1e9;
   Real xix_min        = 1e9;
   Real xix_max        = -1e9;
   Real d_rms          = 0;
@@ -2443,7 +2445,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         det_grad_x = grad_x_T[0][0] * (grad_x_T[1][1] * grad_x_T[2][2] - grad_x_T[2][1] * grad_x_T[1][2]);
         det_grad_x -= grad_x_T[0][1] * (grad_x_T[1][0] * grad_x_T[2][2] - grad_x_T[2][0] * grad_x_T[1][2]);
         det_grad_x += grad_x_T[0][2] * (grad_x_T[1][0] * grad_x_T[2][1] - grad_x_T[2][0] * grad_x_T[1][1]);
-        // det_grad_x  = grad_x_T[0][0]*grad_x_T[1][1]*grad_x_T[2][2]; // first order
+        det_grad_x  = grad_x_T[0][0]*grad_x_T[1][1]*grad_x_T[2][2]; // first order
 
         if (det_grad_x < det_grad_x_min) det_grad_x_min = det_grad_x;
         if (det_grad_x > det_grad_x_max) det_grad_x_max = det_grad_x;
@@ -2452,6 +2454,9 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         // delta_b = (1+f_c \delta_bc )/(det grad x) - 1
         /// dens = ((1 + CP.delta_bc[index])/det_grad_x - 1);
         dens = (1 / det_grad_x - 1);
+
+        if (dens < dens_min) dens_min = dens;
+        if (dens > dens_max) dens_max = dens;
 
         C.density[id] = dens;
         d_mean += dens;
@@ -2476,6 +2481,8 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   MPI_Allreduce(MPI_IN_PLACE, &d_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(MPI_IN_PLACE, &d_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(MPI_IN_PLACE, &n_d_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &dens_min, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &dens_max, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
   xix_mean = xix_mean / xix_n;
   xiy_mean = xiy_mean / xix_n;
   xiz_mean = xiz_mean / xix_n;
@@ -2505,6 +2512,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   chprintf("Cosmological ICs: y-velocity     field average = %e, rms = %e\n", vy_mean, vy_rms);
   chprintf("Cosmological ICs: z-velocity     field average = %e, rms = %e\n", vz_mean, vz_rms);
   chprintf("Cosmological ICs: overdensity    field average = %e, rms = %e\n", d_mean, d_rms);
+  chprintf("Cosmological ICs: overdensity    field minimum = %e, max = %e\n",dens_min,dens_max);
 
   // correct the overdensity for non-zero mean
   d_rms         = 0;
@@ -2530,6 +2538,11 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   chprintf("Cosmological ICs: corr overdens. field average = %e, rms = %e\n", dm_check, d_rms);
 
   // set the initial values of the conserved variables
+  dens_min =  1.0e9;
+  dens_max = -1.0e9;
+  dm_check      = 0;
+  d_rms         = 0;
+  n_d_mean      = 0;
   for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
     for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
       for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
@@ -2543,6 +2556,15 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         C.density[id] += 1;      // convert to 1 + delta
         C.density[id] *= rho_b;  // convert to density
         dens = C.density[id];    // store baryon density
+        if(dens<dens_min) {
+          dens_min = dens;
+        }
+        if(C.density[id]>dens_max) {
+          dens_max = dens;
+        }
+        dm_check += dens;
+        d_rms += dens*dens;
+        n_d_mean += 1;
 
     #ifdef CHEMISTRY_GPU
         C.HI_density[id]    = (1 - xHp) * (1 - YHe) * dens;  // HI    density
@@ -2582,6 +2604,16 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
       }
     }
   }
+  MPI_Allreduce(MPI_IN_PLACE, &dm_check, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &d_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &n_d_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &dens_min, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &dens_max, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+  dm_check /= n_d_mean;
+  d_rms /= n_d_mean;
+  d_rms = sqrt(d_rms);
+  chprintf("Cosmological ICs: final baryon field average = %e (rho_b = %e), sqrt ave sq = %e\n", dm_check, rho_b, d_rms);
+  chprintf("Cosmological ICs: final baryon field minimum = %e, max = %e\n",dens_min,dens_max);
 
   #endif
 
