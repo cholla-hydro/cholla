@@ -892,7 +892,8 @@ void Grid3D::Set_Field_Boundaries_Periodic(int direction, int side, int *flags, 
 
   int i, j, k, indx_src, indx_dst;
   int nGHST, nx_g, ny_g, nz_g;
-  nGHST = N_GHOST_POTENTIAL;
+  //nGHST = N_GHOST_POTENTIAL;
+  nGHST = H.n_ghost;
   nx_g  = nx_local + 2 * nGHST;
   ny_g  = ny_local + 2 * nGHST;
   nz_g  = nz_local + 2 * nGHST;
@@ -1293,7 +1294,8 @@ int Grid3D::Load_Field_To_Buffer(int direction, int side, Real *buffer, int buff
 {
   int i, j, k, indx, indx_buff, length;
   int nGHST, nx_g, ny_g, nz_g;
-  nGHST = N_GHOST_POTENTIAL;
+  //nGHST = N_GHOST_POTENTIAL;
+  nGHST = H.n_ghost;
   nx_g  = nx_local + 2 * nGHST;
   ny_g  = ny_local + 2 * nGHST;
   nz_g  = nz_local + 2 * nGHST;
@@ -1361,7 +1363,8 @@ void Grid3D::Unload_Field_from_Buffer(int direction, int side, Real *buffer, int
 {
   int i, j, k, indx, indx_buff;
   int nGHST, nx_g, ny_g, nz_g;
-  nGHST = N_GHOST_POTENTIAL;
+  //nGHST = N_GHOST_POTENTIAL;
+  nGHST = H.n_ghost;
 
   nx_g = nx_local + 2 * nGHST;
   ny_g = ny_local + 2 * nGHST;
