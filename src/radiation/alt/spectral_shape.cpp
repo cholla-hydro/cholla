@@ -28,7 +28,7 @@ void SpectralShape::Normalize(std::vector<float>& s)
 //
 void SpectralShape::PopII(std::vector<float>& s)
 {
-  auto xs = Physics::AtomicData::CrossSections();
+  const auto *xs = Physics::AtomicData::CrossSections();
 
   s.assign(xs->nxi, 0);
   for (unsigned int i = 0; i < xs->nxi; i++) {
