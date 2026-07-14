@@ -46,6 +46,7 @@ const std::string GOOD_CONTENTS_ = R"LITERAL(# z, w
 # this is a random meaningless comment!
 1.392540755881421788e-02 -9.772263520514015145e-01)LITERAL";
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tALLTabulatedDynamicalDarkEnergyEoS : public testing::TestWithParam<FileVariation>
 {
 };
@@ -133,6 +134,7 @@ TEST(tALLTabulatedDynamicalDarkEnergyEoSDeathTest, ThreeElemsOnLine2)
 
 // define parametrized tests where we try to read files without real contents
 
+// NOLINTNEXTLINE(readability-identifier-naming)
 class tALLTabulatedDynamicalDarkEnergyEoSNoContentsDeathTest : public testing::TestWithParam<FileVariation>
 {
 };
