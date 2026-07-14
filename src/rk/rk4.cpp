@@ -79,9 +79,10 @@ void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y
   std::vector<Real> yy;
 
   for (int i = 1; i < nrk; i++) {
-    for (int k = 0; k < ny; k++) yi[k] = y[k];
-    for (int j = 1; j < i; j++)
-      for (int k = 0; k < ny; k++) yi[k] += h * bij[i][j] * kij[j][k];
+    for (int k = 0; k < ny; k++) { yi[k] = y[k]; }
+    for (int j = 1; j < i; j++) {
+      for (int k = 0; k < ny; k++) { yi[k] += h * bij[i][j] * kij[j][k]; }
+    }
     kij[i] = dydx(x + ai[i] * h, yi, params);
   }
 
