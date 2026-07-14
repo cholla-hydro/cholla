@@ -8,7 +8,7 @@
 
 void SpectralShape::Normalize(std::vector<float>& s)
 {
-  const auto *xs = Physics::AtomicData::CrossSections();
+  const auto* xs = Physics::AtomicData::CrossSections();
 
   float w = 0;
   for (unsigned int i = xs->thresholds[Physics::AtomicData::CrossSection::IonizationHI].idx; i < xs->nxi; i++) {
@@ -28,7 +28,7 @@ void SpectralShape::Normalize(std::vector<float>& s)
 //
 void SpectralShape::PopII(std::vector<float>& s)
 {
-  const auto *xs = Physics::AtomicData::CrossSections();
+  const auto* xs = Physics::AtomicData::CrossSections();
 
   s.assign(xs->nxi, 0);
   for (unsigned int i = 0; i < xs->nxi; i++) {
@@ -50,7 +50,7 @@ void SpectralShape::PopII(std::vector<float>& s)
 
 void SpectralShape::PopIII(std::vector<float>& s)
 {
-  const auto *xs = Physics::AtomicData::CrossSections();
+  const auto* xs = Physics::AtomicData::CrossSections();
 
   s.assign(xs->nxi, 0);
   for (unsigned int i = 0; i < xs->nxi; i++) {
@@ -74,7 +74,7 @@ void SpectralShape::PopIII(std::vector<float>& s)
 //
 void SpectralShape::Quasar(std::vector<float>& s)
 {
-  const auto *xs = Physics::AtomicData::CrossSections();
+  const auto* xs = Physics::AtomicData::CrossSections();
 
   s.assign(xs->nxi, 0);
   for (unsigned int i = 0; i < xs->nxi; i++) {

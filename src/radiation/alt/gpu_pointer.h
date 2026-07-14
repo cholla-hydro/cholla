@@ -191,7 +191,7 @@ inline void DeviceBuffer<T>::Alloc(size_t count, bool zero)
 {
   if (count != 0) {
     mCount = count;
-    GPU_Error_Check(cudaMalloc(&mPtr, count * sizeof(T)));  // NOLINT(bugprone-sizeof-expression)
+    GPU_Error_Check(cudaMalloc(&mPtr, count * sizeof(T)));               // NOLINT(bugprone-sizeof-expression)
     if (zero) GPU_Error_Check(cudaMemset(mPtr, 0, sizeof(T) * mCount));  // NOLINT(bugprone-sizeof-expression)
   }
 }

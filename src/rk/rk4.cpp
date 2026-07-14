@@ -1,9 +1,11 @@
 #include "rk4.h"
-#include "../utils/error_handling.h"
+
 #include <stdio.h>
 
 #include <cmath>
 #include <vector>
+
+#include "../utils/error_handling.h"
 
 // Initialize the RK integrator
 void RKIntegrator::InitializeRK(int ny_in)
@@ -60,15 +62,15 @@ void RKIntegrator::FreeMemory(void)
 // void RKIntegrator::rk4_ode( Real* (*dydx) (Real x, Real *y, int ny, void *params, int np), Real x, Real *y, Real
 // *h_this, Real *h_pass, void *params, int np, Real *yp, int ny, Real *error_pass)
 void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y, std::vector<Real> params), Real x,
-                            std::vector<Real> y, Real *h_this, Real *h_pass, std::vector<Real> params,
-                            std::vector<Real> &yp, Real *error_pass, int *recdepth)
+                           std::vector<Real> y, Real *h_this, Real *h_pass, std::vector<Real> params,
+                           std::vector<Real> &yp, Real *error_pass, int *recdepth)
 {
   Real Safety    = 0.9;
   Real error_tol = 1.0e-5;  // absolute error
   Real error;
   Real max_error = 0;
   Real error_factor;
-  Real h = *h_this;
+  Real h        = *h_this;
   int max_depth = 20;
 
   int ny = y.size();
@@ -78,9 +80,13 @@ void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y
   std::vector<Real> yy;
 
   for (int i = 1; i < nrk; i++) {
-    for (int k = 0; k < ny; k++) { yi[k] = y[k]; }
+    for (int k = 0; k < ny; k++) {
+      yi[k] = y[k];
+    }
     for (int j = 1; j < i; j++) {
-      for (int k = 0; k < ny; k++) { yi[k] += h * bij[i][j] * kij[j][k]; }
+      for (int k = 0; k < ny; k++) {
+        yi[k] += h * bij[i][j] * kij[j][k];
+      }
     }
     kij[i] = dydx(x + ai[i] * h, yi, params);
   }
@@ -114,8 +120,8 @@ void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y
 
     // redo step
     *recdepth += 1;
-    if(*recdepth >= max_depth) {
-      printf("RKIntegrator: procID %d: Max Recursion Depth Exceeded (%d)!",procID,max_depth);
+    if (*recdepth >= max_depth) {
+      printf("RKIntegrator: procID %d: Max Recursion Depth Exceeded (%d)!", procID, max_depth);
       chexit(0);
     }
     rk4_ode(dydx, x, y, h_this, h_pass, params, yp, error_pass, recdepth);
