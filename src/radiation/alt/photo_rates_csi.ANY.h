@@ -19,7 +19,7 @@ struct DEVICE_ALIGN_DECL PhotoRateTableStretchCSI {
 
     xMax = log(1 + tauMax / tauLow);
     xBin = xMax / (size - 2);
-    xInf = -0.5f * xBin;
+    xInf = -0.5F * xBin;
     xMin = -xBin;
   }
 

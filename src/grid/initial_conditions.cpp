@@ -2783,7 +2783,7 @@ void Grid3D::Iliev0(struct Parameters P)
 
 #ifdef RT
   #include "../radiation/alt/atomic_data.h"
-  #include "../radiation/alt/constant.h"
+  #include "../radiation/alt/rt_constants.h"
   #include "../radiation/alt/photo_rates_csi_gpu.h"
   #include "../radiation/alt/spectral_shape.h"
 #endif
@@ -2830,15 +2830,15 @@ void Grid3D::Iliev15(struct Parameters P, int test)
     //
     // normal solution
     spectralShape[xs->thresholds[Physics::AtomicData::CrossSection::IonizationHI].idx] =
-        5e48 / Constant::c / pow(LENGTH_UNIT, 2) / xs->dxi * 6.34 / 5.92;
+        5e48 / RTConstant::c / pow(LENGTH_UNIT, 2) / xs->dxi * 6.34 / 5.92;
   } else {
     SpectralShape::BlackBody(1.0e5, spectralShape);
     for (auto &s : spectralShape) {
-      s *= 5e48 / Constant::c / pow(LENGTH_UNIT, 2);
+      s *= 5e48 / RTConstant::c / pow(LENGTH_UNIT, 2);
     }
   }
 
-  Rad.photoRates->Update(0, spectralShape.data(), xs->dxi * Constant::c * 1.0e-24);
+  Rad.photoRates->Update(0, spectralShape.data(), xs->dxi * RTConstant::c * 1.0e-24);
 
   int i, j, k, id;
   for (k = 0; k < H.nz; k++) {
@@ -2933,10 +2933,10 @@ void Grid3D::Iliev6(struct Parameters P)
   std::vector<float> spectralShape(xs->nxi, 0);
   SpectralShape::BlackBody(1.0e5, spectralShape);
   for (auto &s : spectralShape) {
-    s *= 1.0e50 / Constant::c / pow(LENGTH_UNIT, 2);
+    s *= 1.0e50 / RTConstant::c / pow(LENGTH_UNIT, 2);
   }
 
-  Rad.photoRates->Update(0, spectralShape.data(), xs->dxi * Constant::c * 1.0e-24);
+  Rad.photoRates->Update(0, spectralShape.data(), xs->dxi * RTConstant::c * 1.0e-24);
 
   Real r2core = pow(0.0915 / (2 * 0.8) * H.xdglobal, 2);
 

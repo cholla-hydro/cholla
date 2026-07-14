@@ -1,10 +1,12 @@
 /*LICENSE*/
 
-#ifndef CONSTANT_H
-#define CONSTANT_H
+#ifndef RT_CONSTANT_H
+#define RT_CONSTANT_H
 
-namespace Constant
+// NOLINTBEGIN(readability-identifier-naming)
+namespace RTConstant
 {
+// NOLINTEND(readability-identifier-naming)
 //
 // Base units (CGS)
 //
@@ -41,6 +43,6 @@ constexpr double sigmaT = 6.6524e-25;  // Thompson cross-section
 
 constexpr double Msun = 1.32712440018e26 / G;
 constexpr double Lsun = 3.839e33;  // from Wikipedia
-};                                 // namespace Constant
+};                                 // namespace RTConstant
 
-#endif  // CONSTANT_H
+#endif  // RT_CONSTANT_H

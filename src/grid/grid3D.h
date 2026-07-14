@@ -834,7 +834,7 @@ class Grid3D
   // void Generate_Normal_Random_Field(Real *d_field, rng_parallel_state_t *state);
   void Generate_Normal_Random_Field(Real *d_field, struct Parameters *P, rng_parallel_state_t *state);
 
-  struct Cosmo_Potentials {
+  struct CosmoPotentials {
     /*! number of cosmo potential fields */
     int n_fields;
 

@@ -97,7 +97,7 @@ void SpectralShape::BlackBody(float tem, std::vector<float>& s)
   for (unsigned int i = 0; i < xs->nxi; i++) {
     float x = xs->hnu_K[i] / tem;
     if (x < 70) {
-      s[i] = pow(x, 3) / (exp(x) - 1);  // n_xi is per xi=log(nu), hence x^3
+      s[i] = std::pow(x, 3) / (std::exp(x) - 1);  // n_xi is per xi=log(nu), hence x^3
     }
   }
 

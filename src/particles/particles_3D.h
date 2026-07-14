@@ -47,7 +47,7 @@ class Particles3D
     #ifdef COSMOLOGY
   Real current_z;  // current redshift
   Real current_a;  // current scale factor
-  struct Cosmo_ICs {
+  struct CosmoICs {
     Real *phi_1;   // pointer to initial potential
     Real *phi_bc;  // pointer to baryon-cdm fluctuations
     Real D;        // growth function at initial redshift

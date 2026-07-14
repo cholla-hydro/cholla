@@ -16,7 +16,7 @@
   #include "RT_functions.h"
   #include "RT_functors.h"
   #include "alt/atomic_data.h"
-  #include "alt/constant.h"
+  #include "alt/rt_constants.h"
   #include "radiation.h"
   #ifdef MPI_CHOLLA
     #include "../mpi/mpi_routines.h"
@@ -213,7 +213,7 @@ void Rad3D::Calc_Absorption(Real* dev_scalar)
   dim3 dim1dBlock(TPB_RT, 1, 1);
 
   auto ufac =
-      1.0e-24 / Constant::mb * DENSITY_UNIT * LENGTH_UNIT;  // ufac is per length, hence multiplied by Units::Length.
+      1.0e-24 / RTConstant::mb * DENSITY_UNIT * LENGTH_UNIT;  // ufac is per length, hence multiplied by Units::Length.
   #ifdef COSMOLOGY
     #error "Not implemented.\n"
   #endif
