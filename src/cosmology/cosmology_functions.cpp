@@ -25,7 +25,7 @@ void Grid3D::Initialize_Cosmology(struct Parameters *P)
     H.Output_Now = true;
   }
 
-  if (strcmp(P->init, "Cosmological_ICs")) {
+  if (strcmp(P->init, "Cosmological_ICs") == 0) {
   #if defined(COSMOLOGY) && defined(FFT)
     // Here, we free the ICs fields
     Free_Cosmo_Potential_Memory();
