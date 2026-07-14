@@ -47,17 +47,16 @@ void Physics::AtomicData::Create()
 
   // Silence lint because range-based loops with c-style arrays can be confusing
 
-  // NONLINTBEGIN(modernize-loop-convert)
+  // NOLINTBEGIN(modernize-loop-convert)
   for (unsigned int k = 0; k < Physics::AtomicData::CrossSection::Num; k++) {
-    // NOLINTEND(modernize-loop-convert)
     gCrossSections.cs[k] = new float[gCrossSections.nxi];
   }
+  // NOLINTEND(modernize-loop-convert)
 
   CrossSectionBuilder(gCrossSections.nxi, gCrossSections.hnu_eV, gCrossSections.cs);
 
-  // NONLINTBEGIN(modernize-loop-convert)
+  // NOLINTBEGIN(modernize-loop-convert)
   for (unsigned int k = 0; k < Physics::AtomicData::CrossSection::Num; k++) {
-    // NOLINTEND(modernize-loop-convert)
     gCrossSections.thresholds[k].idx = -1;
     for (unsigned int i = 0; i < gCrossSections.nxi; i++) {
       if (gCrossSections.cs[k][i] > 0) {
@@ -70,6 +69,7 @@ void Physics::AtomicData::Create()
       }
     }
   }
+  // NOLINTEND(modernize-loop-convert)
 
   gCrossSections.csHIatHI =
       gCrossSections.cs[Physics::AtomicData::CrossSection::IonizationHI]
@@ -90,11 +90,11 @@ void Physics::AtomicData::Create()
       gCrossSections.cs[Physics::AtomicData::CrossSection::IonizationHeII]
                        [gCrossSections.thresholds[Physics::AtomicData::CrossSection::IonizationHeII].idx];
 
-  // NONLINTBEGIN(modernize-loop-convert)
+  // NOLINTBEGIN(modernize-loop-convert)
   for (unsigned int k = 0; k < 3 + Physics::AtomicData::CrossSection::Num; k++) {
-    // NOLINTEND(modernize-loop-convert)
     gAtomicDataOnGPU.dArrs[k].Alloc(sizeof(float) * gCrossSections.nxi);
   }
+  // NOLINTEND(modernize-loop-convert)
 
   GPU::HostBuffer<float> h;
   h.Alloc(gCrossSections.nxi);
@@ -105,12 +105,12 @@ void Physics::AtomicData::Create()
   memcpy(h.Ptr(), gCrossSections.hnu_eV, sizeof(float) * gCrossSections.nxi);
   h.BlockingTransferToDevice(gAtomicDataOnGPU.dArrs[2]);
 
-  // NONLINTBEGIN(modernize-loop-convert)
+  // NOLINTBEGIN(modernize-loop-convert)
   for (unsigned int k = 0; k < Physics::AtomicData::CrossSection::Num; k++) {
-    // NOLINTEND(modernize-loop-convert)
     memcpy(h.Ptr(), gCrossSections.cs[k], sizeof(float) * gCrossSections.nxi);
     h.BlockingTransferToDevice(gAtomicDataOnGPU.dArrs[3 + k]);
   }
+  // NOLINTEND(modernize-loop-convert)
   h.Free();
 
   GPU::HostBuffer<Physics::AtomicData::CrossSection> hxs(1);
@@ -120,11 +120,11 @@ void Physics::AtomicData::Create()
   hxs.Ptr()->hnu_K  = gAtomicDataOnGPU.dArrs[1];
   hxs.Ptr()->hnu_eV = gAtomicDataOnGPU.dArrs[2];
 
-  // NONLINTBEGIN(modernize-loop-convert)
+  // NOLINTBEGIN(modernize-loop-convert)
   for (unsigned int k = 0; k < Physics::AtomicData::CrossSection::Num; k++) {
-    // NOLINTEND(modernize-loop-convert)
     hxs.Ptr()->cs[k] = gAtomicDataOnGPU.dArrs[3 + k];
   }
+  // NOLINTEND(modernize-loop-convert)
 
   gAtomicDataOnGPU.dCrossSection.Alloc(1);
   hxs.BlockingTransferToDevice(gAtomicDataOnGPU.dCrossSection);
@@ -134,17 +134,17 @@ void Physics::AtomicData::Delete()
 {
   gAtomicDataOnGPU.dCrossSection.Free();
 
-  // NONLINTBEGIN(modernize-loop-convert)
+  // NOLINTBEGIN(modernize-loop-convert)
   for (unsigned int k = 0; k < 3 + Physics::AtomicData::CrossSection::Num; k++) {
-    // NOLINTEND(modernize-loop-convert)
     gAtomicDataOnGPU.dArrs[k].Free();
   }
+  // NOLINTEND(modernize-loop-convert)
 
-  // NONLINTBEGIN(modernize-loop-convert)
+  // NOLINTBEGIN(modernize-loop-convert)
   for (unsigned int k = 0; k < Physics::AtomicData::CrossSection::Num; k++) {
-    // NOLINTEND(modernize-loop-convert)
     delete[] gCrossSections.cs[k];
   }
+  // NOLINTEND(modernize-loop-convert)
 
   delete[] gCrossSections.xi;
   delete[] gCrossSections.hnu_K;
