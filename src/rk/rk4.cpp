@@ -1,5 +1,5 @@
 #include "rk4.h"
-
+#include "../utils/error_handling.h"
 #include <stdio.h>
 
 #include <cmath>
@@ -71,7 +71,7 @@ void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y
   Real max_error = 0;
   Real error_factor;
   Real h = *h_this;
-  int max_depth = 10;
+  int max_depth = 20;
 
   int ny = y.size();
 
@@ -136,6 +136,9 @@ void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y
     // step size cannot go down
     if (error_factor < 1.0) error_factor = 1.0;
     *h_pass = h * error_factor;
+
+    // reset recdepth
+    *recdepth = 0;
   }
 }
 
