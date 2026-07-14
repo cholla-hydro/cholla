@@ -5,8 +5,6 @@
 #include <cmath>
 #include <vector>
 
-using namespace std;
-
 // Initialize the RK integrator
 void RKIntegrator::InitializeRK(int ny_in)
 {
