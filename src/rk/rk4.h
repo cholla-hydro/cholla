@@ -36,9 +36,9 @@ class RKIntegrator
   void FreeMemory(void);
 
   /*! \fn rk4_ode(std::vector<Real> (dydx)(Real x, std::vector<Real> y, std::vector<Real> params), Real x,
-   * std::vector<Real> y, Real *h, Real *hpass, std::vector<Real> params, std::vector<Real> &yp, Real *error) \brief
+   * std::vector<Real> y, Real *h, Real *hpass, std::vector<Real> params, std::vector<Real> &yp, Real *error, int *recdepth) \brief
    * Evolve the ODE system using the RK method */
   void rk4_ode(std::vector<Real>(dydx)(Real x, std::vector<Real> y, std::vector<Real> params), Real x,
-               std::vector<Real> y, Real *h, Real *hpass, std::vector<Real> params, std::vector<Real> &yp, Real *error);
+               std::vector<Real> y, Real *h, Real *hpass, std::vector<Real> params, std::vector<Real> &yp, Real *error, int *recdepth);
 };
 #endif  // RK_H

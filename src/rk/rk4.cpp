@@ -63,7 +63,7 @@ void RKIntegrator::FreeMemory(void)
 // *h_this, Real *h_pass, void *params, int np, Real *yp, int ny, Real *error_pass)
 void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y, std::vector<Real> params), Real x,
                             std::vector<Real> y, Real *h_this, Real *h_pass, std::vector<Real> params,
-                            std::vector<Real> &yp, Real *error_pass)
+                            std::vector<Real> &yp, Real *error_pass, int *recdepth)
 {
   Real Safety    = 0.9;
   Real error_tol = 1.0e-5;  // absolute error
@@ -71,6 +71,7 @@ void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y
   Real max_error = 0;
   Real error_factor;
   Real h = *h_this;
+  int max_depth = 10;
 
   int ny = y.size();
 
@@ -114,7 +115,12 @@ void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y
     *h_this = h * error_factor;
 
     // redo step
-    rk4_ode(dydx, x, y, h_this, h_pass, params, yp, error_pass);
+    *recdepth += 1;
+    if(*recdepth >= max_depth) {
+      printf("RKIntegrator: procID %d: Max Recursion Depth Exceeded (%d)!",procID,max_depth);
+      chexit(0);
+    }
+    rk4_ode(dydx, x, y, h_this, h_pass, params, yp, error_pass, recdepth);
 
   } else {
     // increase h

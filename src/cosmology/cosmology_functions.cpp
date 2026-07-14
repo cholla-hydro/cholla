@@ -242,13 +242,15 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
   Real dt_max = 1.0e-2 * tmax;
 
   Real a_max = 1.0;
+  int recdepth;
   while ((t < tmax) & (y_n[0] < a_max)) {
     if (t + dt > tmax) {
       dt = tmax - t;
     }
 
     // evolve ODE by one timestep
-    RK.rk4_ode(growth_factor_system, t, y_n, &dt, &dt_new, params, yp, &error);
+    recdepth = 0;
+    RK.rk4_ode(growth_factor_system, t, y_n, &dt, &dt_new, params, yp, &error, &recdepth);
 
     // iterate time
     t += dt;
