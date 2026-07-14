@@ -26,7 +26,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
   // First, if we are not setting cosmological ICs, just
   // return
-  if (strcmp(P->init, "Cosmological_ICs")) {
+  if (strcmp(P->init, "Cosmological_ICs") != 0) {
     return;
   }
 
