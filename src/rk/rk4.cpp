@@ -59,19 +59,19 @@ void RKIntegrator::FreeMemory(void)
 /*! \fn void rk4_ode(Real* (*dydx)(Real x, Real *y, int iy, void *params, int np), Real x, Real *y, Real *h, Real
  * *hpass, void *params, int np, Real *yp, int iy, Real *error) \brief Evolve the ODE system one time step using the RK
  * method */
-// void RKIntegrator::rk4_ode( Real* (*dydx) (Real x, Real *y, int ny, void *params, int np), Real x, Real *y, Real
-// *h_this, Real *h_pass, void *params, int np, Real *yp, int ny, Real *error_pass)
 void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y, std::vector<Real> params), Real x,
                            std::vector<Real> y, Real *h_this, Real *h_pass, std::vector<Real> params,
-                           std::vector<Real> &yp, Real *error_pass, int *recdepth)
+                           std::vector<Real> &yp, Real *error_pass)
 {
   Real Safety    = 0.9;
   Real error_tol = 1.0e-5;  // absolute error
   Real error;
   Real max_error = 0;
   Real error_factor;
-  Real h        = *h_this;
-  int max_depth = 20;
+  Real h;
+  int max_iters = 20;
+  int iters     = 0;
+  bool flag     = true;
 
   int ny = y.size();
 
@@ -79,71 +79,74 @@ void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y
 
   std::vector<Real> yy;
 
-  for (int i = 1; i < nrk; i++) {
-    for (int k = 0; k < ny; k++) {
-      yi[k] = y[k];
-    }
-    for (int j = 1; j < i; j++) {
+  while(flag) {
+
+    // set the current step
+    h = *h_this
+
+    for (int i = 1; i < nrk; i++) {
       for (int k = 0; k < ny; k++) {
-        yi[k] += h * bij[i][j] * kij[j][k];
+        yi[k] = y[k];
+      }
+      for (int j = 1; j < i; j++) {
+        for (int k = 0; k < ny; k++) {
+          yi[k] += h * bij[i][j] * kij[j][k];
+        }
+      }
+      kij[i] = dydx(x + ai[i] * h, yi, params);
+    }
+
+    for (int k = 0; k < ny; k++) {
+      yp[k]     = y[k];
+      yprime[k] = y[k];
+      for (int i = 1; i < nrk; i++) {
+        yp[k] += h * ci[i] * kij[i][k];
+        yprime[k] += h * csi[i] * kij[i][k];
       }
     }
-    kij[i] = dydx(x + ai[i] * h, yi, params);
-  }
 
-  for (int k = 0; k < ny; k++) {
-    yp[k]     = y[k];
-    yprime[k] = y[k];
-    for (int i = 1; i < nrk; i++) {
-      yp[k] += h * ci[i] * kij[i][k];
-      yprime[k] += h * csi[i] * kij[i][k];
-    }
-  }
+    for (int k = 0; k < ny; k++) {
+      error = (yp[k] - yprime[k]);
 
-  for (int k = 0; k < ny; k++) {
-    error = (yp[k] - yprime[k]);
+      if ((fabs(y[k]) > 0) & (fabs(yp[k] - y[k]) / fabs(y[k]) > 0.01)) error = 0.1;
 
-    if ((fabs(y[k]) > 0) & (fabs(yp[k] - y[k]) / fabs(y[k]) > 0.01)) error = 0.1;
+      if (fabs(error) > fabs(max_error)) max_error = error;
 
-    if (fabs(error) > fabs(max_error)) max_error = error;
-
-    *error_pass = max_error;
-  }
-
-  if (fabs(max_error) > error_tol) {
-    // decrease h
-    error_factor = Safety * pow(fabs(max_error / error_tol), -0.25);
-    if (error_factor < 0.1) error_factor = 0.1;
-
-    *h_pass = h * error_factor;
-    *h_this = h * error_factor;
-
-    // redo step
-    *recdepth += 1;
-    if (*recdepth >= max_depth) {
-      printf("RKIntegrator: procID %d: Max Recursion Depth Exceeded (%d)!", procID, max_depth);
-      chexit(0);
-    } else {
-      rk4_ode(dydx, x, y, h_this, h_pass, params, yp, error_pass, recdepth);
+      *error_pass = max_error;
     }
 
-  } else {
-    // increase h
-    if (fabs(max_error) > 0) {
-      error_factor = Safety * pow(fabs(max_error / error_tol), -0.20);
-    } else {
-      error_factor = 5.0;
+    if (fabs(max_error) > error_tol) {
+      // decrease h
+      error_factor = Safety * pow(fabs(max_error / error_tol), -0.25);
+      if (error_factor < 0.1) error_factor = 0.1;
+
+      *h_pass = h * error_factor;
+      *h_this = h * error_factor;
+
+      // limit the number of iterations
+      iters++; // increment the number of iterations
+      if (iters >= max_iters) {
+        printf("RKIntegrator: procID %d: Max Number of Iterations Exceeded (%d)!", procID, max_iters);
+        chexit(0);
+      }
+
+    } else { 
+      flag = false;
+
+      // increase h
+      if (fabs(max_error) > 0) {
+        error_factor = Safety * pow(fabs(max_error / error_tol), -0.20);
+      } else {
+        error_factor = 5.0;
+      }
+
+      // limit to a factor of 5
+      if (error_factor > 5.0) error_factor = 5.0;
+
+      // step size cannot go down
+      if (error_factor < 1.0) error_factor = 1.0;
+      *h_pass = h * error_factor;
     }
-
-    // limit to a factor of 5
-    if (error_factor > 5.0) error_factor = 5.0;
-
-    // step size cannot go down
-    if (error_factor < 1.0) error_factor = 1.0;
-    *h_pass = h * error_factor;
-
-    // reset recdepth
-    *recdepth = 0;
   }
 }
 
