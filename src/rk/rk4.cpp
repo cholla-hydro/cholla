@@ -82,7 +82,7 @@ void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y
   while(flag) {
 
     // set the current step
-    h = *h_this
+    h = *h_this;
 
     for (int i = 1; i < nrk; i++) {
       for (int k = 0; k < ny; k++) {
