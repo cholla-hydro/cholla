@@ -18,7 +18,7 @@ namespace rt_physics
 {
 namespace rt_atomic_data
 {
-  
+
 constexpr double TionHI   = 157807.0;  // ionization threshold in K
 constexpr double TionHeI  = 285335.0;  // ionization threshold in K
 constexpr double TionHeII = 631515.0;  // ionization threshold in K

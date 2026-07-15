@@ -173,7 +173,8 @@ inline void HostBuffer<T>::BlockingTransferToDevice(DeviceBuffer<T>& dest, size_
                                                     const std::initializer_list<size_t>& offsets) const
 {
   if (count == 0) count = mCount;
-  cudaMemcpy(dest.Ptr() + offsets.begin()[1], mPtr + offsets.begin()[0], count * sizeof(T), cudaMemcpyHostToDevice); // NOLINT(bugprone-sizeof-expression)
+  cudaMemcpy(dest.Ptr() + offsets.begin()[1], mPtr + offsets.begin()[0], count * sizeof(T),
+             cudaMemcpyHostToDevice);  // NOLINT(bugprone-sizeof-expression)
 }
 
 template <typename T>
@@ -222,6 +223,6 @@ inline void TransferBuffers<T>::Free()
   this->hBuffer.Free();
   this->dBuffer.Free();
 }
-};  // namespace GPU
+};  // namespace rt_gpu
 
 #endif  // DEVICES_GPU_POINTER_H

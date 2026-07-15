@@ -173,11 +173,13 @@ void CrossSectionBuilder(unsigned int num, float* hnu_eV, float** cs)
     cs[rt_physics::rt_atomic_data::CrossSection::IonizationHI][i] =
         (E < rt_physics::rt_atomic_data::Ry_eV ? 0 : csfit(E, 5.475e-14, 4.298e-01, 0.0, 0.0, 0.0, 3.288e+01, 2.963));
     cs[rt_physics::rt_atomic_data::CrossSection::IonizationHeI][i] =
-        (E < rt_physics::rt_atomic_data::Ry_eV * rt_physics::rt_atomic_data::TionHeI / rt_physics::rt_atomic_data::TionHI
+        (E < rt_physics::rt_atomic_data::Ry_eV * rt_physics::rt_atomic_data::TionHeI /
+                     rt_physics::rt_atomic_data::TionHI
              ? 0
              : csfit(E, 9.492e-16, 1.361e+01, 4.434e-01, 2.136, 2.039, 1.469, 3.188));
     cs[rt_physics::rt_atomic_data::CrossSection::IonizationHeII][i] =
-        (E < rt_physics::rt_atomic_data::Ry_eV * rt_physics::rt_atomic_data::TionHeII / rt_physics::rt_atomic_data::TionHI
+        (E < rt_physics::rt_atomic_data::Ry_eV * rt_physics::rt_atomic_data::TionHeII /
+                     rt_physics::rt_atomic_data::TionHI
              ? 0
              : csfit(E, 1.369e-14, 1.720, 0.0, 0.0, 0.0, 3.288e+01, 2.963));
     cs[rt_physics::rt_atomic_data::CrossSection::IonizationCVI][i] =

@@ -79,8 +79,7 @@ void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y
 
   std::vector<Real> yy;
 
-  while(flag) {
-
+  while (flag) {
     // set the current step
     h = *h_this;
 
@@ -124,13 +123,13 @@ void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y
       *h_this = h * error_factor;
 
       // limit the number of iterations
-      iters++; // increment the number of iterations
+      iters++;  // increment the number of iterations
       if (iters >= max_iters) {
         printf("RKIntegrator: procID %d: Max Number of Iterations Exceeded (%d)!", procID, max_iters);
         chexit(0);
       }
 
-    } else { 
+    } else {
       flag = false;
 
       // increase h
