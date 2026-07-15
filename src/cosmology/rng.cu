@@ -86,8 +86,8 @@ __global__ void RNG_Init_TEST(int procID, int nx_local, int ny_local, int nz_loc
   cuda_utilities::compute3DIndices(threadId, nx_local, ny_local, xid, yid, zid);
 
   // only real cells participate
-  if ((xid >= 0) and (xid < nx_local) and (yid >= 0) and (yid < ny_local) and (zid >= 0) &
-      (zid < nz_local)) {  // all cells are real
+  if ((xid >= 0) and (xid < nx_local) and (yid >= 0) and (yid < ny_local) and
+      (zid >= 0) & (zid < nz_local)) {  // all cells are real
 
     // create a global real-cell index
     uint64_t global_idx = (xid + nx_local_start);
