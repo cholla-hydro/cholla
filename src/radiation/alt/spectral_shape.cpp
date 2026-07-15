@@ -91,7 +91,8 @@ void SpectralShape::Quasar(std::vector<float>& s)
 //
 void SpectralShape::BlackBody(float tem, std::vector<float>& s)
 {
-  auto xs = rt_physics::rt_atomic_data::CrossSections();
+
+const auto *xs = rt_physics::rt_atomic_data::CrossSections();
 
   s.assign(xs->nxi, 0);
   for (unsigned int i = 0; i < xs->nxi; i++) {
