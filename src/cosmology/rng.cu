@@ -31,9 +31,7 @@ __global__ void RNG_Init_GPU(int nx_local, int ny_local, int nz_local, int nx_lo
   uint64_t xid = threadId - zid * nx_local * ny_local - yid * nx_local;
 
   // only real cells participate
-  // if ((xid >= 0) & (xid < nx_local) & (yid >= 0) & (yid < ny_local) & (zid >= 0) &
-  //    (zid < nz_local)) {  // all cells are real
-  if ((xid < nx_local) & (yid < ny_local) & (zid < nz_local)) {  // all cells are real
+  if ((xid < nx_local) and (yid < ny_local) and (zid < nz_local)) {  // all cells are real
 
     // create a global real-cell index
     // uint64_t global_idx = (xid + nx_local_start);
@@ -88,7 +86,7 @@ __global__ void RNG_Init_TEST(int procID, int nx_local, int ny_local, int nz_loc
   cuda_utilities::compute3DIndices(threadId, nx_local, ny_local, xid, yid, zid);
 
   // only real cells participate
-  if ((xid >= 0) & (xid < nx_local) & (yid >= 0) & (yid < ny_local) & (zid >= 0) &
+  if ((xid >= 0) and (xid < nx_local) and (yid >= 0) and (yid < ny_local) and (zid >= 0) &
       (zid < nz_local)) {  // all cells are real
 
     // create a global real-cell index
@@ -133,9 +131,7 @@ __global__ void RNG_Normal_Field_GPU(Real *d_field, int nx_local, int ny_local, 
   uint64_t xid = threadId - zid * nx_local * ny_local - yid * nx_local;
 
   // only real cells participate
-  // if ((xid >= 0) & (xid < nx_local) & (yid >= 0) & (yid < ny_local) & (zid >= 0) &
-  //    (zid < nz_local)) {  // all cells are real
-  if ((xid < nx_local) & (yid < ny_local) & (zid < nz_local)) {  // all cells are real
+  if ((xid < nx_local) and (yid < ny_local) and (zid < nz_local)) {  // all cells are real
 
     // create a global real-cell index
     uint64_t global_idx = (xid + nx_local_start);
@@ -207,7 +203,7 @@ __global__ void RNG_Normal_Field_GPU_BAK(Real *d_field, int nx, int ny, int nz, 
   cuda_utilities::compute3DIndices(threadId, nx, ny, xid, yid, zid);
 
   // only real cells participate
-  if ((xid >= 0) & (xid < nx) & (yid >= 0) & (yid < ny) & (zid >= 0) & (zid < nz)) {  // all cells are real
+  if ((xid >= 0) and (xid < nx) and (yid >= 0) and (yid < ny) and (zid >= 0) and (zid < nz)) {  // all cells are real
     rng_parallel_state_t localState = states[threadId];
 
     // pull a gaussian random variate for each cell
