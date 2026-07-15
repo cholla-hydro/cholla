@@ -2821,7 +2821,7 @@ void Grid3D::Iliev15(struct Parameters P, int test)
   #endif  // RT_OTVET
   Rad.rtFields.rs = (Real *)malloc(H.n_cells * sizeof(Real));
 
-  auto xs = Physics::AtomicData::CrossSections();
+  auto xs = rt_physics::rt_atomic_data::CrossSections();
   std::vector<float> spectralShape(xs->nxi, 0);
   if (test == 1) {
     //
@@ -2829,7 +2829,7 @@ void Grid3D::Iliev15(struct Parameters P, int test)
     //  Ry*exp(0.5*xiStep) = 1.025*Ry, where the cross section is 5.92e-18, not 6.34e-18.
     //
     // normal solution
-    spectralShape[xs->thresholds[Physics::AtomicData::CrossSection::IonizationHI].idx] =
+    spectralShape[xs->thresholds[rt_physics::rt_atomic_data::CrossSection::IonizationHI].idx] =
         5e48 / RTConstant::c / pow(LENGTH_UNIT, 2) / xs->dxi * 6.34 / 5.92;
   } else {
     SpectralShape::BlackBody(1.0e5, spectralShape);
@@ -2929,7 +2929,7 @@ void Grid3D::Iliev6(struct Parameters P)
   #endif  // RT_OTVET
   Rad.rtFields.rs = (Real *)malloc(H.n_cells * sizeof(Real));
 
-  auto xs = Physics::AtomicData::CrossSections();
+  auto xs = rt_physics::rt_atomic_data::CrossSections();
   std::vector<float> spectralShape(xs->nxi, 0);
   SpectralShape::BlackBody(1.0e5, spectralShape);
   for (auto &s : spectralShape) {

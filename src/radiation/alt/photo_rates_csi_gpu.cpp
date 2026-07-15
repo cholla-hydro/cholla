@@ -11,17 +11,17 @@
 template <typename value_t, unsigned int N, char Mode>
 class StaticTableGPU;
 
-namespace PhotoRatesCSI
+namespace rt_photo_rates_csi
 {
 StaticTableGPU<float, 3, 'x'>* CreateTable(float* data, unsigned int numRates, const PhotoRateTableStretchCSI& stretch);
 void DeleteTable(StaticTableGPU<float, 3, 'x'>* d);
 
 void UpdateTable(unsigned int size, unsigned int numRates, const StaticTableGPU<float, 3, 'x'>* dTable,
                  const PhotoRateTableStretchCSI* dStretch, const float* dSpectralShape,
-                 const Physics::AtomicData::CrossSection* dXS, float norm, int deb = 0);
-};  // namespace PhotoRatesCSI
+                 const rt_physics::rt_atomic_data::CrossSection* dXS, float norm, int deb = 0);
+};  // namespace rt_photo_rates_csi
 
-PhotoRatesCSI::TableWrapperGPU::TableWrapperGPU(unsigned int numRadsPerFreq_, unsigned int numRates_)
+rt_photo_rates_csi::TableWrapperGPU::TableWrapperGPU(unsigned int numRadsPerFreq_, unsigned int numRates_)
 {
   numRadsPerFreq = numRadsPerFreq_;
   numRates       = numRates_;
@@ -40,7 +40,7 @@ PhotoRatesCSI::TableWrapperGPU::TableWrapperGPU(unsigned int numRadsPerFreq_, un
 
   bTables.Alloc(numRadsPerFreq);
   for (unsigned int rad = 0; rad < numRadsPerFreq; rad++) {
-    bSpectralShapes[rad].Alloc(Physics::AtomicData::CrossSections()->nxi);
+    bSpectralShapes[rad].Alloc(rt_physics::rt_atomic_data::CrossSections()->nxi);
 
     dTableData[rad].Alloc(numRates * stretch.size * stretch.size * stretch.size);
     bTables[rad] = CreateTable(dTableData[rad].Ptr(), numRates, stretch);
@@ -52,19 +52,19 @@ PhotoRatesCSI::TableWrapperGPU::TableWrapperGPU(unsigned int numRadsPerFreq_, un
   bStretch.BlockingTransferToDevice();
 }
 
-PhotoRatesCSI::TableWrapperGPU::~TableWrapperGPU()
+rt_photo_rates_csi::TableWrapperGPU::~TableWrapperGPU()
 {
   for (unsigned int rad = 0; rad < numRadsPerFreq; rad++) {
     DeleteTable(bTables[rad]);
   }
 }
 
-void PhotoRatesCSI::TableWrapperGPU::Update(unsigned int rad, const float* spectralShape, float norm)
+void rt_photo_rates_csi::TableWrapperGPU::Update(unsigned int rad, const float* spectralShape, float norm)
 {
   memcpy(bSpectralShapes[rad].HostPtr(), spectralShape, sizeof(float) * bSpectralShapes[rad].Count());
 
   bSpectralShapes[rad].BlockingTransferToDevice();
   UpdateTable(bStretch.HostPtr()->size, numRates, bTables[rad], bStretch.DevicePtr(), bSpectralShapes[rad].DevicePtr(),
-              Physics::AtomicData::CrossSectionsGPU(), norm);
+              rt_physics::rt_atomic_data::CrossSectionsGPU(), norm);
   cudaStreamSynchronize(0);
 }

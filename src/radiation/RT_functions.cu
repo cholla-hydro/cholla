@@ -218,12 +218,12 @@ void Rad3D::Calc_Absorption(Real* dev_scalar)
     #error "Not implemented.\n"
   #endif
   CrossSectionInCU xs;
-  xs.HIatHI     = Physics::AtomicData::CrossSections()->csHIatHI * ufac;
-  xs.HIatHeI    = Physics::AtomicData::CrossSections()->csHIatHeI * ufac;
-  xs.HIatHeII   = Physics::AtomicData::CrossSections()->csHIatHeII * ufac;
-  xs.HeIatHeI   = Physics::AtomicData::CrossSections()->csHeIatHeI * ufac;
-  xs.HeIatHeII  = Physics::AtomicData::CrossSections()->csHeIatHeII * ufac;
-  xs.HeIIatHeII = Physics::AtomicData::CrossSections()->csHeIIatHeII * ufac;
+  xs.HIatHI     = rt_physics::rt_atomic_data::CrossSections()->csHIatHI * ufac;
+  xs.HIatHeI    = rt_physics::rt_atomic_data::CrossSections()->csHIatHeI * ufac;
+  xs.HIatHeII   = rt_physics::rt_atomic_data::CrossSections()->csHIatHeII * ufac;
+  xs.HeIatHeI   = rt_physics::rt_atomic_data::CrossSections()->csHeIatHeI * ufac;
+  xs.HeIatHeII  = rt_physics::rt_atomic_data::CrossSections()->csHeIatHeII * ufac;
+  xs.HeIIatHeII = rt_physics::rt_atomic_data::CrossSections()->csHeIIatHeII * ufac;
 
   // Launch the kernel
   hipLaunchKernelGGL(Calc_Absorption_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.dx, xs,

@@ -19,15 +19,15 @@
 
 Rad3D::Rad3D(const Header& grid_) : grid(grid_)
 {
-  Physics::AtomicData::Create();
-  /// photoRates = new PhotoRatesCSI::TableWrapperGPU(2,6);
-  photoRates = new PhotoRatesCSI::TableWrapperGPU(1, 6);
+  rt_physics::rt_atomic_data::Create();
+  /// photoRates = new rt_photo_rates_csi::TableWrapperGPU(2,6);
+  photoRates = new rt_photo_rates_csi::TableWrapperGPU(1, 6);
 }
 
 Rad3D::~Rad3D()
 {
   delete photoRates;
-  Physics::AtomicData::Delete();
+  rt_physics::rt_atomic_data::Delete();
 }
 
 void Rad3D::Initialize_Start(const Parameters& params)

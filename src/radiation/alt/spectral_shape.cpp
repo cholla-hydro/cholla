@@ -8,10 +8,10 @@
 
 void SpectralShape::Normalize(std::vector<float>& s)
 {
-  const auto* xs = Physics::AtomicData::CrossSections();
+  const auto* xs = rt_physics::rt_atomic_data::CrossSections();
 
   float w = 0;
-  for (unsigned int i = xs->thresholds[Physics::AtomicData::CrossSection::IonizationHI].idx; i < xs->nxi; i++) {
+  for (unsigned int i = xs->thresholds[rt_physics::rt_atomic_data::CrossSection::IonizationHI].idx; i < xs->nxi; i++) {
     w += s[i];
   }
   w *= xs->dxi;
@@ -28,11 +28,11 @@ void SpectralShape::Normalize(std::vector<float>& s)
 //
 void SpectralShape::PopII(std::vector<float>& s)
 {
-  const auto* xs = Physics::AtomicData::CrossSections();
+  const auto* xs = rt_physics::rt_atomic_data::CrossSections();
 
   s.assign(xs->nxi, 0);
   for (unsigned int i = 0; i < xs->nxi; i++) {
-    float e = xs->hnu_eV[i] / Physics::AtomicData::Ry_eV;
+    float e = xs->hnu_eV[i] / rt_physics::rt_atomic_data::Ry_eV;
 
     if (e < 1) {
       s[i] = 5.5;
@@ -50,11 +50,11 @@ void SpectralShape::PopII(std::vector<float>& s)
 
 void SpectralShape::PopIII(std::vector<float>& s)
 {
-  const auto* xs = Physics::AtomicData::CrossSections();
+  const auto* xs = rt_physics::rt_atomic_data::CrossSections();
 
   s.assign(xs->nxi, 0);
   for (unsigned int i = 0; i < xs->nxi; i++) {
-    float e = xs->hnu_eV[i] / Physics::AtomicData::Ry_eV;
+    float e = xs->hnu_eV[i] / rt_physics::rt_atomic_data::Ry_eV;
 
     if (e < 1) {
       s[i] = 2.5 * pow(e, 1.4);
@@ -74,7 +74,7 @@ void SpectralShape::PopIII(std::vector<float>& s)
 //
 void SpectralShape::Quasar(std::vector<float>& s)
 {
-  const auto* xs = Physics::AtomicData::CrossSections();
+  const auto* xs = rt_physics::rt_atomic_data::CrossSections();
 
   s.assign(xs->nxi, 0);
   for (unsigned int i = 0; i < xs->nxi; i++) {
@@ -91,7 +91,7 @@ void SpectralShape::Quasar(std::vector<float>& s)
 //
 void SpectralShape::BlackBody(float tem, std::vector<float>& s)
 {
-  auto xs = Physics::AtomicData::CrossSections();
+  auto xs = rt_physics::rt_atomic_data::CrossSections();
 
   s.assign(xs->nxi, 0);
   for (unsigned int i = 0; i < xs->nxi; i++) {

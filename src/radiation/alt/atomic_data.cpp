@@ -11,24 +11,24 @@
 namespace
 {
 struct AtomicDataOnGPU {
-  GPU::DeviceBuffer<Physics::AtomicData::CrossSection> dCrossSection;
-  GPU::DeviceBuffer<float> dArrs[Physics::AtomicData::CrossSection::Num + 3];
+  rt_gpu::DeviceBuffer<rt_physics::rt_atomic_data::CrossSection> dCrossSection;
+  rt_gpu::DeviceBuffer<float> dArrs[rt_physics::rt_atomic_data::CrossSection::Num + 3];
 };
 
 void CrossSectionBuilder(unsigned int num, float* hnu, float** cs);
 
-Physics::AtomicData::CrossSection gCrossSections;
+rt_physics::rt_atomic_data::CrossSection gCrossSections;
 AtomicDataOnGPU gAtomicDataOnGPU;
 };  // namespace
 
-const Physics::AtomicData::CrossSection* Physics::AtomicData::CrossSections() { return &gCrossSections; }
+const rt_physics::rt_atomic_data::CrossSection* rt_physics::rt_atomic_data::CrossSections() { return &gCrossSections; }
 
-const Physics::AtomicData::CrossSection* Physics::AtomicData::CrossSectionsGPU()
+const rt_physics::rt_atomic_data::CrossSection* rt_physics::rt_atomic_data::CrossSectionsGPU()
 {
   return gAtomicDataOnGPU.dCrossSection;
 }
 
-void Physics::AtomicData::Create()
+void rt_physics::rt_atomic_data::Create()
 {
   gCrossSections.nxi   = 300;
   gCrossSections.xiMin = -1;
@@ -41,14 +41,14 @@ void Physics::AtomicData::Create()
 
   for (unsigned int i = 0; i < gCrossSections.nxi; i++) {
     gCrossSections.xi[i]     = gCrossSections.xiMin + gCrossSections.dxi * (i + 0.5F);
-    gCrossSections.hnu_K[i]  = Physics::AtomicData::TionHI * std::exp(gCrossSections.xi[i]);
-    gCrossSections.hnu_eV[i] = Physics::AtomicData::Ry_eV * std::exp(gCrossSections.xi[i]);
+    gCrossSections.hnu_K[i]  = rt_physics::rt_atomic_data::TionHI * std::exp(gCrossSections.xi[i]);
+    gCrossSections.hnu_eV[i] = rt_physics::rt_atomic_data::Ry_eV * std::exp(gCrossSections.xi[i]);
   }
 
   // Silence lint because range-based loops with c-style arrays can be confusing
 
   // NOLINTBEGIN(modernize-loop-convert)
-  for (unsigned int k = 0; k < Physics::AtomicData::CrossSection::Num; k++) {
+  for (unsigned int k = 0; k < rt_physics::rt_atomic_data::CrossSection::Num; k++) {
     gCrossSections.cs[k] = new float[gCrossSections.nxi];
   }
   // NOLINTEND(modernize-loop-convert)
@@ -56,7 +56,7 @@ void Physics::AtomicData::Create()
   CrossSectionBuilder(gCrossSections.nxi, gCrossSections.hnu_eV, gCrossSections.cs);
 
   // NOLINTBEGIN(modernize-loop-convert)
-  for (unsigned int k = 0; k < Physics::AtomicData::CrossSection::Num; k++) {
+  for (unsigned int k = 0; k < rt_physics::rt_atomic_data::CrossSection::Num; k++) {
     gCrossSections.thresholds[k].idx = -1;
     for (unsigned int i = 0; i < gCrossSections.nxi; i++) {
       if (gCrossSections.cs[k][i] > 0) {
@@ -72,31 +72,31 @@ void Physics::AtomicData::Create()
   // NOLINTEND(modernize-loop-convert)
 
   gCrossSections.csHIatHI =
-      gCrossSections.cs[Physics::AtomicData::CrossSection::IonizationHI]
-                       [gCrossSections.thresholds[Physics::AtomicData::CrossSection::IonizationHI].idx];
+      gCrossSections.cs[rt_physics::rt_atomic_data::CrossSection::IonizationHI]
+                       [gCrossSections.thresholds[rt_physics::rt_atomic_data::CrossSection::IonizationHI].idx];
   gCrossSections.csHIatHeI =
-      gCrossSections.cs[Physics::AtomicData::CrossSection::IonizationHI]
-                       [gCrossSections.thresholds[Physics::AtomicData::CrossSection::IonizationHeI].idx];
+      gCrossSections.cs[rt_physics::rt_atomic_data::CrossSection::IonizationHI]
+                       [gCrossSections.thresholds[rt_physics].idx];
   gCrossSections.csHIatHeII =
-      gCrossSections.cs[Physics::AtomicData::CrossSection::IonizationHI]
-                       [gCrossSections.thresholds[Physics::AtomicData::CrossSection::IonizationHeII].idx];
+      gCrossSections.cs[rt_physics::rt_atomic_data::CrossSection::IonizationHI]
+                       [gCrossSections.thresholds[rt_physics::rt_atomic_data::CrossSection::IonizationHeII].idx];
   gCrossSections.csHeIatHeI =
-      gCrossSections.cs[Physics::AtomicData::CrossSection::IonizationHeI]
-                       [gCrossSections.thresholds[Physics::AtomicData::CrossSection::IonizationHeI].idx];
+      gCrossSections.cs[rt_physics::rt_atomic_data::CrossSection::IonizationHeI]
+                       [gCrossSections.thresholds[rt_physics::rt_atomic_data::CrossSection::IonizationHeI].idx];
   gCrossSections.csHeIatHeII =
-      gCrossSections.cs[Physics::AtomicData::CrossSection::IonizationHeI]
-                       [gCrossSections.thresholds[Physics::AtomicData::CrossSection::IonizationHeII].idx];
+      gCrossSections.cs[rt_physics::rt_atomic_data::CrossSection::IonizationHeI]
+                       [gCrossSections.thresholds[rt_physics::rt_atomic_data::CrossSection::IonizationHeII].idx];
   gCrossSections.csHeIIatHeII =
-      gCrossSections.cs[Physics::AtomicData::CrossSection::IonizationHeII]
-                       [gCrossSections.thresholds[Physics::AtomicData::CrossSection::IonizationHeII].idx];
+      gCrossSections.cs[rt_physics::rt_atomic_data::CrossSection::IonizationHeII]
+                       [gCrossSections.thresholds[rt_physics::rt_atomic_data::CrossSection::IonizationHeII].idx];
 
   // NOLINTBEGIN(modernize-loop-convert)
-  for (unsigned int k = 0; k < 3 + Physics::AtomicData::CrossSection::Num; k++) {
+  for (unsigned int k = 0; k < 3 + rt_physics::rt_atomic_data::CrossSection::Num; k++) {
     gAtomicDataOnGPU.dArrs[k].Alloc(sizeof(float) * gCrossSections.nxi);
   }
   // NOLINTEND(modernize-loop-convert)
 
-  GPU::HostBuffer<float> h;
+  rt_gpu::HostBuffer<float> h;
   h.Alloc(gCrossSections.nxi);
   memcpy(h.Ptr(), gCrossSections.xi, sizeof(float) * gCrossSections.nxi);
   h.BlockingTransferToDevice(gAtomicDataOnGPU.dArrs[0]);
@@ -106,14 +106,14 @@ void Physics::AtomicData::Create()
   h.BlockingTransferToDevice(gAtomicDataOnGPU.dArrs[2]);
 
   // NOLINTBEGIN(modernize-loop-convert)
-  for (unsigned int k = 0; k < Physics::AtomicData::CrossSection::Num; k++) {
+  for (unsigned int k = 0; k < rt_physics::rt_atomic_data::CrossSection::Num; k++) {
     memcpy(h.Ptr(), gCrossSections.cs[k], sizeof(float) * gCrossSections.nxi);
     h.BlockingTransferToDevice(gAtomicDataOnGPU.dArrs[3 + k]);
   }
   // NOLINTEND(modernize-loop-convert)
   h.Free();
 
-  GPU::HostBuffer<Physics::AtomicData::CrossSection> hxs(1);
+  rt_gpu::HostBuffer<rt_physics::rt_atomic_data::CrossSection> hxs(1);
   *hxs.Ptr() = gCrossSections;
 
   hxs.Ptr()->xi     = gAtomicDataOnGPU.dArrs[0];
@@ -121,7 +121,7 @@ void Physics::AtomicData::Create()
   hxs.Ptr()->hnu_eV = gAtomicDataOnGPU.dArrs[2];
 
   // NOLINTBEGIN(modernize-loop-convert)
-  for (unsigned int k = 0; k < Physics::AtomicData::CrossSection::Num; k++) {
+  for (unsigned int k = 0; k < rt_physics::rt_atomic_data::CrossSection::Num; k++) {
     hxs.Ptr()->cs[k] = gAtomicDataOnGPU.dArrs[3 + k];
   }
   // NOLINTEND(modernize-loop-convert)
@@ -130,18 +130,18 @@ void Physics::AtomicData::Create()
   hxs.BlockingTransferToDevice(gAtomicDataOnGPU.dCrossSection);
 }
 
-void Physics::AtomicData::Delete()
+void rt_physics::rt_atomic_data::Delete()
 {
   gAtomicDataOnGPU.dCrossSection.Free();
 
   // NOLINTBEGIN(modernize-loop-convert)
-  for (unsigned int k = 0; k < 3 + Physics::AtomicData::CrossSection::Num; k++) {
+  for (unsigned int k = 0; k < 3 + rt_physics::rt_atomic_data::CrossSection::Num; k++) {
     gAtomicDataOnGPU.dArrs[k].Free();
   }
   // NOLINTEND(modernize-loop-convert)
 
   // NOLINTBEGIN(modernize-loop-convert)
-  for (unsigned int k = 0; k < Physics::AtomicData::CrossSection::Num; k++) {
+  for (unsigned int k = 0; k < rt_physics::rt_atomic_data::CrossSection::Num; k++) {
     delete[] gCrossSections.cs[k];
   }
   // NOLINTEND(modernize-loop-convert)
@@ -170,17 +170,17 @@ void CrossSectionBuilder(unsigned int num, float* hnu_eV, float** cs)
 
   for (unsigned int i = 0; i < num; i++) {
     double E = hnu_eV[i];
-    cs[Physics::AtomicData::CrossSection::IonizationHI][i] =
-        (E < Physics::AtomicData::Ry_eV ? 0 : csfit(E, 5.475e-14, 4.298e-01, 0.0, 0.0, 0.0, 3.288e+01, 2.963));
-    cs[Physics::AtomicData::CrossSection::IonizationHeI][i] =
-        (E < Physics::AtomicData::Ry_eV * Physics::AtomicData::TionHeI / Physics::AtomicData::TionHI
+    cs[rt_physics::rt_atomic_data::CrossSection::IonizationHI][i] =
+        (E < rt_physics::rt_atomic_data::Ry_eV ? 0 : csfit(E, 5.475e-14, 4.298e-01, 0.0, 0.0, 0.0, 3.288e+01, 2.963));
+    cs[rt_physics::rt_atomic_data::CrossSection::IonizationHeI][i] =
+        (E < rt_physics::rt_atomic_data::Ry_eV * rt_physics::rt_atomic_data::TionHeI / rt_physics::rt_atomic_data::TionHI
              ? 0
              : csfit(E, 9.492e-16, 1.361e+01, 4.434e-01, 2.136, 2.039, 1.469, 3.188));
-    cs[Physics::AtomicData::CrossSection::IonizationHeII][i] =
-        (E < Physics::AtomicData::Ry_eV * Physics::AtomicData::TionHeII / Physics::AtomicData::TionHI
+    cs[rt_physics::rt_atomic_data::CrossSection::IonizationHeII][i] =
+        (E < rt_physics::rt_atomic_data::Ry_eV * rt_physics::rt_atomic_data::TionHeII / rt_physics::rt_atomic_data::TionHI
              ? 0
              : csfit(E, 1.369e-14, 1.720, 0.0, 0.0, 0.0, 3.288e+01, 2.963));
-    cs[Physics::AtomicData::CrossSection::IonizationCVI][i] =
+    cs[rt_physics::rt_atomic_data::CrossSection::IonizationCVI][i] =
         (E < 490 ? 0 : csfit(E, 1.521e-15, 15.48, 0.0, 0.0, 0.0, 3.288e+01, 2.963));
   }
 }

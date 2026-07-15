@@ -1,16 +1,16 @@
 /*LICENSE*/
 
-#ifndef PHYSICS_ATOMIC_DATA_H
-#define PHYSICS_ATOMIC_DATA_H
+#ifndef RT_PHYSICS_ATOMIC_DATA_H
+#define RT_PHYSICS_ATOMIC_DATA_H
 
 //
 //  Various atomic, chemical, and thermal rates.
 //
 #include "atomic_data_decl.h"
 
-namespace Physics
+namespace rt_physics
 {
-namespace AtomicData
+namespace rt_atomic_data
 {
 //
 //  Cross-sections are in barns (to limit the numeric range and fit into float).
@@ -21,7 +21,7 @@ const CrossSection* CrossSectionsGPU();
 
 void Create();
 void Delete();
-};  // namespace AtomicData
-};  // namespace Physics
+};  // namespace rt_atomic_data
+};  // namespace rt_physics
 
-#endif  // PHYSICS_ATOMIC_DATA_H
+#endif  // RT_PHYSICS_ATOMIC_DATA_H

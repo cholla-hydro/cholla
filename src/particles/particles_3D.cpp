@@ -1295,7 +1295,7 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
   Real *temp_mass = (Real *)malloc(particles_array_size * sizeof(Real));
       #endif
       #ifdef PARTICLE_IDS
-  auto *temp_id = (part_int_t *)malloc(particles_array_size * sizeof(part_int_t));
+  auto *temp_id = (part_int_t *)calloc(particles_array_size, sizeof(part_int_t));
       #endif
 
   chprintf("Cosmological ICs: Allocated GPU memory for particle data\n");

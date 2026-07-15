@@ -18,7 +18,7 @@
 struct Header;
 class Grav3D;
 
-namespace PhotoRatesCSI
+namespace rt_photo_rates_csi
 {
 struct TableWrapperGPU;
 };
@@ -89,7 +89,7 @@ class Rad3D
 
   } rtFields;
 
-  PhotoRatesCSI::TableWrapperGPU *photoRates;
+  rt_photo_rates_csi::TableWrapperGPU *photoRates;
   const Header &grid;
 
   Rad3D(const Header &grid_);

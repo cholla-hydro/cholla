@@ -14,12 +14,11 @@ class StaticTable;
 template <typename value_t, unsigned int N, char Mode>
 class StaticTableGPU;
 
-// NOLINTBEGIN(readability-identifier-naming)
-namespace Physics
+namespace rt_physics
 {
-namespace AtomicData
+namespace rt_atomic_data
 {
-// NOLINTEND(readability-identifier-naming)
+  
 constexpr double TionHI   = 157807.0;  // ionization threshold in K
 constexpr double TionHeI  = 285335.0;  // ionization threshold in K
 constexpr double TionHeII = 631515.0;  // ionization threshold in K
@@ -63,7 +62,7 @@ struct DEVICE_ALIGN_DECL CrossSection {
   unsigned int nxi;
   float xiMin, xiMax, dxi;
 };
-};  // namespace AtomicData
-};  // namespace Physics
+};  // namespace rt_atomic_data
+};  // namespace rt_physics
 
 #endif  // PHYSICS_ATOMIC_DATA_DECL_ANY_H

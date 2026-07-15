@@ -7,10 +7,8 @@
 
 #include "../../global/global_cuda.h"
 
-// NOLINTBEGIN(readability-identifier-naming)
-namespace GPU
+namespace rt_gpu
 {
-// NOLINTEND(readability-identifier-naming)
 template <typename T>
 class DeviceBuffer;
 
@@ -175,7 +173,7 @@ inline void HostBuffer<T>::BlockingTransferToDevice(DeviceBuffer<T>& dest, size_
                                                     const std::initializer_list<size_t>& offsets) const
 {
   if (count == 0) count = mCount;
-  cudaMemcpy(dest.Ptr() + offsets.begin()[1], mPtr + offsets.begin()[0], count * sizeof(T), cudaMemcpyHostToDevice);
+  cudaMemcpy(dest.Ptr() + offsets.begin()[1], mPtr + offsets.begin()[0], count * sizeof(T), cudaMemcpyHostToDevice); // NOLINT(bugprone-sizeof-expression)
 }
 
 template <typename T>

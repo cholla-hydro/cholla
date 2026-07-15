@@ -12,7 +12,7 @@
 
 __global__ void PhotoRatesCSIUpdateTableKernel(unsigned int n, const StaticTableGPU<float, 3, 'x'>* dTable,
                                                const PhotoRateTableStretchCSI* dStretch, const float* dSpectralShape,
-                                               const Physics::AtomicData::CrossSection* dXS, float norm, int deb)
+                                               const rt_physics::rt_atomic_data::CrossSection* dXS, float norm, int deb)
 {
   const int i = threadIdx.x + blockIdx.x * blockDim.x;
   const int j = threadIdx.y + blockIdx.y * blockDim.y;
@@ -24,10 +24,10 @@ __global__ void PhotoRatesCSIUpdateTableKernel(unsigned int n, const StaticTable
 
   if (k >= sk || j >= sj || i >= si) return;
 
-  const float* csHI   = dXS->cs[Physics::AtomicData::CrossSection::IonizationHI];
-  const float* csHeI  = dXS->cs[Physics::AtomicData::CrossSection::IonizationHeI];
-  const float* csHeII = dXS->cs[Physics::AtomicData::CrossSection::IonizationHeII];
-  // const float* csCVI = dXS->cs[Physics::AtomicData::CrossSection::IonizationCVI];
+  const float* csHI   = dXS->cs[rt_physics::rt_atomic_data::CrossSection::IonizationHI];
+  const float* csHeI  = dXS->cs[rt_physics::rt_atomic_data::CrossSection::IonizationHeI];
+  const float* csHeII = dXS->cs[rt_physics::rt_atomic_data::CrossSection::IonizationHeII];
+  // const float* csCVI = dXS->cs[rt_physics::rt_atomic_data::CrossSection::IonizationCVI];
 
   const auto* thr = dXS->thresholds;
 
@@ -45,52 +45,52 @@ __global__ void PhotoRatesCSIUpdateTableKernel(unsigned int n, const StaticTable
   if (NeffHeII < 0) NeffHeII = 0;
 
   if (tauHI < 1000) {
-    for (unsigned int l = thr[Physics::AtomicData::CrossSection::IonizationHI].idx;
-         l < thr[Physics::AtomicData::CrossSection::IonizationHeI].idx; l++) {
+    for (unsigned int l = thr[rt_physics::rt_atomic_data::CrossSection::IonizationHI].idx;
+         l < thr[rt_physics::rt_atomic_data::CrossSection::IonizationHeI].idx; l++) {
       auto w  = exp(-NeffHI * csHI[l]);
       auto ss = dSpectralShape[l] * w;
 
       w = csHI[l] * ss;
       values[0] += w;
-      values[1] += w * (dXS->hnu_K[l] - Physics::AtomicData::TionHI);
+      values[1] += w * (dXS->hnu_K[l] - rt_physics::rt_atomic_data::TionHI);
     }
   };
 
   if (tauHeI < 1000) {
-    for (unsigned int l = thr[Physics::AtomicData::CrossSection::IonizationHeI].idx;
-         l < thr[Physics::AtomicData::CrossSection::IonizationHeII].idx; l++) {
+    for (unsigned int l = thr[rt_physics::rt_atomic_data::CrossSection::IonizationHeI].idx;
+         l < thr[rt_physics::rt_atomic_data::CrossSection::IonizationHeII].idx; l++) {
       auto w  = exp(-NeffHI * csHI[l] - NeffHeI * csHeI[l]);
       auto ss = dSpectralShape[l] * w;
 
       w = csHI[l] * ss;
       values[0] += w;
-      values[1] += w * (dXS->hnu_K[l] - Physics::AtomicData::TionHI);
+      values[1] += w * (dXS->hnu_K[l] - rt_physics::rt_atomic_data::TionHI);
 
       if (n > 2) {
         w = csHeI[l] * ss;
         values[2] += w;
-        values[3] += w * (dXS->hnu_K[l] - Physics::AtomicData::TionHeI);
+        values[3] += w * (dXS->hnu_K[l] - rt_physics::rt_atomic_data::TionHeI);
       }
     }
   };
 
   if (tauHeII < 1000) {
-    for (unsigned int l = thr[Physics::AtomicData::CrossSection::IonizationHeII].idx; l < dXS->nxi; l++) {
+    for (unsigned int l = thr[rt_physics::rt_atomic_data::CrossSection::IonizationHeII].idx; l < dXS->nxi; l++) {
       auto w  = exp(-NeffHI * csHI[l] - NeffHeI * csHeI[l] - NeffHeII * csHeII[l]);
       auto ss = dSpectralShape[l] * w;
 
       w = csHI[l] * ss;
       values[0] += w;
-      values[1] += w * (dXS->hnu_K[l] - Physics::AtomicData::TionHI);
+      values[1] += w * (dXS->hnu_K[l] - rt_physics::rt_atomic_data::TionHI);
 
       if (n > 2) {
         w = csHeI[l] * ss;
         values[2] += w;
-        values[3] += w * (dXS->hnu_K[l] - Physics::AtomicData::TionHeI);
+        values[3] += w * (dXS->hnu_K[l] - rt_physics::rt_atomic_data::TionHeI);
 
         w = csHeII[l] * ss;
         values[4] += w;
-        values[5] += w * (dXS->hnu_K[l] - Physics::AtomicData::TionHeII);
+        values[5] += w * (dXS->hnu_K[l] - rt_physics::rt_atomic_data::TionHeII);
 
         // w = csCVI[l]*ss;
         // values[6] += w;
@@ -115,10 +115,8 @@ __global__ void PhotoRatesCSIUpdateTableKernel(unsigned int n, const StaticTable
   }
 }
 
-// NOLINTBEGIN(readability-identifier-naming)
-namespace PhotoRatesCSI
+namespace rt_photo_rates_csi
 {
-// NOLINTEND(readability-identifier-naming)
 StaticTableGPU<float, 3, 'x'>* CreateTable(float* data, unsigned int numRates, const PhotoRateTableStretchCSI& stretch)
 {
   StaticTableGPU<float, 3, 'x'>* d;
@@ -134,7 +132,7 @@ void DeleteTable(StaticTableGPU<float, 3, 'x'>* d) { GPU_Error_Check(cudaFree(d)
 
 void UpdateTable(unsigned int size, unsigned int numRates, const StaticTableGPU<float, 3, 'x'>* dTable,
                  const PhotoRateTableStretchCSI* dStretch, const float* dSpectralShape,
-                 const Physics::AtomicData::CrossSection* dXS, float norm, int deb)
+                 const rt_physics::rt_atomic_data::CrossSection* dXS, float norm, int deb)
 {
   int numBlocks = (size + 7) / 8;
   dim3 threads(8, 8, 8);
@@ -143,4 +141,4 @@ void UpdateTable(unsigned int size, unsigned int numRates, const StaticTableGPU<
   hipLaunchKernelGGL(PhotoRatesCSIUpdateTableKernel, blocks, threads, 0, 0, numRates, dTable, dStretch, dSpectralShape,
                      dXS, norm, deb);
 }
-};  // namespace PhotoRatesCSI
+};  // namespace rt_photo_rates_csi

@@ -9,7 +9,7 @@
 #include "photo_rates_csi.ANY.h"
 #include "static_table_gpu.h"
 
-namespace PhotoRatesCSI
+namespace rt_photo_rates_csi
 {
 //
 //  Object for GPUShared: a copy of all tables on a single hardware device
@@ -20,13 +20,13 @@ struct TableWrapperGPU {
 
   void Update(unsigned int rad, const float* spectralShape, float norm);
 
-  GPU::TransferBuffers<StaticTableGPU<float, 3, 'x'>*> bTables;
-  std::deque<GPU::DeviceBuffer<float>> dTableData;
-  std::deque<GPU::TransferBuffers<float>> bSpectralShapes;
-  GPU::TransferBuffers<PhotoRateTableStretchCSI> bStretch;
+  rt_gpu::TransferBuffers<StaticTableGPU<float, 3, 'x'>*> bTables;
+  std::deque<rt_gpu::DeviceBuffer<float>> dTableData;
+  std::deque<rt_gpu::TransferBuffers<float>> bSpectralShapes;
+  rt_gpu::TransferBuffers<PhotoRateTableStretchCSI> bStretch;
   unsigned int numRadsPerFreq = 0;
   unsigned int numRates       = 0;
 };
-};  // namespace PhotoRatesCSI
+};  // namespace rt_photo_rates_csi
 
 #endif  // PHYSICS_RT_PHOTO_RATES_CSI_GPU_H
