@@ -76,7 +76,7 @@ void rt_physics::rt_atomic_data::Create()
                        [gCrossSections.thresholds[rt_physics::rt_atomic_data::CrossSection::IonizationHI].idx];
   gCrossSections.csHIatHeI =
       gCrossSections.cs[rt_physics::rt_atomic_data::CrossSection::IonizationHI]
-                       [gCrossSections.thresholds[rt_physics:rt_atomic_data::IonizationHeI].idx];
+                       [gCrossSections.thresholds[rt_physics::rt_atomic_data::CrossSection::IonizationHeI].idx];
   gCrossSections.csHIatHeII =
       gCrossSections.cs[rt_physics::rt_atomic_data::CrossSection::IonizationHI]
                        [gCrossSections.thresholds[rt_physics::rt_atomic_data::CrossSection::IonizationHeII].idx];
