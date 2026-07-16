@@ -174,8 +174,7 @@ inline void HostBuffer<T>::BlockingTransferToDevice(DeviceBuffer<T>& dest, size_
 {
   if (count == 0) count = mCount;
   // NOLINT(bugprone-sizeof-expression)
-  cudaMemcpy(dest.Ptr() + offsets.begin()[1], mPtr + offsets.begin()[0], count * sizeof(T),
-             cudaMemcpyHostToDevice);
+  cudaMemcpy(dest.Ptr() + offsets.begin()[1], mPtr + offsets.begin()[0], count * sizeof(T), cudaMemcpyHostToDevice);
 }
 
 template <typename T>
