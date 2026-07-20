@@ -103,10 +103,13 @@ io::WriterManager::WriterManager(const Parameters& P, ParameterMap& pmap, const 
 
 #endif
 
-#if defined(RT) && defined(HDF5) && defined(OUTPUT_RADIATION)
+#if defined(RT) && defined(HDF5)
   auto write_rt = [](Grid3D& G, Parameters P, int nfile, const FnameTemplate& fname_template) {
     G.Rad.Write_Restart_HDF5(&P, nfile, fname_template);
   };
+  // TODO(brant): Revise RT output times to
+  // those specified directly in a list as a
+  // parameter
   int n_rt = 1;  // undocumented?
   packs_.push_back(io::detail::WriterPack{"rt", n_rt, write_rt});
 #endif
