@@ -41,8 +41,7 @@ class RKIntegrator
    *    with each integration variable are returned in error.
    *    The params vector allows for other parameters required
    *    for the integrator to be provided. None of the arguments
-   *    should be a null pointer. The sizes of the arrays are set
-   *    by the intialization routine InitializeRK().*/
+   *    should be a null pointer. .*/
   void rk4_ode(std::vector<Real>(dydx)(Real x, std::vector<Real> y, std::vector<Real> params), Real x,
                std::vector<Real> y, Real *h, Real *hpass, std::vector<Real> params, std::vector<Real> &yp, Real *error);
 };

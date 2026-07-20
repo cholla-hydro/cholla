@@ -126,8 +126,6 @@ class Rad3D
   #endif
 
   void rtBoundaries();
-
-  void Free_Memory();
 };
 
 #endif

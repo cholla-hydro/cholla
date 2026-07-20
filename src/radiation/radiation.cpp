@@ -27,6 +27,17 @@ Rad3D::~Rad3D()
 {
   delete photoRates;
   rt_physics::rt_atomic_data::Delete();
+  cudaFree(rtFields.dev_rf);
+  cudaFree(rtFields.dev_rs);
+  cudaFree(rtFields.dev_abc);
+  cudaFree(rtFields.dev_rfNew);
+  if (rtFields.rs != nullptr) free(rtFields.rs);
+  free(rtFields.rf);
+
+  #ifdef RT_OTVET
+  if (rtFields.et != nullptr) free(rtFields.et);
+  cudaFree(rtFields.dev_et);
+  #endif  // RT_OTVET
 }
 
 void Rad3D::Initialize_Start(const Parameters& params)
@@ -385,21 +396,6 @@ void Rad3D::rtBoundaries(void)
       Unload_RT_Fields_From_Buffer(2, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields,
                                    d_recv_buffer_z1);
   }
-}
-
-void Rad3D::Free_Memory(void)
-{
-  cudaFree(rtFields.dev_rf);
-  cudaFree(rtFields.dev_rs);
-  cudaFree(rtFields.dev_abc);
-  cudaFree(rtFields.dev_rfNew);
-  if (rtFields.rs != nullptr) free(rtFields.rs);
-  free(rtFields.rf);
-
-  #ifdef RT_OTVET
-  if (rtFields.et != nullptr) free(rtFields.et);
-  cudaFree(rtFields.dev_et);
-  #endif  // RT_OTVET
 }
 
 #endif  // RT
