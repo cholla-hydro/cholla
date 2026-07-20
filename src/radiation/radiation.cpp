@@ -121,6 +121,15 @@ void Rad3D::rtBoundaries(void)
   int ireq     = 0;
   MPI_Status status;
 
+  // RT currently only works for periodic boundaries.
+  // Error out if we haven't set them explicitly.
+  int i;
+  for (i = 0; i < 6; i++) {
+    if ((flags[i] != 5) and (flags[i] != 1)){
+      CHOLLA_ERROR("RT implementation requires periodic boundaries.\n")
+    }
+  }
+
   // Send MPI x-boundaries
   if (flags[0] == 5) {
     // For RT_M1, the buffer loading routines need
@@ -149,7 +158,9 @@ void Rad3D::rtBoundaries(void)
     ireq++;
   }
 
-  if (flags[1] == 5) {  // likely needs editing BRANT for RT_M1
+  // TODO(brant): The RT field buffer routines may not work
+  // correctly for M1. They need to be reviewed and validated.
+  if (flags[1] == 5) {
     buffer_length = Load_RT_Fields_To_Buffer(0, 1, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields,
                                              d_send_buffer_x1);
   #ifndef MPI_GPU
