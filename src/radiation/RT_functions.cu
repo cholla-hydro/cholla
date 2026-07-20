@@ -22,8 +22,6 @@
     #include "../mpi/mpi_routines.h"
   #endif
 
-
-
 void Rad3D::Initialize_GPU()
 {
   #ifdef RT_OTVET
@@ -630,7 +628,7 @@ void Rad3D::rtSolve(Real* dev_scalar)
             niters,this->num_iterations,niters2,dt,speedOfLightInCodeUnits,grid.dx);
   */
   chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, dt: %e, c: %e, dx %e, cdt2dxRSL %e)\n",
-            niters_cfl, this->num_iterations, dt, speedOfLightInCodeUnits, grid.dx, cdt2dxRSL);
+           niters_cfl, this->num_iterations, dt, speedOfLightInCodeUnits, grid.dx, cdt2dxRSL);
 
   for (int iter = 0; iter < niters_cfl; iter++) {
     this->lastIteration = (iter == niters_cfl - 1);
@@ -649,32 +647,29 @@ void Rad3D::rtSolve(Real* dev_scalar)
   }
   #endif
 
-
-
-    // This should match niters_cfl.  Now we need to check that
-    // the integration over RT steps takes sufficiently small steps.
-    chprintf("RT: Number of iterations executed: %d\n", n_iters_check);
-    
-  }
+  // This should match niters_cfl.  Now we need to check that
+  // the integration over RT steps takes sufficiently small steps.
+  chprintf("RT: Number of iterations executed: %d\n", n_iters_check);
+}
 
   #ifdef GRAVITY
-  void Rad3D::ComputeEddingtonTensor(const Parameters& P, Grav3D& G)
-  {
-    // Compute the eddington tensor
-    Real *rs, *ot, *et[6];
+void Rad3D::ComputeEddingtonTensor(const Parameters& P, Grav3D& G)
+{
+  // Compute the eddington tensor
+  Real *rs, *ot, *et[6];
 
     #ifdef GRAVITY_GPU
-    rs = rtFields.dev_rs;
-    ot = rtFields.dev_rf;
-    for (int j = 0; j < 6; j++) et[j] = rtFields.dev_et + j * grid.n_cells;
+  rs = rtFields.dev_rs;
+  ot = rtFields.dev_rf;
+  for (int j = 0; j < 6; j++) et[j] = rtFields.dev_et + j * grid.n_cells;
     #else
-    rs = rtFields.rs;
-    ot = rtFields.rf;
-    for (int j = 0; j < 6; j++) et[j] = rtFields.et + j * grid.n_cells;
+  rs = rtFields.rs;
+  ot = rtFields.rf;
+  for (int j = 0; j < 6; j++) et[j] = rtFields.et + j * grid.n_cells;
     #endif
 
-    G.Poisson_solver.Get_EddingtonTensor(grid.n_ghost, rs, et, ot);
-  }
+  G.Poisson_solver.Get_EddingtonTensor(grid.n_ghost, rs, et, ot);
+}
   #endif  // GRAVITY
 #endif    // RT
-  // #endif    // CUDA
+// #endif    // CUDA

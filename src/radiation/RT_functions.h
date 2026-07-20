@@ -1,7 +1,6 @@
 /*! \file RT_functions.h
  *  \brief Declarations for the gpu RT functions. */
 
-
 #ifndef RT_FUNCTIONS_H
 #define RT_FUNCTIONS_H
 

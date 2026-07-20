@@ -36,16 +36,16 @@ class RKIntegrator
   void FreeMemory(void);
 
   /*! \brief Evolve the ODE system using the RK method.
-  *    dydx() returns the derivatives of y w.r.t. x.
-  *    h is a pointer to the current stepsize that actually
-  *    was executed and hpass is a pointer to the next stepsize
-  *    to take in the integration.  The updated values of the
-  *    y parameters are returned in yp. The errors associated
-  *    with each integration variable are returned in error. 
-  *    The params vector allows for other parameters required
-  *    for the integrator to be provided. None of the arguments
-  *    should be a null pointer. The sizes of the arrays are set
-  *    by the intialization routine InitializeRK().*/
+   *    dydx() returns the derivatives of y w.r.t. x.
+   *    h is a pointer to the current stepsize that actually
+   *    was executed and hpass is a pointer to the next stepsize
+   *    to take in the integration.  The updated values of the
+   *    y parameters are returned in yp. The errors associated
+   *    with each integration variable are returned in error.
+   *    The params vector allows for other parameters required
+   *    for the integrator to be provided. None of the arguments
+   *    should be a null pointer. The sizes of the arrays are set
+   *    by the intialization routine InitializeRK().*/
   void rk4_ode(std::vector<Real>(dydx)(Real x, std::vector<Real> y, std::vector<Real> params), Real x,
                std::vector<Real> y, Real *h, Real *hpass, std::vector<Real> params, std::vector<Real> &yp, Real *error);
 };

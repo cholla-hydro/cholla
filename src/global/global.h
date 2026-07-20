@@ -341,7 +341,7 @@ struct Parameters {
   // File for the scale_factor output values for cosmological simulations
   char scale_outputs_file[MAXLEN];
   #define EXPANSION_HISTORY_FILE_NAME "expansion_history.txt"
-  #define GROWTH_FACTOR_FILE_NAME "growth_factor.txt"
+  #define GROWTH_FACTOR_FILE_NAME     "growth_factor.txt"
 #endif  // COSMOLOGY
 #ifdef TILED_INITIAL_CONDITIONS
   Real tile_length;

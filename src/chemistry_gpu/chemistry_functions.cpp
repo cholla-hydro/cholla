@@ -24,7 +24,7 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   Chem.H.runtime_chemistry_step = 0;
 
   if (Chem.recombination_case == 0) {
-    Chem.recombination_case       = 0;
+    Chem.recombination_case = 0;
   }
 
   // Initialize the Chemistry Header

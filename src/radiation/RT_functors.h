@@ -1,17 +1,17 @@
 /*! \file RT_functors.h
  *  \brief Declarations for the gpu RT functors. */
 
-  #ifndef RT_FUNCTORS_H
-    #define RT_FUNCTORS_H
+#ifndef RT_FUNCTORS_H
+#define RT_FUNCTORS_H
 
-    #include "../global/global.h"
-    #include "../utils/gpu.hpp"
-    #include "alt/decl.h"
-    #include "radiation.h"
+#include "../global/global.h"
+#include "../utils/gpu.hpp"
+#include "alt/decl.h"
+#include "radiation.h"
 
 /*! \brief  Compute pressure tensor
-*    This has as to be a separate kernel since
-*    pij is needed in its entirety for the step */
+ *    This has as to be a separate kernel since
+ *    pij is needed in its entirety for the step */
 template <class PijFunctor>
 void __global__ GLFMakeP_Kernel(int nx, int ny, int nz, int n_ghost, float dx, const Real* rfi, Real* pij,
                                 PijFunctor pf, int deb)
@@ -40,5 +40,4 @@ void __global__ GLFMakeP_Kernel(int nx, int ny, int nz, int n_ghost, float dx, c
 
   pf(n_ghost, nx, ny, nz, ic, jc, kc, rfi, pij, deb);
 }
-  #endif
-
+#endif
