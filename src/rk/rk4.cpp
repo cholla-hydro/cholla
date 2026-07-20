@@ -56,9 +56,6 @@ void RKIntegrator::FreeMemory(void)
   error.shrink_to_fit();
 }
 
-/*! \fn void rk4_ode(Real* (*dydx)(Real x, Real *y, int iy, void *params, int np), Real x, Real *y, Real *h, Real
- * *hpass, void *params, int np, Real *yp, int iy, Real *error) \brief Evolve the ODE system one time step using the RK
- * method */
 void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y, std::vector<Real> params), Real x,
                            std::vector<Real> y, Real *h_this, Real *h_pass, std::vector<Real> params,
                            std::vector<Real> &yp, Real *error_pass)
