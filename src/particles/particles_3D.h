@@ -379,9 +379,6 @@ class Particles3D
       #ifdef PARTICLES_GPU
   void Allocate_Memory_GPU_MPI();
   void ReAllocate_Memory_GPU_MPI();
-  // void Load_Particles_to_Buffer_GPU(int direction, int side, Real *send_buffer, int buffer_length);
-  // void Load_Particles_to_Buffer_GPU(int direction, int side, int buffer_length);
-  // Real * Load_Particles_to_Buffer_GPU(int direction, int side, int buffer_length);
   Real *Load_Particles_to_Buffer_GPU(int direction, int side, int *buffer_length);
 
       #endif  // PARTICLES_GPU

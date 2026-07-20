@@ -59,9 +59,10 @@ int main(int argc, char *argv[])
 
   Real dti = 0;  // inverse time step, 1.0 / dt
 
-#ifdef RT
-  // BRANT limit max time, added for RT tests
   Real dt_max = 0.0;  // maximum allowed time step
+#ifdef RT
+  // limit max time, added for RT tests
+  Real outstep;       // output timestep for RT
 #endif                // RT
 
   // input parameter variables
@@ -119,7 +120,7 @@ int main(int argc, char *argv[])
   chprintf("Output directory:  %s\n", writer_manager.fname_template().nominal_output_dir_path().c_str());
 
   // Check the configuration
-  // Check_Configuration(P);
+  Check_Configuration(P);
 
   // Create a Log file to output run-time messages and output the git hash and
   // macro flags used
@@ -138,17 +139,14 @@ int main(int argc, char *argv[])
 
 #ifdef RT
   G.Rad.Initialize_Start(P);
+  outstep = P.outstep; // set the RT output step
 #endif
 
   // Set initial conditions
   chprintf("Setting initial conditions...\n");
-  chprintf("basic nx/ny/nz %d/%d/%d\n", P.nx, P.ny, P.nz);
-  // chprintf("Gamma here %e\n",P.gamma);
+
   G.Set_Initial_Conditions(P, pmap);
   chprintf("Initial conditions set.\n");
-
-  // BRANT
-  // chexit(0);
 
   // set main variables for Read_Grid and Read_Grid_Cat initial conditions
   if (is_restart) {
@@ -270,7 +268,7 @@ int main(int argc, char *argv[])
 #endif  // MHD
 
   // increment the next output time
-  outtime += P.outstep;
+  outtime += outstep;
 
 #ifdef CPU_TIME
   stop_init = Get_Time();
@@ -290,18 +288,14 @@ int main(int argc, char *argv[])
   message = "Starting calculations.";
   Write_Message_To_Log_File(message.c_str());
 
-  // BRANT -- stop after generating ICs
-  // chexit(0);
-
   // Compute inverse timestep for the first time
   dti = G.Calc_Inverse_Timestep();
 
-#ifdef RT
-  // BRANT
+  // If a max timestep is provided, limit
+  // the timestep
   if (P.max_timestep != 0) {
     dt_max = P.max_timestep;
   }
-#endif  // RT
 
   while (G.H.t < P.tout) {
 // get the start time
@@ -310,15 +304,12 @@ int main(int argc, char *argv[])
 #endif  // CPU_TIME
     start_step = Get_Time();
 
-#ifdef RT
-    // BRANT
-    // Use log step if it's smaller
-    if (dt_max != 0) {
+    // Limit to dt_max if set
+    if ((dt_max != 0) and (P.max_timestep != 0)) {
       if (dti < 1.0 / dt_max) {
         dti = 1.0 / dt_max;
       }
     }
-#endif  // RT
 
     // calculate the timestep by calling MPI_Allreduce
     G.set_dt(dti);
@@ -341,7 +332,6 @@ int main(int argc, char *argv[])
     // and positions are updated by dt
     G.Advance_Particles(1);
 
-    // chprintf("About to transfer particle boundaries\n");
     //  Transfer the particles that moved outside the local domain
     G.Transfer_Particles_Boundaries(P);
 #endif
@@ -432,11 +422,10 @@ int main(int argc, char *argv[])
 #endif  // OUTPUT
       if (G.H.t == outtime) {
         // update to the next output time, for logarithmic stepping
-        if (P.outstep_dexinc != 0) P.outstep *= pow(10.0, P.outstep_dexinc);
+        if (P.outstep_dexinc != 0) outstep *= pow(10.0, P.outstep_dexinc);
 
-        outtime += P.outstep;  // update to the next output time
-
-        if (outtime > P.tout) outtime = P.tout;
+        outtime += outstep;  // update to the next output time
+        outtime = std::fmin(outtime + P.outstep, P.tout);  // get the next output time
       }
     }
 

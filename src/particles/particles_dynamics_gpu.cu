@@ -17,7 +17,7 @@
 // #include "../cosmology/cosmology_functions_gpu.h"
 
 // FUTURE FIX: The Hubble function was defined here because I couldn't get it
-// form other file, tried -dc flag when compiling buu paris broke.
+// form other file, tried -dc flag when compiling but paris broke.
 __device__ Real Get_Hubble_Parameter_dev(Real a, Real H0, Real Omega_M, Real Omega_L, Real Omega_K, Real Omega_R,
                                          Real w0, Real wa)
 {
@@ -48,8 +48,6 @@ __global__ void Calc_Particles_dti_Kernel(part_int_t n_local, Real dx, Real dy, 
   __syncthreads();
 
   Real vx, vy, vz;
-
-  // if( tid == 0 ) printf("%f  %f  %f \n", dx, dy, dz );
 
   // threads corresponding to real cells do the calculation
   if (id < n_local) {
@@ -103,18 +101,6 @@ Real Particles3D::Calc_Particles_dt_GPU_function(int ngrid, part_int_t n_particl
   // Initialize dt values
   Real max_dti = 0;
   // copy the dti array onto the CPU
-  /*
-  Current_z: 3.187882
-  GPU_Error_Check: Failed at Line: 106, File: src/particles/particles_dynamics_gpu.cu, Function:
-  Calc_Particles_dt_GPU_function, with code: invalid argument MPICH ERROR [Rank 19327] [job id 4917381.0] [Wed Jul  1
-  00:31:59 2026] [frontier02474] - Abort(1) (rank 19327 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) -
-  process 19327
-
-  aborting job:
-  application called MPI_Abort(MPI_COMM_WORLD, 1) - process 19327
-  srun: error: frontier02474: task 19327: Exited with exit code 255
-  srun: Terminating StepId=4917381.0
-  */
   GPU_Error_Check(cudaMemcpy(dti_array_host, dti_array_dev, ngrid * sizeof(Real), cudaMemcpyDeviceToHost));
   // find maximum inverse timestep from CFL condition
   for (int i = 0; i < ngrid; i++) {

@@ -20,7 +20,6 @@
 Rad3D::Rad3D(const Header& grid_) : grid(grid_)
 {
   rt_physics::rt_atomic_data::Create();
-  /// photoRates = new rt_photo_rates_csi::TableWrapperGPU(2,6);
   photoRates = new rt_photo_rates_csi::TableWrapperGPU(1, 6);
 }
 
@@ -64,7 +63,6 @@ void Rad3D::Initialize_Start(const Parameters& params)
   flags[3] = params.yu_bcnd;
   flags[4] = params.zl_bcnd;
   flags[5] = params.zu_bcnd;
-  printf("%d %d %d %d %d %d\n", flags[0], flags[1], flags[2], flags[3], flags[4], flags[5]);
 }
 
 // function to do various initialization tasks, i.e. allocating memory, etc.
@@ -80,8 +78,7 @@ void Rad3D::Initialize_Finish()
 
   chprintf("Initializing Radiative Transfer...\n");
 
-  // Allocate memory for abundances (passive scalars added to the hydro grid)
-  // This is done in grid3D::Allocate_Memory
+  // Passive scalars are allocated & added to hydro grid in grid3D::Allocate_Memory
   chprintf(" N scalar fields: %d \n", NSCALARS);
 
   // Allocate memory for radiation fields (non-advecting, 2 per frequency plus 1 optically thin field)
@@ -125,7 +122,9 @@ void Rad3D::rtBoundaries(void)
   MPI_Status status;
 
   // Send MPI x-boundaries
-  if (flags[0] == 5) {  // likely needs editing BRANT for RT_M1
+  if (flags[0] == 5) {  
+    // For RT_M1, the buffer loading routines need
+    // to be edited or re-written for correctness
     buffer_length = Load_RT_Fields_To_Buffer(0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields,
                                              d_send_buffer_x0);
   #ifndef MPI_GPU
@@ -174,8 +173,6 @@ void Rad3D::rtBoundaries(void)
     // keep track of how many sends and receives are expected
     ireq++;
   }
-  // printf("ireq: %d\n", ireq);
-  // printf("wait_max: %d\n", wait_max);
 
   /* Set non-MPI x-boundaries */
   if (flags[0] == 1) {  // likely needs editing BRANT for RT_M1
@@ -188,11 +185,10 @@ void Rad3D::rtBoundaries(void)
   /* Receive MPI x-boundaries */
   // wait for any receives to complete
   for (int iwait = 0; iwait < wait_max; iwait++) {
-    // printf("ProcID %d waiting for request %d.\n", procID, iwait);
     //  wait for recv completion
     MPI_Waitany(wait_max, recv_request, &index, &status);
-    // printf("ProcID %d with index %d, status %d.\n", procID, index, status.MPI_TAG);
-  //  depending on which face arrived, unload the buffer into the ghost grid
+
+    //  depending on which face arrived, unload the buffer into the ghost grid
   #ifndef MPI_GPU
     copyHostToDeviceReceiveBuffer(status.MPI_TAG);
   #endif                      // MPI_GPU
@@ -262,8 +258,6 @@ void Rad3D::rtBoundaries(void)
     // keep track of how many sends and receives are expected
     ireq++;
   }
-  // printf("ireq: %d\n", ireq);
-  // printf("wait_max: %d\n", wait_max);
 
   /* Set non-MPI y-boundaries */
   if (flags[2] == 1) {  // likely needs editing BRANT for RT_M1
