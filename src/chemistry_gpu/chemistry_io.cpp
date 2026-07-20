@@ -43,8 +43,6 @@ void Chem_GPU::Load_UVB_Ionization_and_Heating_Rates(struct Parameters *P)
 
   int n_lines = i;
 
-  // chprintf(" Loaded %d lines in file\n", n_lines);
-
   rates_z_h         = (float *)malloc(sizeof(float) * n_lines);
   Heat_rates_HI_h   = (float *)malloc(sizeof(float) * n_lines);
   Heat_rates_HeI_h  = (float *)malloc(sizeof(float) * n_lines);

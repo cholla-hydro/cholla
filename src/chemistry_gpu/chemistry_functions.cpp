@@ -25,7 +25,6 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
 
   if (Chem.recombination_case == 0) {
     Chem.recombination_case       = 0;
-    Chem.use_case_B_recombination = false;
   }
 
   // Initialize the Chemistry Header
@@ -186,7 +185,6 @@ void Chem_GPU::Initialize_Cooling_Rates()
   Generate_Reaction_Rate_Table(&H.cool_ciHeII_d, cool_ciHeII_rate, units);
   Generate_Reaction_Rate_Table(&H.cool_ciHeIS_d, cool_ciHeIS_rate, units);
 
-  //  if (!use_case_B_recombination) {
   switch (recombination_case) {
     case 0: {
       Generate_Reaction_Rate_Table(&H.cool_reHII_d, cool_reHII_rate_case_A, units);
@@ -219,7 +217,6 @@ void Chem_GPU::Initialize_Reaction_Rates()
   Generate_Reaction_Rate_Table(&H.k_coll_i_HI_HI_d, coll_i_HI_HI_rate, units);
   Generate_Reaction_Rate_Table(&H.k_coll_i_HI_HeI_d, coll_i_HI_HeI_rate, units);
 
-  //  if (!use_case_B_recombination) {
   switch (recombination_case) {
     case 0: {
       Generate_Reaction_Rate_Table(&H.k_recomb_HII_d, recomb_HII_rate_case_A, units);

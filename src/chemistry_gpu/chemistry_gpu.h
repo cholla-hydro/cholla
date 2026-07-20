@@ -8,10 +8,8 @@
 // Define the type of a generic rate function.
 typedef Real (*Rate_Function_T)(Real, Real);
 
-#ifdef RT
-  #include "../radiation/alt/photo_rates_csi.ANY.h"
-  #include "../radiation/alt/photo_rates_csi_gpu.h"
-#endif
+#include "../radiation/alt/photo_rates_csi.ANY.h"
+#include "../radiation/alt/photo_rates_csi_gpu.h"
 
 // #define TEXTURES_UVB_INTERPOLATION
 
@@ -103,14 +101,13 @@ class Chem_GPU
   int ny;
   int nz;
 
-  //
-  //  0: case A
-  //  1: case B
-  //  2: special case for Iliev1 test
-  //
+  /*! \brief specifies the recombination model
+   *
+   *  * 0: case A
+   *  * 1: case B
+   *  * 2: special case for Iliev1 test
+   */
   int recombination_case = 0;
-
-  bool use_case_B_recombination = false;
 
   Real scale_factor_UVB_on;
 

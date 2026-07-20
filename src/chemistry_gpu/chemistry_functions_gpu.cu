@@ -7,9 +7,8 @@
   #include "chemistry_gpu.h"
   #include "rates.cuh"
   #include "rates_Katz95.cuh"
-  #ifdef RT
-    #include "../radiation/alt/static_table_gpu.cuh"
-  #endif
+  #include "../radiation/alt/static_table_gpu.cuh"
+  
 
   #define eV_to_K 1.160451812e4
   #define K_to_eV 8.617333263e-5
@@ -127,19 +126,20 @@ __device__ Real Get_Cooling_Rates(Thermal_State &TS, ChemistryHeader &Chem_H, Re
   int temp_indx;
   Real temp, delta_T, U_dot;
   temp         = TS.get_temperature(Chem_H.gamma);
-  Real mu      = TS.get_MMW();
-  Real d_HI    = TS.d_HI;
-  Real d_HII   = TS.d_HII;
-  Real d_HeI   = TS.d_HeI;
-  Real d_HeII  = TS.d_HeII;
-  Real d_HeIII = TS.d_HeIII;
-  Real d_e     = TS.d_e;
-  Real d       = TS.d;
-  Real n_tot   = d_HI + d_HII + 0.25 * (d_HeI + d_HeII + d_HeIII) + d_e;
-  if (print)
+  if (print) {
+    Real mu      = TS.get_MMW();
+    Real d_HI    = TS.d_HI;
+    Real d_HII   = TS.d_HII;
+    Real d_HeI   = TS.d_HeI;
+    Real d_HeII  = TS.d_HeII;
+    Real d_HeIII = TS.d_HeIII;
+    Real d_e     = TS.d_e;
+    Real d       = TS.d;
+    Real n_tot   = d_HI + d_HII + 0.25 * (d_HeI + d_HeII + d_HeIII) + d_e;
     printf("TS d: %e d_HI: %e d_HII %e d_HeI %e d_HeII %e d_HeIII %e d_e %e n_tot %e\n", d, d_HI, d_HII, d_HeI, d_HeII,
            d_HeIII, d_e, n_tot);
-  if (print) printf("before mu: %f temp: %f gamma %f\n", mu, temp, Chem_H.gamma);
+    printf("before mu: %f temp: %f gamma %f\n", mu, temp, Chem_H.gamma);
+  }
   get_temperature_indx(temp, Chem_H, temp_indx, delta_T, temp_prev, print);
   if (print) printf("mu: %f  temp: %f  temp_indx: %d  delta_T: %f  \n", TS.get_MMW(), temp, temp_indx, delta_T);
   U_dot = 0.0;
@@ -571,19 +571,6 @@ __global__ void Print_Chemistry_kernel(Real *dev_conserved, int nx, int ny, int 
     TS.d_HeIII = dev_conserved[id + n_cells * grid_enum::HeIII_density] / a3;
     TS.d_e     = dev_conserved[id + n_cells * grid_enum::e_density] / a3;
     TS.U       = GE * d_inv * 1e-10;
-    /*
-    if(print) {
-      printf("Print id %d TSPC.density: %e \n",id,         TS.d );
-      printf("Print id %d TSPC.HI_density: %e \n",id,      TS.d_HI );
-      printf("Print id %d TSPC.HII_density: %e \n",id,     TS.d_HII );
-      printf("Print id %d TSPC.HeI_density: %e \n",id,     TS.d_HeI );
-      printf("Print id %d TSPC.HeII_density: %e \n",id,    TS.d_HeII );
-      printf("Print id %d TSPC.HeIII_density: %e \n",id,   TS.d_HeIII );
-      printf("Print id %d TSPC.e_density: %e \n",id,       TS.d_e );
-      printf("Print id %d TSPC.internal_energy: %e \n", id,TS.U );
-      printf("Print id %d TSPC.energy: %e \n", id,TS.U*TS.d );
-    }
-    */
   }
 }
 
@@ -631,9 +618,9 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
     GE = dev_conserved[4 * n_cells + id] - E_kin;
   #endif
 
+    // Adjust verbosity
     print = false;
     // print = true;
-    // if ( xid == n_ghost && yid == n_ghost && zid == n_ghost ) print = true; //BRANT
 
     // Convert to cgs units
     current_a = 1 / (current_z + 1);
@@ -666,11 +653,6 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
     TS.d_e     = dev_conserved[id + n_cells * grid_enum::e_density] / a3;
     TS.U       = GE * d_inv * 1e-10;
     if (print) {
-      // printf("density_units: %e\n", Chem_H.density_units );
-      // printf("length_units: %e\n", Chem_H.length_units );
-      // printf("velocity_units: %e\n", Chem_H.velocity_units );
-      // printf("time_units: %e\n", Chem_H.time_units );
-      // printf("dom: %e \n", dens_number_conv );
       printf("TSBC: a       %e \n", current_a);
       printf("TSBC.density: %e \n", TS.d);
       printf("TSBC.HI_density: %e \n", TS.d_HI);
@@ -690,20 +672,14 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
     TS.d_HeII  = fmax(TS.d_HeII, tiny);
     TS.d_HeIII = fmax(TS.d_HeIII, 1e-5 * tiny);
     // TS.d_e     = fmax(TS.d_e, tiny);
-    //  Use charge conservation to determine electron fraction BRANT ALTER
+    //  Use charge conservation to determine electron fraction
     TS.d_e = TS.d_HII + TS.d_HeII / 4.0 + TS.d_HeIII / 2.0;
 
     // Compute temperature at first iteration
     temp_prev = TS.get_temperature(Chem_H.gamma);
 
-    // if (print&&(id==0)){
     if (print) {
       printf("current_z: %f\n", current_z);
-      // printf("density_units: %e\n", Chem_H.density_units );
-      // printf("length_units: %e\n", Chem_H.length_units );
-      // printf("velocity_units: %e\n", Chem_H.velocity_units );
-      // printf("time_units: %e\n", Chem_H.time_units );
-      // printf("dom: %e \n", dens_number_conv );
       printf("TS.density: %e \n", TS.d);
       printf("TS.HI_density: %e \n", TS.d_HI);
       printf("TS.HII_density: %e \n", TS.d_HII);
@@ -719,9 +695,6 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
     // Get the photoheating and photoionization rates at z=current_z
     Get_Current_UVB_Rates(current_z, Chem_H, dev_rf, n_fpfreq, id, n_cells, photo_i_HI, photo_i_HeI, photo_i_HeII,
                           photo_h_HI, photo_h_HeI, photo_h_HeII, print);
-    // Get_Current_Photo_Rates(Chem_H, dev_rf, id, n_cells, photo_i_HI, photo_i_HeI, photo_i_HeII, photo_h_HI,
-    // photo_h_HeI,
-    //                         photo_h_HeII, print);
 
     HI_dot_prev = 0;
     e_dot_prev  = 0;
@@ -760,7 +733,7 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
     TS.d_HeII *= correct_He;
     TS.d_HeIII *= correct_He;
 
-    // Use charge conservation to determine electron fraction //BRANT ALTER
+    // Use charge conservation to determine electron fraction
     TS.d_e = TS.d_HII + TS.d_HeII / 4.0 + TS.d_HeIII / 2.0;
 
     // Write the Updated Thermal State

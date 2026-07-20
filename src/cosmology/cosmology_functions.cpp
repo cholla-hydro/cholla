@@ -272,8 +272,8 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
   RK.FreeMemory();
 }
 
-// function to perform linear interpolation on vectos
-Real Cosmology::LinearInterpolation(std::vector<Real> x, std::vector<Real> y, Real a)
+// function to perform linear interpolation on vectors
+Real Cosmology::LinearInterpolation(const std::vector<Real>& x, const std::vector<Real>& y, Real a)
 {
   // clamp if needed
   if (a <= x.front()) return y.front();
