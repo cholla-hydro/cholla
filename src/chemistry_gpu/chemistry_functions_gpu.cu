@@ -434,6 +434,10 @@ __device__ Real Get_Chemistry_dt(Thermal_State &TS, ChemistryHeader &Chem_H, Rea
   dt = fmin(0.5 * dt_hydro, dt);
   dt = fmin(dt_hydro - t_chem, dt);
 
+
+  // TODO(brant): The following comments are part of
+  // RT + chemistry testing and can be removed after
+  // the RT is validated.
   /*
     if (n_iter == Chem_H.max_iter - 1) {
       printf(
@@ -627,7 +631,13 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
     a3        = a2 * current_a;
     d *= density_conv / a3;
     GE *= energy_conv / a2;
-    // BRANT UPDATE
+
+  // TODO(brant): Currently the RT implementation assumes a different
+  // set of units than the other Cholla modules, including the cooling
+  // units. The following unit change was removed by Nick, and it's
+  // now been couched within an RT ifdef, whereas the original RT branch
+  // just directly implmemented the change and overwrote the original
+  // unit system. This needs to be resolved in the future.
   #ifndef RT
     dt_hydro = dt_hydro / Chem_H.time_units;  // Nick flagged this as a bug NG
   #endif                                      // RT

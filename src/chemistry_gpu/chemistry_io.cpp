@@ -55,7 +55,14 @@ void Chem_GPU::Load_UVB_Ionization_and_Heating_Rates(struct Parameters *P)
   eV_to_ergs = 1.60218e-12;
 
   heat_units = eV_to_ergs / H.cooling_units;
-  #ifdef RT  // BRANT UPDATE
+
+  // TODO(brant): Currently the RT implementation assumes a different
+  // set of units than the other Cholla modules, including the cooling
+  // units. The following unit change was added by Nick, and it's
+  // now been couched within an RT ifdef, whereas the original RT branch
+  // just directly implmemented the change and overwrote the original
+  // unit system. This needs to be resolved in the future.
+  #ifdef RT
   // reconcile units for RT, NG
   heat_units = eV_to_ergs * 1e-10 * H.time_units * H.density_units / MH / MH;
   #endif
