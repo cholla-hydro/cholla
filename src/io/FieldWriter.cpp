@@ -297,8 +297,6 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
   #endif
   T* dev_dataset_buf  = lazy_scratch_buf.get_buf_dev<T>(buffer_size);
   T* host_dataset_buf = lazy_scratch_buf.get_buf_host<T>(buffer_size);
-  // Real* dev_dataset_buf  = lazy_scratch_buf.get_buf_dev<T>(buffer_size);
-  // Real* host_dataset_buf = lazy_scratch_buf.get_buf_host<T>(buffer_size);
 
   // write out regular cell-centered fields
   for (const io::DatasetSpecEntry& cur_spec : dataset_spec.cc_dataset_entries) {

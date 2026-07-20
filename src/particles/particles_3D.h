@@ -56,8 +56,7 @@ class Particles3D
     Real Ha;       // Hubble parameter at initial redshift
   } CP;
 
-  /*! \fn void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real
-   * *zpos) \brief Get the cell-centered position based on cell index */
+  /*! \brief Get the cell-centered position based on cell index */
   void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real *zpos) const;
     #endif
 
@@ -301,10 +300,6 @@ class Particles3D
                                                       Real Omega_R, Real w0, Real wa);
   part_int_t Compute_Particles_GPU_Array_Size(part_int_t n);
   int Select_Particles_to_Transfer_GPU(int direction, int side);
-  // void Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, Real *send_buffer,
-  //                                           int buffer_length);
-  // void Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, int buffer_length);
-  // Real *Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, int buffer_length);
   Real *Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, int *buffer_length);
 
   void Replace_Transferred_Particles_GPU(int n_transfer);
