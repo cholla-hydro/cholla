@@ -214,7 +214,6 @@ Parameters::Parameters(ParameterMap &pmap)
   // in the future, maybe we should provide a default value of 5/3 for gamma
   parms->gamma = Real(pmap.value<double>("gamma"));
   CHOLLA_ASSERT(parms->gamma > 1.0, "gamma parameter must be greater than one.");
-  chprintf("Gamma = %f\n", parms->gamma);
 
   // load in a handful of string parameters (this would look a lot more like parsing other parameters if we
   // stored the values as std::string values)
@@ -367,14 +366,12 @@ Parameters::Parameters(ParameterMap &pmap)
   parms->T_init        = pmap.value_or("T_init", -1.0);
   parms->w0            = pmap.value_or("w0", -1.0);
   parms->wa            = pmap.value_or("wa", 0.0);
-  parms->seed          = pmap.value_or("seed", 1337);
+  parms->cosmoics_seed = pmap.value_or("cosmoics_eed", 1337);
   // Hydrogen, Helium ionization fractions and helium mass fraction
   parms->YHe  = pmap.value_or("YHe", 0.24);
   parms->xHp  = pmap.value_or("xHp", 0.0);
   parms->xHep = pmap.value_or("xHep", 0.0);
-  /*if (not pmap.has_param("cosmo_ics_pk_file")) {
-    CHOLLA_ERROR("Cosmology sims must specify a power spectrum cosmo_ics_pk_file");
-  }*/
+
   Load_String_Param_Into_Char_Buffer(pmap, "cosmo_ics_pk_file", parms->cosmo_ics_pk_file, "Pk.txt");
   if (pmap.has_param("cosmo_ics_pk_file")) {
     chprintf("Power spectrum file: %s\n", parms->cosmo_ics_pk_file);
@@ -395,7 +392,7 @@ Parameters::Parameters(ParameterMap &pmap)
 
   // number of RT iterations
 #ifdef RT
-  parms->num_iterations = pmap.value_or("num_iterations", 10);
+  parms->rt_num_iterations = pmap.value_or("rt_num_iterations", 10);
 #endif
 
   // we should probably revisit this section and come up with different default behaviors.

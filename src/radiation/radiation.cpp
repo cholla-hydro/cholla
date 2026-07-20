@@ -32,7 +32,7 @@ Rad3D::~Rad3D()
 
 void Rad3D::Initialize_Start(const Parameters& params)
 {
-  num_iterations = params.num_iterations;
+  num_iterations = params.rt_num_iterations;
 
   // allocate memory on the host
   #ifdef RT_OTVET

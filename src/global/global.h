@@ -233,7 +233,7 @@ struct Parameters {
   Real max_timestep_dexinc = 0;  // BRANT
   Real max_timestep        = 0;  // BRANT
   int n_steps_output;
-  Real gamma = 1.01;
+  Real gamma;
   char init[MAXLEN];
   int nfile;
   // At the moment, the following flag is only meaningful when GRAVITY and GRAVITY_ANALYTIC_COMP
@@ -322,7 +322,7 @@ struct Parameters {
   Real Init_redshift;
   Real End_redshift;
   Real T_init;
-  unsigned long long seed;  // Cosmological ICs seed
+  unsigned long long cosmoics_seed;  // Cosmological ICs seed
   char cosmo_ics_pk_file[MAXLEN];
   Real YHe;   // helium mass fraction
   Real xHp;   // hydrogen ionization fraction
@@ -340,10 +340,10 @@ struct Parameters {
   Real tile_length;
 #endif  // TILED_INITIAL_CONDITIONS
 
-  // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z] (if they aren't provided, they are set to 0)
-  int n_proc_x = 0;
-  int n_proc_y = 0;
-  int n_proc_z = 0;
+  // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z]
+  int n_proc_x;
+  int n_proc_y;
+  int n_proc_z;
 
   int bc_potential_type;
 #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
@@ -351,7 +351,7 @@ struct Parameters {
                                 // photoionization rates of HI, HeI and HeII
 #endif
 #ifdef RT
-  int num_iterations = 10;
+  int rt_num_iterations;
 #endif
   Real temperature_floor = 0;
   Real density_floor     = 0;

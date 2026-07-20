@@ -1,22 +1,22 @@
 #pragma once
 
-#ifndef RK_H
-  #define RK_H
-  #include <vector>
+/*! \file
+ *  \brief Defines \ref RKIntegrator
+ */
 
-  #include "../global/global.h"
+#include <vector>
 
-/*! \class RKIntegrator
- *  \brief Class for evolving coupled
+#include "../global/global.h"
+
+/*! \brief Class for evolving coupled
  *   differential equations using the
  *   Runga-Kutta method. */
 class RKIntegrator
 {
  public:
-  /*! \var int nrk
-   *  \brief Order of RK integrator */
-  const int nrk  = 7;
-  const int cols = 6;
+  /*! \brief Order of RK integrator */
+  static constexpr int nrk  = 7;
+  static constexpr int cols = 6;
   int ny;
 
   std::vector<Real> ai  = {0, 0, 0.2, 0.3, 0.6, 1.0, 0.875};
@@ -35,10 +35,17 @@ class RKIntegrator
    *  \brief Free RK integrator memory */
   void FreeMemory(void);
 
-  /*! \fn rk4_ode(std::vector<Real> (dydx)(Real x, std::vector<Real> y, std::vector<Real> params), Real x,
-   * std::vector<Real> y, Real *h, Real *hpass, std::vector<Real> params, std::vector<Real> &yp, Real *error)
-   * \brief Evolve the ODE system using the RK method */
+  /*! \brief Evolve the ODE system using the RK method.
+  *    dydx() returns the derivatives of y w.r.t. x.
+  *    h is a pointer to the current stepsize that actually
+  *    was executed and hpass is a pointer to the next stepsize
+  *    to take in the integration.  The updated values of the
+  *    y parameters are returned in yp. The errors associated
+  *    with each integration variable are returned in error. 
+  *    The params vector allows for other parameters required
+  *    for the integrator to be provided. None of the arguments
+  *    should be a null pointer. The sizes of the arrays are set
+  *    by the intialization routine InitializeRK().*/
   void rk4_ode(std::vector<Real>(dydx)(Real x, std::vector<Real> y, std::vector<Real> params), Real x,
                std::vector<Real> y, Real *h, Real *hpass, std::vector<Real> params, std::vector<Real> &yp, Real *error);
 };
-#endif  // RK_H

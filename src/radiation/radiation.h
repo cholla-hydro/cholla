@@ -92,7 +92,7 @@ class Rad3D
   rt_photo_rates_csi::TableWrapperGPU *photoRates;
   const Header &grid;
 
-  Rad3D(const Header &grid_);
+  explicit Rad3D(const Header &grid_);
   ~Rad3D();
 
   void Initialize_Start(const Parameters &params);
