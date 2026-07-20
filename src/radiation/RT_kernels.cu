@@ -618,6 +618,10 @@ void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* 
   }
 }
 
+  // TODO(brant): We've kept this from Altair for testing the RT
+  // branch, and will remove these comments once we have finished
+  // the relevant RT implementation.
+
   /* From Altair
 
   //
