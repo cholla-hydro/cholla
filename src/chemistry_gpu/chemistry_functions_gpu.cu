@@ -425,10 +425,17 @@ __device__ Real Get_Chemistry_dt(Thermal_State &TS, ChemistryHeader &Chem_H, Rea
   #endif
 
   energy = fmax(TS.U * TS.d, tiny);
+
+  // TODO(brant): Currently much of the code base treats the
+  // electron density as a quantity that is independent of the
+  // ionization state of H and He. The RT code implementation
+  // assumes they are not independent (no metals) currently,
+  // and for exact testing against Altair, we've removed the
+  // time stepping based on the electron density.
   #ifndef RT
-  dt = fmin(fabs(0.1 * TS.d_HI / HI_dot), fabs(0.1 * TS.d_e / e_dot));  // BRANT EDIT
+  dt = fmin(fabs(0.1 * TS.d_HI / HI_dot), fabs(0.1 * TS.d_e / e_dot));
   #else
-  dt = fabs(0.1 * TS.d_HI / HI_dot);  // BRANT EDIT
+  dt = fabs(0.1 * TS.d_HI / HI_dot);
   #endif
   dt = fmin(fabs(0.1 * energy / U_dot), dt);
   dt = fmin(0.5 * dt_hydro, dt);

@@ -377,7 +377,7 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
 
     // loop over the number of radiation fields
     #ifdef RT_OTVET
-  const char* rt_dset_names[7] = {"/intensity", "/rf_HI_near", "/rf_HeI_near", "/rf_HeII_near",
+  const char* rt_dset_names[7] = {"/rf_intensity", "/rf_HI_near", "/rf_HeI_near", "/rf_HeII_near",
                                   "/rf_HI_far", "/rf_HeI_far", "/rf_HeII_far"};
     #endif
     #ifdef RT_M1
