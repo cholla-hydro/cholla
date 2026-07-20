@@ -8,7 +8,7 @@
 #include "../utils/error_handling.h"
 
 // Initialize the RK integrator
-void RKIntegrator::InitializeRK(int ny_in)
+RKIntegrator::RKIntegrator(int ny_in)
 {
   // integer
   ny = ny_in;
@@ -17,6 +17,11 @@ void RKIntegrator::InitializeRK(int ny_in)
   yi.resize(ny);
   yprime.resize(ny);
   error.resize(ny);
+
+  int i, j;
+  for(i = 0; i < 7; i++)
+    for(j = 0; j < 6; j++)
+      bij[i][j] = 0;
 
   // initialize bij
   bij[2][1] = 0.2;
@@ -36,25 +41,6 @@ void RKIntegrator::InitializeRK(int ny_in)
   bij[6][5] = 253. / 4096.;
 }
 
-// Free RK integrator memory
-void RKIntegrator::FreeMemory(void)
-{
-  ai.clear();
-  ci.clear();
-  csi.clear();
-  bij.clear();
-  yi.clear();
-  yprime.clear();
-  error.clear();
-
-  ai.shrink_to_fit();
-  ci.shrink_to_fit();
-  csi.shrink_to_fit();
-  bij.shrink_to_fit();
-  yi.shrink_to_fit();
-  yprime.shrink_to_fit();
-  error.shrink_to_fit();
-}
 
 void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y, std::vector<Real> params), Real x,
                            std::vector<Real> y, Real *h_this, Real *h_pass, std::vector<Real> params,

@@ -206,9 +206,9 @@ Parameters::Parameters(ParameterMap &pmap)
   CHOLLA_ASSERT(parms->tout >= 0.0, "tout parameter must be non-negative");
 
   parms->outstep             = pmap.value<double>("outstep");                          // aborts if missing
-  parms->outstep_dexinc      = Real(pmap.value_or("outstep_dexinc", double(0)));       // BRANT
-  parms->max_timestep_dexinc = Real(pmap.value_or("max_timestep_dexinc", double(0)));  // BRANT
-  parms->max_timestep        = Real(pmap.value_or("max_timestep", double(0)));         // BRANT
+  parms->outstep_dexinc      = Real(pmap.value_or("outstep_dexinc", 0.0));       // BRANT
+  parms->max_timestep_dexinc = Real(pmap.value_or("max_timestep_dexinc", 0.0));  // BRANT
+  parms->max_timestep        = Real(pmap.value_or("max_timestep", 0.0));         // BRANT
   parms->n_steps_output      = pmap.value_or("n_steps_output", 0);
 
   // in the future, maybe we should provide a default value of 5/3 for gamma
@@ -369,8 +369,8 @@ Parameters::Parameters(ParameterMap &pmap)
   parms->cosmoics_seed = pmap.value_or("cosmoics_eed", 1337);
   // Hydrogen, Helium ionization fractions and helium mass fraction
   parms->YHe  = pmap.value_or("YHe", 0.24);
-  parms->xHp  = pmap.value_or("xHp", 0.0);
-  parms->xHep = pmap.value_or("xHep", 0.0);
+  parms->xHp_ion_init  = pmap.value_or("xHp_ion_init", 0.0);
+  parms->xHep_ion_init = pmap.value_or("xHep_ion_init", 0.0);
 
   Load_String_Param_Into_Char_Buffer(pmap, "cosmo_ics_pk_file", parms->cosmo_ics_pk_file, "Pk.txt");
   if (pmap.has_param("cosmo_ics_pk_file")) {

@@ -1696,8 +1696,8 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   Real dx, dy, dz;        // cell sizes
   Real xi_x, xi_y, xi_z;  // particle offsets
 
-  Real xHp  = P.xHp;   // hydrogen ionization fraction
-  Real xHep = P.xHep;  // helium ionization fraction
+  Real xHp  = P.xHp_ion_init;   // hydrogen ionization fraction
+  Real xHep = P.xHep_ion_init;  // helium ionization fraction
   Real YHe  = P.YHe;   // helium mass fraction
 
   H0 = P.H0;

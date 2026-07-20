@@ -333,8 +333,8 @@ struct Parameters {
   unsigned long long cosmoics_seed;  // Cosmological ICs seed
   char cosmo_ics_pk_file[MAXLEN];
   Real YHe;   // helium mass fraction
-  Real xHp;   // hydrogen ionization fraction
-  Real xHep;  // helium ionization fraction
+  Real xHp_ion_init;   // hydrogen ionization fraction
+  Real xHep_ion_init;  // helium ionization fraction
 
   std::string wDE_file;  // File with equation of state as function of redshift
 

@@ -34,11 +34,11 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   Chem.H.Temp_end    = 1000000000.0;
 
   if (Chem.H.H_fraction == 0) {
+    if(P->YHe != 0) {
+      CHOLLA_ERROR("About to initialize Chem.H.H_fraction incorrectly (P->YHe = %e)",P->YHe);
+    }
     Chem.H.H_fraction = INITIAL_FRACTION_HI + INITIAL_FRACTION_HII;
   }
-  // #ifdef RT // BRANT ALTER -- this likely needs to be set elsewhere
-  // Chem.H.H_fraction = 1.;
-  // #endif
 
   #ifdef COSMOLOGY
   Chem.H.H0      = P->H0;
@@ -60,7 +60,13 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   Chem.H.density_units = dens_to_CGS;
   Chem.H.length_units  = kpc_cgs;
   Chem.H.time_units    = kpc_km;
-  #ifdef RT  // BRANT UPDATE
+  #ifdef RT
+  // TODO(brant): Currently the RT implementation assumes a different
+  // set of units than the other Cholla modules, including the cooling
+  // units.  The following unit change was added by Nick, and have
+  // been couched within an RT ifdef, whereas the original RT branch
+  // just directly implmemented the change and overwrote the original
+  // unit system. This needs to be resolved in the future.
   Chem.H.time_units = TIME_UNIT;
   #endif
   Chem.H.dens_number_conv = Chem.H.density_units / MH;
@@ -82,7 +88,13 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
 
   time_base            = Chem.H.time_units;
   Chem.H.cooling_units = (pow(length_base, 2) * pow(MH, 2)) / (dens_base * pow(time_base, 3));
-  #ifdef RT  // BRANT UPDATE
+  #ifdef RT  
+  // TODO(brant): Currently the RT implementation assumes a different
+  // set of units than the other Cholla modules, including the cooling
+  // units.  The following two comments are original to Nick, and have
+  // been couched within an RT ifdef, whereas the original RT branch
+  // just directly implmemented the change and overwrote the original
+  // unit system. This needs to be resolved in the future.
   /// Chem.H.cooling_units   = ( pow(length_base, 2) * pow(MH, 2) ) / ( dens_base * pow(time_base, 3) ); NG 221127 -
   /// this is incorrect
   Chem.H.cooling_units = 1.0e10 * MH * MH / (dens_base * time_base);  // NG 221127 - fixed
@@ -106,7 +118,13 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   Chem.H.density_conversion = 1.0;
   Chem.H.energy_conversion  = 1.0;
   #endif
-  #ifdef RT  // BRANT UPDATE
+  #ifdef RT
+  // TODO(brant): Currently the RT implementation assumes a different
+  // set of units than the other Cholla modules, including the cooling
+  // units. The following two unit changes were added by Nick, and have
+  // been couched within an RT ifdef, whereas the original RT branch
+  // just directly implmemented the change and overwrote the original
+  // unit system. This needs to be resolved in the future.
   Chem.H.density_conversion = DENSITY_UNIT;
   Chem.H.energy_conversion  = ENERGY_UNIT / DENSITY_UNIT;  // NG: this is energy per unit mass
   #endif

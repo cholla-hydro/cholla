@@ -19,21 +19,18 @@ class RKIntegrator
   static constexpr int cols = 6;
   int ny;
 
-  std::vector<Real> ai  = {0, 0, 0.2, 0.3, 0.6, 1.0, 0.875};
-  std::vector<Real> ci  = {0, 37. / 378., 0, 250. / 621., 125. / 594., 0, 512. / 1771.};
-  std::vector<Real> csi = {0, 2825. / 27648, 0, 18575. / 48384, 13525. / 55296., 277. / 14336., 0.25};
-  std::vector<std::vector<Real>> bij{7, std::vector<Real>(6, 0)};
+  Real ai[nrk]  = {0, 0, 0.2, 0.3, 0.6, 1.0, 0.875};
+  Real ci[nrk]  = {0, 37. / 378., 0, 250. / 621., 125. / 594., 0, 512. / 1771.};
+  Real csi[nrk] = {0, 2825. / 27648, 0, 18575. / 48384, 13525. / 55296., 277. / 14336., 0.25};
+  Real bij[nrk][cols];
   std::vector<Real> yi;
   std::vector<Real> yprime;
   std::vector<Real> error;
 
-  /*! \fn void InitializeRK(int ny_in)
-   *  \brief Initialize Runga-Kutta integrator */
-  void InitializeRK(int ny_in);
+  RKIntegrator() = delete; // ensure that instances are always fully initialized
 
-  /*! \fn void FreeMemory(void)
-   *  \brief Free RK integrator memory */
-  void FreeMemory(void);
+  /*! \brief Constructor */
+  explicit RKIntegrator(int ny_in);
 
   /*! \brief Evolve the ODE system using the RK method.
    *    dydx() returns the derivatives of y w.r.t. x.
