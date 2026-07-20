@@ -267,8 +267,10 @@ int main(int argc, char *argv[])
   mhd::checkMagneticDivergence(G);
 #endif  // MHD
 
+#ifdef RT
   // increment the next output time
   outtime += outstep;
+#endif //RT
 
 #ifdef CPU_TIME
   stop_init = Get_Time();
@@ -420,6 +422,7 @@ int main(int argc, char *argv[])
       // add one to the output file count
       nfile++;
 #endif  // OUTPUT
+#ifdef RT
       if (G.H.t == outtime) {
         // update to the next output time, for logarithmic stepping
         if (P.outstep_dexinc != 0) outstep *= pow(10.0, P.outstep_dexinc);
@@ -427,6 +430,7 @@ int main(int argc, char *argv[])
         outtime += outstep;  // update to the next output time
         outtime = std::fmin(outtime + P.outstep, P.tout);  // get the next output time
       }
+#endif //RT
     }
 
 #ifdef CPU_TIME
