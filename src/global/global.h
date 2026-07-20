@@ -233,7 +233,7 @@ struct Parameters {
   // maximum timestep items control
   // the output times for certain RT
   // tests. These can be revised out
-  // of the code and should be 
+  // of the code and should be
   // considered temporary.
   double outstep;
   Real outstep_dexinc;
@@ -332,7 +332,7 @@ struct Parameters {
   Real T_init;
   unsigned long long cosmoics_seed;  // Cosmological ICs seed
   char cosmo_ics_pk_file[MAXLEN];
-  Real YHe;   // helium mass fraction
+  Real YHe;            // helium mass fraction
   Real xHp_ion_init;   // hydrogen ionization fraction
   Real xHep_ion_init;  // helium ionization fraction
 
