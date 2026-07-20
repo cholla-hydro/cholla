@@ -228,10 +228,18 @@ struct Parameters {
   int ny;
   int nz;
   double tout;
+
+  // The following output time and
+  // maximum timestep items control
+  // the output times for certain RT
+  // tests. These can be revised out
+  // of the code and should be 
+  // considered temporary.
   double outstep;
-  Real outstep_dexinc      = 0;  // BRANT
-  Real max_timestep_dexinc = 0;  // BRANT
-  Real max_timestep        = 0;  // BRANT
+  Real outstep_dexinc;
+  Real max_timestep_dexinc;
+  Real max_timestep;
+
   int n_steps_output;
   Real gamma;
   char init[MAXLEN];
