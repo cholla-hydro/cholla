@@ -441,7 +441,6 @@ __device__ Real Get_Chemistry_dt(Thermal_State &TS, ChemistryHeader &Chem_H, Rea
   dt = fmin(0.5 * dt_hydro, dt);
   dt = fmin(dt_hydro - t_chem, dt);
 
-
   // TODO(brant): The following comments are part of
   // RT + chemistry testing and can be removed after
   // the RT is validated.

@@ -19,9 +19,8 @@ RKIntegrator::RKIntegrator(int ny_in)
   error.resize(ny);
 
   int i, j;
-  for(i = 0; i < 7; i++)
-    for(j = 0; j < 6; j++)
-      bij[i][j] = 0;
+  for (i = 0; i < 7; i++)
+    for (j = 0; j < 6; j++) bij[i][j] = 0;
 
   // initialize bij
   bij[2][1] = 0.2;
@@ -40,7 +39,6 @@ RKIntegrator::RKIntegrator(int ny_in)
   bij[6][4] = 44275. / 110592.;
   bij[6][5] = 253. / 4096.;
 }
-
 
 void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y, std::vector<Real> params), Real x,
                            std::vector<Real> y, Real *h_this, Real *h_pass, std::vector<Real> params,

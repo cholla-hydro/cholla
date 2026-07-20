@@ -1698,7 +1698,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
   Real xHp  = P.xHp_ion_init;   // hydrogen ionization fraction
   Real xHep = P.xHep_ion_init;  // helium ionization fraction
-  Real YHe  = P.YHe;   // helium mass fraction
+  Real YHe  = P.YHe;            // helium mass fraction
 
   H0 = P.H0;
   h  = H0 / 100;

@@ -202,7 +202,7 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
   std::vector<Real> yp(ny, 0);
 
   RKIntegrator RK(3);  // initialize coupled system with 3 variables
-  
+
   std::vector<Real> y;
 
   Real H0 = P->H0;

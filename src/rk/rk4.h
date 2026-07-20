@@ -27,7 +27,7 @@ class RKIntegrator
   std::vector<Real> yprime;
   std::vector<Real> error;
 
-  RKIntegrator() = delete; // ensure that instances are always fully initialized
+  RKIntegrator() = delete;  // ensure that instances are always fully initialized
 
   /*! \brief Constructor */
   explicit RKIntegrator(int ny_in);

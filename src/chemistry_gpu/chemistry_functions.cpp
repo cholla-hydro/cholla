@@ -34,8 +34,8 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   Chem.H.Temp_end    = 1000000000.0;
 
   if (Chem.H.H_fraction == 0) {
-    if(P->YHe != 0) {
-      CHOLLA_ERROR("About to initialize Chem.H.H_fraction incorrectly (P->YHe = %e)",P->YHe);
+    if (P->YHe != 0) {
+      CHOLLA_ERROR("About to initialize Chem.H.H_fraction incorrectly (P->YHe = %e)", P->YHe);
     }
     Chem.H.H_fraction = INITIAL_FRACTION_HI + INITIAL_FRACTION_HII;
   }
@@ -88,7 +88,7 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
 
   time_base            = Chem.H.time_units;
   Chem.H.cooling_units = (pow(length_base, 2) * pow(MH, 2)) / (dens_base * pow(time_base, 3));
-  #ifdef RT  
+  #ifdef RT
   // TODO(brant): Currently the RT implementation assumes a different
   // set of units than the other Cholla modules, including the cooling
   // units.  The following two comments are original to Nick, and have
