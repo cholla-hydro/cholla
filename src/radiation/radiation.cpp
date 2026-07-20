@@ -122,7 +122,7 @@ void Rad3D::rtBoundaries(void)
   MPI_Status status;
 
   // Send MPI x-boundaries
-  if (flags[0] == 5) {  
+  if (flags[0] == 5) {
     // For RT_M1, the buffer loading routines need
     // to be edited or re-written for correctness
     buffer_length = Load_RT_Fields_To_Buffer(0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, n_fpfreq, n_freq, rtFields,

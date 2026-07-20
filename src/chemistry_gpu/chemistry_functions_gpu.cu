@@ -4,11 +4,10 @@
   #include "../grid/grid_enum.h"
   #include "../hydro/hydro_cuda.h"
   #include "../io/io.h"
+  #include "../radiation/alt/static_table_gpu.cuh"
   #include "chemistry_gpu.h"
   #include "rates.cuh"
   #include "rates_Katz95.cuh"
-  #include "../radiation/alt/static_table_gpu.cuh"
-  
 
   #define eV_to_K 1.160451812e4
   #define K_to_eV 8.617333263e-5
@@ -125,7 +124,7 @@ __device__ Real Get_Cooling_Rates(Thermal_State &TS, ChemistryHeader &Chem_H, Re
 {
   int temp_indx;
   Real temp, delta_T, U_dot;
-  temp         = TS.get_temperature(Chem_H.gamma);
+  temp = TS.get_temperature(Chem_H.gamma);
   if (print) {
     Real mu      = TS.get_MMW();
     Real d_HI    = TS.d_HI;

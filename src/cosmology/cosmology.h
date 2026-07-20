@@ -87,7 +87,7 @@ class Cosmology
   // and interpolation
   void Compute_Growth_Function(struct Parameters *P);
   void Create_Growth_Function_File(struct Parameters *P);
-  Real LinearInterpolation(const std::vector<Real>& x, const std::vector<Real>& y, Real a);
+  Real LinearInterpolation(const std::vector<Real> &x, const std::vector<Real> &y, Real a);
   Real D_Growth(Real a);
   Real dDdt_Growth(Real a);
   Real dDda_Growth(Real a);

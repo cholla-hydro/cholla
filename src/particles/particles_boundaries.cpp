@@ -220,9 +220,9 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
       recv_buffer_x0_particles        = d_recv_buffer_x0_particles;
       Particles.G.recv_buffer_x0_d    = d_recv_buffer_x0_particles;
       Particles.G.recv_buffer_size_x0 = (part_int_t)(Particles.G.gpu_allocation_factor * buffer_length);
-      //printf("Before recv procID %d set x0 buffer_length = %d recv_buffer_size_x0 %d\n", procID, buffer_length,
-      //       Particles.G.recv_buffer_size_x0);
-      //fflush(stdout);
+      // printf("Before recv procID %d set x0 buffer_length = %d recv_buffer_size_x0 %d\n", procID, buffer_length,
+      //        Particles.G.recv_buffer_size_x0);
+      // fflush(stdout);
     }
       #else
     Check_and_Grow_Particles_Buffer(&recv_buffer_x0_particles, &buffer_length_particles_x0_recv, buffer_length);
@@ -874,8 +874,7 @@ Real *Particles3D::Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int dir
         (*n_send + n_transfer) * N_DATA_PER_PARTICLE_TRANSFER, *buffer_size, G.gpu_allocation_factor);
     Extend_GPU_Array(&send_buffer_d, *buffer_size,
                      G.gpu_allocation_factor * (*n_send + n_transfer) * N_DATA_PER_PARTICLE_TRANSFER, true);
-    *buffer_size   = (part_int_t)(G.gpu_allocation_factor * (*n_send + n_transfer) *
-                                N_DATA_PER_PARTICLE_TRANSFER);
+    *buffer_size   = (part_int_t)(G.gpu_allocation_factor * (*n_send + n_transfer) * N_DATA_PER_PARTICLE_TRANSFER);
     *buffer_length = *buffer_size;
     // we have changed the send buffer pointers, and need to reinitialize them
     if ((direction == 0) && (side == 0)) G.send_buffer_x0_d = send_buffer_d;

@@ -62,8 +62,8 @@ int main(int argc, char *argv[])
   Real dt_max = 0.0;  // maximum allowed time step
 #ifdef RT
   // limit max time, added for RT tests
-  Real outstep;       // output timestep for RT
-#endif                // RT
+  Real outstep;  // output timestep for RT
+#endif           // RT
 
   // input parameter variables
   char *param_file;
@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
 
 #ifdef RT
   G.Rad.Initialize_Start(P);
-  outstep = P.outstep; // set the RT output step
+  outstep = P.outstep;  // set the RT output step
 #endif
 
   // Set initial conditions
@@ -270,7 +270,7 @@ int main(int argc, char *argv[])
 #ifdef RT
   // increment the next output time
   outtime += outstep;
-#endif //RT
+#endif  // RT
 
 #ifdef CPU_TIME
   stop_init = Get_Time();
@@ -427,10 +427,10 @@ int main(int argc, char *argv[])
         // update to the next output time, for logarithmic stepping
         if (P.outstep_dexinc != 0) outstep *= pow(10.0, P.outstep_dexinc);
 
-        outtime += outstep;  // update to the next output time
+        outtime += outstep;                                // update to the next output time
         outtime = std::fmin(outtime + P.outstep, P.tout);  // get the next output time
       }
-#endif //RT
+#endif  // RT
     }
 
 #ifdef CPU_TIME
