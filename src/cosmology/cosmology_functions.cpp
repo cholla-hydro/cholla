@@ -266,9 +266,6 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
     D_array.push_back(y_n[1]);
     dDdt_array.push_back(y_n[2]);
   }
-
-  // free the RK integrator memory
-  RK.FreeMemory();
 }
 
 // function to perform linear interpolation on vectors
