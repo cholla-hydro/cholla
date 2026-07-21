@@ -123,6 +123,10 @@ class Rad3D
   void Write_Restart_HDF5(Parameters *P, int nfile, const FnameTemplate &fname_template);
   herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, int *attribute, const char *name);
   herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, double *attribute, const char *name);
+
+  void Load_Outputs(struct Parameters *P, Real current_time);
+  void Set_Outputs(struct Parameters *P);
+  void Set_Next_Output();
   #endif
 
   void rtBoundaries();

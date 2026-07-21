@@ -363,6 +363,7 @@ struct Parameters {
 #endif
 #ifdef RT
   int rt_num_iterations;
+  char rt_outputs_file[MAXLEN];
 #endif
   Real temperature_floor = 0;
   Real density_floor     = 0;
