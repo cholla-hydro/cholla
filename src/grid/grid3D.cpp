@@ -695,10 +695,6 @@ void Grid3D::FreeMemory(void)
   Cool.Free_Memory();
 #endif
 
-#ifdef RT
-  Rad.Free_Memory();
-#endif
-
 #ifdef CHEMISTRY_GPU
   Chem.Reset();
 #endif

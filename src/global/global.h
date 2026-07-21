@@ -319,6 +319,10 @@ struct Parameters {
   // machine dependent seed will be generated.
   std::uint_fast64_t prng_seed = 0;
 #endif  // PARTICLES
+
+#ifdef CHEMISTRY_GPU
+  Real YHe;
+#endif
 #ifdef COSMOLOGY
   Real H0;
   Real Omega_M;

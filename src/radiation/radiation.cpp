@@ -137,7 +137,7 @@ void Rad3D::rtBoundaries(void)
   int i;
   for (i = 0; i < 6; i++) {
     if ((flags[i] != 5) and (flags[i] != 1)) {
-      CHOLLA_ERROR("RT implementation requires periodic boundaries.\n")
+      CHOLLA_ERROR("RT implementation requires periodic boundaries.\n");
     }
   }
 
