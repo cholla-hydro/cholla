@@ -161,11 +161,11 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
 #else
     d_metals = solar_metal_mass_frac * d;
 #endif
-if (xid == is && yid == js && zid == ks) {
-    printf("n_cells = %d, n_fields = %d\n", n_cells, n_fields);
-    printf("d = %e\n", dev_conserved[id]);
-    printf("d_metals = %e\n", dev_conserved[grid_enum::metal_density * n_cells + id]);
-}
+// if (xid == is && yid == js && zid == ks) {
+//     printf("n_cells = %d, n_fields = %d\n", n_cells, n_fields);
+//     printf("d = %e\n", dev_conserved[id]);
+//     printf("d_metals = %e\n", dev_conserved[grid_enum::metal_density * n_cells + id]);
+// }
 #ifdef DE
     ge = dev_conserved[(n_fields - 1) * n_cells + id] / d;
     ge = fmax(ge, (Real)TINY_NUMBER);
@@ -201,6 +201,10 @@ if (xid == is && yid == js && zid == ks) {
 
     // calculate change in temperature given dt
     del_T = cool * dt * TIME_UNIT * (gamma - 1.0) / (n * KB);
+
+    if (xid == is && yid == js && zid == ks) {
+      printf("cool = %e, del_T = %e", cool, del_T);
+    }
 
     // limit change in temperature to 1% (we use fabs for when heating dominates)
     while (fabs(del_T / T) > 0.01) {
@@ -286,8 +290,8 @@ class CoolRecipeMetals
   __device__ Real cool_rate(Real n_H, Real n_He, Real T, Real metallicity) const 
   { 
     // compute cooling per unit volume for just primordial components
-    Real cool_primordial = cool_component::primordial_cool(n_H, n_He, T);
-
+    Real cool_primordial = cool_component::primordial_cool(n_H, n_He, T) * n_H * n_H;
+    // printf("cool_primordial = %e\n", cool_primordial);
     // get cooling per unit volume of metals if cell had solar metallicty
     // Real cool_metal = n_H * n_H * cool_component::analytic_cie_lambda(log10(T));     
     Real cool_metal = net_cloudy_(n_H, T);  
@@ -297,7 +301,7 @@ class CoolRecipeMetals
     Real cool_metal_if_solar = fmax(cool_metal - cool_primordial, 0.0); 
    
     Real cool_total = cool_primordial + cool_metal_if_solar * metallicity;
-
+    // printf("cool_tot = %e\n", cool_total);
     return fmax(cool_total, 0.0);
   }
 };

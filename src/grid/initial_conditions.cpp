@@ -1329,7 +1329,7 @@ void Grid3D::Clouds(ParameterMap &pmap)
   Real p_bg, p_cl;       // background and cloud pressure
   Real mu   = 0.6;       // mean atomic weight
   int N_cl  = 1;         // number of clouds
-  Real R_cl = 2.5;       // cloud radius in code units (kpc)
+  Real R_cl = 0.02;       // cloud radius in code units (kpc)
   Real cl_pos[N_cl][3];  // array of cloud positions
   Real r;
 
@@ -1353,8 +1353,8 @@ void Grid3D::Clouds(ParameterMap &pmap)
     printf("Cloud positions: %f %f %f\n", cl_pos[nn][0], cl_pos[nn][1], cl_pos[nn][2]);
   }
 
-  n_bg   = 1.68e-4;
-  n_cl   = 5.4e-2;
+  n_bg   = 1.0;
+  n_cl   = 1.0e-2;
   rho_bg = n_bg * mu * MP / DENSITY_UNIT;
   rho_cl = n_cl * mu * MP / DENSITY_UNIT;
   vx_bg  = 0.0;
@@ -1401,7 +1401,7 @@ void Grid3D::Clouds(ParameterMap &pmap)
         C.momentum_z[id] = rho_bg * vz_bg;
         C.Energy[id]     = p_bg / (gama - 1.0) + 0.5 * rho_bg * (vx_bg * vx_bg + vy_bg * vy_bg + vz_bg * vz_bg);
 #ifdef METALS
-        C.metal_density[id] = metallicity_wind * SOLAR_METAL_MASS_FRAC * rho_bg;
+        C.host[id + H.n_cells * grid_enum::metal_density] = metallicity_wind + SOLAR_METAL_MASS_FRAC * rho_bg;
 #endif
 #ifdef DE
         C.GasEnergy[id] = p_bg / (gama - 1.0);
@@ -1423,7 +1423,7 @@ void Grid3D::Clouds(ParameterMap &pmap)
             C.momentum_z[id] = rho_cl * vz_cl;
             C.Energy[id]     = p_cl / (gama - 1.0) + 0.5 * rho_cl * (vx_cl * vx_cl + vy_cl * vy_cl + vz_cl * vz_cl);
 #ifdef METALS
-            C.metal_density[id] = metallicity_cloud * SOLAR_METAL_MASS_FRAC * rho_cl;
+            C.host[id + H.n_cells * grid_enum::metal_density] = metallicity_cloud + SOLAR_METAL_MASS_FRAC * rho_cl;
 #endif
 #ifdef DE
             C.GasEnergy[id] = p_cl / (gama - 1.0);
