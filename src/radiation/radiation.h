@@ -59,6 +59,12 @@ class Rad3D
   // prefactor for the far field source (q*<kF> in nedin2014)
   Real rsFarFactor = 0;  // the default value is used in tests
 
+  int n_outputs;
+  int next_output_indx;
+  real_vector_t rt_outputs;
+  Real next_output;
+  bool exit_now;
+
   struct RT_Fields {
     // pointers to radiation fields on the host and device (including the OT field - packed together for chemistry
     // update)
@@ -96,7 +102,7 @@ class Rad3D
   ~Rad3D();
 
   void Initialize_Start(const Parameters &params);
-  void Initialize_Finish();
+  void Initialize_Finish(const Parameters& params, Real current_time);
   void Initialize_GPU();
 
   #ifdef GRAVITY
@@ -124,8 +130,8 @@ class Rad3D
   herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, int *attribute, const char *name);
   herr_t Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, double *attribute, const char *name);
 
-  void Load_Outputs(struct Parameters *P, Real current_time);
-  void Set_Outputs(struct Parameters *P);
+  void Load_Outputs(const Parameters& P, Real current_time);
+  void Set_Outputs(const Parameters& P, Real current_time);
   void Set_Next_Output();
   #endif
 

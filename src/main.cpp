@@ -158,7 +158,11 @@ int main(int argc, char *argv[])
   }
 
 #ifdef RT
-  G.Rad.Initialize_Finish();
+  #ifdef COSMOLOGY
+  G.Rad.Initialize_Finish(P, G.C.current_a);
+  #else 
+  G.Rad.Initialize_Finish(P, G.H.t);
+  #endif  
 #endif
 
 #ifdef DE
@@ -270,12 +274,11 @@ int main(int argc, char *argv[])
   mhd::checkMagneticDivergence(G);
 #endif  // MHD
 
-/*
+
 #ifdef RT
   // increment the next output time
-  outtime += outstep;
+  outtime = (outtime > 0 ? fmin(outtime, G.Rad.next_output) : G.Rad.next_output);
 #endif  // RT
-*/
 
 #ifdef CPU_TIME
   stop_init = Get_Time();
@@ -305,6 +308,7 @@ int main(int argc, char *argv[])
   }
 
   while (G.H.t < P.tout) {
+
 // get the start time
 #ifdef CPU_TIME
     G.Timer.Total.Start();
@@ -326,15 +330,6 @@ int main(int argc, char *argv[])
     if (G.H.t + G.H.dt > next_scheduled_time) {
       G.H.dt = next_scheduled_time - G.H.t;
     }
-
-/*
-#ifdef RT
-    // update the log timestep // BRANT
-    if (P.max_timestep_dexinc != 0) {
-      dt_max *= pow(10.0, P.max_timestep_dexinc);
-    }
-#endif  // RT
-*/
 
 #ifdef PARTICLES
     // Advance the particles KDK( first step ): Velocities are updated by 0.5*dt
@@ -422,6 +417,7 @@ int main(int argc, char *argv[])
     // if ( P.n_steps_output > 0 && G.H.n_step % P.n_steps_output == 0)
     // G.H.Output_Now = true;
 
+    chprintf("CHECK: G.H.t %e outtime %e RT.next_output %e Output_Now %d\n",G.H.t,outtime,G.Rad.next_output,G.H.Output_Now);
     if (G.H.t == outtime || G.H.Output_Now) {
 #ifdef OUTPUT
       /*output the grid data*/
@@ -430,17 +426,17 @@ int main(int argc, char *argv[])
       nfile++;
 #endif  // OUTPUT
 
-/*
+
 #ifdef RT
+      /*
       if (G.H.t == outtime) {
         // update to the next output time, for logarithmic stepping
         if (P.outstep_dexinc != 0) outstep *= pow(10.0, P.outstep_dexinc);
 
         outtime += outstep;                                // update to the next output time
         outtime = std::fmin(outtime + P.outstep, P.tout);  // get the next output time
-      }
+      }*/
 #endif  // RT
-*/
     }
 
 #ifdef CPU_TIME
@@ -459,6 +455,14 @@ int main(int argc, char *argv[])
     // Exit the loop when reached the last scale_factor output
     if (G.Cosmo.exit_now) {
       chprintf("\nReached Last Cosmological Output: Ending Simulation\n");
+      break;
+    }
+#endif
+
+#ifdef RT
+    // Exit the loop when reached the last rt time output
+    if(G.Rad.exit_now) {
+      chprintf("\nRT: Reached Last RT Output: Ending Simulation\n");
       break;
     }
 #endif

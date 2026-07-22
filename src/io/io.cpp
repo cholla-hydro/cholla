@@ -145,6 +145,11 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
   G.H.Output_Now = false;
 #endif
 
+#ifdef RT
+  // Set the next RT output
+  G.Rad.Set_Next_Output();
+#endif
+
 #ifdef HDF5
   // Cleanup HDF5
   H5close();

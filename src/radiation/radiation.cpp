@@ -77,7 +77,7 @@ void Rad3D::Initialize_Start(const Parameters& params)
 }
 
 // function to do various initialization tasks, i.e. allocating memory, etc.
-void Rad3D::Initialize_Finish()
+void Rad3D::Initialize_Finish(const Parameters& params, Real current_time)
 {
   #ifdef RT_OTVET
   int eqn_mode = 2;  // Updating to 4
@@ -112,6 +112,9 @@ void Rad3D::Initialize_Finish()
 
   // Initialize Field values (for now)
   this->Initialize_GPU();
+
+  // Set the RT output times
+  Set_Outputs(params, current_time);
 }
 
 // function to call the radiation solver from main
