@@ -119,6 +119,24 @@ Real Grid3D::Calc_Inverse_Timestep()
   return Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells, H.dx, H.dy, H.dz, gama);
 }
 
+/*! \brief Update the next snapshot output time */
+Real Grid3D::Update_Output_Time(Real outtime_in, const Parameters &P)
+{
+  Real outtime = outtime_in; // current output time
+
+  // increment by the default outstep
+  outtime += P.outstep;
+
+  // allow for other routines to alter
+#ifdef RT
+  // increment to the next RT output time
+  outtime = fmax(outtime, Rad.next_output);
+#endif  // RT
+
+  return outtime; // return the next output time
+}
+
+
 /*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
  *  \brief Initialize the grid. */
 void Grid3D::Initialize(struct Parameters *P)

@@ -274,12 +274,7 @@ int main(int argc, char *argv[])
 #endif  // MHD
 
   // increment the next output time
-  outtime += P.outstep;
-
-#ifdef RT
-  // increment the next output time
-  outtime = (outtime > 0 ? fmin(outtime, G.Rad.next_output) : G.Rad.next_output);
-#endif  // RT
+  outtime = G.Update_Output_Time(outtime, P);
 
 #ifdef CPU_TIME
   stop_init = Get_Time();
@@ -428,7 +423,9 @@ int main(int argc, char *argv[])
 #endif  // OUTPUT
 
       if (G.H.t == outtime) {
-        outtime = std::fmin(outtime + P.outstep, P.tout);  // update to the next output time
+        // increment the next output time
+        outtime = G.Update_Output_Time(outtime, P);
+        outtime = std::fmin(outtime, P.tout);
       }
 
     }

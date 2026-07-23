@@ -407,6 +407,9 @@ class Grid3D
 
   Real Calc_Inverse_Timestep();
 
+  /*! \brief Update the next snapshot output time */
+  Real Update_Output_Time(Real outtime, const Parameters &P);
+
   /*! \fn void Set_Domain_Properties(struct Parameters P)
    *  \brief Set local domain properties */
   void Set_Domain_Properties(struct Parameters P);
