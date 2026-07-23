@@ -118,10 +118,15 @@ void Rad3D::Initialize_Finish(const Parameters& params, Real current_time)
 }
 
 // function to call the radiation solver from main
-void Grid3D::Update_RT()
+void Grid3D::Update_RT(Real *dt_max, const Parameters& P)
 {
   // passes d_scalar as that is the pointer to the first abundance array, rho_HI
   Rad.rtSolve(C.d_scalar);
+
+  // update max logarithmic time increment
+  if (P.max_timestep_dexinc != 0) {
+    *dt_max *= pow(10.0, P.max_timestep_dexinc);
+  }
 }
 
 // Set boundary cells for radiation fields
