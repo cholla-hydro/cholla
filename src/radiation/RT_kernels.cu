@@ -569,6 +569,19 @@ if(ic>=orig && jc>=orig && kc>=orig && ic<nmax && jc<nmax && kc<nmax)
 void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* __restrict__ rfi,
                                Real* __restrict__ rfiOut, int deb)
 {
+
+  // Noting that here nx, ny, and nz contain 2*n_ghost cells plus the local grid dimensions
+  // the input rfi field contains the intensity, Mx, My, and Mz fields for one frequency
+  // the output rfiOut contains the clipped fields
+
+  // The fields should be ordered as:
+  // *intensity, *intensity_Mx, *intensity_My, and *intensity_Mz
+
+  // def_rfNew should be n_fpfreq * grid.n_cells, which
+  // represents the intensity and moments at each frequency
+
+  // Consider re-writing to follow normal GPU thread indexing throughout Cholla
+
   /*
   const int tid = threadIdx.x + blockIdx.x*blockDim.x;
   const int nc = nx - 2*n_ghost;
@@ -606,13 +619,12 @@ void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* 
     // const int idx = (ic-origx) + nout*(jc-origy+nout*(kc-origz));
     const int idx = ic + nx * (jc + ny * kc);
 
-    // rfiOut[idx] = rfi[ic+nx*(jc+ny*kc)];
     rfiOut[idx] = rfi[idx];
 
+    // Loop over the moment fields
     for (int m = 0; m < 3; m++) {
-      //          rfiOut[idx+(m+1)*nout3] = fminf(fmaxf(rfi[ic+nx*(jc+ny*kc)+nw3*(m+1)],
-      //                                               -rfi[ic+nx*(jc+ny*kc)]),
-      //                                                rfi[ic+nx*(jc+ny*kc)]);
+
+      // limit the moment fields to be greater than -intensity and less than the intensity
       rfiOut[idx + nw3 * (m + 1)] = fminf(fmaxf(rfi[idx + nw3 * (m + 1)], -rfi[idx]), rfi[idx]);
     }
   }
