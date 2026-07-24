@@ -95,9 +95,17 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
   rt_mode = 1;  // RT_M1
   #endif
 
-  hid_t attribute_id = H5Acreate(file_id, "rt_mode", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  hid_t attribute_id = H5Acreate(file_id, "rt_mode", H5T_NATIVE_INT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
   herr_t status      = H5Awrite(attribute_id, H5T_NATIVE_INT, &rt_mode);
   status             = H5Aclose(attribute_id);
+
+  attribute_id = H5Acreate(file_id, "n_ghost", H5T_NATIVE_INT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, &grid.n_ghost);
+  status       = H5Aclose(attribute_id);
+
+  attribute_id = H5Acreate(file_id, "n_rf", H5T_NATIVE_INT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, &n_rf);
+  status       = H5Aclose(attribute_id);
 
   status = H5Sclose(dataspace_id);
 
@@ -169,7 +177,7 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
   dims[0] = grid.n_cells;
 
   dataspace_id = H5Screate_simple(1, dims, NULL);
-  Write_HDF5_Dataset(file_id, dataspace_id, rtFields.rs, "/source");
+  Write_HDF5_Dataset(file_id, dataspace_id, rtFields.rs, "/sources");
   H5Sclose(dataspace_id);
 
   // Radiation fields
