@@ -79,6 +79,7 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
   hsize_t dims[1];
   int int_data[3];
   Real Real_data[3];
+  Real* rtptr;
 
   std::string filename = fname_template.format_fname(nfile, "_rt");
   hid_t file_id        = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -175,22 +176,43 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
 
   // Write source field
   dims[0] = grid.n_cells;
-
   dataspace_id = H5Screate_simple(1, dims, NULL);
-  Write_HDF5_Dataset(file_id, dataspace_id, rtFields.rs, "/sources");
+  Write_HDF5_Dataset(file_id, dataspace_id, rtFields.rs, "/rf_sources");
   H5Sclose(dataspace_id);
 
   // Radiation fields
+
 
   // Copy device to host
   GPU_Error_Check(cudaMemcpy(rtFields.rf, rtFields.dev_rf, n_rf * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
 
   // Write radiation fields
+  /*
   dims[0] = n_rf * grid.n_cells;
-
   dataspace_id = H5Screate_simple(1, dims, NULL);
   Write_HDF5_Dataset(file_id, dataspace_id, rtFields.rf, "/radiation");
   H5Sclose(dataspace_id);
+  */
+  
+    #ifdef RT_OTVET
+  const char* rt_dset_names[7] = {"/rf_intensity", "/rf_HI_near", "/rf_HeI_near", "/rf_HeII_near",
+                                  "/rf_HI_far",    "/rf_HeI_far", "/rf_HeII_far"};
+    #endif
+    #ifdef RT_M1
+  const char* rt_dset_names[16] = {"/rf_intensity", "/rf_intensity_Mx", "/rf_intensity_My", "/rf_intensity_Mz",
+                                   "/rf_HI",        "/rf_HI_Mx",        "/rf_HI_My",        "/rf_HI_Mz",
+                                   "/rf_HeI",       "/rf_HeI_Mx",       "/rf_HeI_My",       "/rf_HeI_Mz",
+                                   "/rf_HeII",      "/rf_HeII_Mx",      "/rf_HeII_My",      "/rf_HeII_Mz"};
+    #endif
+
+
+  dims[0] = grid.n_cells;
+  for (int n = 0; n < n_rf; n++) {
+    dataspace_id = H5Screate_simple(1, dims, NULL);
+    rtptr = &rtFields.rf[n * grid.n_cells];
+    Write_HDF5_Dataset(file_id, dataspace_id, rtptr, rt_dset_names[n]);
+    H5Sclose(dataspace_id);
+  }
 
   // close the file
   H5Fclose(file_id);

@@ -370,9 +370,9 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
   Real* rtptr = Rad.rtFields.dev_rs;
   if constexpr (ForceF32Output) {
     Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf,
-                        rtptr, "/source");
+                        rtptr, "/rf_sources");
   } else {
-    Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, rtptr, "/source");
+    Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, rtptr, "/rf_sources");
   }
 
     // loop over the number of radiation fields
