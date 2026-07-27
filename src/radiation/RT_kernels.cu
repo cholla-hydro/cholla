@@ -210,7 +210,7 @@ void __global__ Calc_Absorption_Kernel(int nx, int ny, int nz, Real dx, CrossSec
 
   #define PU(TT, I, J, K) rfNear[i + I + nx * (j + J + ny * (k + K))] * et##TT[i + I + nx * (j + J + ny * (k + K))]
   #define PV(TT, I, J, K) \
-    rfFar[i + I + nx * (j + J + ny * (k + K))] * (1.0f / 3.0f)  // et for the far field is unitary matrix/3
+    rfFar[i + I + nx * (j + J + ny * (k + K))] * (1.0F / 3.0F)  // et for the far field is unitary matrix/3
 
 void __global__ RT_OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real dx, bool lastIteration,
                                          const Real rsFarFactor, const Real* __restrict__ rs,
@@ -253,8 +253,8 @@ void __global__ RT_OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Re
   //  X-direction
   //
   // float ahx = epsNum + 0.5f*(abc.Val(0,i,j,k)+abc.Val(0,i+1,j,k));
-  const Real ahpcc = epsNum + 0.5f * (abc[i + nx * (j + ny * k)] + abc[i + 1 + nx * (j + ny * k)]);
-  const Real ahmcc = epsNum + 0.5f * (abc[i + nx * (j + ny * k)] + abc[i - 1 + nx * (j + ny * k)]);
+  const Real ahpcc = epsNum + 0.5F * (abc[i + nx * (j + ny * k)] + abc[i + 1 + nx * (j + ny * k)]);
+  const Real ahmcc = epsNum + 0.5F * (abc[i + nx * (j + ny * k)] + abc[i - 1 + nx * (j + ny * k)]);
 
   // float ux = rfNear.Val(0,i+1,j,k)*et.Val(0,i+1,j,k) - rfNear.Val(0,i,j,k)*et.Val(0,i,j,k);
   Real uxp = PU(XX, 1, 0, 0) - PU(XX, 0, 0, 0);
@@ -264,15 +264,15 @@ void __global__ RT_OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Re
 
   // float uy = 0.25f*(rfNear.Val(0,i+1,j+1,k)*et.Val(1,i+1,j+1,k) + rfNear.Val(0,i,j+1,k)*et.Val(1,i,j+1,k) -
   //                   rfNear.Val(0,i+1,j-1,k)*et.Val(1,i+1,j-1,k) - rfNear.Val(0,i,j-1,k)*et.Val(1,i,j-1,k));
-  Real uyp = 0.25f * (PU(XY, 1, 1, 0) + PU(XY, 0, 1, 0) - PU(XY, 1, -1, 0) - PU(XY, 0, -1, 0));
-  Real uym = 0.25f * (PU(XY, 0, 1, 0) + PU(XY, -1, 1, 0) - PU(XY, 0, -1, 0) - PU(XY, -1, -1, 0));
+  Real uyp = 0.25F * (PU(XY, 1, 1, 0) + PU(XY, 0, 1, 0) - PU(XY, 1, -1, 0) - PU(XY, 0, -1, 0));
+  Real uym = 0.25F * (PU(XY, 0, 1, 0) + PU(XY, -1, 1, 0) - PU(XY, 0, -1, 0) - PU(XY, -1, -1, 0));
   Real vyp = 0;
   Real vym = 0;
 
   // float uz = 0.25f*(rfNear.Val(0,i+1,j,k+1)*et.Val(3,i+1,j,k+1) + rfNear.Val(0,i,j,k+1)*et.Val(3,i,j,k+1) -
   //                   rfNear.Val(0,i+1,j,k-1)*et.Val(3,i+1,j,k-1) - rfNear.Val(0,i,j,k-1)*et.Val(3,i,j,k-1));
-  Real uzp = 0.25f * (PU(XZ, 1, 0, 1) + PU(XZ, 0, 0, 1) - PU(XZ, 1, 0, -1) - PU(XZ, 0, 0, -1));
-  Real uzm = 0.25f * (PU(XZ, 0, 0, 1) + PU(XZ, -1, 0, 1) - PU(XZ, 0, 0, -1) - PU(XZ, -1, 0, -1));
+  Real uzp = 0.25F * (PU(XZ, 1, 0, 1) + PU(XZ, 0, 0, 1) - PU(XZ, 1, 0, -1) - PU(XZ, 0, 0, -1));
+  Real uzm = 0.25F * (PU(XZ, 0, 0, 1) + PU(XZ, -1, 0, 1) - PU(XZ, 0, 0, -1) - PU(XZ, -1, 0, -1));
   Real vzp = 0;
   Real vzm = 0;
 
@@ -286,8 +286,8 @@ void __global__ RT_OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Re
   //  Y-direction
   //
   // float ahy = epsNum + 0.5f*(abc.Val(0,i,j,k)+abc.Val(0,i,j+1,k));
-  const Real ahcpc = epsNum + 0.5f * (abc[i + nx * (j + ny * k)] + abc[i + nx * (j + 1 + ny * k)]);
-  const Real ahcmc = epsNum + 0.5f * (abc[i + nx * (j + ny * k)] + abc[i + nx * (j - 1 + ny * k)]);
+  const Real ahcpc = epsNum + 0.5F * (abc[i + nx * (j + ny * k)] + abc[i + nx * (j + 1 + ny * k)]);
+  const Real ahcmc = epsNum + 0.5F * (abc[i + nx * (j + ny * k)] + abc[i + nx * (j - 1 + ny * k)]);
 
   // float uy = rfNear.Val(0,i,j+1,k)*et.Val(2,i,j+1,k) - rfNear.Val(0,i,j,k)*et.Val(2,i,j,k);
   uyp = PU(YY, 0, 1, 0) - PU(YY, 0, 0, 0);
@@ -297,15 +297,15 @@ void __global__ RT_OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Re
 
   // float ux = 0.25f*(rfNear.Val(0,i+1,j+1,k)*et.Val(1,i+1,j+1,k) + rfNear.Val(0,i+1,j,k)*et.Val(1,i+1,j,k) -
   //                   rfNear.Val(0,i-1,j+1,k)*et.Val(1,i-1,j+1,k) - rfNear.Val(0,i-1,j,k)*et.Val(1,i-1,j,k));
-  uxp = 0.25f * (PU(XY, 1, 1, 0) + PU(XY, 1, 0, 0) - PU(XY, -1, 1, 0) - PU(XY, -1, 0, 0));
-  uxm = 0.25f * (PU(XY, 1, 0, 0) + PU(XY, 1, -1, 0) - PU(XY, -1, 0, 0) - PU(XY, -1, -1, 0));
+  uxp = 0.25F * (PU(XY, 1, 1, 0) + PU(XY, 1, 0, 0) - PU(XY, -1, 1, 0) - PU(XY, -1, 0, 0));
+  uxm = 0.25F * (PU(XY, 1, 0, 0) + PU(XY, 1, -1, 0) - PU(XY, -1, 0, 0) - PU(XY, -1, -1, 0));
   vxp = 0;
   vxm = 0;
 
   // float uz = 0.25f*(rfNear.Val(0,i,j+1,k+1)*et.Val(4,i,j+1,k+1) + rfNear.Val(0,i,j,k+1)*et.Val(4,i,j,k+1) -
   //                   rfNear.Val(0,i,j+1,k-1)*et.Val(4,i,j+1,k-1) - rfNear.Val(0,i,j,k-1)*et.Val(4,i,j,k-1));
-  uzp = 0.25f * (PU(YZ, 0, 1, 1) + PU(YZ, 0, 0, 1) - PU(YZ, 0, 1, -1) - PU(YZ, 0, 0, -1));
-  uzm = 0.25f * (PU(YZ, 0, 0, 1) + PU(YZ, 0, -1, 1) - PU(YZ, 0, 0, -1) - PU(YZ, 0, -1, -1));
+  uzp = 0.25F * (PU(YZ, 0, 1, 1) + PU(YZ, 0, 0, 1) - PU(YZ, 0, 1, -1) - PU(YZ, 0, 0, -1));
+  uzm = 0.25F * (PU(YZ, 0, 0, 1) + PU(YZ, 0, -1, 1) - PU(YZ, 0, 0, -1) - PU(YZ, 0, -1, -1));
   vzp = 0;
   vzm = 0;
 
@@ -319,8 +319,8 @@ void __global__ RT_OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Re
   //  Z-direction
   //
   // float ahz = epsNum + 0.5f*(abc.Val(0,i,j,k)+abc.Val(0,i,j,k+1));
-  const Real ahccp = epsNum + 0.5f * (abc[i + nx * (j + ny * k)] + abc[i + nx * (j + ny * (k + 1))]);
-  const Real ahccm = epsNum + 0.5f * (abc[i + nx * (j + ny * k)] + abc[i + nx * (j + ny * (k - 1))]);
+  const Real ahccp = epsNum + 0.5F * (abc[i + nx * (j + ny * k)] + abc[i + nx * (j + ny * (k + 1))]);
+  const Real ahccm = epsNum + 0.5F * (abc[i + nx * (j + ny * k)] + abc[i + nx * (j + ny * (k - 1))]);
 
   // float uz = rfNear.Val(0,i,j,k+1)*et.Val(5,i,j,k+1) - rfNear.Val(0,i,j,k)*et.Val(5,i,j,k);
   uzp = PU(ZZ, 0, 0, 1) - PU(ZZ, 0, 0, 0);
@@ -337,8 +337,8 @@ void __global__ RT_OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Re
 
   // float uy = 0.25f*(rfNear.Val(0,i,j+1,k+1)*et.Val(4,i,j+1,k+1) + rfNear.Val(0,i,j+1,k)*et.Val(4,i,j+1,k) -
   //                   rfNear.Val(0,i,j-1,k+1)*et.Val(4,i,j-1,k+1) - rfNear.Val(0,i,j-1,k)*et.Val(4,i,j-1,k));
-  uyp = 0.25f * (PU(YZ, 0, 1, 1) + PU(YZ, 0, 1, 0) - PU(YZ, 0, -1, 1) - PU(YZ, 0, -1, 0));
-  uym = 0.25f * (PU(YZ, 0, 1, 0) + PU(YZ, 0, 1, -1) - PU(YZ, 0, -1, 0) - PU(YZ, 0, -1, -1));
+  uyp = 0.25F * (PU(YZ, 0, 1, 1) + PU(YZ, 0, 1, 0) - PU(YZ, 0, -1, 1) - PU(YZ, 0, -1, 0));
+  uym = 0.25F * (PU(YZ, 0, 1, 0) + PU(YZ, 0, 1, -1) - PU(YZ, 0, -1, 0) - PU(YZ, 0, -1, -1));
   vyp = 0;
   vym = 0;
 
@@ -354,8 +354,8 @@ void __global__ RT_OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Re
   const Real uminus_wII = etXX[i + nx * (j + ny * k)] * (1 / ahpcc + 1 / ahmcc) +
                           etYY[i + nx * (j + ny * k)] * (1 / ahcpc + 1 / ahcmc) +
                           etZZ[i + nx * (j + ny * k)] * (1 / ahccp + 1 / ahccm);
-  const Real vminus_wII = (1.0f / 3.0f) / ahpcc + (1.0f / 3.0f) / ahmcc + (1.0f / 3.0f) / ahcpc +
-                          (1.0f / 3.0f) / ahcmc + (1.0f / 3.0f) / ahccp + (1.0f / 3.0f) / ahccm;
+  const Real vminus_wII = (1.0F / 3.0F) / ahpcc + (1.0F / 3.0F) / ahmcc + (1.0F / 3.0F) / ahcpc +
+                          (1.0F / 3.0F) / ahcmc + (1.0F / 3.0F) / ahccp + (1.0F / 3.0F) / ahccm;
 
   // float A = gamma/(1+gamma*(abc.Val(0,iw,jw,kw)+minus_wII));
   const Real Au = gamma / (1 + gamma * (abc[i + nx * (j + ny * k)] + uminus_wII));
@@ -438,10 +438,14 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
 
   // from cal abs
   const int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  const int jk  = tid / nx;
-  const int i   = tid % nx;
-  const int j   = jk % ny;
-  const int k   = jk / ny;
+  // const int jk  = tid / nx;
+  // const int i   = tid % nx;
+  // const int j   = jk % ny;
+  // const int k   = jk / ny;
+
+  const int k = tid / (nx * ny);
+  const int j = (tid - k * nx * ny) / nx;
+  const int i = tid - k * nx * ny - j * nx;
 
   if (i < n_ghost || j < n_ghost || k < n_ghost || i >= nx - n_ghost || j >= ny - n_ghost || k >= nz - n_ghost) return;
 
@@ -461,14 +465,16 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
 
   const Real* rf     = rfi;
   const Real* fi[3]  = {rfi + nw3, rfi + 2 * nw3, rfi + 3 * nw3};
+
+  // check this indexing
   const Real* pij[6] = {pij_, pij_ + nw3, pij_ + 2 * nw3, pij_ + 3 * nw3, pij_ + 4 * nw3, pij_ + 5 * nw3};
   Real* fiNew[3]     = {rfiNew + nw3, rfiNew + 2 * nw3, rfiNew + 3 * nw3};
 
   const Real d =
       dx * rs[ic + nx * (jc + ny * kc)] +
-      0.5f * (fi[0][im + nx * (jc + ny * kc)] - fi[0][ip + nx * (jc + ny * kc)] + fi[1][ic + nx * (jm + ny * kc)] -
+      0.5F * (fi[0][im + nx * (jc + ny * kc)] - fi[0][ip + nx * (jc + ny * kc)] + fi[1][ic + nx * (jm + ny * kc)] -
               fi[1][ic + nx * (jp + ny * kc)] + fi[2][ic + nx * (jc + ny * km)] - fi[2][ic + nx * (jc + ny * kp)]) +
-      0.5f * (rf[im + nx * (jc + ny * kc)] + rf[ip + nx * (jc + ny * kc)] + rf[ic + nx * (jm + ny * kc)] +
+      0.5F * (rf[im + nx * (jc + ny * kc)] + rf[ip + nx * (jc + ny * kc)] + rf[ic + nx * (jm + ny * kc)] +
               rf[ic + nx * (jp + ny * kc)] + rf[ic + nx * (jc + ny * km)] + rf[ic + nx * (jc + ny * kp)] -
               6 * rf[ic + nx * (jc + ny * kc)]);
 
@@ -477,7 +483,7 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
     cdt2dx   = cdt2dxRSL / (1 + cdt2dxRSL * gamma * 3);
     Real tau = cdt2dx * abc[ic + nx * (jc + ny * kc)];
     w1       = expf(-tau);
-    w2       = (tau < 0.1f ? 1 - 0.5f * tau * (1 - (1.0f / 3.0f) * tau * (1 - 0.25f * tau)) : (1 - w1) / tau);
+    w2       = (tau < 0.1F ? 1 - 0.5F * tau * (1 - (1.0F / 3.0F) * tau * (1 - 0.25F * tau)) : (1 - w1) / tau);
 
     rf1 = rf[ic + nx * (jc + ny * kc)] * w1 + cdt2dx * d * w2;
   } else {
@@ -499,10 +505,10 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
     constexpr int iz[] = {3, 4, 5};
 
     const Real df =
-        0.5f * (pij[ix[m]][im + nx * (jc + ny * kc)] - pij[ix[m]][ip + nx * (jc + ny * kc)] +
+        0.5F * (pij[ix[m]][im + nx * (jc + ny * kc)] - pij[ix[m]][ip + nx * (jc + ny * kc)] +
                 pij[iy[m]][ic + nx * (jm + ny * kc)] - pij[iy[m]][ic + nx * (jp + ny * kc)] +
                 pij[iz[m]][ic + nx * (jc + ny * km)] - pij[iz[m]][ic + nx * (jc + ny * kp)]) +
-        0.5f * (fi[m][im + nx * (jc + ny * kc)] + fi[m][ip + nx * (jc + ny * kc)] + fi[m][ic + nx * (jm + ny * kc)] +
+        0.5F * (fi[m][im + nx * (jc + ny * kc)] + fi[m][ip + nx * (jc + ny * kc)] + fi[m][ic + nx * (jm + ny * kc)] +
                 fi[m][ic + nx * (jp + ny * kc)] + fi[m][ic + nx * (jc + ny * km)] + fi[m][ic + nx * (jc + ny * kp)] -
                 6 * fi[m][ic + nx * (jc + ny * kc)]);
 
@@ -603,21 +609,26 @@ void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* 
 
   // same indexing as calc_abs
   const int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  const int jk  = tid / nx;
-  const int i   = tid % nx;
-  const int j   = jk % ny;
-  const int k   = jk / ny;
+  // const int jk  = tid / nx;
+  // const int i   = tid % nx;
+  // const int j   = jk % ny;
+  // const int k   = jk / ny;
+
+  const int k = tid / (nx * ny);
+  const int j = (tid - k * nx * ny) / nx;
+  const int i = tid - k * nx * ny - j * nx;
 
   if (i < n_ghost || j < n_ghost || k < n_ghost || i >= nx - n_ghost || j >= ny - n_ghost || k >= nz - n_ghost) return;
 
-  const int ic = i;
-  const int jc = j;
-  const int kc = k;
+  // const int ic = i;
+  // const int jc = j;
+  // const int kc = k;
 
   //  if(ic>=origx && jc>=origy && kc>=origx && ic<nmaxx && jc<nmaxy && kc<nmaxz)
   if (true) {
     // const int idx = (ic-origx) + nout*(jc-origy+nout*(kc-origz));
-    const int idx = ic + nx * (jc + ny * kc);
+    // const int idx = ic + nx * (jc + ny * kc);
+    const int idx = i + nx * (j + ny * k);
 
     rfiOut[idx] = rfi[idx];
 

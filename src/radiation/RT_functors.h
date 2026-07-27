@@ -37,18 +37,23 @@ void __global__ GLFMakeP_Kernel(int nx, int ny, int nz, int n_ghost, float dx, c
 
   // try calc_abs
   const int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  const int jk  = tid / nx;
-  const int i   = tid % nx;
-  const int j   = jk % ny;
-  const int k   = jk / ny;
+  // const int jk  = tid / nx;
+  // const int i   = tid % nx;
+  // const int j   = jk % ny;
+  // const int k   = jk / ny;
+  const int k = tid / (nx * ny);
+  const int j = (tid - k * nx * ny) / nx;
+  const int i = tid - k * nx * ny - j * nx;
 
   // This limits to real cells only
   if (i < n_ghost || j < n_ghost || k < n_ghost || i >= nx - n_ghost || j >= ny - n_ghost || k >= nz - n_ghost) return;
 
-  const int ic = i;
-  const int jc = j;
-  const int kc = k;
+  // const int ic = i;
+  // const int jc = j;
+  // const int kc = k;
 
-  pf(n_ghost, nx, ny, nz, ic, jc, kc, rfi, pij, deb);
+//  pf(n_ghost, nx, ny, nz, ic, jc, kc, rfi, pij, deb);
+  pf(n_ghost, nx, ny, nz, i, j, k, rfi, pij, deb);
+
 }
 #endif
