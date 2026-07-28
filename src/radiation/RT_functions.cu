@@ -316,7 +316,6 @@ struct DEVICE_ALIGN_DECL PijFunctorRT_M1 {
       return;
 
     // here nw3 is the 
-    #error PICK UP HERE
     const int nw3  = nx * ny * nz;
     const int idx  = ic + nx * (jc + ny * kc);
     const float r  = rfi[idx];
@@ -327,7 +326,7 @@ struct DEVICE_ALIGN_DECL PijFunctorRT_M1 {
     if (r > 0) {
       float flux2 = fx * fx + fy * fy + fz * fz;
       if (flux2 > 0) {
-        float f2 = min(flux2 / (r * r), 1.0f);
+        float f2 = min(flux2 / (r * r), 1.0F);
 
         float alpha = (3 + 4 * f2) / (5 + 2 * sqrt(4 - 3 * f2));
         float wd    = (1 - alpha) / 2 * r;
@@ -389,14 +388,18 @@ void Rad3D::StepRFiIteration(Real cdt2dxRSL, Real gamma_sis)
 
     // Populate the pressure tensor for this frequency
     // GLFMakeP(nx,ny,nz,n_ghost,dx,rfOld,pij,pf,deb);
+    // Defined in RT_functors.h
     hipLaunchKernelGGL(GLFMakeP_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, grid.dx,
                        rfOld, pij, pf, (freq == 0 ? 1 : 0));
 
     // DEBUG
     // Step the radiation fields at this frequency
+    // Defined in RT_kernels.cu
     hipLaunchKernelGGL(StepRFiIteration_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost,
                        grid.dx, cdt2dxRSL, gamma_sis, rtFields.dev_rs, rfOld, abc, pij, rfNew, (freq == 0 ? 1 : 0));
+    //GPU_Error_Check(cudaMemcpyAsync(rfNew, rfOld, n_fpfreq * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice)); // dummy
     GPU_Error_Check(cudaMemcpyAsync(rfOld, rfNew, n_fpfreq * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
+
   }
   GPU_Error_Check(cudaDeviceSynchronize());
 

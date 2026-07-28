@@ -483,9 +483,41 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
     cdt2dx   = cdt2dxRSL / (1 + cdt2dxRSL * gamma * 3);
     Real tau = cdt2dx * abc[ic + nx * (jc + ny * kc)];
     w1       = expf(-tau);
+    // maybe lower to 0.01?
     w2       = (tau < 0.1F ? 1 - 0.5F * tau * (1 - (1.0F / 3.0F) * tau * (1 - 0.25F * tau)) : (1 - w1) / tau);
 
-    rf1 = rf[ic + nx * (jc + ny * kc)] * w1 + cdt2dx * d * w2;
+    // rf1 = rf[ic + nx * (jc + ny * kc)] * w1 + cdt2dx * d * w2;
+    // rf1 = cdt2dx * d * w2; // dummy
+    /*
+    Sum of intensity     : 6.211159189132234
+    Sum of HI intensity  : 11.927967311220394
+    Sum of HeI intensity : 17.215320508036438
+    */
+    // rf1 = rf[ic + nx * (jc + ny * kc)] * w1; // dummy
+    /*
+    Sum of intensity     : 0.0
+    Sum of HI intensity  : 0.0
+    Sum of HeI intensity : 0.0
+    */
+    //rf1 = rf[ic + nx * (jc + ny * kc)]; // dummy, 0.8278058698226767
+    //rf1 = w1; // at time 1, close to 1
+    //rf1 = cdt2dx; // 0.2857142857142857
+    //rf1 = tau; //0.028143526101899134
+    //rf1 = dx; // 0.234375 check all
+    //rf1 = cdt2dxRSL; // 0.5
+    // rf1 = w2; // 0.9999102450413175 -- tau is small, so w2 close to 1
+    // rf1 = abc[ic + nx * (jc + ny * kc)]; // 0.050625882721781285
+    //rf1 = d; // nan?!??
+    rf1 = 0.1 * d; // 0.19616351336912125 
+
+    #error check on computation of d.  rf1 in the otvet doesn't change. the d contribution may be zero but only because of a symmetry?
+
+    /*
+    Sum of intensity     : 1394.6161299096302
+    Sum of HI intensity  : 0.0
+    Sum of HeI intensity : 0.0
+    Central intensity 0.8278058698226767
+    */
   } else {
     cdt2dx = cdt2dxRSL / (1 + cdt2dxRSL * gamma * (abc[ic + nx * (jc + ny * kc)] + 3));
 
@@ -510,9 +542,55 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
                 pij[iz[m]][ic + nx * (jc + ny * km)] - pij[iz[m]][ic + nx * (jc + ny * kp)]) +
         0.5F * (fi[m][im + nx * (jc + ny * kc)] + fi[m][ip + nx * (jc + ny * kc)] + fi[m][ic + nx * (jm + ny * kc)] +
                 fi[m][ic + nx * (jp + ny * kc)] + fi[m][ic + nx * (jc + ny * km)] + fi[m][ic + nx * (jc + ny * kp)] -
-                6 * fi[m][ic + nx * (jc + ny * kc)]);
+                6 * fi[m][ic + nx * (jc + ny * kc)]); 
 
+    /*
+    Sum of intensity     : 99.6177745666468
+    Sum of HI intensity  : 124.57610198647946
+    Sum of HeI intensity : 333.1886892303832
+    */
+
+    /*
+    const Real df =
+        0.5F * (pij[ix[m]][im + nx * (jc + ny * kc)] - pij[ix[m]][ip + nx * (jc + ny * kc)] +
+                pij[iy[m]][ic + nx * (jm + ny * kc)] - pij[iy[m]][ic + nx * (jp + ny * kc)] +
+                pij[iz[m]][ic + nx * (jc + ny * km)] - pij[iz[m]][ic + nx * (jc + ny * kp)]); // dummy */
+    /*
+    Sum of intensity     : 90.90207141133276
+    Sum of HI intensity  : 118.90693306436322
+    Sum of HeI intensity : 563.7683225833482
+    */
+
+    // const Real df = 0; // dummy
+    /*
+    Sum of intensity     : 234.76391657745043
+    Sum of HI intensity  : 289.9002150034569
+    Sum of HeI intensity : 569.8936258778904
+    */
+    /* const Real df = 0.5F * (fi[m][im + nx * (jc + ny * kc)] + fi[m][ip + nx * (jc + ny * kc)] + fi[m][ic + nx * (jm + ny * kc)] +
+                fi[m][ic + nx * (jp + ny * kc)] + fi[m][ic + nx * (jc + ny * km)] + fi[m][ic + nx * (jc + ny * kp)] -
+                6 * fi[m][ic + nx * (jc + ny * kc)]); // dummy */
+    /* 
+    Sum of intensity     : 234.76391657745043
+    Sum of HI intensity  : 289.9002150034569
+    Sum of HeI intensity : 569.8936258778904 
+    */
+    // const Real df = 0.5F * (-6 * fi[m][ic + nx * (jc + ny * kc)]); // dummy 
+    /*
+    Sum of intensity     : 234.76391657745043
+    Sum of HI intensity  : 289.9002150034569
+    Sum of HeI intensity : 569.8936258778904
+    */
+    /* const Real df = 0.5F * (fi[m][im + nx * (jc + ny * kc)] + fi[m][ip + nx * (jc + ny * kc)] + fi[m][ic + nx * (jm + ny * kc)] +
+                fi[m][ic + nx * (jp + ny * kc)] + fi[m][ic + nx * (jc + ny * km)] + fi[m][ic + nx * (jc + ny * kp)]); // dummy */
+    /*
+    Sum of intensity     : 234.76391657745043
+    Sum of HI intensity  : 289.9002150034569
+    Sum of HeI intensity : 569.8936258778904
+    */
+    // The detailed contents of df don't matter very much.
     if (Split) {
+      // this is fiNew = fi*exp(-tau) + df * cdt2dx * (1-exp(-tau))/tau
       fiNew[m][ic + nx * (jc + ny * kc)] = fi[m][ic + nx * (jc + ny * kc)] * w1 + cdt2dx * df * w2;  // testing RHS
     } else {
       fiNew[m][ic + nx * (jc + ny * kc)] =
@@ -691,61 +769,6 @@ void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* 
   }
   */
 
-  /*
-  struct DEVICE_ALIGN_DECL PijFunctorRT_M1
-  {
-      __global__ void operator()(int offset, int nx, int ny, int nz,
-                      int ic, int jc, int kc, const Real* rfi, Real* pij, int deb)
-      {
-          if(ic<offset || jc<offset || kc<offset || ic>=nx-offset || jc>=ny-offset || kc>=nz-offset) return;
-
-          const int nw3 = nx*ny*nz;
-          const int idx = ic + nx*(jc+ny*kc);
-          const float r =  rfi[idx];
-          const float fx = rfi[idx+1*nw3];
-          const float fy = rfi[idx+2*nw3];
-          const float fz = rfi[idx+3*nw3];
-
-          if(r > 0)
-          {
-              float flux2 = fx*fx + fy*fy + fz*fz;
-              if(flux2 > 0)
-              {
-                  float f2 = min(flux2/(r*r),1.0f);
-
-                  float alpha = (3+4*f2)/(5+2*sqrt(4-3*f2));
-                  float wd = (1-alpha)/2*r;
-                  float wn = (3*alpha-1)/2*r/flux2;
-
-                  pij[idx+0*nw3] = wn*fx*fx + wd;
-                  pij[idx+1*nw3] = wn*fy*fx;
-                  pij[idx+2*nw3] = wn*fy*fy + wd;
-                  pij[idx+3*nw3] = wn*fz*fx;
-                  pij[idx+4*nw3] = wn*fz*fy;
-                  pij[idx+5*nw3] = wn*fz*fz + wd;
-              }
-              else
-              {
-                  pij[idx+0*nw3] = r/3;
-                  pij[idx+1*nw3] = 0;
-                  pij[idx+2*nw3] = r/3;
-                  pij[idx+3*nw3] = 0;
-                  pij[idx+4*nw3] = 0;
-                  pij[idx+5*nw3] = r/3;
-              }
-          }
-          else
-          {
-              pij[idx+0*nw3] = 0;
-              pij[idx+1*nw3] = 0;
-              pij[idx+2*nw3] = 0;
-              pij[idx+3*nw3] = 0;
-              pij[idx+4*nw3] = 0;
-              pij[idx+5*nw3] = 0;
-          }
-      }
-  };
-  */
   #endif  // RT_M1
 
 #endif  // RT
