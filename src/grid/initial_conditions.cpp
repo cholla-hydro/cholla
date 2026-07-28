@@ -2837,6 +2837,8 @@ void Grid3D::Iliev15(struct Parameters P, int test)
       s *= 5e48 / RTConstant::c / pow(LENGTH_UNIT, 2);
     }
   }
+  // 5e48 is photons per second
+  // 
 
   Rad.photoRates->Update(0, spectralShape.data(), xs->dxi * RTConstant::c * 1.0e-24);
 
@@ -2897,7 +2899,9 @@ void Grid3D::Iliev15(struct Parameters P, int test)
         Rad.rtFields.et[id + 5 * H.n_cells] = (eps2et / 3 + x[2] * x[2]) / (eps2et + r2);
   #endif  // RT_OTVET
   #ifdef RT_M1
-        for (int ii = 1; ii < Rad.n_fpfreq * Rad.n_freq; ii++) Rad.rtFields.rf[id + ii * H.n_cells] = 0;
+      //for (int ii = 1; ii < Rad.n_fpfreq * Rad.n_freq; ii++) Rad.rtFields.rf[id + ii * H.n_cells] = 0;
+        for (int ii = 0; ii < Rad.n_fpfreq * Rad.n_freq; ii++) Rad.rtFields.rf[id + ii * H.n_cells] = 0;
+
   #endif  // RT_M1
 
       }

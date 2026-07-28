@@ -328,6 +328,7 @@ struct DEVICE_ALIGN_DECL PijFunctorRT_M1 {
       if (flux2 > 0) {
         float f2 = min(flux2 / (r * r), 1.0F);
 
+        // see equations 20, 21, and 22 of Aubert & Teyssier 2008
         float alpha = (3 + 4 * f2) / (5 + 2 * sqrt(4 - 3 * f2));
         float wd    = (1 - alpha) / 2 * r;
         float wn    = (3 * alpha - 1) / 2 * r / flux2;

@@ -506,7 +506,7 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
     // maybe lower to 0.01?
     w2       = (tau < 0.1F ? 1 - 0.5F * tau * (1 - (1.0F / 3.0F) * tau * (1 - 0.25F * tau)) : (1 - w1) / tau);
 
-    // rf1 = rf[ic + nx * (jc + ny * kc)] * w1 + cdt2dx * d * w2;
+    rf1 = rf[ic + nx * (jc + ny * kc)] * w1 + cdt2dx * d * w2;
     // rf1 = cdt2dx * d * w2; // dummy
     /*
     Sum of intensity     : 6.211159189132234
@@ -530,9 +530,9 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
     //rf1 = d; // nan?!??
     // rf1 = 0.1 * d; // 0.19616351336912125 
 //    rf1 = 0.1 * d; //  
-    rf1 = d; //  
+    // rf1 = d; //  
 
-    #error check on computation of d.  rf1 in the otvet doesn't change. the d contribution may be zero but only because of a symmetry?
+    //#error check on computation of d.  rf1 in the otvet doesn't change. the d contribution may be zero but only because of a symmetry?
 
     /*
     Sum of intensity     : 1394.6161299096302
@@ -558,6 +558,7 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
     constexpr int iy[] = {1, 2, 4};
     constexpr int iz[] = {3, 4, 5};
 
+    // Aubert & Teyssier 2008, equation 30
     const Real df =
         0.5F * (pij[ix[m]][im + nx * (jc + ny * kc)] - pij[ix[m]][ip + nx * (jc + ny * kc)] +
                 pij[iy[m]][ic + nx * (jm + ny * kc)] - pij[iy[m]][ic + nx * (jp + ny * kc)] +
