@@ -478,6 +478,26 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
               rf[ic + nx * (jp + ny * kc)] + rf[ic + nx * (jc + ny * km)] + rf[ic + nx * (jc + ny * kp)] -
               6 * rf[ic + nx * (jc + ny * kc)]);
 
+  // the following d is correctly 0
+  /*
+  const Real d =
+      0.5F * (fi[0][im + nx * (jc + ny * kc)] - fi[0][ip + nx * (jc + ny * kc)] + fi[1][ic + nx * (jm + ny * kc)] -
+              fi[1][ic + nx * (jp + ny * kc)] + fi[2][ic + nx * (jc + ny * km)] - fi[2][ic + nx * (jc + ny * kp)]);
+  */
+  
+  // non-zero, produces nan
+  // with 0.1 prefactor, produces 0...
+  /* const Real d =
+      0.5F * (rf[im + nx * (jc + ny * kc)] + rf[ip + nx * (jc + ny * kc)] + rf[ic + nx * (jm + ny * kc)] +
+              rf[ic + nx * (jp + ny * kc)] + rf[ic + nx * (jc + ny * km)] + rf[ic + nx * (jc + ny * kp)] -
+              6 * rf[ic + nx * (jc + ny * kc)]); */
+
+  // 2.2755555555555556, indeed dx * rs
+  //const Real d = dx * rs[ic + nx * (jc + ny * kc)];
+
+  // 9.709037037037037, indeed rs
+  // const Real d = rs[ic + nx * (jc + ny * kc)];
+
   Real rf1, cdt2dx, w1, w2;
   if (Split) {
     cdt2dx   = cdt2dxRSL / (1 + cdt2dxRSL * gamma * 3);
@@ -508,7 +528,9 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
     // rf1 = w2; // 0.9999102450413175 -- tau is small, so w2 close to 1
     // rf1 = abc[ic + nx * (jc + ny * kc)]; // 0.050625882721781285
     //rf1 = d; // nan?!??
-    rf1 = 0.1 * d; // 0.19616351336912125 
+    // rf1 = 0.1 * d; // 0.19616351336912125 
+//    rf1 = 0.1 * d; //  
+    rf1 = d; //  
 
     #error check on computation of d.  rf1 in the otvet doesn't change. the d contribution may be zero but only because of a symmetry?
 
