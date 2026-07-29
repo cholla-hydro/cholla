@@ -507,7 +507,6 @@ void Cosmology::Write_Expansion_History_Entry(void)
   std::snprintf(buffer, sizeof(buffer), "%7.6e", current_a);
   message += std::string(buffer);
 
-  // std::string message = std::to_string(t_secs / MYR) + " " + std::to_string(current_a);
   std::string file_name(EXPANSION_HISTORY_FILE_NAME);
   std::ofstream out_file;
   out_file.open(file_name.c_str(), std::ios::app);
