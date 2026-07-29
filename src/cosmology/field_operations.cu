@@ -23,8 +23,6 @@ __global__ void Rescale_Field_GPU(Real *d_x, const Real A, int nx, int ny, int n
   }
 }
 
-/*! \fn void Field_Elementwise_Product_GPU(Real *d_x, Real *d_y, int nx, int ny, int nz, int n_ghost)
- *  \brief Multiply one field elementwise by another */
 inline __device__ void Field_Elementwise_Product_GPU(Real *d_x, Real *d_y, int nx, int ny, int nz, int n_ghost)
 {
   // determine the cell location
