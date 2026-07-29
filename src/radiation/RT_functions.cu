@@ -375,6 +375,14 @@ void Rad3D::StepRFiIteration(Real cdt2dxRSL, Real gamma_sis)
 
   // chprintf("RT: StepRFi: n_cells %d\n",grid.n_cells);
 
+  /*Real *RFCatch = (Real *) malloc(n_fpfreq*grid.n_cells*sizeof(Real));
+  Real E0, F00, F10, F20;
+  Real E1, F01, F11, F21;
+  int nx = grid.nx;
+  int ny = grid.ny;
+  int nz = grid.nz;
+  int idxrep = nx/2 + ny/2 * nx + nz/2 * nx * ny;*/
+
   // Create the pressure tensor by allocating memory on the device
   GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_pij, 6 * grid.n_cells * sizeof(Real)));
 
@@ -386,6 +394,14 @@ void Rad3D::StepRFiIteration(Real cdt2dxRSL, Real gamma_sis)
     auto rfNew = rtFields.dev_rfNew;                                  // updated radiation fields at this frequency
     auto abc   = rtFields.dev_abc + freq * grid.n_cells;              // absorption coefficients at this frequency
     auto pij   = rtFields.dev_pij;                                    // reuse pressure tensor each frequency
+
+    /*if(freq == 0) {
+          GPU_Error_Check(cudaMemcpy(RFCatch, rfOld, n_fpfreq * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
+          E0 = RFCatch[idxrep];
+          F00 = RFCatch[idxrep + grid.n_cells];
+          F10 = RFCatch[idxrep + grid.n_cells];
+          F20 = RFCatch[idxrep + grid.n_cells];
+    }*/
 
     // Populate the pressure tensor for this frequency
     // GLFMakeP(nx,ny,nz,n_ghost,dx,rfOld,pij,pf,deb);
@@ -401,8 +417,23 @@ void Rad3D::StepRFiIteration(Real cdt2dxRSL, Real gamma_sis)
     //GPU_Error_Check(cudaMemcpyAsync(rfNew, rfOld, n_fpfreq * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice)); // dummy
     GPU_Error_Check(cudaMemcpyAsync(rfOld, rfNew, n_fpfreq * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
 
+
+    /*if(freq == 0) {
+          GPU_Error_Check(cudaMemcpy(RFCatch, rfNew, n_fpfreq * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
+          E1 = RFCatch[idxrep];
+          F01 = RFCatch[idxrep + grid.n_cells];
+          F11 = RFCatch[idxrep + grid.n_cells];
+          F21 = RFCatch[idxrep + grid.n_cells];
+    }*/
   }
   GPU_Error_Check(cudaDeviceSynchronize());
+
+  // free(RFCatch);
+
+  // chprintf("RT-GPU-E    %.2f -> %.2f cdt2dx=%.6f\n",E0,E1,cdt2dxRSL);
+  // chprintf("RT-GPU-F[0] %.2f -> %.2f\n",F00,F01);
+  // chprintf("RT-GPU-F[1] %.2f -> %.2f\n",F10,F11);
+  // chprintf("RT-GPU-F[2] %.2f -> %.2f\n",F20,F21);
 
   // Destroy the pressure tensor by freeing memory on the device
   cudaFree(rtFields.dev_pij);
@@ -571,16 +602,23 @@ void Rad3D::ClipRFiIteration(void)
       unsigned int numIterationsAtC = (unsigned int)(1+mSpeedOfLightInCodeUnits*dt/dx);
 
 */
+
+// In the RT solve, there likely needs to be updates every
+// RT iteration or two to fix the boundaries
+
 // CPU function that calls the GPU-based RT functions
 void Rad3D::rtSolve(Real* dev_scalar)
 {
   auto dt = grid.dt;
 
+  chprintf("RT: in rtSolve dt = %e\n",dt);
+
   // first call absorption coefficient kernel
   Calc_Absorption(dev_scalar);
 
   int niters                   = this->num_iterations;
-  Real speedOfLightInCodeUnits = 3e10 / VELOCITY_UNIT;
+  //Real speedOfLightInCodeUnits = 3e10 / VELOCITY_UNIT;
+  Real speedOfLightInCodeUnits = 2.998e10 / VELOCITY_UNIT;
 
   int n_iters_check = 0;  // check the number of iterations
 
@@ -644,16 +682,27 @@ void Rad3D::rtSolve(Real* dev_scalar)
   }
 
   int niters_cfl = 1 + speedOfLightInCodeUnits * dt / (CFL_RT * grid.dx);
+  //Real f_CFL = speedOfLightInCodeUnits * dt / (CFL_RT * grid.dx);
+  //int niters_cfl = 1 + ceil(f_CFL);
+
   // if (niters_cfl < this->num_iterations) niters_cfl = this->num_iterations;
 
   // int niters2 = (dt > 0 ? static_cast<int>(1 + speedOfLightInCodeUnits * dt / grid.dx) : niters);
-  int niters2 = (dt > 0 ? static_cast<int>(niters_cfl) : niters);
-  if (niters > niters2) niters = niters2;
-  niters_cfl = niters;  // NEED TO SORT CFL ISSUES AFTER TESTING
+  // int niters2 = (dt > 0 ? static_cast<int>(niters_cfl) : niters);
+  // if (niters > niters2) niters = niters2;
+  // niters_cfl = niters;  // NEED TO SORT CFL ISSUES AFTER TESTING
   // niters_cfl = this->num_iterations;
   if (niters_cfl > this->num_iterations) niters_cfl = this->num_iterations;
 
-  Real cdt2dxRSL = fminf(CFL_RT, speedOfLightInCodeUnits * dt / (grid.dx * niters_cfl));
+  //Real cdt2dxRSL = fminf(CFL_RT, speedOfLightInCodeUnits * dt / grid.dx);
+  Real cdt2dxRSL = fminf(CFL_RT, speedOfLightInCodeUnits * dt / (grid.dx * niters_cfl)); 
+
+  //Real cdt2dxRSL = speedOfLightInCodeUnits * dt / (grid.dx * niters_cfl);
+  //Real cdt2dxRSL = 1./niters_cfl;
+  /*if(cdt2dxRSL > CFL_RT) {
+    niters_cfl = ceil(fmaxf(2,1./CFL_RT));
+    cdt2dxRSL = 1./niters_cfl;
+  }*/
 
   // the following triggers niters=1, need to set correctly
   // int niters2                  = (dt > 0 ? static_cast<int>(1 + speedOfLightInCodeUnits * dt / grid.dx) : niters);
@@ -669,8 +718,10 @@ void Rad3D::rtSolve(Real* dev_scalar)
   chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, dt: %e, c: %e, dx %e, cdt2dxRSL %e)\n",
            niters_cfl, this->num_iterations, dt, speedOfLightInCodeUnits, grid.dx, cdt2dxRSL);
 
+//  for (int iter = 0; iter < niters_cfl; iter++) {
+//    this->lastIteration = (iter == niters_cfl - 1);
   for (int iter = 0; iter < niters_cfl; iter++) {
-    this->lastIteration = (iter == niters_cfl - 1);
+
     // Call the StepRFi Iteration kernel
     // This must create and destroy the pressure fields
     StepRFiIteration(cdt2dxRSL, gamma_sis);

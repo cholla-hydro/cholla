@@ -2812,6 +2812,7 @@ void Grid3D::Iliev15(struct Parameters P, int test)
   }
 
   chprintf("ICs: Iliev%d: rho=%g U=%g recombination_case %d\n", (test == 1 ? 1 : 5), rho, U, Chem.recombination_case);
+  chprintf("ICs: RTConstant::c %e\n", RTConstant::c);
 
   double xcen[3] = {H.xbound + 0.5 * H.xdglobal, H.ybound + 0.5 * H.ydglobal, H.zbound + 0.5 * H.zdglobal};
   double dx2     = H.dx * H.dx;
@@ -2831,6 +2832,9 @@ void Grid3D::Iliev15(struct Parameters P, int test)
     // normal solution
     spectralShape[xs->thresholds[rt_physics::rt_atomic_data::CrossSection::IonizationHI].idx] =
         5e48 / RTConstant::c / pow(LENGTH_UNIT, 2) / xs->dxi * 6.34 / 5.92;
+
+    chprintf("LENGTH_UNIT %e xs->dxi %e 6.34 / 5.92 %e H.dx %e\n",LENGTH_UNIT,xs->dxi,6.34 / 5.92,H.dx);
+    //chexit(0);
   } else {
     SpectralShape::BlackBody(1.0e5, spectralShape);
     for (auto &s : spectralShape) {
@@ -2886,10 +2890,10 @@ void Grid3D::Iliev15(struct Parameters P, int test)
         auto eps2et = 4 * eps2ot;
 
         Rad.rtFields.rs[id] = (r2 < dx2 ? 0.125 / pow(H.dx, 3) : 0);
-        Rad.rtFields.rf[id] = 1 / (12.5664 * (eps2ot + r2));
 
 
   #ifdef RT_OTVET
+        Rad.rtFields.rf[id] = 1 / (12.5664 * (eps2ot + r2));
         for (int ii = 1; ii < 1 + Rad.n_fpfreq * Rad.n_freq; ii++) Rad.rtFields.rf[id + ii * H.n_cells] = 0;
         Rad.rtFields.et[id + 0 * H.n_cells] = (eps2et / 3 + x[0] * x[0]) / (eps2et + r2);
         Rad.rtFields.et[id + 1 * H.n_cells] = (x[1] * x[0]) / (eps2et + r2);
@@ -2899,11 +2903,8 @@ void Grid3D::Iliev15(struct Parameters P, int test)
         Rad.rtFields.et[id + 5 * H.n_cells] = (eps2et / 3 + x[2] * x[2]) / (eps2et + r2);
   #endif  // RT_OTVET
   #ifdef RT_M1
-      //for (int ii = 1; ii < Rad.n_fpfreq * Rad.n_freq; ii++) Rad.rtFields.rf[id + ii * H.n_cells] = 0;
         for (int ii = 0; ii < Rad.n_fpfreq * Rad.n_freq; ii++) Rad.rtFields.rf[id + ii * H.n_cells] = 0;
-
   #endif  // RT_M1
-
       }
     }
   }

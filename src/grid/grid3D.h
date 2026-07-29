@@ -957,6 +957,10 @@ class Grid3D
   void Initialize_RT();
   void Update_RT(Real *dt_max, const Parameters& params);
   int Load_RT_Fields_To_Buffer(int direction, int side, Real *buffer, int buffer_start);
+
+  /*! \fn void set_dt_RT()
+   *  \brief Calculate the timestep for radiative transfer. */
+  void set_dt_RT();
 #endif
 
 #ifdef ANALYSIS

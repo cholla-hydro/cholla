@@ -320,6 +320,7 @@ int main(int argc, char *argv[])
 
     // calculate the timestep by calling MPI_Allreduce
     G.set_dt(dti);
+    chprintf("dti = %e G.H.dt %e\n",dti,G.H.dt);
 
     // adjust timestep based on the next available scheduled time
     const Real next_scheduled_time = fmin(outtime, P.tout);

@@ -186,7 +186,8 @@ __global__ void Set_RT_Boundaries_Periodic_Kernel(int direction, int side, int n
   }
   #endif  // RT_M1
 }
-
+// last field in m1 has zero calc abs
+// last field is 0 field
 void __global__ Calc_Absorption_Kernel(int nx, int ny, int nz, Real dx, CrossSectionInCU xs,
                                        const Real* __restrict__ dens, Real* __restrict__ abc)
 {
@@ -478,25 +479,14 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
               rf[ic + nx * (jp + ny * kc)] + rf[ic + nx * (jc + ny * km)] + rf[ic + nx * (jc + ny * kp)] -
               6 * rf[ic + nx * (jc + ny * kc)]);
 
-  // the following d is correctly 0
-  /*
-  const Real d =
-      0.5F * (fi[0][im + nx * (jc + ny * kc)] - fi[0][ip + nx * (jc + ny * kc)] + fi[1][ic + nx * (jm + ny * kc)] -
-              fi[1][ic + nx * (jp + ny * kc)] + fi[2][ic + nx * (jc + ny * km)] - fi[2][ic + nx * (jc + ny * kp)]);
-  */
-  
-  // non-zero, produces nan
-  // with 0.1 prefactor, produces 0...
-  /* const Real d =
-      0.5F * (rf[im + nx * (jc + ny * kc)] + rf[ip + nx * (jc + ny * kc)] + rf[ic + nx * (jm + ny * kc)] +
-              rf[ic + nx * (jp + ny * kc)] + rf[ic + nx * (jc + ny * km)] + rf[ic + nx * (jc + ny * kp)] -
-              6 * rf[ic + nx * (jc + ny * kc)]); */
-
-  // 2.2755555555555556, indeed dx * rs
-  //const Real d = dx * rs[ic + nx * (jc + ny * kc)];
-
-  // 9.709037037037037, indeed rs
-  // const Real d = rs[ic + nx * (jc + ny * kc)];
+  Real E0, E1;
+  Real f0[6];
+  Real d0, dF[3];
+  Real w0, wF0[3];
+  Real abc0;
+  Real fu = dx * (nx - 2*n_ghost);
+  fu *= fu;
+  //Real fu = 1;
 
   Real rf1, cdt2dx, w1, w2;
   if (Split) {
@@ -507,43 +497,29 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
     w2       = (tau < 0.1F ? 1 - 0.5F * tau * (1 - (1.0F / 3.0F) * tau * (1 - 0.25F * tau)) : (1 - w1) / tau);
 
     rf1 = rf[ic + nx * (jc + ny * kc)] * w1 + cdt2dx * d * w2;
-    // rf1 = cdt2dx * d * w2; // dummy
-    /*
-    Sum of intensity     : 6.211159189132234
-    Sum of HI intensity  : 11.927967311220394
-    Sum of HeI intensity : 17.215320508036438
-    */
-    // rf1 = rf[ic + nx * (jc + ny * kc)] * w1; // dummy
-    /*
-    Sum of intensity     : 0.0
-    Sum of HI intensity  : 0.0
-    Sum of HeI intensity : 0.0
-    */
-    //rf1 = rf[ic + nx * (jc + ny * kc)]; // dummy, 0.8278058698226767
-    //rf1 = w1; // at time 1, close to 1
-    //rf1 = cdt2dx; // 0.2857142857142857
-    //rf1 = tau; //0.028143526101899134
-    //rf1 = dx; // 0.234375 check all
-    //rf1 = cdt2dxRSL; // 0.5
-    // rf1 = w2; // 0.9999102450413175 -- tau is small, so w2 close to 1
-    // rf1 = abc[ic + nx * (jc + ny * kc)]; // 0.050625882721781285
-    //rf1 = d; // nan?!??
-    // rf1 = 0.1 * d; // 0.19616351336912125 
-//    rf1 = 0.1 * d; //  
-    // rf1 = d; //  
 
-    //#error check on computation of d.  rf1 in the otvet doesn't change. the d contribution may be zero but only because of a symmetry?
-
-    /*
-    Sum of intensity     : 1394.6161299096302
-    Sum of HI intensity  : 0.0
-    Sum of HeI intensity : 0.0
-    Central intensity 0.8278058698226767
-    */
+    // copy
+    E0 = rf[ic + nx * (jc + ny * kc)];
+    E1 = rf1;
+    d0 = d;
+    w0 = cdt2dx * d * w2;
+    abc0 = abc[ic + nx * (jc + ny * kc)];
+    f0[0] = fi[0][im + nx * (jc + ny * kc)];
+    f0[1] = fi[0][ip + nx * (jc + ny * kc)];
+    f0[2] = fi[1][ic + nx * (jm + ny * kc)];
+    f0[3] = fi[1][ic + nx * (jp + ny * kc)];
+    f0[4] = fi[2][ic + nx * (jc + ny * km)];
+    f0[5] = fi[2][ic + nx * (jc + ny * kp)];
   } else {
     cdt2dx = cdt2dxRSL / (1 + cdt2dxRSL * gamma * (abc[ic + nx * (jc + ny * kc)] + 3));
 
     rf1 = rf[ic + nx * (jc + ny * kc)] + cdt2dx * (d - abc[ic + nx * (jc + ny * kc)] * rf[ic + nx * (jc + ny * kc)]);
+  }
+
+  if( (ic == nx/2) and (jc == ny/2) and (kc == nz/2) and deb) {
+    //printf("RT-GPU-E %6.3g -> %6.3g cdt2dx=%.6g d=%6.4g abc=%.6g f =(%.5g,%.5g,%.5g,%.5g,%.5g,%.5g) w=%6.3g\n",fu*E0,fu*E1,cdt2dx,fu*d0,abc0,fu*f0[0],fu*f0[1],fu*f0[2],fu*f0[3],fu*f0[4],fu*f0[5],fu*w0);
+    printf("RT-GPU-E %6.3f -> %6.3f cdt2dx=%.6f d=%6.4f abc=%.6f f =(%.5g,%.5g,%.5g,%.5g,%.5g,%.5g)\n",fu*E0,fu*E1,cdt2dx,fu*d0,abc0,fu*f0[0],fu*f0[1],fu*f0[2],fu*f0[3],fu*f0[4],fu*f0[5]);
+
   }
 
   rfiNew[ic + nx * (jc + ny * kc)] = (rf1 < 0 ? 0 : rf1);
@@ -567,54 +543,25 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
                 fi[m][ic + nx * (jp + ny * kc)] + fi[m][ic + nx * (jc + ny * km)] + fi[m][ic + nx * (jc + ny * kp)] -
                 6 * fi[m][ic + nx * (jc + ny * kc)]); 
 
-    /*
-    Sum of intensity     : 99.6177745666468
-    Sum of HI intensity  : 124.57610198647946
-    Sum of HeI intensity : 333.1886892303832
-    */
-
-    /*
-    const Real df =
-        0.5F * (pij[ix[m]][im + nx * (jc + ny * kc)] - pij[ix[m]][ip + nx * (jc + ny * kc)] +
-                pij[iy[m]][ic + nx * (jm + ny * kc)] - pij[iy[m]][ic + nx * (jp + ny * kc)] +
-                pij[iz[m]][ic + nx * (jc + ny * km)] - pij[iz[m]][ic + nx * (jc + ny * kp)]); // dummy */
-    /*
-    Sum of intensity     : 90.90207141133276
-    Sum of HI intensity  : 118.90693306436322
-    Sum of HeI intensity : 563.7683225833482
-    */
-
-    // const Real df = 0; // dummy
-    /*
-    Sum of intensity     : 234.76391657745043
-    Sum of HI intensity  : 289.9002150034569
-    Sum of HeI intensity : 569.8936258778904
-    */
-    /* const Real df = 0.5F * (fi[m][im + nx * (jc + ny * kc)] + fi[m][ip + nx * (jc + ny * kc)] + fi[m][ic + nx * (jm + ny * kc)] +
-                fi[m][ic + nx * (jp + ny * kc)] + fi[m][ic + nx * (jc + ny * km)] + fi[m][ic + nx * (jc + ny * kp)] -
-                6 * fi[m][ic + nx * (jc + ny * kc)]); // dummy */
-    /* 
-    Sum of intensity     : 234.76391657745043
-    Sum of HI intensity  : 289.9002150034569
-    Sum of HeI intensity : 569.8936258778904 
-    */
-    // const Real df = 0.5F * (-6 * fi[m][ic + nx * (jc + ny * kc)]); // dummy 
-    /*
-    Sum of intensity     : 234.76391657745043
-    Sum of HI intensity  : 289.9002150034569
-    Sum of HeI intensity : 569.8936258778904
-    */
-    /* const Real df = 0.5F * (fi[m][im + nx * (jc + ny * kc)] + fi[m][ip + nx * (jc + ny * kc)] + fi[m][ic + nx * (jm + ny * kc)] +
-                fi[m][ic + nx * (jp + ny * kc)] + fi[m][ic + nx * (jc + ny * km)] + fi[m][ic + nx * (jc + ny * kp)]); // dummy */
-    /*
-    Sum of intensity     : 234.76391657745043
-    Sum of HI intensity  : 289.9002150034569
-    Sum of HeI intensity : 569.8936258778904
-    */
-    // The detailed contents of df don't matter very much.
     if (Split) {
       // this is fiNew = fi*exp(-tau) + df * cdt2dx * (1-exp(-tau))/tau
       fiNew[m][ic + nx * (jc + ny * kc)] = fi[m][ic + nx * (jc + ny * kc)] * w1 + cdt2dx * df * w2;  // testing RHS
+
+      E0 = fi[m][ic + nx * (jc + ny * kc)];
+      E1 = fiNew[m][ic + nx * (jc + ny * kc)];
+      d0 = df;
+      f0[0] = pij[ix[m]][im + nx * (jc + ny * kc)];
+      f0[1] = pij[ix[m]][ip + nx * (jc + ny * kc)];
+      f0[2] = pij[iy[m]][ic + nx * (jm + ny * kc)];
+      f0[3] = pij[iy[m]][ic + nx * (jp + ny * kc)];
+      f0[4] = pij[iz[m]][ic + nx * (jc + ny * km)];
+      f0[5] = pij[iz[m]][ic + nx * (jc + ny * kp)];
+      w0 = cdt2dx * df * w2;
+      if( (ic == nx/2) and (jc == ny/2) and (kc == nz/2) and deb) {
+        // printf("RT-GPU-F[%d] %.5g -> %.5g d=%6.4g f=(%.6g,%.6g,%.6g,%.6g,%.6g,%.6g) w=%6.3g\n",m,fu*E0,fu*E1,fu*d0,fu*f0[0],fu*f0[1],fu*f0[2],fu*f0[3],fu*f0[4],fu*f0[5],fu*w0);
+        printf("RT-GPU-F[%d] %.5g -> %.5g d=%6.4g f=(%.6g,%.6g,%.6g,%.6g,%.6g,%.6g)\n",m,fu*E0,fu*E1,fu*d0,fu*f0[0],fu*f0[1],fu*f0[2],fu*f0[3],fu*f0[4],fu*f0[5]);
+
+      }
     } else {
       fiNew[m][ic + nx * (jc + ny * kc)] =
           fi[m][ic + nx * (jc + ny * kc)] +

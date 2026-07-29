@@ -373,12 +373,19 @@ void Grid3D::set_dt(Real dti)
 
   H.dt = C_cfl / max_dti;
 
+  chprintf("G: set_dti: C_cfl %e H.dt %e max_dti %e\n",C_cfl,H.dt,max_dti);
+
 #endif  // ONLY_PARTICLES
 
 #ifdef GRAVITY
   // Set dt for hydro and particles
   set_dt_Gravity();
 #endif  // GRAVITY
+
+#ifdef RT
+  // Set dt for radiative transfer
+  set_dt_RT();
+#endif 
 
 #ifdef CPU_TIME
   Timer.Calc_dt.End();
