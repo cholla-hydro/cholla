@@ -827,6 +827,11 @@ class Grid3D
   void Free_Cosmo_Power_Spectrum();
   void Allocate_Cosmo_Potential_Memory();
   void Free_Cosmo_Potential_Memory();
+  /*! \brief Rescale a field by a constant multiplicative factor.
+   *
+   *  \param[inout] d_x is a field without ghost zones
+   *  \param[in]    A is the multiplicative factor
+   */
   void Rescale_Field(Real *d_x, Real A);
   void Field_Elementwise_Product(Real *d_x, Real *d_y);
   void FFT_Populate_Wavevectors(Real *d_kx, Real *d_ky, Real *d_kz, Real *d_kk);
