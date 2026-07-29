@@ -1,3 +1,7 @@
+/*! \file
+ *! \brief declares field-wide operations
+ */
+
 #pragma once
 #include "../global/global.h"
 /*! \brief Multiply one field a multiplicative constant */
