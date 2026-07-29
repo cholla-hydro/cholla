@@ -28,6 +28,7 @@ typedef curandStateMRG32k3a_t rng_parallel_state_t;
   #define RNG_PI           3.141592653589793238462643383279502884
 #endif
 
+/*! \brief Initialize a GPU-based RNG */
 __global__ void RNG_Init_GPU(int nx_local, int ny_local, int nz_local, int nx_local_start, int ny_local_start,
                              int nz_local_start, int nx, int ny, int nz, uint64_t seed, rng_parallel_state_t *states);
 __global__ void RNG_Init_TEST(int procID, int nx_local, int ny_local, int nz_local, int nx_local_start,
