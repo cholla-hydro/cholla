@@ -46,8 +46,6 @@ inline __device__ void Field_Elementwise_Product_GPU(Real *d_x, Real *d_y, int n
   }
 }
 
-/*! \fn void FFT_Populate_Wavevectors_GPU(Real *d_kx, Real *d_ky, Real *d_kz, Real *d_kk, int n_cells, int n_ghost)
- *  \brief Multiply one field elementwise by another */
 /*
 inline __device__ void FFT_Populate_Wavevectors_GPU(Real *d_kx, Real *d_ky, Real *d_kz, Real *d_kk, int n_cells, int
 n_ghost)
