@@ -1,3 +1,7 @@
+/*! \file
+ *! \brief defines field-wide operations
+ */
+
 #include "../utils/gpu.hpp"
 #include "field_operations.h"
 
