@@ -833,9 +833,6 @@ class Grid3D
    *  \param[in]    A is the multiplicative factor
    */
   void Rescale_Field(Real *d_x, Real A);
-  void Field_Elementwise_Product(Real *d_x, Real *d_y);
-  void FFT_Populate_Wavevectors(Real *d_kx, Real *d_ky, Real *d_kz, Real *d_kk);
-  void FFT_Field_Reverse_Laplacian(Real *d_x_k, Real *d_kk);
   /*! \brief Create a Gaussian random field on a grid */
   void Generate_Normal_Random_Field(Real *d_field, struct Parameters *P, rng_parallel_state_t *state);
 
