@@ -424,7 +424,7 @@ template<bool Split> void __global__ StepRFiIteration_Kernel( int nx, int ny, in
 void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real dx, Real cdt2dxRSL, Real gamma,
                                         const Real* __restrict__ rs, const Real* __restrict__ rfi,
                                         const Real* __restrict__ abc, const Real* __restrict__ pij_,
-                                        Real* __restrict__ rfiNew, int deb)
+                                        Real* __restrict__ rfiNew, int freq, int deb)
 {
   /*
   // following altair
@@ -483,18 +483,22 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
   Real f0[6];
   Real d0, dF[3];
   Real w0, wF0[3];
-  Real abc0;
+  // Real abc0;
   Real fu = dx * (nx - 2*n_ghost);
   fu *= fu;
   //Real fu = 1;
 
   Real rf1, cdt2dx, w1, w2;
+
+  // absorption coefficient is 0 for freq >= 3
+  Real abc0 = (freq < 3 ? abc[ic + nx * (jc + ny * kc)] : 0);
   if (Split) {
-    cdt2dx   = cdt2dxRSL / (1 + cdt2dxRSL * gamma * 3);
-    Real tau = cdt2dx * abc[ic + nx * (jc + ny * kc)];
-    w1       = expf(-tau);
+    cdt2dx    = cdt2dxRSL / (1 + cdt2dxRSL * gamma * 3);
+    
+    Real tau  = cdt2dx * abc0;
+    w1        = expf(-tau);
     // maybe lower to 0.01?
-    w2       = (tau < 0.1F ? 1 - 0.5F * tau * (1 - (1.0F / 3.0F) * tau * (1 - 0.25F * tau)) : (1 - w1) / tau);
+    w2        = (tau < 0.1F ? 1 - 0.5F * tau * (1 - (1.0F / 3.0F) * tau * (1 - 0.25F * tau)) : (1 - w1) / tau);
 
     rf1 = rf[ic + nx * (jc + ny * kc)] * w1 + cdt2dx * d * w2;
 
@@ -503,7 +507,6 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
     E1 = rf1;
     d0 = d;
     w0 = cdt2dx * d * w2;
-    abc0 = abc[ic + nx * (jc + ny * kc)];
     f0[0] = fi[0][im + nx * (jc + ny * kc)];
     f0[1] = fi[0][ip + nx * (jc + ny * kc)];
     f0[2] = fi[1][ic + nx * (jm + ny * kc)];
@@ -511,9 +514,9 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
     f0[4] = fi[2][ic + nx * (jc + ny * km)];
     f0[5] = fi[2][ic + nx * (jc + ny * kp)];
   } else {
-    cdt2dx = cdt2dxRSL / (1 + cdt2dxRSL * gamma * (abc[ic + nx * (jc + ny * kc)] + 3));
+    cdt2dx = cdt2dxRSL / (1 + cdt2dxRSL * gamma * (abc0 + 3));
 
-    rf1 = rf[ic + nx * (jc + ny * kc)] + cdt2dx * (d - abc[ic + nx * (jc + ny * kc)] * rf[ic + nx * (jc + ny * kc)]);
+    rf1 = rf[ic + nx * (jc + ny * kc)] + cdt2dx * (d - abc0 * rf[ic + nx * (jc + ny * kc)]);
   }
 
   if( (ic == nx/2) and (jc == ny/2) and (kc == nz/2) and deb) {
@@ -565,7 +568,7 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
     } else {
       fiNew[m][ic + nx * (jc + ny * kc)] =
           fi[m][ic + nx * (jc + ny * kc)] +
-          cdt2dx * (df - abc[ic + nx * (jc + ny * kc)] * fi[m][ic + nx * (jc + ny * kc)]);  // testing RHS
+          cdt2dx * (df - abc0 * fi[m][ic + nx * (jc + ny * kc)]);  // testing RHS
     }
   }
 }

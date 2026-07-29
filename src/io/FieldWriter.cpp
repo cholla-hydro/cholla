@@ -381,10 +381,11 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
                                   "/rf_HI_far",    "/rf_HeI_far", "/rf_HeII_far"};
     #endif
     #ifdef RT_M1
-  const char* rt_dset_names[16] = {"/rf_intensity", "/rf_intensity_Mx", "/rf_intensity_My", "/rf_intensity_Mz",
-                                   "/rf_HI",        "/rf_HI_Mx",        "/rf_HI_My",        "/rf_HI_Mz",
+  const char* rt_dset_names[16] = {"/rf_HI",        "/rf_HI_Mx",        "/rf_HI_My",        "/rf_HI_Mz",
                                    "/rf_HeI",       "/rf_HeI_Mx",       "/rf_HeI_My",       "/rf_HeI_Mz",
-                                   "/rf_HeII",      "/rf_HeII_Mx",      "/rf_HeII_My",      "/rf_HeII_Mz"};
+                                   "/rf_HeII",      "/rf_HeII_Mx",      "/rf_HeII_My",      "/rf_HeII_Mz",
+                                   "/rf_0",         "/rf_0_Mx",         "/rf_0_My",         "/rf_0_Mz"};
+
     #endif
   for (int n = 0; n < Rad.n_rf; n++) {
     rtptr = &Rad.rtFields.dev_rf[n * H.n_cells];

@@ -289,11 +289,11 @@ __device__ void Get_Current_UVB_Rates(Real current_z, ChemistryHeader &Chem_H, c
     #endif                     // RT_OTVET
 
     #ifdef RT_M1
-  const int stride_0    = 0;             // 0    -- intensity field
-  const int stride_HI   = n_fpfreq;      // HI   -- intensity field
-  const int stride_HeI  = 2 * n_fpfreq;  // HeI  -- intensity field
-  const int stride_HeII = 3 * n_fpfreq;  // HeII -- intensity field
-    #endif                               // RT_M1
+  const int stride_HI   = 0;            // HI   -- intensity field
+  const int stride_HeI  = n_fpfreq;     // HeI  -- intensity field
+  const int stride_HeII = 2 * n_fpfreq; // HeII -- intensity field
+  const int stride_0    = 3 * n_fpfreq; // 0    -- intensity field
+  #endif                               // RT_M1
 
   // This applies to all methods
   // For RT_OTVET, this is the near field
