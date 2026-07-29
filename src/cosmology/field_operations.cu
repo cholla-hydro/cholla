@@ -33,8 +33,6 @@ inline __device__ void Field_Elementwise_Product_GPU(Real *d_x, Real *d_y, int n
   xid = id - zid * nx * ny - yid * nx;
 
   // only real cells participate
-  /*if (xid > n_ghost - 1 && xid < nx - n_ghost && yid > n_ghost - 1 && yid < ny - n_ghost && zid > n_ghost - 1 &&
-      zid < nz - n_ghost) {*/
   if ((xid >= 0) and (xid < nx) and (yid >= 0) and (yid < ny) and (zid >= 0) and (zid < nz)) {  // all cells are real
 
     // rescale x by y
