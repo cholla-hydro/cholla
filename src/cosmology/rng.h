@@ -1,3 +1,7 @@
+/*! \file
+ *! \brief declares cosmology-related rng operations
+ */
+
 #pragma once
 #ifdef O_HIP
   #include <hiprand/hiprand.h>
