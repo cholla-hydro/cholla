@@ -819,13 +819,21 @@ class Grid3D
   void Advance_Particles_KDK_Cosmo_Step2_GPU();
   #endif  // PARTICLES_GPU
 
+  /*! \brief Create the potentials for cosmological ICs */
   void Generate_Cosmo_Phi_Init(struct Parameters *P);
+  /*! \brief Write out the cosmological potential field to hdf5 files*/
   void Save_Cosmo_Potential(struct Parameters const *P);
+  /*! \brief Initialize the RNG for cosmological ICs potentials */
   void Initialize_Cosmo_Potential_RNG(struct Parameters *P);
+  /*! \brief Free memory for cosmological potential*/
   void Free_Cosmo_Potential_RNG();
+  /*! \brief Allocate memory and load cosmological power spectrum*/
   void Load_Cosmo_Power_Spectrum(struct Parameters *P);
+  /*! \brief Free memory for cosmological power spectrum*/
   void Free_Cosmo_Power_Spectrum();
+  /*! \brief Allocate the memory allocated for cosmological ICs potentials */
   void Allocate_Cosmo_Potential_Memory();
+  /*!  \brief Free the memory allocated for cosmological ICs potentials */
   void Free_Cosmo_Potential_Memory();
   /*! \brief Rescale a field by a constant multiplicative factor.
    *
