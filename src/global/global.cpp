@@ -35,7 +35,6 @@ void Set_Gammas(Real gamma_in)
 {
   // set gamma
   gama = gamma_in;
-  // chprintf("gamma = %e\n",gamma_in);
   CHOLLA_ASSERT(gama > 1.0, "Gamma must be greater than one.");
 }
 

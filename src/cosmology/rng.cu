@@ -19,11 +19,9 @@ __global__ void RNG_Init_GPU(int nx_local, int ny_local, int nz_local, int nx_lo
                              int nz_local_start, int nx, int ny, int nz, uint64_t seed, rng_parallel_state_t *states)
 {
   // indices
-  // int xid, yid, zid;
   uint64_t const threadId = threadIdx.x + blockIdx.x * blockDim.x;
 
   // determine the cell location
-  // cuda_utilities::compute3DIndices(threadId, nx_local, ny_local, xid, yid, zid);
   uint64_t zid = threadId / (nx_local * ny_local);
   uint64_t yid = (threadId - zid * nx_local * ny_local) / nx_local;
   uint64_t xid = threadId - zid * nx_local * ny_local - yid * nx_local;
@@ -108,8 +106,6 @@ __global__ void RNG_Init_TEST(int procID, int nx_local, int ny_local, int nz_loc
   }
 }
 
-/*! \fn void RNG_Normal_Field_GPU(Real *d_field, int nx, int ny, int nz, int n_ghost, curandStatePhilox4_32_10_t *state)
- *  \brief Generate a normal gaussian random field on a grid */
 __global__ void RNG_Normal_Field_GPU(Real *d_field, int nx_local, int ny_local, int nz_local, int nx_local_start,
                                      int ny_local_start, int nz_local_start, int nx, int ny, int nz, uint64_t seed,
                                      rng_parallel_state_t *states)
@@ -139,48 +135,8 @@ __global__ void RNG_Normal_Field_GPU(Real *d_field, int nx_local, int ny_local, 
     // skip ahead
     skipahead(global_idx, &localState);
 
-    // uint64_t offset = global_idx;
-    // uint64_t subsequence = global_idx;
-    // uint64_t offset = 0;
-    // uint64_t flag = global_idx >> 32;
-    // uint64_t subsequence = flag;
-    // if(flag)
-    //{
-    // curand_init(seed+flag, subsequence, offset, &localState);
-    // d_field[threadId] = 0;
-    // curand_init(seed, subsequence, offset, &localState);
-    //}//else{
-    // 	d_field[threadId] = gpurand_normal(&localState);
-    //}
-    // curand_init(seed, subsequence, offset, &localState);
-    //	curand_init(seed, subsequence, flag, &localState);
     d_field[threadId] = gpurand_normal(&localState);
 
-    /*
-
-     // pull two random uniform numbers
-     Real2 u = gpurand_uniform2(&localState);
-
-     // do box-muller transform
-     Real r = sqrt(-2.0 * log(u.x));
-     Real theta = 2.0 * RNG_PI * u.y;
-     */
-
-    // force the 128-bit counter to advance perfectly across 64-bit boundaries.
-    // state.v[0] and state.v[1] hold the lower 64 bits of the Philox counter.
-    // localState.v[0] = (unsigned int)(global_index & 0xFFFFFFFFULL);
-    // localState.v[1] = (unsigned int)(global_index  >> 32);
-
-    // clear any internal Box-Muller tracking flags to prevent stale state masking
-    // localState.boxmuller_index = 0;
-    // localState.boxmuller_flag = 0;
-
-    // pull a gaussian random variate for each cell
-    // Real4 variate = gpurand_normal4(&localState);
-    // d_field[threadId] = variate.x;
-    // d_field[threadId] = gpurand_normal(&localState); // precision-aware wrapper
-    // d_field[threadId] = r * cos(theta); // just need one
-    // d_field[threadId] = gpurand_normal(&localState);
 
     states[threadId] = localState;
   }

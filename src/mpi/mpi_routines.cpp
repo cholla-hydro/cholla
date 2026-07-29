@@ -577,7 +577,7 @@ void Allocate_MPI_DeviceBuffers(struct Header *H)
   // Set Initial sizes for particles buffers
   int n_max            = std::max(H->nx, H->ny);
   n_max                = std::max(H->nz, n_max);
-  int factor           = 2;  // BRANT ORIG
+  int factor           = 2;
   N_PARTICLES_TRANSFER = n_max * n_max * factor;
 
   // Set the number of values that will be transferred for each particle

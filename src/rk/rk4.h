@@ -1,8 +1,8 @@
-#pragma once
-
 /*! \file
  *  \brief Defines \ref RKIntegrator
  */
+
+#pragma once
 
 #include <vector>
 

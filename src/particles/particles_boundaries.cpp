@@ -220,9 +220,6 @@ void Grid3D::Load_NTtransfer_and_Request_Receive_Particles_Transfer(int index, i
       recv_buffer_x0_particles        = d_recv_buffer_x0_particles;
       Particles.G.recv_buffer_x0_d    = d_recv_buffer_x0_particles;
       Particles.G.recv_buffer_size_x0 = (part_int_t)(Particles.G.gpu_allocation_factor * buffer_length);
-      // printf("Before recv procID %d set x0 buffer_length = %d recv_buffer_size_x0 %d\n", procID, buffer_length,
-      //        Particles.G.recv_buffer_size_x0);
-      // fflush(stdout);
     }
       #else
     Check_and_Grow_Particles_Buffer(&recv_buffer_x0_particles, &buffer_length_particles_x0_recv, buffer_length);
@@ -765,8 +762,6 @@ int Particles3D::Select_Particles_to_Transfer_GPU(int direction, int side)
     domainMax = G.zMax;
     domainMin = G.zMin;
   }
-  // chprintf("procID %d n_local=%d SELECT PARTICLES: %d dir, %d side. Max/Min %.4e/%.4e\n", procID, n_local, direction,
-  // side, domainMax, domainMin);
 
   // Set the number of
   // particles that will be sent and load the particles data into the transfer
