@@ -96,16 +96,11 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // step 1) sample xi(m) by generating independent
   //         zero-mean normal deviates with variance N**d at
   //         each spatial point
-  // Generate_Normal_Random_Field(CP.d_delta_m,rng_states);
   Generate_Normal_Random_Field(CP.d_delta_m, P, rng_states);
 
   // copy memory -- only real, local cells
   cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
-  // printf("procID %d rngs: %e %e %e\n",procID,CP.delta_m[0],CP.delta_m[1],CP.delta_m[2]);
-  // fflush(stdout);
-
-  // chexit(0);
   Real delta_rms = 0;
   Real delta_ave = 0;
   // reduce the grid values
@@ -306,7 +301,6 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // clear the FFT memory
   fft.Reset();
 
-  // chexit(0);  //BRANT
 }
 
 /*! \fn void Save_Cosmo_Potential(struct Parameters *P)
@@ -506,7 +500,6 @@ void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
 {
   // Initialize the parameters for the Philox RNG
   int n_cells = nx_local * ny_local * nz_local;
-  //  int n_cells = H.nx * H.ny * H.nz;
 
   // Record the RNG seed from the parameter file
   CP.rng_seed = P->cosmoics_seed;
@@ -519,9 +512,6 @@ void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
   hipLaunchKernelGGL(RNG_Init_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0, nx_local,
                      ny_local, nz_local, nx_local_start, ny_local_start, nz_local_start, P->nx, P->ny, P->nz,
                      CP.rng_seed, rng_states);
-  // hipLaunchKernelGGL(RNG_Init_TEST, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
-  //                    procID,nx_local,ny_local,nz_local,nx_local_start,ny_local_start,nz_local_start,P->nx,P->ny,P->nz,CP.rng_seed,
-  //                    rng_states);
 
   GPU_Error_Check();
 
@@ -631,7 +621,6 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
   // Multiplying by the square root of the power spectrum
   // if we transfer forward, multiply by 1, and then backward, we get the same variance we input
   Real pk_factor = 1.0e9 * (nx_global * ny_global * nz_global) / (P->xlen * P->ylen * P->zlen);
-  // Real pk_factor = 0.5e9*(nx_global*ny_global*nz_global)/(P->xlen*P->ylen*P->zlen);
 
   // see if answer changes in different box
 
@@ -773,9 +762,6 @@ void Grid3D::Generate_Normal_Random_Field(Real *d_field, struct Parameters *P, r
 {
   // Here, d_field has been pre-allocated on the device
   int n_cells = nx_local * ny_local * nz_local;
-  // chprintf("nx_local %d ny_local %d nz_local %d\n",nx_local,ny_local,nz_local);
-  // chexit(0);
-  // int n_cells = H.nx * H.ny * H.nz;
   cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Normal_Field_GPU, n_cells);
   hipLaunchKernelGGL(RNG_Normal_Field_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
                      d_field, nx_local, ny_local, nz_local, nx_local_start, ny_local_start, nz_local_start, P->nx,
