@@ -30,9 +30,6 @@ __global__ void RNG_Init_GPU(int nx_local, int ny_local, int nz_local, int nx_lo
   if ((xid < nx_local) and (yid < ny_local) and (zid < nz_local)) {  // all cells are real
 
     // create a global real-cell index
-    // uint64_t global_idx = (xid + nx_local_start);
-    // global_idx += (yid + ny_local_start)*nx;
-    // global_idx += (zid + nz_local_start)*nx*ny;
     uint64_t global_idx = (xid + nx_local_start);
     global_idx += (yid + ny_local_start) * nx;
     global_idx += (zid + nz_local_start) * nx * ny;
