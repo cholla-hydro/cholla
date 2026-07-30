@@ -1,11 +1,12 @@
-#if defined(COSMOLOGY) && defined(FFT)
+#include "../global/global.h"
+
+#if defined(COSMOLOGY) && defined(FFT) && defined(HDF5)
   #include <hdf5.h>
 
   #include <cstdio>
   #include <fstream>
 
   #include "../fft/fft_3D.h"
-  #include "../global/global.h"
   #include "../grid/grid3D.h"
   #include "../grid/grid_enum.h"
   #include "../io/io.h"
