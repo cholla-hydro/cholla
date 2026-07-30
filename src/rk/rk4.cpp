@@ -40,8 +40,8 @@ RKIntegrator::RKIntegrator(int ny_in)
   bij[6][5] = 253. / 4096.;
 }
 
-void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y, std::vector<Real> params), Real x,
-                           std::vector<Real> y, Real *h_this, Real *h_pass, std::vector<Real> params,
+void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, const std::vector<Real>& y, const std::vector<Real>& params), Real x,
+                           const std::vector<Real>& y, Real *h_this, Real *h_pass, const std::vector<Real>& params,
                            std::vector<Real> &yp, Real *error_pass)
 {
   Real Safety    = 0.9;

@@ -329,6 +329,7 @@ class Particles3D
 
   void Initialize_Adiabatic_Expansion(struct Parameters *P);
 
+  /*! \brief Create the initial particle positions for cosmological ICs */
   void Initialize_Cosmological_ICs_Particles(struct Parameters *P, Real xbound, Real ybound, Real zbound, Real xdglobal,
                                              Real ydglobal, Real zdglobal);
 

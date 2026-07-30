@@ -140,7 +140,7 @@ Real OmegaDEz_Growth_Function(Real z, Real Omega_DE, Real w0, Real wa)
   return A * B;
 }
 
-static std::vector<Real> growth_factor_system(Real z, std::vector<Real> y, std::vector<Real> params)
+static std::vector<Real> growth_factor_system(Real z, const std::vector<Real>& y, const std::vector<Real>& params)
 {
   int ny = y.size();
   std::vector<Real> dydz(ny);
@@ -188,7 +188,7 @@ static std::vector<Real> growth_factor_system(Real z, std::vector<Real> y, std::
   dydz[2] = d2delta_dt2;
   return dydz;
 }
-// Function to precompute the growth function
+
 void Cosmology::Compute_Growth_Function(struct Parameters *P)
 {
   int np = 6;
@@ -267,7 +267,6 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
   }
 }
 
-// function to perform linear interpolation on vectors
 Real Cosmology::LinearInterpolation(const std::vector<Real> &x, const std::vector<Real> &y, Real a)
 {
   // clamp if needed
@@ -282,14 +281,14 @@ Real Cosmology::LinearInterpolation(const std::vector<Real> &x, const std::vecto
 
   return y[index] + (y[index + 1] - y[index]) * (a - x[index]) / (x[index + 1] - x[index]);
 }
-// Function to precompute the growth function
+
 Real Cosmology::D_Growth(Real a)
 {
   // interpolate (a,D)
   Real norm = LinearInterpolation(a_array, D_array, 1);
   return LinearInterpolation(a_array, D_array, a) / norm;
 }
-// Function to precompute the growth function scale factor derivative
+
 Real Cosmology::dDda_Growth(Real a)
 {
   Real dDda;  // take numerical derivative
@@ -300,7 +299,7 @@ Real Cosmology::dDda_Growth(Real a)
   }
   return dDda;
 }
-// Function to precompute the growth function time derivative
+
 Real Cosmology::dDdt_Growth(Real a)
 {
   // interpolate (a,dDdt)
@@ -396,7 +395,6 @@ void Grid3D::Change_GAS_Frame_System(bool forward)
   }
 }
 
-/* create the file for recording the growth function history */
 void Cosmology::Create_Growth_Function_File(struct Parameters *P)
 {
   if (not Is_Root_Proc()) {

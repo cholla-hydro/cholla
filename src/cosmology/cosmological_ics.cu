@@ -15,8 +15,6 @@
   #include "field_operations.h"
   #include "rng.h"
 
-/*! \fn void Generate_Cosmo_Phi_Init(void)
- *  \brief Create the potentials for cosmological ICs */
 void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 {
   // This function generates the initial potentials required
@@ -303,8 +301,6 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
 }
 
-/*! \fn void Save_Cosmo_Potential(struct Parameters *P)
- *  \brief Write out the cosmological potential field to hdf5 files*/
 void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
 {
   char fname[200];
@@ -325,9 +321,8 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
   Real *phi_out;  // output cosmological potential
 
   // Create a file name for each hdf5 output
-  // sprintf(fname, "%s0/delta_ini.h5.%d", P->outdir, procID);
-  sprintf(fname, "delta_ini.h5.%d", procID);
-
+  sprintf(fname, "%s0/delta_ini.h5.%d", P->outdir, procID);
+  
   // create a file
   f_id = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
   if (f_id < 0) {
@@ -494,8 +489,6 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
   H5Fclose(f_id);
 }
 
-/*! \fn void Initialize_Cosmo_Potential_RNG(void)
- *  \brief Initialize the RNG for cosmological ICs potentials */
 void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
 {
   // Initialize the parameters for the Philox RNG
@@ -518,16 +511,12 @@ void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
   chprintf("Cosmological ICs: Initialized RNG states (seed = %d).\n", CP.rng_seed);
 }
 
-/*! \fn void Free_Cosmo_Potential_RNG()
- *  \brief Free memory for cosmological potential*/
 void Grid3D::Free_Cosmo_Potential_RNG()
 {
   // free rng states info
   GPU_Error_Check(cudaFree(rng_states));
 }
 
-/*! \fn void Free_Cosmo_Power_Spectrum()
- *  \brief Free memory for cosmological power spectrum*/
 void Grid3D::Free_Cosmo_Power_Spectrum()
 {
   // free host P(k) info
@@ -542,8 +531,6 @@ void Grid3D::Free_Cosmo_Power_Spectrum()
   GPU_Error_Check(cudaFree(CP.d_pk_bc_array));
 }
 
-/*! \fn void Load_Cosmo_Power_Spectrum(struct Parameters *P)
- *  \brief Allocate memory and load cosmological power spectrum*/
 void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
 {
   char pk_filename[MAXLEN];
@@ -622,17 +609,6 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
   // if we transfer forward, multiply by 1, and then backward, we get the same variance we input
   Real pk_factor = 1.0e9 * (nx_global * ny_global * nz_global) / (P->xlen * P->ylen * P->zlen);
 
-  // see if answer changes in different box
-
-  // Real pk_factor = 1.0e9; // convert (Mpc/h)^3 to (kpc/h)^3 RMS of density field over entire grid = 1.449342e+04
-  // Real pk_factor = 1.0e9/pow(50000,3); // convert (Mpc/h)^3 to (kpc/h)^3 1.296331e-03
-  // Real pk_factor = 1.0e9/pow(50000/(2*M_PI),3); // convert (Mpc/h)^3 to (kpc/h)^3 2e-2
-  // Real pk_factor = 1; // RMS of density field over entire grid = 4.583223e-01
-  // Real pk_factor = 1/(2.0*M_PI*M_PI); // RMS of density field over entire grid = 4.583223e-01
-  // Real pk_factor = pow(50,3)/(2.0); // RMS of density field over entire grid = 4.583223e-01
-  //  (50/256)**3 = 0.007450580596923828
-  //  (50000/256)**3 = 7450580.596923828
-
   // The value of the power spectrum at redshift 0 and a ~195 kpc/h ~ 5 h/Mpc cell is ~ 1
 
   chprintf("Cosmological ICs: Power spectrum rescaling factor: %e\n", pk_factor);
@@ -664,8 +640,6 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
   GPU_Error_Check(cudaMemcpy(CP.d_pk_bc_array, CP.pk_bc_array, CP.n_pk * sizeof(Real), cudaMemcpyHostToDevice));
 }
 
-/*! \fn void Allocate_Cosmo_Potential_Memory(void)
- *  \brief Allocate the memory allocated for cosmological ICs potentials */
 void Grid3D::Allocate_Cosmo_Potential_Memory()
 {
   // allocate memory for the phi arrays
@@ -739,8 +713,6 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
   }
 }
 
-/*! \fn void Free_Cosmo_Potential_Memory(void)
- *  \brief Free the memory allocated for cosmological ICs potentials */
 void Grid3D::Free_Cosmo_Potential_Memory(void)
 {
   // free the host delta arrays
@@ -756,8 +728,6 @@ void Grid3D::Free_Cosmo_Potential_Memory(void)
   GPU_Error_Check(cudaFree(CP.devicep));
 }
 
-/*! \fn void Generate_Normal_Random_Field(Real *d_field, rng_parallel_state_t *state)
- *  \brief Create a Gaussian random field on a grid */
 void Grid3D::Generate_Normal_Random_Field(Real *d_field, struct Parameters *P, rng_parallel_state_t *state)
 {
   // Here, d_field has been pre-allocated on the device
@@ -768,8 +738,6 @@ void Grid3D::Generate_Normal_Random_Field(Real *d_field, struct Parameters *P, r
                      P->ny, P->nz, P->cosmoics_seed, rng_states);
 }
 
-/*! \fn void Rescale_Field(Real *d_x, Real A)
- *  \brief Rescale a field by a constant multiplicative factor. */
 void Grid3D::Rescale_Field(Real *d_x, Real A)
 {
   // Here, d_x has been pre-allocated on the device
@@ -781,9 +749,7 @@ void Grid3D::Rescale_Field(Real *d_x, Real A)
                      nx_local, ny_local, nz_local, 0);
 }
 
-/*! \fn void Set_Boundary_Conditions_Field(Parameters P )
- *  \brief Set the boundary conditions for all components based on info in the
- * parameters structure. */
+
 void Grid3D::Set_Boundary_Conditions_Field(Parameters P, Real *field)
 {
   #ifndef MPI_CHOLLA
@@ -819,8 +785,6 @@ void Grid3D::Set_Boundary_Conditions_Field(Parameters P, Real *field)
   #endif /*MPI_CHOLLA*/
 }
 
-/*! \fn void Set_Boundaries_Field(int dir, int flags[])
- *  \brief Apply boundary conditions to the grid. */
 void Grid3D::Set_Boundaries_Field(int dir, int flags[], Real *field)
 {
   int i, j, k;
@@ -1234,8 +1198,6 @@ void Grid3D::Wait_and_Unload_MPI_Comm_Buffers_Field(int dir, int *flags, Real *f
   }
 }
 
-/*! \fn void Grid3D::Unload_MPI_Comm_Buffers_Field(int index, Real *field)
- *  \brief Unload the MPI buffers for field comms. */
 void Grid3D::Unload_MPI_Comm_Buffers_Field(int index, Real *field)
 {
   // local recv buffers
@@ -1272,8 +1234,6 @@ void Grid3D::Unload_MPI_Comm_Buffers_Field(int index, Real *field)
   }
 }
 
-/*! \fn void Grid3D::Load_Field_To_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *field)
- *  \brief Load the MPI buffers for field comms. */
 int Grid3D::Load_Field_To_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *field)
 {
   int i, j, k, indx, indx_buff, length;

@@ -924,12 +924,17 @@ class Grid3D
   // Cosmo ICs potential comms
   void Allocate_Boundary_Conditions_Field_MPI();
   void Free_Boundary_Conditions_Field_MPI();
+  /*! \brief Set the boundary conditions for all components based on info in the
+   * parameters structure. */
   void Set_Field_Boundaries_Periodic(int direction, int side, int *flags, Real *field);
   void Set_Boundary_Conditions_Field(Parameters P, Real *field);
+  /*! \brief Apply boundary conditions to the grid. */
   void Set_Boundaries_Field(int dir, int flags[], Real *field);
+/*! \brief Load the MPI buffers for field comms. */
   int Load_Field_To_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *field);
   void Unload_Field_from_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *field);
   #ifdef MPI_CHOLLA
+  /*! \brief Unload the MPI buffers for field comms. */
   void Unload_MPI_Comm_Buffers_Field(int index, Real *field);
   void Wait_and_Unload_MPI_Comm_Buffers_Field(int dir, int *flags, Real *field);
   void Load_and_Send_MPI_Comm_Buffers_Field(int dir, int *flags, Real *field);

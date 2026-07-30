@@ -92,7 +92,6 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
     #endif
     Transfer_Particles_Boundaries(*P);  // try twice
   }
-  // chexit(0); //BRANT
   #endif  // COSMOLOGY
 }
 
@@ -1201,12 +1200,10 @@ void Particles3D::Initialize_Adiabatic_Expansion(struct Parameters *P)
 
   #ifdef COSMOLOGY
 
-/* void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P)
- * \brief create the lagrangian particle positions */
 void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Real xbound, Real ybound, Real zbound,
                                                         Real xdglobal, Real ydglobal, Real zdglobal)
 {
-  chprintf("Cosmological ICs: Setting particle positions...\n");  // HERE
+  chprintf("Cosmological ICs: Setting particle positions...\n");
 
   // The first set of particles are initialzed at Lagrangian
   // locations on the grid
@@ -1448,6 +1445,8 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         grad_phi_z = 0.5 * (phi_r - phi_l) / dz;
     #endif
 
+        // TODO: The following code allows for baryon-CDM relative fluctuations
+        // and needs further testing.
         /*
           #ifndef ONLY_PARTICLES
 
@@ -1563,6 +1562,9 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
         if (vx > vx_max) vx_max = vx;
 
         xix_n += 1;
+
+        // TODO: The following code allows for baryon-CDM relative fluctuations
+        // and needs further testing.
         /*
               #ifndef ONLY_PARTICLES
 
@@ -1740,8 +1742,6 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
   chprintf("Cosmological ICs: Particle positions initialized, n_local: %lu\n", n_local);
 }
 
-/*! \fn void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real
- * *zpos) \brief Get the cell-centered position based on cell index */
 void Particles3D::Get_Position(long i, long j, long k, Real *x_pos, Real *y_pos, Real *z_pos) const
 {
     #ifndef MPI_CHOLLA

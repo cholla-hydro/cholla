@@ -29,7 +29,6 @@
 /*! Set the initial conditions based on info in the parameters structure. */
 void Grid3D::Set_Initial_Conditions(Parameters P, const ParameterMap &pmap)
 {
-  Set_Domain_Properties(P);
   Set_Gammas(P.gamma);
 
   if (strcmp(P.init, "Constant") == 0 or strcmp(P.init, "Isolated_Stellar_Cluster") == 0) {
@@ -1739,53 +1738,6 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   chprintf("Cosmological ICs: LENGTH_UNIT %e\n", LENGTH_UNIT);
   chprintf("Cosmological ICs: PRESSURE_UNIT %e\n", PRESSURE_UNIT);
   chprintf("Cosmological ICs: VELOCITY_UNIT %e\n", VELOCITY_UNIT);
-  /*
-  MP 1.672622e-24 [g]
-  KB 1.380658e-16 [cgs]
-  DENSITY_UNIT 6.768110e-32
-  ENERGY_UNIT 6.471126e-10
-  LENGTH_UNIT 3.085678e+21
-  PRESSURE_UNIT 6.471126e-10
-  VELOCITY_UNIT 9.778139e+10
-  */
-
-  /*
-    // Set Normalization factors
-    r_0_dm          = P->xlen / P->nx; // kpc/h
-    t_0_dm          = 1. / H0; // kpc / (km/s)
-    v_0_dm          = r_0_dm / t_0_dm / cosmo_h; // km/s
-    rho_0_dm        = 3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_M / cosmo_h / cosmo_h;
-    rho_mean_baryon = 3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_b / cosmo_h / cosmo_h;
-    // dens_avrg = 0;
-
-    r_0_gas   = 1.0; // kpc/h
-    rho_0_gas = 3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_M / cosmo_h / cosmo_h;
-    t_0_gas   = 1 / H0 * cosmo_h; // (kpc/h) / (km/s)
-    v_0_gas   = r_0_gas / t_0_gas;// km/s
-    phi_0_gas = v_0_gas * v_0_gas;// (km/s)^2
-    p_0_gas   = rho_0_gas * v_0_gas * v_0_gas; h^2 Msun kpc^-3 (km/s)^2
-    e_0_gas   = v_0_gas * v_0_gas;// (km/s)^2
-  */
-
-  /*
-    if (forward) {
-    dens_factor     = 1 / Cosmo.rho_0_gas;
-    momentum_factor = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas * Cosmo.current_a;
-    energy_factor   = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas / Cosmo.v_0_gas * Cosmo.current_a * Cosmo.current_a;
-  } else {
-    dens_factor     = Cosmo.rho_0_gas;
-    momentum_factor = Cosmo.rho_0_gas * Cosmo.v_0_gas / Cosmo.current_a;
-    energy_factor   = Cosmo.rho_0_gas * Cosmo.v_0_gas * Cosmo.v_0_gas / Cosmo.current_a / Cosmo.current_a;
-  }
-        C.density[id]    = C.density[id] * dens_factor;
-        C.momentum_x[id] = C.momentum_x[id] * momentum_factor;
-        C.momentum_y[id] = C.momentum_y[id] * momentum_factor;
-        C.momentum_z[id] = C.momentum_z[id] * momentum_factor;
-        C.Energy[id]     = C.Energy[id] * energy_factor;
-
-  #ifdef DE
-        C.GasEnergy[id] = C.GasEnergy[id] * energy_factor;
-  */
 
   Real r_0_dm          = P.xlen / P.nx;
   Real t_0_dm          = 1. / H0;
@@ -1853,11 +1805,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
   chprintf("Cosmological ICs: z_init %e a_init %e\n", z_init, a_init);
 
-  // chprintf("D size %d a size %d\n",Cosmo.D_array.size(),Cosmo.a_array.size());
-
   // get growth function and time derivative
-  // chprintf("Dinfo a %e %e D %e
-  // %e\n",Cosmo.a_array.front(),Cosmo.a_array.back(),Cosmo.D_array.front(),Cosmo.D_array.back());
   Ha = Hubble_Growth_Function(a_init, H0, Omega_r, Omega_m, Omega_DE, w0, wa);  // H(a) is about 39 km/s/kpc at z~100
   Real dHda =
       dHda_Growth_Function(a_init, H0, Omega_r, Omega_m, Omega_DE, w0, wa);  // dHda is about -5.9e3 km/s/kpc at z~100
@@ -1941,77 +1889,6 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   // 4) Compute delta b from delta_m and delta_bc
   ////////////////////////////////////////////////
 
-  // We have to skip almost everthing because we won't have
-  // the particles yet
-
-  // we can compute the baryon field
-  // densities only at this stage
-  /*
-  #ifndef ONLY_PARTICLES
-    // set the initial values of the conserved variables
-    for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
-      for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
-        for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
-
-          // this is the full index with ghost cells
-          id = i + j * H.nx + k * H.nx * H.ny;
-
-          kk = k - H.n_ghost;
-          jj = j - H.n_ghost;
-          ii = i - H.n_ghost;
-
-          // this is the real index with only local real cells
-          index =  ii + jj * nx_local + kk * nx_local * ny_local;
-
-          // rho_b * (1+delta_b) = rho_b * (1 + delta_m + f_c * delta_bc)
-          // this is the comoving mean density
-          // in our units, this is usually ~ 13.7 h^2 Msun/kpc^3
-          dens = rho_b * (1 + (D*CP.delta_m[index] + f_c * CP.delta_bc[index])/a_init);
-
-          // note that if gamma = 1.6667
-          // then 1./(gamma-1) * KB *1e-10 / MP = 0.012381617873714293 in (km/s)^2/K
-          // so a 100K gas has U ~ 1.24 * density
-          // with the comoving mean density, these units are correct for U
-          // U is in Msun/kpc^3 (km/s)^2
-          U    = T_init / (gamma - 1) / MP * KB * 1e-10 * dens;
-
-        // forward
-          //dens_factor     = 1 / Cosmo.rho_0_gas;
-          //momentum_factor = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas * Cosmo.current_a;
-          //energy_factor   = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas / Cosmo.v_0_gas * Cosmo.current_a * Cosmo.current_a;
-          //C.density[id]    = C.density[id] * dens_factor;
-          //C.momentum_x[id] = C.momentum_x[id] * momentum_factor;
-          //C.momentum_y[id] = C.momentum_y[id] * momentum_factor;
-          //C.momentum_z[id] = C.momentum_z[id] * momentum_factor;
-          //C.Energy[id]     = C.Energy[id] * energy_factor;
-          //C.GasEnergy[id] = C.GasEnergy[id] * energy_factor;
-          //C.HI_density[id] *= dens_factor;
-          //C.HII_density[id] *= dens_factor;
-
-
-          // initialize hydro grid properties
-          // using the index for the whole grid
-          C.density[id]    = dens;
-
-    #ifdef CHEMISTRY_GPU
-          C.HI_density[id]    = (1-xHp)*(1-YHe)*dens; //HI    density
-          C.HII_density[id]   = xHp*(1-YHe)*dens;     //HII   density
-          C.HeI_density[id]   = (1-xHep)*YHe*dens;    //HeI   density
-          C.HeII_density[id]  = Hep*YHe*dens;         //HeII  density
-          C.HeIII_density[id] = 0;                    //HeIII density
-          //C.e_density[id]     = dens_factor;
-    #endif
-
-          // add the internal energy, will update
-          // after momentum is computed
-          C.Energy[id]    = U;
-
-        }
-      }
-    }
-  #endif
-  */
-
   // At this point, we need the potentials, and delta_bc
   // and we can delta_m to help transfer the potentials
 
@@ -2042,7 +1919,6 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
   // find the average
   delta_rm_check = delta_rm_check / (nx_global * ny_global * nz_global);
-  // printf("Before the remap, mean(phi) = %e\n",delta_rm_check);
 
   Real delta_m_check   = 0;
   Real delta_m_check_n = 0;
@@ -2076,10 +1952,6 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
         // this is the real index with only local real cells
         index = ii + jj * nx_local + kk * nx_local * ny_local;
-        // maybe the field is not iso
-        // index =  jj + ii * nx_local + kk * nx_local * ny_local;
-        // index =  jj + kk * nx_local + ii * nx_local * ny_local;//really
-        // index =  ii + kk * nx_local + jj * nx_local * ny_local;//really
 
         // copy from delta back to phi
         CP.phi_1[id] = CP.delta_m[index];
@@ -2125,9 +1997,6 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
   // perform the ghost cell transfers between
   // subdomains of the computational volume
-
-  // the ghost cells are not set correctly here
-  // and we need to investigate why
 
   chprintf("Cosmological ICs: Exchanging ghost cells for cosmological potential phi_1.\n");
   Allocate_Boundary_Conditions_Field_MPI();
@@ -2205,11 +2074,9 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         phi_ll     = CP.phi_1[id_ll];
         phi_rr     = CP.phi_1[id_rr];
         grad_phi_x = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
-        // grad_x_T[0][0]   = -1*D*(-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dx*dx);
         grad_x_T[0][0] = D * (-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll) / (12 * dx * dx);
     #else
         grad_phi_x = 0.5 * (phi_r - phi_l) / dx;
-        // grad_x_T[0][0]   = -1*D*(phi_r - 2 * phi + phi_l)/(dx*dx);
         grad_x_T[0][0] = D * (phi_r - 2 * phi + phi_l) / (dx * dx);
     #endif
         /*
@@ -2232,6 +2099,8 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         Cosmological ICs: overdensity    field average = 3.909169e-03, rms = 6.561782e-02
         Cosmological ICs: corr overdens. field average = 5.729687e-16, rms = 6.550127e-02
         */
+
+        // TODO(brant): for baryon-dm fluctuations
         /*
                 // repeat for nabla^-2 \delta_bc
                 // which affects LLA only
@@ -2263,14 +2132,13 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         phi_ll     = CP.phi_1[id_ll];
         phi_rr     = CP.phi_1[id_rr];
         grad_phi_y = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dy);
-        // grad_x_T[1][1]   = -1*D*(-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dy*dy);
         grad_x_T[1][1] = D * (-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll) / (12 * dy * dy);
     #else
         grad_phi_y = 0.5 * (phi_r - phi_l) / dy;
-        // grad_x_T[1][1]   = -1*D*(phi_r - 2 * phi + phi_l)/(dy*dy);
         grad_x_T[1][1] = D * (phi_r - 2 * phi + phi_l) / (dy * dy);
     #endif
 
+        // TODO(brant): for baryon-dm fluctuations
         /*
                 // repeat for nabla^-2 \delta_bc
                 // which affects which affects LLA only
@@ -2303,15 +2171,14 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         phi_ll     = CP.phi_1[id_ll];
         phi_rr     = CP.phi_1[id_rr];
         grad_phi_z = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
-        // grad_x_T[2][2] = -1*D*(-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dz*dz);
         grad_x_T[2][2] = D * (-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll) / (12 * dz * dz);
     #else
         grad_phi_z = 0.5 * (phi_r - phi_l) / dz;
-        // grad_x_T[2][2] = -1*D*(phi_r - 2 * phi + phi_l)/(dz*dz);
         grad_x_T[2][2] = D * (phi_r - 2 * phi + phi_l) / (dz * dz);
     #endif
         grad_phi_z = 0.5 * (phi_r - phi_l) / dz;
 
+        // TODO(brant): for baryon-dm fluctuations
         /*
                 // repeat for nabla^-2 \delta_bc
                 // which affects which affects LLA only
@@ -2335,7 +2202,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         id_rd = (i + 1) + (j - 1) * H.nx + k * H.ny * H.nx;
         id_ru = (i + 1) + (j + 1) * H.nx + k * H.ny * H.nx;
 
-        // for baryon-dm fluctuations
+        // TODO(brant): for baryon-dm fluctuations
         // phi_ld = D*CP.phi_1[id_ld] + f_c*CP.phi_2[id_ld];
         // phi_lu = D*CP.phi_1[id_lu] + f_c*CP.phi_2[id_lu];
         // phi_rd = D*CP.phi_1[id_rd] + f_c*CP.phi_2[id_rd];
@@ -2355,7 +2222,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         id_rd = (i + 1) + j * H.nx + (k - 1) * H.ny * H.nx;
         id_ru = (i + 1) + j * H.nx + (k + 1) * H.ny * H.nx;
 
-        // for baryon-dm fluctuations
+        // TODO(brant): for baryon-dm fluctuations
         // phi_ld = D*CP.phi_1[id_ld] + f_c*CP.phi_2[id_ld];
         // phi_lu = D*CP.phi_1[id_lu] + f_c*CP.phi_2[id_lu];
         // phi_rd = D*CP.phi_1[id_rd] + f_c*CP.phi_2[id_rd];
@@ -2375,7 +2242,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         id_rd = i + (j + 1) * H.nx + (k - 1) * H.ny * H.nx;
         id_ru = i + (j + 1) * H.nx + (k + 1) * H.ny * H.nx;
 
-        // for baryon-dm fluctuations
+        // TODO(brant): for baryon-dm fluctuations
         // phi_ld = D*CP.phi_1[id_ld] + f_c*CP.phi_2[id_ld];
         // phi_lu = D*CP.phi_1[id_lu] + f_c*CP.phi_2[id_lu];
         // phi_rd = D*CP.phi_1[id_rd] + f_c*CP.phi_2[id_rd];
@@ -2451,9 +2318,10 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         if (det_grad_x > det_grad_x_max) det_grad_x_max = det_grad_x;
 
         // retrieve the gas overdensity
-        // delta_b = (1+f_c \delta_bc )/(det grad x) - 1
         /// dens = ((1 + CP.delta_bc[index])/det_grad_x - 1);
         dens = (1 / det_grad_x - 1);
+        // TODO(brant): baryon-dm relative fluctuations
+        // delta_b = (1+f_c \delta_bc )/(det grad x) - 1
 
         if (dens < dens_min) dens_min = dens;
         if (dens > dens_max) dens_max = dens;
@@ -2746,9 +2614,6 @@ void Grid3D::Iliev0(struct Parameters P)
   chprintf("rho=%g U=%g\n", rho, U);
 
   int i, j, k, id;
-  //  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
-  //    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
-  //      for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
   for (k = 0; k < H.nz; k++) {
     for (j = 0; j < H.ny; j++) {
       for (i = 0; i < H.nx; i++) {
@@ -2863,9 +2728,8 @@ void Grid3D::Iliev15(struct Parameters P, int test)
         C.HeII_density[id]  = rho * 1.0e-20;
         C.HeIII_density[id] = rho * 1.0e-20;
 
-        // BRANT ALTER
+        // TODO(brant): e_density may be duplicative without metals
         C.e_density[id] = C.HII_density[id] + C.HeI_density[id] + 2 * C.HeIII_density[id];
-        // BRANT ALTER
 
         double x[3] = {H.xblocal + H.dx * (i + 0.5 - H.n_ghost), H.yblocal + H.dy * (j + 0.5 - H.n_ghost),
                        H.zblocal + H.dz * (k + 0.5 - H.n_ghost)};
@@ -2894,9 +2758,8 @@ void Grid3D::Iliev15(struct Parameters P, int test)
         Rad.rtFields.et[id + 3 * H.n_cells] = (x[2] * x[0]) / (eps2et + r2);
         Rad.rtFields.et[id + 4 * H.n_cells] = (x[2] * x[1]) / (eps2et + r2);
         Rad.rtFields.et[id + 5 * H.n_cells] = (eps2et / 3 + x[2] * x[2]) / (eps2et + r2);
-  #endif  // RT_OTVET
-  #ifdef RT_M1
-        for (int ii = 1; ii < Rad.n_fpfreq * Rad.n_freq; ii++) Rad.rtFields.rf[id + ii * H.n_cells] = 0;
+  #elif defined(RT_M1)
+        for (int ii = 0; ii < Rad.n_fpfreq * Rad.n_freq; ii++) Rad.rtFields.rf[id + ii * H.n_cells] = 0;
   #endif  // RT_M1
       }
     }
@@ -2904,7 +2767,7 @@ void Grid3D::Iliev15(struct Parameters P, int test)
 
   chprintf("Iliev15 ICs finalized...\n");
 
-#else   // defined(RT) && defined(CHEMISTRY_GPU)
+#else   // !defined(RT) && defined(CHEMISTRY_GPU)
   chprintf("This requires RT && CHEMISTRY_GPU turned on! \n");
   chexit(-1);
 #endif  // defined(RT) && defined(CHEMISTRY_GPU)
@@ -3001,7 +2864,7 @@ void Grid3D::Iliev6(struct Parameters P)
     }
   }
 
-#else   // defined(RT) && defined(CHEMISTRY_GPU)
+#else   // !defined(RT) && defined(CHEMISTRY_GPU)
   chprintf("This requires RT && CHEMISTRY_GPU turned on! \n");
   chexit(-1);
 #endif  // defined(RT) && defined(CHEMISTRY_GPU)

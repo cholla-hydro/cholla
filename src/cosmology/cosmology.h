@@ -85,11 +85,17 @@ class Cosmology
 
   // growth function calculation
   // and interpolation
+  /*! \brief Precompue the cosmological growth function */
   void Compute_Growth_Function(struct Parameters *P);
+  /*! \brief Create the file for recording the growth function history */
   void Create_Growth_Function_File(struct Parameters *P);
+  /*! \brief Perform linear interpolation on vectors */
   Real LinearInterpolation(const std::vector<Real> &x, const std::vector<Real> &y, Real a);
+  /*! \brief Cosmological growth function at scale factor a */
   Real D_Growth(Real a);
+  /*! \brief Cosmological growth function time derivative at scale factor a */
   Real dDdt_Growth(Real a);
+  /*! \brief Function to precompute the growth function scale factor derivative */
   Real dDda_Growth(Real a);
 
   std::vector<Real> t_array;
@@ -106,7 +112,7 @@ class Cosmology
 Real Hubble_Growth_Function(Real a, Real H0, Real Omega_r, Real Omega_m, Real Omega_DE, Real w0, Real wa);
 Real dHda_Growth_Function(Real a, Real H0, Real Omega_r, Real Omega_m, Real Omega_DE, Real w0, Real wa);
 Real OmegaDEz_Growth_Function(Real z, Real Omega_DE, Real w0, Real wa);
-std::vector<Real> growth_factor_system(Real z, std::vector<Real> y, std::vector<Real> params);
+std::vector<Real> growth_factor_system(Real z, const std::vector<Real>& y, const std::vector<Real>& params);
 
   #endif
 #endif

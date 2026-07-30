@@ -129,7 +129,9 @@ void FFT_3D::Filter_rescale_by_power_spectrum(Real *input, Real *output, bool in
       // Get the global indices
       int id_i = i < ni / 2 ? i : i - ni;
       int id_j = j < nj / 2 ? j : j - nj;
-      // no difference?
+      // The following options for id_k are kept
+      // to reflect possible FFT data layout
+      // in memory
       // int id_k = k < nk/2 ? k : k - nk;
       int id_k         = k;
       const Real k_mag = sqrt(sqr(id_i * ddi) + sqr(id_j * ddj) + sqr(id_k * ddk));
@@ -214,15 +216,19 @@ void FFT_3D::Filter_inv_k2(Real *const input, Real *const output, bool in_device
       // Get the global indices
       int id_i = i < ni / 2 ? i : i - ni;
       int id_j = j < nj / 2 ? j : j - nj;
-      // no difference?
+      // The following options for id_k are kept
+      // to reflect possible FFT data layout
+      // in memory
       // int id_k = k < nk/2 ? k : k - nk;
       int id_k = k;
       Real kx  = id_i * ddi;
       Real ky  = id_j * ddj;
       Real kz  = id_k * ddk;
-      // spectral
-      // double ksq = kx*kx + ky*ky + kz*kz;
-      // this gives the same answer as spectral
+
+      // These options for ksq are retained
+      // as comments for potential testing 
+      // with the cosmological ICs generator
+      // double ksq = kx*kx + ky*ky + kz*kz; // spectral
       const double ci = cos(2.0 * M_PI * id_i / Real(ni));
       const double cj = cos(2.0 * M_PI * id_j / Real(nj));
       const double ck = cos(2.0 * M_PI * id_k / Real(nk));
@@ -230,7 +236,6 @@ void FFT_3D::Filter_inv_k2(Real *const input, Real *const output, bool in_device
       const double j2 = (2.0 * cj * cj - 16.0 * cj + 14.0) / (6 * dy * dy);
       const double k2 = (2.0 * ck * ck - 16.0 * ck + 14.0) / (6 * dz * dz);
       double ksq      = i2 + j2 + k2;
-      // this gives the same answer as spectral
       // double ksq = sqr(2*sin(0.5*kx*dx)/dx) + sqr(2*sin(0.5*ky*dy)/dy) + sqr(2*sin(0.5*kz*dz)/dz);
       double d = -1. / ksq;
 

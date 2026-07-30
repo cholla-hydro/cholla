@@ -48,6 +48,9 @@
 #ifndef RT
 Grid3D::Grid3D(void) : field_info(FieldInfo::create())
 #else
+// it's ok to pass in `this->H` to the constructor of `Rad3D` since `Rad3D`'s
+// constructor is only registering a reference to `this->H` for later usage.
+// TODO: initialize `this->H` before passing it to `Rad3D`
 Grid3D::Grid3D(void) : field_info(FieldInfo::create()), Rad(this->H)
 #endif
 {
