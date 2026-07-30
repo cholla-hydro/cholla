@@ -2069,14 +2069,14 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         phi_r = CP.phi_1[id_r];
 
     #ifdef GRAVITY_5_POINTS_GRADIENT
-        id_ll      = (i - 2) + j * H.nx + k * H.ny * H.nx;
-        id_rr      = (i + 2) + j * H.nx + k * H.ny * H.nx;
-        phi_ll     = CP.phi_1[id_ll];
-        phi_rr     = CP.phi_1[id_rr];
-        grad_phi_x = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
+        id_ll          = (i - 2) + j * H.nx + k * H.ny * H.nx;
+        id_rr          = (i + 2) + j * H.nx + k * H.ny * H.nx;
+        phi_ll         = CP.phi_1[id_ll];
+        phi_rr         = CP.phi_1[id_rr];
+        grad_phi_x     = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
         grad_x_T[0][0] = D * (-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll) / (12 * dx * dx);
     #else
-        grad_phi_x = 0.5 * (phi_r - phi_l) / dx;
+        grad_phi_x     = 0.5 * (phi_r - phi_l) / dx;
         grad_x_T[0][0] = D * (phi_r - 2 * phi + phi_l) / (dx * dx);
     #endif
         /*
@@ -2127,14 +2127,14 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         phi_l = CP.phi_1[id_l];
         phi_r = CP.phi_1[id_r];
     #ifdef GRAVITY_5_POINTS_GRADIENT
-        id_ll      = i + (j - 2) * H.nx + k * H.ny * H.nx;
-        id_rr      = i + (j + 2) * H.nx + k * H.ny * H.nx;
-        phi_ll     = CP.phi_1[id_ll];
-        phi_rr     = CP.phi_1[id_rr];
-        grad_phi_y = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dy);
+        id_ll          = i + (j - 2) * H.nx + k * H.ny * H.nx;
+        id_rr          = i + (j + 2) * H.nx + k * H.ny * H.nx;
+        phi_ll         = CP.phi_1[id_ll];
+        phi_rr         = CP.phi_1[id_rr];
+        grad_phi_y     = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dy);
         grad_x_T[1][1] = D * (-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll) / (12 * dy * dy);
     #else
-        grad_phi_y = 0.5 * (phi_r - phi_l) / dy;
+        grad_phi_y     = 0.5 * (phi_r - phi_l) / dy;
         grad_x_T[1][1] = D * (phi_r - 2 * phi + phi_l) / (dy * dy);
     #endif
 
@@ -2166,14 +2166,14 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         phi_l = CP.phi_1[id_l];
         phi_r = CP.phi_1[id_r];
     #ifdef GRAVITY_5_POINTS_GRADIENT
-        id_ll      = i + j * H.nx + (k - 2) * H.ny * H.nx;
-        id_rr      = i + j * H.nx + (k + 2) * H.ny * H.nx;
-        phi_ll     = CP.phi_1[id_ll];
-        phi_rr     = CP.phi_1[id_rr];
-        grad_phi_z = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
+        id_ll          = i + j * H.nx + (k - 2) * H.ny * H.nx;
+        id_rr          = i + j * H.nx + (k + 2) * H.ny * H.nx;
+        phi_ll         = CP.phi_1[id_ll];
+        phi_rr         = CP.phi_1[id_rr];
+        grad_phi_z     = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
         grad_x_T[2][2] = D * (-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll) / (12 * dz * dz);
     #else
-        grad_phi_z = 0.5 * (phi_r - phi_l) / dz;
+        grad_phi_z     = 0.5 * (phi_r - phi_l) / dz;
         grad_x_T[2][2] = D * (phi_r - 2 * phi + phi_l) / (dz * dz);
     #endif
         grad_phi_z = 0.5 * (phi_r - phi_l) / dz;

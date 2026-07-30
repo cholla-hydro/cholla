@@ -140,7 +140,7 @@ Real OmegaDEz_Growth_Function(Real z, Real Omega_DE, Real w0, Real wa)
   return A * B;
 }
 
-static std::vector<Real> growth_factor_system(Real z, const std::vector<Real>& y, const std::vector<Real>& params)
+static std::vector<Real> growth_factor_system(Real z, const std::vector<Real> &y, const std::vector<Real> &params)
 {
   int ny = y.size();
   std::vector<Real> dydz(ny);

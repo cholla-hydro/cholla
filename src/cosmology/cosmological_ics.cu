@@ -298,7 +298,6 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
   // clear the FFT memory
   fft.Reset();
-
 }
 
 void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
@@ -322,7 +321,7 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
 
   // Create a file name for each hdf5 output
   sprintf(fname, "%s0/delta_ini.h5.%d", P->outdir, procID);
-  
+
   // create a file
   f_id = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
   if (f_id < 0) {
@@ -748,7 +747,6 @@ void Grid3D::Rescale_Field(Real *d_x, Real A)
   hipLaunchKernelGGL(Rescale_Field_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0, d_x, A,
                      nx_local, ny_local, nz_local, 0);
 }
-
 
 void Grid3D::Set_Boundary_Conditions_Field(Parameters P, Real *field)
 {

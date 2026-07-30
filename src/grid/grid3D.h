@@ -930,7 +930,7 @@ class Grid3D
   void Set_Boundary_Conditions_Field(Parameters P, Real *field);
   /*! \brief Apply boundary conditions to the grid. */
   void Set_Boundaries_Field(int dir, int flags[], Real *field);
-/*! \brief Load the MPI buffers for field comms. */
+  /*! \brief Load the MPI buffers for field comms. */
   int Load_Field_To_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *field);
   void Unload_Field_from_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *field);
   #ifdef MPI_CHOLLA

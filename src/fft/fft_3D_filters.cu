@@ -209,7 +209,6 @@ void FFT_3D::Filter_inv_k2(Real *const input, Real *const output, bool in_device
     GPU_Error_Check(cudaMemcpy(db_, input, inputBytes_, cudaMemcpyHostToDevice));
   }
 
-
   // Provide FFT filter with a lambda that does 1/k^2 solve in frequency space
   henry_->filter(bytes, db_, da_, [=] __device__(const int i, const int j, const int k, const cufftDoubleComplex b) {
     if (i != 0 || j != 0 || k != 0) {
@@ -226,7 +225,7 @@ void FFT_3D::Filter_inv_k2(Real *const input, Real *const output, bool in_device
       Real kz  = id_k * ddk;
 
       // These options for ksq are retained
-      // as comments for potential testing 
+      // as comments for potential testing
       // with the cosmological ICs generator
       // double ksq = kx*kx + ky*ky + kz*kz; // spectral
       const double ci = cos(2.0 * M_PI * id_i / Real(ni));

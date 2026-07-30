@@ -43,5 +43,6 @@ class RKIntegrator
    *    for the integrator to be provided. None of the arguments
    *    should be a null pointer. .*/
   void rk4_ode(std::vector<Real>(dydx)(Real x, const std::vector<Real>& y, const std::vector<Real>& params), Real x,
-               const std::vector<Real>& y, Real *h, Real *hpass, const std::vector<Real>& params, std::vector<Real> &yp, Real *error);
+               const std::vector<Real>& y, Real* h, Real* hpass, const std::vector<Real>& params, std::vector<Real>& yp,
+               Real* error);
 };

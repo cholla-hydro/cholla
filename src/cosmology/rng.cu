@@ -23,7 +23,7 @@ __global__ void RNG_Init_GPU(int nx_local, int ny_local, int nz_local, int nx_lo
 
     // create a reproducible subsequence and offset
     uint64_t offset = 0;
-    uint64_t flag = global_idx >> 32;
+    uint64_t flag   = global_idx >> 32;
 
     // copy state to local memory for efficiency
     rng_parallel_state_t localState = states[threadId];
@@ -63,7 +63,6 @@ __global__ void RNG_Normal_Field_GPU(Real *d_field, int nx_local, int ny_local, 
     skipahead(global_idx, &localState);
 
     d_field[threadId] = gpurand_normal(&localState);
-
 
     states[threadId] = localState;
   }

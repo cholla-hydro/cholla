@@ -4,7 +4,7 @@
 #include "../global/global.h"
 
 #if defined(PARIS) && defined(FFT)
-#include "../gravity/paris/HenryPeriodic.hpp"
+  #include "../gravity/paris/HenryPeriodic.hpp"
 
 class FFT_3D
 {
