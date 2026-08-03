@@ -10,7 +10,7 @@ DFLAGS    += -DSIMPLE
 DFLAGS    += -DPPMP
 else
 DFLAGS    += -DVL
-DFLAGS    += -DPLMC
+DFLAGS    += -DPPMP
 endif
 
 # Apply a density and temperature floor

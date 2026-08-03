@@ -278,7 +278,6 @@ void Grid3D::AllocateMemory(void)
   C.d_metal_density = &(C.device[H.n_cells * grid_enum::metal_density]);
   #endif
 #endif  // SCALAR
-chprintf("1 metal_density = %e, d_metal_density = %e\n", C.metal_density, C.d_metal_density);
 #ifdef MHD
   C.d_magnetic_x = &(C.device[(grid_enum::magnetic_x)*H.n_cells]);
   C.d_magnetic_y = &(C.device[(grid_enum::magnetic_y)*H.n_cells]);
@@ -452,7 +451,6 @@ Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &chemistry_callback
   Apply_Temperature_Floor(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, U_floor);
 #endif  // TEMPERATURE_FLOOR
 
-chprintf("2 metal_density = %e, d_metal_density = %e\n", C.metal_density, C.d_metal_density);
 
 #ifdef SCALAR_FLOOR
   #ifdef DUST
@@ -464,6 +462,22 @@ chprintf("2 metal_density = %e, d_metal_density = %e\n", C.metal_density, C.d_me
 #endif  // SCALAR_FLOOR
 
   // == Perform chemistry/cooling (there are a few different cases) ==
+#ifdef METALS
+Real device_val;
+int first_real = H.n_ghost + H.n_ghost * H.nx + H.n_ghost * H.nx * H.ny;
+
+// print these first to check before attempting the cudaMemcpy
+chprintf("C.device ptr = %p\n", (void*)C.device);
+chprintf("offset = %d, total buffer size = %d\n", 
+         grid_enum::metal_density * H.n_cells + first_real,
+         H.n_fields * H.n_cells);
+
+GPU_Error_Check(cudaMemcpy(&device_val,
+                           &C.device[grid_enum::metal_density * H.n_cells + first_real],
+                           sizeof(Real),
+                           cudaMemcpyDeviceToHost));
+chprintf("pre-cooling device metal_density = %e\n", device_val);
+#endif
 
   if (chemistry_callback) {
 #if defined(CHEMISTRY_GPU) || defined(COOLING_GRACKLE)

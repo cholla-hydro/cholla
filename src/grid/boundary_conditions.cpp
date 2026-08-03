@@ -16,7 +16,7 @@
 /*! \fn void Set_Boundary_Conditions_Grid(Parameters P )
  *  \brief Set the boundary conditions for all components based on info in the
  * parameters structure. */
-void Grid3D::Set_Boundary_Conditions_Grid(Parameters P)
+void Grid3D::Set_Boundary_Conditions_Grid(Parameters P, ParameterMap &pmap)
 {
 #ifndef ONLY_PARTICLES
   // Dont transfer Hydro boundaries when only doing particles
@@ -26,7 +26,7 @@ void Grid3D::Set_Boundary_Conditions_Grid(Parameters P)
   Timer.Boundaries.Start();
   #endif  // CPU_TIME
   H.TRANSFER_HYDRO_BOUNDARIES = true;
-  Set_Boundary_Conditions(P);
+  Set_Boundary_Conditions(P, pmap);
   H.TRANSFER_HYDRO_BOUNDARIES = false;
   #ifdef CPU_TIME
   Timer.Boundaries.End();
@@ -40,7 +40,7 @@ void Grid3D::Set_Boundary_Conditions_Grid(Parameters P)
   Timer.Pot_Boundaries.Start();
   #endif  // CPU_TIME
   Grav.TRANSFER_POTENTIAL_BOUNDARIES = true;
-  Set_Boundary_Conditions(P);
+  Set_Boundary_Conditions(P, pmap);
   Grav.TRANSFER_POTENTIAL_BOUNDARIES = false;
   #ifdef CPU_TIME
   Timer.Pot_Boundaries.End();
@@ -51,7 +51,7 @@ void Grid3D::Set_Boundary_Conditions_Grid(Parameters P)
 /*! \fn void Set_Boundary_Conditions(Parameters P )
  *  \brief Set the boundary conditions based on info in the parameters
  * structure. */
-void Grid3D::Set_Boundary_Conditions(Parameters P)
+void Grid3D::Set_Boundary_Conditions(Parameters P, ParameterMap &pmap)
 {
   // Check Only one boundary type id being transferred
   int n_bounds = 0;
@@ -98,7 +98,7 @@ void Grid3D::Set_Boundary_Conditions(Parameters P)
 
   // Check for custom boundary conditions and set boundary flags
   if (Check_Custom_Boundary(&flags[0], P)) {
-    Custom_Boundary(P.custom_bcnd);
+    Custom_Boundary(P.custom_bcnd, pmap);
   }
 
   // set regular boundaries
@@ -123,7 +123,7 @@ void Grid3D::Set_Boundary_Conditions(Parameters P)
 
   /*Set boundaries, including MPI exchanges*/
 
-  Set_Boundaries_MPI(P);
+  Set_Boundaries_MPI(P, pmap);
 
 #endif /*MPI_CHOLLA*/
 }
@@ -506,14 +506,14 @@ void Grid3D::Set_Boundary_Extents(int dir, int *imin, int *imax)
 
 /*! \fn void Custom_Boundary(char bcnd[MAXLEN])
  *  \brief Select appropriate custom boundary function. */
-void Grid3D::Custom_Boundary(char bcnd[MAXLEN])
+void Grid3D::Custom_Boundary(char bcnd[MAXLEN], ParameterMap &pmap)
 {
   if (strcmp(bcnd, "noh") == 0) {
     // from grid/cuda_boundaries.cu
     Noh_Boundary();
   } else if (strcmp(bcnd, "wind") == 0) {
     // from grid/cuda_boundaries.cu
-    Wind_Boundary();
+    Wind_Boundary(pmap);
   } else {
     printf("ABORT: %s -> Unknown custom boundary condition.\n", bcnd);
     exit(0);
@@ -522,8 +522,9 @@ void Grid3D::Custom_Boundary(char bcnd[MAXLEN])
 
 /*! \fn void Wind_Boundary()
  *  \brief Apply wind boundary */
-void Grid3D::Wind_Boundary()
+void Grid3D::Wind_Boundary(ParameterMap &pmap)
 {
+  Real metallicity_wind = pmap.value_or("metallicity_wind", 1.0);
   int x_off, y_off, z_off;
   // set x, y, & z offsets of local CPU volume to pass to GPU
   // so global position on the grid is known
@@ -535,7 +536,7 @@ void Grid3D::Wind_Boundary()
 #endif
 
   Wind_Boundary_CUDA(C.device, H.nx, H.ny, H.nz, H.n_cells, H.n_ghost, x_off, y_off, z_off, H.dx, H.dy, H.dz, H.xbound,
-                     H.ybound, H.zbound, gama, H.t);
+                     H.ybound, H.zbound, gama, H.t, metallicity_wind);
 }
 
 /*! \fn void Noh_Boundary()

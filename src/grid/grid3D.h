@@ -555,12 +555,12 @@ class Grid3D
   /*! \fn void Set_Boundary_Conditions(Parameters P )
    *  \brief Set the boundary conditions based on info in the parameters
    * structure. */
-  void Set_Boundary_Conditions(Parameters P);
+  void Set_Boundary_Conditions(Parameters P, ParameterMap &pmap);
 
   /*! \fn void Set_Boundary_Conditions_Grid(Parameters P )
    *  \brief Set the boundary conditions for all components based on info in the
    * parameters structure. */
-  void Set_Boundary_Conditions_Grid(Parameters P);
+  void Set_Boundary_Conditions_Grid(Parameters P, ParameterMap &pmap);
 
   /*! \fn int Check_Custom_Boundary(int *flags, struct Parameters P)
    *  \brief Check for custom boundary conditions */
@@ -576,11 +576,11 @@ class Grid3D
 
   /*! \fn void Custom_Boundary(char bcnd[MAXLEN])
    *  \brief Select appropriate custom boundary function. */
-  void Custom_Boundary(char bcnd[MAXLEN]);
+  void Custom_Boundary(char bcnd[MAXLEN], ParameterMap &pmap);
 
   /*! \fn void Wind_Boundary()
    *  \brief Apply a constant wind to the -x boundary. */
-  void Wind_Boundary();
+  void Wind_Boundary(ParameterMap &pmap);
 
   /*! \fn void Noh_Boundary()
    *  \brief Apply analytic boundary conditions to +x, +y (and +z) faces,
@@ -642,7 +642,7 @@ class Grid3D
 #endif  // MHD
 
 #ifdef MPI_CHOLLA
-  void Set_Boundaries_MPI(struct Parameters P);
+  void Set_Boundaries_MPI(struct Parameters P, ParameterMap &pmap);
   void Set_Boundaries_MPI_BLOCK(int *flags, struct Parameters P);
   void Load_and_Send_MPI_Comm_Buffers(int dir, int *flags);
   void Wait_and_Unload_MPI_Comm_Buffers(int dir, int *flags);

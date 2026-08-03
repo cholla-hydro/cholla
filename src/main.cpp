@@ -141,8 +141,6 @@ int main(int argc, char *argv[])
     nfile = P.nfile;
   }
 
-  chprintf("3 metal_density = %e, d_metal_density = %e\n", G.C.metal_density, G.C.d_metal_density);
-
 #ifdef DE
   chprintf("\nUsing Dual Energy Formalism:\n eta_1: %0.3f   eta_2: %0.4f\n", DE_ETA_1, DE_ETA_2);
   message = " eta_1: " + std::to_string(DE_ETA_1) + "   eta_2: " + std::to_string(DE_ETA_2);
@@ -215,7 +213,7 @@ int main(int argc, char *argv[])
   // Set boundary conditions (assign appropriate values to ghost cells) for
   // hydro and potential
   chprintf("Setting boundary conditions...\n");
-  G.Set_Boundary_Conditions_Grid(P);
+  G.Set_Boundary_Conditions_Grid(P, pmap);
   chprintf("Boundary conditions set.\n");
 
 #ifdef GRAVITY_ANALYTIC_COMP
@@ -313,7 +311,7 @@ int main(int argc, char *argv[])
     G.H.n_step++;
 
     // Set the Grid boundary conditions for next time step
-    G.Set_Boundary_Conditions_Grid(P);
+    G.Set_Boundary_Conditions_Grid(P, pmap);
 
 #ifdef GRAVITY_ANALYTIC_COMP
     G.Add_Analytic_Potential();
