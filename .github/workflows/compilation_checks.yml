@@ -86,7 +86,7 @@ jobs:
           make tidy CLANG_TIDY_ARGS="--warnings-as-errors=*" TYPE=${CHOLLA_MAKE_TYPE}
 
       - name: Run clang-tidy
-        if: ${{ matrix.container.name == 'CUDA' }}
+        if: ${{ always() && matrix.container.name == 'CUDA' }}
         run: |
           echo "tidy_results_cpp_${CHOLLA_MAKE_TYPE}.log"
           printf '=%.0s' {1..100}
