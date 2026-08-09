@@ -25,8 +25,8 @@ jobs:
       matrix:  # Matrix for different make-types and platforms
         make-type: [hydro, gravity, disk, particles, cosmology, mhd, dust, cooling]
         container:
-          #- {name: "CUDA", link: "docker://chollahydro/cholla:cuda_github"}
-          - {name: "HIP", link: "ghcr.io/cholla-hydro/cholla-rocm:sha-a08bd2c"}
+          - {name: "CUDA", link: "ghcr.io/cholla-hydro/cholla-cuda:sha-d9e38eb"}
+          - {name: "HIP", link: "ghcr.io/cholla-hydro/cholla-rocm:sha-d9e38eb"}
     env:  # Set environment variables
       CHOLLA_MAKE_TYPE: ${{ matrix.make-type }}
 
@@ -78,3 +78,24 @@ jobs:
         run: |
           source config/run_tests.sh
           buildChollaTests
+
+      - name: Run clang-tidy
+        if: ${{ matrix.container.name == 'CUDA' }}
+        run: |
+          source config/run_tests.sh
+          make tidy CLANG_TIDY_ARGS="--warnings-as-errors=*" TYPE=${CHOLLA_MAKE_TYPE}
+
+      - name: Run clang-tidy
+        if: ${{ matrix.container.name == 'CUDA' }}
+        run: |
+          echo "tidy_results_cpp_${CHOLLA_MAKE_TYPE}.log"
+          printf '=%.0s' {1..100}
+          printf "\n"
+          cat tidy_results_cpp_${CHOLLA_MAKE_TYPE}.log
+          printf "\n\n"
+
+          echo "tidy_results_gpu_${CHOLLA_MAKE_TYPE}.log"
+          printf '=%.0s' {1..100}
+          printf "\n"
+          cat tidy_results_gpu_${CHOLLA_MAKE_TYPE}.log
+
