@@ -462,22 +462,6 @@ Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &chemistry_callback
 #endif  // SCALAR_FLOOR
 
   // == Perform chemistry/cooling (there are a few different cases) ==
-#ifdef METALS
-Real device_val;
-int first_real = H.n_ghost + H.n_ghost * H.nx + H.n_ghost * H.nx * H.ny;
-
-// print these first to check before attempting the cudaMemcpy
-chprintf("C.device ptr = %p\n", (void*)C.device);
-chprintf("offset = %d, total buffer size = %d\n", 
-         grid_enum::metal_density * H.n_cells + first_real,
-         H.n_fields * H.n_cells);
-
-GPU_Error_Check(cudaMemcpy(&device_val,
-                           &C.device[grid_enum::metal_density * H.n_cells + first_real],
-                           sizeof(Real),
-                           cudaMemcpyDeviceToHost));
-chprintf("pre-cooling device metal_density = %e\n", device_val);
-#endif
 
   if (chemistry_callback) {
 #if defined(CHEMISTRY_GPU) || defined(COOLING_GRACKLE)

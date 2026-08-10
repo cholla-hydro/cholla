@@ -311,14 +311,14 @@ __global__ void Wind_Boundary_kernel(Real *c_device, int nx, int ny, int nz, int
   Real mu = 0.6;
   Real vx, vy, vz, d_0, P_0;
 
-  n_0 = 1e-2;  // same value as n_bg in cloud initial condition function (cm^-3)
+  n_0 = 1e-3;  // same value as n_bg in cloud initial condition function (cm^-3)
   T_0 = 1e6;   // same value as T_bg in cloud initial condition function (K)
 
   // same values as rho_bg and p_bg in cloud initial condition function
   d_0 = n_0 * mu * MP / DENSITY_UNIT;
   P_0 = n_0 * KB * T_0 / PRESSURE_UNIT;
 
-  vx = 100 * TIME_UNIT / KPC;  // km/s * (cholla unit conversion)
+  vx = 300 * TIME_UNIT / KPC;  // km/s * (cholla unit conversion)
   vy = 0.0;
   vz = 0.0;
 
@@ -339,7 +339,12 @@ __global__ void Wind_Boundary_kernel(Real *c_device, int nx, int ny, int nz, int
     c_device[gid + 2 * n_cells] = vy * d_0;
     c_device[gid + 3 * n_cells] = vz * d_0;
     c_device[gid + 4 * n_cells] = P_0 / (gamma - 1.0) + 0.5 * d_0 * (vx * vx + vy * vy + vz * vz);
+  #ifdef METALS
     c_device[gid + n_cells * grid_enum::metal_density] = metallicity_wind * SOLAR_METAL_MASS_FRAC * d_0;
+  #endif
+  #ifdef BASIC_SCALAR
+    c_device[gid + n_cells * grid_enum::basic_scalar] = 1.0 * d_0;
+  #endif
   }
   __syncthreads();
 }

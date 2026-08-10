@@ -27,6 +27,7 @@ DFLAGS    += -DCOOLING_GPU
 DFLAGS    += -DSCALAR
 DFLAGS    += -DSCALAR_FLOOR
 DFLAGS    += -DMETALS
+#DFLAGS    += -DBASIC_SCALAR
 
 # Measure the Timing of the different stages
 #DFLAGS    += -DCPU_TIME

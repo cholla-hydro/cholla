@@ -237,7 +237,6 @@ void Grid3D::Constant(Parameters const &P, ParameterMap &pmap)
         if (i == istart && j == jstart && k == kstart) {
           n = P.rho * DENSITY_UNIT / (mu * MP);
           T = P.P * PRESSURE_UNIT / (n * KB);
-          printf("Initial n = %e, T = %e, Z = %e, metal_density = %e\n", n, T, Z, C.metal_density[id]);
         }
       }
     }
@@ -1329,7 +1328,7 @@ void Grid3D::Clouds(ParameterMap &pmap)
   Real p_bg, p_cl;       // background and cloud pressure
   Real mu   = 0.6;       // mean atomic weight
   int N_cl  = 1;         // number of clouds
-  Real R_cl = 0.05;       // cloud radius in code units (kpc)
+  Real R_cl = 0.015;       // cloud radius in code units (kpc)
   Real cl_pos[N_cl][3];  // array of cloud positions
   Real r;
 
@@ -1354,11 +1353,11 @@ void Grid3D::Clouds(ParameterMap &pmap)
     printf("Cloud positions: %f %f %f\n", cl_pos[nn][0], cl_pos[nn][1], cl_pos[nn][2]);
   }
 
-  n_bg   = 1e-2;
-  n_cl   = 1.0;
+  n_bg   = 1e-3;
+  n_cl   = 0.1;
   rho_bg = n_bg * mu * MP / DENSITY_UNIT;
   rho_cl = n_cl * mu * MP / DENSITY_UNIT;
-  vx_bg  = 100.0 * TIME_UNIT / KPC;
+  vx_bg  = 300.0 * TIME_UNIT / KPC;
   // vx_c  = -200*TIME_UNIT/KPC; // convert from km/s to kpc/kyr
   vx_cl = 0.0 * TIME_UNIT / KPC;
   vy_bg = vy_cl = 0.0;
@@ -1408,6 +1407,9 @@ void Grid3D::Clouds(ParameterMap &pmap)
         C.GasEnergy[id] = p_bg / (gama - 1.0);
 #endif
 #ifdef SCALAR
+  #ifdef BASIC_SCALAR
+        C.basic_scalar[id] = 1.0 * rho_bg;
+  #endif
   #ifdef DUST
         C.host[id + H.n_cells * grid_enum::dust_density] = 0.0;
   #endif
@@ -1430,6 +1432,9 @@ void Grid3D::Clouds(ParameterMap &pmap)
             C.GasEnergy[id] = p_cl / (gama - 1.0);
 #endif  // DE
 #ifdef SCALAR
+#ifdef BASIC_SCALAR
+            C.basic_scalar[id] = 0.1 * rho_bg;
+  #endif
   #ifdef DUST
             C.host[id + H.n_cells * grid_enum::dust_density] = rho_cl * 1e-2;
   #endif  // DUST
