@@ -40,7 +40,7 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const 
   int hlle_flag = 0;
 
 #ifdef SCALAR
-  Real dscalarl[NSCALARS], dscalarr[NSCALARS], f_scalar_l[NSCALARS], f_scalar_r[NSCALARS];
+  Real f_scalar_l[NSCALARS], f_scalar_r[NSCALARS];
 #endif
 
   int o1, o2, o3;
@@ -70,13 +70,6 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const 
     if constexpr (reconstruction == reconstruction::Kind::pcm) {
       reconstruction::Reconstruct_Interface_States<reconstruction, direction>(dev_conserved, xid, yid, zid, nx, ny,
                                                                               n_cells, gamma, left_state, right_state);
-#ifdef SCALAR
-      // this is a hacky bugfix. The more correct solution is to eliminate dscalarl & dscalarr
-      for (int i = 0; i < NSCALARS; i++) {
-        dscalarl[i] = left_state.scalar[i] * left_state.density;
-        dscalarr[i] = right_state.scalar[i] * right_state.density;
-      }
-#endif
     } else {
       // retrieve conserved variables
       left_state.density      = dev_bounds_L[tid];
@@ -85,8 +78,9 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const 
       left_state.momentum.z() = dev_bounds_L[o3 * n_cells + tid];
       left_state.energy       = dev_bounds_L[4 * n_cells + tid];
 #ifdef SCALAR
-      for (int i = 0; i < NSCALARS; i++) {
-        dscalarl[i] = dev_bounds_L[(5 + i) * n_cells + tid];
+      for (int i = 0; i < grid_enum::nscalars; i++) {
+        Real scalar_density  = dev_bounds_L[(grid_enum::scalar + i) * n_cells + tid];
+        left_state.scalar[i] = scalar_density / left_state.density;
       }
 #endif
 #ifdef DE
@@ -99,8 +93,9 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const 
       right_state.momentum.z() = dev_bounds_R[o3 * n_cells + tid];
       right_state.energy       = dev_bounds_R[4 * n_cells + tid];
 #ifdef SCALAR
-      for (int i = 0; i < NSCALARS; i++) {
-        dscalarr[i] = dev_bounds_R[(5 + i) * n_cells + tid];
+      for (int i = 0; i < grid_enum::nscalars; i++) {
+        Real scalar_density   = dev_bounds_R[(grid_enum::scalar + i) * n_cells + tid];
+        right_state.scalar[i] = scalar_density / right_state.density;
       }
 #endif
 #ifdef DE
@@ -126,11 +121,6 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const 
                             (gamma - 1.0);
 #endif  // PRESSURE_DE
       left_state.pressure = fmax(left_state.pressure, (Real)TINY_NUMBER);
-#ifdef SCALAR
-      for (int i = 0; i < NSCALARS; i++) {
-        left_state.scalar[i] = dscalarl[i] / left_state.density;
-      }
-#endif
 #ifdef DE
       left_state.gas_energy = gas_energy_left / left_state.density;
 #endif
@@ -152,11 +142,6 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const 
                              (gamma - 1.0);
 #endif  // PRESSURE_DE
       right_state.pressure = fmax(right_state.pressure, (Real)TINY_NUMBER);
-#ifdef SCALAR
-      for (int i = 0; i < NSCALARS; i++) {
-        right_state.scalar[i] = dscalarr[i] / right_state.density;
-      }
-#endif
 #ifdef DE
       right_state.gas_energy = gas_energy_right / right_state.density;
 #endif
@@ -368,8 +353,8 @@ __global__ void Calculate_Roe_Fluxes_CUDA(Real const *dev_conserved, Real const 
 
 #ifdef SCALAR
         for (int i = 0; i < NSCALARS; i++) {
-          f_scalar_l[i] = dscalarl[i] * (left_state.velocity.x() - bm);
-          f_scalar_r[i] = dscalarr[i] * (right_state.velocity.x() - bp);
+          f_scalar_l[i] = left_state.scalar[i] * f_d_l;
+          f_scalar_r[i] = right_state.scalar[i] * f_d_r;
         }
 #endif
 
