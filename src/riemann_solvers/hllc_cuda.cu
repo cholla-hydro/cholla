@@ -68,6 +68,13 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real const *dev_conserved, Real const
     if constexpr (reconstruction == reconstruction::Kind::pcm) {
       reconstruction::Reconstruct_Interface_States<reconstruction, direction>(dev_conserved, xid, yid, zid, nx, ny,
                                                                               n_cells, gamma, left_state, right_state);
+#ifdef SCALAR
+      // this is a hacky bugfix. The more correct solution is to eliminate dscl & dscr
+      for (int i = 0; i < NSCALARS; i++) {
+        dscl[i] = left_state.scalar[i] * left_state.density;
+        dscr[i] = right_state.scalar[i] * right_state.density;
+      }
+#endif
     } else {
       // retrieve conserved variables
       left_state.density      = dev_bounds_L[tid];
