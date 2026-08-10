@@ -37,8 +37,7 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real const *dev_conserved, Real const
     Real Sl, Sr, Sm, cfl, cfr, ps;
 
 #ifdef SCALAR
-    Real dscl[NSCALARS], dscr[NSCALARS], scls[NSCALARS], scrs[NSCALARS], f_sc_l[NSCALARS], f_sc_r[NSCALARS],
-        f_sc[NSCALARS];
+    Real scls[NSCALARS], scrs[NSCALARS], f_sc_l[NSCALARS], f_sc_r[NSCALARS], f_sc[NSCALARS];
 #endif
 
     Real etah = 0;
@@ -68,13 +67,6 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real const *dev_conserved, Real const
     if constexpr (reconstruction == reconstruction::Kind::pcm) {
       reconstruction::Reconstruct_Interface_States<reconstruction, direction>(dev_conserved, xid, yid, zid, nx, ny,
                                                                               n_cells, gamma, left_state, right_state);
-#ifdef SCALAR
-      // this is a hacky bugfix. The more correct solution is to eliminate dscl & dscr
-      for (int i = 0; i < NSCALARS; i++) {
-        dscl[i] = left_state.scalar[i] * left_state.density;
-        dscr[i] = right_state.scalar[i] * right_state.density;
-      }
-#endif
     } else {
       // retrieve conserved variables
       left_state.density      = dev_bounds_L[tid];
@@ -83,8 +75,9 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real const *dev_conserved, Real const
       left_state.momentum.z() = dev_bounds_L[o3 * n_cells + tid];
       left_state.energy       = dev_bounds_L[4 * n_cells + tid];
 #ifdef SCALAR
-      for (int i = 0; i < NSCALARS; i++) {
-        dscl[i] = dev_bounds_L[(5 + i) * n_cells + tid];
+      for (int i = 0; i < grid_enum::nscalars; i++) {
+        Real scalar_density  = dev_bounds_L[(grid_enum::scalar + i) * n_cells + tid];
+        left_state.scalar[i] = scalar_density / left_state.density;
       }
 #endif
 #ifdef DE
@@ -97,8 +90,9 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real const *dev_conserved, Real const
       right_state.momentum.z() = dev_bounds_R[o3 * n_cells + tid];
       right_state.energy       = dev_bounds_R[4 * n_cells + tid];
 #ifdef SCALAR
-      for (int i = 0; i < NSCALARS; i++) {
-        dscr[i] = dev_bounds_R[(5 + i) * n_cells + tid];
+      for (int i = 0; i < grid_enum::nscalars; i++) {
+        Real scalar_density   = dev_bounds_R[(grid_enum::scalar + i) * n_cells + tid];
+        right_state.scalar[i] = scalar_density / right_state.density;
       }
 #endif
 #ifdef DE
@@ -124,11 +118,6 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real const *dev_conserved, Real const
                             (gamma - 1.0);
 #endif  // PRESSURE_DE
       left_state.pressure = fmax(left_state.pressure, (Real)TINY_NUMBER);
-#ifdef SCALAR
-      for (int i = 0; i < NSCALARS; i++) {
-        left_state.scalar[i] = dscl[i] / left_state.density;
-      }
-#endif
 #ifdef DE
       left_state.gas_energy = gas_energy_left / left_state.density;
 #endif
@@ -150,11 +139,6 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real const *dev_conserved, Real const
                              (gamma - 1.0);
 #endif  // PRESSURE_DE
       right_state.pressure = fmax(right_state.pressure, (Real)TINY_NUMBER);
-#ifdef SCALAR
-      for (int i = 0; i < NSCALARS; i++) {
-        right_state.scalar[i] = dscr[i] / right_state.density;
-      }
-#endif
 #ifdef DE
       right_state.gas_energy = gas_energy_right / right_state.density;
 #endif
@@ -207,7 +191,7 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real const *dev_conserved, Real const
 #endif
 #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
-      f_sc_l[i] = dscl[i] * left_state.velocity.x();
+      f_sc_l[i] = left_state.scalar[i] * f_d_l;
     }
 #endif
 
@@ -221,7 +205,7 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real const *dev_conserved, Real const
 #endif
 #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
-      f_sc_r[i] = dscr[i] * right_state.velocity.x();
+      f_sc_r[i] = right_state.scalar[i] * f_d_r;
     }
 #endif
 
@@ -320,8 +304,10 @@ __global__ void Calculate_HLLC_Fluxes_CUDA(Real const *dev_conserved, Real const
 #endif
 #ifdef SCALAR
       for (int i = 0; i < NSCALARS; i++) {
-        f_sc[i] = 0.5 * (f_sc_l[i] + f_sc_r[i] + (Sr - fabs(Sm)) * scrs[i] + (Sl + fabs(Sm)) * scls[i] - Sl * dscl[i] -
-                         Sr * dscr[i]);
+        double left_scalar_density  = left_state.scalar[i] * left_state.density;
+        double right_scalar_density = right_state.scalar[i] * right_state.density;
+        f_sc[i] = 0.5 * (f_sc_l[i] + f_sc_r[i] + (Sr - fabs(Sm)) * scrs[i] + (Sl + fabs(Sm)) * scls[i] -
+                         Sl * left_scalar_density - Sr * right_scalar_density);
       }
 #endif
 
