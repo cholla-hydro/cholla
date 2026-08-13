@@ -365,7 +365,7 @@ Parameters::Parameters(ParameterMap &pmap)
   parms->T_init        = pmap.value_or("T_init", -1.0);
   parms->w0            = pmap.value_or("w0", -1.0);
   parms->wa            = pmap.value_or("wa", 0.0);
-  parms->cosmoics_seed = pmap.value_or("cosmoics_eed", 1337);
+  parms->cosmoics_seed = pmap.value_or("cosmoics_seed", 1337);
   // Hydrogen, Helium ionization fractions and helium mass fraction
   parms->YHe           = pmap.value_or("YHe", 0.24);
   parms->xHp_ion_init  = pmap.value_or("xHp_ion_init", 0.0);
