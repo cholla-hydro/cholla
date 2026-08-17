@@ -49,7 +49,7 @@
 
 template <typename CoolingRecipe>
 __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
-                               Real gamma, Real solar_metal_mass_frac, CoolingRecipe recipe);
+                               Real gamma, Real solar_metal_mass_frac, Real hydrogen_frac_by_mass, CoolingRecipe recipe);
 
 /*! \brief Instances of this class template are callables that serve as callback functions for applying
  *   cooling to the grid.
@@ -89,7 +89,7 @@ class CoolingUpdateExecutor
 };
 
 /*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int
- n_ghost, int n_fields, Real dt, Real gamma, cudaTextureObject_t coolTexObj,
+ n_ghost, int n_fields, Real dt, Real gamma, Real solar_metal_mass_frac, Real hydrogen_frac_by_mass, cudaTextureObject_t coolTexObj,
  cudaTextureObject_t heatTexObj)
  *  \brief When passed an array of conserved variables and a timestep, adjust
  the value of the total energy for each cell according to the specified cooling
