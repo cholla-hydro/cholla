@@ -716,7 +716,7 @@ class Grid3D
   void Initialize_Uniform_Particles();
   void Copy_Particles_Density_function(int g_start, int g_end);
   void Copy_Particles_Density();
-  void Copy_Particles_Density_to_Gravity(struct Parameters P, pmap);
+  void Copy_Particles_Density_to_Gravity(struct Parameters P, ParameterMap &pmap);
   void Set_Particles_Density_Boundaries_Periodic(int direction, int side);
   void Transfer_Particles_Boundaries(struct Parameters P, ParameterMap &pmap);
   Real Update_Grid_and_Particles_KDK(struct Parameters P);
