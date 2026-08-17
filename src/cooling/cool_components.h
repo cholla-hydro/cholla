@@ -65,13 +65,6 @@ inline __device__ Real primordial_cool(Real n_H, Real n_He, Real T)
 
   // set flag to 1 for photoionization & heating
   heat_flag = 0;
-  //TODO: remove comments
-  // Real X = 0.76; //hydrogen abundance by mass
-  // Y = 0.24;  // helium abundance by mass
-  // y = Y / (4 - 4 * Y);
-
-  // set the hydrogen number density
-  // n_h = n;
 
   // calculate the recombination and collisional ionization rates
   // (Table 2 from Katz 1996)

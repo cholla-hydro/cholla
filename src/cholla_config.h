@@ -15,8 +15,8 @@
 
 #pragma once
 
-#define GIT_HASH "e831d8c8ce19c3e047f12d6df8d7c7f7b9f3e13d"
-#define MACRO_FLAGS "-DMPI_CHOLLA -DPRECISION=2 -DHLLC -DVL -DPPMP -DTEMPERATURE_FLOOR -DSLICES -DPROJECTION -DOUTPUT -DHDF5 -DMPI_GPU -DGIT_HASH=e831d8c8ce19c3e047f12d6df8d7c7f7b9f3e13d"
+#define GIT_HASH "7c6cd345f349739266bbf69317036d4147ed009f"
+#define MACRO_FLAGS "-DMPI_CHOLLA -DPRECISION=2 -DHLLC -DVL -DPPMP -DTEMPERATURE_FLOOR -DDE -DSCALAR -DSCALAR_FLOOR -DMETALS -DOUTPUT -DHDF5 -DSLICES -DPROJECTION -DMPI_GPU -DGIT_HASH=7c6cd345f349739266bbf69317036d4147ed009f"
 
 // sets the precision of REAL
 #define PRECISION 2
@@ -74,17 +74,18 @@
 // "fudging" schemes to deal with challenging hydro conditions
 /* #undef AVERAGE_SLOW_CELLS */
 /* #undef DENSITY_FLOOR */
-/* #undef SCALAR_FLOOR */
+#define SCALAR_FLOOR
 /* #undef TEMPERATURE_CEILING */
 #define TEMPERATURE_FLOOR
 
 // When defined, the dual-energy formalism is enabled
-/* #undef DE */
+#define DE
 
 // Passive-Scalar Configuration and Modules:
-/* #undef SCALAR */
+#define SCALAR
 /* #undef BASIC_SCALAR */
 /* #undef DUST */
+#define METALS
 
 // ======================
 // Analysis Configuration

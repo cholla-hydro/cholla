@@ -96,3 +96,5 @@ Note: feedback requires PARTICLES, PARTICLES_GPU, PARTICLE_IDS, PARTICLE_AGE, DE
 * **MHD**: Enable magnetic fields. Only works with the HLLD solver and the Van Leer integrator and only in 3D
 
 * **DUST**: Initialize a dust density field. Requires that the `SCALAR` flag is also turned on.
+
+* **METALS**: Initialize a metal density field. Requires that the `SCALAR` flag is also turned on.

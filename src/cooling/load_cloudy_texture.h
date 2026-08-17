@@ -99,7 +99,7 @@ class CloudyHeatAndCool
       lambda       = Bilinear_Texture(this->coolTexObj_.get(), remap_log_T, remap_log_n);
       if (enable_heating_){
         const Real H = Bilinear_Texture(this->heatTexObj_.get(), remap_log_T, remap_log_n);
-        heating      = pow(10, H); //TODO: uncomment
+        heating      = pow(10, H); 
       }
     } else {
       // Do nothing below 10 K
