@@ -453,7 +453,7 @@ void Grid3D::Initialize_Gravity(struct Parameters *P)
 }
 
 // Compute the Gravitational Potential by solving Poisson Equation
-void Grid3D::Compute_Gravitational_Potential(struct Parameters *P)
+void Grid3D::Compute_Gravitational_Potential(struct Parameters *P, ParameterMap &pmap)
 {
   #ifdef CPU_TIME
   Timer.Grav_Potential.Start();
@@ -486,7 +486,7 @@ void Grid3D::Compute_Gravitational_Potential(struct Parameters *P)
 
   if (!Grav.BC_FLAGS_SET) {
     Grav.TRANSFER_POTENTIAL_BOUNDARIES = true;
-    Set_Boundary_Conditions(*P);
+    Set_Boundary_Conditions(*P, pmap);
     Grav.TRANSFER_POTENTIAL_BOUNDARIES = false;
     // #ifdef MPI_CHOLLA
     // printf(" Pid: %d Gravity Boundary Flags: %d %d %d %d %d %d \n", procID,

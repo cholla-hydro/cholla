@@ -674,7 +674,7 @@ class Grid3D
 
 #ifdef GRAVITY
   void Initialize_Gravity(struct Parameters *P);
-  void Compute_Gravitational_Potential(struct Parameters *P);
+  void Compute_Gravitational_Potential(struct Parameters *P, ParameterMap &pmap);
   void Copy_Hydro_Density_to_Gravity_Function(int g_start, int g_end);
   void Copy_Hydro_Density_to_Gravity();
   void Extrapolate_Grav_Potential_Function(int g_start, int g_end);

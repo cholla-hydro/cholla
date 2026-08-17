@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
 
 #ifdef GRAVITY
   // Get the gravitational potential for the first timestep
-  G.Compute_Gravitational_Potential(&P);
+  G.Compute_Gravitational_Potential(&P, pmap);
 #endif
 
   // Set boundary conditions (assign appropriate values to ghost cells) for
@@ -297,7 +297,7 @@ int main(int argc, char *argv[])
 
 #ifdef GRAVITY
     // Compute Gravitational potential for next step
-    G.Compute_Gravitational_Potential(&P);
+    G.Compute_Gravitational_Potential(&P, pmap);
 #endif
 
     // add one to the timestep count

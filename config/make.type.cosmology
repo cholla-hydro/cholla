@@ -20,9 +20,6 @@ DFLAGS += -DCOSMOLOGY
 # Average Slow cell when the cell delta_t is very small
 DFLAGS += -DAVERAGE_SLOW_CELLS
 
-# Solve the Gas Internal Energy using a Dual Energy Formalism
-DFLAGS    += -DDE
-
 # Print Initial Statistics
 DFLAGS += -DPRINT_INITIAL_STATS
 
