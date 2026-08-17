@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef GRAVITY
-  G.Initialize_Gravity(&P);
+  G.Initialize_Gravity(&P, pmap);
 #endif
 
 #ifdef PARTICLES
@@ -286,7 +286,7 @@ int main(int argc, char *argv[])
     // and positions are updated by dt
     G.Advance_Particles(1);
     // Transfer the particles that moved outside the local domain
-    G.Transfer_Particles_Boundaries(P);
+    G.Transfer_Particles_Boundaries(P, pmap);
 #endif
 
     // Advance the grid by one timestep

@@ -561,12 +561,12 @@ class Grid3D
    * profile. */
   void Disk_3D(Parameters P);
 
-  /*! \fn void Set_Boundary_Conditions(Parameters P )
+  /*! \fn void Set_Boundary_Conditions(Parameters P, ParameterMap &pmap)
    *  \brief Set the boundary conditions based on info in the parameters
    * structure. */
   void Set_Boundary_Conditions(Parameters P, ParameterMap &pmap);
 
-  /*! \fn void Set_Boundary_Conditions_Grid(Parameters P )
+  /*! \fn void Set_Boundary_Conditions_Grid(Parameters P, ParameterMap &pmap )
    *  \brief Set the boundary conditions for all components based on info in the
    * parameters structure. */
   void Set_Boundary_Conditions_Grid(Parameters P, ParameterMap &pmap);
@@ -583,11 +583,11 @@ class Grid3D
    *  \brief Set the extents of the ghost region we are initializing. */
   void Set_Boundary_Extents(int dir, int *imin, int *imax);
 
-  /*! \fn void Custom_Boundary(char bcnd[MAXLEN])
+  /*! \fn void Custom_Boundary(char bcnd[MAXLEN], ParameterMap &pmap)
    *  \brief Select appropriate custom boundary function. */
   void Custom_Boundary(char bcnd[MAXLEN], ParameterMap &pmap);
 
-  /*! \fn void Wind_Boundary()
+  /*! \fn void Wind_Boundary(ParameterMap &pmap)
    *  \brief Apply a constant wind to the -x boundary. */
   void Wind_Boundary(ParameterMap &pmap);
 
@@ -673,7 +673,7 @@ class Grid3D
 #endif /*MPI_CHOLLA*/
 
 #ifdef GRAVITY
-  void Initialize_Gravity(struct Parameters *P);
+  void Initialize_Gravity(struct Parameters *P, ParameterMap &pmap);
   void Compute_Gravitational_Potential(struct Parameters *P, ParameterMap &pmap);
   void Copy_Hydro_Density_to_Gravity_Function(int g_start, int g_end);
   void Copy_Hydro_Density_to_Gravity();
@@ -686,7 +686,7 @@ class Grid3D
   void Compute_Potential_Boundaries_Isolated(int dir, struct Parameters *P);
   void Compute_Potential_Isolated_Boundary(int direction, int side, int bc_potential_type);
   #ifdef SOR
-  void Get_Potential_SOR(Real Grav_Constant, Real dens_avrg, Real current_a, struct Parameters *P);
+  void Get_Potential_SOR(Real Grav_Constant, Real dens_avrg, Real current_a, struct Parameters *P, ParameterMap &pmap);
   int Load_Poisson_Boundary_To_Buffer(int direction, int side, Real *buffer);
   void Unload_Poisson_Boundary_From_Buffer(int direction, int side, Real *buffer_host);
   #endif
@@ -716,9 +716,9 @@ class Grid3D
   void Initialize_Uniform_Particles();
   void Copy_Particles_Density_function(int g_start, int g_end);
   void Copy_Particles_Density();
-  void Copy_Particles_Density_to_Gravity(struct Parameters P);
+  void Copy_Particles_Density_to_Gravity(struct Parameters P, pmap);
   void Set_Particles_Density_Boundaries_Periodic(int direction, int side);
-  void Transfer_Particles_Boundaries(struct Parameters P);
+  void Transfer_Particles_Boundaries(struct Parameters P, ParameterMap &pmap);
   Real Update_Grid_and_Particles_KDK(struct Parameters P);
   void Set_Particles_Boundary(int dir, int side);
   #ifdef PARTICLES_CPU
@@ -747,7 +747,6 @@ class Grid3D
   #endif  // MPI_CHOLLA
   void Transfer_Particles_Density_Boundaries(struct Parameters P);
   void Copy_Particles_Density_Buffer_Device_to_Host(int direction, int side, Real *buffer_d, Real *buffer_h);
-  // void Transfer_Particles_Boundaries( struct Parameters P );
   void WriteData_Particles(struct Parameters P, int nfile, const FnameTemplate &fname_template);
   void OutputData_Particles(struct Parameters P, int nfile, const FnameTemplate &fname_template);
   void Load_Particles_Data(struct Parameters P);

@@ -33,7 +33,7 @@ void Particles3D::Get_Density_CIC()
 
 // Compute the particles density and copy it to the array in Grav to compute the
 // potential
-void Grid3D::Copy_Particles_Density_to_Gravity(struct Parameters P)
+void Grid3D::Copy_Particles_Density_to_Gravity(struct Parameters P, ParameterMap &pmap)
 {
   #ifdef CPU_TIME
   Timer.Part_Density.Start();
@@ -51,7 +51,7 @@ void Grid3D::Copy_Particles_Density_to_Gravity(struct Parameters P)
   Timer.Part_Dens_Transf.Start();
   #endif
   // Step 2: Transfer Particles CIC density Boundaries
-  Transfer_Particles_Density_Boundaries(P);
+  Transfer_Particles_Density_Boundaries(P, pmap);
 
   // Step 3: Copy Particles density to Gravity array
   Copy_Particles_Density();

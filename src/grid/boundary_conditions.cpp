@@ -13,7 +13,7 @@
 #include "../mpi/mpi_routines.h"
 #include "../utils/error_handling.h"
 
-/*! \fn void Set_Boundary_Conditions_Grid(Parameters P )
+/*! \fn void Set_Boundary_Conditions_Grid(Parameters P, ParameterMap &pmap)
  *  \brief Set the boundary conditions for all components based on info in the
  * parameters structure. */
 void Grid3D::Set_Boundary_Conditions_Grid(Parameters P, ParameterMap &pmap)
@@ -48,7 +48,7 @@ void Grid3D::Set_Boundary_Conditions_Grid(Parameters P, ParameterMap &pmap)
 #endif    // GRAVITY
 }
 
-/*! \fn void Set_Boundary_Conditions(Parameters P )
+/*! \fn void Set_Boundary_Conditions(Parameters P, ParameterMap &pmap)
  *  \brief Set the boundary conditions based on info in the parameters
  * structure. */
 void Grid3D::Set_Boundary_Conditions(Parameters P, ParameterMap &pmap)
