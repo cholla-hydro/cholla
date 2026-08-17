@@ -1,4 +1,4 @@
-#-- Default hydro + cooling_gpu
+#-- Default MHD hydro build
 
 #-- separated output flag so that it can be overriden in target-specific
 #   for make check
@@ -8,14 +8,12 @@ MPI_GPU   ?=
 
 DFLAGS    += -DMPI_CHOLLA
 DFLAGS    += -DPRECISION=2
-DFLAGS    += -DPPMP
-DFLAGS    += -DHLLC
+DFLAGS    += -DPLMC
+DFLAGS    += -DHLLD
+DFLAGS    += -DMHD
 
-ifeq ($(findstring cosmology,$(TYPE)),cosmology)
-DFLAGS    += -DSIMPLE
-else
+# MHD only supports the Van Leer integrator
 DFLAGS    += -DVL
-endif
 
 # need this if using Disk_3D
 # DFLAGS += -DDISK_ICS
@@ -25,13 +23,12 @@ DFLAGS    += -DDENSITY_FLOOR
 DFLAGS    += -DTEMPERATURE_FLOOR
 
 # Solve the Gas Internal Energy usisng a Dual Energy Formalism
-DFLAGS    += -DDE
+# DFLAGS    += -DDE
 
-# Apply the cooling in the GPU from precomputed tables
-DFLAGS    += -DCOOLING_GPU
-#DFLAGS    += -DCLOUDY_COOL
+# Evolve additional scalars
+# DFLAGS += -DSCALAR
 
-#Measure the Timing of the different stages
+# Measure the Timing of the different stages
 DFLAGS += -DCPU_TIME
 
 DFLAGS    += $(OUTPUT)
@@ -42,5 +39,8 @@ DFLAGS    += $(OUTPUT)
 #This is set in the system make.host file
 DFLAGS    += $(MPI_GPU)
 
-DFLAGS    += -DPARALLEL_OMP
-DFLAGS    += -DN_OMP_THREADS=$(OMP_NUM_THREADS)
+# Disable CUDA error checking
+# DFLAGS += -DDISABLE_GPU_ERROR_CHECKING
+
+# NOTE: The following macros are to help facilitate debugging and should not be
+# used on scientific runs

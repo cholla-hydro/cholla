@@ -1,4 +1,4 @@
-#-- Default hydro + dust
+#-- Default hydro + cooling_gpu
 
 #-- separated output flag so that it can be overriden in target-specific
 #   for make check
@@ -8,32 +8,27 @@ MPI_GPU   ?=
 
 DFLAGS    += -DMPI_CHOLLA
 DFLAGS    += -DPRECISION=2
-DFLAGS    += -DPLMC
+DFLAGS    += -DPPMP
 DFLAGS    += -DHLLC
 
-DFLAGS    += -DDE
-DFLAGS    += -DAVERAGE_SLOW_CELLS
-DFLAGS    += -DTEMPERATURE_FLOOR
-DFLAGS    += -DDENSITY_FLOOR
-
+ifeq ($(findstring cosmology,$(TYPE)),cosmology)
+DFLAGS    += -DSIMPLE
+else
 DFLAGS    += -DVL
+endif
 
-# Evolve additional scalars
-DFLAGS    += -DSCALAR
-DFLAGS    += -DSCALAR_FLOOR
+# need this if using Disk_3D
+# DFLAGS += -DDISK_ICS
 
-# Define dust macro
-DFLAGS    += -DDUST
+# Apply a density and temperature floor
+DFLAGS    += -DDENSITY_FLOOR
+DFLAGS    += -DTEMPERATURE_FLOOR
 
-# Apply the cooling in the GPU from precomputed tables
-DFLAGS    += -DCOOLING_GPU
-DFLAGS    += -DCLOUDY_COOLING
+# Solve the Gas Internal Energy usisng a Dual Energy Formalism
+DFLAGS    += -DDE
 
 #Measure the Timing of the different stages
-#DFLAGS   += -DCPU_TIME
-
-DFLAGS    += -DSLICES
-DFLAGS    += -DPROJECTION
+DFLAGS += -DCPU_TIME
 
 DFLAGS    += $(OUTPUT)
 
@@ -42,3 +37,6 @@ DFLAGS    += $(OUTPUT)
 #If not specified, MPI_GPU is off by default
 #This is set in the system make.host file
 DFLAGS    += $(MPI_GPU)
+
+DFLAGS    += -DPARALLEL_OMP
+DFLAGS    += -DN_OMP_THREADS=$(OMP_NUM_THREADS)

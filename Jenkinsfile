@@ -29,7 +29,7 @@ pipeline
                     axis
                     {
                         name 'CHOLLA_MAKE_TYPE'
-                        values 'hydro', 'gravity', 'disk', 'particles', 'cosmology', 'mhd', 'dust', 'cooling'
+                        values 'hydro', 'gravity', 'disk', 'particles', 'cosmology', 'mhd', 'dust'
                     }
                 }
 
@@ -71,7 +71,7 @@ pipeline
                                 # configuration has been read
                                 set -x
 
-                                source builds/run_tests.sh
+                                source config/run_tests.sh
                                 setupTests -c gcc -t ${CHOLLA_MAKE_TYPE}
 
                                 buildCholla OPTIMIZE
@@ -87,7 +87,7 @@ pipeline
                                 # configuration has been read
                                 set -x
 
-                                source builds/run_tests.sh
+                                source config/run_tests.sh
                                 setupTests -c gcc -t ${CHOLLA_MAKE_TYPE}
 
                                 buildChollaTests
@@ -105,7 +105,7 @@ pipeline
                                     # configuration has been read
                                     set -x
 
-                                    source builds/run_tests.sh
+                                    source config/run_tests.sh
                                     setupTests -c gcc -t ${CHOLLA_MAKE_TYPE}
 
                                     runTests
@@ -123,7 +123,7 @@ pipeline
                                     # configuration has been read
                                     set -x
 
-                                    source builds/run_tests.sh
+                                    source config/run_tests.sh
                                     setupTests -c gcc -t ${CHOLLA_MAKE_TYPE}
 
                                     module load clang/17.0.1

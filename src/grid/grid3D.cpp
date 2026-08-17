@@ -126,6 +126,8 @@ void Grid3D::Initialize(struct Parameters *P)
   }
 #endif
 
+  H.gas_only_use_static_grav = P->gas_only_use_static_grav;
+
   // Set the CFL coefficient (a global variable)
   C_cfl = 0.3;
 
@@ -370,6 +372,24 @@ void Grid3D::Execute_Hydro_Integrator(void)
   Timer.Hydro_Integrator.Start();
 #endif  // CPU_TIME
 
+  [[maybe_unused]] Real *d_Grav_potential = nullptr;
+  if (H.gas_only_use_static_grav) {
+    // this supports a crude-workaround for when we run cholla with
+    // - particles that are influenced by their own self-gravity, the gravity of the gas, and a static
+    //   analytic potential
+    // - AND we only want the gas to be influenced by the static analytic poential
+    //
+    // Be aware, STATIC_GRAV won't directly use this pointer (in fact, when STATIC_GRAV is defined, this
+    // pointer should be NULL). We should probably refactor to unify STATIC_GRAV and GRAVITY
+#ifdef GRAVITY
+    d_Grav_potential = Grav.F.analytic_potential_d;
+#else
+    CHOLLA_ERROR("this should be unreachable when GRAVITY isn't defined");
+#endif
+  } else {
+    d_Grav_potential = C.d_Grav_potential;
+  }
+
   // this buffer holds 1 element that is initialized to 0
   cuda_utilities::DeviceVector<int> error_code_buffer(1, true);
 
@@ -395,13 +415,13 @@ void Grid3D::Execute_Hydro_Integrator(void)
   } else if (H.nx > 1 && H.ny > 1 && H.nz > 1)  // 3D
   {
 #ifdef VL
-    VL_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
-                         H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, H.density_floor,
+    VL_Algorithm_3D_CUDA(C.device, d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz,
+                         H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, H.density_floor,
                          C.Grav_potential, SlowCellConditionChecker(1.0 / H.min_dt_slow, H.dx, H.dy, H.dz),
                          error_code_buffer.data());
 #endif  // VL
 #ifdef SIMPLE
-    Simple_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
+    Simple_Algorithm_3D_CUDA(C.device, d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
                              H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, H.density_floor,
                              C.Grav_potential, SlowCellConditionChecker(1.0 / H.min_dt_slow, H.dx, H.dy, H.dz),
                              error_code_buffer.data());
@@ -420,7 +440,8 @@ void Grid3D::Execute_Hydro_Integrator(void)
 #endif  // CPU_TIME
 }
 
-Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &chemistry_callback)
+Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &feedback_callback,
+                               std::function<void(Grid3D &)> &chemistry_callback)
 {
 #ifdef ONLY_PARTICLES
   // Don't integrate the Hydro when only solving for particles
@@ -437,7 +458,12 @@ Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &chemistry_callback
   Extrapolate_Grav_Potential();
 #endif  // GRAVITY
 
+  // Evolve the hydrodynamical quantities
   Execute_Hydro_Integrator();
+
+  // apply the floors
+  // ================
+  // -> we need do this before we handle source terms because it is necessary for chemistry/cooling
 
 #ifdef TEMPERATURE_FLOOR
   // Set the lower limit temperature (Internal Energy)
@@ -460,6 +486,12 @@ Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &chemistry_callback
   Apply_Scalar_Floor(C.device, H.nx, H.ny, H.nz, H.n_ghost, grid_enum::metal_density, H.scalar_floor);
   #endif
 #endif  // SCALAR_FLOOR
+
+  // apply source terms
+  // ==================
+  if (feedback_callback) {
+    feedback_callback(*this);
+  }
 
   // == Perform chemistry/cooling (there are a few different cases) ==
 
@@ -523,6 +555,11 @@ Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &chemistry_callback
   non_hydro_elapsed_time += cur_grackle_timing;
   #endif  // CPU_TIME
 #endif    // COOLING_GRACKLE
+
+  // Finally, it is time to handle calculation of the timestep for the next cycle
+  // ============================================================================
+  // -> first, we perform certain modifications to the fields that are partially
+  //    motivated by the impact that they have on the size of the timestep
 
   // Temperature Ceiling
 #ifdef TEMPERATURE_CEILING

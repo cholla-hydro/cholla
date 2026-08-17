@@ -97,7 +97,7 @@ setupTests ()
   esac
 
   # Source the setup file
-  source "${CHOLLA_ROOT}/builds/setup.${CHOLLA_MACHINE}${CHOLLA_COMPILER}.sh"
+  source "${CHOLLA_ROOT}/config/setup.${CHOLLA_MACHINE}${CHOLLA_COMPILER}.sh"
 }
 # ==============================================================================
 

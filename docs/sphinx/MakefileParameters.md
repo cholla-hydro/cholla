@@ -1,6 +1,9 @@
+(makefile-parameters)=
 # Makefile Parameters
 
 Most of the configuration options in Cholla currently require turning on or off flags in a make.type file. This page contains most of the available options, along with a brief summary of their meanings.
+
+Developer Documentation about how these parameters are used and how to add a new parameter are provided on {ref}`this linked pag <dev-build-time-config>`.
 
 ## General options
 
@@ -40,8 +43,6 @@ Most of the configuration options in Cholla currently require turning on or off 
 * **SIMPLE**: Use a simple dimensionally-split PLM or PPM style integrator, as described in Schneider (2017)
 
 ## Cooling functions
-* **COOLING_GPU**: Use one of the cooling functions defined in cooling_cuda.cu. By default, a piecewise parabolic analytic fit to a CIE cooling curve that cuts off at 10^4 K.
-* **CLOUDY_COOL**: Use a cooling / heating table created with Cloudy assuming solar metallicity and a HM2012 UV background to apply cooling / heating (see Schneider 2017).
 * **COOLING_GRACKLE**:
 
 ## Self Gravity

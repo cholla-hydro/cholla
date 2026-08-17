@@ -227,7 +227,7 @@ H5Space1D &H5Space1D::operator=(H5Space1D &&other) noexcept
 H5Space1D &H5Space1D::ensure_dim(hsize_t dim)
 {
   if (this->id_ == H5I_INVALID_HID) {  // <- first time setting dim
-    this->dim_ = std::unique_ptr<hsize_t>(new hsize_t{dim});
+    this->dim_ = std::make_unique<hsize_t>(dim);
   } else if (*this->dim_ == dim) {  // <- dim isn't changing
     return *this;
   } else {
@@ -663,7 +663,7 @@ void Grid3D::Print_Grid_Stats(void)
   }
   mean_l /= ((H.nz_real) * (H.ny_real) * (H.nx_real));
 
-    #if MPI_CHOLLA
+    #ifdef MPI_CHOLLA
   mean_g = ReduceRealAvg(mean_l);
   max_g  = ReduceRealMax(max_l);
   min_g  = ReduceRealMin(min_l);
@@ -692,7 +692,7 @@ void Grid3D::Print_Grid_Stats(void)
   }
   mean_l /= ((H.nz_real) * (H.ny_real) * (H.nx_real));
 
-    #if MPI_CHOLLA
+    #ifdef MPI_CHOLLA
   mean_g = ReduceRealAvg(mean_l);
   max_g  = ReduceRealMax(max_l);
   min_g  = ReduceRealMin(min_l);
@@ -719,7 +719,7 @@ void Grid3D::Print_Grid_Stats(void)
   }
   mean_l /= ((H.nz_real) * (H.ny_real) * (H.nx_real));
 
-    #if MPI_CHOLLA
+    #ifdef MPI_CHOLLA
   mean_g = ReduceRealAvg(mean_l);
   max_g  = ReduceRealMax(max_l);
   min_g  = ReduceRealMin(min_l);
@@ -746,7 +746,7 @@ void Grid3D::Print_Grid_Stats(void)
   }
   mean_l /= ((H.nz_real) * (H.ny_real) * (H.nx_real));
 
-    #if MPI_CHOLLA
+    #ifdef MPI_CHOLLA
   mean_g = ReduceRealAvg(mean_l);
   max_g  = ReduceRealMax(max_l);
   min_g  = ReduceRealMin(min_l);
@@ -773,7 +773,7 @@ void Grid3D::Print_Grid_Stats(void)
   }
   mean_l /= ((H.nz_real) * (H.ny_real) * (H.nx_real));
 
-    #if MPI_CHOLLA
+    #ifdef MPI_CHOLLA
   mean_g = ReduceRealAvg(mean_l);
   max_g  = ReduceRealMax(max_l);
   min_g  = ReduceRealMin(min_l);
@@ -815,7 +815,7 @@ void Grid3D::Print_Grid_Stats(void)
   mean_l /= (H.nz_real * H.ny_real * H.nx_real);
   temp_mean_l /= (H.nz_real * H.ny_real * H.nx_real);
 
-    #if MPI_CHOLLA
+    #ifdef MPI_CHOLLA
   mean_g      = ReduceRealAvg(mean_l);
   max_g       = ReduceRealMax(max_l);
   min_g       = ReduceRealMin(min_l);
@@ -859,7 +859,7 @@ void Grid3D::Print_Grid_Stats(void)
   mean_l /= (H.nz_real * H.ny_real * H.nx_real);
   temp_mean_l /= (H.nz_real * H.ny_real * H.nx_real);
 
-      #if MPI_CHOLLA
+      #ifdef MPI_CHOLLA
   mean_g      = ReduceRealAvg(mean_l);
   max_g       = ReduceRealMax(max_l);
   min_g       = ReduceRealMin(min_l);
@@ -884,17 +884,22 @@ void Grid3D::Print_Grid_Stats(void)
 // - earlier versions of this logic wouldn't work with Grackle
 static void cosmo_init_chemical_species_(const Header &H, const FieldInfo &field_info, Real *host_field_ptr)
 {
-  if (!field_info.field_id("HI_density").has_value()) {
-    CHOLLA_ERROR("This function has been erroneously executed. There are no chemical species");
-  }
+  auto get_ptr_or_abort = [&](const char *name) -> Real * {
+    std::optional<int> maybe_id = field_info.field_id(name).value();
+    if (maybe_id.has_value()) {
+      return &host_field_ptr[H.n_cells * maybe_id.value()];
+    } else {
+      CHOLLA_ERROR("%s is not the name of a defined field", name);
+    }
+  };
 
-  Real *density       = &host_field_ptr[H.n_cells * field_info.field_id("density").value()];
-  Real *HI_density    = &host_field_ptr[H.n_cells * field_info.field_id("HI_density").value()];
-  Real *HII_density   = &host_field_ptr[H.n_cells * field_info.field_id("HII_density").value()];
-  Real *HeI_density   = &host_field_ptr[H.n_cells * field_info.field_id("HeI_density").value()];
-  Real *HeII_density  = &host_field_ptr[H.n_cells * field_info.field_id("HeII_density").value()];
-  Real *HeIII_density = &host_field_ptr[H.n_cells * field_info.field_id("HeIII_density").value()];
-  Real *e_density     = &host_field_ptr[H.n_cells * field_info.field_id("e_density").value()];
+  Real *density       = get_ptr_or_abort("density");
+  Real *HI_density    = get_ptr_or_abort("HI_density");
+  Real *HII_density   = get_ptr_or_abort("HII_density");
+  Real *HeI_density   = get_ptr_or_abort("HeI_density");
+  Real *HeII_density  = get_ptr_or_abort("HeII_density");
+  Real *HeIII_density = get_ptr_or_abort("HeIII_density");
+  Real *e_density     = get_ptr_or_abort("e_density");
 
   for (int k = 0; k < H.nz_real; k++) {
     for (int j = 0; j < H.ny_real; j++) {
@@ -940,8 +945,12 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
 
   // load all of the hydro fields (include GasEnergy if using dual-energy formalism)
   for (int field_id : field_info.get_id_range(field::Kind::HYDRO)) {
-    Real *dest_ptr        = &C.host[field_id * H.n_cells];
-    std::string dset_name = "/" + field_info.field_name(field_id).value();
+    Real *dest_ptr                 = &C.host[field_id * H.n_cells];
+    std::optional<std::string> tmp = field_info.field_name(field_id);
+    if (!tmp.has_value()) {
+      CHOLLA_ERROR("this should be unreachable");
+    }
+    std::string dset_name = "/" + tmp.value();
     Read_Grid_HDF5_Field(file_id, dataset_buffer, H, dest_ptr, dset_name.c_str());
   }
 
@@ -960,8 +969,12 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
 
   // try to load all of the scalars (that aren't within skip_loading_scalar)
   for (int field_id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
-    Real *dest_ptr         = &C.host[field_id * H.n_cells];
-    std::string field_name = field_info.field_name(field_id).value();
+    Real *dest_ptr                 = &C.host[field_id * H.n_cells];
+    std::optional<std::string> tmp = field_info.field_name(field_id);
+    if (!tmp.has_value()) {
+      CHOLLA_ERROR("this should be unreachable");
+    }
+    std::string field_name = tmp.value();
     if (skip_loading_scalar.find(field_name) != skip_loading_scalar.end()) {
       continue;
     }
@@ -1003,7 +1016,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
     }
     mean_l /= ((H.nz_real + 1) * (H.ny_real) * (H.nx_real));
 
-    #if MPI_CHOLLA
+    #ifdef MPI_CHOLLA
     mean_g = ReduceRealAvg(mean_l);
     max_g  = ReduceRealMax(max_l);
     min_g  = ReduceRealMin(min_l);
@@ -1046,7 +1059,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
     }
     mean_l /= ((H.nz_real) * (H.ny_real + 1) * (H.nx_real));
 
-    #if MPI_CHOLLA
+    #ifdef MPI_CHOLLA
     mean_g = ReduceRealAvg(mean_l);
     max_g  = ReduceRealMax(max_l);
     min_g  = ReduceRealMin(min_l);
@@ -1089,7 +1102,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
     }
     mean_l /= ((H.nz_real) * (H.ny_real) * (H.nx_real + 1));
 
-    #if MPI_CHOLLA
+    #ifdef MPI_CHOLLA
     mean_g = ReduceRealAvg(mean_l);
     max_g  = ReduceRealMax(max_l);
     min_g  = ReduceRealMin(min_l);

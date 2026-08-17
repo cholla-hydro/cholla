@@ -1,4 +1,3 @@
-#POISSON_SOLVER ?= -DPFFT
 #DFLAGS += $(POISSON_SOLVER)
 
 #To use MPI, DFLAGS must include -DMPI_CHOLLA
@@ -49,13 +48,6 @@ DFLAGS += -DTEMPERATURE_FLOOR
 # Average Slow cell when the cell delta_t is very small
 #DFLAGS += -DAVERAGE_SLOW_CELLS
 
-# Allocate GPU memory every timestep
-#DFLAGS += -DDYNAMIC_GPU_ALLOC
-
-# Set the cooling function
-#DFLAGS += -DCOOLING_GPU
-#DFLAGS += -DCLOUDY_COOL
-
 # Use Tiled Iitial Conditions for Scaling Tets
 #DFLAGS += -DTILED_INITIAL_CONDITIONS
 
@@ -69,8 +61,6 @@ DFLAGS += -DCPU_TIME
 # Include FFT gravity
 #DFLAGS += -DGRAVITY
 #DFLAGS += -DGRAVITY_LONG_INTS
-#DFLAGS += -DCOUPLE_GRAVITATIONAL_WORK
-#DFLAGS += -DCOUPLE_DELTA_E_KINETIC
 #DFLAGS += -DOUTPUT_POTENTIAL
 #DFLAGS += -DGRAVITY_5_POINTS_GRADIENT
 
