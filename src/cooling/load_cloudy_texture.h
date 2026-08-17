@@ -43,6 +43,7 @@ class CloudyHeatAndCool
   // texture objects are properly cleaned up when the number of owners go to 0
   SharedHandle<cudaTextureObject_t> coolTexObj_;
   SharedHandle<cudaTextureObject_t> heatTexObj_;
+  bool enable_heating_;
 
  public:
   /*! \brief Construct an instance from the appropriate file name
@@ -52,11 +53,12 @@ class CloudyHeatAndCool
    *
    *  \note This constructor is useful for testing
    */
-  __host__ explicit CloudyHeatAndCool(std::string filename);
+  __host__ explicit CloudyHeatAndCool(std::string filename, bool enable_heating=true);
 
   /*! \brief Construct an instance from the ParameterMap */
   __host__ explicit CloudyHeatAndCool(ParameterMap& pmap)
-      : CloudyHeatAndCool(pmap.value_or("chemistry.data_file", ""))  // delegate to other constructor
+      : CloudyHeatAndCool(pmap.value_or("chemistry.data_file", ""),
+                            pmap.value_or("chemistry.enable_heating", true))  // delegate to other constructor
   {
   }
 
@@ -95,8 +97,10 @@ class CloudyHeatAndCool
       const Real remap_log_n = (log_n + 6.0) * 10;
 
       lambda       = Bilinear_Texture(this->coolTexObj_.get(), remap_log_T, remap_log_n);
-      const Real H = Bilinear_Texture(this->heatTexObj_.get(), remap_log_T, remap_log_n);
-      // heating      = pow(10, H); //TODO: uncomment
+      if (enable_heating_){
+        const Real H = Bilinear_Texture(this->heatTexObj_.get(), remap_log_T, remap_log_n);
+        heating      = pow(10, H); //TODO: uncomment
+      }
     } else {
       // Do nothing below 10 K
       return 0.0;

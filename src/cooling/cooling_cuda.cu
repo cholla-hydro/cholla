@@ -289,20 +289,14 @@ class CoolRecipeMetals
 
   __device__ Real cool_rate(Real n_H, Real n_He, Real T, Real metallicity) const 
   { 
-    // compute cooling per unit volume for just primordial components
+    // Compute cooling per unit volume for just primordial components
     Real cool_primordial = cool_component::primordial_cool(n_H, n_He, T) * n_H * n_H;
-    // printf("cool_primordial = %e\n", cool_primordial);
-    // get cooling per unit volume of metals if cell had solar metallicty
-    // Real cool_metal = n_H * n_H * cool_component::analytic_cie_lambda(log10(T));     
-    Real cool_metal = net_cloudy_(n_H, T);  
-    // printf("cool_metal = %e\n", cool_metal);
-    Real cool_metal_cool_only = fmax(cool_metal, 0.0);
 
-    Real cool_metal_if_solar = fmax(cool_metal - cool_primordial, 0.0); 
-   
-    Real cool_total = cool_primordial + cool_metal_if_solar * metallicity;
-    // printf("cool_tot = %e\n", cool_total);
-    return fmax(cool_total, 0.0);
+    // Get cooling per unit volume of metals if cell had solar metallicty 
+    Real cool_metal_if_solar = fmax(net_cloudy_(n_H, T) - cool_primordial, 0.0); 
+
+   // Scales the cooling contribution from metals by a metallicity parameter and then re-adds the contribution from primordial components
+    return fmax(cool_primordial + cool_metal_if_solar * metallicity, 0.0);
   }
 };
 
