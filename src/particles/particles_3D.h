@@ -45,8 +45,19 @@ class Particles3D
   Real particle_mass;
 
     #ifdef COSMOLOGY
-  Real current_z;
-  Real current_a;
+  Real current_z;  // current redshift
+  Real current_a;  // current scale factor
+  struct CosmoICs {
+    Real *phi_1;   // pointer to initial potential
+    Real *phi_bc;  // pointer to baryon-cdm fluctuations
+    Real D;        // growth function at initial redshift
+    Real dDdt;     // growth function time derivative
+    Real dDda;     // growth function scale factor derivative
+    Real Ha;       // Hubble parameter at initial redshift
+  } CP;
+
+  /*! \brief Get the cell-centered position based on cell index */
+  void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real *zpos) const;
     #endif
 
     #ifdef PARTICLES_CPU
@@ -152,6 +163,7 @@ class Particles3D
     int boundary_type_z0, boundary_type_z1;
 
     int n_ghost_particles_grid;
+    int n_ghost;  // hydro grid
     int n_cells;
     #ifdef PARTICLES_GPU
     Real gpu_allocation_factor;
@@ -288,9 +300,9 @@ class Particles3D
                                                       Real Omega_R, Real w0, Real wa);
   part_int_t Compute_Particles_GPU_Array_Size(part_int_t n);
   int Select_Particles_to_Transfer_GPU(int direction, int side);
-  void Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, Real *send_buffer,
-                                             int buffer_length);
-  void Replace_Tranfered_Particles_GPU(int n_transfer);
+  Real *Copy_Transfer_Particles_to_Buffer_GPU(int n_transfer, int direction, int side, int *buffer_length);
+
+  void Replace_Transferred_Particles_GPU(int n_transfer);
   void Unload_Particles_from_Buffer_GPU(int direction, int side, Real *recv_buffer_h, int n_recv);
   void Copy_Transfer_Particles_from_Buffer_GPU(int n_recv, Real *recv_buffer_d);
   void Set_Particles_Open_Boundary_GPU(int dir, int side);
@@ -317,6 +329,10 @@ class Particles3D
 
   void Initialize_Adiabatic_Expansion(struct Parameters *P);
 
+  /*! \brief Create the initial particle positions for cosmological ICs */
+  void Initialize_Cosmological_ICs_Particles(struct Parameters *P, Real xbound, Real ybound, Real zbound, Real xdglobal,
+                                             Real ydglobal, Real zdglobal);
+
   void Load_Particles_Data(struct Parameters *P);
 
   void Free_Memory();
@@ -342,7 +358,7 @@ class Particles3D
   void Select_Particles_to_Transfer_All(int *flags);
   void Add_Particle_To_Buffer(Real *buffer, part_int_t n_in_buffer, int buffer_length, Real pId, Real pMass, Real pAge,
                               Real pPos_x, Real pPos_y, Real pPos_z, Real pVel_x, Real pVel_y, Real pVel_z);
-  void Remove_Transfered_Particles();
+  void Remove_Transferred_Particles();
 
       #ifdef PARTICLES_CPU
   void Clear_Vectors_For_Transfers(void);
@@ -359,7 +375,8 @@ class Particles3D
       #ifdef PARTICLES_GPU
   void Allocate_Memory_GPU_MPI();
   void ReAllocate_Memory_GPU_MPI();
-  void Load_Particles_to_Buffer_GPU(int direction, int side, Real *send_buffer, int buffer_length);
+  Real *Load_Particles_to_Buffer_GPU(int direction, int side, int *buffer_length);
+
       #endif  // PARTICLES_GPU
     #endif
 };

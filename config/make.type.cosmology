@@ -9,6 +9,10 @@ DFLAGS += -DCOSMOLOGY
 #DFLAGS += -DGRACKLE_METALS
 
 
+# Include the FFT subroutines
+#DFLAGS += -DFFT
+
+
 # Solve the Primordial Chemical Network (H+He) on the GPU (Includes Radiative Cooling, Photoheating and Photoionization)
 #DFLAGS += -DCHEMISTRY_GPU -DOUTPUT_TEMPERATURE -DOUTPUT_CHEMISTRY
 

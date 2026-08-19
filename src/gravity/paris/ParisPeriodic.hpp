@@ -20,7 +20,7 @@ class ParisPeriodic
    * @param[in] m[3] { Number of MPI tasks in each dimension. }
    * @param[in] id[3] { Coordinates of this MPI task, starting at `{0,0,0}`. }
    */
-  ParisPeriodic(const int n[3], const double lo[3], const double hi[3], const int m[3], const int id[3]);
+  ParisPeriodic(const int n[3], const double lo[3], const double hi[3], const int m[3], const int id[3], double dx);
 
   /**
    * @return { Number of bytes needed for array arguments for @ref solve. }
@@ -43,11 +43,16 @@ class ParisPeriodic
    */
   void solve(size_t bytes, double *density, double *potential) const;
 
+#ifdef RT
+  void solveEddingtonTensor(size_t bytes, double *source, double *tensor, int component) const;
+#endif  // RT
+
  private:
   int ni_, nj_;  //!< Number of elements in X and Y dimensions
 #if defined(PARIS_3PT) || defined(PARIS_5PT)
   int nk_;  //!< Number of elements in Z dimension
 #endif
-  double ddi_, ddj_, ddk_;  //!< Frequency-independent terms in Poisson solve
-  HenryPeriodic henry;      //!< FFT filter object
+  double ddi_, ddj_, ddk_;          //!< Frequency-independent terms in Poisson solve
+  double dx_, dd2i_, dd2j_, dd2k_;  //!< Frequency-independent terms in Poisson solve, for RT
+  HenryPeriodic henry;              //!< FFT filter object
 };
