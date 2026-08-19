@@ -19,8 +19,6 @@ RKIntegrator::RKIntegrator(int ny_in)
   error.resize(ny);
 
   int i, j;
-  for (i = 0; i < 7; i++)
-    for (j = 0; j < 6; j++) bij[i][j] = 0;
   for (i = 0; i < 7; i++) {
     for (j = 0; j < 6; j++) {
       bij[i][j] = 0;
