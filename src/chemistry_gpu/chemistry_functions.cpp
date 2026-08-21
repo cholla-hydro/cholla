@@ -37,7 +37,7 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
     if (P->YHe != 0) {
       Chem.H.H_fraction = 1.0 - P->YHe;
       // CHOLLA_ERROR("About to initialize Chem.H.H_fraction incorrectly (P->YHe = %e)", P->YHe);
-    }else{
+    } else {
       Chem.H.H_fraction = INITIAL_FRACTION_HI + INITIAL_FRACTION_HII;
     }
   }

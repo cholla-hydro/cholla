@@ -273,8 +273,8 @@ struct Parameters {
   int zug_bcnd;
 #endif /*MPI_CHOLLA*/
   char custom_bcnd[MAXLEN];
-  char indir[MAXLEN];  // Folder to load Initial conditions from
-  char outdir[MAXLEN]; // Folder where output data is written
+  char indir[MAXLEN];   // Folder to load Initial conditions from
+  char outdir[MAXLEN];  // Folder where output data is written
   Real rho;
   Real vx;
   Real vy;
@@ -322,7 +322,7 @@ struct Parameters {
 #endif  // PARTICLES
 
 #if defined(CHEMISTRY_GPU) || defined(COSMOLOGY)
-  Real YHe;            // helium mass fraction
+  Real YHe;  // helium mass fraction
 #endif
 #ifdef COSMOLOGY
   Real H0;
