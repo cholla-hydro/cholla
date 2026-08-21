@@ -274,7 +274,7 @@ struct Parameters {
 #endif /*MPI_CHOLLA*/
   char custom_bcnd[MAXLEN];
   char indir[MAXLEN];  // Folder to load Initial conditions from
-  char outdir[MAXLEN];  // Folder to load Initial conditions from
+  char outdir[MAXLEN]; // Folder where output data is written
   Real rho;
   Real vx;
   Real vy;
