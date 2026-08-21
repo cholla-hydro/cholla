@@ -320,8 +320,8 @@ struct Parameters {
   std::uint_fast64_t prng_seed = 0;
 #endif  // PARTICLES
 
-#ifdef CHEMISTRY_GPU
-  Real YHe;
+#if defined(CHEMISTRY_GPU) || defined(COSMOLOGY)
+  Real YHe;            // helium mass fraction
 #endif
 #ifdef COSMOLOGY
   Real H0;
@@ -336,7 +336,6 @@ struct Parameters {
   Real T_init;
   unsigned long long cosmoics_seed;  // Cosmological ICs seed
   char cosmo_ics_pk_file[MAXLEN];
-  Real YHe;            // helium mass fraction
   Real xHp_ion_init;   // hydrogen ionization fraction
   Real xHep_ion_init;  // helium ionization fraction
 
