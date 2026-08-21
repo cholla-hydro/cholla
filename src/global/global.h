@@ -334,7 +334,7 @@ struct Parameters {
   Real Init_redshift;
   Real End_redshift;
   Real T_init;
-  unsigned long long cosmoics_seed;  // Cosmological ICs seed
+  unsigned long long cosmo_ics_seed;  // Cosmological ICs seed
   char cosmo_ics_pk_file[MAXLEN];
   Real xHp_ion_init;   // hydrogen ionization fraction
   Real xHep_ion_init;  // helium ionization fraction
