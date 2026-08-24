@@ -35,6 +35,37 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
   SpatialDomainProps spatial_props = SpatialDomainProps::From_Grid3D(*this, P);
   #endif
 
+  #ifdef COSMOLOGY
+
+  // Check for cosmological ICs
+  if (strcmp(P->init, "Cosmological_ICs") == 0) {
+    // Initialize a pointer to the cosmological ics
+    // potentials. These are used for Cosmological_ICs
+    Real z_init         = P->Init_redshift;
+    Real a_init         = 1. / (1. + z_init);
+    Particles.CP.phi_1  = CP.phi_1;
+    Particles.CP.phi_bc = CP.phi_2;  // delta_bc has been replaced by phi_bc
+    Particles.CP.D      = Cosmo.D_Growth(a_init);
+    Particles.CP.dDdt   = Cosmo.dDdt_Growth(a_init);
+    Particles.CP.dDda   = Cosmo.dDda_Growth(a_init);
+    Real Omega_m        = P->Omega_M;
+    Real Omega_r        = P->Omega_R;
+    Real Omega_DE       = P->Omega_L;
+    Real w0             = P->w0;
+    Real wa             = P->wa;
+    Real H0             = P->H0 / 1000;  // km/s/kpc
+    Particles.CP.Ha     = Hubble_Growth_Function(a_init, H0, Omega_r, Omega_m, Omega_DE, w0, wa);
+    Particles.G.n_ghost = H.n_ghost;  // ghost cells are not carried
+
+    chprintf("Cosmological ICs: a %e\n", a_init);
+    chprintf("Cosmological ICs: Particles.CP.D    %e\n", Particles.CP.D);
+    chprintf("Cosmological ICs: Particles.CP.dDdt %e [km/s/kpc]\n", Particles.CP.dDdt);
+    chprintf("Cosmological ICs: Particles.CP.dDda %e\n", Particles.CP.dDda);
+    chprintf("Cosmological ICs: Particles.CP.Ha   %e\n", Particles.CP.Ha);
+  }
+
+  #endif
+
   Particles.Initialize(P, spatial_props, H.xbound, H.ybound, H.zbound, H.xdglobal, H.ydglobal, H.zdglobal);
 
   #if defined(PARTICLES_GPU) && defined(GRAVITY_GPU)
@@ -51,6 +82,17 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
   MPI_Barrier(world);
   #endif
   chprintf("Particles Initialized Successfully. \n\n");
+
+  #ifdef COSMOLOGY
+  // move particles as needed after displacement
+  if (strcmp(P->init, "Cosmological_ICs") == 0) {
+    Transfer_Particles_Boundaries(*P);
+    #ifdef MPI_CHOLLA
+    MPI_Barrier(world);
+    #endif
+    Transfer_Particles_Boundaries(*P);  // try twice
+  }
+  #endif  // COSMOLOGY
 }
 
 void Particles3D::Initialize(Parameters *P, const SpatialDomainProps &spatial_props, Real xbound, Real ybound,
@@ -216,6 +258,10 @@ void Particles3D::Initialize(Parameters *P, const SpatialDomainProps &spatial_pr
     Initialize_Zeldovich_Pancake(P);
   } else if (strcmp(P->init, "Adiabatic_Expansion") == 0) {
     Initialize_Adiabatic_Expansion(P);
+  #ifdef COSMOLOGY
+  } else if (strcmp(P->init, "Cosmological_ICs") == 0) {
+    Initialize_Cosmological_ICs_Particles(P, xbound, ybound, zbound, xdglobal, ydglobal, zdglobal);
+  #endif
   } else if (strcmp(P->init, "Read_Grid") == 0) {
     Load_Particles_Data(P);
   } else if (strcmp(P->init, "Isolated_Stellar_Cluster") == 0) {
@@ -532,7 +578,7 @@ void Particles3D::Initialize_Sphere(struct Parameters *P)
   Real *temp_mass = (Real *)malloc(particles_array_size * sizeof(Real));
     #endif
     #ifdef PARTICLE_IDS
-  auto *temp_id = (part_int_t *)malloc(particles_array_size * sizeof(part_int_t));
+  auto *temp_id = (part_int_t *)calloc(particles_array_size, sizeof(part_int_t));
     #endif
 
   chprintf(" Allocated GPU memory for particle data\n");
@@ -1151,6 +1197,586 @@ void Particles3D::Initialize_Adiabatic_Expansion(struct Parameters *P)
 
   chprintf(" Particles Adiabatic Expansion initialized, n_local: %lu\n", n_local);
 }
+
+  #ifdef COSMOLOGY
+
+void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Real xbound, Real ybound, Real zbound,
+                                                        Real xdglobal, Real ydglobal, Real zdglobal)
+{
+  chprintf("Cosmological ICs: Setting particle positions...\n");
+
+  // The first set of particles are initialzed at Lagrangian
+  // locations on the grid
+
+  int i, j, k, id;
+
+  // cell sizes
+  Real dx      = G.dx;
+  Real dy      = G.dy;
+  Real dz      = G.dz;
+  int nx_local = G.nx_local;
+  int ny_local = G.ny_local;
+  int nz_local = G.nz_local;
+  int n_ghost  = G.n_ghost;
+  int nx       = nx_local + 2 * n_ghost;
+  int ny       = ny_local + 2 * n_ghost;
+  int nz       = nz_local + 2 * n_ghost;
+
+  // Set the number of particles equal to the number of grid cells
+  part_int_t n_particles_local = ((part_int_t)G.nx_local) * ((part_int_t)G.ny_local) * ((part_int_t)G.nz_local);
+  part_int_t n_particles_total = ((part_int_t)G.nx_total) * ((part_int_t)G.ny_total) * ((part_int_t)G.nz_total);
+
+  // Set the particle mass
+  Real H0 = P->H0;
+  Real h  = H0 / 100;
+  H0 /= 1000;  //[km/s / kpc]
+  Real Omega_M    = P->Omega_M;
+  Real Omega_L    = P->Omega_L;
+  Real Omega_R    = P->Omega_R;
+  Real Omega_K    = 1 - (Omega_M + Omega_L + Omega_R);
+  Real Omega_b    = P->Omega_b;
+  Real w0         = P->w0;
+  Real wa         = P->wa;
+  Real G_n        = G_COSMO;
+  Real rho_cdm    = 3 * H0 * H0 / (8 * M_PI * G_n) * (Omega_M - Omega_b) / h / h;
+  Real Mvol       = rho_cdm * xdglobal * ydglobal * zdglobal;
+  Real Mparticle  = Mvol / n_particles_total;
+  Real f_b        = Omega_b / Omega_M;
+  Real a_init     = 1. / (1 + P->Init_redshift);
+  Real Ha         = CP.Ha;              // Hubble parameter at a_init
+  Real D          = CP.D;               // initial growth function
+  Real dDdt       = CP.dDdt;            // growth function time derivative
+  Real dDda       = CP.dDda;            // growth function scale factor derivative
+  Real dlogDdloga = dDda * a_init / D;  // should be close to 1
+
+  chprintf("Cosmological ICs: Particles: H0         %e\n", H0);
+  chprintf("Cosmological ICs: Particles: h          %e\n", h);
+  chprintf("Cosmological ICs: Particles: G_n        %e\n", G_n);
+  chprintf("Cosmological ICs: Particles: Mparticle  %e\n", Mparticle);
+  chprintf("Cosmological ICs: Particles: rho_cdm    %e\n", rho_cdm);
+  chprintf("Cosmological ICs: Particles: a %e\n", a_init);
+  chprintf("Cosmological ICs: Particles: D %e dDdt %e dDda %e dlogDdloga %e Ha %e\n", D, dDdt, dDda, dlogDdloga, Ha);
+
+    #ifdef SINGLE_PARTICLE_MASS
+  particle_mass = Mparticle;
+    #endif
+
+    #ifdef PARTICLES_GPU
+  // Alocate memory in GPU for particle data
+  particles_array_size = Compute_Particles_GPU_Array_Size(n_particles_local);
+  Allocate_Particles_GPU_Array_Real(&pos_x_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real(&pos_y_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real(&pos_z_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real(&vel_x_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real(&vel_y_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real(&vel_z_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real(&grav_x_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real(&grav_y_dev, particles_array_size);
+  Allocate_Particles_GPU_Array_Real(&grav_z_dev, particles_array_size);
+      #ifndef SINGLE_PARTICLE_MASS
+  Allocate_Particles_GPU_Array_Real(&mass_dev, particles_array_size);
+      #endif
+      #ifdef PARTICLE_IDS
+  Allocate_Particles_GPU_Array_Part_Int(&partIDs_dev, particles_array_size);
+      #endif
+  n_local = n_particles_local;
+
+  // Allocate temporary Host arrays for the particles data
+  Real *temp_pos_x = (Real *)malloc(particles_array_size * sizeof(Real));
+  Real *temp_pos_y = (Real *)malloc(particles_array_size * sizeof(Real));
+  Real *temp_pos_z = (Real *)malloc(particles_array_size * sizeof(Real));
+  Real *temp_vel_x = (Real *)malloc(particles_array_size * sizeof(Real));
+  Real *temp_vel_y = (Real *)malloc(particles_array_size * sizeof(Real));
+  Real *temp_vel_z = (Real *)malloc(particles_array_size * sizeof(Real));
+      #ifndef SINGLE_PARTICLE_MASS
+  Real *temp_mass = (Real *)malloc(particles_array_size * sizeof(Real));
+      #endif
+      #ifdef PARTICLE_IDS
+  auto *temp_id = (part_int_t *)calloc(particles_array_size, sizeof(part_int_t));
+      #endif
+
+  chprintf("Cosmological ICs: Allocated GPU memory for particle data\n");
+    #endif  // PARTICLES_GPU
+
+  chprintf("Cosmological ICs: Initializing dark matter particle positions...\n");
+
+  part_int_t pID = 0;        // don't we need an offset? -- well we use this as an index, so start at 0
+  Real x_pos, y_pos, z_pos;  // initial positions
+  Real xi_x, xi_y, xi_z;     // displacements
+  Real vx, vy, vz;           // initial velocities
+
+  Real grad_phi_x, grad_phi_y, grad_phi_z;
+
+    #ifndef ONLY_PARTICLES
+  // baryon-cdm fluctuations
+  Real grad_phi_bc_x, grad_phi_bc_y, grad_phi_bc_z;
+    #endif
+
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+  Real phi_ll, phi_rr;
+  int id_ll, id_rr;
+    #endif
+  Real phi_l, phi_r;
+  int id_l, id_r;
+
+  int index;
+  int ii, jj, kk;
+  Real vx_max  = -1e9;
+  Real vx_min  = 1e9;
+  Real xix_max = -1e9;
+  Real xix_min = 1e9;
+
+  Real A_vel;  // scaling between displacement and velocity
+
+  // scaling is A = a*H*dlogD/dloga = a^2 (H/D) dD/da
+  // these units will be in km/s/kpc, and multiplying by
+  // displacement will convert into a velocity
+  // A_vel = a_init*a_init * (Ha/D) * dDda;
+  // Since dlogDdloga ~ 1, A_vel ~ a * Ha
+  // at z~100, a ~ 0.0099 and Ha ~ 38.9 km/s/kpc
+  // so A_vel should be ~ 0.37 km/s/kpc
+  A_vel = a_init * Ha * dlogDdloga;
+  chprintf("Cosmological ICs: Particles: Velocity scaling = %e [km/s/kpc]\n", A_vel);
+
+  // gradient operators
+  // d/dx
+  // 2: 0.5*[-1 0 1]
+  // 4: (1/12)*[1 -8 0 8 -1]
+  // d2/dx2
+  // 2: [1 -2 1]
+  // 4: (1/12)*[-1 16 -30 16 -1]
+
+  // compute the positions and velocities of
+  // each particle
+
+  Real xix_rms  = 0;
+  Real xiy_rms  = 0;
+  Real xiz_rms  = 0;
+  Real xix_mean = 0;
+  Real xiy_mean = 0;
+  Real xiz_mean = 0;
+  Real vx_mean  = 0;
+  Real vy_mean  = 0;
+  Real vz_mean  = 0;
+  Real vx_rms   = 0;
+  Real vy_rms   = 0;
+  Real vz_rms   = 0;
+  Real xix_n    = 0;
+
+  int nxlt = 0;
+  int nxut = 0;
+  int nylt = 0;
+  int nyut = 0;
+  int nzlt = 0;
+  int nzut = 0;
+
+  for (k = n_ghost; k < nz - n_ghost; k++) {
+    for (j = n_ghost; j < ny - n_ghost; j++) {
+      for (i = n_ghost; i < nx - n_ghost; i++) {
+        id = i + j * nx + k * nx * ny;
+
+        // get the centered cell positions at (i,j,k)
+        // where i,j,k include ghost cells
+        Get_Position(i, j, k, &x_pos, &y_pos, &z_pos);
+
+        kk    = k - n_ghost;
+        jj    = j - n_ghost;
+        ii    = i - n_ghost;
+        index = ii + jj * nx_local + kk * nx_local * ny_local;
+
+        //////////////////////////////////////////
+        // take the potential gradient
+        // along the x direction
+        //////////////////////////////////////////
+
+        id_l = (i - 1) + j * nx + k * ny * nx;
+        id_r = (i + 1) + j * nx + k * ny * nx;
+
+        phi_l = CP.phi_1[id_l];
+        phi_r = CP.phi_1[id_r];
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+        id_ll  = (i - 2) + j * nx + k * ny * nx;
+        id_rr  = (i + 2) + j * nx + k * ny * nx;
+        phi_ll = CP.phi_1[id_ll];
+        phi_rr = CP.phi_1[id_rr];
+        // dphi/dx
+        grad_phi_x = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
+    #else
+        grad_phi_x = 0.5 * (phi_r - phi_l) / dx;
+    #endif
+
+        //////////////////////////////////////////
+        // take the potential gradient
+        // along the y direction
+        //////////////////////////////////////////
+
+        id_l = i + (j - 1) * nx + k * ny * nx;
+        id_r = i + (j + 1) * nx + k * ny * nx;
+
+        phi_l = CP.phi_1[id_l];
+        phi_r = CP.phi_1[id_r];
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+        id_ll      = i + (j - 2) * nx + k * ny * nx;
+        id_rr      = i + (j + 2) * nx + k * ny * nx;
+        phi_ll     = CP.phi_1[id_ll];
+        phi_rr     = CP.phi_1[id_rr];
+        grad_phi_y = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dy);
+    #else
+        grad_phi_y = 0.5 * (phi_r - phi_l) / dy;
+    #endif
+
+        //////////////////////////////////////////
+        // take the potential gradient
+        // along the z direction
+        //////////////////////////////////////////
+
+        id_l = i + j * nx + (k - 1) * ny * nx;
+        id_r = i + j * nx + (k + 1) * ny * nx;
+
+        phi_l = CP.phi_1[id_l];
+        phi_r = CP.phi_1[id_r];
+    #ifdef GRAVITY_5_POINTS_GRADIENT
+        id_ll      = i + j * nx + (k - 2) * ny * nx;
+        id_rr      = i + j * nx + (k + 2) * ny * nx;
+        phi_ll     = CP.phi_1[id_ll];
+        phi_rr     = CP.phi_1[id_rr];
+        grad_phi_z = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
+    #else
+        grad_phi_z = 0.5 * (phi_r - phi_l) / dz;
+    #endif
+
+        // TODO: The following code allows for baryon-CDM relative fluctuations
+        // and needs further testing.
+        /*
+          #ifndef ONLY_PARTICLES
+
+                // repeat the potential calcualtion for the
+                // baryon-cdm fluctuation potential
+
+                //////////////////////////////////////////
+                // take the potential gradient
+                // along the x direction
+                //////////////////////////////////////////
+
+                id_l  = (i - 1) + j * nx + k * ny * nx;
+                id_r  = (i + 1) + j * nx + k * ny * nx;
+
+                phi_l = CP.phi_bc[id_l];
+                phi_r = CP.phi_bc[id_r];
+            #ifdef GRAVITY_5_POINTS_GRADIENT
+                id_ll   = (i - 2 ) + j * nx + k * ny * nx;
+                id_rr   = (i + 2 ) + j * nx + k * ny * nx;
+                phi_ll  = CP.phi_bc[id_ll];
+                phi_rr  = CP.phi_bc[id_rr];
+                grad_phi_bc_x = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
+            #else
+                grad_phi_bc_x = 0.5 * (phi_r - phi_l) / dx;
+            #endif
+
+                //////////////////////////////////////////
+                // take the potential gradient
+                // along the y direction
+                //////////////////////////////////////////
+
+                id_l  = i + (j - 1) * nx + k * ny * nx;
+                id_r  = i + (j + 1) * nx + k * ny * nx;
+
+                phi_l = CP.phi_bc[id_l];
+                phi_r = CP.phi_bc[id_r];
+            #ifdef GRAVITY_5_POINTS_GRADIENT
+                id_ll   = i + (j - 2) * nx + k  * ny * nx;
+                id_rr   = i + (j + 2) * nx + k  * ny * nx;
+                phi_ll  = CP.phi_bc[id_ll];
+                phi_rr  = CP.phi_bc[id_rr];
+                grad_phi_bc_y = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dy);
+            #else
+                grad_phi_bc_y = 0.5 * (phi_r - phi_l) / dy;
+            #endif
+
+                //////////////////////////////////////////
+                // take the potential gradient
+                // along the z direction
+                //////////////////////////////////////////
+
+                id_l  = i + j * nx + (k - 1) * ny * nx;
+                id_r  = i + j * nx + (k + 1) * ny * nx;
+
+                phi_l = CP.phi_bc[id_l];
+                phi_r = CP.phi_bc[id_r];
+            #ifdef GRAVITY_5_POINTS_GRADIENT
+                id_ll   = i + j * nx + (k - 2) * ny * nx;
+                id_rr   = i + j * nx + (k + 2) * ny * nx;
+                phi_ll  = CP.phi_bc[id_ll];
+                phi_rr  = CP.phi_bc[id_rr];
+                grad_phi_bc_z = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
+            #else
+                grad_phi_bc_z = 0.5 * (phi_r - phi_l) / dz;
+            #endif
+
+          #endif //ONLY_PARTICLES
+        */
+
+        //////////////////////////////////////////
+        // compute displacements
+        // xi = D * \grad \phi
+        //////////////////////////////////////////
+        xi_x = D * grad_phi_x;  // kpc/h
+        xi_y = D * grad_phi_y;  // kpc/h
+        xi_z = D * grad_phi_z;  // kpc/h
+
+        // BRANT ERROR SHIFT ON PURPOSE
+        // xi_x += 10.0*dx;
+        // xi_y += 10.0*dy;
+        // xi_z += 10.0*dz;
+
+        if (xi_x < xix_min) xix_min = xi_x;
+        if (xi_x > xix_max) xix_max = xi_x;
+
+        xix_mean += xi_x;
+        xiy_mean += xi_y;
+        xiz_mean += xi_z;
+        xix_rms += xi_x * xi_x;
+        xiy_rms += xi_y * xi_y;
+        xiz_rms += xi_z * xi_z;
+
+        //////////////////////////////////////////
+        // compute velocity fields
+        // v = a H dlogD/dloga * xi
+        // v = da/dt * dD/da * a/D * xi
+        // v = a^2 * (H/D) * dD/da * xi
+        //////////////////////////////////////////
+
+        vx = A_vel * xi_x / h;  // km/s
+        vy = A_vel * xi_y / h;  // km/s
+        vz = A_vel * xi_z / h;  // km/s
+
+        vx_mean += vx;
+        vy_mean += vy;
+        vz_mean += vz;
+
+        vx_rms += vx * vx;
+        vy_rms += vy * vy;
+        vz_rms += vz * vz;
+
+        if (vx < vx_min) vx_min = vx;
+        if (vx > vx_max) vx_max = vx;
+
+        xix_n += 1;
+
+        // TODO: The following code allows for baryon-CDM relative fluctuations
+        // and needs further testing.
+        /*
+              #ifndef ONLY_PARTICLES
+
+                // add contribution from baryon-cdm fluctuation
+                // potential, -> x = x - \grad phi_bc
+                xi_x += grad_phi_bc_x;
+                xi_y += grad_phi_bc_y;
+                xi_z += grad_phi_bc_z;
+
+              #endif //ONLY PARTICLES
+        */
+
+        //////////////////////////////////////////
+        // apply displacements from lagrangian pos
+        // x = q - D * \grad phi
+        //////////////////////////////////////////
+
+        x_pos = x_pos + xi_x;
+        y_pos = y_pos + xi_y;
+        z_pos = z_pos + xi_z;
+
+    #ifdef PARTICLES_CPU
+        // Copy the particle data to the particles vectors
+        pos_x.push_back(x_pos);
+        pos_y.push_back(y_pos);
+        pos_z.push_back(z_pos);
+        vel_x.push_back(vx);
+        vel_y.push_back(vy);
+        vel_z.push_back(vz);
+        grav_x.push_back(0.0);
+        grav_y.push_back(0.0);
+        grav_z.push_back(0.0);
+      #ifdef PARTICLE_IDS
+        partIDs.push_back(pID);
+      #endif
+      #ifndef SINGLE_PARTICLE_MASS
+        mass.push_back(Mparticle);
+      #endif
+    #endif  // PARTICLES_CPU
+
+    #ifdef PARTICLES_GPU
+        // Copy the particle data to the temporary Host Buffers
+        temp_pos_x[pID] = x_pos;
+        temp_pos_y[pID] = y_pos;
+        temp_pos_z[pID] = z_pos;
+        temp_vel_x[pID] = vx;
+        temp_vel_y[pID] = vy;
+        temp_vel_z[pID] = vz;
+      #ifndef SINGLE_PARTICLE_MASS
+        temp_mass[pID] = Mparticle;
+      #endif
+      #ifdef PARTICLE_IDS
+        temp_id[pID] = pID;
+      #endif
+    #endif  // PARTICLES_GPU
+
+        // Count particles to transfer
+        if (x_pos < G.xMin) nxlt += 1;
+        if (x_pos >= G.xMax) nxut += 1;
+
+        if (y_pos < G.yMin) nylt += 1;
+        if (y_pos >= G.yMax) nyut += 1;
+
+        if (z_pos < G.zMin) nzlt += 1;
+        if (z_pos >= G.zMax) nzut += 1;
+
+        pID += 1;
+      }
+    }
+  }
+
+  printf("Transfers procID %d nxlt %d nxut %d xix_rms %e nylt %d nyut %d xiy_rms %e nzlt %d nzut %d xiz_rms %e\n",
+         procID, nxlt, nxut, sqrt(xix_rms / xix_n), nylt, nyut, sqrt(xiy_rms / xix_n), nzlt, nzut,
+         sqrt(xiz_rms / xix_n));
+  fflush(stdout);
+  MPI_Barrier(world);
+
+  MPI_Allreduce(MPI_IN_PLACE, &xix_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &xiy_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &xiz_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &xix_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &xiy_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &xiz_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &vx_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &vy_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &vz_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &vx_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &vy_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &vz_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &xix_n, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  xix_mean /= xix_n;
+  xiy_mean /= xix_n;
+  xiz_mean /= xix_n;
+  xix_rms /= xix_n;
+  xiy_rms /= xix_n;
+  xiz_rms /= xix_n;
+  vx_mean /= xix_n;
+  vy_mean /= xix_n;
+  vz_mean /= xix_n;
+  vx_rms /= xix_n;
+  vy_rms /= xix_n;
+  vz_rms /= xix_n;
+  xix_rms = sqrt(xix_rms);
+  xiy_rms = sqrt(xiy_rms);
+  xiz_rms = sqrt(xiz_rms);
+  vx_rms  = sqrt(vx_rms);
+  vy_rms  = sqrt(vy_rms);
+  vz_rms  = sqrt(vz_rms);
+
+  chprintf("Cosmological ICs: Particle mean x-displacement: %5.4e\n", xix_mean);
+  chprintf("Cosmological ICs: Particle mean y-displacement: %5.4e\n", xiy_mean);
+  chprintf("Cosmological ICs: Particle mean z-displacement: %5.4e\n", xiz_mean);
+  chprintf("Cosmological ICs: Particle rms x-displacement: %5.4e\n", xix_rms);
+  chprintf("Cosmological ICs: Particle rms y-displacement: %5.4e\n", xiy_rms);
+  chprintf("Cosmological ICs: Particle rms z-displacement: %5.4e\n", xiz_rms);
+  chprintf("Cosmological ICs: Particle mean x-vel : %5.4e\n", vx_mean);
+  chprintf("Cosmological ICs: Particle mean y-vel : %5.4e\n", vy_mean);
+  chprintf("Cosmological ICs: Particle mean z-vel : %5.4e\n", vz_mean);
+  chprintf("Cosmological ICs: Particle rms x-vel : %5.4e\n", vx_rms);
+  chprintf("Cosmological ICs: Particle rms y-vel : %5.4e\n", vy_rms);
+  chprintf("Cosmological ICs: Particle rms z-vel : %5.4e\n", vz_rms);
+
+    #ifdef PARTICLES_CPU
+  n_local = pos_x.size();
+    #endif  // PARTICLES_CPU
+
+    #if defined(PARTICLE_IDS) && defined(MPI_CHOLLA)
+  // Get global IDs: Offset the local IDs to get unique global IDs across the
+  // MPI ranks
+  chprintf("Cosmological ICs: Computing Global Particles IDs offset...\n");
+  part_int_t global_id_offset;
+  global_id_offset = Get_Particles_IDs_Global_MPI_Offset(n_local);
+      #ifdef PARTICLES_CPU
+  for (int p_indx = 0; p_indx < n_local; p_indx++) {
+    partIDs[p_indx] += global_id_offset;
+  }
+      #endif  // PARTICLES_CPU
+      #ifdef PARTICLES_GPU
+  for (int p_indx = 0; p_indx < n_local; p_indx++) {
+    temp_id[p_indx] += global_id_offset;
+  }
+      #endif  // PARTICLES_GPU
+    #endif    // PARTICLE_IDS and MPI_CHOLLA
+
+    #ifdef PARTICLES_GPU
+  // Copy the particle data from temporary Host buffer to GPU memory
+  Copy_Particles_Array_Real_Host_to_Device(temp_pos_x, pos_x_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device(temp_pos_y, pos_y_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device(temp_pos_z, pos_z_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device(temp_vel_x, vel_x_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device(temp_vel_y, vel_y_dev, n_local);
+  Copy_Particles_Array_Real_Host_to_Device(temp_vel_z, vel_z_dev, n_local);
+      #ifndef SINGLE_PARTICLE_MASS
+  Copy_Particles_Array_Real_Host_to_Device(temp_mass, mass_dev, n_local);
+      #endif
+      #ifdef PARTICLE_IDS
+  Copy_Particles_Array_Int_Host_to_Device(temp_id, partIDs_dev, n_local);
+      #endif
+
+  // Free the temporary host buffers
+  free(temp_pos_x);
+  free(temp_pos_y);
+  free(temp_pos_z);
+  free(temp_vel_x);
+  free(temp_vel_y);
+  free(temp_vel_z);
+      #ifndef SINGLE_PARTICLE_MASS
+  free(temp_mass);
+      #endif
+      #ifdef PARTICLE_IDS
+  free(temp_id);
+      #endif
+    #endif  // PARTICLES_GPU
+
+  chprintf("Cosmological ICs: Particle positions initialized, n_local: %lu\n", n_local);
+}
+
+void Particles3D::Get_Position(long i, long j, long k, Real *x_pos, Real *y_pos, Real *z_pos) const
+{
+    #ifndef MPI_CHOLLA
+
+  *x_pos = G.xMin + G.dx * (i - G.n_ghost) + 0.5 * G.dx;
+  *y_pos = G.yMin + G.dy * (j - G.n_ghost) + 0.5 * G.dy;
+  *z_pos = G.zMin + G.dz * (k - G.n_ghost) + 0.5 * G.dz;
+
+    #else /*MPI_CHOLLA*/
+
+  /* position relative to local xyz bounds */
+  /* This approach was replaced because it is less consistent for multiple
+  cores. Since distributive property does not perfectly hold for floating point
+  operations
+
+  > Global_bound + global_i * dx
+
+  is more consistent than
+
+  >local_bound + local_i*dx = (global_bound + (global_i-local_i)*dx) +
+  local_i*dx.
+
+  *x_pos = H.xblocal + H.dx*(i-H.n_ghost) + 0.5*H.dx;
+  *y_pos = H.yblocal + H.dy*(j-H.n_ghost) + 0.5*H.dy;
+  *z_pos = H.zblocal + H.dz*(k-H.n_ghost) + 0.5*H.dz;
+  */
+
+  *x_pos = G.domainMin_x + (nx_local_start + i - G.n_ghost) * G.dx + 0.5 * G.dx;
+  *y_pos = G.domainMin_y + (ny_local_start + j - G.n_ghost) * G.dy + 0.5 * G.dy;
+  *z_pos = G.domainMin_z + (nz_local_start + k - G.n_ghost) * G.dz + 0.5 * G.dz;
+
+    #endif /*MPI_CHOLLA*/
+}
+
+  #endif  // COSMOLOGY
 
 void Grid3D::Initialize_Uniform_Particles()
 {

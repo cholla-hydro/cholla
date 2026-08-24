@@ -1,0 +1,28 @@
+#-- make.inc for sparkle
+
+#-- Compiler and flags for different build type
+CXX               = /home/brant/code/openmpi/bin/mpicxx
+#CC                = gcc
+#CXX               = g++
+CXXFLAGS_DEBUG    = -g -O0 -std=c++17
+CXXFLAGS_OPTIMIZE = -Ofast -std=c++17
+GPUFLAGS +=  -Wno-deprecated-gpu-targets -diag-suppress=20281 -diag-suppress=550 -diag-suppress=177
+
+
+OMP_NUM_THREADS = 8
+
+#-- Library
+MPI_ROOT     = /home/brant/code/openmpi
+MPI_LIB      = -L${MPI_ROOT)/lib -lmpi
+CUDA_ROOT    = /usr/local/cuda
+CUDA_LIB     = -L$(CUDA_ROOT)/lib64 -lcudart -lcufft
+HDF5_ROOT    = /home/brant/code/hdf5/
+HDF5_LIB     = -L${HDF5_ROOT}/lib
+HDF5_INCLUDE = -I${HDF5_ROOT}/include
+FFTW_ROOT    = /home/brant/code/fftw
+#PFFT_ROOT    = /home/bruno/code/pfft
+#GRACKLE_ROOT = /home/bruno/code/grackle_modified
+#GRACKLE_ROOT = /home/bruno/local
+
+#Paris does not do GPU_MPI transfers
+#PARIS_MPI_GPU = -DPARIS_NO_GPU_MPI

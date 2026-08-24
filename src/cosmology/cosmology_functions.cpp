@@ -1,10 +1,14 @@
 #ifdef COSMOLOGY
+  #include <cstdio>
   #include <fstream>
+  #include <iostream>
+  #include <string>
 
   #include "../global/global.h"
   #include "../grid/grid3D.h"
   #include "../grid/grid_enum.h"
   #include "../io/io.h"
+  #include "../rk/rk4.h"
 
 void Grid3D::Initialize_Cosmology(struct Parameters *P)
 {
@@ -19,6 +23,13 @@ void Grid3D::Initialize_Cosmology(struct Parameters *P)
 
   if (fabs(Cosmo.current_a - Cosmo.next_output) < 1e-5) {
     H.Output_Now = true;
+  }
+
+  if (strcmp(P->init, "Cosmological_ICs") == 0) {
+  #if defined(COSMOLOGY) && defined(FFT)
+    // Here, we free the ICs fields
+    Free_Cosmo_Potential_Memory();
+  #endif
   }
 
   chprintf("Cosmology Successfully Initialized. \n\n");
@@ -101,6 +112,201 @@ Real Cosmology::Get_Hubble_Parameter(Real a)
   return H0 * sqrt(factor);
 }
 
+Real Hubble_Growth_Function(Real a, Real H0, Real Omega_r, Real Omega_m, Real Omega_DE, Real w0, Real wa)
+{
+  // set redshifts, limit scale factor to 1.0e-6 minimum
+  Real aa = a;
+  if (aa < 1.0e-6) aa = 1.0e-6;
+  Real z = 1. / aa - 1.;
+  return H0 * sqrt(Omega_r * pow(1 + z, 4) + Omega_m * pow(1 + z, 3) + OmegaDEz_Growth_Function(z, Omega_DE, w0, wa));
+}
+
+Real dHda_Growth_Function(Real a, Real H0, Real Omega_r, Real Omega_m, Real Omega_DE, Real w0, Real wa)
+{
+  // dH/da
+  Real z      = 1. / a - 1;
+  Real Ha     = Hubble_Growth_Function(a, H0, Omega_r, Omega_m, Omega_DE, w0, wa);
+  Real O_DE_z = OmegaDEz_Growth_Function(z, Omega_DE, w0, wa);
+  Real answer =
+      -0.5 / (a * Ha) * (3 * Omega_m / pow(a, 3) + 4 * Omega_r / pow(a, 4) + 3 * O_DE_z * (1 + w0 + (1 - a) * wa));
+  return H0 * H0 * answer;
+}
+
+// Real Cosmology::OmegaDEz(Real z)
+Real OmegaDEz_Growth_Function(Real z, Real Omega_DE, Real w0, Real wa)
+{
+  Real A = pow(1 + z, 3 * (1 + w0 + wa));
+  Real B = Omega_DE * exp(-3 * wa * z / (1 + z));
+  return A * B;
+}
+
+static std::vector<Real> growth_factor_system(Real z, const std::vector<Real> &y, const std::vector<Real> &params)
+{
+  int ny = y.size();
+  std::vector<Real> dydz(ny);
+
+  Real aa;
+  Real a         = y[0];
+  Real delta     = y[1];
+  Real delta_dot = y[2];
+  Real da_dt, d2delta_dt2;
+
+  Real H0       = params[0];
+  Real Omega_r  = params[1];
+  Real Omega_m  = params[2];
+  Real Omega_DE = params[3];
+  Real w0       = params[4];
+  Real wa       = params[5];
+
+  aa = a;
+  if (aa < 1.0e-7) aa = 1.0e-7;
+
+  // get current hubble parameter at this
+  // scale factor and time
+  Real H = Hubble_Growth_Function(aa, H0, Omega_r, Omega_m, Omega_DE, w0, wa);
+
+  // get the current redshift
+  z = 1. / aa - 1.;
+
+  // Get the current fraction of the critical
+  // density contributed by matter and DE
+  Real Omega_r_z  = Omega_r * pow(1 + z, 4);
+  Real Omega_m_z  = Omega_m * pow(1 + z, 3);
+  Real Omega_DE_z = OmegaDEz_Growth_Function(z, Omega_DE, w0, wa);
+  Real Omega_tot  = Omega_m_z + Omega_DE_z + Omega_r_z;
+
+  // get the current da/dt = H*a
+  da_dt = H * a;
+
+  // get the current d^2 delta/dt^2 = -2 H ddelta/dt + 4\piG\rho_0 \delta
+  // \rho_0 = 3 \Omega_m(z)/\Omega_tot H^2 / 8 \pi G
+  // so the second term is 1.5*(Omega_m_z/Omega_tot)*(H**2)*delta
+  d2delta_dt2 = -2 * H * delta_dot + 1.5 * (Omega_m_z / Omega_tot) * (H * H) * delta;
+
+  dydz[0] = da_dt;
+  dydz[1] = delta_dot;
+  dydz[2] = d2delta_dt2;
+  return dydz;
+}
+
+void Cosmology::Compute_Growth_Function(struct Parameters *P)
+{
+  int np = 6;
+  int ny = 3;
+
+  std::vector<Real> params(np);
+
+  Real error;
+  std::vector<Real> y_n(ny, 0);
+  std::vector<Real> yp(ny, 0);
+
+  RKIntegrator RK(3);  // initialize coupled system with 3 variables
+
+  std::vector<Real> y;
+
+  Real H0 = P->H0;
+  H0 /= 1000;  //[km/s / kpc]
+  Real Omega_M = P->Omega_M;
+  Real Omega_L = P->Omega_L;
+  Real Omega_R = P->Omega_R;
+  Real Omega_K = 1 - (Omega_M + Omega_L + Omega_R);
+  Real Omega_b = P->Omega_b;
+  Real w0      = P->w0;
+  Real wa      = P->wa;
+
+  // parameters
+  params[0] = H0;
+  params[1] = Omega_R;
+  params[2] = Omega_M;
+  params[3] = Omega_L;
+  params[4] = w0;
+  params[5] = wa;
+
+  // initial scale factor, not important
+  y_n[0] = 1.0e-7;
+  y_n[1] = 1.0e-8;
+  y_n[2] = 1.0e-8;
+
+  Real t = 0;
+
+  t_array.push_back(t);
+  a_array.push_back(y_n[0]);
+  D_array.push_back(y_n[1]);
+  dDdt_array.push_back(y_n[2]);
+  Real tmax = 1. / H0;
+
+  Real dt = 1.0e-4 * tmax;
+  Real dt_new;
+  Real dt_max = 1.0e-2 * tmax;
+
+  Real a_max = 1.0;
+
+  while ((t < tmax) & (y_n[0] < a_max)) {
+    if (t + dt > tmax) {
+      dt = tmax - t;
+    }
+
+    // evolve ODE by one timestep
+    RK.rk4_ode(growth_factor_system, t, y_n, &dt, &dt_new, params, yp, &error);
+
+    // iterate time
+    t += dt;
+
+    for (int i = 0; i < yp.size(); i++) y_n[i] = yp[i];
+
+    // limit to the largest dz allowable
+    if (dt_new < dt_max) dt_new = dt_max;
+
+    // update the redshift step
+    dt = dt_new;
+
+    t_array.push_back(t);
+    a_array.push_back(y_n[0]);
+    D_array.push_back(y_n[1]);
+    dDdt_array.push_back(y_n[2]);
+  }
+}
+
+Real Cosmology::LinearInterpolation(const std::vector<Real> &x, const std::vector<Real> &y, Real a)
+{
+  // clamp if needed
+  if (a <= x.front()) return y.front();
+  if (a >= x.back()) return y.back();
+
+  // use lower_bound() to find index for interpolation
+  auto it = std::lower_bound(x.begin(), x.end(), a);
+
+  // interpolate
+  auto index = std::distance(x.begin(), it);
+
+  return y[index] + (y[index + 1] - y[index]) * (a - x[index]) / (x[index + 1] - x[index]);
+}
+
+Real Cosmology::D_Growth(Real a)
+{
+  // interpolate (a,D)
+  Real norm = LinearInterpolation(a_array, D_array, 1);
+  return LinearInterpolation(a_array, D_array, a) / norm;
+}
+
+Real Cosmology::dDda_Growth(Real a)
+{
+  Real dDda;  // take numerical derivative
+  if (a > 0.95) {
+    dDda = (D_Growth(a) - D_Growth(0.95 * a)) / (0.05 * a);
+  } else {
+    dDda = (D_Growth(1.05 * a) - D_Growth(0.95 * a)) / (0.1 * a);
+  }
+  return dDda;
+}
+
+Real Cosmology::dDdt_Growth(Real a)
+{
+  // interpolate (a,dDdt)
+  Real norm = LinearInterpolation(a_array, D_array, 1);
+  return LinearInterpolation(a_array, dDdt_array, a) / norm;
+}
+
 void Grid3D::Change_Cosmological_Frame_System(bool forward)
 {
   if (forward) {
@@ -109,7 +315,7 @@ void Grid3D::Change_Cosmological_Frame_System(bool forward)
     chprintf(" Converting to Cosmological Physical System\n");
   }
 
-  Change_DM_Frame_System(forward);
+  Change_DM_Frame_System(forward);  // does nothing
   #ifndef ONLY_PARTICLES
 
   Change_GAS_Frame_System_GPU(forward);
@@ -189,6 +395,66 @@ void Grid3D::Change_GAS_Frame_System(bool forward)
   }
 }
 
+void Cosmology::Create_Growth_Function_File(struct Parameters *P)
+{
+  if (not Is_Root_Proc()) {
+    return;
+  }
+
+  Real H0 = P->H0;
+  H0 /= 1000;  //[km/s / kpc]
+  Real Omega_M = P->Omega_M;
+  Real Omega_L = P->Omega_L;
+  Real Omega_R = P->Omega_R;
+  Real Omega_K = 1 - (Omega_M + Omega_L + Omega_R);
+  Real Omega_b = P->Omega_b;
+  Real w0      = P->w0;
+  Real wa      = P->wa;
+
+  // set the growth function filename
+  std::string file_name(GROWTH_FACTOR_FILE_NAME);
+  chprintf("\nCosmology: Creating Growth Factor File: %s \n\n", file_name.c_str());
+
+  // current date/time based on current system
+  time_t now = time(0);
+  // convert now to string form
+  char *dt = ctime(&now);
+
+  char buffer[50];
+  std::string message = "# H0 OmegaM Omega_b OmegaL w0 wa Omega_R Omega_K\n";
+  message += "# " + std::to_string(H0 * 1e3) + " " + std::to_string(Omega_M);
+  message += " " + std::to_string(Omega_b);
+  message += " " + std::to_string(Omega_L) + " " + std::to_string(w0) + " " + std::to_string(wa);
+  std::snprintf(buffer, sizeof(buffer), "%7.6e", Omega_R);
+  message += " " + std::string(buffer) + " " + std::to_string(Omega_K);
+
+  std::ofstream out_file;
+  out_file.open(file_name.c_str(), std::ios::out);
+  out_file << "# Run date: " << dt;
+  out_file << message.c_str() << std::endl;
+
+  // add columns to header
+  // out_file << "# t [1/H0] a D dD/dt [H0]" << std::endl;
+  out_file << "# t [kpc/(km/s)] a D dD/dt [km/s/kpc]" << std::endl;
+
+  // output the growth function data
+  for (int i = 0; i < t_array.size(); i++) {
+    // only write useable a
+    if (a_array[i] >= 1.0e-4) {
+      std::snprintf(buffer, sizeof(buffer), "%7.6e", t_array[i]);
+      message = std::string(buffer) + " ";
+      std::snprintf(buffer, sizeof(buffer), "%7.6e", a_array[i]);
+      message += std::string(buffer) + " ";
+      std::snprintf(buffer, sizeof(buffer), "%7.6e", D_array[i]);
+      message += std::string(buffer) + " ";
+      std::snprintf(buffer, sizeof(buffer), "%7.6e", dDdt_array[i]);
+      message += std::string(buffer);
+      out_file << message.c_str() << std::endl;
+    }
+  }
+  out_file.close();  // close the file
+}
+
 /* create the file for recording the expansion history */
 void Cosmology::Create_Expansion_History_File(struct Parameters *P)
 {
@@ -211,11 +477,13 @@ void Cosmology::Create_Expansion_History_File(struct Parameters *P)
   // convert now to string form
   char *dt = ctime(&now);
 
+  char buffer[50];
   std::string message = "# H0 OmegaM Omega_b OmegaL w0 wa Omega_R Omega_K\n";
   message += "# " + std::to_string(H0 * 1e3) + " " + std::to_string(Omega_M);
   message += " " + std::to_string(Omega_b);
   message += " " + std::to_string(Omega_L) + " " + std::to_string(w0) + " " + std::to_string(wa);
-  message += " " + std::to_string(Omega_R) + " " + std::to_string(Omega_K);
+  std::snprintf(buffer, sizeof(buffer), "%7.6e", Omega_R);
+  message += " " + std::string(buffer) + " " + std::to_string(Omega_K);
 
   std::ofstream out_file;
   out_file.open(file_name.c_str(), std::ios::app);
@@ -230,8 +498,13 @@ void Cosmology::Write_Expansion_History_Entry(void)
   if (not Is_Root_Proc()) {
     return;
   }
+  std::string message;
+  char buffer[50];
+  std::snprintf(buffer, sizeof(buffer), "%7.6e", t_secs / MYR);
+  message = std::string(buffer) + " ";
+  std::snprintf(buffer, sizeof(buffer), "%7.6e", current_a);
+  message += std::string(buffer);
 
-  std::string message = std::to_string(t_secs / MYR) + " " + std::to_string(current_a);
   std::string file_name(EXPANSION_HISTORY_FILE_NAME);
   std::ofstream out_file;
   out_file.open(file_name.c_str(), std::ios::app);
