@@ -6,7 +6,7 @@ import os
 import glob
 
 dir = os.getenv("ALTAIR_ROOT")
-if dir == None:
+if dir is None:
     withALTAIR = False
 else:
     withALTAIR = True
@@ -79,7 +79,7 @@ def PlotC1(axx, t, fnames, color="orange", lbox=2, alpha=0, eps=0.01, lw=2, labs
                 print("fname=", fname, " tf=", tf)
                 break
             ##
-        except:
+        except FileNotFoundError, KeyError:
             pass
         ##
     else:
