@@ -232,7 +232,18 @@ struct Parameters {
   int ny;
   int nz;
   double tout;
+
+  // The following output time and
+  // maximum timestep items control
+  // the output times for certain RT
+  // tests. These can be revised out
+  // of the code and should be
+  // considered temporary.
   double outstep;
+  Real outstep_dexinc;
+  Real max_timestep_dexinc;
+  Real max_timestep;
+
   int n_steps_output;
   Real gamma;
   char init[MAXLEN];
@@ -312,6 +323,10 @@ struct Parameters {
   // machine dependent seed will be generated.
   std::uint_fast64_t prng_seed = 0;
 #endif  // PARTICLES
+
+#ifdef CHEMISTRY_GPU
+  Real YHe;
+#endif
 #ifdef COSMOLOGY
   Real H0;
   Real Omega_M;
@@ -322,18 +337,25 @@ struct Parameters {
   Real wa;
   Real Init_redshift;
   Real End_redshift;
+  Real T_init;
+  unsigned long long cosmoics_seed;  // Cosmological ICs seed
+  char cosmo_ics_pk_file[MAXLEN];
+  Real YHe;            // helium mass fraction
+  Real xHp_ion_init;   // hydrogen ionization fraction
+  Real xHep_ion_init;  // helium ionization fraction
 
   std::string wDE_file;  // File with equation of state as function of redshift
 
   // File for the scale_factor output values for cosmological simulations
   char scale_outputs_file[MAXLEN];
   #define EXPANSION_HISTORY_FILE_NAME "expansion_history.txt"
+  #define GROWTH_FACTOR_FILE_NAME     "growth_factor.txt"
 #endif  // COSMOLOGY
 #ifdef TILED_INITIAL_CONDITIONS
   Real tile_length;
 #endif  // TILED_INITIAL_CONDITIONS
 
-  // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z] (if they aren't provided, they are set to 0)
+  // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z]
   int n_proc_x;
   int n_proc_y;
   int n_proc_z;
@@ -342,6 +364,9 @@ struct Parameters {
 #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
   char UVB_rates_file[MAXLEN];  // File for the UVB photoheating and
                                 // photoionization rates of HI, HeI and HeII
+#endif
+#ifdef RT
+  int rt_num_iterations;
 #endif
   Real temperature_floor = 0;
   Real density_floor     = 0;

@@ -116,6 +116,7 @@
 #configurefile_define COSMOLOGY
 #configurefile_define PRINT_INITIAL_STATS
 #configurefile_define TILED_INITIAL_CONDITIONS
+#configurefile_define FFT
 
 
 // =====================
@@ -171,6 +172,20 @@
 #configurefile_define ROTATED_PROJECTION
 #configurefile_define SLICES
 #configurefile_define N_OUTPUT_COMPLETE
+
+
+// ====================
+// RADIATION CONFIGURATION
+// ====================
+#configurefile_define RT_OTVET
+#configurefile_define RT_M1
+#configurefile_define OUTPUT_RADIATION
+
+#if defined(RT_OTVET) && defined(RT_M1)
+  #error "RT_OTVET and RT_M1 are mutually exclusive."
+#elif defined(RT_OTVET) || defined(RT_M1)
+  #define RT
+#endif
 
 // ============
 // Misc Options

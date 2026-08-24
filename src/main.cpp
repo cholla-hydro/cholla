@@ -59,6 +59,12 @@ int main(int argc, char *argv[])
 
   Real dti = 0;  // inverse time step, 1.0 / dt
 
+  Real dt_max = 0.0;  // maximum allowed time step
+#ifdef RT
+  // limit max time, added for RT tests
+  Real outstep;  // output timestep for RT
+#endif           // RT
+
   // input parameter variables
   char *param_file;
   int nfile    = 0;  // number of output files
@@ -131,15 +137,25 @@ int main(int argc, char *argv[])
   message = "Initializing Simulation";
   Write_Message_To_Log_File(message.c_str());
 
+#ifdef RT
+  G.Rad.Initialize_Start(P);
+#endif
+
   // Set initial conditions
   chprintf("Setting initial conditions...\n");
+
   G.Set_Initial_Conditions(P, pmap);
   chprintf("Initial conditions set.\n");
+
   // set main variables for Read_Grid and Read_Grid_Cat initial conditions
   if (is_restart) {
     outtime += G.H.t;
     nfile = P.nfile;
   }
+
+#ifdef RT
+  G.Rad.Initialize_Finish();
+#endif
 
 #ifdef DE
   chprintf("\nUsing Dual Energy Formalism:\n eta_1: %0.3f   eta_2: %0.4f\n", DE_ETA_1, DE_ETA_2);
@@ -205,6 +221,15 @@ int main(int argc, char *argv[])
 #ifdef GRAVITY
   // Get the gravitational potential for the first timestep
   G.Compute_Gravitational_Potential(&P, pmap);
+  #if defined(RT) && defined(RT_OTVET)
+  chprintf("RT: Setting Eddington Tensor...\n");
+  G.Rad.ComputeEddingtonTensor(P, G.Grav);
+  #endif
+#endif
+
+#ifdef RT
+  chprintf("RT: Setting Boundaries...\n");
+  G.Rad.rtBoundaries();
 #endif
 
   // Set boundary conditions (assign appropriate values to ghost cells) for
@@ -265,12 +290,25 @@ int main(int argc, char *argv[])
   // Compute inverse timestep for the first time
   dti = G.Calc_Inverse_Timestep();
 
+  // If a max timestep is provided, limit
+  // the timestep
+  if (P.max_timestep != 0) {
+    dt_max = P.max_timestep;
+  }
+
   while (G.H.t < P.tout) {
 // get the start time
 #ifdef CPU_TIME
     G.Timer.Total.Start();
 #endif  // CPU_TIME
     start_step = Get_Time();
+
+    // Limit to dt_max if set
+    if ((dt_max != 0) and (P.max_timestep != 0)) {
+      if (dti < 1.0 / dt_max) {
+        dti = 1.0 / dt_max;
+      }
+    }
 
     // calculate the timestep by calling MPI_Allreduce
     G.set_dt(dti);
@@ -281,12 +319,24 @@ int main(int argc, char *argv[])
       G.H.dt = next_scheduled_time - G.H.t;
     }
 
+#ifdef RT
+    // update the log timestep // BRANT
+    if (P.max_timestep_dexinc != 0) {
+      dt_max *= pow(10.0, P.max_timestep_dexinc);
+    }
+#endif  // RT
+
 #ifdef PARTICLES
     // Advance the particles KDK( first step ): Velocities are updated by 0.5*dt
     // and positions are updated by dt
     G.Advance_Particles(1);
     // Transfer the particles that moved outside the local domain
     G.Transfer_Particles_Boundaries(P, pmap);
+#endif
+
+#ifdef RT
+    // Perform the radiative transfer solve
+    G.Update_RT();
 #endif
 
     // Advance the grid by one timestep
@@ -361,7 +411,7 @@ int main(int argc, char *argv[])
       nfile++;
 #endif  // OUTPUT
       if (G.H.t == outtime) {
-        outtime += P.outstep;  // update to the next output time
+        outtime = std::fmin(outtime + P.outstep, P.tout);  // update to the next output time
       }
     }
 
@@ -389,7 +439,8 @@ int main(int argc, char *argv[])
     // Check that the magnetic field has zero divergence
     mhd::checkMagneticDivergence(G);
 #endif  // MHD
-  }     /*end loop over timesteps*/
+
+  } /*end loop over timesteps*/
 
 #ifdef CPU_TIME
   // Print timing statistics

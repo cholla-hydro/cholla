@@ -33,10 +33,19 @@
 
 #ifdef COSMOLOGY
   #include "../cosmology/cosmology.h"
+  #include "../cosmology/rng.h"
+#endif
+
+#ifdef FFT
+  #include "../fft/fft_3D.h"
 #endif
 
 #ifdef COOLING_GRACKLE
   #include "../cooling_grackle/cool_grackle.h"
+#endif
+
+#ifdef RT
+  #include "../radiation/radiation.h"
 #endif
 
 #ifdef CPU_TIME
@@ -204,7 +213,7 @@ struct Header {
 #endif
 
 #ifdef COSMOLOGY
-  bool OUTPUT_SCALE_FACOR;
+  bool OUTPUT_SCALE_FACTOR;
 #endif
 
   /*! \var Output_Now
@@ -258,6 +267,11 @@ class Grid3D
 #ifdef COOLING_GRACKLE
   // Object that contains data for Grackle cooling
   Cool_GK Cool;
+#endif
+
+#ifdef RT
+  // Object that contains data for radiative transfer
+  Rad3D Rad;
 #endif
 
 #ifdef CPU_TIME
@@ -356,7 +370,7 @@ class Grid3D
      * tracked separately when using  GRAVITY. */
     Real *Grav_potential;
 
-#ifdef CHEMISTRY_GPU
+#if defined(RT) || defined(CHEMISTRY_GPU)
     Real *HI_density;
     Real *HII_density;
     Real *HeI_density;
@@ -614,7 +628,13 @@ class Grid3D
 
   void Adiabatic_Expansion(struct Parameters P);
 
+  void Cosmological_ICs(struct Parameters const P);
+
   void Chemistry_Test(struct Parameters P);
+
+  void Iliev0(struct Parameters P);
+  void Iliev15(struct Parameters P, int test);
+  void Iliev6(struct Parameters P);
 
 #ifdef MHD
   /*!
@@ -803,7 +823,135 @@ class Grid3D
   void Advance_Particles_KDK_Cosmo_Step1_GPU();
   void Advance_Particles_KDK_Cosmo_Step2_GPU();
   #endif  // PARTICLES_GPU
-#endif    // COSMOLOGY
+
+  /*! \brief Create the potentials for cosmological ICs */
+  void Generate_Cosmo_Phi_Init(struct Parameters *P);
+  /*! \brief Write out the cosmological potential field to hdf5 files*/
+  void Save_Cosmo_Potential(struct Parameters const *P);
+  /*! \brief Initialize the RNG for cosmological ICs potentials */
+  void Initialize_Cosmo_Potential_RNG(struct Parameters *P);
+  /*! \brief Free memory for cosmological potential*/
+  void Free_Cosmo_Potential_RNG();
+  /*! \brief Allocate memory and load cosmological power spectrum*/
+  void Load_Cosmo_Power_Spectrum(struct Parameters *P);
+  /*! \brief Free memory for cosmological power spectrum*/
+  void Free_Cosmo_Power_Spectrum();
+  /*! \brief Allocate the memory allocated for cosmological ICs potentials */
+  void Allocate_Cosmo_Potential_Memory();
+  /*!  \brief Free the memory allocated for cosmological ICs potentials */
+  void Free_Cosmo_Potential_Memory();
+  /*! \brief Rescale a field by a constant multiplicative factor.
+   *
+   *  \param[inout] d_x is a field without ghost zones
+   *  \param[in]    A is the multiplicative factor
+   */
+  void Rescale_Field(Real *d_x, Real A);
+  /*! \brief Create a Gaussian random field on a grid */
+  void Generate_Normal_Random_Field(Real *d_field, struct Parameters *P, rng_parallel_state_t *state);
+
+  struct CosmoPotentials {
+    /*! number of cosmo potential fields */
+    int n_fields;
+
+    /*! RNG seed */
+    unsigned long long rng_seed;
+
+    /*! RNG subsequence */
+    unsigned long long rng_subsequence;
+
+    /*! RNG offset */
+    unsigned long long rng_offset;
+
+    /*! pointer to deltas on host */
+    Real *host;
+
+    /*! point to phis on host */
+    Real *hostp;
+
+    /*! pointer to first potential */
+    Real *phi_1;  // initial potential sourced by total overdensity
+
+    // derivatives of the potential
+    Real *d2phidx2;  // second spatial derivative of potential
+    Real *d2phidy2;  // second spatial derivative of potential
+    Real *d2phidz2;  // second spatial derivative of potential
+
+    Real *delta_m;  // matter overdensity
+
+  #ifndef ONLY_PARTICLES
+    Real *delta_bc;  // baryon - cdm overdensity
+  #endif
+
+    /*! pointer to second potential */
+    Real *phi_2;
+
+    /*! pointer to deltas on device */
+    Real *device;
+
+    /*! pointer to phis on device */
+    Real *devicep;
+
+    /*! pointer to first potential on device */
+    Real *d_phi_1;
+
+    /*! pointer to first potential on device */
+    Real *d_delta_m;
+
+  #ifndef ONLY_PARTICLES
+    Real *d_delta_bc;
+  #endif
+
+    /*! pointer to second potential on device */
+    Real *d_phi_2;
+
+    /*! number of power spectrum entries */
+    int n_pk;
+    int *d_n_pk;
+
+    /*! pointer to array of p(k) wavenumbers*/
+    Real *k_array;
+
+    /*! pointer to array of p(k) spectrum*/
+    Real *pk_m_array;
+    Real *pk_bc_array;
+
+    /*! pointer to array of p(k) wavenumbers on device*/
+    Real *d_k_array;
+
+    /*! pointer to array of p(k) spectrum on device*/
+    Real *d_pk_m_array;
+    Real *d_pk_bc_array;
+
+  } CP;
+  /*! RNG state */
+  rng_parallel_state_t *rng_states;
+
+  // Cosmo ICs potential comms
+  void Allocate_Boundary_Conditions_Field_MPI();
+  void Free_Boundary_Conditions_Field_MPI();
+  /*! \brief Set the boundary conditions for all components based on info in the
+   * parameters structure. */
+  void Set_Field_Boundaries_Periodic(int direction, int side, int *flags, Real *field);
+  void Set_Boundary_Conditions_Field(Parameters P, Real *field);
+  /*! \brief Apply boundary conditions to the grid. */
+  void Set_Boundaries_Field(int dir, int flags[], Real *field);
+  /*! \brief Load the MPI buffers for field comms. */
+  int Load_Field_To_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *field);
+  void Unload_Field_from_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *field);
+  #ifdef MPI_CHOLLA
+  /*! \brief Unload the MPI buffers for field comms. */
+  void Unload_MPI_Comm_Buffers_Field(int index, Real *field);
+  void Wait_and_Unload_MPI_Comm_Buffers_Field(int dir, int *flags, Real *field);
+  void Load_and_Send_MPI_Comm_Buffers_Field(int dir, int *flags, Real *field);
+  void Set_Boundaries_MPI_BLOCK_Field(int *flags, struct Parameters P, Real *field);
+  void Set_Boundaries_MPI_Field(struct Parameters P, Real *field);
+  #endif  // MPI_CHOLLA
+
+#endif  // COSMOLOGY
+
+#ifdef FFT
+  FFT_3D fft;
+#endif
 
 #ifdef COOLING_GRACKLE
   void Initialize_Grackle(struct Parameters *P);
@@ -820,6 +968,12 @@ class Grid3D
   void Initialize_Chemistry(struct Parameters *P);
   void Compute_Gas_Temperature(Real *temperature, bool convert_cosmo_units);
   void Update_Chemistry();
+#endif
+
+#ifdef RT
+  void Initialize_RT();
+  void Update_RT();
+  int Load_RT_Fields_To_Buffer(int direction, int side, Real *buffer, int buffer_start);
 #endif
 
 #ifdef ANALYSIS
@@ -852,5 +1006,6 @@ class Grid3D
 typedef void (Grid3D::*Grid3D_PMF_UnloadHydroBuffer)(Real *);
 typedef void (Grid3D::*Grid3D_PMF_UnloadGravityPotential)(int, int, Real *, int);
 typedef void (Grid3D::*Grid3D_PMF_UnloadParticleDensity)(int, int, Real *);
+typedef void (Grid3D::*Grid3D_PMF_UnloadField)(int, int, Real *, int, Real *);
 
 #endif  // GRID3D_H
