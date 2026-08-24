@@ -43,12 +43,12 @@ void Grid3D::Set_Potential_Boundaries_Isolated(int direction, int side, int *fla
 {
   Real *pot_boundary;
   int n_i, n_j, nGHST;
-  int nx_g, ny_g, nz_g;
   int nx_local, ny_local, nz_local;
   nGHST    = N_GHOST_POTENTIAL;
-  nx_g     = Grav.nx_local + 2 * nGHST;
-  ny_g     = Grav.ny_local + 2 * nGHST;
-  nz_g     = Grav.nz_local + 2 * nGHST;
+  int nx_g = Grav.nx_local + 2 * nGHST;
+  int ny_g = Grav.ny_local + 2 * nGHST;
+  // the line is only included for completeness (but its not used)
+  // int nz_g = Grav.nz_local + 2 * nGHST;
   nx_local = Grav.nx_local;
   ny_local = Grav.ny_local;
   nz_local = Grav.nz_local;
@@ -130,20 +130,20 @@ void Grid3D::Set_Potential_Boundaries_Isolated(int direction, int side, int *fla
 
 void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc_potential_type)
 {
-  Real domain_l, Lx_local, Ly_local, Lz_local;
   Real *pot_boundary;
   int n_i, n_j, nGHST;
   nGHST = N_GHOST_POTENTIAL;
 
-  Lx_local = Grav.nx_local * Grav.dx;
-  Ly_local = Grav.ny_local * Grav.dy;
-  Lz_local = Grav.nz_local * Grav.dz;
+  Real Lx_local = Grav.nx_local * Grav.dx;
+  Real Ly_local = Grav.ny_local * Grav.dy;
+  Real Lz_local = Grav.nz_local * Grav.dz;
 
     #ifdef GRAV_ISOLATED_BOUNDARY_X
   if (direction == 0) {
-    domain_l = Grav.xMin;
-    n_i      = Grav.ny_local;
-    n_j      = Grav.nz_local;
+    // the following line isn't actually used
+    // Real domain_l = Grav.xMin;
+    n_i = Grav.ny_local;
+    n_j = Grav.nz_local;
     if (side == 0) {
       pot_boundary = Grav.F.pot_boundary_x0;
     }
@@ -154,9 +154,10 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
     #endif
     #ifdef GRAV_ISOLATED_BOUNDARY_Y
   if (direction == 1) {
-    domain_l = Grav.yMin;
-    n_i      = Grav.nx_local;
-    n_j      = Grav.nz_local;
+    // the following line isn't actually used
+    // Real domain_l = Grav.yMin;
+    n_i = Grav.nx_local;
+    n_j = Grav.nz_local;
     if (side == 0) {
       pot_boundary = Grav.F.pot_boundary_y0;
     }
@@ -167,9 +168,10 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
     #endif
     #ifdef GRAV_ISOLATED_BOUNDARY_Z
   if (direction == 2) {
-    domain_l = Grav.zMin;
-    n_i      = Grav.nx_local;
-    n_j      = Grav.ny_local;
+    // the following line isn't actually used
+    // Real domain_l = Grav.zMin;
+    n_i = Grav.nx_local;
+    n_j = Grav.ny_local;
     if (side == 0) {
       pot_boundary = Grav.F.pot_boundary_z0;
     }
