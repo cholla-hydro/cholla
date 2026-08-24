@@ -28,7 +28,7 @@ ADD scripts /tmp/scripts
 
 # this ARG must be declared after the FROM command to perform substitution
 ARG TARGET_LLVM_VERSION="17"
-RUN python3 /tmp/scripts/get_clang_tidy.py --llvm-version=${TARGET_LLVM_VERSION} prebuilt
+RUN python3 /tmp/scripts/get_clang_tidy.py --llvm-version=${TARGET_LLVM_VERSION}
 
 # Needed by Cholla Makefile
 ENV CHOLLA_MACHINE=github

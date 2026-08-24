@@ -5,24 +5,16 @@ Get a particular version of clang-tidy.
 This tool is intended to help setup a Dockerfile. This is useful for both (i) running
 clang-tidy directly via GitHub Actions and (ii) for devcontainers
 
-The tool operates in 2 modes:
+This tool works by downloading a prebuilt version of clang-tidy (from the
+apt-repositories maintained by the LLVM project):
+- the user is only able to specify a major version of clang-tidy and then the
+  newest available minor/patch version will be installed.
+- Be aware that the available clang-tidy versions are affected by the version of
+  the operating system in the docker image.
 
-1. It can download a prebuilt version of clang-tidy (from the apt-repositories
-   maintained by the LLVM project):
-   - the user is only able to specify a major version of clang-tidy and then the
-     newest available minor/patch version will be installed.
-   - Be aware that the available clang-tidy versions are affected by the version of
-     the operating system in the docker image.
-   - this mode is a LOT faster and more robust
-2. It performs a "full-build" of clang-tidy from the source code
-   - the user specifies a particular major.minor.patch.
-   - this approach is far less robust (it's not fully clear if it even works).
-     Currently it's primarily being retained for historical purposes.
-   - this logic was heavily influenced by the shell scripts provided by LLVM at
-     - llvm/utils/docker/build_docker_image.sh
-     - llvm/utils/docker/scripts/checkout.sh
-     - llvm/utils/docker/scripts/build_install_llvm.sh
-     Each of these files are licensed under Apache-2.0 WITH LLVM-exception
+An earlier version of this tool attempted to perform a "full-build" of clang-tidy
+from the source code. This logic can be examined by checking version-control
+history.
 """
 
 import argparse
@@ -30,7 +22,6 @@ import contextlib
 import logging
 import os
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -156,9 +147,11 @@ def setup_apt_llvm_repository(llvm_version: int, *, dry_run: bool = False):
     _run("sudo", *cmd, dry_run=dry_run)
 
 
-def _main_prebuilt(args: argparse.Namespace):
+def main(args: argparse.Namespace):
     """Install prebuilt clang-tidy from the apt-repositories maintained by the
     LLVM project."""
+
+    configure_logger(color=args.color)
 
     version = args.llvm_version
     _version_err = False
@@ -196,114 +189,15 @@ def _main_prebuilt(args: argparse.Namespace):
             os.symlink(target, link_name)
 
 
-def _main_full_build(args: argparse.Namespace):
-    """Drive a full build of clang-tidy."""
-
-    target_llvm_version = args.llvm_version
-    working_dir = args.work_dir
-    checkout_dir = os.path.join(working_dir, "src")
-    build_dir = os.path.join(working_dir, "build")
-    install_dir = args.install_dir
-
-    # ensure that build-time dependencies are installed
-    # -> the precise dependencies may depend on the ubuntu/debian version and on the
-    #    the target llvm version, but that's ok for now
-    _install_via_apt(
-        pkg_names=[
-            "ca-certificates",
-            "cmake",
-            "2to3",
-            "python-is-python3",
-            "subversion",
-            "ninja-build",
-            "git",
-        ],
-        dry_run=args.dry_run,
-    )
-    # shell-versions of this logic would subsequently run `rm -rf /var/lib/apt/lists/*`
-
-    # clone llvm
-    major_llvm_version = target_llvm_version.split(".")[0]
-    git_cmd = [
-        "git",
-        "clone",
-        f"--branch=release/{major_llvm_version}.x",
-        "https://github.com/llvm/llvm-project.git",
-        checkout_dir,
-    ]
-    _run(*git_cmd, dry_run=args.dry_run)
-
-    # checkout appropriate branch
-    tag = f"llvmorg-{target_llvm_version}"
-    _run("git", "-C", checkout_dir, "checkout", tag, dry_run=args.dry_run)
-
-    # move onto the build
-    logger.info(f"ensure that {install_dir} exist")
-    if not args.dry_run:
-        os.makedirs(install_dir, exist_ok=True)
-
-    # configure the build
-    config_cmd = [
-        "cmake",
-        "-GNinja",
-        "-DLLVM_ENABLE_PROJECTS=clang;clang-tools-extra",
-        f"-DCMAKE_INSTALL_PREFIX={install_dir}",
-        "-DCMAKE_BUILD_TYPE=Release",
-        "-DBUILD_SHARED_LIBS=OFF",
-        "-DLLVM_ENABLE_ZSTD=OFF",  # <- inspired by clang-tidy-wheel
-        f"-B{build_dir}",
-        f"-S{os.path.join(checkout_dir, 'llvm')}",
-    ]
-    _run(*config_cmd, dry_run=args.dry_run)
-
-    # run the build and install
-    _install_targets = ["install", "install-clang-resource-headers"]
-    _run("ninja", f"-C{build_dir}", *_install_targets, dry_run=args.dry_run)
-
-    # cleanup from the build
-    logger.info("clean up the build-dir")
-    if not args.dry_run:
-        shutil.rmtree(build_dir)
-    return 0
-
-
 _SHORT_DESCR = "Install clang-tidy"
 parser = argparse.ArgumentParser(description=_SHORT_DESCR, allow_abbrev=False)
 parser.add_argument("--color", action="store_true", help="use color")
 parser.add_argument("--dry-run", action="store_true")
 parser.add_argument(
-    "--llvm-version", required=True, help="specify desired clang-tidy version"
+    "--llvm-version",
+    required=True,
+    help="specify desired integer clang-tidy major version number",
 )
-subparsers = parser.add_subparsers(required=True)
-
-prebuilt_parser = subparsers.add_parser(
-    "prebuilt",
-    description=(
-        "Install prebuilt clang-tidy from apt-repositories maintained by LLVM project."
-        "The --llvm-version flag should just be passed a major version number."
-    ),
-)
-prebuilt_parser.set_defaults(fn=_main_prebuilt)
-
-full_build_parser = subparsers.add_parser(
-    "build-from-src",
-    description=(
-        "Attempt to build clang-tidy from source. The --llvm-version flag should be "
-        "passed a major.minor.patch version number."
-    ),
-)
-full_build_parser.add_argument(
-    "--work-dir", required=True, help="location where source code is cloned & built"
-)
-full_build_parser.add_argument(
-    "--install-dir", required=True, help="location where build-products are installed"
-)
-full_build_parser.set_defaults(fn=_main_full_build)
-
-
-def main(args: argparse.Namespace):
-    configure_logger(color=args.color)
-    return args.fn(args)
 
 
 if __name__ == "__main__":
