@@ -732,7 +732,7 @@ class Grid3D
 #endif  // GRAVITY_ANALYTIC_COMP
 
 #ifdef PARTICLES
-  void Initialize_Particles(struct Parameters *P);
+  void Initialize_Particles(struct Parameters *P, ParameterMap &pmap);
   void Initialize_Uniform_Particles();
   void Copy_Particles_Density_function(int g_start, int g_end);
   void Copy_Particles_Density();

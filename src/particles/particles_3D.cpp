@@ -25,7 +25,7 @@
 
 Particles3D::Particles3D(void) : TRANSFER_DENSITY_BOUNDARIES(false), TRANSFER_PARTICLES_BOUNDARIES(false) {}
 
-void Grid3D::Initialize_Particles(struct Parameters *P)
+void Grid3D::Initialize_Particles(struct Parameters *P, ParameterMap &pmap)
 {
   chprintf("\nInitializing Particles...\n");
 
@@ -86,11 +86,11 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
   #ifdef COSMOLOGY
   // move particles as needed after displacement
   if (strcmp(P->init, "Cosmological_ICs") == 0) {
-    Transfer_Particles_Boundaries(*P);
+    Transfer_Particles_Boundaries(*P, pmap);
     #ifdef MPI_CHOLLA
     MPI_Barrier(world);
     #endif
-    Transfer_Particles_Boundaries(*P);  // try twice
+    Transfer_Particles_Boundaries(*P, pmap);  // try twice
   }
   #endif  // COSMOLOGY
 }

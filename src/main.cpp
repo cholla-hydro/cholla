@@ -172,7 +172,7 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef PARTICLES
-  G.Initialize_Particles(&P);
+  G.Initialize_Particles(&P, pmap);
 #endif
 
 #ifdef COSMOLOGY
