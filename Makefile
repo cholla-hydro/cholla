@@ -49,7 +49,7 @@ ifeq ($(ADD_TEST_FLAGS), yes)
   # appropriate compiler flags, suffix, etc
   SUFFIX    := $(strip $(SUFFIX)).tests
   LIBS      += -L$(GOOGLETEST_ROOT)/lib64 -pthread -lgtest -lhdf5_cpp
-  TEST_FLAGS = -I$(GOOGLETEST_ROOT)/include
+  TEST_FLAGS = -isystem $(GOOGLETEST_ROOT)/include
   CXXFLAGS += $(TEST_FLAGS)
   GPUFLAGS += $(TEST_FLAGS)
 else
@@ -95,15 +95,15 @@ GPUFLAGS += -I./src -include cholla_config.h
 
 ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
   ifdef HIPCONFIG
-    CXXFLAGS += -I$(ROCM_PATH)/include/hipfft -I$(ROCM_PATH)/hipfft/include
-    GPUFLAGS += -I$(ROCM_PATH)/include/hipfft -I$(ROCM_PATH)/hipfft/include
+    CXXFLAGS += -isystem $(ROCM_PATH)/include/hipfft -isystem $(ROCM_PATH)/hipfft/include
+    GPUFLAGS += -isystem $(ROCM_PATH)/include/hipfft -isystem $(ROCM_PATH)/hipfft/include
     LIBS += -L$(ROCM_PATH)/hipfft/lib -lhipfft
   else 
     ifdef NVIDIAMATH_ROOT
       # on a subset of CUDA platform, the NVIDIA MATH libraries are handled
       # separately from the rest of the core CUDA runtime libraries
-      CXXFLAGS += -I$(NVIDIAMATH_ROOT)/include
-      GPUFLAGS += -I$(NVIDIAMATH_ROOT)/include
+      CXXFLAGS += -isystem $(NVIDIAMATH_ROOT)/include
+      GPUFLAGS += -isystem $(NVIDIAMATH_ROOT)/include
       LIBS += -L$(NVIDIAMATH_ROOT)/lib64 -lcufft
     else
       LIBS += -lcufft
@@ -118,19 +118,19 @@ endif
 
 ifeq ($(findstring -DFEEDBACK,$(DFLAGS)),-DFEEDBACK)
     ifdef HIPCONFIG
-	CXXFLAGS += -I$(ROCM_PATH)/include/hiprand -I$(ROCM_PATH)/hiprand/include
-	GPUFLAGS += -I$(ROCM_PATH)/include/hiprand -I$(ROCM_PATH)/hiprand/include
+	CXXFLAGS += -isystem $(ROCM_PATH)/include/hiprand -isystem $(ROCM_PATH)/hiprand/include
+	GPUFLAGS += -isystem $(ROCM_PATH)/include/hiprand -isystem $(ROCM_PATH)/hiprand/include
     endif
 endif
 
 ifeq ($(findstring -DHDF5,$(DFLAGS)),-DHDF5)
-  CXXFLAGS += -I$(HDF5_ROOT)/include
-  GPUFLAGS += -I$(HDF5_ROOT)/include
+  CXXFLAGS += -isystem $(HDF5_ROOT)/include
+  GPUFLAGS += -isystem $(HDF5_ROOT)/include
   LIBS     += -L$(HDF5_ROOT)/lib -lhdf5
 endif
 
 ifeq ($(findstring -DMPI_CHOLLA,$(DFLAGS)),-DMPI_CHOLLA)
-  GPUFLAGS += -I$(MPI_ROOT)/include
+  GPUFLAGS += -isystem $(MPI_ROOT)/include
   ifdef HIPCONFIG
      LIBS += -L$(MPI_ROOT)/lib -lmpi
   endif
@@ -141,8 +141,8 @@ ifeq ($(findstring -DPARALLEL_OMP,$(DFLAGS)),-DPARALLEL_OMP)
 endif
 
 ifeq ($(findstring -DLYA_STATISTICS,$(DFLAGS)),-DLYA_STATISTICS)
-  CXXFLAGS += -I$(FFTW_ROOT)/include
-  GPUFLAGS += -I$(FFTW_ROOT)/include
+  CXXFLAGS += -isystem $(FFTW_ROOT)/include
+  GPUFLAGS += -isystem $(FFTW_ROOT)/include
   LIBS += -L$(FFTW_ROOT)/lib -lfftw3_mpi -lfftw3
 endif
 
@@ -156,7 +156,7 @@ ifdef HIPCONFIG
   LDFLAGS   := $(CXXFLAGS) -L$(ROCM_PATH)/lib
   LIBS      += -lamdhip64
 else
-  CUDA_INC  ?= -I$(CUDA_ROOT)/include
+  CUDA_INC  ?= -isystem $(CUDA_ROOT)/include
   CUDA_LIB  ?= -L$(CUDA_ROOT)/lib64 -lcudart
   CXXFLAGS  += $(CUDA_INC)
   GPUCXX    ?= nvcc
@@ -171,8 +171,8 @@ endif
 ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
   DFLAGS += -DCONFIG_BFLOAT_8
   DFLAGS += -DSCALAR
-  CXXFLAGS += -I$(GRACKLE_ROOT)/include
-  GPUFLAGS += -I$(GRACKLE_ROOT)/include
+  CXXFLAGS += -isystem $(GRACKLE_ROOT)/include
+  GPUFLAGS += -isystem $(GRACKLE_ROOT)/include
   LIBS     += -L$(GRACKLE_ROOT)/lib -lgrackle
 endif
 
@@ -194,9 +194,8 @@ DFLAGS      += $(MACRO_FLAGS)
 LIBS_CLANG_TIDY     := $(subst -I/, -isystem /,$(LIBS))
 # This tells clang-tidy that the path after each -isystem command is a system library so that it can be easily ignored by the header filter regex
 LIBS_CLANG_TIDY     += -isystem $(MPI_ROOT)/include -isystem $(HDF5_ROOT)/include
-CXXFLAGS_CLANG_TIDY := $(subst -I/, -isystem /,$(LDFLAGS))
-GPUFLAGS_CLANG_TIDY := $(subst -I/, -isystem /,$(GPUFLAGS))
-GPUFLAGS_CLANG_TIDY := $(filter-out -ccbin=mpicxx -fmad=false --expt-extended-lambda,$(GPUFLAGS_CLANG_TIDY))
+CXXFLAGS_CLANG_TIDY := $(LDFLAGS)
+GPUFLAGS_CLANG_TIDY := $(filter-out -ccbin=mpicxx -fmad=false --expt-extended-lambda,$(GPUFLAGS))
 GPUFLAGS_CLANG_TIDY += --cuda-host-only --cuda-path=$(CUDA_ROOT) -isystem /clang/includes
 
 ifdef TIDY_FILES
