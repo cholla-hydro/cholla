@@ -1,9 +1,10 @@
 
 # notes on the employed image:
 # - Needs to be devel (not base or runtime) to have nvcc
-# - Ubuntu 22 is better than 18 because Ubuntu 22 default git is > 2.17
-#   Github actions requires git > 2.17 so that cholla is pulled into a git repo
-#   Which is required for the Makefile. With ubuntu 22.04 this grabs 2.34.1
+# - Ubuntu 22.04 is better than 18 because Ubuntu 22's default git version
+#   exceeds 2.17. For context, Github actions requires git > 2.17 so that
+#   cholla is pulled into a git repo. Which is required for the Makefile.
+#   With ubuntu 22.04 this grabs 2.34.1
 
 FROM nvidia/cuda:11.7.1-devel-ubuntu22.04
 
