@@ -11,6 +11,15 @@ CUDA_ARCH ?= sm_70
 
 SUFFIX ?= .$(TYPE).$(MACHINE)
 
+# a build directory is where we put temporary/intermediate build-artifacts
+# -> more modern build systems (e.g. CMake/Meson) perform full out-of-source
+#    builds in a directory like this
+# -> an argument could be made that generation of the build directory should
+#    be handled separately from this makefile (e.g. a configure script), but
+#    that's probably an argument for another time
+PROJDIR ?= $(shell pwd)
+BUILDDIR ?= $(PROJDIR)/build
+
 CPPFILES := $(shell find src/ -type f -name '*.cpp')
 GPUFILES := $(shell find src/ -type f -name '*.cu')
 
@@ -189,12 +198,12 @@ CXXFLAGS_CLANG_TIDY := $(subst -I/, -isystem /,$(LDFLAGS))
 GPUFLAGS_CLANG_TIDY := $(subst -I/, -isystem /,$(GPUFLAGS))
 GPUFLAGS_CLANG_TIDY := $(filter-out -ccbin=mpicxx -fmad=false --expt-extended-lambda,$(GPUFLAGS_CLANG_TIDY))
 GPUFLAGS_CLANG_TIDY += --cuda-host-only --cuda-path=$(CUDA_ROOT) -isystem /clang/includes
-CPPFILES_TIDY := $(CPPFILES)
-GPUFILES_TIDY := $(GPUFILES)
 
 ifdef TIDY_FILES
-  CPPFILES_TIDY := $(filter $(TIDY_FILES), $(CPPFILES_TIDY))
-  GPUFILES_TIDY := $(filter $(TIDY_FILES), $(GPUFILES_TIDY))
+  TARGET_TIDY_FILES := $(filter $(TIDY_FILES), $(CPPFILES)) \
+		       $(filter $(TIDY_FILES), $(GPUFILES))
+else
+  TARGET_TIDY_FILES := $(CPPFILES) $(GPUFILES)
 endif
 
 $(EXEC): prereq-build $(OBJS)
@@ -228,31 +237,45 @@ src/cholla_config.h: src/cholla_config.h.in FORCE
 %.o: %.cu src/cholla_config.h
 	$(GPUCXX) $(GPUFLAGS) -c $< -o $@
 
-.PHONY: clean, clobber, tidy, format
+$(BUILDDIR)/compile_commands.json: src/cholla_config.h tools/generate_compile_commands.py
+# construct a file named compile_commands.json
+	@mkdir -p $(BUILDDIR)
+	tools/generate_compile_commands.py \
+	    --compiler=/dummy/path/to/clang++ \
+	    --output-file=$@-tmp-GPUONLY \
+	    --sources $(GPUFILES) \
+	    --directory=$(PROJDIR) \
+	    --outputs-suffix=.o \
+	    -- $(GPUFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)
+	tools/generate_compile_commands.py \
+	    --compiler=$(CXX) \
+	    --output-file=$@ \
+	    --prepend-entries-from=$@-tmp-GPUONLY \
+	    --sources $(CPPFILES) \
+	    --directory=$(PROJDIR) \
+	    --outputs-suffix=.o \
+	    -- $(CXXFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)
+	rm $@-tmp-GPUONLY
+
+.PHONY: clean, clobber, setup, tidy, format
 
 format:
 	tools/clang-format_runner.sh
 
-tidy:
+setup: $(BUILDDIR)/compile_commands.json
+	@# no-op
+
+tidy: $(BUILDDIR)/compile_commands.json
 # Flags we might want
 # - --warnings-as-errors=<string> Upgrade all warnings to error, good for CI
 	clang-tidy --verify-config
-	@echo -e
-	((time clang-tidy $(CLANG_TIDY_ARGS) $(CPPFILES_TIDY) -- $(CXXFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_cpp_$(TYPE).log 2>&1 & \
-	(time clang-tidy $(CLANG_TIDY_ARGS) $(GPUFILES_TIDY) -- $(GPUFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_gpu_$(TYPE).log 2>&1 & \
-	wait -n; ExitCodeA=$$?; \
-	wait -n; ExitCodeB=$$?; \
-	echo -e "\nResults from clang-tidy are available in the 'tidy_results_cpp_$(TYPE).log' and 'tidy_results_gpu_$(TYPE).log' files."; \
-	if [ $$ExitCodeA -eq 0 ] && [ $$ExitCodeB -eq 0 ]; then \
-	  exit 0; \
-	else \
-	  echo "clang-tidy failed"; \
-	  exit 1; \
-	fi)
+	@echo "Results from following clang-tidy command will be shown as they occur and will also be available in the 'tidy_results_$(TYPE).log' file"
+	time clang-tidy -p ./build $(CLANG_TIDY_ARGS) $(TARGET_TIDY_FILES) 2>&1 | tee tidy_results_$(TYPE).log
 
 clean:
 	rm -f $(CLEAN_OBJS) $(DLINK) src/cholla_config.h
 	rm -rf googletest
+	rm -rf build
 	-find bin/ -type f -executable -name "cholla.*.$(MACHINE)*" -exec rm -f '{}' \;
 	-find src/ -type f -name "*.gcno" -delete
 	-find src/ -type f -name "*.gcda" -delete

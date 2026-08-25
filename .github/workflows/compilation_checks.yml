@@ -25,8 +25,8 @@ jobs:
       matrix:  # Matrix for different make-types and platforms
         make-type: [hydro, gravity, disk, particles, cosmology, mhd, dust, cooling]
         container:
-          #- {name: "CUDA", link: "docker://chollahydro/cholla:cuda_github"}
-          - {name: "HIP", link: "ghcr.io/cholla-hydro/cholla-rocm:sha-a08bd2c"}
+          - {name: "CUDA", link: "ghcr.io/cholla-hydro/cholla-cuda:sha-d9e38eb"}
+          - {name: "HIP", link: "ghcr.io/cholla-hydro/cholla-rocm:sha-d9e38eb"}
     env:  # Set environment variables
       CHOLLA_MAKE_TYPE: ${{ matrix.make-type }}
 
@@ -78,3 +78,21 @@ jobs:
         run: |
           source config/run_tests.sh
           buildChollaTests
+
+      - name: Run clang-tidy
+        # we should really consider running with HIP, but that will require a few
+        # extra steps
+        if: ${{ matrix.container.name == 'CUDA' }}
+        run: |
+          source config/run_tests.sh
+          # ensure that the build/compile_commands.json file exists
+          make setup TYPE=${CHOLLA_MAKE_TYPE}
+          # actually launch clang-tidy
+          # -> we use run-clang-tidy.py because it handles parallelization for us
+          N_CLANGTIDY_INSTANCES=4  # we have 4 cores (if we're IO-bound, we could
+                                   # probably use a bigger number)
+          BUILD_PATH=./build  # path to directory holding compile_commands.json
+          run-clang-tidy.py \
+              -j ${N_CLANGTIDY_INSTANCES} \
+              -p ${BUILD_PATH} \
+              -warnings-as-errors=*
