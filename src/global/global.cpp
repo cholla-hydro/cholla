@@ -103,10 +103,29 @@ char *Trim(char *s)
 
 // NOLINTNEXTLINE(cert-err58-cpp)
 // NOLINTNEXTLINE(*)
-const std::set<std::string> optionalParams = {"flag_delta",   "ddelta_dt",  "n_delta", "Lz",  "Lx", "phi",
-                                              "theta",        "delta",      "nzr",     "nxr", "H0", "Omega_M",
-                                              "Omega_L",      "Omega_R",    "Omega_K", "w0",  "wa", "Init_redshift",
-                                              "End_redshift", "tile_length"};  // NOLINT
+const std::set<std::string> optionalParams = {"flag_delta",
+                                              "ddelta_dt",
+                                              "n_delta",
+                                              "Lz",
+                                              "Lx",
+                                              "phi",
+                                              "theta",
+                                              "delta",
+                                              "nzr",
+                                              "nxr",
+                                              "H0",
+                                              "Omega_M",
+                                              "Omega_L",
+                                              "Omega_R",
+                                              "Omega_K",
+                                              "w0",
+                                              "wa",
+                                              "Init_redshift",
+                                              "End_redshift",
+                                              "tile_length",
+                                              "outstep_dexinc",
+                                              "max_timestep_dexinc",
+                                              "max_timestep"};  // NOLINT //BRANT
 
 void Warn_Unused_Params(ParameterMap &pmap) { pmap.warn_unused_parameters(optionalParams); }
 
@@ -185,8 +204,11 @@ Parameters::Parameters(ParameterMap &pmap)
   parms->tout = pmap.value<double>("tout");  // aborts if missing
   CHOLLA_ASSERT(parms->tout >= 0.0, "tout parameter must be non-negative");
 
-  parms->outstep        = pmap.value<double>("outstep");  // aborts if missing
-  parms->n_steps_output = pmap.value_or("n_steps_output", 0);
+  parms->outstep             = pmap.value<double>("outstep");                    // aborts if missing
+  parms->outstep_dexinc      = Real(pmap.value_or("outstep_dexinc", 0.0));       // BRANT
+  parms->max_timestep_dexinc = Real(pmap.value_or("max_timestep_dexinc", 0.0));  // BRANT
+  parms->max_timestep        = Real(pmap.value_or("max_timestep", 0.0));         // BRANT
+  parms->n_steps_output      = pmap.value_or("n_steps_output", 0);
 
   // in the future, maybe we should provide a default value of 5/3 for gamma
   parms->gamma = Real(pmap.value<double>("gamma"));
@@ -197,6 +219,31 @@ Parameters::Parameters(ParameterMap &pmap)
   Load_String_Param_Into_Char_Buffer(pmap, "init", parms->init, "");
   Load_String_Param_Into_Char_Buffer(pmap, "custom_bcnd", parms->custom_bcnd, "");
   Load_String_Param_Into_Char_Buffer(pmap, "indir", parms->indir, "");
+
+  // Deal with the gravity.gas_only_use_static_grav parameter
+  // - it would be great to move reading of this parameter to the Gravity class (that would probably
+  //   require us to unify STATIC_GRAV and GRAVITY)
+  // - the following flag is only meaningful when GRAVITY and GRAVITY_ANALYTIC_COMP
+  //   are defined.
+  // - In other cases, we raise an error if specified without a sensible value.
+#if defined(GRAVITY) && defined(GRAVITY_ANALYTIC_COMP)
+  parms->gas_only_use_static_grav = pmap.value_or("gravity.gas_only_use_static_grav", false);
+#elif defined(GRAVITY)
+  parms->gas_only_use_static_grav = pmap.value_or("gravity.gas_only_use_static_grav", false);
+  CHOLLA_ASSERT(parms->gas_only_use_static_grav == false,
+                "It is an error to set gravity.gas_only_use_static_grav to `true` when Cholla is compiled with "
+                "GRAVITY but not GRAVITY_ANALYTIC_COMP");
+#elif defined(STATIC_GRAV)
+  parms->gas_only_use_static_grav = pmap.value_or("gravity.gas_only_use_static_grav", true);
+  CHOLLA_ASSERT(
+      parms->gas_only_use_static_grav == true,
+      "It is an error to set gravity.gas_only_use_static_grav to `true` when Cholla is compiled with STATIC_GRAV");
+#else
+  CHOLLA_ASSERT(not pmap.has_param("gravity.gas_only_use_static_grav"),
+                "it doesn't make sense to specify gravity.gas_only_use_static_grav when cholla isn't compiled "
+                "with gravity");
+  parms->gas_only_use_static_grav = false;
+#endif
 
   // ideally, we would only try to parse this for certain values of parms->init
   parms->nfile = pmap.value_or("nfile", 0);
@@ -288,17 +335,6 @@ Parameters::Parameters(ParameterMap &pmap)
   parms->grain_radius = pmap.value<double>("grain_radius");
 #endif  // defined(SCALAR) && defined(DUST)
 
-  // in the future, the feedback module will read in its own parameters (the global Parameter struct won't
-  // know anything about it)
-#ifdef FEEDBACK
-  #ifndef NO_SN_FEEDBACK
-  Load_String_Param_Into_Char_Buffer(pmap, "snr_filename", parms->snr_filename, "");
-  #endif
-  #ifndef NO_WIND_FEEDBACK
-  Load_String_Param_Into_Char_Buffer(pmap, "sw_filename", parms->sw_filename, "");
-  #endif
-#endif
-
   // in the future, it would probably be good to move this logic into Cosmology::Initialize (or somewhere similar)
   // and remove these parameters from the global struct. This would provide a few benefits:
   //   - we could take steps towards removing the optionalParams global variable (there is alternative machinery
@@ -326,8 +362,19 @@ Parameters::Parameters(ParameterMap &pmap)
   parms->Omega_L       = pmap.value<double>("Omega_L");
   parms->Omega_b       = pmap.value<double>("Omega_b");
   parms->Omega_R       = pmap.value_or("Omega_R", 0.0);
+  parms->T_init        = pmap.value_or("T_init", -1.0);
   parms->w0            = pmap.value_or("w0", -1.0);
   parms->wa            = pmap.value_or("wa", 0.0);
+  parms->cosmoics_seed = pmap.value_or("cosmoics_seed", 1337);
+  // Hydrogen, Helium ionization fractions and helium mass fraction
+  parms->YHe           = pmap.value_or("YHe", 0.24);
+  parms->xHp_ion_init  = pmap.value_or("xHp_ion_init", 0.0);
+  parms->xHep_ion_init = pmap.value_or("xHep_ion_init", 0.0);
+
+  Load_String_Param_Into_Char_Buffer(pmap, "cosmo_ics_pk_file", parms->cosmo_ics_pk_file, "Pk.txt");
+  if (pmap.has_param("cosmo_ics_pk_file")) {
+    chprintf("Power spectrum file: %s\n", parms->cosmo_ics_pk_file);
+  }
 
   // if the wDE table isn't provided, store an empty string
   parms->wDE_file = pmap.value_or("wDE_file", "");
@@ -335,7 +382,16 @@ Parameters::Parameters(ParameterMap &pmap)
 #endif  // COSMOLOGY
 
 #if defined(CHEMISTRY_GPU) || defined(COOLING_GRACKLE)
-  Load_String_Param_Into_Char_Buffer(pmap, "UVB_rates_file", parms->UVB_rates_file, nullptr);
+  // Not all chemistry_gpu will have a rates file
+  if (pmap.has_param("UVB_rates_file")) {
+    Load_String_Param_Into_Char_Buffer(pmap, "UVB_rates_file", parms->UVB_rates_file, nullptr);
+    chprintf("UVB_rates_file %s\n", parms->UVB_rates_file);
+  }
+#endif
+
+  // number of RT iterations
+#ifdef RT
+  parms->rt_num_iterations = pmap.value_or("rt_num_iterations", 10);
 #endif
 
   // we should probably revisit this section and come up with different default behaviors.

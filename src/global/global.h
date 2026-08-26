@@ -124,16 +124,17 @@ typedef double Real;
 typedef long int grav_int_t;
 #endif
 
-#ifdef PARTICLES
-  #ifdef PARTICLES_LONG_INTS
+#ifdef PARTICLES_LONG_INTS
 typedef long int part_int_t;
-  #else
+#else
 typedef int part_int_t;
-  #endif  // PARTICLES_LONG_INTS
+#endif  // PARTICLES_LONG_INTS
 
-  #include <vector>
+#include <vector>
 typedef std::vector<Real> real_vector_t;
 typedef std::vector<part_int_t> int_vector_t;
+
+#ifdef PARTICLES
   #ifdef MPI_CHOLLA
 // Constants for the inital size of the buffers for particles transfer
 // and the number of data transferred for each particle
@@ -227,11 +228,25 @@ struct Parameters {
   int ny;
   int nz;
   double tout;
+
+  // The following output time and
+  // maximum timestep items control
+  // the output times for certain RT
+  // tests. These can be revised out
+  // of the code and should be
+  // considered temporary.
   double outstep;
+  Real outstep_dexinc;
+  Real max_timestep_dexinc;
+  Real max_timestep;
+
   int n_steps_output;
   Real gamma;
   char init[MAXLEN];
   int nfile;
+  // At the moment, the following flag is only meaningful when GRAVITY and GRAVITY_ANALYTIC_COMP
+  // are defined. In other cases, we force this to initialize to a sensible value
+  bool gas_only_use_static_grav;
   bool output_always = false;
   int n_steps_limit  = -1;  // Note that negative values indicate that there is no limit
 #ifdef STATIC_GRAV
@@ -304,13 +319,9 @@ struct Parameters {
   // machine dependent seed will be generated.
   std::uint_fast64_t prng_seed = 0;
 #endif  // PARTICLES
-#ifdef FEEDBACK
-  #ifndef NO_SN_FEEDBACK
-  char snr_filename[MAXLEN];
-  #endif
-  #ifndef NO_WIND_FEEDBACK
-  char sw_filename[MAXLEN];
-  #endif
+
+#ifdef CHEMISTRY_GPU
+  Real YHe;
 #endif
 #ifdef COSMOLOGY
   Real H0;
@@ -322,18 +333,25 @@ struct Parameters {
   Real wa;
   Real Init_redshift;
   Real End_redshift;
+  Real T_init;
+  unsigned long long cosmoics_seed;  // Cosmological ICs seed
+  char cosmo_ics_pk_file[MAXLEN];
+  Real YHe;            // helium mass fraction
+  Real xHp_ion_init;   // hydrogen ionization fraction
+  Real xHep_ion_init;  // helium ionization fraction
 
   std::string wDE_file;  // File with equation of state as function of redshift
 
   // File for the scale_factor output values for cosmological simulations
   char scale_outputs_file[MAXLEN];
   #define EXPANSION_HISTORY_FILE_NAME "expansion_history.txt"
+  #define GROWTH_FACTOR_FILE_NAME     "growth_factor.txt"
 #endif  // COSMOLOGY
 #ifdef TILED_INITIAL_CONDITIONS
   Real tile_length;
 #endif  // TILED_INITIAL_CONDITIONS
 
-  // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z] (if they aren't provided, they are set to 0)
+  // Set the MPI Processes grid [n_proc_x, n_proc_y, n_proc_z]
   int n_proc_x;
   int n_proc_y;
   int n_proc_z;
@@ -342,6 +360,9 @@ struct Parameters {
 #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
   char UVB_rates_file[MAXLEN];  // File for the UVB photoheating and
                                 // photoionization rates of HI, HeI and HeII
+#endif
+#ifdef RT
+  int rt_num_iterations;
 #endif
   Real temperature_floor = 0;
   Real density_floor     = 0;

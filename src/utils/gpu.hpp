@@ -12,11 +12,28 @@
 
   #include <hip/hip_runtime.h>
 
+  #include <hip/hip_cooperative_groups.h>
+
   #if defined(PARIS) || defined(PARIS_GALACTIC)
 
     #include <hipfft.h>
 
   #endif  // CUFFT PARIS PARIS_GALACTIC
+
+  #if !defined(HIP_VERSION) || (HIP_VERSION < 40200000)
+  // here, we are enforcing the requirement that HIP is version 4.2 or newer
+  // -> this check picks 4.2 because that's when the `HIP_VERSION` macro was first provided.
+  //    This fact and the format of `HIP_VERSION` are described here:
+  //    https://rocm.docs.amd.com/projects/HIP/en/docs-5.7.1/user_guide/faq.html#how-can-i-know-the-version-of-hip
+  // -> if we really want to add support for older HIP versions, we may need to compile test
+  //    programs to query version numbers as part of the build-systems. But that seems
+  //    unnecessary since, as of Nov 2025, AMD doesn't seem to document versions before 5.0
+  // -> in practice, I suspect we probably use some features that require versions of HIP
+  //    released some time after 4.2 (ideally, we would update the HIP_VERSION requirement
+  //    to reflect that)
+
+    #error "The current version of HIP is too old"
+  #endif
 
   #define WARPSIZE 64
 static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
@@ -29,46 +46,52 @@ static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
   #define CUFFT_SUCCESS HIPFFT_SUCCESS
   #define cufftResult_t hipfftResult_t
 
-  #define cudaDeviceSynchronize              hipDeviceSynchronize
-  #define cudaError                          hipError_t
-  #define cudaError_t                        hipError_t
-  #define cudaErrorInsufficientDriver        hipErrorInsufficientDriver
-  #define cudaErrorNoDevice                  hipErrorNoDevice
-  #define cudaEvent_t                        hipEvent_t
-  #define cudaEventCreate                    hipEventCreate
-  #define cudaEventElapsedTime               hipEventElapsedTime
-  #define cudaEventRecord                    hipEventRecord
-  #define cudaEventSynchronize               hipEventSynchronize
-  #define cudaFree                           hipFree
-  #define cudaFreeHost                       hipHostFree
-  #define cudaGetDevice                      hipGetDevice
-  #define cudaGetDeviceCount                 hipGetDeviceCount
-  #define cudaGetErrorString                 hipGetErrorString
-  #define cudaGetLastError                   hipGetLastError
-  #define cudaHostAlloc                      hipHostMalloc
-  #define cudaHostAllocDefault               hipHostMallocDefault
-  #define cudaMalloc                         hipMalloc
-  #define cudaMemcpy                         hipMemcpy
-  #define cudaMemcpyAsync                    hipMemcpyAsync
-  #define cudaMemcpyPeer                     hipMemcpyPeer
-  #define cudaMemcpyDeviceToHost             hipMemcpyDeviceToHost
-  #define cudaMemcpyDeviceToDevice           hipMemcpyDeviceToDevice
-  #define cudaMemcpyHostToDevice             hipMemcpyHostToDevice
-  #define cudaMemGetInfo                     hipMemGetInfo
-  #define cudaMemset                         hipMemset
-  #define cudaReadModeElementType            hipReadModeElementType
-  #define cudaSetDevice                      hipSetDevice
-  #define cudaSuccess                        hipSuccess
-  #define cudaDeviceProp                     hipDeviceProp_t
-  #define cudaGetDeviceProperties            hipGetDeviceProperties
-  #define cudaPointerAttributes              hipPointerAttribute_t
-  #define cudaPointerGetAttributes           hipPointerGetAttributes
-  #define cudaOccupancyMaxPotentialBlockSize hipOccupancyMaxPotentialBlockSize
-  #define cudaMemGetInfo                     hipMemGetInfo
-  #define cudaDeviceGetPCIBusId              hipDeviceGetPCIBusId
-  #define cudaPeekAtLastError                hipPeekAtLastError
-  #define cudaFuncAttributes                 hipFuncAttributes
-  #define cudaFuncGetAttributes              hipFuncGetAttributes
+  #define cudaDeviceSynchronize                         hipDeviceSynchronize
+  #define cudaError                                     hipError_t
+  #define cudaError_t                                   hipError_t
+  #define cudaErrorInsufficientDriver                   hipErrorInsufficientDriver
+  #define cudaErrorNoDevice                             hipErrorNoDevice
+  #define cudaEvent_t                                   hipEvent_t
+  #define cudaEventCreate                               hipEventCreate
+  #define cudaEventElapsedTime                          hipEventElapsedTime
+  #define cudaEventRecord                               hipEventRecord
+  #define cudaEventSynchronize                          hipEventSynchronize
+  #define cudaFree                                      hipFree
+  #define cudaFreeHost                                  hipHostFree
+  #define cudaGetDevice                                 hipGetDevice
+  #define cudaGetDeviceCount                            hipGetDeviceCount
+  #define cudaGetErrorString                            hipGetErrorString
+  #define cudaGetLastError                              hipGetLastError
+  #define cudaHostAlloc                                 hipHostMalloc
+  #define cudaHostAllocDefault                          hipHostMallocDefault
+  #define cudaMalloc                                    hipMalloc
+  #define cudaMemcpy                                    hipMemcpy
+  #define cudaMemcpyAsync                               hipMemcpyAsync
+  #define cudaMemcpyPeer                                hipMemcpyPeer
+  #define cudaMemcpyDeviceToHost                        hipMemcpyDeviceToHost
+  #define cudaMemcpyDeviceToDevice                      hipMemcpyDeviceToDevice
+  #define cudaMemcpyHostToDevice                        hipMemcpyHostToDevice
+  #define cudaMemcpyHostToHost                          hipMemcpyHostToHost
+  #define cudaMemGetInfo                                hipMemGetInfo
+  #define cudaMemset                                    hipMemset
+  #define cudaReadModeElementType                       hipReadModeElementType
+  #define cudaSetDevice                                 hipSetDevice
+  #define cudaSuccess                                   hipSuccess
+  #define cudaDeviceProp                                hipDeviceProp_t
+  #define cudaGetDeviceProperties                       hipGetDeviceProperties
+  #define cudaPointerAttributes                         hipPointerAttribute_t
+  #define cudaPointerGetAttributes                      hipPointerGetAttributes
+  #define cudaOccupancyMaxPotentialBlockSize            hipOccupancyMaxPotentialBlockSize
+  #define cudaDeviceGetAttribute                        hipDeviceGetAttribute
+  #define cudaDevAttrCooperativeLaunch                  hipDeviceAttributeCooperativeLaunch
+  #define cudaOccupancyMaxActiveBlocksPerMultiprocessor hipOccupancyMaxActiveBlocksPerMultiprocessor
+  #define cudaLaunchCooperativeKernel                   hipLaunchCooperativeKernel
+  #define cudaMemGetInfo                                hipMemGetInfo
+  #define cudaDeviceGetPCIBusId                         hipDeviceGetPCIBusId
+  #define cudaPeekAtLastError                           hipPeekAtLastError
+  #define cudaFuncAttributes                            hipFuncAttributes
+  #define cudaFuncGetAttributes                         hipFuncGetAttributes
+  #define cudaStreamSynchronize                         hipStreamSynchronize
 
   // Texture definitions
   #define cudaArray           hipArray
@@ -107,13 +130,21 @@ static constexpr int maxWarpsPerBlock = 1024 / WARPSIZE;
   #define cufftPlan3d        hipfftPlan3d
   #define cufftPlanMany      hipfftPlanMany
 
-  #define curandStateMRG32k3a_t hiprandStateMRG32k3a_t
-  #define curand_init           hiprand_init
-  #define curand                hiprand
-  #define curand_poisson        hiprand_poisson
+  #define curandStatePhilox4_32_10_t hiprandStatePhilox4_32_10_t
+  #define curandStateMRG32k3a_t      hiprandStateMRG32k3a_t
+  #define curand_init                hiprand_init
+  #define curand                     hiprand
+  #define curand_poisson             hiprand_poisson
+  #define curand_normal_double       hiprand_normal_double
+  #define curand_normal              hiprand_normal
+  #define curand_normal4             hiprand_normal4
+  #define curand_normal4_double      hiprand_normal4_double
+  #define curand_uniform2            hiprand_uniform2
+  #define curand_uniform2_double     hiprand_uniform2_double
 
 #else  // not O_HIP
 
+  #include <cooperative_groups.h>
   #include <cuda_runtime.h>
 
   #if defined(PARIS) || defined(PARIS_GALACTIC)

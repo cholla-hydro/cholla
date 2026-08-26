@@ -9,10 +9,12 @@ Port over more from the wiki
 
 CoolingChemistry.md
 Cosmology.md
+DiskModel.md
 Dual-Energy-Formalism.md
 Dust.md
 Feedback.md
 Gravity.md
 MHD.md
 Particles.md
+RT.md
 :::

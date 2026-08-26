@@ -43,8 +43,6 @@ Developer Documentation about how these parameters are used and how to add a new
 * **SIMPLE**: Use a simple dimensionally-split PLM or PPM style integrator, as described in Schneider (2017)
 
 ## Cooling functions
-* **COOLING_GPU**: Use one of the cooling functions defined in cooling_cuda.cu. By default, a piecewise parabolic analytic fit to a CIE cooling curve that cuts off at 10^4 K.
-* **CLOUDY_COOL**: Use a cooling / heating table created with Cloudy assuming solar metallicity and a HM2012 UV background to apply cooling / heating (see Schneider 2017).
 * **COOLING_GRACKLE**:
 
 ## Self Gravity
@@ -98,3 +96,26 @@ Note: feedback requires PARTICLES, PARTICLES_GPU, PARTICLE_IDS, PARTICLE_AGE, DE
 * **MHD**: Enable magnetic fields. Only works with the HLLD solver and the Van Leer integrator and only in 3D
 
 * **DUST**: Initialize a dust density field. Requires that the `SCALAR` flag is also turned on.
+
+## Cosmological Simulations
+* **COSMOLOGY**: Perform a cosmological simulation in an expanding reference frame.
+
+* **PRINT_INITIAL_STATS**: Compute and print initial performance statistics related to cosmological simulations.
+
+* **TILED_INITIAL_CONDITIONS**: Perform a test cosmological simulation by replicating the same cosmological subvolume on each GPU.
+
+* **FFT**: Use the stand-alone Henry FFT filtering routines independent of the gravitational Poisson solver.
+
+## Analysis
+* **ANALYSIS**: Perform on-the-fly analysis of the simulations at specified intervals.
+
+* **LY_STATISTICS**: Compute Lyman-alpha forest skewers and statistics.
+
+* **PHASE_DIAGRAM**: Compute density-temperature phase diagrams of the gas distribution.
+
+## Radiative Transfer
+* **RT_OTVET** Use the optically-thin variable Eddington tensor radiative transfer scheme from [Gnedin \& Abel (2001)](https://ui.adsabs.harvard.edu/abs/2001NewA....6..437G/abstract).
+
+* **RT_M1** Use the M1 moment-based radiative transfer scheme of [Aubert \& Teyssier (2008)](https://ui.adsabs.harvard.edu/abs/2008MNRAS.387..295A/abstract).
+
+* **OUTPUT_RADIATION** Save separate radiation HDF5 files containing the intensity and source fields and the Eddington tensor or moment fields as appropriate.

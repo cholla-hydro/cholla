@@ -3,14 +3,17 @@
 
 :Summary: *kind of chemistry solver to use*
 :Type: {par:typefmt}`str`
-:Default: *depends on whether you using the legacy cooling Makefile flags*
+:Default: "none" (unless the `CHEMISTRY_GPU` or `COOLING_GRACKLE` macro is defined)
 
 This parameter specifies the choice of chemistry cooling solver.
-For backwards compatibility, we set the default based on the presence of Makefile parameters.
-When no Makefile parameters are provided, this defaults to "none."
+When `CHEMISTRY_GPU` and `COOLING_GRACKLE` are not defined, this defaults to "none."
 
-With the exception of "chemistry-gpu" and "grackle" (more on those in a moment), you can freely overwrite the default value at runtime.
-The following table summarizes the available choices (and the conditions where they become defaults):
+:::{important}
+At the time of writing, if you want to use "chemistry-gpu," you *MUST* use the `CHEMISTRY_GPU` Makefile parameter.
+Likewise, if you want to use "grackle", you *MUST* use the `COOLING_GRACKLE` Makefile parameter.
+In both cases, we do not allow the choices to be overwritten.
+For user convenience, the default value are set to these options when the Makefile parameter is detected.
+:::
 
 :::{list-table}
 :widths: auto
@@ -18,33 +21,21 @@ The following table summarizes the available choices (and the conditions where t
 
 * - Name
   - Meaning
-  - Macros that make this the default
 * - "none"
   - No chemistry or cooling
-  - N/A
 * - "tabulated-cloudy"
   - path to data file used by "tabulated-cooling" solver
-  - `COOLING_GPU` && `CLOUDY_COOL`
 * - "piecewise-cie"
   - piecewise-parabolic fit to a collisional ionization equilibrium (CIE)
-  - `COOLING_GPU` **without** `CLOUDY_COOL`
 * - "piecewise-ti+cie"
   - Analytic cooling/heating recipe that roughly matches the "TI" cooling runs shown in
  in [Kim & Ostriker 2015](https://ui.adsabs.harvard.edu/abs/2015ApJ...802...99K/abstract)
-  - N/A
 * - "chemistry-gpu"
-  - Non-equilibrium Hydrogen/Helium chemical network with heating/cooling
-  - `CHEMISTRY_GPU`
+  - Non-equilibrium Hydrogen/Helium chemical network with heating/cooling (only usable when the `CHEMISTRY_GPU` macro is defined)
 * - "grackle"
-  - CPU-based non-equilibrium primordial chemistry with heating/cooling
-  - `COOLING_GRACKLE`
+  - CPU-based non-equilibrium primordial chemistry with heating/cooling (only usable when the `COOLING_GRACKLE` macro is defined)
 :::
 
-:::{important}
-At the time of writing, if you want to use "chemistry-gpu," you *MUST* use the `CHEMISTRY_GPU` Makefile parameter.
-Likewise, if you want to use "grackle", you *MUST* use the `COOLING_GRACKLE` Makefile parameter.
-In both cases, we do not allow the choices to be overwritten.
-:::
 ::::
 
 ---

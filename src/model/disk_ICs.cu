@@ -916,10 +916,7 @@ void Grid3D::Disk_3D(Parameters p)
   //   thermal-energy-density field in the total-energy-density field (we need to
   //   add the kinetic energy contribution afterwards)
 
-  bool self_gravity = false;
-#ifdef GRAVITY
-  self_gravity = true;
-#endif
+  bool self_gravity = not p.gas_only_use_static_grav;
 
   // since we are adding contributions from the halo across the entire domain, let's initialize it
   // first (we will need to account for its influence on the radial pressure gradients when
@@ -942,9 +939,6 @@ void Grid3D::Disk_3D(Parameters p)
       //                 `(gamma - 1) * specific_internal_energy`
       Real isoth_term                     = hdp.cs * hdp.cs;  // <- square of the isothermal sound speed
       Real initial_gas_scale_height_guess = gas_disk.H_d;
-
-      // we always pass H.n_ghost into SelfGravHydroStaticColMaker because the class computes the total
-      // length of the column as `H.n_ghost * 2 + p.nz`
       SelfGravHydroStaticColMaker col_maker(H.n_ghost, ZGridProps(p.zmin, p.zlen, p.nz), isoth_term, nongas_phi_fn,
                                             initial_gas_scale_height_guess);
 
@@ -955,8 +949,6 @@ void Grid3D::Disk_3D(Parameters p)
       };
       partial_initialize_isothermal_disk(p, this->H, *this, this->C, hdp, col_maker, vrot2_from_phi_fn);
     } else {
-      // we always pass H.n_ghost into IsothermalStaticGravHydroStaticColMaker because the class computes the
-      // total length of the column as `H.n_ghost * 2 + p.nz`
       IsothermalStaticGravHydroStaticColMaker col_maker(p.zlen / ((Real)p.nz), p.nz, H.n_ghost, hdp);
       // the following function is used to compute the rotational velocity for a collisionless particle
       // (this includes an estimate for the potential of the gas disk)
@@ -1131,18 +1123,11 @@ void partial_initialize_isothermal_disk(const Parameters& p, const Header& H, co
                                         const HydroStaticColMaker& col_maker,
                                         const Vrot2FromPotential& vrot2_from_phi_fn)
 {
-  // Step 0: allocate buffers & determine the loop bounds
+  // Step 0: allocate buffers
   // -> this buffer tracks the midplane mass density
   std::vector<Real> rho_midplane_2Dbuffer((H.ny * H.nx), 0.0);
   // -> this buffer tracks the locations where we have contributed mass from the disk
   std::vector<Real> rho_disk((H.nz * H.ny * H.nx), 0.0);
-  // -> to apply the same pressure-derivative stencil everywhere (when assigning velocities), we
-  //    must make sure to initialize density & pressure slightly outside of the the active zone
-  CHOLLA_ASSERT(H.n_ghost >= 1, "Ghost zone depth must be 1 or larger");
-  const int index_start = H.n_ghost - 1;
-  const int k_stop      = H.nz - (H.n_ghost - 1);
-  const int j_stop      = H.ny - (H.n_ghost - 1);
-  const int i_stop      = H.nx - (H.n_ghost - 1);
 
   // Step 1: add the gas-disk density and thermal energy to the density and energy arrays
   // -> At each (x,y) pair, we use col_maker to loop over all z-values and compute "hydrostatic column"
@@ -1151,8 +1136,8 @@ void partial_initialize_isothermal_disk(const Parameters& p, const Header& H, co
   // -> then we compute the disk density & thermal energy based on values in that buffer
   std::vector<Real> rho_buffer(col_maker.buffer_len(), 0.0);
   bool any_density_error = false;
-  for (int j = index_start; j < j_stop; j++) {
-    for (int i = index_start; i < i_stop; i++) {
+  for (int j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
+    for (int i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
       // get the centered x & y positions (the way the function is written, we also get a z position)
       const int dummy_k = H.n_ghost + H.ny;
       Real x_pos, y_pos, dummy_z_pos;
@@ -1170,7 +1155,7 @@ void partial_initialize_isothermal_disk(const Parameters& p, const Header& H, co
       rho_midplane_2Dbuffer[i + j * H.nx] = rho_midplane;
 
       // store densities (from the column)
-      for (int k = index_start; k < k_stop; k++) {
+      for (int k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
         int id = i + j * H.nx + k * H.nx * H.ny;
 
         // get density from hydrostatic column computation

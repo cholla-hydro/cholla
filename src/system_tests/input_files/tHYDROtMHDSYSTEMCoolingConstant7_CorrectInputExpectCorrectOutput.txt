@@ -10,9 +10,9 @@ ny=2
 # number of grid cells in the z dimension
 nz=2
 # final output time
-tout=0.3
+tout=100
 # time interval for output
-outstep=0.3
+outstep=100
 # name of initial conditions
 init=Constant
 # domain properties
@@ -39,8 +39,8 @@ vx=0
 vy=0
 vz=0
 # pressure
-P=1e-3
-# 1e5 Kelvin = 1e13*1e-3/1e5
+P=1e-1
+# 1e7 Kelvin = 1e13*1e-2/1e4
 # value of gamma
 gamma=1.666666667
 
@@ -54,3 +54,6 @@ gamma=1.666666667
 # Choose rho so that pressure (cholla units) = temperature / e13 (Kelvin) 
 # T = p * (6.9e13)/d
 # T/e13 = p * (6.9)/d
+
+[chemistry]
+kind=piecewise-cie

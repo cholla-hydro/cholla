@@ -1,21 +1,16 @@
-#-- Default hydro + cooling_gpu
+#-- Default hydro + cooling_gpu + chemistry_gpu
 
 #-- separated output flag so that it can be overriden in target-specific
 #   for make check
-OUTPUT    ?=  -DOUTPUT -DHDF5
+OUTPUT    ?=  -DOUTPUT -DHDF5 -DOUTPUT_CHEMISTRY
 
 MPI_GPU   ?=
 
 DFLAGS    += -DMPI_CHOLLA
 DFLAGS    += -DPRECISION=2
-DFLAGS    += -DPPMP
+DFLAGS    += -DPLMP
 DFLAGS    += -DHLLC
-
-ifeq ($(findstring cosmology,$(TYPE)),cosmology)
 DFLAGS    += -DSIMPLE
-else
-DFLAGS    += -DVL
-endif
 
 # need this if using Disk_3D
 # DFLAGS += -DDISK_ICS
@@ -28,11 +23,12 @@ DFLAGS    += -DTEMPERATURE_FLOOR
 DFLAGS    += -DDE
 
 # Apply the cooling in the GPU from precomputed tables
-DFLAGS    += -DCOOLING_GPU
-DFLAGS    += -DCLOUDY_COOL
+DFLAGS    += -DSCALAR -DCHEMISTRY_GPU
+#DFLAGS    += -DCOOLING_GPU
+#DFLAGS    += -DCLOUDY_COOL
 
 #Measure the Timing of the different stages
-DFLAGS += -DCPU_TIME
+#DFLAGS += -DCPU_TIME
 
 DFLAGS    += $(OUTPUT)
 

@@ -8,6 +8,7 @@
 #pragma once
 
 // STL Includes
+#include <climits>
 #include <cstdint>
 
 // External Includes
@@ -16,6 +17,62 @@
 #include "../global/global.h"
 #include "../global/global_cuda.h"
 #include "../utils/gpu.hpp"
+
+namespace reduction_utilities::backport
+{
+/*!
+ * \brief Do a device side bit cast
+ *
+ * \tparam To The output type
+ * \tparam From The input type
+ * \param from The input value
+ * \return To The bit cast version of From as type To
+ */
+template <class To, class From>
+__device__ constexpr To bit_cast(const From& from) noexcept
+{
+  // TODO: replace with `std::bitcast` once we adopt C++20 or libcu++ adds it
+  To to{};
+  static_assert(sizeof(To) == sizeof(From));
+  memcpy(&to, &from, sizeof(To));
+  return to;
+}
+
+/*!
+ * \brief Perform an atomic reduction to find the minimum value of `val`
+ *
+ * \param[out] address The pointer to where to store the reduced scalar
+ * value in device memory
+ * \param[in] val The thread local variable to find the minimum of
+ */
+inline long long __device__ atomicMin(long long* address, long long val)
+{
+  // this uses the pattern recommended by CUDA docs for implementing atomics in terms of CAS
+  unsigned long long* address_as_ull = (unsigned long long*)address;
+  unsigned long long old             = *address_as_ull;
+  unsigned long long assumed;
+
+  do {
+    assumed              = old;
+    long long assumed_LL = bit_cast<long long>(assumed);
+    long long newval_LL  = (assumed_LL < val) ? assumed_LL : val;
+    old                  = atomicCAS(address_as_ull, assumed, bit_cast<long long>(newval_LL));
+
+  } while (assumed != old);
+
+  return bit_cast<long long>(old);
+}
+
+}  // namespace reduction_utilities::backport
+
+#if defined(O_HIP) && (HIP_VERSION < 50700000)
+// HIP versions before 5.7 did not implement atomicMin (or atomicMax) for `long long`, so we
+// backport the function
+
+// expose atomicMin as part of the global namespace
+using ::reduction_utilities::backport::atomicMin;
+
+#endif  // defined(O_HIP) && (HIP_VERSION < 50700000)
 
 /*!
  * \brief Namespace to contain device resident reduction functions. Includes
@@ -88,23 +145,6 @@ __inline__ __device__ Real blockReduceMax(Real val)
 // https://github.com/rapidsai/cuml/blob/dc14361ba11c41f7a4e1e6a3625bbadd0f52daf7/cpp/src_prims/stats/minmax.cuh
 // with slight tweaks for our use case.
 // =====================================================================
-/*!
- * \brief Do a device side bit cast
- *
- * \tparam To The output type
- * \tparam From The input type
- * \param from The input value
- * \return To The bit cast version of From as type To
- */
-template <class To, class From>
-__device__ constexpr To bit_cast(const From& from) noexcept
-{
-  // TODO: replace with `std::bitcast` once we adopt C++20 or libcu++ adds it
-  To to{};
-  static_assert(sizeof(To) == sizeof(From));
-  memcpy(&to, &from, sizeof(To));
-  return to;
-}
 
 /*!
  * \brief Encode a float as an int
@@ -114,7 +154,7 @@ __device__ constexpr To bit_cast(const From& from) noexcept
  */
 inline __device__ int encode(float val)
 {
-  int i = bit_cast<int>(val);
+  int i = backport::bit_cast<int>(val);
   return i >= 0 ? i : (1 << 31) | ~i;  // NOLINT(hicpp-signed-bitwise)
 }
 
@@ -126,7 +166,7 @@ inline __device__ int encode(float val)
  */
 inline __device__ long long encode(double val)
 {
-  auto i = bit_cast<std::int64_t>(val);
+  auto i = backport::bit_cast<std::int64_t>(val);
   return i >= 0 ? i : (1ULL << 63) | ~i;  // NOLINT(hicpp-signed-bitwise)
 }
 
@@ -141,7 +181,7 @@ inline __device__ float decode(int val)
   if (val < 0) {
     val = (1 << 31) | ~val;  // NOLINT(hicpp-signed-bitwise)
   }
-  return bit_cast<float>(val);
+  return backport::bit_cast<float>(val);
 }
 
 /*!
@@ -155,7 +195,7 @@ inline __device__ double decode(long long val)
   if (val < 0) {
     val = (1ULL << 63) | ~val;  // NOLINT(hicpp-signed-bitwise)
   }
-  return bit_cast<double>(val);
+  return backport::bit_cast<double>(val);
 }
 #endif  // O_HIP
 /*!
@@ -303,4 +343,43 @@ __inline__ __device__ void gridReduceMax(Real val, Real* out)
  */
 __global__ void kernelReduceMax(Real* in, Real* out, size_t N);
 // =====================================================================
+
+// =====================================================================
+/* Performs N sum-reductions on an input shared memory array within the block and adds the results to an
+ * N-element array.
+ *
+ * \tparam N the length of the output array
+ * \tparam blocksize the number of threads per block
+ *
+ * \param[out] dest destination memory address containing N entries. This is NOT ALLOWED to overlap with
+ *    src_shared
+ * \param[in] src_shared Source memory address. This MUST refer to a __shared__ memory region containing
+ *    N times blocksize elements. The numbers that are added together are offset by blocksize elements.
+ *
+ * \note
+ * If passing src to a function causes problems (since we are potentially obfuscating the __shared__ descriptor),
+ * we can always convert this into a macro.
+ */
+template <std::size_t N, std::size_t Blocksize>
+__device__ void blockAccumulateIntoNReals(Real* __restrict__ dest, Real* __restrict__ src_shared)
+{
+  // reduce the info from all the threads within the block (since src_shared was declared as __shared__,
+  // each block has its own copy of src_shared)
+  for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
+    if (threadIdx.x < s) {
+      for (unsigned int cur_ind = 0; cur_ind < N; cur_ind++) {
+        src_shared[N * threadIdx.x + cur_ind] += src_shared[N * (threadIdx.x + s) + cur_ind];
+      }
+    }
+    __syncthreads();
+  }
+
+  // atomicAdd reduces across all blocks
+  if (threadIdx.x == 0) {
+    for (unsigned int cur_ind = 0; cur_ind < N; cur_ind++) {
+      atomicAdd(dest + cur_ind,  // <- pointer arithmetic
+                src_shared[cur_ind]);
+    }
+  }
+}
 }  // namespace reduction_utilities
