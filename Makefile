@@ -146,7 +146,19 @@ ifeq ($(findstring -DLYA_STATISTICS,$(DFLAGS)),-DLYA_STATISTICS)
   LIBS += -L$(FFTW_ROOT)/lib -lfftw3_mpi -lfftw3
 endif
 
+ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
+  DFLAGS += -DCONFIG_BFLOAT_8
+  DFLAGS += -DSCALAR
+  CXXFLAGS += -isystem $(GRACKLE_ROOT)/include
+  GPUFLAGS += -isystem $(GRACKLE_ROOT)/include
+  LIBS     += -L$(GRACKLE_ROOT)/lib -lgrackle
+endif
 
+ifeq ($(findstring -DCHEMISTRY_GPU,$(DFLAGS)),-DCHEMISTRY_GPU)
+  DFLAGS += -DSCALAR
+endif
+
+# finalize CXXFLAGS and GPUFLAGS (among other things)
 ifdef HIPCONFIG
   DFLAGS    += -DO_HIP
   CXXFLAGS  += $(HIPCONFIG)
@@ -166,18 +178,6 @@ else
   LDFLAGS   += $(CXXFLAGS)
   LIBS      += $(CUDA_LIB)
   DLINK	    := src/device_link.o
-endif
-
-ifeq ($(findstring -DCOOLING_GRACKLE,$(DFLAGS)),-DCOOLING_GRACKLE)
-  DFLAGS += -DCONFIG_BFLOAT_8
-  DFLAGS += -DSCALAR
-  CXXFLAGS += -isystem $(GRACKLE_ROOT)/include
-  GPUFLAGS += -isystem $(GRACKLE_ROOT)/include
-  LIBS     += -L$(GRACKLE_ROOT)/lib -lgrackle
-endif
-
-ifeq ($(findstring -DCHEMISTRY_GPU,$(DFLAGS)),-DCHEMISTRY_GPU)
-  DFLAGS += -DSCALAR
 endif
 
 .SUFFIXES: .cpp .cu .o
