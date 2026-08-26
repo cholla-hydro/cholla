@@ -33,14 +33,26 @@
 #ifdef PARALLEL_OMP
   #include "../utils/parallel_omp.h"
 #endif
-
+#ifdef RT
+  #include "../radiation/radiation.h"
+#endif
 #ifdef DUST
   #include "../dust/dust_cuda.h"  // provides Dust_Update
+#endif
+#ifdef CHEMISTRY_GPU
+  #include "../chemistry_gpu/chemistry_gpu.h"  // provides Print_Chemistry_kernel
 #endif
 
 /*! \fn Grid3D(void)
  *  \brief Constructor for the Grid. */
+#ifndef RT
 Grid3D::Grid3D(void) : field_info(FieldInfo::create())
+#else
+// it's ok to pass in `this->H` to the constructor of `Rad3D` since `Rad3D`'s
+// constructor is only registering a reference to `this->H` for later usage.
+// TODO: initialize `this->H` before passing it to `Rad3D`
+Grid3D::Grid3D(void) : field_info(FieldInfo::create()), Rad(this->H)
+#endif
 {
   // set initialization flag to 0
   flag_init = 0;
@@ -196,9 +208,6 @@ void Grid3D::Initialize(struct Parameters *P)
   // Set output to true when data has to be written to file;
   H.Output_Now = false;
 
-  // allocate memory
-  AllocateMemory();
-
 // Values for lower limit for density and temperature
 #ifdef TEMPERATURE_FLOOR
   H.temperature_floor = P->temperature_floor;
@@ -213,7 +222,7 @@ void Grid3D::Initialize(struct Parameters *P)
 #endif
 
 #ifdef COSMOLOGY
-  H.OUTPUT_SCALE_FACOR = not(P->scale_outputs_file[0] == '\0');
+  H.OUTPUT_SCALE_FACTOR = not(P->scale_outputs_file[0] == '\0');
 #endif
 
 #ifdef SCALAR
@@ -223,6 +232,17 @@ void Grid3D::Initialize(struct Parameters *P)
 #endif
 
   H.Output_Initial = true;
+
+  Set_Domain_Properties(*P);  // move the domain info forward
+
+#if defined(COSMOLOGY) && defined(FFT)
+  Generate_Cosmo_Phi_Init(P);  // memory intensive -- before grid allocation
+  // chprintf("D info before main %d %d\n",Cosmo.D_array.size(),Cosmo.a_array.size());
+
+#endif
+
+  // allocate memory
+  AllocateMemory();
 }
 
 /*! \fn void AllocateMemory(void)
@@ -291,7 +311,8 @@ void Grid3D::AllocateMemory(void)
   C.d_Grav_potential = NULL;
 #endif
 
-#ifdef CHEMISTRY_GPU
+#if defined(RT) || defined(CHEMISTRY_GPU)
+  chprintf(" Setting pointers for: HI, HII, HeI, HeII, HeIII, densities\n");
   C.HI_density    = &C.host[H.n_cells * grid_enum::HI_density];
   C.HII_density   = &C.host[H.n_cells * grid_enum::HII_density];
   C.HeI_density   = &C.host[H.n_cells * grid_enum::HeI_density];
@@ -419,7 +440,10 @@ void Grid3D::Execute_Hydro_Integrator(void)
                              H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, H.density_floor,
                              C.Grav_potential, SlowCellConditionChecker(1.0 / H.min_dt_slow, H.dx, H.dy, H.dz),
                              error_code_buffer.data());
-#endif  // SIMPLE
+  #ifdef CHEMISTRY_GPU
+    Do_Print_Chemistry(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields);
+  #endif  // CHEMISTRY_GPU
+#endif    // SIMPLE
   } else {
     chprintf("Error: Grid dimensions nx: %d  ny: %d  nz: %d  not supported.\n", H.nx, H.ny, H.nz);
     chexit(-1);
@@ -514,6 +538,8 @@ Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &feedback_callback,
   Timer.Chemistry.RecordTime(Chem.H.runtime_chemistry_step);
   non_hydro_elapsed_time += Chem.H.runtime_chemistry_step;
   #endif
+#endif
+#if defined(CHEMISTRY_GPU) || defined(RT)
   C.HI_density    = &C.host[H.n_cells * grid_enum::HI_density];
   C.HII_density   = &C.host[H.n_cells * grid_enum::HII_density];
   C.HeI_density   = &C.host[H.n_cells * grid_enum::HeI_density];

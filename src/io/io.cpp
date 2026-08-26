@@ -34,6 +34,9 @@
 #ifdef COSMOLOGY
   #include "../cosmology/cosmology.h"
 #endif  // COSMOLOGY
+#ifdef RT
+  #include "../radiation/radiation.h"
+#endif
 
 /* Generate the log output file */
 void Create_Log_File(struct Parameters P)
@@ -88,6 +91,11 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
   // ensure the output-directory exists (try to create it if it doesn't exist)
   Ensure_Dir_Exists(write_manager.fname_template().effective_output_dir_path(nfile));
 
+#ifdef RT
+  // copy RT fields to CPU
+  G.Rad.Copy_RT_Fields();
+#endif
+
 #ifdef HDF5
   // Initialize HDF5 interface
   H5open();
@@ -119,7 +127,7 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
   write_manager.Apply_Writers(G, P, nfile);
 
 #ifdef COSMOLOGY
-  if (G.H.OUTPUT_SCALE_FACOR || G.H.Output_Initial) {
+  if (G.H.OUTPUT_SCALE_FACTOR || G.H.Output_Initial) {
     G.Cosmo.Set_Next_Scale_Output();
     if (!G.Cosmo.exit_now) {
       chprintf(" Saved Snapshot: %d     z:%f   next_output: %f\n", nfile, G.Cosmo.current_z,
@@ -227,7 +235,7 @@ H5Space1D &H5Space1D::operator=(H5Space1D &&other) noexcept
 H5Space1D &H5Space1D::ensure_dim(hsize_t dim)
 {
   if (this->id_ == H5I_INVALID_HID) {  // <- first time setting dim
-    this->dim_ = std::unique_ptr<hsize_t>(new hsize_t{dim});
+    this->dim_ = std::make_unique<hsize_t>(dim);
   } else if (*this->dim_ == dim) {  // <- dim isn't changing
     return *this;
   } else {
@@ -884,17 +892,22 @@ void Grid3D::Print_Grid_Stats(void)
 // - earlier versions of this logic wouldn't work with Grackle
 static void cosmo_init_chemical_species_(const Header &H, const FieldInfo &field_info, Real *host_field_ptr)
 {
-  if (!field_info.field_id("HI_density").has_value()) {
-    CHOLLA_ERROR("This function has been erroneously executed. There are no chemical species");
-  }
+  auto get_ptr_or_abort = [&](const char *name) -> Real * {
+    std::optional<int> maybe_id = field_info.field_id(name).value();
+    if (maybe_id.has_value()) {
+      return &host_field_ptr[H.n_cells * maybe_id.value()];
+    } else {
+      CHOLLA_ERROR("%s is not the name of a defined field", name);
+    }
+  };
 
-  Real *density       = &host_field_ptr[H.n_cells * field_info.field_id("density").value()];
-  Real *HI_density    = &host_field_ptr[H.n_cells * field_info.field_id("HI_density").value()];
-  Real *HII_density   = &host_field_ptr[H.n_cells * field_info.field_id("HII_density").value()];
-  Real *HeI_density   = &host_field_ptr[H.n_cells * field_info.field_id("HeI_density").value()];
-  Real *HeII_density  = &host_field_ptr[H.n_cells * field_info.field_id("HeII_density").value()];
-  Real *HeIII_density = &host_field_ptr[H.n_cells * field_info.field_id("HeIII_density").value()];
-  Real *e_density     = &host_field_ptr[H.n_cells * field_info.field_id("e_density").value()];
+  Real *density       = get_ptr_or_abort("density");
+  Real *HI_density    = get_ptr_or_abort("HI_density");
+  Real *HII_density   = get_ptr_or_abort("HII_density");
+  Real *HeI_density   = get_ptr_or_abort("HeI_density");
+  Real *HeII_density  = get_ptr_or_abort("HeII_density");
+  Real *HeIII_density = get_ptr_or_abort("HeIII_density");
+  Real *e_density     = get_ptr_or_abort("e_density");
 
   for (int k = 0; k < H.nz_real; k++) {
     for (int j = 0; j < H.ny_real; j++) {
@@ -940,8 +953,12 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
 
   // load all of the hydro fields (include GasEnergy if using dual-energy formalism)
   for (int field_id : field_info.get_id_range(field::Kind::HYDRO)) {
-    Real *dest_ptr        = &C.host[field_id * H.n_cells];
-    std::string dset_name = "/" + field_info.field_name(field_id).value();
+    Real *dest_ptr                 = &C.host[field_id * H.n_cells];
+    std::optional<std::string> tmp = field_info.field_name(field_id);
+    if (!tmp.has_value()) {
+      CHOLLA_ERROR("this should be unreachable");
+    }
+    std::string dset_name = "/" + tmp.value();
     Read_Grid_HDF5_Field(file_id, dataset_buffer, H, dest_ptr, dset_name.c_str());
   }
 
@@ -960,8 +977,12 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
 
   // try to load all of the scalars (that aren't within skip_loading_scalar)
   for (int field_id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
-    Real *dest_ptr         = &C.host[field_id * H.n_cells];
-    std::string field_name = field_info.field_name(field_id).value();
+    Real *dest_ptr                 = &C.host[field_id * H.n_cells];
+    std::optional<std::string> tmp = field_info.field_name(field_id);
+    if (!tmp.has_value()) {
+      CHOLLA_ERROR("this should be unreachable");
+    }
+    std::string field_name = tmp.value();
     if (skip_loading_scalar.find(field_name) != skip_loading_scalar.end()) {
       continue;
     }

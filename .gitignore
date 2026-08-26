@@ -93,3 +93,8 @@ Thumbs.db
 docs/doxygen/build
 docs/sphinx/build
 _build
+
+
+# compilation #
+#############################
+compile_commands.json
