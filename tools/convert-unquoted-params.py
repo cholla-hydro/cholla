@@ -4,7 +4,7 @@ Convert a legacy parameter file so the string-parameters are now quoted.
 Importantly, the program assumes that the file format is valid.
 """
 
-# for portability, only use built-in package packages present in python 3.7
+# for portability, only use built-in packages present in python 3.7
 import argparse
 from contextlib import nullcontext
 import shutil
