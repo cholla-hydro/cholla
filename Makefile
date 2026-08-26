@@ -195,7 +195,6 @@ LIBS_CLANG_TIDY     := $(subst -I/, -isystem /,$(LIBS))
 # This tells clang-tidy that the path after each -isystem command is a system library so that it can be easily ignored by the header filter regex
 LIBS_CLANG_TIDY     += -isystem $(MPI_ROOT)/include -isystem $(HDF5_ROOT)/include
 CXXFLAGS_CLANG_TIDY := $(LDFLAGS)
-GPUFLAGS_CLANG_TIDY := $(GPUFLAGS) --cuda-host-only --cuda-path=$(CUDA_ROOT) -isystem /clang/includes
 
 ifdef TIDY_FILES
   TARGET_TIDY_FILES := $(filter $(TIDY_FILES), $(CPPFILES)) \
@@ -235,8 +234,11 @@ src/cholla_config.h: src/cholla_config.h.in FORCE
 %.o: %.cu src/cholla_config.h
 	$(GPUCXX) $(GPUFLAGS) -c $< -o $@
 
-$(BUILDDIR)/compile_commands.json: src/cholla_config.h tools/generate_compile_commands.py
 # construct a file named compile_commands.json
+# -> the following command explicitly assumes that we're using CUDA
+# -> While it would be nice to add support for HIP code, that would be tricky
+#    for a few reasons and that is not something we've ever directly supported
+$(BUILDDIR)/compile_commands.json: src/cholla_config.h tools/generate_compile_commands.py
 	@mkdir -p $(BUILDDIR)
 	tools/generate_compile_commands.py \
 	    --compiler=/dummy/path/to/clang++ \
@@ -245,7 +247,8 @@ $(BUILDDIR)/compile_commands.json: src/cholla_config.h tools/generate_compile_co
 	    --directory=$(PROJDIR) \
 	    --outputs-suffix=.o \
 	    --strip-nvcc-flags \
-	    -- $(GPUFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)
+	    -- $(GPUFLAGS) --cuda-host-only --cuda-path=$(CUDA_ROOT) -isystem /clang/includes  $(LIBS_CLANG_TIDY)
+
 	tools/generate_compile_commands.py \
 	    --compiler=$(CXX) \
 	    --output-file=$@ \
