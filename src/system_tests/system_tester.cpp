@@ -362,7 +362,7 @@ void system_test::SystemTestRunner::launchCholla()
   // As we've highlighted in the implementation of `ParamArgListBuilder::param` (for
   // strings), the choice to launch Cholla by calling the system function is quite
   // messy since the argument to `system` is executed by the shell (this leads to
-  // messy) argument quoting. A more robust is to bypass the shell.
+  // messy) argument quoting. A more robust method is to bypass the shell.
   //
   // There are 2 ways to do this:
   // * the modern approach is to use `posix_spawn` (or `posix_spawnp`)
