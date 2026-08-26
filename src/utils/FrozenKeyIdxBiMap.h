@@ -60,7 +60,7 @@ struct FNV1aHasher {
       if (key[i] == '\0') {
         return {HashRsltPack{static_cast<uint16_t>(i), hash}};
       }
-      hash = (hash ^ key[i]) * FNV1A_PRIME;
+      hash = (hash ^ static_cast<std::uint8_t>(key[i])) * FNV1A_PRIME;
     }
     return std::nullopt;
   }
@@ -74,7 +74,7 @@ struct FNV1aHasher {
     }
     std::uint32_t hash = FNV1A_OFFSET;
     for (int i = 0; i < len; i++) {
-      hash = (hash ^ key[i]) * FNV1A_PRIME;
+      hash = (hash ^ static_cast<std::uint8_t>(key[i])) * FNV1A_PRIME;
     }
     return {HashRsltPack{static_cast<uint16_t>(len), hash}};
   }
