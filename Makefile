@@ -195,8 +195,7 @@ LIBS_CLANG_TIDY     := $(subst -I/, -isystem /,$(LIBS))
 # This tells clang-tidy that the path after each -isystem command is a system library so that it can be easily ignored by the header filter regex
 LIBS_CLANG_TIDY     += -isystem $(MPI_ROOT)/include -isystem $(HDF5_ROOT)/include
 CXXFLAGS_CLANG_TIDY := $(LDFLAGS)
-GPUFLAGS_CLANG_TIDY := $(filter-out -ccbin=mpicxx -fmad=false --expt-extended-lambda,$(GPUFLAGS))
-GPUFLAGS_CLANG_TIDY += --cuda-host-only --cuda-path=$(CUDA_ROOT) -isystem /clang/includes
+GPUFLAGS_CLANG_TIDY := $(GPUFLAGS) --cuda-host-only --cuda-path=$(CUDA_ROOT) -isystem /clang/includes
 
 ifdef TIDY_FILES
   TARGET_TIDY_FILES := $(filter $(TIDY_FILES), $(CPPFILES)) \
@@ -245,6 +244,7 @@ $(BUILDDIR)/compile_commands.json: src/cholla_config.h tools/generate_compile_co
 	    --sources $(GPUFILES) \
 	    --directory=$(PROJDIR) \
 	    --outputs-suffix=.o \
+	    --strip-nvcc-flags \
 	    -- $(GPUFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)
 	tools/generate_compile_commands.py \
 	    --compiler=$(CXX) \

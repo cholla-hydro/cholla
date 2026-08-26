@@ -10,8 +10,40 @@ import dataclasses
 import itertools
 import json
 import os
+import re
 import sys
-from typing import Iterator, List, Optional, Tuple
+from typing import Iterable, Iterator, List, Optional, Tuple
+
+
+def _skip_nvcc_compile_compile_args(compile_args: Iterable[str]) -> Iterator[str]:
+    """Filters out any nvcc-specific compile commands."""
+    # -> we may need to add more known options over time
+    # -> this is written in a generic enough way that we could factor out some logic
+    #    if we wanted to do a similar kind of thing for HIP compiler args
+    boolean_opts = ["--expt-extended-lambda"]
+    opts_with_1_arg = ["-ccbin", "-fmad"]
+
+    # build up regex-matchers
+    _self_contained_opts = [re.escape(opt) for opt in boolean_opts]
+    _argpair_leaders = [re.escape(opt) for opt in opts_with_1_arg]
+    if _argpair_leaders:
+        _self_contained_opts.append(f"({'|'.join(_argpair_leaders)})=.+")
+    _argpair_leader_matcher = re.compile(f"^({'|'.join(_argpair_leaders)})$")
+    _self_contained_matcher = re.compile(f"^({'|'.join(_self_contained_opts)})$")
+
+    itr = iter(compile_args)
+    for elem in itr:
+        if _self_contained_matcher.match(elem):
+            # print(f"skipping: {elem!r}")
+            continue
+        elif _argpair_leader_matcher.match(elem):
+            # the next line consumes the 2nd element of the argument-pair
+            # (we suppress the ruff-lint about the variable being unused)
+            second = next(itr)  # noqa: F841
+            # print(f"skipping: {elem!r} {second!r}")
+            continue
+        else:
+            yield elem
 
 
 @dataclasses.dataclass
@@ -44,22 +76,21 @@ class MyEncoder(json.JSONEncoder):
 
 
 def prepare_database_entries(args: argparse.Namespace) -> Iterator[DatabaseEntry]:
-    directory = args.directory
+    compiler_opts = args.compiler_opts
+    if args.strip_nvcc_flags:
+        compiler_opts = list(_skip_nvcc_compile_compile_args(compiler_opts))
+    leading_args = [args.compiler] + compiler_opts
+
     for source in args.sources:
         tmp = os.path.splitext(source)
         assert tmp[1] != ""
         output = f"{tmp[0]}{args.outputs_suffix}"
-
-        kw = {}
-        if directory is not None:
-            kw["directory"] = directory
-        arguments = [args.compiler]
-        arguments.extend(args.compiler_opts)
-        arguments.extend(["-c", source, "-o", output])
-        kw["arguments"] = arguments
-        kw["file"] = source
-        kw["output"] = output
-        yield DatabaseEntry(**kw)
+        yield DatabaseEntry(
+            directory=args.directory,
+            file=source,
+            arguments=leading_args + ["-c", source, "-o", output],
+            output=output,
+        )
 
 
 def main(arg_list: Optional[List[str]] = None):
@@ -102,6 +133,9 @@ def main(arg_list: Optional[List[str]] = None):
             "Paths to files that compilation databases are read from. This option "
             "only exists for the purpose of concatenation"
         ),
+    )
+    parser.add_argument(
+        "--strip-nvcc-flags", action="store_true", help="remove known nvcc flags"
     )
     parser.add_argument(
         "compiler_opts",
