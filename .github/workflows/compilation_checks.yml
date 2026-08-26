@@ -80,8 +80,11 @@ jobs:
           buildChollaTests
 
       - name: Run clang-tidy
-        # we should really consider running with HIP, but that will require a few
-        # extra steps
+        # running with HIP is a little tricky
+        # -> it may be possible, but it fundamentally relies upon clang's ability to
+        #    parse HIP code
+        # -> to be clear, we currently rely upon clang's ability to parse CUDA, but
+        #    my impression is that this is more robust
         if: ${{ matrix.container.name == 'CUDA' }}
         run: |
           source config/run_tests.sh
