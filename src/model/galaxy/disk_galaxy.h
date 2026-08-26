@@ -6,8 +6,8 @@
 #include <memory>
 #include <random>
 
-#include "../global/global.h"
-#include "../utils/error_handling.h"
+#include "../../global/global.h"
+#include "../../utils/error_handling.h"
 
 // we are bending over backwards to ensure that the functionality defined in
 // "potentials.h" can be used on CPUs and on GPUs
@@ -214,11 +214,13 @@ inline Real Get_Gas_Truncation_Radius(const Parameters& p)
   return p.xlen / 2.0 - 0.3;
 }
 
-// Forward declare galaxy instances. These are defined in disk_galaxy.cu
 namespace galaxies
 {
-extern const ClusteredDiskGalaxy MW;
-extern const DiskGalaxy M82;
+
+// temporary helper function that is being used while we transition
+// to dynamically construct the galaxy model from the parameter file
+ClusteredDiskGalaxy make_MW_model();
+
 };  // namespace galaxies
 
 #endif  // DISK_GALAXY

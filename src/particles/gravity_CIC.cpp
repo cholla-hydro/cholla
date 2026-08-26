@@ -8,7 +8,6 @@
   #include "../global/global.h"
   #include "../grid/grid3D.h"
   #include "../io/io.h"
-  #include "../model/disk_galaxy.h"
   #include "density_CIC.h"
   #include "math.h"
   #include "particles_3D.h"

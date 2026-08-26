@@ -11,7 +11,7 @@
 
   #include "../grid/grid3D.h"
   #include "../io/io.h"
-  #include "../model/disk_galaxy.h"
+  #include "../model/galaxy/disk_galaxy.h"
   #include "../utils/error_handling.h"
   #include "../utils/prng_utilities.h"
 
@@ -66,7 +66,7 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
 
   #endif
 
-  Particles.Initialize(P, spatial_props, H.xbound, H.ybound, H.zbound, H.xdglobal, H.ydglobal, H.zdglobal);
+  Particles.Initialize(P, spatial_props, H.xbound, H.ybound, H.zbound, H.xdglobal, H.ydglobal, H.zdglobal, models());
 
   #if defined(PARTICLES_GPU) && defined(GRAVITY_GPU)
   // Set the GPU array for the particles potential equal to the Gravity GPU
@@ -96,7 +96,8 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
 }
 
 void Particles3D::Initialize(Parameters *P, const SpatialDomainProps &spatial_props, Real xbound, Real ybound,
-                             Real zbound, Real xdglobal, Real ydglobal, Real zdglobal)
+                             Real zbound, Real xdglobal, Real ydglobal, Real zdglobal,
+                             const ModelCollection &model_collection)
 {
   // Initialize local and total number of particles to 0
   n_local         = 0;
@@ -253,11 +254,11 @@ void Particles3D::Initialize(Parameters *P, const SpatialDomainProps &spatial_pr
 
   // Initialize Particles
   if (strcmp(P->init, "Spherical_Overdensity_3D") == 0) {
-    Initialize_Sphere(P);
+    Initialize_Sphere(P, model_collection);
   } else if (strcmp(P->init, "Zeldovich_Pancake") == 0) {
-    Initialize_Zeldovich_Pancake(P);
+    Initialize_Zeldovich_Pancake(P, model_collection);
   } else if (strcmp(P->init, "Adiabatic_Expansion") == 0) {
-    Initialize_Adiabatic_Expansion(P);
+    Initialize_Adiabatic_Expansion(P, model_collection);
   #ifdef COSMOLOGY
   } else if (strcmp(P->init, "Cosmological_ICs") == 0) {
     Initialize_Cosmological_ICs_Particles(P, xbound, ybound, zbound, xdglobal, ydglobal, zdglobal);
@@ -265,9 +266,9 @@ void Particles3D::Initialize(Parameters *P, const SpatialDomainProps &spatial_pr
   } else if (strcmp(P->init, "Read_Grid") == 0) {
     Load_Particles_Data(P);
   } else if (strcmp(P->init, "Isolated_Stellar_Cluster") == 0) {
-    Initialize_Isolated_Stellar_Cluster(P);
+    Initialize_Isolated_Stellar_Cluster(P, model_collection);
   } else if (strcmp(P->init, "Disk_3D_particles") == 0) {
-    Initialize_Disk_Stellar_Clusters(P);
+    Initialize_Disk_Stellar_Clusters(P, model_collection);
   }
 
   #ifdef MPI_CHOLLA
@@ -521,7 +522,7 @@ void Particles3D::Initialize_Grid_Values(void)
   }
 }
 
-void Particles3D::Initialize_Sphere(struct Parameters *P)
+void Particles3D::Initialize_Sphere(struct Parameters *P, const ModelCollection &model_collection)
 {
   // Initialize Random positions for sphere of quasi-uniform density
   chprintf(" Initializing Particles Uniform Sphere\n");
@@ -827,7 +828,7 @@ void Particles3D::Initialize_Stellar_Clusters_Helper_(std::map<std::string, real
 
 /* Initializes an isolated stellar cluster
  */
-void Particles3D::Initialize_Isolated_Stellar_Cluster(struct Parameters *P)
+void Particles3D::Initialize_Isolated_Stellar_Cluster(struct Parameters *P, const ModelCollection &model_collection)
 {
   std::map<std::string, int_vector_t> int_props   = {{"id", {}}};
   std::map<std::string, real_vector_t> real_props = {
@@ -966,7 +967,7 @@ struct StarClusterInitRsltPack {
   std::map<std::string, real_vector_t> real_props;
 };
 
-/* Helper function used to initialize the properties of stellar-clusters in a disk
+/*! \brief Helper function used to initialize the properties of stellar-clusters in a disk
  *
  * This initializes all necessary clusters in a simulation. The "age" property
  * effectively specifies the formation time. If the simulation time is smaller
@@ -978,10 +979,11 @@ struct StarClusterInitRsltPack {
  * \param t_max specifies the final time at which we want to form a cluster. This
  *     typically coincides with the final simulation time.
  * \param G specifies the domain properties
+ * \param model_galaxy Specifies the relevant model galaxy
  */
 template <bool UsePoissonPointProcess = false>
 StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64 &generator, const Real R_max, const Real t_max,
-                                                   const Particles3D::Grid &G)
+                                                   const Particles3D::Grid &G, const ClusteredDiskGalaxy &model_galaxy)
 {
   // todo: move away from using the distribution functions defined in the standard library
   //  -> apparently, the results of distribution functions are not portable across different
@@ -992,7 +994,7 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64 &generator, c
   // fetch governing physical parameters:
   // todo: store the following directly within the Galaxy object
   const Real SFR               = 2e3;                           // global MW SFR: 2 SM / yr
-  const Real Rgas_scale_length = galaxies::MW.getGasDiskR_d();  // gas-disk scale length
+  const Real Rgas_scale_length = model_galaxy.getGasDiskR_d();  // gas-disk scale length
   // the following are theoretically tunable
   const Real k_s_power = 1.4;              // the power in the Kennicut-Schmidt law
                                            // (at the moment, this isn't tunable)
@@ -1045,7 +1047,7 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64 &generator, c
   std::uniform_real_distribution<Real> phiDist(0, 2 * M_PI);  // for generating phi
   std::normal_distribution<Real> speedDist(0, 1);             // for generating random speeds.
 
-  ClusterCreator<UsePoissonPointProcess> cluster_creator(galaxies::MW.getClusterMassDistribution(), SFR,
+  ClusterCreator<UsePoissonPointProcess> cluster_creator(model_galaxy.getClusterMassDistribution(), SFR,
                                                          earliest_t_formation);
 
   // initialize the std::map instances of vectors used to hold the output properties
@@ -1106,9 +1108,9 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64 &generator, c
       }
 
   #ifdef GRAVITY
-      Real vPhi = std::sqrt(galaxies::MW.circular_vel2_with_selfgrav_estimates(R, z));
+      Real vPhi = std::sqrt(model_galaxy.circular_vel2_with_selfgrav_estimates(R, z));
   #else
-      Real vPhi = std::sqrt(galaxies::MW.circular_vel2(R, z));
+      Real vPhi = std::sqrt(model_galaxy.circular_vel2(R, z));
   #endif
 
       Real vx = -vPhi * sin(phi);
@@ -1148,11 +1150,14 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64 &generator, c
 /**
  *   Initializes a disk population of stellar clusters
  */
-void Particles3D::Initialize_Disk_Stellar_Clusters(struct Parameters *P)
+void Particles3D::Initialize_Disk_Stellar_Clusters(struct Parameters *P, const ModelCollection &model_collection)
 {
   // this function makes certain implicit assumptions about the present particle
   // properties (e.g. "age", "mass", "ids"). These assumptions are explicitly checked
   // for us within Initialize_Stellar_Clusters_Helper_ at runtime
+
+  const ClusteredDiskGalaxy *galaxy_model = model_collection.try_get<ClusteredDiskGalaxy>();
+  CHOLLA_ASSERT(galaxy_model != nullptr, "no galaxy model was initialized");
 
   chprintf(" Initializing Particles Stellar Disk\n");
 
@@ -1166,16 +1171,17 @@ void Particles3D::Initialize_Disk_Stellar_Clusters(struct Parameters *P)
   // to remove the older strategy of determining cluster formation times
   bool poisson_process_formation_strat = true;
 
-  StarClusterInitRsltPack pack = (poisson_process_formation_strat)
-                                     ? disk_stellar_cluster_init_<true>(generator, R_max, t_max, this->G)
-                                     : disk_stellar_cluster_init_<false>(generator, R_max, t_max, this->G);
+  StarClusterInitRsltPack pack =
+      (poisson_process_formation_strat)
+          ? disk_stellar_cluster_init_<true>(generator, R_max, t_max, this->G, *galaxy_model)
+          : disk_stellar_cluster_init_<false>(generator, R_max, t_max, this->G, *galaxy_model);
 
   this->n_local = pack.int_props.at("id").size();  // may be a little redundant
 
   this->Initialize_Stellar_Clusters_Helper_(pack.real_props, pack.int_props);
 }
 
-void Particles3D::Initialize_Zeldovich_Pancake(struct Parameters *P)
+void Particles3D::Initialize_Zeldovich_Pancake(struct Parameters *P, const ModelCollection &model_collection)
 {
   // No particles for the Zeldovich Pancake problem. n_local=0
 
@@ -1187,7 +1193,7 @@ void Particles3D::Initialize_Zeldovich_Pancake(struct Parameters *P)
   chprintf(" Particles Zeldovich Pancake Initialized, n_local: %lu\n", n_local);
 }
 
-void Particles3D::Initialize_Adiabatic_Expansion(struct Parameters *P)
+void Particles3D::Initialize_Adiabatic_Expansion(struct Parameters *P, const ModelCollection &model_collection)
 {
   // No particles for the Adiabatic Expansion problem. n_local=0
 
