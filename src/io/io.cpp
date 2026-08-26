@@ -34,6 +34,9 @@
 #ifdef COSMOLOGY
   #include "../cosmology/cosmology.h"
 #endif  // COSMOLOGY
+#ifdef RT
+  #include "../radiation/radiation.h"
+#endif
 
 /* Generate the log output file */
 void Create_Log_File(struct Parameters P)
@@ -88,6 +91,11 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
   // ensure the output-directory exists (try to create it if it doesn't exist)
   Ensure_Dir_Exists(write_manager.fname_template().effective_output_dir_path(nfile));
 
+#ifdef RT
+  // copy RT fields to CPU
+  G.Rad.Copy_RT_Fields();
+#endif
+
 #ifdef HDF5
   // Initialize HDF5 interface
   H5open();
@@ -119,7 +127,7 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
   write_manager.Apply_Writers(G, P, nfile);
 
 #ifdef COSMOLOGY
-  if (G.H.OUTPUT_SCALE_FACOR || G.H.Output_Initial) {
+  if (G.H.OUTPUT_SCALE_FACTOR || G.H.Output_Initial) {
     G.Cosmo.Set_Next_Scale_Output();
     if (!G.Cosmo.exit_now) {
       chprintf(" Saved Snapshot: %d     z:%f   next_output: %f\n", nfile, G.Cosmo.current_z,

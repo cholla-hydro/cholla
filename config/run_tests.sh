@@ -82,6 +82,10 @@ setupTests ()
       export CHOLLA_MACHINE='c3po'
       export CHOLLA_LAUNCH_COMMAND='mpirun -np'
       ;;
+    *sparkle*)
+      export CHOLLA_MACHINE='sparkle'
+      export CHOLLA_LAUNCH_COMMAND='mpirun -np'
+      ;;
     *frontier* | *crusher*)
       export CHOLLA_MACHINE='frontier'
       export CHOLLA_LAUNCH_COMMAND='srun -n'

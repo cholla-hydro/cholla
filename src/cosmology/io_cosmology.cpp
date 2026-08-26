@@ -11,7 +11,7 @@ void Cosmology::Load_Scale_Outputs(struct Parameters *P)
   char filename_1[100];
   // create the filename to read from
   strcpy(filename_1, P->scale_outputs_file);
-  chprintf(" Loading Scale_Factor Outputs: %s\n", filename_1);
+  chprintf(" Loading Scale_Factor Outputs: %s %s\n", filename_1, P->scale_outputs_file);
 
   std::ifstream file_out(filename_1);
   std::string line;
