@@ -182,6 +182,9 @@ class ParameterMap
   int warn_unused_parameters(const std::set<std::string>& ignore_params, bool abort_on_warning = false,
                              bool suppress_warning_msg = false) const;
 
+  /*! \brief Checks whether the specified table name was specified in the parameter file */
+  bool Contains_Table(std::string table_name) const;
+
   /*! Aborts with an error message if one or more of the parameters in the specified table has been used or has not
    *  been used. The precise details depend on the `expect_unused` argument.
    *

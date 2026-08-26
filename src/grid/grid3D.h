@@ -16,6 +16,7 @@
 #include "../global/global_cuda.h"
 #include "../grid/field_info.h"
 #include "../io/FnameTemplate.h"
+#include "../model/model_collection.h"
 
 #ifdef HDF5
   #include <hdf5.h>
@@ -28,8 +29,6 @@
 #ifdef PARTICLES
   #include "../particles/particles_3D.h"
 #endif
-
-#include "../model/disk_galaxy.h"
 
 #ifdef COSMOLOGY
   #include "../cosmology/cosmology.h"
@@ -248,6 +247,9 @@ class Grid3D
 
   /*! Describes the mapping between field names and field indices */
   FieldInfo field_info;
+
+  /*! Holds all models (if any) */
+  ModelCollection model_collection;
 
 #ifdef GRAVITY
   // Object that contains data for gravity
@@ -691,6 +693,12 @@ class Grid3D
   void Unload_Hydro_DeviceBuffer_Z0(Real *buffer);
   void Unload_Hydro_DeviceBuffer_Z1(Real *buffer);
 #endif /*MPI_CHOLLA*/
+
+  /*! \brief initialize the model collection */
+  void Initialize_Models(ParameterMap &pmap) { model_collection = ModelCollection(pmap); }
+
+  /*! \brief get the model collection */
+  const ModelCollection &models() const { return model_collection; }
 
 #ifdef GRAVITY
   void Initialize_Gravity(struct Parameters *P, ParameterMap &pmap);
