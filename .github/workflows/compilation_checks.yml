@@ -25,8 +25,8 @@ jobs:
       matrix:  # Matrix for different make-types and platforms
         make-type: [hydro, gravity, disk, particles, cosmology, mhd, dust, cooling]
         container:
-          - {name: "CUDA", link: "ghcr.io/cholla-hydro/cholla-cuda:sha-d9e38eb"}
-          - {name: "HIP", link: "ghcr.io/cholla-hydro/cholla-rocm:sha-d9e38eb"}
+          - {name: "CUDA", link: "ghcr.io/cholla-hydro/cholla-cuda:sha-7c1ea34"}
+          - {name: "HIP", link: "ghcr.io/cholla-hydro/cholla-rocm:sha-7c1ea34"}
     env:  # Set environment variables
       CHOLLA_MAKE_TYPE: ${{ matrix.make-type }}
 
