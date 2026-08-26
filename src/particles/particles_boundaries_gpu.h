@@ -16,10 +16,10 @@ void Load_Particles_to_Transfer_Int_GPU_function(int n_transfer, int field_id, i
                                                  part_int_t *field_d, int *transfer_indices_d, Real *send_buffer_d,
                                                  Real domainMin, Real domainMax, int boundary_type);
 
-void Replace_Transfered_Particles_GPU_function(int n_transfer, Real *field_d, int *transfer_indices_d,
-                                               int *replace_indices_d, bool print_replace);
-void Replace_Transfered_Particles_Int_GPU_function(int n_transfer, part_int_t *field_d, int *transfer_indices_d,
-                                                   int *replace_indices_d, bool print_replace);
+void Replace_Transferred_Particles_GPU_function(int n_transfer, Real *field_d, int *transfer_indices_d,
+                                                int *replace_indices_d, bool print_replace);
+void Replace_Transferred_Particles_Int_GPU_function(int n_transfer, part_int_t *field_d, int *transfer_indices_d,
+                                                    int *replace_indices_d, bool print_replace);
 
 void Copy_Particles_GPU_Buffer_to_Host_Buffer(int n_transfer, Real *buffer_h, Real *buffer_d);
 

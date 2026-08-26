@@ -103,10 +103,29 @@ char *Trim(char *s)
 
 // NOLINTNEXTLINE(cert-err58-cpp)
 // NOLINTNEXTLINE(*)
-const std::set<std::string> optionalParams = {"flag_delta",   "ddelta_dt",  "n_delta", "Lz",  "Lx", "phi",
-                                              "theta",        "delta",      "nzr",     "nxr", "H0", "Omega_M",
-                                              "Omega_L",      "Omega_R",    "Omega_K", "w0",  "wa", "Init_redshift",
-                                              "End_redshift", "tile_length"};  // NOLINT
+const std::set<std::string> optionalParams = {"flag_delta",
+                                              "ddelta_dt",
+                                              "n_delta",
+                                              "Lz",
+                                              "Lx",
+                                              "phi",
+                                              "theta",
+                                              "delta",
+                                              "nzr",
+                                              "nxr",
+                                              "H0",
+                                              "Omega_M",
+                                              "Omega_L",
+                                              "Omega_R",
+                                              "Omega_K",
+                                              "w0",
+                                              "wa",
+                                              "Init_redshift",
+                                              "End_redshift",
+                                              "tile_length",
+                                              "outstep_dexinc",
+                                              "max_timestep_dexinc",
+                                              "max_timestep"};  // NOLINT //BRANT
 
 void Warn_Unused_Params(ParameterMap &pmap) { pmap.warn_unused_parameters(optionalParams); }
 
@@ -185,8 +204,11 @@ Parameters::Parameters(ParameterMap &pmap)
   parms->tout = pmap.value<double>("tout");  // aborts if missing
   CHOLLA_ASSERT(parms->tout >= 0.0, "tout parameter must be non-negative");
 
-  parms->outstep        = pmap.value<double>("outstep");  // aborts if missing
-  parms->n_steps_output = pmap.value_or("n_steps_output", 0);
+  parms->outstep             = pmap.value<double>("outstep");                    // aborts if missing
+  parms->outstep_dexinc      = Real(pmap.value_or("outstep_dexinc", 0.0));       // BRANT
+  parms->max_timestep_dexinc = Real(pmap.value_or("max_timestep_dexinc", 0.0));  // BRANT
+  parms->max_timestep        = Real(pmap.value_or("max_timestep", 0.0));         // BRANT
+  parms->n_steps_output      = pmap.value_or("n_steps_output", 0);
 
   // in the future, maybe we should provide a default value of 5/3 for gamma
   parms->gamma = Real(pmap.value<double>("gamma"));
@@ -340,8 +362,19 @@ Parameters::Parameters(ParameterMap &pmap)
   parms->Omega_L       = pmap.value<double>("Omega_L");
   parms->Omega_b       = pmap.value<double>("Omega_b");
   parms->Omega_R       = pmap.value_or("Omega_R", 0.0);
+  parms->T_init        = pmap.value_or("T_init", -1.0);
   parms->w0            = pmap.value_or("w0", -1.0);
   parms->wa            = pmap.value_or("wa", 0.0);
+  parms->cosmoics_seed = pmap.value_or("cosmoics_seed", 1337);
+  // Hydrogen, Helium ionization fractions and helium mass fraction
+  parms->YHe           = pmap.value_or("YHe", 0.24);
+  parms->xHp_ion_init  = pmap.value_or("xHp_ion_init", 0.0);
+  parms->xHep_ion_init = pmap.value_or("xHep_ion_init", 0.0);
+
+  Load_String_Param_Into_Char_Buffer(pmap, "cosmo_ics_pk_file", parms->cosmo_ics_pk_file, "Pk.txt");
+  if (pmap.has_param("cosmo_ics_pk_file")) {
+    chprintf("Power spectrum file: %s\n", parms->cosmo_ics_pk_file);
+  }
 
   // if the wDE table isn't provided, store an empty string
   parms->wDE_file = pmap.value_or("wDE_file", "");
@@ -349,7 +382,16 @@ Parameters::Parameters(ParameterMap &pmap)
 #endif  // COSMOLOGY
 
 #if defined(CHEMISTRY_GPU) || defined(COOLING_GRACKLE)
-  Load_String_Param_Into_Char_Buffer(pmap, "UVB_rates_file", parms->UVB_rates_file, nullptr);
+  // Not all chemistry_gpu will have a rates file
+  if (pmap.has_param("UVB_rates_file")) {
+    Load_String_Param_Into_Char_Buffer(pmap, "UVB_rates_file", parms->UVB_rates_file, nullptr);
+    chprintf("UVB_rates_file %s\n", parms->UVB_rates_file);
+  }
+#endif
+
+  // number of RT iterations
+#ifdef RT
+  parms->rt_num_iterations = pmap.value_or("rt_num_iterations", 10);
 #endif
 
   // we should probably revisit this section and come up with different default behaviors.

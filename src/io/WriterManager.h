@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <string>
+#include <utility>  // std::move
 #include <vector>
 
 #include "../global/global.h"
@@ -32,6 +33,18 @@ struct WriterPack {
   int cadence;
   /*! specifes the writer-function or function-like object */
   const WriterFn fn;
+
+  /*! \brief Primary Constructor
+   *
+   *  \note this primarily exists to satisfy a clang-tidy warning about using
+   *  the `vector::emplace_back`. Essentially, this acts just like "aggregate
+   *  initialization" but lets you surround the arguments in parentheses (in c++20, we
+   *  can get rid of this)
+   */
+  WriterPack(std::string name, int cadence, WriterFn fn) noexcept
+      : name(std::move(name)), cadence{cadence}, fn(std::move(fn))
+  {
+  }
 };
 
 }  // namespace detail

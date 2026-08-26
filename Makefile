@@ -238,10 +238,17 @@ tidy:
 # - --warnings-as-errors=<string> Upgrade all warnings to error, good for CI
 	clang-tidy --verify-config
 	@echo -e
-	(time clang-tidy $(CLANG_TIDY_ARGS) $(CPPFILES_TIDY) -- $(CXXFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_cpp_$(TYPE).log 2>&1 & \
+	((time clang-tidy $(CLANG_TIDY_ARGS) $(CPPFILES_TIDY) -- $(CXXFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_cpp_$(TYPE).log 2>&1 & \
 	(time clang-tidy $(CLANG_TIDY_ARGS) $(GPUFILES_TIDY) -- $(GPUFLAGS_CLANG_TIDY) $(LIBS_CLANG_TIDY)) > tidy_results_gpu_$(TYPE).log 2>&1 & \
-	for i in 1 2; do wait -n; done
-	@echo -e "\nResults from clang-tidy are available in the 'tidy_results_cpp_$(TYPE).log' and 'tidy_results_gpu_$(TYPE).log' files."
+	wait -n; ExitCodeA=$$?; \
+	wait -n; ExitCodeB=$$?; \
+	echo -e "\nResults from clang-tidy are available in the 'tidy_results_cpp_$(TYPE).log' and 'tidy_results_gpu_$(TYPE).log' files."; \
+	if [ $$ExitCodeA -eq 0 ] && [ $$ExitCodeB -eq 0 ]; then \
+	  exit 0; \
+	else \
+	  echo "clang-tidy failed"; \
+	  exit 1; \
+	fi)
 
 clean:
 	rm -f $(CLEAN_OBJS) $(DLINK) src/cholla_config.h
