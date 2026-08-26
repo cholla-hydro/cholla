@@ -62,7 +62,7 @@ indir="path/to/input-data"
 outdir='path/to/output'
 ```
 
-In the snipet, the value associated with `indir` is a "basic string" (i.e. it is enclosed by a pair of `"` characters), while the value associated with `outdir` is a "raw string" (it is enclosed by a pair of `'` characters.
+In the snippet, the value associated with `indir` is a "basic string" (i.e. it is enclosed by a pair of `"` characters), while the value associated with `outdir` is a "raw string" (it is enclosed by a pair of `'` characters.
 A "basic string" supports escaped characters (for now, we forbid escaped characters of the form `\uXXXX` or `\UXXXXXXXX`).
 Precise definitions are provided [here](https://toml.io/en/v1.0.0#string).
 
