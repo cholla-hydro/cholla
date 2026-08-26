@@ -9,9 +9,9 @@
 #include <cmath>
 #include <vector>
 
-#include "../global/global.h"
-#include "../io/io.h"
-#include "../utils/error_handling.h"
+#include "../../global/global.h"
+#include "../../io/io.h"
+#include "../../utils/error_handling.h"
 #include "potentials.h"
 
 /* This provides some analytic solutions for a razor-thin exponential disk*/

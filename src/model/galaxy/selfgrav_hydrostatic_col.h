@@ -8,8 +8,8 @@
 #include <limits>
 #include <type_traits>
 
-#include "../global/global.h"
-#include "../utils/error_handling.h"
+#include "../../global/global.h"
+#include "../../utils/error_handling.h"
 
 namespace ode_detail
 {
