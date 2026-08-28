@@ -89,11 +89,13 @@ _STRING_PARAMS = {
     "chemistry.data_file",
     "init",
     "custom_bcnd",
+    "cosmo_ics_pk_file",
     "outdir",
     "snr_filename",
     "sw_filename",
     "scale_outputs_file",
     "UVB_rates_file",
+    "wDE_file",
     "analysis_scale_outputs_file",
     "analysisdir",
     "skewersdir",
@@ -104,6 +106,7 @@ _STRING_PARAMS = {
     "feedback.snr_filename",
     "feedback.sn_model",
     "feedback.sn_rate",
+    "feedback.sw_model",
 }
 
 
