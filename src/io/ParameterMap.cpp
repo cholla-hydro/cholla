@@ -92,10 +92,7 @@ param_details::TypeErr param_details::try_double_(const std::string& str, double
 
 param_details::TypeErr param_details::try_string_(const std::string& str, std::string& val)
 {
-  // printf("trying to parse: %s\n", str.c_str());
   std::pair<std::size_t, std::string> rslt = io::try_parse_param_str(str);
-  // printf("-> pos = %d, (actual size = %d)\n", (int)rslt.first, (int)str.size());
-  // printf("-> parsed val:%s\n", rslt.second.c_str());
   if (rslt.first == 0) {  // <- it simply wasn't a valid string
     return param_details::TypeErr::generic;
   } else if (rslt.first != str.size()) {
