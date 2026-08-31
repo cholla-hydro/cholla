@@ -93,12 +93,12 @@ param_details::TypeErr param_details::try_double_(const std::string& str, double
 param_details::TypeErr param_details::try_string_(const std::string& str, std::string& val)
 {
   std::pair<std::size_t, std::string> rslt = io::try_parse_param_str(str);
-  if (rslt.first == 0) {  // <- it simply wasn't a valid string
-    return param_details::TypeErr::generic;
-  } else if (rslt.first != str.size()) {
-    // in this scenario, val could look like
-    // > 'hi'there
-    // and rslt.second holds "hi"
+  if (rslt.first == 0 || rslt.first != str.size()) {
+    // rslt == 0 -> str simply was a valid string
+    // rslt != str.size() ->
+    //   in this scenario, val could look like
+    //   > 'hi'there
+    //   and rslt.second holds "hi"
     return param_details::TypeErr::generic;
   }
   val = rslt.second;
