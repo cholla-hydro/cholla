@@ -11,14 +11,22 @@
   #include "../model/model_collection.h"
   #include "../utils/error_handling.h"
 
-/*! \brief aggregates properties of the buffer for boundary vals of the potential */
+/*! \brief aggregates properties of the buffer for boundary vals of the potential
+ *
+ *  \note It *might* make sense to generalize this for handling other kinds of boundary
+ *  conditions.
+ */
 struct BoundaryBufProps {
   int n_i;
   int n_j;
   int nGHST;
 };
 
-/*! \brief retrieve the boundary_buf for the potential and associated properties */
+/*! \brief retrieve the boundary_buf for the potential and associated properties
+ *
+ *  \note This is labelled maybe_unused since it isn't used unless certain compiler
+ *      macros are configured.
+ */
 [[maybe_unused]] static std::pair<Real *, BoundaryBufProps> Get_Boundary_Buf_(const Grav3D &Grav, int direction,
                                                                               int side)
 {
@@ -141,28 +149,19 @@ void Grid3D::Set_Potential_Boundaries_Isolated(int direction, int side, int *fla
  *
  *  \param[out] pot_boundary the buffer to be filled with the computed potential
  *  \param[in] boundary_buf_props Describes properties of \p pot_boundary
- *  \param[in] Grav Holds information needed to compute the spatial location of each
- *      location.
+ *  \param[in] SpatialDomainProps Holds information needed to compute the spatial
+ *      location of each location.
  *  \param[in] direction Encodes the axis of the boundary
  *  \param[in] side Encodes whether we are consider a left or right boundary
  *  \param[in] fn A function object that effectively has the signature
  *      `Real fn(Real x, Real y, Real z)`. In more detail, it returns the potential
  *      computed at a specified position.
- *
- *  \note
- *  Ideally, we might replace \p Grav with an instance of \ref SpatialDomainProps (or
- *  something similar). This will become in a future planned change that will factor
- *  out this logic and other logic pertaining the estimate for the dynamical potential.
- *  It's also more elegant (i.e. \ref Grav3D contains a lot of superfluous info) and
- *  makes it possible to invoke this logic on GPUs (we would just need to replace the
- *  for-loop with \ref gpuFor)
  */
 template <typename PotentialFn>
 static void Compute_Potential_Isolated_Boundary_Helper(Real *pot_boundary, const BoundaryBufProps &boundary_buf_props,
-                                                       const Grav3D &Grav, int direction, int side, PotentialFn fn)
+                                                       const SpatialDomainProps &spatial_props, int direction, int side,
+                                                       PotentialFn fn)
 {
-  const SpatialDomainProps &spatial_props = Grav.spatial_props;
-
   Real Lx_local = spatial_props.nx_local * spatial_props.dx;
   Real Ly_local = spatial_props.ny_local * spatial_props.dy;
   Real Lz_local = spatial_props.nz_local * spatial_props.dz;
@@ -233,7 +232,8 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
     };
 
     // now, use the calc_potential function to actually fill the boundaries
-    Compute_Potential_Isolated_Boundary_Helper(pot_boundary, boundary_buf_props, Grav, direction, side, calc_potential);
+    Compute_Potential_Isolated_Boundary_Helper(pot_boundary, boundary_buf_props, Grav.spatial_props, direction, side,
+                                               calc_potential);
   } else if (bc_potential_type == 1) {
     // The underlying assumption of PARIS_GALACTIC is that we have a good analytic
     // approximation the gravitation potential at the boundaries due to the dynamical density
@@ -267,7 +267,8 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
     };
 
     // now, use the calc_potential function to actually fill the boundaries
-    Compute_Potential_Isolated_Boundary_Helper(pot_boundary, boundary_buf_props, Grav, direction, side, calc_potential);
+    Compute_Potential_Isolated_Boundary_Helper(pot_boundary, boundary_buf_props, Grav.spatial_props, direction, side,
+                                               calc_potential);
   } else {
     CHOLLA_ERROR("Invalid bc_potential_type value: %d", bc_potential_type);
   }
