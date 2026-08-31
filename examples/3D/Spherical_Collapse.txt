@@ -33,3 +33,7 @@ zl_bcnd=1
 zu_bcnd=1
 # path to output directory
 outdir=./
+
+[model.spherical_overdensity]
+bkg_density=0.0005
+overdensity=1.0

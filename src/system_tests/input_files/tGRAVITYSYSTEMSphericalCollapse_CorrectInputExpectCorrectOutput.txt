@@ -33,3 +33,7 @@ zu_bcnd=1
 # path to output directory
 outdir=./
 bc_potential_type=0
+
+[model.spherical_overdensity]
+bkg_density=0.0005
+overdensity=1.0
