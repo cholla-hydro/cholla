@@ -193,14 +193,6 @@ struct Header {
   // Flag to indicate when to transfer the Conserved boundaries
   bool TRANSFER_HYDRO_BOUNDARIES;
 
-  // Parameters For Spherical Colapse Problem
-  Real sphere_density;
-  Real sphere_radius;
-  Real sphere_background_density;
-  Real sphere_center_x;
-  Real sphere_center_y;
-  Real sphere_center_z;
-
   // only meaningful when GRAVITY and GRAVITY_ANALYTIC_COMP are defined
   bool gas_only_use_static_grav;
 
