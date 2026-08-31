@@ -18,6 +18,11 @@ ModelCollection::ModelCollection(ParameterMap& pmap)
   // <model-subtable> will be replaced with the name of the corresponding parameter
   // file subtable
 
+  // the spherical overdensity model is a special case. We will start treating it like
+  // a normal case soon
+  SphericalOverdensity so_mdoel(pmap);
+  vec_.emplace_back(so_mdoel);
+
   // the galaxy_model is still a special case, we will start treating it like a normal
   // case soon
   ClusteredDiskGalaxy galaxy_model = galaxies::make_MW_model();
