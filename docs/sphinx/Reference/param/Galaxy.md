@@ -29,7 +29,7 @@ This anchor point gas properties arise at a spherical radius equal to {par:param
 
 ---
 
-:::{par:parameter} model.galaxy.gas_disk.init.rho_anchor_cgs
+:::{par:parameter} model.galaxy.cgm_init.rho_anchor_cgs
 
 :Summary: *Specifies a mass density that "anchors" the normalization of the CGM gas profile.*
 :Type: {par:typefmt}`string`
