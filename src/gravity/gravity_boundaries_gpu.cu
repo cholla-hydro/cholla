@@ -1,11 +1,12 @@
+
+#include <cmath>
+
+#include "../gravity/grav3D.h"
+#include "../grid/grid3D.h"
+#include "../io/io.h"
+#include "cholla_config.h"
+
 #if defined(GRAVITY) && defined(GRAVITY_GPU)
-
-  #include <cmath>
-
-  #include "../gravity/grav3D.h"
-  #include "../grid/grid3D.h"
-  #include "../io/io.h"
-
   #if defined(GRAV_ISOLATED_BOUNDARY_X) || defined(GRAV_ISOLATED_BOUNDARY_Y) || defined(GRAV_ISOLATED_BOUNDARY_Z)
 
 void __global__ Set_Potential_Boundaries_Isolated_kernel(int direction, int side, int size_buffer, int n_i, int n_j,

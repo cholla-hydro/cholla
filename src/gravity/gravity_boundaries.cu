@@ -1,15 +1,16 @@
+#include <cmath>
+#include <utility>
+
+#include "../gravity/grav3D.h"
+#include "../grid/grid3D.h"
+#include "../io/io.h"
+#include "../model/galaxy/disk_galaxy.h"
+#include "../model/galaxy/potentials.h"
+#include "../model/model_collection.h"
+#include "../utils/error_handling.h"
+#include "cholla_config.h"
+
 #ifdef GRAVITY
-
-  #include <cmath>
-  #include <utility>
-
-  #include "../gravity/grav3D.h"
-  #include "../grid/grid3D.h"
-  #include "../io/io.h"
-  #include "../model/galaxy/disk_galaxy.h"
-  #include "../model/galaxy/potentials.h"
-  #include "../model/model_collection.h"
-  #include "../utils/error_handling.h"
 
 /*! \brief aggregates properties of the buffer for boundary vals of the potential
  *
