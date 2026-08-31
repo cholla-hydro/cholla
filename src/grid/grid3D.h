@@ -332,6 +332,12 @@ class Grid3D
      */
     Real *dust_density;
   #endif
+  #ifdef METALS
+    /*! \var metal_density
+     *  \brief Array containing the metal densities.
+     */
+    Real *metal_density;
+  #endif
 #endif  // SCALAR
 
 #ifdef MHD
@@ -378,7 +384,7 @@ class Grid3D
     /*! pointer to conserved variable on device */
     Real *device;
     Real *d_density, *d_momentum_x, *d_momentum_y, *d_momentum_z, *d_Energy, *d_scalar, *d_basic_scalar,
-        *d_dust_density, *d_magnetic_x, *d_magnetic_y, *d_magnetic_z, *d_GasEnergy;
+        *d_dust_density, *d_metal_density, *d_magnetic_x, *d_magnetic_y, *d_magnetic_z, *d_GasEnergy;
 
     /*! pointer to gravitational potential on device
      *  - This is primarily used to hold the extrapolated potential
@@ -401,7 +407,7 @@ class Grid3D
   /*! Set the initial conditions based on already-parsed parameter info in the
    *  \ref Parameters arg or unparsed parameter-info in the \ref ParameterMap arg
    */
-  void Set_Initial_Conditions(Parameters P, const ParameterMap &pmap);
+  void Set_Initial_Conditions(Parameters P, ParameterMap &pmap);
 
   /*! \fn void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real
    * *zpos) \brief Get the cell-centered position based on cell index */
@@ -486,7 +492,7 @@ class Grid3D
    *
    * \param[in] P the parameters struct.
    */
-  void Constant(Parameters const &P);
+  void Constant(Parameters const &P, ParameterMap &pmap);
 
   /*!
    * \brief Sine wave perturbation.
@@ -571,15 +577,15 @@ class Grid3D
    * profile. */
   void Disk_3D(Parameters P);
 
-  /*! \fn void Set_Boundary_Conditions(Parameters P )
+  /*! \fn void Set_Boundary_Conditions(Parameters P, ParameterMap &pmap)
    *  \brief Set the boundary conditions based on info in the parameters
    * structure. */
-  void Set_Boundary_Conditions(Parameters P);
+  void Set_Boundary_Conditions(Parameters P, ParameterMap &pmap);
 
-  /*! \fn void Set_Boundary_Conditions_Grid(Parameters P )
+  /*! \fn void Set_Boundary_Conditions_Grid(Parameters P, ParameterMap &pmap )
    *  \brief Set the boundary conditions for all components based on info in the
    * parameters structure. */
-  void Set_Boundary_Conditions_Grid(Parameters P);
+  void Set_Boundary_Conditions_Grid(Parameters P, ParameterMap &pmap);
 
   /*! \fn int Check_Custom_Boundary(int *flags, struct Parameters P)
    *  \brief Check for custom boundary conditions */
@@ -593,13 +599,13 @@ class Grid3D
    *  \brief Set the extents of the ghost region we are initializing. */
   void Set_Boundary_Extents(int dir, int *imin, int *imax);
 
-  /*! \fn void Custom_Boundary(char bcnd[MAXLEN])
+  /*! \fn void Custom_Boundary(char bcnd[MAXLEN], ParameterMap &pmap)
    *  \brief Select appropriate custom boundary function. */
-  void Custom_Boundary(char bcnd[MAXLEN]);
+  void Custom_Boundary(char bcnd[MAXLEN], ParameterMap &pmap);
 
-  /*! \fn void Wind_Boundary()
+  /*! \fn void Wind_Boundary(ParameterMap &pmap)
    *  \brief Apply a constant wind to the -x boundary. */
-  void Wind_Boundary();
+  void Wind_Boundary(ParameterMap &pmap);
 
   /*! \fn void Noh_Boundary()
    *  \brief Apply analytic boundary conditions to +x, +y (and +z) faces,
@@ -616,7 +622,7 @@ class Grid3D
    * gravitational collapse */
   void Spherical_Overdensity_3D();
 
-  void Clouds();
+  void Clouds(ParameterMap &pmap);
 
   void Uniform_Grid();
 
@@ -667,7 +673,7 @@ class Grid3D
 #endif  // MHD
 
 #ifdef MPI_CHOLLA
-  void Set_Boundaries_MPI(struct Parameters P);
+  void Set_Boundaries_MPI(struct Parameters P, ParameterMap &pmap);
   void Set_Boundaries_MPI_BLOCK(int *flags, struct Parameters P);
   void Load_and_Send_MPI_Comm_Buffers(int dir, int *flags);
   void Wait_and_Unload_MPI_Comm_Buffers(int dir, int *flags);
@@ -695,8 +701,8 @@ class Grid3D
   const ModelCollection &models() const { return model_collection; }
 
 #ifdef GRAVITY
-  void Initialize_Gravity(struct Parameters *P);
-  void Compute_Gravitational_Potential(struct Parameters *P);
+  void Initialize_Gravity(struct Parameters *P, ParameterMap &pmap);
+  void Compute_Gravitational_Potential(struct Parameters *P, ParameterMap &pmap);
   void Copy_Hydro_Density_to_Gravity_Function(int g_start, int g_end);
   void Copy_Hydro_Density_to_Gravity();
   void Extrapolate_Grav_Potential_Function(int g_start, int g_end);
@@ -708,7 +714,7 @@ class Grid3D
   void Compute_Potential_Boundaries_Isolated(int dir, struct Parameters *P);
   void Compute_Potential_Isolated_Boundary(int direction, int side, int bc_potential_type);
   #ifdef SOR
-  void Get_Potential_SOR(Real Grav_Constant, Real dens_avrg, Real current_a, struct Parameters *P);
+  void Get_Potential_SOR(Real Grav_Constant, Real dens_avrg, Real current_a, struct Parameters *P, ParameterMap &pmap);
   int Load_Poisson_Boundary_To_Buffer(int direction, int side, Real *buffer);
   void Unload_Poisson_Boundary_From_Buffer(int direction, int side, Real *buffer_host);
   #endif
@@ -734,13 +740,13 @@ class Grid3D
 #endif  // GRAVITY_ANALYTIC_COMP
 
 #ifdef PARTICLES
-  void Initialize_Particles(struct Parameters *P);
+  void Initialize_Particles(struct Parameters *P, ParameterMap &pmap);
   void Initialize_Uniform_Particles();
   void Copy_Particles_Density_function(int g_start, int g_end);
   void Copy_Particles_Density();
-  void Copy_Particles_Density_to_Gravity(struct Parameters P);
+  void Copy_Particles_Density_to_Gravity(struct Parameters P, ParameterMap &pmap);
   void Set_Particles_Density_Boundaries_Periodic(int direction, int side);
-  void Transfer_Particles_Boundaries(struct Parameters P);
+  void Transfer_Particles_Boundaries(struct Parameters P, ParameterMap &pmap);
   Real Update_Grid_and_Particles_KDK(struct Parameters P);
   void Set_Particles_Boundary(int dir, int side);
   #ifdef PARTICLES_CPU
@@ -767,9 +773,8 @@ class Grid3D
   void Unload_Particles_From_Buffers_BLOCK(int index, int *flags);
   void Finish_Particles_Transfer();
   #endif  // MPI_CHOLLA
-  void Transfer_Particles_Density_Boundaries(struct Parameters P);
+  void Transfer_Particles_Density_Boundaries(struct Parameters P, ParameterMap &pmap);
   void Copy_Particles_Density_Buffer_Device_to_Host(int direction, int side, Real *buffer_d, Real *buffer_h);
-  // void Transfer_Particles_Boundaries( struct Parameters P );
   void WriteData_Particles(struct Parameters P, int nfile, const FnameTemplate &fname_template);
   void OutputData_Particles(struct Parameters P, int nfile, const FnameTemplate &fname_template);
   void Load_Particles_Data(struct Parameters P);

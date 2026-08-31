@@ -73,3 +73,15 @@ Can be used to enable photoelectric-heating when {par:param}`chemistry.kind` is 
 When {par:param}`chemistry.photoelectric_heating` is `true`, this parameter can be used to specify the average number-density in the domain in cgs units (which is used to compute impact of photoelectric heating).
 
 It is an error to specify this parameter when {par:param}`chemistry.photoelectric_heating` is `false`.
+
+:::
+
+---
+
+:::{par:parameter} chemistry.enable_heating
+
+:Summary: Enables UVB heating in `CloudyHeatandCool`
+:Type: {par:typefmt}`bool`
+:Default: `true`
+
+When {par:param}`enable_heating` is `true`, the net Cloudy cooling rate will take into account heating from a Hardt & Madau 2005 UV background. Must be set to `false` when using metallicity-dependent cooling (`chemistry.kind = metal-dependent`)
