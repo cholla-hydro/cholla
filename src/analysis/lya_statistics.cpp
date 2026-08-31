@@ -689,8 +689,8 @@ void AnalysisModule::Reduce_Lya_Mean_Flux_Global()
 {
   n_skewers_processed = n_skewers_processed_x + n_skewers_processed_y + n_skewers_processed_z;
   Flux_mean_HI        = (Flux_mean_HI_x * n_skewers_processed_x + Flux_mean_HI_y * n_skewers_processed_y +
-                  Flux_mean_HI_z * n_skewers_processed_z) /
-                 n_skewers_processed;
+                         Flux_mean_HI_z * n_skewers_processed_z) /
+                        n_skewers_processed;
   ;
   Flux_mean_HeII = (Flux_mean_HeII_x * n_skewers_processed_x + Flux_mean_HeII_y * n_skewers_processed_y +
                     Flux_mean_HeII_z * n_skewers_processed_z) /
@@ -989,7 +989,7 @@ void Grid3D::Compute_Transmitted_Flux_Skewer(int skewer_id, int axis)
     full_vel_Hubble[los_id] = (los_id - n_ghost + 0.5) * dv_Hubble;
   }
 
-  Lya_lambda_HI = 1.21567e-5;           // cm  Rest wave length of the Lyman Alpha
+  Lya_lambda_HI   = 1.21567e-5;         // cm  Rest wave length of the Lyman Alpha
                                         // Transition Hydrogen
   Lya_lambda_HeII = Lya_lambda_HI / 4;  // cm  Rest wave length of the Lyman Alpha Transition Helium II
   f_12            = 0.416;              // Lya transition Oscillator strength

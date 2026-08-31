@@ -163,7 +163,7 @@ TEST_F(tHYDROCalculateHLLCFluxesCUDA,        // Test suite name
   Real const momentumZ = density * velocityZ;
   Real const gamma     = 1.4;
   Real const energy    = (pressure / (gamma - 1)) +
-                      0.5 * density * (velocityX * velocityX + velocityY * velocityY + velocityZ * velocityZ);
+                         0.5 * density * (velocityX * velocityX + velocityY * velocityY + velocityZ * velocityZ);
 
   std::vector<Real> const state{density, momentumX, momentumY, momentumZ, energy};
   std::vector<Real> const fiducialFluxes{0, 1, 0, 0, 0};
