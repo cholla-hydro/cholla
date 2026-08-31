@@ -1,7 +1,9 @@
 #include "feedback_analysis.h"
 
 #include "../io/io.h"
-#include "../model/disk_galaxy.h"
+#include "../model/galaxy/disk_galaxy.h"
+#include "../model/model_collection.h"
+#include "../utils/error_handling.h"
 
 #ifdef MPI_CHOLLA
   #include "../mpi/mpi_routines.h"
@@ -23,6 +25,9 @@ FeedbackAnalysis::FeedbackAnalysis(Grid3D& G, struct Parameters* P)
   GPU_Error_Check(cudaMalloc((void**)&d_circ_vel_y, G.H.n_cells * sizeof(Real)));
 #endif
 
+  const ClusteredDiskGalaxy* galaxy_model = G.models().try_get<ClusteredDiskGalaxy>();
+  CHOLLA_ASSERT(galaxy_model != nullptr, "no galaxy model was initialized");
+
   // setup the (constant) circular speed arrays
   int id;
   Real vca, r, x, y, z;
@@ -35,7 +40,7 @@ FeedbackAnalysis::FeedbackAnalysis(Grid3D& G, struct Parameters* P)
         G.Get_Position(i, j, k, &x, &y, &z);
         r = sqrt(x * x + y * y);
 
-        vca              = sqrt(r * fabs(galaxies::MW.gr_total_D3D(r, z)));
+        vca              = sqrt(r * fabs(galaxy_model->gr_total_D3D(r, z)));
         h_circ_vel_x[id] = -y / r * vca;
         h_circ_vel_y[id] = x / r * vca;
       }
