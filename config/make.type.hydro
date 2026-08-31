@@ -10,15 +10,12 @@ DFLAGS    += -DSIMPLE
 DFLAGS    += -DPPMP
 else
 DFLAGS    += -DVL
-DFLAGS    += -PLMC
+DFLAGS    += -DPLMC
 endif
 
 # Apply a density and temperature floor
 DFLAGS    += -DDENSITY_FLOOR
 DFLAGS    += -DTEMPERATURE_FLOOR
-
-# Solve the Gas Internal Energy using a Dual Energy Formalism
-DFLAGS    += -DDE
 
 # Measure the Timing of the different stages
 #DFLAGS    += -DCPU_TIME
