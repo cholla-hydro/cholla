@@ -703,13 +703,14 @@ void Grid3D::Write_Particles_Data_HDF5(hid_t file_id)
 
     #if defined(OUTPUT_POTENTIAL) && defined(ONLY_PARTICLES)
   // Copy the potential array to the memory buffer
-  for (k = 0; k < Grav.nz_local; k++) {
-    for (j = 0; j < Grav.ny_local; j++) {
-      for (i = 0; i < Grav.nx_local; i++) {
-        id =
-            (i + N_GHOST_POTENTIAL) + (j + N_GHOST_POTENTIAL) * (Grav.nx_local + 2 * N_GHOST_POTENTIAL) +
-            (k + N_GHOST_POTENTIAL) * (Grav.nx_local + 2 * N_GHOST_POTENTIAL) * (Grav.ny_local + 2 * N_GHOST_POTENTIAL);
-        buf_id                 = k + j * Grav.nz_local + i * Grav.nz_local * Grav.ny_local;
+  const SpatialDomainProps &spatial_props = Grav.spatial_props;
+  for (k = 0; k < spatial_props.nz_local; k++) {
+    for (j = 0; j < spatial_props.ny_local; j++) {
+      for (i = 0; i < spatial_props.nx_local; i++) {
+        id = (i + N_GHOST_POTENTIAL) + (j + N_GHOST_POTENTIAL) * (spatial_props.nx_local + 2 * N_GHOST_POTENTIAL) +
+             (k + N_GHOST_POTENTIAL) * (spatial_props.nx_local + 2 * N_GHOST_POTENTIAL) *
+                 (spatial_props.ny_local + 2 * N_GHOST_POTENTIAL);
+        buf_id                 = k + j * spatial_props.nz_local + i * spatial_props.nz_local * spatial_props.ny_local;
         dataset_buffer[buf_id] = Grav.F.potential_h[id];
       }
     }
