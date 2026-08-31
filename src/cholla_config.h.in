@@ -131,11 +131,6 @@
 #configurefile_define PARIS_NO_GPU_MPI
 #configurefile_define SOR
 #configurefile_define STATIC_GRAV
-#if defined(PARIS) && defined(GRAVITY_5_POINTS_GRADIENT)
-#define PARIS_5PT
-#elif defined(PARIS)
-#define PARIS_3PT
-#endif
 
 
 // ======================
