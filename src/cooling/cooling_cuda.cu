@@ -88,10 +88,7 @@ class CoolingUpdateExecutor
   }
 };
 
-/*! \fn void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int
- n_ghost, int n_fields, Real dt, Real gamma, Real solar_metal_mass_frac, Real hydrogen_frac_by_mass, cudaTextureObject_t coolTexObj,
- cudaTextureObject_t heatTexObj)
- *  \brief When passed an array of conserved variables and a timestep, adjust
+/*! \brief When passed an array of conserved variables and a timestep, adjust
  the value of the total energy for each cell according to the specified cooling
  function. */
 template <typename CoolingRecipe>
@@ -193,10 +190,6 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
 
     // calculate change in temperature given dt
     del_T = cool * dt * TIME_UNIT * (gamma - 1.0) / (n * KB);
-
-    if (xid == is && yid == js && zid == ks) {
-      // printf("cool = %e, del_T = %e\n", cool, del_T);
-    }
 
     // limit change in temperature to 1% (we use fabs for when heating dominates)
     while (fabs(del_T / T) > 0.01) {

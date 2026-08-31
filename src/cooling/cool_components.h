@@ -54,7 +54,6 @@ namespace cool_component
 /*! Primordial hydrogen/helium cooling curve (derived according to Katz et al. 1996.) */
 inline __device__ Real primordial_cool(Real n_H, Real n_He, Real T)
 {
-  // Real n_h, Y, y, g_ff, cool;
   Real g_ff, cool;
   Real n_h0, n_hp, n_he0, n_hep, n_hepp, n_e, n_e_old;
   Real alpha_hp, alpha_hep, alpha_d, alpha_hepp, gamma_eh0, gamma_ehe0, gamma_ehep;

@@ -10,22 +10,15 @@ DFLAGS    += -DSIMPLE
 DFLAGS    += -DPPMP
 else
 DFLAGS    += -DVL
-DFLAGS    += -DPPMP
+DFLAGS    += -PLMC
 endif
 
 # Apply a density and temperature floor
-#DFLAGS    += -DDENSITY_FLOOR
+DFLAGS    += -DDENSITY_FLOOR
 DFLAGS    += -DTEMPERATURE_FLOOR
 
 # Solve the Gas Internal Energy using a Dual Energy Formalism
 DFLAGS    += -DDE
-
-
-# Define metals macro and evolve additional scalars
-DFLAGS    += -DSCALAR
-DFLAGS    += -DSCALAR_FLOOR
-DFLAGS    += -DMETALS
-#DFLAGS    += -DBASIC_SCALAR
 
 # Measure the Timing of the different stages
 #DFLAGS    += -DCPU_TIME
@@ -34,7 +27,6 @@ DFLAGS    += -DMETALS
 # Can also add -DSLICES and -DPROJECTION
 OUTPUT    ?=  -DOUTPUT -DHDF5
 DFLAGS    += $(OUTPUT)
-DFLAGS    += -DSLICES -DPROJECTION
 
 #Select if the Hydro Conserved data will reside in the GPU
 #and the MPI transfers are done from the GPU
