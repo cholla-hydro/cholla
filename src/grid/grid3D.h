@@ -598,14 +598,12 @@ class Grid3D
       as per the Noh problem in Liska, 2003, or in Stone, 2008. */
   void Noh_Boundary();
 
-  /*! \fn void Spherical_Overpressure_3D()
-   *  \brief Initialize the grid with a 3D spherical overdensity and
-   * overpressue. */
+  /*! \brief Initialize the grid with a 3D spherical overdensity and overpressue. */
   void Spherical_Overpressure_3D();
 
-  /*! \fn void Spherical_Overpressure_3D()
-   *  \brief Initialize the grid with a 3D spherical overdensity for
-   * gravitational collapse */
+  /*! \brief Initialize the grid with a 3D spherical overdensity for gravitational
+   *  collapse
+   */
   void Spherical_Overdensity_3D();
 
   void Clouds();

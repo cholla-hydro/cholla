@@ -1209,9 +1209,6 @@ void Grid3D::Disk_2D()
   }
 }
 
-/*! \fn void Spherical_Overpressure_3D()
- *  \brief Spherical overdensity and overpressure causing an spherical explosion
- */
 void Grid3D::Spherical_Overpressure_3D()
 {
   int i, j, k, id;
@@ -1260,10 +1257,11 @@ void Grid3D::Spherical_Overpressure_3D()
   }
 }
 
-/*! \fn void Spherical_Overdensity_3D()
- *  \brief Spherical overdensity for gravitational colapse */
 void Grid3D::Spherical_Overdensity_3D()
 {
+  // in the future, we should either:
+  // - factor out the common logic shared with Grid3D::Spherical_Overpressure_3D, OR
+  // - move this logic to the function where we define the SphericalOverdensity model
   int i, j, k, id;
   Real x_pos, y_pos, z_pos, r;
   Real density, pressure, overPressure, energy;
