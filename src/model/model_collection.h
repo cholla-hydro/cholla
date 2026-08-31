@@ -11,6 +11,7 @@
 #include "../io/ParameterMap.h"
 #include "../utils/error_handling.h"  // always_false
 #include "galaxy/disk_galaxy.h"
+#include "sphere_overdensity/model.h"
 
 /*! \defgroup modelgrp Model Group
  *
@@ -186,15 +187,10 @@
 namespace model_detail
 {
 
-// this is just a placeholder model type until we have 2 or more models
-struct DummyModel {
-  explicit DummyModel(ParameterMap& pmap) {}
-};
-
 // a type-safe union that can represent all model types
 // -> to add a new kind of model, append it to the list of template arguments
 // -> todo: consolidate DiskGalaxy and ClusteredDiskGalaxy into a single class
-using model_variant = std::variant<DummyModel, ClusteredDiskGalaxy>;
+using model_variant = std::variant<ClusteredDiskGalaxy, SphericalOverdensity>;
 
 // define logic to check if a type T is an allowed type of a std::variant
 template <typename T, typename variant>

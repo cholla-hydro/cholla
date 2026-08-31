@@ -193,14 +193,6 @@ struct Header {
   // Flag to indicate when to transfer the Conserved boundaries
   bool TRANSFER_HYDRO_BOUNDARIES;
 
-  // Parameters For Spherical Colapse Problem
-  Real sphere_density;
-  Real sphere_radius;
-  Real sphere_background_density;
-  Real sphere_center_x;
-  Real sphere_center_y;
-  Real sphere_center_z;
-
   // only meaningful when GRAVITY and GRAVITY_ANALYTIC_COMP are defined
   bool gas_only_use_static_grav;
 
@@ -606,14 +598,12 @@ class Grid3D
       as per the Noh problem in Liska, 2003, or in Stone, 2008. */
   void Noh_Boundary();
 
-  /*! \fn void Spherical_Overpressure_3D()
-   *  \brief Initialize the grid with a 3D spherical overdensity and
-   * overpressue. */
+  /*! \brief Initialize the grid with a 3D spherical overdensity and overpressue. */
   void Spherical_Overpressure_3D();
 
-  /*! \fn void Spherical_Overpressure_3D()
-   *  \brief Initialize the grid with a 3D spherical overdensity for
-   * gravitational collapse */
+  /*! \brief Initialize the grid with a 3D spherical overdensity for gravitational
+   *  collapse
+   */
   void Spherical_Overdensity_3D();
 
   void Clouds();

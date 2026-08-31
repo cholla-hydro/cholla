@@ -18,6 +18,10 @@ ModelCollection::ModelCollection(ParameterMap& pmap)
   // <model-subtable> will be replaced with the name of the corresponding parameter
   // file subtable
 
+  if (pmap.Contains_Table("model.spherical_overdensity")) {
+    vec_.emplace_back(SphericalOverdensity(pmap));
+  }
+
   // the galaxy_model is still a special case, we will start treating it like a normal
   // case soon
   ClusteredDiskGalaxy galaxy_model = galaxies::make_MW_model();
