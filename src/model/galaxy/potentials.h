@@ -5,8 +5,8 @@
 
 #include <cmath>
 
-#include "../global/global.h"
-#include "../utils/error_handling.h"
+#include "../../global/global.h"
+#include "../../utils/error_handling.h"
 
 struct NFWHaloPotential {
   Real M_h;   /*!< total halo mass in Msolar */

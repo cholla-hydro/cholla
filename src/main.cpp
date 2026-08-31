@@ -138,6 +138,8 @@ int main(int argc, char *argv[])
   message = "Initializing Simulation";
   Write_Message_To_Log_File(message.c_str());
 
+  G.Initialize_Models(pmap);
+
 #ifdef RT
   G.Rad.Initialize_Start(P);
 #endif

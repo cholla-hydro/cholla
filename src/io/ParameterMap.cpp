@@ -434,21 +434,51 @@ int ParameterMap::warn_unused_parameters(const std::set<std::string>& ignore_par
   return unused_params;
 }
 
+namespace
+{  // stuff inside an anonymous namespace is local to this file
+
+/*! \brief helps identify parameter names that lie within a specified table */
+class TableNameChecker
+{
+  std::string prefix;
+  std::size_t prefix_size;
+
+ public:
+  explicit TableNameChecker(std::string table_name)
+  {
+    std::string_view table_name_view(table_name);
+    if ((not table_name_view.empty()) and table_name_view.back() == '.') {
+      table_name_view = table_name_view.substr(0, table_name_view.size() - 1);
+    }
+    CHOLLA_ASSERT(table_name_view.size() > 0, "table name must contain at least one character");
+    prefix      = std::string(table_name_view) + '.';
+    prefix_size = prefix.size();
+  }
+
+  const std::string& Get_Prefix() const { return prefix; }
+
+  bool Param_In_Table(std::string_view param_name) { return param_name.compare(0, prefix_size, prefix) == 0; }
+};
+
+}  // anonymous namespace
+
+bool ParameterMap::Contains_Table(std::string table_name) const
+{
+  // in the future, we may want to simply track the names of all table names (rather
+  // than search for a parameter that starts with the table name)
+  TableNameChecker checker(table_name);
+  auto search_rslt = entries_.lower_bound(checker.Get_Prefix());
+  return search_rslt != entries_.end() and checker.Param_In_Table(search_rslt->first);
+}
+
 void ParameterMap::Enforce_Table_Content_Uniform_Access_Status(std::string table_name, bool expect_unused) const
 {
-  // error check:
-  std::string_view table_name_view(table_name);
-  if (table_name_view.back() == '.') table_name_view = table_name_view.substr(0, table_name_view.size() - 1);
-  CHOLLA_ASSERT(table_name_view.size() > 0, "the table_name_view must contain at least one character");
-
-  std::string prefix      = std::string(table_name_view) + '.';
-  std::size_t prefix_size = prefix.size();
-
+  TableNameChecker checker(table_name);
   std::string problematic_parameter{};
-  for (auto it = entries_.lower_bound(prefix); it != entries_.end(); ++it) {
+  for (auto it = entries_.lower_bound(checker.Get_Prefix()); it != entries_.end(); ++it) {
     const std::string& name                     = it->first;
     const ParameterMap::ParamEntry& param_entry = it->second;
-    if (name.compare(0, prefix_size, prefix) != 0) break;
+    if (not checker.Param_In_Table(name)) break;
 
     if (param_entry.accessed == expect_unused) {
       problematic_parameter = name;
@@ -464,10 +494,10 @@ void ParameterMap::Enforce_Table_Content_Uniform_Access_Status(std::string table
   } else {
     // gather the parameters that have been accessed (for an informative message)
     std::string par_list{};
-    for (auto it = entries_.lower_bound(prefix); it != entries_.end(); ++it) {
+    for (auto it = entries_.lower_bound(checker.Get_Prefix()); it != entries_.end(); ++it) {
       const std::string& name                     = it->first;
       const ParameterMap::ParamEntry& param_entry = it->second;
-      if (name.compare(0, prefix_size, prefix) != 0) break;
+      if (not checker.Param_In_Table(name)) break;
 
       if (param_entry.accessed) {
         par_list += "\n   ";
