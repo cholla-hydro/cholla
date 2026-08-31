@@ -25,7 +25,7 @@ FeedbackAnalysis::FeedbackAnalysis(Grid3D& G, struct Parameters* P)
   GPU_Error_Check(cudaMalloc((void**)&d_circ_vel_y, G.H.n_cells * sizeof(Real)));
 #endif
 
-  const ClusteredDiskGalaxy* galaxy_model = G.models().try_get<ClusteredDiskGalaxy>();
+  const DiskGalaxy* galaxy_model = G.models().try_get<DiskGalaxy>();
   CHOLLA_ASSERT(galaxy_model != nullptr, "no galaxy model was initialized");
 
   // setup the (constant) circular speed arrays

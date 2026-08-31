@@ -35,6 +35,12 @@ These parameters should all be specified in the `[feedback]` parameter table.
 :::{include} param/Feedback.md
 :::
 
+## Galaxy Model
+
+These parameters are all be specified in the `[model.disk.*]` parameter tables.
+
+:::{include} param/Galaxy.md
+:::
 
 ## Gravity
 
@@ -42,4 +48,3 @@ These parameters should all be specified in the `[gravity]` parameter table.
 
 :::{include} param/Gravity.md
 :::
-
