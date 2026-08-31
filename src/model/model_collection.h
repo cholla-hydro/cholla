@@ -187,15 +187,10 @@
 namespace model_detail
 {
 
-// this is just a placeholder model type until we have 2 or more models
-struct DummyModel {
-  explicit DummyModel(ParameterMap& pmap) {}
-};
-
 // a type-safe union that can represent all model types
 // -> to add a new kind of model, append it to the list of template arguments
 // -> todo: consolidate DiskGalaxy and ClusteredDiskGalaxy into a single class
-using model_variant = std::variant<DummyModel, ClusteredDiskGalaxy, SphericalOverdensity>;
+using model_variant = std::variant<ClusteredDiskGalaxy, SphericalOverdensity>;
 
 // define logic to check if a type T is an allowed type of a std::variant
 template <typename T, typename variant>
