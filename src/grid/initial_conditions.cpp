@@ -1265,27 +1265,23 @@ void Grid3D::Spherical_Overpressure_3D()
 void Grid3D::Spherical_Overdensity_3D()
 {
   int i, j, k, id;
-  Real x_pos, y_pos, z_pos, r, center_x, center_y, center_z;
-  Real density, pressure, overDensity, overPressure, energy, radius, background_density;
+  Real x_pos, y_pos, z_pos, r;
+  Real density, pressure, overPressure, energy;
   Real vx, vy, vz, v2;
-  center_x = 0.5;
-  center_y = 0.5;
-  center_z = 0.5;
-  // overDensity = 1000 * mu * MP / DENSITY_UNIT; // 100 particles per cm^3
-  overDensity  = 1;
+
+  const SphericalOverdensity *overdensity_model = models().try_get<SphericalOverdensity>();
+  CHOLLA_ASSERT(overdensity_model != nullptr, "spherical overdensity model wasn't initialized");
+  Real center_x           = overdensity_model->center_xyz[0];
+  Real center_y           = overdensity_model->center_xyz[1];
+  Real center_z           = overdensity_model->center_xyz[2];
+  Real overDensity        = overdensity_model->overdensity;
+  Real background_density = overdensity_model->bkg_density;
+  Real radius             = overdensity_model->radius;
+
   overPressure = 0;
   vx           = 0;
   vy           = 0;
   vz           = 0;
-  radius       = 0.2;
-  // background_density = mu * MP / DENSITY_UNIT; // 1 particles per cm^3
-  background_density          = 0.0005;
-  H.sphere_density            = overDensity;
-  H.sphere_radius             = radius;
-  H.sphere_background_density = background_density;
-  H.sphere_center_x           = center_x;
-  H.sphere_center_y           = center_y;
-  H.sphere_center_z           = center_z;
 
   // set the initial values of the conserved variables
   for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
