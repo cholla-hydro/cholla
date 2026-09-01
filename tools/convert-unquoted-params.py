@@ -90,6 +90,7 @@ _STRING_PARAMS = {
     "init",
     "custom_bcnd",
     "cosmo_ics_pk_file",
+    "indir",
     "outdir",
     "snr_filename",
     "sw_filename",
