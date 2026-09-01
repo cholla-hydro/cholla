@@ -131,6 +131,12 @@ class FieldInfo
   /*! Returns the number of fields of a given category */
   int n_fields(field::Kind kind) const { return static_cast<int>(get_kind_ids_(kind).size()); }
 
+  /*! \brief Returns the number of fields associated with a the specified pack_id */
+  int n_fields(uint8_t pack_id) const { return (pack_id == 0) ? n_fields() : 0; }
+
+  /*! \brief Returns the number of field-packs */
+  int n_packs() const { return (n_fields() > 0) ? 1 : 0; }
+
   /*! Returns the first field_id corresponding to a passive scalar (if there are any) */
   std::optional<int> scalar_start() const
   {
