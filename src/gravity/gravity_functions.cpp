@@ -13,7 +13,7 @@
     #include "../utils/parallel_omp.h"
   #endif
 
-  #if defined(PARIS_TEST) || defined(PARIS_GALACTIC_TEST)
+  #if defined(PARIS_TEST)
     #include <vector>
   #endif
 
@@ -294,7 +294,7 @@ static inline Real nonzeroD(const Real x, const Real y, const Real z, const Real
 }
   #endif
 
-  #if defined(PARIS_TEST) || defined(PARIS_GALACTIC_TEST)
+  #if defined(PARIS_TEST)
 static void printDiff(const Real *p, const Real *q, const int nx, const int ny, const int nz,
                       const int ng = N_GHOST_POTENTIAL, const bool plot = false)
 {
@@ -375,64 +375,6 @@ void Grid3D::Initialize_Gravity(struct Parameters *P)
 
     const ClusteredDiskGalaxy *galaxy_model = models().try_get<ClusteredDiskGalaxy>();
     CHOLLA_ASSERT(galaxy_model != nullptr, "no galaxy model was initialized");
-
-  #ifdef PARIS_GALACTIC_TEST
-    chprintf("Analytic Test of Poisson Solvers:\n");
-    std::vector<Real> exact(Grav.n_cells_potential);
-    std::vector<Real> potential(Grav.n_cells_potential);
-    const Real scale      = 4.0 * M_PI * Grav.Gconst;
-    const Real ddx        = 1.0 / (scale * Grav.dx * Grav.dx);
-    const Real ddy        = 1.0 / (scale * Grav.dy * Grav.dy);
-    const Real ddz        = 1.0 / (scale * Grav.dz * Grav.dz);
-    const Real *const phi = Grav.F.potential_h;
-    const int nij         = ni * nj;
-    const Real a0         = galaxy_model->phi_disk_D3D(0, 0);
-    const Real da0        = 2.0 / (25.0 * scale);
-    #pragma omp parallel for
-    for (int k = 0; k < nk; k++) {
-      const Real z  = Grav.zMin + Grav.dz * (k + dr);
-      const int njk = nj * k;
-      for (int j = 0; j < nj; j++) {
-        const Real y   = Grav.yMin + Grav.dy * (j + dr);
-        const Real yy  = y * y;
-        const int nijk = ni * (j + njk);
-        for (int i = 0; i < ni; i++) {
-          const Real x  = Grav.xMin + Grav.dx * (i + dr);
-          const Real r  = sqrt(x * x + yy);
-          const int ijk = i + nijk;
-          exact[ijk] = potential[ijk] = Grav.F.potential_h[ijk] = galaxy_model->phi_disk_D3D(r, z);
-        }
-      }
-    }
-    #pragma omp parallel for
-    for (int k = 0; k < Grav.nz_local; k++) {
-      const Real z  = Grav.zMin + Grav.dz * (k + 0.5);
-      const Real zz = z * z;
-      const int njk = Grav.ny_local * k;
-      for (int j = 0; j < Grav.ny_local; j++) {
-        const Real y   = Grav.yMin + Grav.dy * (j + 0.5);
-        const Real yy  = y * y;
-        const int nijk = Grav.nx_local * (j + njk);
-        for (int i = 0; i < Grav.nx_local; i++) {
-          const Real x          = Grav.xMin + Grav.dx * (i + 0.5);
-          const Real r          = sqrt(x * x + yy);
-          const int ijk         = i + nijk;
-          const Real rr         = x * x + yy + zz;
-          const Real f          = a0 * exp(-0.2 * rr);
-          const Real df         = da0 * (15.0 - 2.0 * rr) * f;
-          Grav.F.density_h[ijk] = galaxy_model->rho_disk_D3D(r, z) + df;
-          const int ib          = i + ng + ni * (j + ng + nj * (k + ng));
-          exact[ib] -= f;
-        }
-      }
-    }
-    Grav.Poisson_solver_test.Get_Potential(Grav.F.density_h, Grav.F.potential_h, Grav.Gconst, *galaxy_model);
-    chprintf(" Paris Galactic");
-    printDiff(Grav.F.potential_h, exact.data(), Grav.nx_local, Grav.ny_local, Grav.nz_local);
-    Get_Potential_SOR(Grav.Gconst, 0, 0, P);
-    chprintf(" SOR");
-    printDiff(Grav.F.potential_h, exact.data(), Grav.nx_local, Grav.ny_local, Grav.nz_local);
-  #endif
 
   #ifdef SOR
     chprintf(" Initializing disk analytic potential\n");
@@ -541,24 +483,8 @@ void Grid3D::Compute_Gravitational_Potential(struct Parameters *P)
   #endif
 
   #ifdef SOR
-
-    #ifdef PARIS_GALACTIC_TEST
-      #ifdef GRAVITY_GPU
-        #error "GRAVITY_GPU not yet supported with PARIS_GALACTIC_TEST"
-      #endif
-  const ClusteredDiskGalaxy *galaxy_model = models().try_get<ClusteredDiskGalaxy>();
-  CHOLLA_ASSERT(galaxy_model != nullptr, "no galaxy model was initialized");
-  Grav.Poisson_solver_test.Get_Potential(input_density, output_potential, Grav_Constant, *galaxy_model);
-
-  std::vector<Real> p(output_potential, output_potential + Grav.n_cells_potential);
   Get_Potential_SOR(Grav_Constant, dens_avrg, current_a, P);
-  chprintf(" Paris vs SOR");
-  printDiff(p.data(), output_potential, Grav.nx_local, Grav.ny_local, Grav.nz_local, N_GHOST_POTENTIAL, false);
-    #else
-  Get_Potential_SOR(Grav_Constant, dens_avrg, current_a, P);
-    #endif
-
-  #elif defined PARIS_GALACTIC
+  #elif defined(PARIS_GALACTIC)
   // ideally in the future, we'll be able to avoid looking up the galaxy model every
   // single time we need it
   // - this is ok for right now, but will become costly as we add more models
@@ -566,7 +492,7 @@ void Grid3D::Compute_Gravitational_Potential(struct Parameters *P)
   const ClusteredDiskGalaxy *galaxy_model = models().try_get<ClusteredDiskGalaxy>();
   CHOLLA_ASSERT(galaxy_model != nullptr, "no galaxy model was initialized");
   Grav.Poisson_solver.Get_Potential(input_density, output_potential, Grav_Constant, *galaxy_model);
-  #else
+  #else // defined(PARIS)
   Grav.Poisson_solver.Get_Potential(input_density, output_potential, Grav_Constant, dens_avrg, current_a);
   #endif  // SOR
 
