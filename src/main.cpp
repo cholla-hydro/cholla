@@ -117,7 +117,8 @@ int main(int argc, char *argv[])
   if (is_restart) {
     chprintf("Input directory:  %s\n", P.indir);
   }
-  chprintf("Output directory:  %s\n", writer_manager.fname_template().nominal_output_dir_path().c_str());
+  std::strncpy(P.outdir, writer_manager.fname_template().nominal_output_dir_path().c_str(), sizeof(P.outdir) - 1);
+  chprintf("Output directory:  %s\n", P.outdir);
 
   // Check the configuration
   Check_Configuration(P);
