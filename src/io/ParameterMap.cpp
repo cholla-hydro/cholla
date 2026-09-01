@@ -8,8 +8,9 @@
 #include <string_view>
 #include <vector>
 
-#include "../global/global.h"  // MAXLEN
-#include "../io/io.h"          // chprintf
+#include "../global/global.h"      // MAXLEN
+#include "../io/io.h"              // chprintf
+#include "../io/to_from_string.h"  // io::try_parse_param_str
 #include "../utils/error_handling.h"
 
 [[noreturn]] void param_details::Report_TypeErr_(const std::string& param, const std::string& str,
@@ -31,8 +32,11 @@
       r = "out of range";
       break;
   }
-  CHOLLA_ERROR("error interpretting \"%s\", the value of the \"%s\" parameter, as a %s: %s", str.c_str(), param.c_str(),
-               dtype.c_str(), r.c_str());
+  const char* msg =
+      ("error interpretting the value associated with the \"%s\" parameter\n"
+       "%s\n"
+       "as a %s: %s");
+  CHOLLA_ERROR(msg, param.c_str(), str.c_str(), dtype.c_str(), r.c_str());
 }
 
 param_details::TypeErr param_details::try_bool_(const std::string& str, bool& val)
@@ -88,9 +92,16 @@ param_details::TypeErr param_details::try_double_(const std::string& str, double
 
 param_details::TypeErr param_details::try_string_(const std::string& str, std::string& val)
 {
-  // mostly just exists for consistency (every parameter can be considered a string)
-  // note: we may want to consider removing surrounding quotation marks in the future
-  val = str;  // we make a copy for the sake of consistency
+  std::pair<std::size_t, std::string> rslt = io::try_parse_param_str(str);
+  if (rslt.first == 0 || rslt.first != str.size()) {
+    // rslt == 0 -> str simply was a valid string
+    // rslt != str.size() ->
+    //   in this scenario, val could look like
+    //   > 'hi'there
+    //   and rslt.second holds "hi"
+    return param_details::TypeErr::generic;
+  }
+  val = rslt.second;
   return param_details::TypeErr::none;
 }
 
