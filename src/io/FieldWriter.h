@@ -10,8 +10,8 @@
 #include <utility>  // std::pair
 #include <vector>
 
+#include "../field/field_info.h"
 #include "../global/global.h"
-#include "../grid/field_info.h"
 #include "../grid/grid3D.h"
 #include "../io/FnameTemplate.h"  // define FnameTemplate
 #include "../io/LazyScratchBuf.h"

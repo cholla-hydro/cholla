@@ -12,9 +12,9 @@
 
 #include <functional>
 
+#include "../field/field_info.h"
 #include "../global/global.h"  // declares Parameter and forward-declares ParameterMap
 #include "../global/global_cuda.h"
-#include "../grid/field_info.h"
 #include "../io/FnameTemplate.h"
 #include "../model/model_collection.h"
 

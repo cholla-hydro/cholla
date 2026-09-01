@@ -15,7 +15,7 @@
 #include <string_view>
 #include <vector>
 
-#include "../grid/field_info.h"
+#include "../field/field_info.h"
 #include "../grid/grid3D.h"
 #include "../io/io.h"
 #include "../utils/error_handling.h"

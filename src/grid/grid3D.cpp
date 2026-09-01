@@ -6,8 +6,8 @@
 #ifdef HDF5
   #include <hdf5.h>
 #endif
+#include "../field/field_info.h"
 #include "../global/global.h"
-#include "../grid/field_info.h"
 #include "../grid/grid3D.h"
 #include "../grid/grid_enum.h"       // provides grid_enum
 #include "../hydro/average_cells.h"  // provides Average_Slow_Cells and SlowCellConditionChecker

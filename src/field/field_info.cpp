@@ -7,8 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "../grid/grid_enum.h"
 #include "../utils/FrozenKeyIdxBiMap.h"
-#include "grid_enum.h"
 
 namespace
 {  // stuff in an anonymous namespace is local to this file

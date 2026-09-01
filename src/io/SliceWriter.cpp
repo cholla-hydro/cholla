@@ -14,7 +14,7 @@
 #include <map>
 #include <string>
 
-#include "../grid/field_info.h"
+#include "../field/field_info.h"
 #include "../io/FieldWriter.h"
 #include "../io/FnameTemplate.h"
 #include "../io/io.h"
