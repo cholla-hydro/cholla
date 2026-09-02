@@ -8,6 +8,7 @@
 
 // forward declarations
 class FieldInfo;
+class FieldManager;
 namespace field_detail
 {
 class Storage;
@@ -27,6 +28,7 @@ struct FieldId {
   // doesn't accidentally access this machinery
 #ifndef NDEBUG
   friend FieldInfo;
+  friend FieldManager;
   friend field_detail::Storage;
 
  private:
