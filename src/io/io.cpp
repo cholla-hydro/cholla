@@ -142,7 +142,7 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
   }
   G.Change_Cosmological_Frame_System(true);
   chprintf("\n");
-  G.H.Output_Now = false;
+  G.state.Output_Now = false;
 #endif
 
 #ifdef HDF5

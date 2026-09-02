@@ -82,6 +82,15 @@ struct SimRuntimeState {
    * this parameter.
    */
   bool Output_Initial = false;
+
+  /*! \brief set to true to write data to file at end of current cycle
+   *
+   *  This is primarily tracked within \ref Grid3D to allow various simulation
+   *  components to trigger outputs at various times (at the time of writing, these
+   *  times typical pertain to particular cosmological times and moments relevant for
+   *  on-the-fly analysis)
+   */
+  bool Output_Now = false;
 };
 
 struct Header {
@@ -237,10 +246,6 @@ struct Header {
 #ifdef COSMOLOGY
   bool OUTPUT_SCALE_FACTOR;
 #endif
-
-  /*! \var Output_Now
-   *  \brief Flag set to true when data has to be written to file */
-  bool Output_Now;
 
   /*! \var Output_Complete_Data
    *  \brief Flag set to true when all the data will  be written to file

@@ -22,7 +22,7 @@ void Grid3D::Initialize_Cosmology(struct Parameters *P)
   Change_Cosmological_Frame_System(true);
 
   if (fabs(Cosmo.current_a - Cosmo.next_output) < 1e-5) {
-    H.Output_Now = true;
+    state.Output_Now = true;
   }
 
   if (strcmp(P->init, "Cosmological_ICs") == 0) {

@@ -254,7 +254,7 @@ int main(int argc, char *argv[])
   chprintf("Nstep = %d  Simulation time = %f\n", G.H.n_step, G.H.t);
 
 #ifdef OUTPUT
-  if (!is_restart || G.H.Output_Now) {
+  if (!is_restart || G.state.Output_Now) {
     // write the initial conditions to file
     chprintf("Writing initial conditions to file...\n");
     Write_Data(G, P, nfile, writer_manager);
@@ -402,7 +402,7 @@ int main(int argc, char *argv[])
         "%9.3f ms   total time = %9.4f s\n\n",
         G.H.n_step, G.H.t, G.H.dt, (stop_step - start_step) * 1000, G.H.t_wall);
 
-    if (P.output_always) G.H.Output_Now = true;
+    if (P.output_always) G.state.Output_Now = true;
 
 #ifdef ANALYSIS
     if (G.Analysis.Output_Now) G.Compute_and_Output_Analysis(&P);
@@ -412,9 +412,9 @@ int main(int argc, char *argv[])
 #endif
 
     // if ( P.n_steps_output > 0 && G.H.n_step % P.n_steps_output == 0)
-    // G.H.Output_Now = true;
+    // G.state.Output_Now = true;
 
-    if (G.H.t == outtime || G.H.Output_Now) {
+    if (G.H.t == outtime || G.state.Output_Now) {
 #ifdef OUTPUT
       /*output the grid data*/
       Write_Data(G, P, nfile, writer_manager);

@@ -205,9 +205,6 @@ void Grid3D::Initialize(struct Parameters *P)
   // are transferred
   H.TRANSFER_HYDRO_BOUNDARIES = false;
 
-  // Set output to true when data has to be written to file;
-  H.Output_Now = false;
-
 // Values for lower limit for density and temperature
 #ifdef TEMPERATURE_FLOOR
   H.temperature_floor = P->temperature_floor;
