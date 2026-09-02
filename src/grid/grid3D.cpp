@@ -231,7 +231,7 @@ void Grid3D::Initialize(struct Parameters *P)
   #endif
 #endif
 
-  H.Output_Initial = true;
+  state.Output_Initial = true;
 
   Set_Domain_Properties(*P);  // move the domain info forward
 

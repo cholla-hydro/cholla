@@ -61,6 +61,29 @@
 
 class AttrRecorderInterface;
 
+/*! \brief This class tracks state that can be mutated by various components of the sim
+ *
+ *  In the vast majority of cases, it should not be necessary to add a mutable state
+ *  variable. But, if you must start tracking such a variable, please track it within
+ *  this struct.
+ *
+ *  \note
+ *  A central theme among these values is that they are modified in at least one
+ *  location outside of the top-level runtime loop. The quantites like the number of
+ *  complete cycles, the current sim time, the current timestep, and the elapsed
+ *  wall-clock time seem like they belong to a special category of variables (but maybe
+ *  we will revisit this distinction in the future?).
+ */
+struct SimRuntimeState {
+  /*! \brief set to true as we set up Cholla to customize the very first output
+   *
+   * \note
+   * This is only used with cosmology simulations. It would be very easy to get rid of
+   * this parameter.
+   */
+  bool Output_Initial = false;
+};
+
 struct Header {
   /*! \var n_cells
    *  \brief Total number of cells in the grid (including ghost cells) */
@@ -218,7 +241,6 @@ struct Header {
   /*! \var Output_Now
    *  \brief Flag set to true when data has to be written to file */
   bool Output_Now;
-  bool Output_Initial;
 
   /*! \var Output_Complete_Data
    *  \brief Flag set to true when all the data will  be written to file
@@ -244,6 +266,9 @@ class Grid3D
   /*! \var struct Header H
    *  \brief Header for the grid */
   struct Header H;
+
+  /*! tracks mutable runtime state */
+  SimRuntimeState state;
 
   /*! Describes the mapping between field names and field indices */
   FieldInfo field_info;
