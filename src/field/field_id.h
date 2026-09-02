@@ -37,4 +37,16 @@ struct FieldId {
 
   /// The slot index within the field-pack
   uint8_t slot_idx;
+
+  /*! \brief Primary constructor */
+  FieldId(uint8_t pack_id, uint8_t slot_idx) noexcept : pack_id{pack_id}, slot_idx{slot_idx} {}
+
+ public:
+  /*! \brief Default constructor (initialized in an intentionally invalid state) */
+  FieldId() noexcept : pack_id{UINT8_MAX}, slot_idx{UINT8_MAX} {}
+
+  FieldId(const FieldId&)            = default;
+  FieldId(FieldId&&)                 = default;
+  FieldId& operator=(const FieldId&) = default;
+  FieldId& operator=(FieldId&&)      = default;
 };

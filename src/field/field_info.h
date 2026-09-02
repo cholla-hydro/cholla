@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "../utils/FrozenKeyIdxBiMap.h"
+#include "field_id.h"
 
 namespace field
 {
@@ -79,17 +80,78 @@ class FieldInfo
   FieldInfo& operator=(const FieldInfo&) = delete;
 
   /*! Get the underlying mapping object between field names and ids */
+  // todo(before submitting PR): delete me!
   const utils::FrozenKeyIdxBiMap& get_field_id_map() const { return name_id_bimap_; }
 
   /*! try to lookup the field_id associated with the field_name */
+  // todo(before submitting PR): delete these implementations and rename lookup_FieldID
+  //                             so its called field_id
   std::optional<int> field_id(const char* field_name) const { return name_id_bimap_.find(field_name); }
   std::optional<int> field_id(std::string_view field_name) const { return name_id_bimap_.find(field_name); }
+
+  // todo(before submitting PR): rename this field_id and delete the old implementation
+  std::optional<FieldId> lookup_FieldID(std::string_view field_name) const
+  {
+    std::optional<int> tmp = name_id_bimap_.find(field_name);
+    if (tmp.has_value()) {
+      uint8_t pack_id = 0;  // todo: fix me when we support multiple packs
+      return {FieldId(pack_id, static_cast<uint8_t>(*tmp))};
+    }
+    return std::nullopt;
+  }
+
+  //  /*! \brief try to look up slot-index of a field within a field-pack
+  //   *
+  //   *  \note This is a convenient way to check whether a field is associated with a pack
+  //   */
+  //  std::optional<int> slot_idx(uint8_t pack_id, std::string_view field_name) const {
+  //    std::optional<FieldId> tmp = lookup_FieldID(field_name);
+  //    if (tmp.has_value() && tmp->pack_id == pack_id) {
+  //      return {static_cast<int>(tmp->slot_idx)};
+  //    }
+  //    return std::nullopt;
+  //  }
+  //  std::optional<int> slot_idx(std::string_view pack_name, std::string_view field_name) const {
+  //    uint8_t my_pack_id = pack_id(pack_name).value_or(static_cast<uint8_t>(n_packs()));
+  //    return slot_idx(pack_id, field_name);
+  //  }
 
   /*! try to look up the field name from the field id */
   std::optional<std::string> field_name(int field_id) const
   {
+    // todo(before submitting PR): delete this implementation
     bool bad_id = (field_id < 0 || field_id >= n_fields());
     return bad_id ? std::nullopt : std::optional<std::string>{name_id_bimap_.inverse_find(field_id)};
+  }
+
+  std::optional<std::string> field_name(FieldId field_id) const
+  {
+    if (field_id.slot_idx >= n_fields(field_id.pack_id)) {
+      return std::nullopt;
+    }
+    // todo: fix me when we support multiple packs
+    return std::optional<std::string>{name_id_bimap_.inverse_find(field_id.slot_idx)};
+  }
+
+  /*! \brief try to look up the associated pack name */
+  std::optional<std::string> pack_name(FieldId field_id) const { return pack_name(field_id.pack_id); }
+  std::optional<std::string> pack_name(uint8_t pack_id) const
+  {
+    // todo: fix me when we support multiple packs
+    return (pack_id == 0) ? std::optional<std::string>{"fluid"} : std::nullopt;
+  }
+
+  /*! \brief try to lookup the associated pack_id */
+  std::optional<uint8_t> pack_id(FieldId field_id) const
+  {
+    // external code is explicitly prohibitted from accessing internals of field_id
+    // (gives us the freedom to change how field_id is implemented in the future)
+    return field_id.pack_id;
+  }
+  std::optional<uint8_t> pack_id(std::string_view pack_name) const
+  {
+    // todo: fix me when we support multiple packs
+    return (pack_name == "fluid") ? std::optional<uint8_t>{0} : std::nullopt;
   }
 
   /*! try to look up whether the field id refers to a cell-centered field
