@@ -104,15 +104,15 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
 #ifdef N_OUTPUT_COMPLETE
   // If nfile is multiple of N_OUTPUT_COMPLETE then output all data
   if (nfile % N_OUTPUT_COMPLETE == 0) {
-    G.H.Output_Complete_Data = true;
+    G.state.Output_Complete_Data = true;
     chprintf(" Writing all data ( Restart File ).\n");
   } else {
-    G.H.Output_Complete_Data = false;
+    G.state.Output_Complete_Data = false;
   }
 
 #else
   // If NOT N_OUTPUT_COMPLETE: always output complete data
-  G.H.Output_Complete_Data = true;
+  G.state.Output_Complete_Data = true;
 #endif
 
 #ifdef COSMOLOGY

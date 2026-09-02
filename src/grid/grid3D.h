@@ -91,6 +91,14 @@ struct SimRuntimeState {
    *  on-the-fly analysis)
    */
   bool Output_Now = false;
+
+  /*! \brief set to true to dump all data to file (i.e. checkpoint files for restarts)
+   *
+   *  \todo
+   *  Stop tracking this as part of the Grid object. This variable is only used within
+   *  the io machinery and could be passed around as an argument.
+   */
+  bool Output_Complete_Data = false;
 };
 
 struct Header {
@@ -246,11 +254,6 @@ struct Header {
 #ifdef COSMOLOGY
   bool OUTPUT_SCALE_FACTOR;
 #endif
-
-  /*! \var Output_Complete_Data
-   *  \brief Flag set to true when all the data will  be written to file
-   * (Restart File ) */
-  bool Output_Complete_Data;
 
 #ifdef SCALAR
   #ifdef DUST
