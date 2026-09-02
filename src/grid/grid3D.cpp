@@ -201,10 +201,6 @@ void Grid3D::Initialize(struct Parameters *P)
   // and initialize the timestep
   H.dt = 0.0;
 
-  // Set Transfer flag to false, only set to true before Conserved boundaries
-  // are transferred
-  H.TRANSFER_HYDRO_BOUNDARIES = false;
-
 // Values for lower limit for density and temperature
 #ifdef TEMPERATURE_FLOOR
   H.temperature_floor = P->temperature_floor;

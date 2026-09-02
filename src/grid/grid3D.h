@@ -99,6 +99,24 @@ struct SimRuntimeState {
    *  the io machinery and could be passed around as an argument.
    */
   bool Output_Complete_Data = false;
+
+  /*! \brief true indicates that Conserved boundaries should be transferred
+   *
+   *  This is **ONLY** set to true just before Conserved boundaries are transferred
+   *  (and is immediately reverted to false when that work is done).
+   *
+   *  \todo
+   *  We should give some thought to refactoring this data member:
+   *  - rather tracking this as one of 5 different boolean flags in different places
+   *    (other flags are for transferring Particles or Gravitational Potential), that
+   *    must all remain somewhat synchronized, we should probably replace all of the
+   *    boolean flags with a single enum-flag.
+   *  - under the current implementation, a compelling case could be made to entirely
+   *    get rid of this data-member. It seems like we can probably pass this information
+   *    as an argument to \ref Grid3D::Set_Boundary_Conditions (this would certainly be
+   *    more explicit).
+   */
+  bool TRANSFER_HYDRO_BOUNDARIES = false;
 };
 
 struct Header {
@@ -229,9 +247,6 @@ struct Header {
   Real scalar_floor;
 
   Real Ekin_avrg;
-
-  // Flag to indicate when to transfer the Conserved boundaries
-  bool TRANSFER_HYDRO_BOUNDARIES;
 
   // Parameters For Spherical Colapse Problem
   Real sphere_density;
