@@ -326,7 +326,7 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
     for (int i = 0; i < 3; i++) {
       if (not dataset_spec.write_mag[i]) continue;
       const char* field_name            = dset_names[i] + 1;
-      std::optional<int> maybe_field_id = G.field_info.field_id(field_name);
+      std::optional<int> maybe_field_id = G.field_info().field_id(field_name);
       Real* ptr                         = &G.C.device[H.n_cells * get_or_abort(maybe_field_id)];
       if constexpr (ForceF32Output) {
         // TODO (by Alwin, for anyone) : Repair output format if needed and remove the chprintf when appropriate
@@ -427,7 +427,7 @@ int Record_Colnames_And_Get_Field_Ptrs_(const Real** ptr_arr, bool* is_cell_cent
 {
   const Header& H             = G.H;
   const Grid3D::Conserved& C  = G.C;
-  const FieldInfo& field_info = G.field_info;
+  const FieldInfo& field_info = G.field_info();
 
   // write the name of the first column (the index column)
   std::fprintf(fp, "id");
@@ -488,7 +488,7 @@ void Write_Grid_Text_(const std::string& filename, const Grid3D& G, const Datase
 {
   const Header& H             = G.H;
   const Grid3D::Conserved& C  = G.C;
-  const FieldInfo& field_info = G.field_info;
+  const FieldInfo& field_info = G.field_info();
 
   if (H.nx * H.ny * H.nz > 1000) std::printf("Ascii outputs only recommended for small problems!\n");
 

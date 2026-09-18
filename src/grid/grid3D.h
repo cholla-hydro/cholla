@@ -294,7 +294,7 @@ class Grid3D
   SimRuntimeState state;
 
   /*! Describes the mapping between field names and field indices */
-  FieldInfo field_info;
+  FieldInfo field_info_;
 
   /*! Holds all models (if any) */
   ModelCollection model_collection;
@@ -453,6 +453,9 @@ class Grid3D
   /*! \fn void AllocateMemory(void)
    *  \brief Allocate memory for the d, m, E arrays. */
   void AllocateMemory(void);
+
+  /*! \fn accessor method for field_info */
+  const FieldInfo &field_info() const { return field_info_; }
 
   /*! Set the initial conditions based on already-parsed parameter info in the
    *  \ref Parameters arg or unparsed parameter-info in the \ref ParameterMap arg

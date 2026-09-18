@@ -90,12 +90,12 @@ Real Grid3D::Calc_Inverse_Timestep()
  *  \brief Constructor for the Grid. */
 Grid3D::Grid3D(Parameters &P)
 #ifndef RT
-    : field_info(FieldInfo::create())
+    : field_info_(FieldInfo::create())
 #else
     // it's ok to pass in `this->H` to the constructor of `Rad3D` since `Rad3D`'s
     // constructor is only registering a reference to `this->H` for later usage.
     // TODO: initialize `this->H` before passing it to `Rad3D`
-    : field_info(FieldInfo::create()), Rad(this->H)
+    : field_info_(FieldInfo::create()), Rad(this->H)
 #endif
 {
   // set initialization flag to 0
@@ -121,7 +121,7 @@ Grid3D::Grid3D(Parameters &P)
   H.n_ghost++;
 #endif  // MHD
 
-  H.n_fields = field_info.n_fields();
+  H.n_fields = field_info_.n_fields();
 
   int nx_in = P.nx;
   int ny_in = P.ny;

@@ -131,7 +131,7 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id,
     chprintf("Slice write only works for 3D data.\n");
     return;
   }
-  const FieldInfo &field_info = G.field_info;
+  const FieldInfo &field_info = G.field_info();
   const Grid3D::Conserved &C  = G.C;
   const bool using_MHD        = field_info.n_fields(field::Kind::MAGNETIC) > 0;
 
