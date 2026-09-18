@@ -459,9 +459,6 @@ int main(int argc, char *argv[])
   message = "Simulation completed successfully.";
   Write_Message_To_Log_File(message.c_str());
 
-  // free the grid
-  G.Reset();
-
 #ifdef MPI_CHOLLA
   MPI_Finalize();
 #endif /*MPI_CHOLLA*/

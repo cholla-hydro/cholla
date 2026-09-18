@@ -98,9 +98,6 @@ Grid3D::Grid3D(Parameters &P)
     : field_info(FieldInfo::create()), Rad(this->H)
 #endif
 {
-  // set initialization flag to 0
-  flag_init = 0;
-
 // set number of ghost cells
 #ifdef PCM
   H.n_ghost = 2;
@@ -177,15 +174,6 @@ Grid3D::Grid3D(Parameters &P)
   if (H.n_cells <= 0) {
     chprintf("Error initializing grid: H.n_cells = %d\n", H.n_cells);
     chexit(-1);
-  }
-
-  // check for initialization
-  if (flag_init) {
-    chprintf("Already initialized. Please reset.\n");
-    return;
-  } else {
-    // mark that we are initializing
-    flag_init = 1;
   }
 
   // Set header variables for time within the simulation
@@ -624,20 +612,7 @@ void Grid3D::Update_Time()
 #endif
 }
 
-/*! \fn void Reset(void)
- *  \brief Reset the Grid3D class. */
-void Grid3D::Reset(void)
-{
-  // free the memory
-  FreeMemory();
-
-  // reset the initialization flag
-  flag_init = 0;
-}
-
-/*! \fn void FreeMemory(void)
- *  \brief Free the memory allocated by the Grid3D class. */
-void Grid3D::FreeMemory(void)
+Grid3D::~Grid3D() noexcept
 {
   // free the conserved variable arrays
   GPU_Error_Check(cudaFreeHost(C.host));

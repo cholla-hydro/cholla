@@ -282,10 +282,6 @@ struct Header {
 class Grid3D
 {
  public:
-  /*! \var flag_init
-   *  \brief Initialization flag */
-  int flag_init;
-
   /*! \var struct Header H
    *  \brief Header for the grid */
   struct Header H;
@@ -529,13 +525,8 @@ class Grid3D
   void Print_Grid_Stats(void);
 #endif
 
-  /*! \fn void Reset(void)
-   *  \brief Reset the Grid3D class. */
-  void Reset(void);
-
-  /*! \fn void FreeMemory(void)
-   *  \brief Free the memory for the density array. */
-  void FreeMemory(void);
+  /*! \brief destructor */
+  ~Grid3D() noexcept;
 
   /*!
    * \brief Constant gas properties.
