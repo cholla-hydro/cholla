@@ -441,7 +441,7 @@ class Grid3D
 
   /*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
    *  \brief Initialize the grid. */
-  void Initialize(struct Parameters *P);
+  void Initialize(Parameters &P);
 
   /*! \fn void AllocateMemory(void)
    *  \brief Allocate memory for the d, m, E arrays. */
