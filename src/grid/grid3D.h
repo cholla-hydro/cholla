@@ -436,12 +436,19 @@ class Grid3D
 
   Grid3D() = delete;  // <- forbid default construction
 
-  /*! \brief Constructor for the grid */
-  explicit Grid3D(const Parameters &P);
-
-  /*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
-   *  \brief Initialize the grid. */
-  void Initialize(Parameters &P);
+  /*! \brief Constructor for the grid
+   *
+   *  \note
+   *  This function does not leave @ref Grid3D in a fully initialized state. The
+   *  Initialize_* methods must all be called (perhaps in the future, it would be more
+   *  idiomatic to convert this to a static factory method that handled all aspects of
+   *  initialization.
+   *
+   *  \todo
+   *  Ideally we would replace @ref Parameters with @ref ParameterMap (or at least,
+   *  convert the Parameters reference to a const-reference)
+   */
+  explicit Grid3D(Parameters &P);
 
   /*! \fn void AllocateMemory(void)
    *  \brief Allocate memory for the d, m, E arrays. */

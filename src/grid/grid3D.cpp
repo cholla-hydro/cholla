@@ -43,41 +43,6 @@
   #include "../chemistry_gpu/chemistry_gpu.h"  // provides Print_Chemistry_kernel
 #endif
 
-/*! \fn Grid3D(void)
- *  \brief Constructor for the Grid. */
-#ifndef RT
-Grid3D::Grid3D(const Parameters &P) : field_info(FieldInfo::create())
-#else
-// it's ok to pass in `this->H` to the constructor of `Rad3D` since `Rad3D`'s
-// constructor is only registering a reference to `this->H` for later usage.
-// TODO: initialize `this->H` before passing it to `Rad3D`
-Grid3D::Grid3D(const Parameters &P) : field_info(FieldInfo::create()), Rad(this->H)
-#endif
-{
-  // set initialization flag to 0
-  flag_init = 0;
-
-// set number of ghost cells
-#ifdef PCM
-  H.n_ghost = 2;
-#endif  // PCM
-#if defined(PLMP) or defined(PLMC)
-  H.n_ghost = 3;
-#endif  // PLMP or PLMC
-#if defined(PPMP) or defined(PPMC)
-  H.n_ghost = 4;
-#endif  // PPMP or PLMC
-
-#ifdef GRAVITY
-  H.n_ghost_potential_offset = H.n_ghost - N_GHOST_POTENTIAL;
-#endif
-
-#ifdef MHD
-  // Set the number of ghost cells high enough for MHD. MHD needs one extra for the left most face
-  H.n_ghost++;
-#endif  // MHD
-}
-
 /*! \fn void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real
  * *zpos) \brief Get the cell-centered position based on cell index */
 void Grid3D::Get_Position(long i, long j, long k, Real *x_pos, Real *y_pos, Real *z_pos) const
@@ -121,10 +86,41 @@ Real Grid3D::Calc_Inverse_Timestep()
   return Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells, H.dx, H.dy, H.dz, gama);
 }
 
-/*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
- *  \brief Initialize the grid. */
-void Grid3D::Initialize(Parameters &P)
+/*! \fn Grid3D(void)
+ *  \brief Constructor for the Grid. */
+Grid3D::Grid3D(Parameters &P)
+#ifndef RT
+    : field_info(FieldInfo::create())
+#else
+    // it's ok to pass in `this->H` to the constructor of `Rad3D` since `Rad3D`'s
+    // constructor is only registering a reference to `this->H` for later usage.
+    // TODO: initialize `this->H` before passing it to `Rad3D`
+    : field_info(FieldInfo::create()), Rad(this->H)
+#endif
 {
+  // set initialization flag to 0
+  flag_init = 0;
+
+// set number of ghost cells
+#ifdef PCM
+  H.n_ghost = 2;
+#endif  // PCM
+#if defined(PLMP) or defined(PLMC)
+  H.n_ghost = 3;
+#endif  // PLMP or PLMC
+#if defined(PPMP) or defined(PPMC)
+  H.n_ghost = 4;
+#endif  // PPMP or PLMC
+
+#ifdef GRAVITY
+  H.n_ghost_potential_offset = H.n_ghost - N_GHOST_POTENTIAL;
+#endif
+
+#ifdef MHD
+  // Set the number of ghost cells high enough for MHD. MHD needs one extra for the left most face
+  H.n_ghost++;
+#endif  // MHD
+
   H.n_fields = field_info.n_fields();
 
   int nx_in = P.nx;
