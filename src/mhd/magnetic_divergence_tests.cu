@@ -52,13 +52,12 @@ TEST(tMHDGrid3DcheckMagneticDivergence, CorrectInputExpectCorrectOutput)
 
   // Allocating and copying to device
   cuda_utilities::DeviceVector<double> dev_grid(host_grid.size());
-  G.C.device = dev_grid.data();
   dev_grid.cpyHostToDevice(host_grid);
 
   // Perform test
   InitializeChollaMPI(NULL, NULL);
   double max_magnetic_divergence =
-      mhd::checkMagneticDivergence(G.C.device, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny, G.H.nz, G.H.n_cells);
+      mhd::checkMagneticDivergence(dev_grid.data(), G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny, G.H.nz, G.H.n_cells);
   MPI_Finalize();
   // Perform Comparison
   Real const fiducialDivergence = 3.6318132783263106 / 1E15;
