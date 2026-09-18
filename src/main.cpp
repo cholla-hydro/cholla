@@ -80,9 +80,6 @@ int main(int argc, char *argv[])
     param_file = argv[1];
   }
 
-  // create the grid
-  Grid3D G;
-
   // read in contents from the parameter file
   ParameterMap pmap(param_file, argc, argv);
 
@@ -93,6 +90,9 @@ int main(int argc, char *argv[])
   //              initializes the simulation using parameter values from P
   //   -> modern: code initializes the simulation by getting values directly from pmap
   Parameters P(pmap);
+
+  // create the grid
+  Grid3D G(P);
 
   // write a description of simulation configuration to console
   chprintf("Git Commit Hash = %s\n", GIT_HASH);

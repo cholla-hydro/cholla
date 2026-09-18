@@ -434,9 +434,10 @@ class Grid3D
     Real *d_Grav_potential;
   } C;
 
-  /*! \fn Grid3D(void)
-   *  \brief Constructor for the grid */
-  Grid3D(void);
+  Grid3D() = delete;  // <- forbid default construction
+
+  /*! \brief Constructor for the grid */
+  explicit Grid3D(const Parameters &P);
 
   /*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
    *  \brief Initialize the grid. */
