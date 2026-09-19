@@ -890,12 +890,12 @@ void Grid3D::Print_Grid_Stats(void)
 
 // this should work whether Cholla is configured with COOLING_GRACKLE or CHEMISTRY_GPU
 // - earlier versions of this logic wouldn't work with Grackle
-static void cosmo_init_chemical_species_(const Header &H, const FieldInfo &field_info, Real *host_field_ptr)
+static void cosmo_init_chemical_species_(const Header &H, FieldManager &f_man)
 {
   auto get_ptr_or_abort = [&](const char *name) -> Real * {
-    std::optional<int> maybe_id = field_info.field_id(name).value();
+    std::optional<FieldId> maybe_id = f_man.field_id(name);
     if (maybe_id.has_value()) {
-      return &host_field_ptr[H.n_cells * maybe_id.value()];
+      return f_man.field_or_abort(MemSpace::HOST, maybe_id.value());
     } else {
       CHOLLA_ERROR("%s is not the name of a defined field", name);
     }
@@ -974,7 +974,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
     // -> we also skip metal_density (presumably the field is set to 0 elsewhere?)
     skip_loading_scalar = {"HI_density",    "HII_density", "HeI_density",  "HeII_density",
                            "HeIII_density", "e_density",   "metal_density"};
-    cosmo_init_chemical_species_(H, f_info, C.host);
+    cosmo_init_chemical_species_(H, f_man);
   }
   #endif
 
