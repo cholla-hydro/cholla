@@ -951,12 +951,13 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
   dataset_buffer = (Real *)malloc((H.nz_real) * (H.ny_real) * (H.nx_real) * sizeof(Real));
   #endif
 
-  const FieldInfo &f_info = field_info();
+  FieldManager &f_man     = field_manager();
+  const FieldInfo &f_info = f_man.info();
 
   // load all of the hydro fields (include GasEnergy if using dual-energy formalism)
-  for (int field_id : f_info.get_id_range_old(field::Kind::HYDRO)) {
-    Real *dest_ptr                 = &C.host[field_id * H.n_cells];
-    std::optional<std::string> tmp = f_info.field_name(field_id);
+  for (FieldId field_id : f_info.get_id_range(field::Kind::HYDRO)) {
+    Real *dest_ptr                 = f_man.field_or_abort(MemSpace::HOST, field_id);
+    std::optional<std::string> tmp = f_man.field_name(field_id);
     if (!tmp.has_value()) {
       CHOLLA_ERROR("this should be unreachable");
     }
@@ -978,9 +979,9 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
   #endif
 
   // try to load all of the scalars (that aren't within skip_loading_scalar)
-  for (int field_id : f_info.get_id_range_old(field::Kind::PASSIVE_SCALAR)) {
-    Real *dest_ptr                 = &C.host[field_id * H.n_cells];
-    std::optional<std::string> tmp = f_info.field_name(field_id);
+  for (FieldId field_id : f_info.get_id_range(field::Kind::HYDRO)) {
+    Real *dest_ptr                 = f_man.field_or_abort(MemSpace::HOST, field_id);
+    std::optional<std::string> tmp = f_man.field_name(field_id);
     if (!tmp.has_value()) {
       CHOLLA_ERROR("this should be unreachable");
     }
