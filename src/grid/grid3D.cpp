@@ -238,23 +238,45 @@ Grid3D::Grid3D(Parameters &P)
   AllocateMemory();
 }
 
+static void populate_conserved_fields_(Grid3D &G, FieldManager &f_manager, MemSpace space)
+{
+  Real *root_ptr = f_manager.pack(space, "fluid").value_or(nullptr);
+  bool is_host   = space == MemSpace::HOST;
+
+#ifndef ONLY_PARTICLES
+  if (root_ptr == nullptr) {
+    const char *name = (is_host) ? "host" : "device";
+    CHOLLA_ERROR("issue locating pointer for the %s fluid field-pack", name);
+  }
+#endif  // ONLY_PARTICLES
+
+  Grid3D::Conserved &C   = G.C;
+  std::ptrdiff_t n_cells = G.H.n_cells;
+
+  auto assign_ = [n_cells, root_ptr](Real *&dest, std::ptrdiff_t slot_idx) -> void {
+    dest = root_ptr + slot_idx * n_cells;
+  };
+
+  if (is_host) {
+    C.host = root_ptr;
+  } else {
+    C.device = root_ptr;
+  }
+
+  // point conserved members of Grid3D::Conserved to the appropriate locations
+  assign_(is_host ? C.density : C.d_density, grid_enum::density);
+  assign_(is_host ? C.momentum_x : C.d_momentum_x, grid_enum::momentum_x);
+  assign_(is_host ? C.momentum_y : C.d_momentum_y, grid_enum::momentum_y);
+  assign_(is_host ? C.momentum_z : C.d_momentum_z, grid_enum::momentum_z);
+  assign_(is_host ? C.Energy : C.d_Energy, grid_enum::Energy);
+}
+
 /*! \fn void AllocateMemory(void)
  *  \brief Allocate memory for the arrays. */
 void Grid3D::AllocateMemory(void)
 {
-  C.host = field_manager().pack(MemSpace::HOST, "fluid").value_or(nullptr);
-#ifndef ONLY_PARTICLES
-  if (C.host == nullptr) {
-    CHOLLA_ERROR("there was an issue locating the host fluid pack");
-  }
-#endif  // ONLY_PARTICLES
+  populate_conserved_fields_(*this, field_manager(), MemSpace::HOST);
 
-  // point conserved variables to the appropriate locations
-  C.density    = &(C.host[grid_enum::density * H.n_cells]);
-  C.momentum_x = &(C.host[grid_enum::momentum_x * H.n_cells]);
-  C.momentum_y = &(C.host[grid_enum::momentum_y * H.n_cells]);
-  C.momentum_z = &(C.host[grid_enum::momentum_z * H.n_cells]);
-  C.Energy     = &(C.host[grid_enum::Energy * H.n_cells]);
 #ifdef SCALAR
   C.scalar = &(C.host[H.n_cells * grid_enum::scalar]);
   #ifdef BASIC_SCALAR
@@ -273,20 +295,10 @@ void Grid3D::AllocateMemory(void)
   C.GasEnergy = &(C.host[(H.n_fields - 1) * H.n_cells]);
 #endif  // DE
 
-  C.device = field_manager().pack(MemSpace::DEV, "fluid").value_or(nullptr);
-#ifndef ONLY_PARTICLES
-  if (C.device == nullptr) {
-    CHOLLA_ERROR("there was an issue locating the device fluid pack");
-  }
-#endif  // ONLY_PARTICLES
+  populate_conserved_fields_(*this, field_manager(), MemSpace::DEV);
 
   // allocate memory for the conserved variable arrays on the device
   cuda_utilities::initGpuMemory(C.device, H.n_fields * H.n_cells * sizeof(Real));
-  C.d_density    = C.device;
-  C.d_momentum_x = &(C.device[H.n_cells]);
-  C.d_momentum_y = &(C.device[2 * H.n_cells]);
-  C.d_momentum_z = &(C.device[3 * H.n_cells]);
-  C.d_Energy     = &(C.device[4 * H.n_cells]);
 #ifdef SCALAR
   C.d_scalar = &(C.device[H.n_cells * grid_enum::scalar]);
   #ifdef BASIC_SCALAR
