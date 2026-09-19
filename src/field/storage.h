@@ -5,6 +5,7 @@
 
 #include <array>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -29,20 +30,40 @@ namespace field_detail
  */
 inline constexpr std::size_t MAX_REGISTERS = 2;
 
+/*! \brief Deletion policy used by a smart pointer that manages a pointer in host
+ *      memory allocated via ``cudaHostAlloc`` */
+struct CudaHostPtrDelete {
+  template <class T>
+  void operator()(T* ptr) const
+  {
+    if (ptr == nullptr) return;
+    GPU_Error_Check(cudaFreeHost(static_cast<void*>(ptr)));
+  }
+};
+
 /*! tracks all memory associated with a single field-pack.
  *
+ *  The @ref FieldInfo object has the responsibility of tracking the number of registers
+ *  associated with a field pack.
+ *
  *  \note
- *  Unused registers simply hold empty containers
+ *  Unused registers simply hold empty containers.
+ *
+ *  Implementation Strategy
+ *  =======================
+ *  The current implementation creates separate allocations for each register. A more
+ *  robust strategy **might** be to make a single allocation for all registers and
+ *  tracking the pointer offsets to the start of the register.
  */
 struct PackData {
   /// The stride for accessing each slot in a field pack
   std::size_t slot_stride;
   /// Holds register-data in host-memory
-  std::array<std::vector<Real>, MAX_REGISTERS> host_registers;
+  std::array<std::unique_ptr<Real, CudaHostPtrDelete>, MAX_REGISTERS> host_registers;
   /// Holds register-data in device-memory
   std::array<cuda_utilities::DeviceVector<Real>, MAX_REGISTERS> dev_registers;
 
-  std::size_t elements_per_pack_register() const { return host_registers[0].size(); }
+  std::size_t elements_per_pack_register() const { return dev_registers[0].size(); }
 };
 
 /*! tracks all memory associated across all field data

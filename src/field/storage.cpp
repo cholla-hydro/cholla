@@ -47,7 +47,12 @@ Storage::Storage(const FieldInfo& info, std::array<int, 3> shape_xyz, int ghost_
     tmp.slot_stride               = elem_per_field;
     std::size_t elements_per_pack = info.n_fields(pack_id) * elem_per_field;
     for (int i = 0; i < n_registers; i++) {
-      tmp.host_registers[i].resize(elements_per_pack);
+      // this is unfortunately a little clunky
+      Real* host_ptr = nullptr;
+      GPU_Error_Check(cudaHostAlloc((void**)&host_ptr, elements_per_pack * sizeof(Real), cudaHostAllocDefault));
+      tmp.host_registers[i] = std::unique_ptr<Real, CudaHostPtrDelete>(host_ptr, CudaHostPtrDelete{});
+
+      // a register on device is simpler since its represented by a DeviceVector
       tmp.dev_registers[i].resize(elements_per_pack);
     }
     pack_vec.emplace_back(std::move(tmp));
@@ -65,7 +70,7 @@ std::optional<const Real*> Storage::field(MemSpace s, FieldId id, std::size_t re
     return std::nullopt;
   }
   if (s == MemSpace::HOST) {
-    return {pack_data.host_registers[register_idx].data() + offset};
+    return {pack_data.host_registers[register_idx].get() + offset};
   } else {
     return {pack_data.dev_registers[register_idx].data() + offset};
   }
