@@ -327,9 +327,10 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
     const char* dset_names[3] = {"/magnetic_x", "/magnetic_y", "/magnetic_z"};
     for (int i = 0; i < 3; i++) {
       if (not dataset_spec.write_mag[i]) continue;
-      const char* field_name            = dset_names[i] + 1;
-      std::optional<int> maybe_field_id = G.field_info().field_id(field_name);
-      Real* ptr                         = &G.C.device[H.n_cells * get_or_abort(maybe_field_id)];
+      const char* field_name          = dset_names[i] + 1;
+      std::optional<FieldId> maybe_id = f_man.field_id(field_name);
+      const FieldId& field_id         = get_or_abort(maybe_id);
+      const Real* ptr                 = f_man.field_or_abort(MemSpace::DEV, field_id);
       if constexpr (ForceF32Output) {
         // TODO (by Alwin, for anyone) : Repair output format if needed and remove the chprintf when appropriate
         chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
