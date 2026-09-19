@@ -91,6 +91,12 @@ int main(int argc, char *argv[])
   //   -> modern: code initializes the simulation by getting values directly from pmap
   Parameters P(pmap);
 
+  // Check the configuration
+  // -> this needs to happen before we construct the grid because the constructor
+  //    currently mutates the contents of P
+  // -> TODO: shift more checks to location where we load values from pmap
+  Check_Configuration(P);
+
   // create the grid
   Grid3D G(P);
 
@@ -118,9 +124,6 @@ int main(int argc, char *argv[])
     chprintf("Input directory:  %s\n", P.indir);
   }
   chprintf("Output directory:  %s\n", writer_manager.fname_template().nominal_output_dir_path().c_str());
-
-  // Check the configuration
-  Check_Configuration(P);
 
   // Create a Log file to output run-time messages and output the git hash and
   // macro flags used
