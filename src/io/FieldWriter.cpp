@@ -181,7 +181,7 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
   // =============================================================
   // TODO: logic for determining recorded fields should be independent of file format
   if (this->file_format_ == FileFormat::H5_F32) {
-    for (int field_id : field_info.get_id_range(field::Kind::HYDRO)) {  // (includes GasEnergy, if applicable)
+    for (int field_id : field_info.get_id_range_old(field::Kind::HYDRO)) {  // (includes GasEnergy, if applicable)
       std::optional<std::string> maybe_field_name = field_info.field_name(field_id);
       std::string field_name                      = get_or_abort(maybe_field_name);
       std::string param_name                      = "out_float32_" + field_name;
@@ -190,7 +190,7 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
       }
     }
 
-    for (int field_id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
+    for (int field_id : field_info.get_id_range_old(field::Kind::PASSIVE_SCALAR)) {
       std::optional<std::string> maybe_field_name = field_info.field_name(field_id);
       std::string field_name                      = get_or_abort(maybe_field_name);
       std::string param_name                      = "out_float32_" + field_name;
@@ -209,7 +209,7 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
     registrar.add_entry("GasEnergy", ENERGY_CONDITION);
 #endif
 
-    for (int field_id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
+    for (int field_id : field_info.get_id_range_old(field::Kind::PASSIVE_SCALAR)) {
       std::optional<std::string> maybe_field_name = field_info.field_name(field_id);
       std::string name                            = get_or_abort(maybe_field_name);
       if (name == "e_density") {
@@ -229,7 +229,7 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
   dataset_spec_.write_mag = {false, false, false};
 
   // this loop is empty if not compiled with MHD
-  for (int field_id : field_info.get_id_range(field::Kind::MAGNETIC)) {
+  for (int field_id : field_info.get_id_range_old(field::Kind::MAGNETIC)) {
     std::optional<std::string> maybe_field_name = field_info.field_name(field_id);
     std::string field_name                      = get_or_abort(maybe_field_name);
     // TODO: logic for determining recorded fields should be independent of file format

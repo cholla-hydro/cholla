@@ -28,7 +28,7 @@ namespace io
 SliceWriter::SliceWriter(ParameterMap &pmap, const FieldInfo &field_info)
 {
   // append entries to cc_field_id_dset_name_pairs_ for each cell-centered hydro field
-  for (int field_id : field_info.get_id_range(field::Kind::HYDRO)) {
+  for (int field_id : field_info.get_id_range_old(field::Kind::HYDRO)) {
     std::optional<std::string> maybe_field_name = field_info.field_name(field_id);
     std::string field_name                      = get_or_abort(maybe_field_name);
     std::optional<std::string> maybe_dset_name  = lookup_legacy_short_name_(field_name, false);
@@ -43,7 +43,7 @@ SliceWriter::SliceWriter(ParameterMap &pmap, const FieldInfo &field_info)
   }
 
   // append an entry for each field_name
-  for (int field_id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
+  for (int field_id : field_info.get_id_range_old(field::Kind::PASSIVE_SCALAR)) {
     std::optional<std::string> maybe_field_name = field_info.field_name(field_id);
     this->cc_field_id_dset_name_pairs_.emplace_back(field_id, get_or_abort(maybe_field_name));
   }
@@ -206,7 +206,7 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id,
       herr_t status = Write_HDF5_Dataset(file_id, slice_prop.dataspace_id, buf.data(), full_dset_name.c_str());
     }
 
-    for (int field_id : field_info.get_id_range(field::Kind::MAGNETIC)) {
+    for (int field_id : field_info.get_id_range_old(field::Kind::MAGNETIC)) {
       std::string field_name = field_info.field_name(field_id).value();
 
       if (slice_intersects_local_domain) {

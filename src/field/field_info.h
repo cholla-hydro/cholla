@@ -27,12 +27,12 @@ enum class IOBuf { HOST, DEVICE };
  *
  *  See \ref FieldInfo::get_id_range for an example
  */
-class IdRange
+class IdRangeOld
 {
   const std::vector<int>& id_vec_;
 
  public:
-  explicit IdRange(const std::vector<int>& id_vec) : id_vec_(id_vec) {}
+  explicit IdRangeOld(const std::vector<int>& id_vec) : id_vec_(id_vec) {}
 
   // the fact that the iterator aliases a const iterator of a std::vector is an
   // implementation detail
@@ -209,10 +209,10 @@ class FieldInfo
    *
    *  This might be used in a case like the following:
    *  \code{c++}
-   *  for (int field_id: field_info.get_id_range(field::Kind::HYDRO)) {
+   *  for (int field_id: field_info.get_id_range_old(field::Kind::HYDRO)) {
    *    // ...
    *  }
    *  \endcode
    */
-  field::IdRange get_id_range(field::Kind kind) const { return field::IdRange(get_kind_ids_(kind)); }
+  field::IdRangeOld get_id_range_old(field::Kind kind) const { return field::IdRangeOld(get_kind_ids_(kind)); }
 };

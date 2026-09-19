@@ -954,7 +954,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
   const FieldInfo &f_info = field_info();
 
   // load all of the hydro fields (include GasEnergy if using dual-energy formalism)
-  for (int field_id : f_info.get_id_range(field::Kind::HYDRO)) {
+  for (int field_id : f_info.get_id_range_old(field::Kind::HYDRO)) {
     Real *dest_ptr                 = &C.host[field_id * H.n_cells];
     std::optional<std::string> tmp = f_info.field_name(field_id);
     if (!tmp.has_value()) {
@@ -978,7 +978,7 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
   #endif
 
   // try to load all of the scalars (that aren't within skip_loading_scalar)
-  for (int field_id : f_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
+  for (int field_id : f_info.get_id_range_old(field::Kind::PASSIVE_SCALAR)) {
     Real *dest_ptr                 = &C.host[field_id * H.n_cells];
     std::optional<std::string> tmp = f_info.field_name(field_id);
     if (!tmp.has_value()) {
