@@ -42,6 +42,25 @@ class IdRangeOld
   iterator end() const { return id_vec_.end(); }
 };
 
+/*! This is a "range" in the C++ 20 sense
+ *
+ *  See \ref FieldInfo::get_id_range for an example
+ */
+class IdRange
+{
+  const std::vector<FieldId> id_vec_;
+
+ public:
+  explicit IdRange(const std::vector<FieldId>& id_vec) : id_vec_(id_vec) {}
+
+  // the fact that the iterator aliases a const iterator of a std::vector is an
+  // implementation detail
+  using iterator = std::vector<FieldId>::const_iterator;
+
+  iterator begin() const { return id_vec_.begin(); }
+  iterator end() const { return id_vec_.end(); }
+};
+
 }  // namespace field
 
 /*! Dynamically describes the available fields and associated properties
@@ -215,4 +234,25 @@ class FieldInfo
    *  \endcode
    */
   field::IdRangeOld get_id_range_old(field::Kind kind) const { return field::IdRangeOld(get_kind_ids_(kind)); }
+
+  /*! This returns a "range" over all ids
+   *
+   *  This might be used in a case like the following:
+   *  \code{c++}
+   *  for (FieldId field_id: field_info.get_id_range(field::Kind::HYDRO)) {
+   *    // ...
+   *  }
+   *  \endcode
+   */
+  field::IdRange get_id_range(field::Kind kind) const
+  {
+    const std::vector<int>& tmp = get_kind_ids_(kind);
+    std::vector<FieldId> v;
+    v.reserve(tmp.size());
+    for (int slot_idx : tmp) {
+      FieldId f_id(0, static_cast<uint8_t>(slot_idx));
+      v.emplace_back(std::move(f_id));
+    }
+    return field::IdRange(std::move(v));
+  }
 };
