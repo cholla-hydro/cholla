@@ -161,7 +161,7 @@ void VL_Algorithm_2D_CUDA(Real *d_conserved, int nx, int ny, int x_off, int y_of
 void Free_Memory_VL_2D()
 {
   // free the GPU memory
-  cudaFree(dev_conserved);
+  // dev_conserved is freed by FieldManager
   cudaFree(dev_conserved_half);
   cudaFree(Q_Lx);
   cudaFree(Q_Rx);

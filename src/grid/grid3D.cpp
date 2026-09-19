@@ -234,7 +234,7 @@ Grid3D::Grid3D(Parameters &P)
 
   field_manager_.emplace(std::move(my_field_info), std::array<int, 3>{{H.nx_real, H.ny_real, H.nz_real}}, H.n_ghost);
 
-  // allocate memory
+  // allocate memory and copy pointer addresses from field_manager_
   AllocateMemory();
 }
 
@@ -242,9 +242,12 @@ Grid3D::Grid3D(Parameters &P)
  *  \brief Allocate memory for the arrays. */
 void Grid3D::AllocateMemory(void)
 {
-  // allocate memory for the conserved variable arrays
-  // allocate all the memory to density, to insure contiguous memory
-  GPU_Error_Check(cudaHostAlloc((void **)&C.host, H.n_fields * H.n_cells * sizeof(Real), cudaHostAllocDefault));
+  C.host = field_manager().pack(MemSpace::HOST, "fluid").value_or(nullptr);
+#ifndef ONLY_PARTICLES
+  if (C.host == nullptr) {
+    CHOLLA_ERROR("there was an issue locating the host fluid pack");
+  }
+#endif  // ONLY_PARTICLES
 
   // point conserved variables to the appropriate locations
   C.density    = &(C.host[grid_enum::density * H.n_cells]);
@@ -270,8 +273,14 @@ void Grid3D::AllocateMemory(void)
   C.GasEnergy = &(C.host[(H.n_fields - 1) * H.n_cells]);
 #endif  // DE
 
+  C.device = field_manager().pack(MemSpace::DEV, "fluid").value_or(nullptr);
+#ifndef ONLY_PARTICLES
+  if (C.device == nullptr) {
+    CHOLLA_ERROR("there was an issue locating the device fluid pack");
+  }
+#endif  // ONLY_PARTICLES
+
   // allocate memory for the conserved variable arrays on the device
-  GPU_Error_Check(cudaMalloc((void **)&C.device, H.n_fields * H.n_cells * sizeof(Real)));
   cuda_utilities::initGpuMemory(C.device, H.n_fields * H.n_cells * sizeof(Real));
   C.d_density    = C.device;
   C.d_momentum_x = &(C.device[H.n_cells]);
@@ -654,8 +663,7 @@ void Grid3D::Reset(void)
  *  \brief Free the memory allocated by the Grid3D class. */
 void Grid3D::FreeMemory(void)
 {
-  // free the conserved variable arrays
-  GPU_Error_Check(cudaFreeHost(C.host));
+  // no need to free the conserved variable arrays
 
 #ifdef GRAVITY
   GPU_Error_Check(cudaFreeHost(C.Grav_potential));
