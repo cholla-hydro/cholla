@@ -238,6 +238,12 @@ Grid3D::Grid3D(Parameters &P)
   AllocateMemory();
 }
 
+/*! \brief populates conserved fluid fields of \ref Grid3D::Conserved
+ *
+ *  \note
+ *  In the future, we'll probably need to reuse this if we start using multiple registers
+ *  for tracking the hydro fields
+ */
 static void populate_conserved_fields_(Grid3D &G, FieldManager &f_manager, MemSpace space)
 {
   Real *root_ptr = f_manager.pack(space, "fluid").value_or(nullptr);
@@ -269,53 +275,39 @@ static void populate_conserved_fields_(Grid3D &G, FieldManager &f_manager, MemSp
   assign_(is_host ? C.momentum_y : C.d_momentum_y, grid_enum::momentum_y);
   assign_(is_host ? C.momentum_z : C.d_momentum_z, grid_enum::momentum_z);
   assign_(is_host ? C.Energy : C.d_Energy, grid_enum::Energy);
+#ifdef SCALAR
+  assign_(is_host ? C.scalar : C.d_scalar, grid_enum::scalar);
+  #ifdef BASIC_SCALAR
+  assign_(is_host ? C.basic_scalar : C.d_basic_scalar, grid_enum::basic_scalar);
+  #endif
+  #ifdef DUST
+  assign_(is_host ? C.dust_density : C.d_dust_density, grid_enum::dust_density);
+  #endif
+#endif  // SCALAR
+#ifdef MHD
+  assign_(is_host ? C.magnetic_x : C.d_magnetic_x, grid_enum::magnetic_x);
+  assign_(is_host ? C.magnetic_y : C.d_magnetic_y, grid_enum::magnetic_y);
+  assign_(is_host ? C.magnetic_z : C.d_magnetic_z, grid_enum::magnetic_z);
+#endif  // MHD
+#ifdef DE
+  assign_(is_host ? C.GasEnergy : C.d_GasEnergy, grid_enum::GasEnergy);
+#endif  // DE
 }
 
 /*! \fn void AllocateMemory(void)
  *  \brief Allocate memory for the arrays. */
 void Grid3D::AllocateMemory(void)
 {
+  // copy pointers of HOST memory (the memory was already allocated) for conserved
+  // fluid fields into the the members of this->C
   populate_conserved_fields_(*this, field_manager(), MemSpace::HOST);
 
-#ifdef SCALAR
-  C.scalar = &(C.host[H.n_cells * grid_enum::scalar]);
-  #ifdef BASIC_SCALAR
-  C.basic_scalar = &(C.host[H.n_cells * grid_enum::basic_scalar]);
-  #endif
-  #ifdef DUST
-  C.dust_density = &(C.host[H.n_cells * grid_enum::dust_density]);
-  #endif
-#endif  // SCALAR
-#ifdef MHD
-  C.magnetic_x = &(C.host[grid_enum::magnetic_x * H.n_cells]);
-  C.magnetic_y = &(C.host[grid_enum::magnetic_y * H.n_cells]);
-  C.magnetic_z = &(C.host[grid_enum::magnetic_z * H.n_cells]);
-#endif  // MHD
-#ifdef DE
-  C.GasEnergy = &(C.host[(H.n_fields - 1) * H.n_cells]);
-#endif  // DE
-
+  // copy pointers of HOST memory (the memory was already allocated) for conserved
+  // fluid fields into the the members of this->C
   populate_conserved_fields_(*this, field_manager(), MemSpace::DEV);
-
-  // allocate memory for the conserved variable arrays on the device
+  // todo: do we want to make sure every field is initialized to 0? If so, we should do
+  //       this when actually allocating memory
   cuda_utilities::initGpuMemory(C.device, H.n_fields * H.n_cells * sizeof(Real));
-#ifdef SCALAR
-  C.d_scalar = &(C.device[H.n_cells * grid_enum::scalar]);
-  #ifdef BASIC_SCALAR
-  C.d_basic_scalar = &(C.device[H.n_cells * grid_enum::basic_scalar]);
-  #endif
-  #ifdef DUST
-  C.d_dust_density = &(C.device[H.n_cells * grid_enum::dust_density]);
-  #endif
-#endif  // SCALAR
-#ifdef MHD
-  C.d_magnetic_x = &(C.device[(grid_enum::magnetic_x)*H.n_cells]);
-  C.d_magnetic_y = &(C.device[(grid_enum::magnetic_y)*H.n_cells]);
-  C.d_magnetic_z = &(C.device[(grid_enum::magnetic_z)*H.n_cells]);
-#endif  // MHD
-#ifdef DE
-  C.d_GasEnergy = &(C.device[(H.n_fields - 1) * H.n_cells]);
-#endif  // DE
 
 #if defined(GRAVITY)
   GPU_Error_Check(cudaHostAlloc(&C.Grav_potential, H.n_cells * sizeof(Real), cudaHostAllocDefault));
