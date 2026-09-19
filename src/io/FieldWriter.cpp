@@ -75,11 +75,11 @@ struct DsetSpecListBuilder {
   void add_entry(const char* name, WriteCond cond)
   {
     // lookup the field_id associated with name
-    std::optional<int> maybe_field_id = field_info.field_id(name);
+    std::optional<FieldId> maybe_field_id = field_info.lookup_FieldID(name);
     if (!maybe_field_id.has_value()) {
       CHOLLA_ERROR("the current Cholla config has no \"%s\" field", name);
     }
-    int field_id = maybe_field_id.value();
+    FieldId field_id = maybe_field_id.value();
 
     // determine the dset_name
     std::string dset_name = out_name_recipe(name);
@@ -298,22 +298,24 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
   T* dev_dataset_buf  = lazy_scratch_buf.get_buf_dev<T>(buffer_size);
   T* host_dataset_buf = lazy_scratch_buf.get_buf_host<T>(buffer_size);
 
+  const FieldManager& f_man = G.field_manager();
+
   // write out regular cell-centered fields
   for (const io::DatasetSpecEntry& cur_spec : dataset_spec.cc_dataset_entries) {
     if constexpr (ForceF32Output) {
       // todo: consider more robust behavior here
       CHOLLA_ASSERT(cur_spec.condition == io::WriteCond::ALWAYS, "unexpected case");
       CHOLLA_ASSERT(cur_spec.io_buf == field::IOBuf::DEVICE, "unexpected case");
-      Real* ptr = &G.C.device[cur_spec.field_id * H.n_cells];
+      const Real* ptr = f_man.field_or_abort(MemSpace::DEV, cur_spec.field_id);
       Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf,
                           ptr, cur_spec.name.c_str());
     } else {
       if (cur_spec.condition == io::WriteCond::REQUIRE_COMPLETE_DATA && not G.state.Output_Complete_Data) continue;
       if (cur_spec.io_buf == field::IOBuf::HOST) {
-        Real* ptr = &G.C.host[cur_spec.field_id * H.n_cells];
+        const Real* ptr = f_man.field_or_abort(MemSpace::HOST, cur_spec.field_id);
         Write_Grid_HDF5_Field_CPU(H, file_id, host_dataset_buf, ptr, cur_spec.name.c_str());
       } else {
-        Real* ptr = &G.C.device[cur_spec.field_id * H.n_cells];
+        const Real* ptr = f_man.field_or_abort(MemSpace::DEV, cur_spec.field_id);
         Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, ptr, cur_spec.name.c_str());
       }
     }
@@ -427,7 +429,8 @@ int Record_Colnames_And_Get_Field_Ptrs_(const Real** ptr_arr, bool* is_cell_cent
 {
   const Header& H             = G.H;
   const Grid3D::Conserved& C  = G.C;
-  const FieldInfo& field_info = G.field_info();
+  const FieldManager& f_man   = G.field_manager();
+  const FieldInfo& field_info = f_man.info();
 
   // write the name of the first column (the index column)
   std::fprintf(fp, "id");
@@ -448,7 +451,7 @@ int Record_Colnames_And_Get_Field_Ptrs_(const Real** ptr_arr, bool* is_cell_cent
     std::fprintf(fp, "\t%s", entry.name.c_str());  // <- write the column name
 
     // record the field's pointer and whether it is cell-centered
-    ptr_arr[field_ptr_counter]          = &G.C.host[entry.field_id * G.H.n_cells];
+    ptr_arr[field_ptr_counter]          = f_man.field_or_abort(MemSpace::HOST, entry.field_id);
     is_cell_centered[field_ptr_counter] = true;
     field_ptr_counter++;
   }
@@ -461,8 +464,8 @@ int Record_Colnames_And_Get_Field_Ptrs_(const Real** ptr_arr, bool* is_cell_cent
     const char* field_name = field_names[i];
     std::fprintf(fp, "\t%s", field_name);  // <- write the column name
 
-    std::optional<int> maybe_field_id   = field_info.field_id(field_name);
-    const Real* ptr                     = &G.C.host[H.n_cells * get_or_abort(maybe_field_id)];
+    std::optional<FieldId> maybe_id     = field_info.lookup_FieldID(field_name);
+    const Real* ptr                     = f_man.field_or_abort(MemSpace::HOST, get_or_abort(maybe_id));
     ptr_arr[field_ptr_counter]          = ptr;
     is_cell_centered[field_ptr_counter] = false;
     field_ptr_counter++;

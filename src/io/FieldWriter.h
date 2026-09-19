@@ -65,7 +65,7 @@ enum struct WriteCond { ALWAYS, REQUIRE_COMPLETE_DATA };
  */
 struct DatasetSpecEntry {
   /// the id of the field that will be written
-  int field_id;
+  FieldId field_id;
   /// the name used to refer to the field data in the output file
   ///
   /// The precise interpretation depends upon context:
@@ -80,7 +80,7 @@ struct DatasetSpecEntry {
   // the following constructor is defined in order to make this type work with
   // std::vector::emplace_back. Delete it, once we require C++20 or newer
 #if __cpp_aggregate_paren_init < 201902L
-  DatasetSpecEntry(int field_id, std::string name, field::IOBuf io_buf, WriteCond condition)
+  DatasetSpecEntry(FieldId field_id, std::string name, field::IOBuf io_buf, WriteCond condition)
       : field_id{field_id}, name{std::move(name)}, io_buf{io_buf}, condition{condition}
   {
   }

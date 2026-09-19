@@ -176,6 +176,7 @@ class FieldInfo
     }
     return std::optional<bool>{true};
   }
+  std::optional<bool> is_cell_centered(FieldId id) const { return is_cell_centered(id.slot_idx); }
 
   /*! try to look up the IOBuf value associated with a field
    *
@@ -186,6 +187,8 @@ class FieldInfo
     bool bad_id = (field_id < 0 || field_id >= n_fields());
     return bad_id ? std::nullopt : std::optional<field::IOBuf>{io_buf_[field_id]};
   }
+
+  std::optional<field::IOBuf> io_buf(FieldId id) const { return io_buf(id.slot_idx); }
 
   /*! Returns the number of fields */
   int n_fields() const { return static_cast<int>(name_id_bimap_.size()); }
