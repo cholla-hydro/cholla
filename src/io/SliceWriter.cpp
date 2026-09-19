@@ -28,7 +28,7 @@ namespace io
 SliceWriter::SliceWriter(ParameterMap &pmap, const FieldInfo &field_info)
 {
   // append entries to cc_field_id_dset_name_pairs_ for each cell-centered hydro field
-  for (int field_id : field_info.get_id_range_old(field::Kind::HYDRO)) {
+  for (FieldId field_id : field_info.get_id_range(field::Kind::HYDRO)) {
     std::optional<std::string> maybe_field_name = field_info.field_name(field_id);
     std::string field_name                      = get_or_abort(maybe_field_name);
     std::optional<std::string> maybe_dset_name  = lookup_legacy_short_name_(field_name, false);
@@ -43,7 +43,7 @@ SliceWriter::SliceWriter(ParameterMap &pmap, const FieldInfo &field_info)
   }
 
   // append an entry for each field_name
-  for (int field_id : field_info.get_id_range_old(field::Kind::PASSIVE_SCALAR)) {
+  for (FieldId field_id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
     std::optional<std::string> maybe_field_name = field_info.field_name(field_id);
     this->cc_field_id_dset_name_pairs_.emplace_back(field_id, get_or_abort(maybe_field_name));
   }
@@ -123,7 +123,7 @@ struct SliceProps {
 
 /*! Helper function that does most heavy lifting for writing HDF5 slices */
 static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id,
-                               const std::vector<std::pair<int, std::string>> &cc_field_id_dset_name_pairs)
+                               const std::vector<std::pair<FieldId, std::string>> &cc_field_id_dset_name_pairs)
 {
   const Header &H = G.H;
   bool is_3D      = H.nx > 1 && H.ny > 1 && H.nz > 1;
@@ -131,7 +131,8 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id,
     chprintf("Slice write only works for 3D data.\n");
     return;
   }
-  const FieldInfo &field_info = G.field_info();
+  const FieldManager &f_man   = G.field_manager();
+  const FieldInfo &field_info = f_man.info();
   const Grid3D::Conserved &C  = G.C;
   const bool using_MHD        = field_info.n_fields(field::Kind::MAGNETIC) > 0;
 
@@ -182,11 +183,11 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id,
     }
 
     // record slices of all cell-centered fields
-    for (const std::pair<int, std::string> &pair : cc_field_id_dset_name_pairs) {
-      int field_id          = pair.first;
+    for (const std::pair<FieldId, std::string> &pair : cc_field_id_dset_name_pairs) {
+      FieldId field_id      = pair.first;
       std::string dset_name = pair.second;
 
-      const Real *ptr = &C.host[field_id * H.n_cells];
+      const Real *ptr = f_man.field_or_abort(MemSpace::HOST, field_id);
       auto get_val    = [=](int active_zone_xid, int active_zone_yid, int active_zone_zid) -> Real {
         int xid = active_zone_xid + n_ghost;
         int yid = active_zone_yid + n_ghost;

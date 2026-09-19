@@ -11,6 +11,7 @@
 
 #include "../global/global.h"
 #include "../grid/grid3D.h"
+#include "../field/field_id.h"
 
 struct ParameterMap;
 struct FieldInfo;
@@ -31,7 +32,7 @@ class SliceWriter
 {
   /// for each cell-centered field that will be written, this holds a
   /// (field_id, dset_name) pair
-  std::vector<std::pair<int, std::string>> cc_field_id_dset_name_pairs_;
+  std::vector<std::pair<FieldId, std::string>> cc_field_id_dset_name_pairs_;
 
  public:
   SliceWriter() = delete;
