@@ -9,9 +9,9 @@
 #include <utility>  // std::pair
 #include <vector>
 
+#include "../field/field_id.h"
 #include "../global/global.h"
 #include "../grid/grid3D.h"
-#include "../field/field_id.h"
 
 struct ParameterMap;
 struct FieldInfo;

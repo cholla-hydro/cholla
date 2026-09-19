@@ -207,13 +207,12 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id,
       herr_t status = Write_HDF5_Dataset(file_id, slice_prop.dataspace_id, buf.data(), full_dset_name.c_str());
     }
 
-    for (int field_id : field_info.get_id_range_old(field::Kind::MAGNETIC)) {
-      std::string field_name = field_info.field_name(field_id).value();
+    for (FieldId field_id : field_info.get_id_range(field::Kind::MAGNETIC)) {
+      std::string field_name = f_man.field_name(field_id).value();
 
       if (slice_intersects_local_domain) {
         char comp       = field_name[field_name.size() - 1];  // <- holds 'x', 'y', or 'z'
-        int field_id    = field_info.field_id(field_name).value();
-        const Real *ptr = &C.host[field_id * H.n_cells];
+        const Real *ptr = f_man.field_or_abort(MemSpace::HOST, field_id);
         const hydro_utilities::VectorXYZ<int> off_L{n_ghost - (comp == 'x'), n_ghost - (comp == 'y'),
                                                     n_ghost - (comp == 'z')};
         const hydro_utilities::VectorXYZ<int> off_R{n_ghost, n_ghost, n_ghost};
