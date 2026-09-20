@@ -75,7 +75,7 @@ struct DsetSpecListBuilder {
   void add_entry(const char* name, WriteCond cond)
   {
     // lookup the field_id associated with name
-    std::optional<FieldId> maybe_field_id = field_info.lookup_FieldID(name);
+    std::optional<FieldId> maybe_field_id = field_info.field_id(name);
     if (!maybe_field_id.has_value()) {
       CHOLLA_ERROR("the current Cholla config has no \"%s\" field", name);
     }
@@ -465,7 +465,7 @@ int Record_Colnames_And_Get_Field_Ptrs_(const Real** ptr_arr, bool* is_cell_cent
     const char* field_name = field_names[i];
     std::fprintf(fp, "\t%s", field_name);  // <- write the column name
 
-    std::optional<FieldId> maybe_id     = field_info.lookup_FieldID(field_name);
+    std::optional<FieldId> maybe_id     = field_info.field_id(field_name);
     const Real* ptr                     = f_man.field_or_abort(MemSpace::HOST, get_or_abort(maybe_id));
     ptr_arr[field_ptr_counter]          = ptr;
     is_cell_centered[field_ptr_counter] = false;

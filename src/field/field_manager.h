@@ -92,7 +92,7 @@ class FieldManager
   //    the FieldInfo object directly
 
   /*! \brief try to lookup the field_id associated with the field_name */
-  std::optional<FieldId> field_id(std::string_view name) const { return field_info_.lookup_FieldID(name); }
+  std::optional<FieldId> field_id(std::string_view name) const { return field_info_.field_id(name); }
 
   /*! \brief try to lookup the associated pack_id */
   std::optional<uint8_t> pack_id(std::string_view pack_name) const { return field_info_.pack_id(pack_name); }

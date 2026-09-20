@@ -18,7 +18,7 @@ std::optional<const Real*> FieldManager::field(MemSpace s, FieldId id, std::size
 
 std::optional<Real*> FieldManager::field(MemSpace s, std::string_view name, std::size_t register_idx)
 {
-  std::optional<FieldId> maybe_id = field_info_.lookup_FieldID(name);
+  std::optional<FieldId> maybe_id = field_info_.field_id(name);
   if (maybe_id.has_value()) {
     return storage_.field(s, *maybe_id, register_idx);
   }
@@ -27,7 +27,7 @@ std::optional<Real*> FieldManager::field(MemSpace s, std::string_view name, std:
 
 std::optional<const Real*> FieldManager::field(MemSpace s, std::string_view name, std::size_t register_idx) const
 {
-  std::optional<FieldId> maybe_id = field_info_.lookup_FieldID(name);
+  std::optional<FieldId> maybe_id = field_info_.field_id(name);
   if (maybe_id.has_value()) {
     return storage_.field(s, *maybe_id, register_idx);
   }

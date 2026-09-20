@@ -83,8 +83,8 @@ class FieldInfo
   // todo(before submitting PR): delete me!
   const utils::FrozenKeyIdxBiMap& get_field_id_map() const { return name_id_bimap_; }
 
-  // todo(before submitting PR): rename this field_id and delete the old implementation
-  std::optional<FieldId> lookup_FieldID(std::string_view field_name) const
+  /*! \brief try to fetch the field_id associated with the @p field_name */
+  std::optional<FieldId> field_id(std::string_view field_name) const
   {
     std::optional<int> tmp = name_id_bimap_.find(field_name);
     if (tmp.has_value()) {
@@ -99,7 +99,7 @@ class FieldInfo
   //   *  \note This is a convenient way to check whether a field is associated with a pack
   //   */
   //  std::optional<int> slot_idx(uint8_t pack_id, std::string_view field_name) const {
-  //    std::optional<FieldId> tmp = lookup_FieldID(field_name);
+  //    std::optional<FieldId> tmp = field_id(field_name);
   //    if (tmp.has_value() && tmp->pack_id == pack_id) {
   //      return {static_cast<int>(tmp->slot_idx)};
   //    }
@@ -110,14 +110,7 @@ class FieldInfo
   //    return slot_idx(pack_id, field_name);
   //  }
 
-  /*! try to look up the field name from the field id */
-  std::optional<std::string> field_name(int field_id) const
-  {
-    // todo(before submitting PR): delete this implementation
-    bool bad_id = (field_id < 0 || field_id >= n_fields());
-    return bad_id ? std::nullopt : std::optional<std::string>{name_id_bimap_.inverse_find(field_id)};
-  }
-
+  /*! \brief try to look up the field name from the field id */
   std::optional<std::string> field_name(FieldId field_id) const
   {
     if (field_id.slot_idx >= n_fields(field_id.pack_id)) {
@@ -158,31 +151,28 @@ class FieldInfo
    *  `{-1, 0, 0}` (we need to think about conventions), could denote a field centered
    *  on x-faces.
    */
-  std::optional<bool> is_cell_centered(int field_id) const
+  std::optional<bool> is_cell_centered(FieldId field_id) const
   {
-    if (field_id < 0 || field_id >= n_fields()) {
+    if (field_id.pack_id != 0 || field_id.slot_idx >= n_fields()) {
       return std::nullopt;
     }
     for (int id : magnetic_field_ids_) {
-      if (field_id == id) {
+      if (field_id.slot_idx == id) {
         return std::optional<bool>{false};
       }
     }
     return std::optional<bool>{true};
   }
-  std::optional<bool> is_cell_centered(FieldId id) const { return is_cell_centered(id.slot_idx); }
 
   /*! try to look up the IOBuf value associated with a field
    *
    *  \note We may want to revisit whether this actually should be tracked by FieldInfo in the future.
    */
-  std::optional<field::IOBuf> io_buf(int field_id) const
+  std::optional<field::IOBuf> io_buf(FieldId field_id) const
   {
-    bool bad_id = (field_id < 0 || field_id >= n_fields());
-    return bad_id ? std::nullopt : std::optional<field::IOBuf>{io_buf_[field_id]};
+    bool bad_id = (field_id.pack_id != 0 || field_id.slot_idx >= n_fields());
+    return bad_id ? std::nullopt : std::optional<field::IOBuf>{io_buf_[field_id.slot_idx]};
   }
-
-  std::optional<field::IOBuf> io_buf(FieldId id) const { return io_buf(id.slot_idx); }
 
   /*! Returns the number of fields */
   int n_fields() const { return static_cast<int>(name_id_bimap_.size()); }
