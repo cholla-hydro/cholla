@@ -83,12 +83,6 @@ class FieldInfo
   // todo(before submitting PR): delete me!
   const utils::FrozenKeyIdxBiMap& get_field_id_map() const { return name_id_bimap_; }
 
-  /*! try to lookup the field_id associated with the field_name */
-  // todo(before submitting PR): delete these implementations and rename lookup_FieldID
-  //                             so its called field_id
-  std::optional<int> field_id(const char* field_name) const { return name_id_bimap_.find(field_name); }
-  std::optional<int> field_id(std::string_view field_name) const { return name_id_bimap_.find(field_name); }
-
   // todo(before submitting PR): rename this field_id and delete the old implementation
   std::optional<FieldId> lookup_FieldID(std::string_view field_name) const
   {
