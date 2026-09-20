@@ -94,21 +94,23 @@ class FieldInfo
     return std::nullopt;
   }
 
-  //  /*! \brief try to look up slot-index of a field within a field-pack
-  //   *
-  //   *  \note This is a convenient way to check whether a field is associated with a pack
-  //   */
-  //  std::optional<int> slot_idx(uint8_t pack_id, std::string_view field_name) const {
-  //    std::optional<FieldId> tmp = field_id(field_name);
-  //    if (tmp.has_value() && tmp->pack_id == pack_id) {
-  //      return {static_cast<int>(tmp->slot_idx)};
-  //    }
-  //    return std::nullopt;
-  //  }
-  //  std::optional<int> slot_idx(std::string_view pack_name, std::string_view field_name) const {
-  //    uint8_t my_pack_id = pack_id(pack_name).value_or(static_cast<uint8_t>(n_packs()));
-  //    return slot_idx(pack_id, field_name);
-  //  }
+  /*! \brief try to look up slot-index of a field within a field-pack
+   *
+   *  \note This is a convenient way to check whether a field is associated with a pack
+   */
+  std::optional<int> slot_idx(uint8_t pack_id, std::string_view field_name) const
+  {
+    std::optional<FieldId> tmp = field_id(field_name);
+    if (tmp.has_value() && tmp->pack_id == pack_id) {
+      return {static_cast<int>(tmp->slot_idx)};
+    }
+    return std::nullopt;
+  }
+  std::optional<int> slot_idx(std::string_view pack_name, std::string_view field_name) const
+  {
+    uint8_t my_pack_id = pack_id(pack_name).value_or(static_cast<uint8_t>(n_packs()));
+    return slot_idx(my_pack_id, field_name);
+  }
 
   /*! \brief try to look up the field name from the field id */
   std::optional<std::string> field_name(FieldId field_id) const
