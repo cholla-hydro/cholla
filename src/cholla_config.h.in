@@ -127,12 +127,11 @@
 #configurefile_define GRAVITY_GPU
 #configurefile_define GRAVITY_LONG_INTS
 #configurefile_define PARIS
-#configurefile_define PARIS_3PT
-#configurefile_define PARIS_5PT
 #configurefile_define PARIS_GALACTIC
 #configurefile_define PARIS_NO_GPU_MPI
 #configurefile_define SOR
 #configurefile_define STATIC_GRAV
+
 
 // ======================
 // Feedback Configuration

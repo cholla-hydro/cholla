@@ -48,10 +48,7 @@ class ParisPeriodic
 #endif  // RT
 
  private:
-  int ni_, nj_;  //!< Number of elements in X and Y dimensions
-#if defined(PARIS_3PT) || defined(PARIS_5PT)
-  int nk_;  //!< Number of elements in Z dimension
-#endif
+  int ni_, nj_, nk_;                //!< Number of elements in X, Y, and Z dimensions
   double ddi_, ddj_, ddk_;          //!< Frequency-independent terms in Poisson solve
   double dx_, dd2i_, dd2j_, dd2k_;  //!< Frequency-independent terms in Poisson solve, for RT
   HenryPeriodic henry;              //!< FFT filter object

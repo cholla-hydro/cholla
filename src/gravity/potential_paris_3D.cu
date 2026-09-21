@@ -214,12 +214,10 @@ void PotentialParis3D::Initialize(const Real lx, const Real ly, const Real lz, c
                                   const int nyReal, const int nzReal, const Real dx, const Real dy, const Real dz)
 {
   chprintf(" Using Poisson Solver: Paris Periodic");
-  #ifdef PARIS_5PT
+  #ifdef GRAVITY_5_POINTS_GRADIENT
   chprintf(" 5-Point\n");
-  #elif defined PARIS_3PT
-  chprintf(" 3-Point\n");
   #else
-  chprintf(" Spectral\n");
+  chprintf(" 3-Point\n");
   #endif
 
   const long nl012 = long(nxReal) * long(nyReal) * long(nzReal);
