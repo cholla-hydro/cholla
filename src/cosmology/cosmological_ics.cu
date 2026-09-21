@@ -494,7 +494,7 @@ void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
   int n_cells = nx_local * ny_local * nz_local;
 
   // Record the RNG seed from the parameter file
-  CP.rng_seed = P->cosmoics_seed;
+  CP.rng_seed = P->cosmo_ics_seed;
 
   // Call the RNG initialization function on the GPUs
   GPU_Error_Check(cudaMalloc((void **)&rng_states, n_cells * sizeof(rng_parallel_state_t)));
@@ -734,7 +734,7 @@ void Grid3D::Generate_Normal_Random_Field(Real *d_field, struct Parameters *P, r
   cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Normal_Field_GPU, n_cells);
   hipLaunchKernelGGL(RNG_Normal_Field_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
                      d_field, nx_local, ny_local, nz_local, nx_local_start, ny_local_start, nz_local_start, P->nx,
-                     P->ny, P->nz, P->cosmoics_seed, rng_states);
+                     P->ny, P->nz, P->cosmo_ics_seed, rng_states);
 }
 
 void Grid3D::Rescale_Field(Real *d_x, Real A)

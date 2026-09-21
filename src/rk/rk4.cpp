@@ -88,6 +88,7 @@ void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, const std::vector<R
       }
     }
 
+    max_error = 0;
     for (int k = 0; k < ny; k++) {
       error = (yp[k] - yprime[k]);
 
