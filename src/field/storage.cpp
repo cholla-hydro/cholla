@@ -59,21 +59,4 @@ Storage::Storage(const FieldInfo& info, std::array<int, 3> shape_xyz, int ghost_
   }
 }
 
-std::optional<const Real*> Storage::field(MemSpace s, FieldId id, std::size_t register_idx) const
-{
-  if (id.pack_id >= pack_vec.size()) {
-    return std::nullopt;
-  }
-  const PackData& pack_data = pack_vec.at(id.pack_id);
-  std::size_t offset        = pack_data.slot_stride * static_cast<std::size_t>(id.slot_idx);
-  if (offset >= pack_data.elements_per_pack_register()) {
-    return std::nullopt;
-  }
-  if (s == MemSpace::HOST) {
-    return {pack_data.host_registers[register_idx].get() + offset};
-  } else {
-    return {pack_data.dev_registers[register_idx].data() + offset};
-  }
-}
-
 }  // namespace field_detail

@@ -7,6 +7,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <type_traits>
 #include <vector>
 
 #include "../global/global.h"
@@ -79,6 +80,53 @@ class Storage
   // avoiding dangling pointers
   std::vector<PackData> pack_vec;
 
+  /*! \brief Helper function that implements the \ref field method.
+   *
+   *  This is a template that properly deduces whether to return a
+   *  ``std::optional<const Real*>`` or ``std::optional<Real*>`` based on the constness
+   *  of the first argument
+   *
+   *  \note
+   *  This was written to avoid a const-cast based on a recommendation from the
+   *  [C++ core guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#es50-dont-cast-away-const)
+   */
+  template <class T>
+  static auto field_impl_(T& storage, MemSpace s, FieldId id, std::size_t register_idx)
+  {
+    using Ptr = std::conditional_t<std::is_const_v<T>, const Real*, Real*>;
+    if (id.pack_id >= storage.pack_vec.size()) {
+      return std::optional<Ptr>();  // an empty optional
+    }
+
+    // pack_data has a type of `const PackData&` or `PackData&`
+    auto& pack_data    = storage.pack_vec.at(id.pack_id);
+    std::size_t offset = pack_data.slot_stride * static_cast<std::size_t>(id.slot_idx);
+    if (offset >= pack_data.elements_per_pack_register()) {
+      return std::optional<Ptr>();  // an empty optional
+    }
+
+    Ptr ptr;
+    if (s == MemSpace::HOST) {
+      ptr = pack_data.host_registers[register_idx].get() + offset;
+    } else {
+      ptr = pack_data.dev_registers[register_idx].data() + offset;
+    }
+    return std::optional<Ptr>(ptr);
+  }
+
+  /*! \brief Helper function that implements the \ref pack method. */
+  template <class T>
+  static auto pack_impl_(T& storage, MemSpace s, std::size_t id, std::size_t register_idx)
+  {
+    using Ptr = std::conditional_t<std::is_const_v<T>, const Real*, Real*>;
+    if (id > storage.pack_vec.size()) {
+      return std::optional<Ptr>();  // an empty optional
+    } else {
+      FieldId field_id(static_cast<uint8_t>(id), 0);
+      return field_impl_(storage, s, field_id, register_idx);
+    }
+  }
+
  public:
   /*! \brief Construct a new instance
    *
@@ -98,37 +146,32 @@ class Storage
   Storage(const Storage&)            = delete;
   Storage& operator=(const Storage&) = delete;
 
-  /*! \brief Retrieve the specified field */
+  /*! \brief Retrieve the specified field
+   *
+   *  The returned optional is either empty or it holds a non-null pointer
+   */
   std::optional<Real*> field(MemSpace s, FieldId id, std::size_t register_idx = 0)
   {
-    std::optional<const Real*> maybe_ptr = const_cast<const Storage*>(this)->field(s, id, register_idx);
-    if (maybe_ptr.has_value()) {
-      return {const_cast<Real*>(*maybe_ptr)};
-    }
-    return std::nullopt;
+    return field_impl_(*this, s, id, register_idx);
   }
 
-  std::optional<const Real*> field(MemSpace s, FieldId id, std::size_t register_idx = 0) const;
+  std::optional<const Real*> field(MemSpace s, FieldId id, std::size_t register_idx = 0) const
+  {
+    return field_impl_(*this, s, id, register_idx);
+  }
 
-  /*! \brief retrieve the specified field pack */
+  /*! \brief retrieve the specified field pack
+   *
+   *  The returned optional is either empty or it holds a non-null pointer
+   */
   std::optional<Real*> pack(MemSpace s, std::size_t id, std::size_t register_idx = 0)
   {
-    std::optional<const Real*> maybe_ptr = const_cast<const Storage*>(this)->pack(s, id, register_idx);
-    if (maybe_ptr.has_value()) {
-      return {const_cast<Real*>(*maybe_ptr)};
-    }
-    return std::nullopt;
+    return pack_impl_(*this, s, id, register_idx);
   }
 
   std::optional<const Real*> pack(MemSpace s, std::size_t id, std::size_t register_idx = 0) const
   {
-    if (id >= pack_vec.size()) {
-      return std::nullopt;
-    }
-    FieldId field_id;
-    field_id.pack_id  = id;
-    field_id.slot_idx = 0;
-    return field(s, field_id, register_idx);
+    return pack_impl_(*this, s, id, register_idx);
   }
 
   /*! \brief swap the field_pack pointers in \p reg_0 and \p reg_1 */
