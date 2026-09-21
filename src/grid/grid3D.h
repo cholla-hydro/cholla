@@ -11,8 +11,9 @@
 #include <stdio.h>
 
 #include <functional>
+#include <optional>
 
-#include "../field/field_info.h"
+#include "../field/field_manager.h"
 #include "../global/global.h"  // declares Parameter and forward-declares ParameterMap
 #include "../global/global_cuda.h"
 #include "../io/FnameTemplate.h"
@@ -293,8 +294,14 @@ class Grid3D
   /*! tracks mutable runtime state */
   SimRuntimeState state;
 
-  /*! Describes the mapping between field names and field indices */
-  FieldInfo field_info_;
+  /*! \brief tracks field data and information
+   *
+   *  \note
+   *  This is an optional because the field manager is currently initialized at the end
+   *  of the constructor. To make this an ordinary FieldManager, we probably want to
+   *  construct Grid3D through a factory method.
+   */
+  std::optional<FieldManager> field_manager_;
 
   /*! Holds all models (if any) */
   ModelCollection model_collection;
@@ -454,8 +461,12 @@ class Grid3D
    *  \brief Allocate memory for the d, m, E arrays. */
   void AllocateMemory(void);
 
+  /*! \fn accessor method for field_manager */
+  FieldManager &field_manager();
+  const FieldManager &field_manager() const;
+
   /*! \fn accessor method for field_info */
-  const FieldInfo &field_info() const { return field_info_; }
+  const FieldInfo &field_info() const { return field_manager().info(); }
 
   /*! Set the initial conditions based on already-parsed parameter info in the
    *  \ref Parameters arg or unparsed parameter-info in the \ref ParameterMap arg
