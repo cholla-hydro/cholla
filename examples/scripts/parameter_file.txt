@@ -21,7 +21,7 @@ n_rotated_projection=5
 # value of gamma
 gamma=1.66666667
 # name of initial conditions
-init=Disk_3D_particles
+init="Disk_3D_particles"
 #init=Disk_3D
 bc_potential_type=1
 # domain properties
@@ -49,5 +49,5 @@ Lz=15.0
 flag_delta=2
 ddelta_dt=-0.001
 # path to output directory
-outdir=./raw/
+outdir="./raw/"
 prng_seed=42

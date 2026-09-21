@@ -4,7 +4,7 @@ This test initializes a compression/rarefaction wave across the grid. The setup 
 The parameter file can be found at: {repository-file}`examples/1D/sound_wave.txt`
 
 ## Parameter file:
-```
+```toml
 #
 # Parameter File for sound wave test
 #
@@ -21,7 +21,7 @@ tout=0.05
 # time interval for output
 outstep=0.01
 # name of initial conditions
-init=Sound_Wave
+init="Sound_Wave"
 # size of domain
 xmin=0.0
 ymin=0.0
@@ -37,7 +37,7 @@ yu_bcnd=0
 zl_bcnd=0
 zu_bcnd=0
 # path to output directory
-outdir=./sowvout
+outdir="./sowvout"
 
 #################################################
 # Parameters for linear wave problems
