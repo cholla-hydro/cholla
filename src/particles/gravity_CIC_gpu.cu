@@ -326,9 +326,9 @@ void Grid3D::Copy_Particles_Density_GPU()
 {
   int nx_local, ny_local, nz_local, n_ghost;
   n_ghost  = Particles.G.n_ghost_particles_grid;
-  nx_local = Grav.nx_local;
-  ny_local = Grav.ny_local;
-  nz_local = Grav.nz_local;
+  nx_local = Grav.spatial_props.nx_local;
+  ny_local = Grav.spatial_props.ny_local;
+  nz_local = Grav.spatial_props.nz_local;
 
   // set values for GPU kernels
   int tpb_x   = 16;
