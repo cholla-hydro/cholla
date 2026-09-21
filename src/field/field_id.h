@@ -51,4 +51,7 @@ struct FieldId {
   FieldId(FieldId&&)                 = default;
   FieldId& operator=(const FieldId&) = default;
   FieldId& operator=(FieldId&&)      = default;
+
+  bool operator==(const FieldId& o) { return (pack_id == o.pack_id) && (slot_idx == o.slot_idx); }
+  bool operator!=(const FieldId& o) { return (pack_id != o.pack_id) || (slot_idx != o.slot_idx); }
 };

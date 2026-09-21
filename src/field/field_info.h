@@ -29,7 +29,7 @@ enum class IOBuf { HOST, DEVICE };
  */
 class IdRange
 {
-  const std::vector<FieldId> id_vec_;
+  const std::vector<FieldId>& id_vec_;
 
  public:
   explicit IdRange(const std::vector<FieldId>& id_vec) : id_vec_(id_vec) {}
@@ -49,9 +49,9 @@ class IdRange
 class FieldInfo
 {
   utils::FrozenKeyIdxBiMap name_id_bimap_;
-  std::vector<int> hydro_field_ids_;
-  std::vector<int> scalar_field_ids_;
-  std::vector<int> magnetic_field_ids_;
+  std::vector<FieldId> hydro_field_ids_;
+  std::vector<FieldId> scalar_field_ids_;
+  std::vector<FieldId> magnetic_field_ids_;
   std::vector<field::IOBuf> io_buf_;
 
   // We make the default-constructor private to force the use of the factory method
@@ -60,7 +60,7 @@ class FieldInfo
   /*! return a reference to the internal vector of field ids corresponding to
    *  @ref field::Kind
    */
-  const std::vector<int>& get_kind_ids_(field::Kind kind) const;
+  const std::vector<FieldId>& get_kind_ids_(field::Kind kind) const;
 
  public:
   /*! Factory method
@@ -158,10 +158,8 @@ class FieldInfo
     if (field_id.pack_id != 0 || field_id.slot_idx >= n_fields()) {
       return std::nullopt;
     }
-    for (int id : magnetic_field_ids_) {
-      if (field_id.slot_idx == id) {
-        return std::optional<bool>{false};
-      }
+    for (FieldId id : magnetic_field_ids_) {
+      if (field_id == id) return std::optional<bool>{false};
     }
     return std::optional<bool>{true};
   }
@@ -188,12 +186,6 @@ class FieldInfo
   /*! \brief Returns the number of field-packs */
   int n_packs() const { return (n_fields() > 0) ? 1 : 0; }
 
-  /*! Returns the first field_id corresponding to a passive scalar (if there are any) */
-  std::optional<int> scalar_start() const
-  {
-    return scalar_field_ids_.empty() ? std::nullopt : std::optional<int>{scalar_field_ids_[0]};
-  }
-
   /*! This returns a "range" over all ids
    *
    *  This might be used in a case like the following:
@@ -203,15 +195,5 @@ class FieldInfo
    *  }
    *  \endcode
    */
-  field::IdRange get_id_range(field::Kind kind) const
-  {
-    const std::vector<int>& tmp = get_kind_ids_(kind);
-    std::vector<FieldId> v;
-    v.reserve(tmp.size());
-    for (int slot_idx : tmp) {
-      FieldId f_id(0, static_cast<uint8_t>(slot_idx));
-      v.emplace_back(std::move(f_id));
-    }
-    return field::IdRange(std::move(v));
-  }
+  field::IdRange get_id_range(field::Kind kind) const { return field::IdRange(get_kind_ids_(kind)); }
 };
