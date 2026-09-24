@@ -31,7 +31,9 @@ Storage::Storage(const FieldInfo& info, std::array<int, 3> shape_xyz, int ghost_
     CHOLLA_ASSERT(shape_xyz[i] > 0, "%c-axis extent must be positive", axes[i]);
   }
 
-  int n_packs = info.n_packs();
+  int tmp = info.n_packs();
+  CHOLLA_ASSERT(tmp <= UINT8_MAX, "something went wrong!");
+  uint8_t n_packs = static_cast<uint8_t>(tmp);
   for (uint8_t pack_id = 0; pack_id < n_packs; pack_id++) {
     // in the future, n_registers & cur_ghost_depth may to vary between packs
     int n_registers     = 1;
