@@ -41,7 +41,7 @@ struct Value {
 
  public:
   Value() = default;
-  explicit Value(Variant v) : v_(v) {}
+  explicit Value(Variant v) : v_(std::move(v)) {}
 
   /// \name Type checks
   ///@{
@@ -88,22 +88,28 @@ struct Value {
   }
 };
 
+/*! return the bounds of the range of int64_t values that can be losslessly converted
+ *  to the type ``T``. */
 template <typename T>
-constexpr bool support_lossless_conversion_(int64_t v)
+constexpr std::pair<int64_t, int64_t> lossless_conversion_bounds_()
 {
-  int64_t lower, upper;
   if constexpr (std::is_floating_point_v<T>) {
-    int64_t n_mantissa_digits_plus_one = int64_t{std::numeric_limits<T>::digits};
+    uint64_t n_mantissa_digits_plus_one = uint64_t{std::numeric_limits<T>::digits};
     // calclate 2^n_mantissa_digits_plus_one (https://stackoverflow.com/a/3793950)
-    upper = int64_t{2} << n_mantissa_digits_plus_one;
-    lower = -1 * upper;
+    int64_t upper = static_cast<int64_t>(uint64_t{2} << n_mantissa_digits_plus_one);
+    return {-1 * upper, upper};
   } else if constexpr (std::is_integral_v<T> and std::is_signed_v<T> and (sizeof(int64_t) >= sizeof(T))) {
-    upper = int64_t{std::numeric_limits<T>::max()};
-    lower = int64_t{std::numeric_limits<T>::min()};
+    return {static_cast<int64_t>(std::numeric_limits<T>::min()), static_cast<int64_t>(std::numeric_limits<T>::max())};
   } else {
     static_assert(always_false<T>, "template has unexpected type.");
   }
-  return (lower <= v) and (v <= upper);
+}
+
+template <typename T>
+constexpr bool support_lossless_conversion_(int64_t v)
+{
+  constexpr std::pair<int64_t, int64_t> bounds = lossless_conversion_bounds_<T>();
+  return (bounds.first <= v) && (v <= bounds.second);
 }
 }  // namespace param_details
 
