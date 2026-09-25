@@ -201,13 +201,6 @@ void Grid3D::Initialize(struct Parameters *P)
   // and initialize the timestep
   H.dt = 0.0;
 
-  // Set Transfer flag to false, only set to true before Conserved boundaries
-  // are transferred
-  H.TRANSFER_HYDRO_BOUNDARIES = false;
-
-  // Set output to true when data has to be written to file;
-  H.Output_Now = false;
-
 // Values for lower limit for density and temperature
 #ifdef TEMPERATURE_FLOOR
   H.temperature_floor = P->temperature_floor;
@@ -231,7 +224,7 @@ void Grid3D::Initialize(struct Parameters *P)
   #endif
 #endif
 
-  H.Output_Initial = true;
+  state.Output_Initial = true;
 
   Set_Domain_Properties(*P);  // move the domain info forward
 
