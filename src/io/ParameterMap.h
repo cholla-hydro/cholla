@@ -66,7 +66,7 @@ struct Value {
     return {*tmp};
   }
 
-  const char* type_name() const noexcept
+  const char* type_name() const
   {
     return std::visit(
         [](auto&& arg) -> const char* {
