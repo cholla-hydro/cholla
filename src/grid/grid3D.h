@@ -11,10 +11,11 @@
 #include <stdio.h>
 
 #include <functional>
+#include <optional>
 
+#include "../field/field_manager.h"
 #include "../global/global.h"  // declares Parameter and forward-declares ParameterMap
 #include "../global/global_cuda.h"
-#include "../grid/field_info.h"
 #include "../io/FnameTemplate.h"
 #include "../model/model_collection.h"
 
@@ -60,6 +61,64 @@
 #endif
 
 class AttrRecorderInterface;
+
+/*! \brief This class tracks state that can be mutated by various components of the sim
+ *
+ *  In the vast majority of cases, it should not be necessary to add a mutable state
+ *  variable. But, if you must start tracking such a variable, please track it within
+ *  this struct.
+ *
+ *  \note
+ *  A central theme among these values is that they are modified in at least one
+ *  location outside of the top-level runtime loop. The quantites like the number of
+ *  complete cycles, the current sim time, the current timestep, and the elapsed
+ *  wall-clock time seem like they belong to a special category of variables (but maybe
+ *  we will revisit this distinction in the future?).
+ */
+struct SimRuntimeState {
+  /*! \brief set to true as we set up Cholla to customize the very first output
+   *
+   * \note
+   * This is only used with cosmology simulations. It would be very easy to get rid of
+   * this parameter.
+   */
+  bool Output_Initial = false;
+
+  /*! \brief set to true to write data to file at end of current cycle
+   *
+   *  This is primarily tracked within \ref Grid3D to allow various simulation
+   *  components to trigger outputs at various times (at the time of writing, these
+   *  times typical pertain to particular cosmological times and moments relevant for
+   *  on-the-fly analysis)
+   */
+  bool Output_Now = false;
+
+  /*! \brief set to true to dump all data to file (i.e. checkpoint files for restarts)
+   *
+   *  \todo
+   *  Stop tracking this as part of the Grid object. This variable is only used within
+   *  the io machinery and could be passed around as an argument.
+   */
+  bool Output_Complete_Data = false;
+
+  /*! \brief true indicates that Conserved boundaries should be transferred
+   *
+   *  This is **ONLY** set to true just before Conserved boundaries are transferred
+   *  (and is immediately reverted to false when that work is done).
+   *
+   *  \todo
+   *  We should give some thought to refactoring this data member:
+   *  - rather tracking this as one of 5 different boolean flags in different places
+   *    (other flags are for transferring Particles or Gravitational Potential), that
+   *    must all remain somewhat synchronized, we should probably replace all of the
+   *    boolean flags with a single enum-flag.
+   *  - under the current implementation, a compelling case could be made to entirely
+   *    get rid of this data-member. It seems like we can probably pass this information
+   *    as an argument to \ref Grid3D::Set_Boundary_Conditions (this would certainly be
+   *    more explicit).
+   */
+  bool TRANSFER_HYDRO_BOUNDARIES = false;
+};
 
 struct Header {
   /*! \var n_cells
@@ -190,9 +249,6 @@ struct Header {
 
   Real Ekin_avrg;
 
-  // Flag to indicate when to transfer the Conserved boundaries
-  bool TRANSFER_HYDRO_BOUNDARIES;
-
   // Parameters For Spherical Colapse Problem
   Real sphere_density;
   Real sphere_radius;
@@ -215,16 +271,6 @@ struct Header {
   bool OUTPUT_SCALE_FACTOR;
 #endif
 
-  /*! \var Output_Now
-   *  \brief Flag set to true when data has to be written to file */
-  bool Output_Now;
-  bool Output_Initial;
-
-  /*! \var Output_Complete_Data
-   *  \brief Flag set to true when all the data will  be written to file
-   * (Restart File ) */
-  bool Output_Complete_Data;
-
 #ifdef SCALAR
   #ifdef DUST
   Real grain_radius;
@@ -245,8 +291,17 @@ class Grid3D
    *  \brief Header for the grid */
   struct Header H;
 
-  /*! Describes the mapping between field names and field indices */
-  FieldInfo field_info;
+  /*! tracks mutable runtime state */
+  SimRuntimeState state;
+
+  /*! \brief tracks field data and information
+   *
+   *  \note
+   *  This is an optional because the field manager is currently initialized at the end
+   *  of the constructor. To make this an ordinary FieldManager, we probably want to
+   *  construct Grid3D through a factory method.
+   */
+  std::optional<FieldManager> field_manager_;
 
   /*! Holds all models (if any) */
   ModelCollection model_collection;
@@ -386,17 +441,32 @@ class Grid3D
     Real *d_Grav_potential;
   } C;
 
-  /*! \fn Grid3D(void)
-   *  \brief Constructor for the grid */
-  Grid3D(void);
+  Grid3D() = delete;  // <- forbid default construction
 
-  /*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
-   *  \brief Initialize the grid. */
-  void Initialize(struct Parameters *P);
+  /*! \brief Constructor for the grid
+   *
+   *  \note
+   *  This function does not leave @ref Grid3D in a fully initialized state. The
+   *  Initialize_* methods must all be called (perhaps in the future, it would be more
+   *  idiomatic to convert this to a static factory method that handled all aspects of
+   *  initialization.
+   *
+   *  \todo
+   *  Ideally we would replace @ref Parameters with @ref ParameterMap (or at least,
+   *  convert the Parameters reference to a const-reference)
+   */
+  explicit Grid3D(Parameters &P);
 
   /*! \fn void AllocateMemory(void)
    *  \brief Allocate memory for the d, m, E arrays. */
   void AllocateMemory(void);
+
+  /*! \fn accessor method for field_manager */
+  FieldManager &field_manager();
+  const FieldManager &field_manager() const;
+
+  /*! \fn accessor method for field_info */
+  const FieldInfo &field_info() const { return field_manager().info(); }
 
   /*! Set the initial conditions based on already-parsed parameter info in the
    *  \ref Parameters arg or unparsed parameter-info in the \ref ParameterMap arg

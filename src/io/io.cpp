@@ -104,15 +104,15 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
 #ifdef N_OUTPUT_COMPLETE
   // If nfile is multiple of N_OUTPUT_COMPLETE then output all data
   if (nfile % N_OUTPUT_COMPLETE == 0) {
-    G.H.Output_Complete_Data = true;
+    G.state.Output_Complete_Data = true;
     chprintf(" Writing all data ( Restart File ).\n");
   } else {
-    G.H.Output_Complete_Data = false;
+    G.state.Output_Complete_Data = false;
   }
 
 #else
   // If NOT N_OUTPUT_COMPLETE: always output complete data
-  G.H.Output_Complete_Data = true;
+  G.state.Output_Complete_Data = true;
 #endif
 
 #ifdef COSMOLOGY
@@ -127,12 +127,12 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
   write_manager.Apply_Writers(G, P, nfile);
 
 #ifdef COSMOLOGY
-  if (G.H.OUTPUT_SCALE_FACTOR || G.H.Output_Initial) {
+  if (G.H.OUTPUT_SCALE_FACTOR || G.state.Output_Initial) {
     G.Cosmo.Set_Next_Scale_Output();
     if (!G.Cosmo.exit_now) {
       chprintf(" Saved Snapshot: %d     z:%f   next_output: %f\n", nfile, G.Cosmo.current_z,
                1 / G.Cosmo.next_output - 1);
-      G.H.Output_Initial = false;
+      G.state.Output_Initial = false;
     } else {
       chprintf(" Saved Snapshot: %d     z:%f   Exiting now\n", nfile, G.Cosmo.current_z);
     }
@@ -142,7 +142,7 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
   }
   G.Change_Cosmological_Frame_System(true);
   chprintf("\n");
-  G.H.Output_Now = false;
+  G.state.Output_Now = false;
 #endif
 
 #ifdef HDF5
@@ -330,7 +330,7 @@ herr_t Read_HDF5_Dataset(hid_t file_id, float *dataset_buffer, const char *name)
 
 // Helper function which uses the correct HDF5 arguments based on the type of
 // dataset_buffer to avoid writing garbage
-herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id, double *dataset_buffer, const char *name)
+herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id, const double *dataset_buffer, const char *name)
 {
   // Create the dataset id
   hid_t dataset_id = H5Dcreate(file_id, name, H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -341,7 +341,7 @@ herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id, double *dataset_buf
   return status;
 }
 
-herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id, float *dataset_buffer, const char *name)
+herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id, const float *dataset_buffer, const char *name)
 {
   // Create the dataset id
   hid_t dataset_id = H5Dcreate(file_id, name, H5T_IEEE_F32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -409,7 +409,7 @@ void Write_HDF5_Field_2D_CPU(Header H, hid_t file_id, hid_t dataspace_id, float 
 
 /* \brief Before HDF5 reads data into a buffer, remap and write grid to HDF5 buffer. */
 void Fill_HDF5_Buffer_From_Grid_CPU(int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, int n_ghost,
-                                    Real *hdf5_buffer, Real *grid_buffer)
+                                    Real *hdf5_buffer, const Real *grid_buffer)
 {
   int i, j, k, id, buf_id;
   // 3D case
@@ -448,7 +448,7 @@ void Fill_HDF5_Buffer_From_Grid_CPU(int nx, int ny, int nz, int nx_real, int ny_
 
 /* \brief Before HDF5 reads data into a buffer, remap and write grid to HDF5 buffer. */
 void Fill_HDF5_Buffer_From_Grid_GPU(int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, int n_ghost,
-                                    Real *hdf5_buffer, Real *device_hdf5_buffer, Real *device_grid_buffer);
+                                    Real *hdf5_buffer, Real *device_hdf5_buffer, const Real *device_grid_buffer);
 // From src/io/io_gpu
 
 // Set up dataspace for grid formatted data and write dataset
@@ -492,7 +492,7 @@ void Write_HDF5_Dataset_Grid(int nx, int ny, int nz, int nx_real, int ny_real, i
 }
 
 // Data moves from host grid_buffer to dataset_buffer to hdf5 file
-void Write_Grid_HDF5_Field_CPU(Header H, hid_t file_id, Real *dataset_buffer, Real *grid_buffer, const char *name)
+void Write_Grid_HDF5_Field_CPU(Header H, hid_t file_id, Real *dataset_buffer, const Real *grid_buffer, const char *name)
 {
   Fill_HDF5_Buffer_From_Grid_CPU(H.nx, H.ny, H.nz, H.nx_real, H.ny_real, H.nz_real, H.n_ghost, dataset_buffer,
                                  grid_buffer);
@@ -501,7 +501,7 @@ void Write_Grid_HDF5_Field_CPU(Header H, hid_t file_id, Real *dataset_buffer, Re
 
 // Data moves from device_grid_buffer to device_hdf5_buffer to dataset_buffer to hdf5 file
 void Write_Grid_HDF5_Field_GPU(Header H, hid_t file_id, Real *dataset_buffer, Real *device_hdf5_buffer,
-                               Real *device_grid_buffer, const char *name)
+                               const Real *device_grid_buffer, const char *name)
 {
   Fill_HDF5_Buffer_From_Grid_GPU(H.nx, H.ny, H.nz, H.nx_real, H.ny_real, H.nz_real, H.n_ghost, dataset_buffer,
                                  device_hdf5_buffer, device_grid_buffer);
@@ -890,12 +890,12 @@ void Grid3D::Print_Grid_Stats(void)
 
 // this should work whether Cholla is configured with COOLING_GRACKLE or CHEMISTRY_GPU
 // - earlier versions of this logic wouldn't work with Grackle
-static void cosmo_init_chemical_species_(const Header &H, const FieldInfo &field_info, Real *host_field_ptr)
+static void cosmo_init_chemical_species_(const Header &H, FieldManager &f_man)
 {
   auto get_ptr_or_abort = [&](const char *name) -> Real * {
-    std::optional<int> maybe_id = field_info.field_id(name).value();
+    std::optional<FieldId> maybe_id = f_man.field_id(name);
     if (maybe_id.has_value()) {
-      return &host_field_ptr[H.n_cells * maybe_id.value()];
+      return f_man.field_or_abort(MemSpace::HOST, maybe_id.value());
     } else {
       CHOLLA_ERROR("%s is not the name of a defined field", name);
     }
@@ -951,10 +951,13 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
   dataset_buffer = (Real *)malloc((H.nz_real) * (H.ny_real) * (H.nx_real) * sizeof(Real));
   #endif
 
+  FieldManager &f_man     = field_manager();
+  const FieldInfo &f_info = f_man.info();
+
   // load all of the hydro fields (include GasEnergy if using dual-energy formalism)
-  for (int field_id : field_info.get_id_range(field::Kind::HYDRO)) {
-    Real *dest_ptr                 = &C.host[field_id * H.n_cells];
-    std::optional<std::string> tmp = field_info.field_name(field_id);
+  for (FieldId field_id : f_info.get_id_range(field::Kind::HYDRO)) {
+    Real *dest_ptr                 = f_man.field_or_abort(MemSpace::HOST, field_id);
+    std::optional<std::string> tmp = f_man.field_name(field_id);
     if (!tmp.has_value()) {
       CHOLLA_ERROR("this should be unreachable");
     }
@@ -971,14 +974,14 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
     // -> we also skip metal_density (presumably the field is set to 0 elsewhere?)
     skip_loading_scalar = {"HI_density",    "HII_density", "HeI_density",  "HeII_density",
                            "HeIII_density", "e_density",   "metal_density"};
-    cosmo_init_chemical_species_(H, field_info, C.host);
+    cosmo_init_chemical_species_(H, f_man);
   }
   #endif
 
   // try to load all of the scalars (that aren't within skip_loading_scalar)
-  for (int field_id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
-    Real *dest_ptr                 = &C.host[field_id * H.n_cells];
-    std::optional<std::string> tmp = field_info.field_name(field_id);
+  for (FieldId field_id : f_info.get_id_range(field::Kind::HYDRO)) {
+    Real *dest_ptr                 = f_man.field_or_abort(MemSpace::HOST, field_id);
+    std::optional<std::string> tmp = f_man.field_name(field_id);
     if (!tmp.has_value()) {
       CHOLLA_ERROR("this should be unreachable");
     }

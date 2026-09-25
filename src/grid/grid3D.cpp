@@ -6,8 +6,8 @@
 #ifdef HDF5
   #include <hdf5.h>
 #endif
+#include "../field/field_info.h"
 #include "../global/global.h"
-#include "../grid/field_info.h"
 #include "../grid/grid3D.h"
 #include "../grid/grid_enum.h"       // provides grid_enum
 #include "../hydro/average_cells.h"  // provides Average_Slow_Cells and SlowCellConditionChecker
@@ -42,41 +42,6 @@
 #ifdef CHEMISTRY_GPU
   #include "../chemistry_gpu/chemistry_gpu.h"  // provides Print_Chemistry_kernel
 #endif
-
-/*! \fn Grid3D(void)
- *  \brief Constructor for the Grid. */
-#ifndef RT
-Grid3D::Grid3D(void) : field_info(FieldInfo::create())
-#else
-// it's ok to pass in `this->H` to the constructor of `Rad3D` since `Rad3D`'s
-// constructor is only registering a reference to `this->H` for later usage.
-// TODO: initialize `this->H` before passing it to `Rad3D`
-Grid3D::Grid3D(void) : field_info(FieldInfo::create()), Rad(this->H)
-#endif
-{
-  // set initialization flag to 0
-  flag_init = 0;
-
-// set number of ghost cells
-#ifdef PCM
-  H.n_ghost = 2;
-#endif  // PCM
-#if defined(PLMP) or defined(PLMC)
-  H.n_ghost = 3;
-#endif  // PLMP or PLMC
-#if defined(PPMP) or defined(PPMC)
-  H.n_ghost = 4;
-#endif  // PPMP or PLMC
-
-#ifdef GRAVITY
-  H.n_ghost_potential_offset = H.n_ghost - N_GHOST_POTENTIAL;
-#endif
-
-#ifdef MHD
-  // Set the number of ghost cells high enough for MHD. MHD needs one extra for the left most face
-  H.n_ghost++;
-#endif  // MHD
-}
 
 /*! \fn void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real
  * *zpos) \brief Get the cell-centered position based on cell index */
@@ -121,24 +86,56 @@ Real Grid3D::Calc_Inverse_Timestep()
   return Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells, H.dx, H.dy, H.dz, gama);
 }
 
-/*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
- *  \brief Initialize the grid. */
-void Grid3D::Initialize(struct Parameters *P)
+/*! \fn Grid3D(void)
+ *  \brief Constructor for the Grid. */
+Grid3D::Grid3D(Parameters &P)
+#ifdef RT
+    // it's ok to pass in `this->H` to the constructor of `Rad3D` since `Rad3D`'s
+    // constructor is only registering a reference to `this->H` for later usage.
+    // TODO: initialize `this->H` before passing it to `Rad3D`
+    : Rad(this->H)
+#endif
 {
-  H.n_fields = field_info.n_fields();
+  // set initialization flag to 0
+  flag_init = 0;
 
-  int nx_in = P->nx;
-  int ny_in = P->ny;
-  int nz_in = P->nz;
+  // in the future, we may want to pass in a FieldInfo object as an argument
+  FieldInfo my_field_info = FieldInfo::create();
+
+// set number of ghost cells
+#ifdef PCM
+  H.n_ghost = 2;
+#endif  // PCM
+#if defined(PLMP) or defined(PLMC)
+  H.n_ghost = 3;
+#endif  // PLMP or PLMC
+#if defined(PPMP) or defined(PPMC)
+  H.n_ghost = 4;
+#endif  // PPMP or PLMC
+
+#ifdef GRAVITY
+  H.n_ghost_potential_offset = H.n_ghost - N_GHOST_POTENTIAL;
+#endif
+
+#ifdef MHD
+  // Set the number of ghost cells high enough for MHD. MHD needs one extra for the left most face
+  H.n_ghost++;
+#endif  // MHD
+
+  H.n_fields = my_field_info.n_fields();
+
+  int nx_in = P.nx;
+  int ny_in = P.ny;
+  int nz_in = P.nz;
 
 #ifdef STATIC_GRAV
-  H.custom_grav = P->custom_grav;  // Initialize the custom static gravity flag
+  H.custom_grav = P.custom_grav;  // Initialize the custom static gravity flag
   if (H.custom_grav == 0) {
     printf("WARNING: No custom gravity field given. Gravity field will be set to zero.\n");
   }
 #endif
 
-  H.gas_only_use_static_grav = P->gas_only_use_static_grav;
+  H.gas_only_use_static_grav = P.gas_only_use_static_grav;
 
   // Set the CFL coefficient (a global variable)
   C_cfl = 0.3;
@@ -173,7 +170,7 @@ void Grid3D::Initialize(struct Parameters *P)
   /* perform domain decomposition
    * and set grid dimensions
    * and allocate comm buffers */
-  DomainDecomposition(P, &H, nx_in, ny_in, nz_in);
+  DomainDecomposition(&P, &H, nx_in, ny_in, nz_in);
 
 #endif /*MPI_CHOLLA*/
 
@@ -201,107 +198,116 @@ void Grid3D::Initialize(struct Parameters *P)
   // and initialize the timestep
   H.dt = 0.0;
 
-  // Set Transfer flag to false, only set to true before Conserved boundaries
-  // are transferred
-  H.TRANSFER_HYDRO_BOUNDARIES = false;
-
-  // Set output to true when data has to be written to file;
-  H.Output_Now = false;
-
 // Values for lower limit for density and temperature
 #ifdef TEMPERATURE_FLOOR
-  H.temperature_floor = P->temperature_floor;
+  H.temperature_floor = P.temperature_floor;
 #endif
 
 #ifdef DENSITY_FLOOR
-  H.density_floor = P->density_floor;
+  H.density_floor = P.density_floor;
 #endif
 
 #ifdef SCALAR_FLOOR
-  H.scalar_floor = P->scalar_floor;
+  H.scalar_floor = P.scalar_floor;
 #endif
 
 #ifdef COSMOLOGY
-  H.OUTPUT_SCALE_FACTOR = not(P->scale_outputs_file[0] == '\0');
+  H.OUTPUT_SCALE_FACTOR = not(P.scale_outputs_file[0] == '\0');
 #endif
 
 #ifdef SCALAR
   #ifdef DUST
-  H.grain_radius = P->grain_radius;
+  H.grain_radius = P.grain_radius;
   #endif
 #endif
 
-  H.Output_Initial = true;
+  state.Output_Initial = true;
 
-  Set_Domain_Properties(*P);  // move the domain info forward
+  Set_Domain_Properties(P);  // move the domain info forward
 
 #if defined(COSMOLOGY) && defined(FFT)
-  Generate_Cosmo_Phi_Init(P);  // memory intensive -- before grid allocation
+  // TODO: start passing a const pointer or a const reference
+  Generate_Cosmo_Phi_Init(&P);  // memory intensive -- before grid allocation
   // chprintf("D info before main %d %d\n",Cosmo.D_array.size(),Cosmo.a_array.size());
 
 #endif
 
-  // allocate memory
+  field_manager_.emplace(std::move(my_field_info), std::array<int, 3>{{H.nx_real, H.ny_real, H.nz_real}}, H.n_ghost);
+
+  // allocate memory and copy pointer addresses from field_manager_
   AllocateMemory();
+}
+
+/*! \brief populates conserved fluid fields of \ref Grid3D::Conserved
+ *
+ *  \note
+ *  In the future, we'll probably need to reuse this if we start using multiple registers
+ *  for tracking the hydro fields
+ */
+static void populate_conserved_fields_(Grid3D &G, FieldManager &f_manager, MemSpace space)
+{
+  Real *root_ptr = f_manager.pack(space, "grid").value_or(nullptr);
+  bool is_host   = space == MemSpace::HOST;
+
+#ifndef ONLY_PARTICLES
+  if (root_ptr == nullptr) {
+    const char *name = (is_host) ? "host" : "device";
+    CHOLLA_ERROR("issue locating pointer for the %s fluid field-pack", name);
+  }
+#endif  // ONLY_PARTICLES
+
+  Grid3D::Conserved &C   = G.C;
+  std::ptrdiff_t n_cells = G.H.n_cells;
+
+  auto assign_ = [n_cells, root_ptr](Real *&dest, std::ptrdiff_t slot_idx) -> void {
+    dest = root_ptr + slot_idx * n_cells;
+  };
+
+  if (is_host) {
+    C.host = root_ptr;
+  } else {
+    C.device = root_ptr;
+  }
+
+  // point conserved members of Grid3D::Conserved to the appropriate locations
+  assign_(is_host ? C.density : C.d_density, grid_enum::density);
+  assign_(is_host ? C.momentum_x : C.d_momentum_x, grid_enum::momentum_x);
+  assign_(is_host ? C.momentum_y : C.d_momentum_y, grid_enum::momentum_y);
+  assign_(is_host ? C.momentum_z : C.d_momentum_z, grid_enum::momentum_z);
+  assign_(is_host ? C.Energy : C.d_Energy, grid_enum::Energy);
+#ifdef SCALAR
+  assign_(is_host ? C.scalar : C.d_scalar, grid_enum::scalar);
+  #ifdef BASIC_SCALAR
+  assign_(is_host ? C.basic_scalar : C.d_basic_scalar, grid_enum::basic_scalar);
+  #endif
+  #ifdef DUST
+  assign_(is_host ? C.dust_density : C.d_dust_density, grid_enum::dust_density);
+  #endif
+#endif  // SCALAR
+#ifdef MHD
+  assign_(is_host ? C.magnetic_x : C.d_magnetic_x, grid_enum::magnetic_x);
+  assign_(is_host ? C.magnetic_y : C.d_magnetic_y, grid_enum::magnetic_y);
+  assign_(is_host ? C.magnetic_z : C.d_magnetic_z, grid_enum::magnetic_z);
+#endif  // MHD
+#ifdef DE
+  assign_(is_host ? C.GasEnergy : C.d_GasEnergy, grid_enum::GasEnergy);
+#endif  // DE
 }
 
 /*! \fn void AllocateMemory(void)
  *  \brief Allocate memory for the arrays. */
 void Grid3D::AllocateMemory(void)
 {
-  // allocate memory for the conserved variable arrays
-  // allocate all the memory to density, to insure contiguous memory
-  GPU_Error_Check(cudaHostAlloc((void **)&C.host, H.n_fields * H.n_cells * sizeof(Real), cudaHostAllocDefault));
+  // copy pointers of HOST memory (the memory was already allocated) for conserved
+  // fluid fields into the the members of this->C
+  populate_conserved_fields_(*this, field_manager(), MemSpace::HOST);
 
-  // point conserved variables to the appropriate locations
-  C.density    = &(C.host[grid_enum::density * H.n_cells]);
-  C.momentum_x = &(C.host[grid_enum::momentum_x * H.n_cells]);
-  C.momentum_y = &(C.host[grid_enum::momentum_y * H.n_cells]);
-  C.momentum_z = &(C.host[grid_enum::momentum_z * H.n_cells]);
-  C.Energy     = &(C.host[grid_enum::Energy * H.n_cells]);
-#ifdef SCALAR
-  C.scalar = &(C.host[H.n_cells * grid_enum::scalar]);
-  #ifdef BASIC_SCALAR
-  C.basic_scalar = &(C.host[H.n_cells * grid_enum::basic_scalar]);
-  #endif
-  #ifdef DUST
-  C.dust_density = &(C.host[H.n_cells * grid_enum::dust_density]);
-  #endif
-#endif  // SCALAR
-#ifdef MHD
-  C.magnetic_x = &(C.host[grid_enum::magnetic_x * H.n_cells]);
-  C.magnetic_y = &(C.host[grid_enum::magnetic_y * H.n_cells]);
-  C.magnetic_z = &(C.host[grid_enum::magnetic_z * H.n_cells]);
-#endif  // MHD
-#ifdef DE
-  C.GasEnergy = &(C.host[(H.n_fields - 1) * H.n_cells]);
-#endif  // DE
-
-  // allocate memory for the conserved variable arrays on the device
-  GPU_Error_Check(cudaMalloc((void **)&C.device, H.n_fields * H.n_cells * sizeof(Real)));
+  // copy pointers of HOST memory (the memory was already allocated) for conserved
+  // fluid fields into the the members of this->C
+  populate_conserved_fields_(*this, field_manager(), MemSpace::DEV);
+  // todo: do we want to make sure every field is initialized to 0? If so, we should do
+  //       this when actually allocating memory
   cuda_utilities::initGpuMemory(C.device, H.n_fields * H.n_cells * sizeof(Real));
-  C.d_density    = C.device;
-  C.d_momentum_x = &(C.device[H.n_cells]);
-  C.d_momentum_y = &(C.device[2 * H.n_cells]);
-  C.d_momentum_z = &(C.device[3 * H.n_cells]);
-  C.d_Energy     = &(C.device[4 * H.n_cells]);
-#ifdef SCALAR
-  C.d_scalar = &(C.device[H.n_cells * grid_enum::scalar]);
-  #ifdef BASIC_SCALAR
-  C.d_basic_scalar = &(C.device[H.n_cells * grid_enum::basic_scalar]);
-  #endif
-  #ifdef DUST
-  C.d_dust_density = &(C.device[H.n_cells * grid_enum::dust_density]);
-  #endif
-#endif  // SCALAR
-#ifdef MHD
-  C.d_magnetic_x = &(C.device[(grid_enum::magnetic_x)*H.n_cells]);
-  C.d_magnetic_y = &(C.device[(grid_enum::magnetic_y)*H.n_cells]);
-  C.d_magnetic_z = &(C.device[(grid_enum::magnetic_z)*H.n_cells]);
-#endif  // MHD
-#ifdef DE
-  C.d_GasEnergy = &(C.device[(H.n_fields - 1) * H.n_cells]);
-#endif  // DE
 
 #if defined(GRAVITY)
   GPU_Error_Check(cudaHostAlloc(&C.Grav_potential, H.n_cells * sizeof(Real), cudaHostAllocDefault));
@@ -325,6 +331,18 @@ void Grid3D::AllocateMemory(void)
   for (int i = 0; i < H.n_fields * H.n_cells; i++) {
     C.host[i] = 0.0;
   }
+}
+
+FieldManager &Grid3D::field_manager()
+{
+  if (field_manager_.has_value()) return *field_manager_;
+  CHOLLA_ERROR("FieldManager isn't initialized yet!");
+}
+
+const FieldManager &Grid3D::field_manager() const
+{
+  if (field_manager_.has_value()) return *field_manager_;
+  CHOLLA_ERROR("FieldManager isn't initialized yet!");
 }
 
 /*! \fn void set_dt(Real dti)
@@ -649,8 +667,7 @@ void Grid3D::Reset(void)
  *  \brief Free the memory allocated by the Grid3D class. */
 void Grid3D::FreeMemory(void)
 {
-  // free the conserved variable arrays
-  GPU_Error_Check(cudaFreeHost(C.host));
+  // no need to free the conserved variable arrays
 
 #ifdef GRAVITY
   GPU_Error_Check(cudaFreeHost(C.Grav_potential));
