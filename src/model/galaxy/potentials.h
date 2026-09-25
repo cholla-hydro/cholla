@@ -6,12 +6,35 @@
 #include <cmath>
 
 #include "../../global/global.h"
+#include "../../io/ParameterMap.h"
 #include "../../utils/error_handling.h"
+#include "gas_props.h"
 
 struct NFWHaloPotential {
   Real M_h;   /*!< total halo mass in Msolar */
   Real R_h;   /*!< halo scale length (NOT the virial radius) */
   Real c_vir; /*!< halo concentration parameter (to account for adiabatic contraction) */
+
+  /*! \brief Construct an instance from a parameter map */
+  __host__ explicit NFWHaloPotential(ParameterMap& pmap)
+      : M_h{pmap.value<double>("model.galaxy.static_potential.halo.mass_Msun")},
+        c_vir{pmap.value<double>("model.galaxy.static_potential.halo.concentration")}
+  {
+    CHOLLA_ASSERT(M_h > 0, "halo mass must be positive: %g", M_h);
+    CHOLLA_ASSERT(c_vir > 0, "concentration must be positive: %g", c_vir);
+    Real R_vir = pmap.value<double>("model.galaxy.static_potential.halo.virial_radius_kpc");
+    CHOLLA_ASSERT(R_vir > 0, "halo virial radius must be positive: %g", R_vir);
+    R_h = R_vir / c_vir;
+  }
+
+  // we don't need to prefix __host__ __default__ on functions like the following that
+  // use the default implementation
+  // TODO: delete default constructor
+  NFWHaloPotential()                                   = default;
+  NFWHaloPotential(const NFWHaloPotential&)            = default;
+  NFWHaloPotential& operator=(const NFWHaloPotential&) = default;
+  NFWHaloPotential(NFWHaloPotential&&)                 = default;
+  NFWHaloPotential& operator=(NFWHaloPotential&&)      = default;
 
   /* function with logarithms used in NFW definitions */
   __host__ __device__ static Real log_func(Real y) { return log(1 + y) - y / (1 + y); };
@@ -86,6 +109,33 @@ struct MiyamotoNagaiPotential {
   Real M_d; /*!< total mass (in Msolar) */
   Real R_d; /*!< scale-length (in kpc) */
   Real Z_d; /*!< scale-height (in kpc). */
+
+  /*! \brief Historical Constructor */
+  __host__ MiyamotoNagaiPotential(Real M_d, Real R_d, Real Z_d) : M_d(M_d), R_d(R_d), Z_d(Z_d)
+  {
+    // the ApproxExponentialDisk3MN class needs to be able to specify a negative M_d
+    // and a negative Z_d
+    CHOLLA_ASSERT(R_d > 0, "disk scale radius must be positive: %g", R_d);
+  }
+
+  /*! \brief Construct an instance from a parameter map */
+  __host__ explicit MiyamotoNagaiPotential(ParameterMap& pmap)
+      : MiyamotoNagaiPotential(pmap.value<double>("model.galaxy.static_potential.old_stellar_disk.mass_Msun"),
+                               pmap.value<double>("model.galaxy.static_potential.old_stellar_disk.scale_radius_kpc"),
+                               pmap.value<double>("model.galaxy.static_potential.old_stellar_disk.scale_height_kpc"))
+  {
+    CHOLLA_ASSERT(M_d > 0, "disk mass must be positive: %g", M_d);
+    CHOLLA_ASSERT(Z_d > 0, "disk scale height must be positive: %g", Z_d);
+  }
+
+  // we don't need to prefix __host__ __default__ on functions like the following that
+  // use the default implementation
+  // TODO: consider deleting default constructor
+  MiyamotoNagaiPotential()                                         = default;
+  MiyamotoNagaiPotential(const MiyamotoNagaiPotential&)            = default;
+  MiyamotoNagaiPotential& operator=(const MiyamotoNagaiPotential&) = default;
+  MiyamotoNagaiPotential(MiyamotoNagaiPotential&&)                 = default;
+  MiyamotoNagaiPotential& operator=(MiyamotoNagaiPotential&&)      = default;
 
   /* Radial acceleration in miyamoto nagai */
   Real gr_disk_D3D(Real R, Real z) const noexcept
@@ -252,13 +302,9 @@ struct ApproxExponentialDisk3MN {
  *   `Sigma(r) = Sigma_0 * exp(-r_cyl/R_d)
  */
 struct GasDiskProps {
-  Real M_d;        /*!< total mass (in Msolar) */
-  Real R_d;        /*!< scale-length (in kpc) */
-  Real H_d;        /*!< initial guess at the scale-height (in kpc) */
-  Real T_d;        /*!< gas temperature */
-  bool isothermal; /*!< Indicates whether to initialize an isothermal or adiabatic disk
-                    *!< (it's unclear whether the adiabatic configuration still works)
-                    */
+  Real M_d;                                      /*!< total mass (in Msolar) */
+  Real R_d;                                      /*!< scale-length (in kpc) */
+  galaxy_detail::InitialDiskGasProps init_props; /*!< aggregates initialization info */
 
   /* A rough approximation for the gravitational potential produced by self-gravity.
    * - It is generally used to help initialize the circular-velocity in the ICs.
@@ -268,13 +314,15 @@ struct GasDiskProps {
    */
   ApproxExponentialDisk3MN selfgrav_approx_potential;
 
-  GasDiskProps(Real M_d, Real R_d, Real H_d, Real T_d, bool isothermal, Real selfgrav_scale_height_estimate)
-      : M_d(M_d),
-        R_d(R_d),
-        H_d(H_d),
-        T_d(T_d),
-        isothermal(isothermal),
-        selfgrav_approx_potential(ApproxExponentialDisk3MN::create(M_d, R_d, selfgrav_scale_height_estimate, true))
+  __host__ explicit GasDiskProps(ParameterMap& pmap)
+      : M_d{pmap.value<double>("model.galaxy.gas_disk.mass_Msun")},
+        R_d{pmap.value<double>("model.galaxy.gas_disk.scale_radius_kpc")},
+        init_props(pmap),
+        // the following line reads from the already initialized values of the M_d &
+        // R_d data members. This is ok since M_d & R_d are declared as class members
+        // before selfgrav_aprox_potential (the order of the current list is irrelevant)
+        selfgrav_approx_potential(ApproxExponentialDisk3MN::create(
+            M_d, R_d, pmap.value<double>("model.galaxy.gas_disk.selfgrav_scale_height_estimate_kpc"), true))
   {
   }
 

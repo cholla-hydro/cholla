@@ -55,3 +55,60 @@ snr_filename=./src/feedback/starburst99_snr.txt
 sw_filename=./src/feedback/starburst99_sw.txt
 sn_model=legacy
 boundary_strategy=snap
+
+# configure properties for the disk-galaxy model
+# ==============================================
+# These parameters were chosen to approximate a Milky Way-like galaxy
+
+[model.galaxy.cgm_init]
+# gas in the halo follows an isentropic profile. At a spherical radius of
+# R_anchor, the gas has the properties of rho_anchor and T_anchor
+R_anchor_kpc=157
+profile_kind=isentropic
+T_anchor=1.0e6
+# the following is roughly n_H = 10^-3.5
+rho_anchor_Msun_per_kpc3=3.0e3
+
+[model.galaxy.gas_disk]
+# the gas disk mass was selected to be 15% of old-stellar disk mass
+mass_Msun=9.75e9
+
+# the exponential scale radius
+scale_radius_kpc=5.4
+
+# the following scale height is used in the model for estimating the
+# self-gravity of the gas disk
+selfgrav_scale_height_estimate_kpc=0.02
+
+[model.galaxy.gas_disk.init]
+profile_kind=isothermal
+T_anchor=1.0e4
+initial_scale_height_guess_kpc=0.7
+
+[model.galaxy.star_forming_disk]
+# specify the global star formation rate across the entire disk
+global_sfr_Msun_per_kyr=2.0e3
+poisson_point_process=true
+# the following is loosely based on the maximum delay for feedback after
+# a cluster is born
+earliest_t_formation=-4e4
+
+[model.galaxy.star_forming_disk.cluster_mass_dist]
+# specify parameters for the cluster mass PDF, which is written as
+#     P(M_cluster) = / A * M^(-alpha),  for lo <= M < hi
+#                    \ 0,               otherwise
+# where A is a normalization constant so that the integral from lo to hi
+# produces a value of 1
+lo_Msun=1.0e2
+hi_Msun=2.0e5
+alpha=2.0
+
+[model.galaxy.static_potential.halo]
+mass_Msun=1.012e12
+virial_radius_kpc=261
+concentration=18
+
+[model.galaxy.static_potential.old_stellar_disk]
+mass_Msun=6.5e10
+scale_radius_kpc=2.7
+scale_height_kpc=0.7

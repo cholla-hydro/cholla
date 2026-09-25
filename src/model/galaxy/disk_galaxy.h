@@ -9,6 +9,14 @@
 #include "../../global/global.h"
 #include "../../utils/error_handling.h"
 
+// forward declarations to avoid directly (or indirectly) including the ParameterMap
+// header file
+struct ParameterMap;
+namespace galaxy_detail
+{
+struct InitialCGMProps;
+}
+
 // we are bending over backwards to ensure that the functionality defined in
 // "potentials.h" can be used on CPUs and on GPUs
 // -> previously, this functionality was simply duplicated in a number of places
@@ -29,6 +37,82 @@ struct NFWHaloPotential;
 struct MiyamotoNagaiPotential;
 struct GasDiskProps;
 
+/*! \brief Encapsulates the cluster-mass distribution function
+ *
+ * There is 0 probability of drawing a cluster with mass M < lower_mass or M >= higher_mass.
+ * The probability of drawing a cluster mass M, satisfying lower_mass <= M < higher_mass is given
+ * by a pdf that is proportional to std::pow(M, -1 * alpha);
+ * -> alpha is not allowed to be 1 (that corresponds to the log-uniform distribution)
+ * -> when you have N particles and alpha = 2, then the total mass particles in equal sized
+ *    logarithmic mass bins is constant
+ */
+class ClusterMassDistribution
+{
+ public:  // interface
+  ClusterMassDistribution() = delete;
+
+  ClusterMassDistribution(Real lower_mass, Real higher_mass, Real alpha)
+      : lo_mass_(lower_mass), hi_mass_(higher_mass), alpha_(alpha)
+  {
+    CHOLLA_ASSERT(lower_mass > 0.0, "The minimum cluster-mass must exceed 0");
+    CHOLLA_ASSERT(higher_mass > lower_mass, "The max mass must exceed the min mass");
+    CHOLLA_ASSERT(alpha_ > 1.0, "alpha must exceed 1.0");
+  }
+
+  explicit ClusterMassDistribution(ParameterMap& pmap);
+
+  Real getLowerClusterMass() const { return lo_mass_; }
+  Real getHigherClusterMass() const { return hi_mass_; }
+
+  Real meanClusterMass() const
+  {
+    Real normalization = (1 - alpha_) / (std::pow(hi_mass_, 1 - alpha_) - std::pow(lo_mass_, 1 - alpha_));
+    if (alpha_ == 2.0) {
+      return normalization * std::log(hi_mass_ / lo_mass_);
+    } else {
+      CHOLLA_ERROR("UNTESTED LOGIC");
+      return normalization * (std::pow(hi_mass_, 2 - alpha_) - std::pow(lo_mass_, 2 - alpha_)) / (2 - alpha_);
+    }
+  }
+
+  Real singleClusterMass(std::mt19937_64 generator) const
+  {
+    std::uniform_real_distribution<Real> uniform_distro(0, 1);
+    Real X      = uniform_distro(generator);
+    Real mclmin = lo_mass_;
+    Real mclmax = hi_mass_;
+
+    Real tmp = std::pow(mclmin, -alpha_ + 1) - (std::pow(mclmin, -alpha_ + 1) - std::pow(mclmax, -alpha_ + 1)) * X;
+    return std::pow(tmp, 1.0 / (-alpha_ + 1));
+  }
+
+ private:  // attributes
+  Real lo_mass_;
+  Real hi_mass_;
+  Real alpha_;
+};
+
+struct StarFormingDiskProps {
+  ClusterMassDistribution cluster_mass_distribution;
+  /*! specfies the disk-wide integrated star formation rate */
+  double global_sfr_Msun_per_kyr;
+  /*! indicates whether a Poisson Point Process is used to model star formation */
+  bool poisson_point_process;
+  /*! the exponent used for the kennicut-schmidt law */
+  double kennicut_schmidt_power;
+  /*! specifies the earliest cluster formation time */
+  double earliest_t_formation;
+
+  /*! specifies the latest cluster formation time. When set to a std::nullopt (i.e. the
+   *  default when no parameter is provided), this uses the simulation stopping time.
+   *
+   *  when this matches earliest_t_formation, no clusters are formed.
+   */
+  std::optional<double> latest_t_formation;
+
+  explicit StarFormingDiskProps(ParameterMap& pmap);
+};
+
 /* Intended to serve as a centralized location where all properties of the underlying galaxy-model
  * are agregated.
  *
@@ -44,7 +128,13 @@ class DiskGalaxy
   std::shared_ptr<MiyamotoNagaiPotential> stellar_disk;
   std::shared_ptr<GasDiskProps> gas_disk;
   std::shared_ptr<NFWHaloPotential> halo_potential;
-  Real M_vir, R_vir, r_cool;
+  // the following parameter is always non-null. The ONLY reason it's declared as a
+  // pointer is so that we can avoid a transitive dependence on the current header on
+  // the ParameterMap header file)
+  std::shared_ptr<galaxy_detail::InitialCGMProps> initial_cgm_props;
+  // the following member is pretty the only one that should ever be allowed to be
+  // a nullptr
+  std::shared_ptr<StarFormingDiskProps> star_forming_disk_props_;
 
  public:
   /* To properly deallocate the internally tracked shared pointers we need to define a
@@ -58,8 +148,8 @@ class DiskGalaxy
    */
   virtual ~DiskGalaxy();
 
-  DiskGalaxy(const MiyamotoNagaiPotential& stellar_disk, const GasDiskProps& gas_disk, Real mvir, Real rvir, Real cvir,
-             Real rcool);
+  /*! Construct an instance from a ParamaterMap */
+  explicit DiskGalaxy(ParameterMap& pmap);
 
   /* Radial acceleration in miyamoto nagai */
   Real gr_disk_D3D(Real R, Real z) const noexcept;
@@ -120,83 +210,14 @@ class DiskGalaxy
   const MiyamotoNagaiPotential& getStaticStellarDiskPotential() const;
   const GasDiskProps& getGasDisk() const;
   const NFWHaloPotential& getHaloPotential() const;
-  Real getM_vir() const { return M_vir; };
-  Real getR_vir() const { return R_vir; };
-  Real getR_cool() const { return r_cool; };
-};
 
-/* Encapsulates the cluster-mass distribution function
- *
- * There is 0 probability of drawing a cluster with mass M < lower_mass or M >= higher_mass.
- * The probability of drawing a cluster mass M, satisfying lower_mass <= M < higher_mass is given
- * by a pdf that is proportional to std::pow(M, -1 * alpha);
- * -> alpha is not allowed to be 1 (that corresponds to the log-uniform distribution)
- * -> when you have N particles and alpha = 2, then the total mass particles in equal sized
- *    logarithmic mass bins is constant
- */
-class ClusterMassDistribution
-{
- public:  // interface
-  ClusterMassDistribution() = delete;
+  // an important invariant: initial_cgm_props is NEVER a nullptr
+  const galaxy_detail::InitialCGMProps& getInitialCGMProps() const { return *initial_cgm_props; }
 
-  ClusterMassDistribution(Real lower_mass, Real higher_mass, Real alpha)
-      : lo_mass_(lower_mass), hi_mass_(higher_mass), alpha_(alpha)
-  {
-    CHOLLA_ASSERT(lower_mass > 0.0, "The minimum cluster-mass must exceed 0");
-    CHOLLA_ASSERT(higher_mass > lower_mass, "The max mass must exceed the min mass");
-    CHOLLA_ASSERT(alpha_ > 1.0, "alpha must exceed 1.0");
-  }
-
-  Real getLowerClusterMass() const { return lo_mass_; }
-  Real getHigherClusterMass() const { return hi_mass_; }
-
-  Real meanClusterMass() const
-  {
-    Real normalization = (1 - alpha_) / (std::pow(hi_mass_, 1 - alpha_) - std::pow(lo_mass_, 1 - alpha_));
-    if (alpha_ == 2.0) {
-      return normalization * std::log(hi_mass_ / lo_mass_);
-    } else {
-      CHOLLA_ERROR("UNTESTED LOGIC");
-      return normalization * (std::pow(hi_mass_, 2 - alpha_) - std::pow(lo_mass_, 2 - alpha_)) / (2 - alpha_);
-    }
-  }
-
-  Real singleClusterMass(std::mt19937_64 generator) const
-  {
-    std::uniform_real_distribution<Real> uniform_distro(0, 1);
-    Real X      = uniform_distro(generator);
-    Real mclmin = lo_mass_;
-    Real mclmax = hi_mass_;
-
-    Real tmp = std::pow(mclmin, -alpha_ + 1) - (std::pow(mclmin, -alpha_ + 1) - std::pow(mclmax, -alpha_ + 1)) * X;
-    return std::pow(tmp, 1.0 / (-alpha_ + 1));
-  }
-
- private:  // attributes
-  Real lo_mass_;
-  Real hi_mass_;
-  Real alpha_;
-};
-
-// TODO: consider doing away with the ClusteredDiskGalaxy class and instead storing
-//       cluster_mass_distribution_ as an optional attribute of DiskGalaxy
-class ClusteredDiskGalaxy : public DiskGalaxy
-{
- private:
-  ClusterMassDistribution cluster_mass_distribution_;
-
- public:
-  ClusteredDiskGalaxy(ClusterMassDistribution cluster_mass_distribution, const MiyamotoNagaiPotential& stellar_disk,
-                      const GasDiskProps& gas_disk, Real mvir, Real rvir, Real cvir, Real rcool)
-      : DiskGalaxy{stellar_disk, gas_disk, mvir, rvir, cvir, rcool},
-        cluster_mass_distribution_(cluster_mass_distribution)
-  {
-  }
-
-  ClusterMassDistribution getClusterMassDistribution() const
+  const StarFormingDiskProps* tryGetStarFormingDiskProps() const
   {
     // we should return a CONST reference or a copy (so that the internal object isn't mutated)
-    return cluster_mass_distribution_;
+    return star_forming_disk_props_.get();
   }
 };
 
@@ -213,14 +234,5 @@ inline Real Get_Gas_Truncation_Radius(const Parameters& p)
   if ((20.4 < p.xlen) and (p.xlen < 20.5)) return 9.9;
   return p.xlen / 2.0 - 0.3;
 }
-
-namespace galaxies
-{
-
-// temporary helper function that is being used while we transition
-// to dynamically construct the galaxy model from the parameter file
-ClusteredDiskGalaxy make_MW_model();
-
-};  // namespace galaxies
 
 #endif  // DISK_GALAXY

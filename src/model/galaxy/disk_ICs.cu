@@ -19,6 +19,7 @@
 #include "../../utils/error_handling.h"
 #include "../../utils/math_utilities.h"
 #include "disk_galaxy.h"
+#include "gas_props.h"
 #include "potentials.h"
 #include "selfgrav_hydrostatic_col.h"
 
@@ -828,29 +829,21 @@ void partial_initialize_halo(const Header& H, const Grid3D& grid, const Grid3D::
  *  \brief Initialize the grid with a 3D disk. */
 void Grid3D::Disk_3D(Parameters p)
 {
-  Real T_d, T_h, mu;
-  Real K_eos, rho_eos, cs, rho_eos_h;
-
   // load the galaxy model
-  const ClusteredDiskGalaxy* tmp = models().try_get<ClusteredDiskGalaxy>();
+  const DiskGalaxy* tmp = models().try_get<DiskGalaxy>();
   CHOLLA_ASSERT(tmp != nullptr, "no galaxy model was initialized");
   const DiskGalaxy& galaxy = *tmp;
 
-  const MiyamotoNagaiPotential stellar_disk = galaxy.getStaticStellarDiskPotential();
-  const GasDiskProps gas_disk               = galaxy.getGasDisk();
+  const MiyamotoNagaiPotential stellar_disk            = galaxy.getStaticStellarDiskPotential();
+  const GasDiskProps gas_disk                          = galaxy.getGasDisk();
+  const galaxy_detail::InitialCGMProps& cgm_init_props = galaxy.getInitialCGMProps();
 
-  T_h       = 1.0e6;  // halo temperature, at density floor
-  rho_eos   = 1.0e7;  // gas eos normalized at 1e7 Msun/kpc^3
-  rho_eos_h = 3.0e3;  // gas eos normalized at 3e3 Msun/kpc^3 (about n_h = 10^-3.5)
-  mu        = 0.6;
+  const Real T_d       = gas_disk.init_props.profile.temperature_anchor();
+  const Real T_h       = cgm_init_props.profile.temperature_anchor();
+  const Real rho_eos_h = cgm_init_props.profile.rho_anchor_Msun_per_kpc3();
+  const Real mu        = MU;
 
   Real Sigma_0 = gas_disk.CentralSurfaceDensity();  // (in Msun/kpc^2)
-  // changing the following 3 lines directly assign T_d the value stored in gas_disk.T_d slightly
-  // changes the result of the simulation (its worrying that I can't explain why!)
-  T_d = 1.0e4;
-  if (T_d != gas_disk.T_d) {
-    CHOLLA_ERROR("unexpected disk temperature");
-  }
 
   chprintf("\nNominal Disk properties:\n");
   chprintf("                                            Stellar            Gas\n");
@@ -863,7 +856,7 @@ void Grid3D::Disk_3D(Parameters p)
   chprintf("\n");
 
   // EOS info
-  cs = Isothermal_Sound_Speed_CodeU(T_d, mu);  // sound speed in kpc/kyr
+  Real cs = Isothermal_Sound_Speed_CodeU(T_d, mu);  // sound speed in kpc/kyr
   // set some initial Parameters
   // these Parameters are mostly passed to hydrostatic column
   DataPack hdp;  // Parameters
@@ -872,14 +865,16 @@ void Grid3D::Disk_3D(Parameters p)
   hdp.T_d            = T_d;
   hdp.Sigma_0        = Sigma_0;
   hdp.R_g            = gas_disk.R_d;
-  hdp.H_g            = gas_disk.H_d;  // initial guess for gas scale height (kpc)
+  hdp.H_g            = gas_disk.init_props.H_d;  // initial guess for gas scale height (kpc)
   hdp.gamma          = p.gamma;
 
-  if (gas_disk.isothermal) {
+  Real rho_eos, K_eos;
+  if (gas_disk.init_props.profile.is_isothermal()) {
     // determine rho_eos by setting central density of disk based on central temperature
     rho_eos = determine_rho_eos_D3D(cs, Sigma_0, hdp);
     K_eos   = cs * cs * rho_eos;  // CHANGED FOR ISOTHERMAL
   } else {
+    rho_eos = gas_disk.init_props.profile.rho_anchor_Msun_per_kpc3();
     CHOLLA_ERROR("Initializing a non-isothermal gas disk hasn't been tested");
     // this branch represents older logic that was partially commented out throughout
     // this function
@@ -922,10 +917,10 @@ void Grid3D::Disk_3D(Parameters p)
   // since we are adding contributions from the halo across the entire domain, let's initialize it
   // first (we will need to account for its influence on the radial pressure gradients when
   // initializing the circular velocity of the disk)
-  CGMInitializer cgm_initializer(p, hdp, mu, rho_eos_h, T_h, galaxy.getR_cool());
+  CGMInitializer cgm_initializer(p, hdp, mu, rho_eos_h, T_h, cgm_init_props.R_anchor_kpc);
   partial_initialize_halo(this->H, *this, this->C, cgm_initializer);
 
-  if (gas_disk.isothermal) {
+  if (gas_disk.init_props.profile.is_isothermal()) {
     if (self_gravity) {
       // nongas_phi calculates the gravitational potential contributed by material other than the
       // gas disk at a given (R,z), where R is cylindrical radius
@@ -939,7 +934,7 @@ void Grid3D::Disk_3D(Parameters p)
       // equivalent to:  `(isothermal_sound_speed)^2` OR `(adiabatic_sound_speed)^2/gamma` OR
       //                 `(gamma - 1) * specific_internal_energy`
       Real isoth_term                     = hdp.cs * hdp.cs;  // <- square of the isothermal sound speed
-      Real initial_gas_scale_height_guess = gas_disk.H_d;
+      Real initial_gas_scale_height_guess = gas_disk.init_props.H_d;
       SelfGravHydroStaticColMaker col_maker(H.n_ghost, ZGridProps(p.zmin, p.zlen, p.nz), isoth_term, nongas_phi_fn,
                                             initial_gas_scale_height_guess);
 
