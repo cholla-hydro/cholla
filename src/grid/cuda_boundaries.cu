@@ -304,7 +304,7 @@ __device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *
 
 __global__ void Wind_Boundary_kernel(Real *c_device, int nx, int ny, int nz, int n_cells, int n_ghost, int x_off,
                                      int y_off, int z_off, Real dx, Real dy, Real dz, Real xbound, Real ybound,
-                                     Real zbound, Real gamma, Real t)
+                                     Real zbound, Real gamma, Real t, Real metallicity_wind)
 {
   int id, xid, yid, zid, gid;
   Real n_0, T_0;
@@ -339,6 +339,12 @@ __global__ void Wind_Boundary_kernel(Real *c_device, int nx, int ny, int nz, int
     c_device[gid + 2 * n_cells] = vy * d_0;
     c_device[gid + 3 * n_cells] = vz * d_0;
     c_device[gid + 4 * n_cells] = P_0 / (gamma - 1.0) + 0.5 * d_0 * (vx * vx + vy * vy + vz * vz);
+  #ifdef METALS
+    c_device[gid + n_cells * grid_enum::metal_density] = metallicity_wind * SOLAR_METAL_MASS_FRAC * d_0;
+  #endif
+  #ifdef BASIC_SCALAR
+    c_device[gid + n_cells * grid_enum::basic_scalar] = 1.0 * d_0;
+  #endif
   }
   __syncthreads();
 }
@@ -514,7 +520,7 @@ __global__ void Noh_Boundary_kernel(Real *c_device, int nx, int ny, int nz, int 
 }
 
 void Wind_Boundary_CUDA(Real *c_device, int nx, int ny, int nz, int n_cells, int n_ghost, int x_off, int y_off,
-                        int z_off, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real gamma, Real t)
+                        int z_off, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real gamma, Real t, Real metallicity_wind)
 {
   // determine the size of the grid to launch
   // need at least as many threads as the largest boundary face
@@ -529,7 +535,7 @@ void Wind_Boundary_CUDA(Real *c_device, int nx, int ny, int nz, int n_cells, int
 
   // launch the boundary kernel
   hipLaunchKernelGGL(Wind_Boundary_kernel, dim1dGrid, dim1dBlock, 0, 0, c_device, nx, ny, nz, n_cells, n_ghost, x_off,
-                     y_off, z_off, dx, dy, dz, xbound, ybound, zbound, gamma, t);
+                     y_off, z_off, dx, dy, dz, xbound, ybound, zbound, gamma, t, metallicity_wind);
 }
 
 void Noh_Boundary_CUDA(Real *c_device, int nx, int ny, int nz, int n_cells, int n_ghost, int x_off, int y_off,

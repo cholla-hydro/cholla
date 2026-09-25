@@ -170,11 +170,11 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef GRAVITY
-  G.Initialize_Gravity(&P);
+  G.Initialize_Gravity(&P, pmap);
 #endif
 
 #ifdef PARTICLES
-  G.Initialize_Particles(&P);
+  G.Initialize_Particles(&P, pmap);
 #endif
 
 #ifdef COSMOLOGY
@@ -222,7 +222,7 @@ int main(int argc, char *argv[])
 
 #ifdef GRAVITY
   // Get the gravitational potential for the first timestep
-  G.Compute_Gravitational_Potential(&P);
+  G.Compute_Gravitational_Potential(&P, pmap);
   #if defined(RT) && defined(RT_OTVET)
   chprintf("RT: Setting Eddington Tensor...\n");
   G.Rad.ComputeEddingtonTensor(P, G.Grav);
@@ -237,7 +237,7 @@ int main(int argc, char *argv[])
   // Set boundary conditions (assign appropriate values to ghost cells) for
   // hydro and potential
   chprintf("Setting boundary conditions...\n");
-  G.Set_Boundary_Conditions_Grid(P);
+  G.Set_Boundary_Conditions_Grid(P, pmap);
   chprintf("Boundary conditions set.\n");
 
 #ifdef GRAVITY_ANALYTIC_COMP
@@ -332,9 +332,8 @@ int main(int argc, char *argv[])
     // Advance the particles KDK( first step ): Velocities are updated by 0.5*dt
     // and positions are updated by dt
     G.Advance_Particles(1);
-
-    //  Transfer the particles that moved outside the local domain
-    G.Transfer_Particles_Boundaries(P);
+    // Transfer the particles that moved outside the local domain
+    G.Transfer_Particles_Boundaries(P, pmap);
 #endif
 
 #ifdef RT
@@ -350,22 +349,14 @@ int main(int argc, char *argv[])
 
 #ifdef GRAVITY
     // Compute Gravitational potential for next step
-    G.Compute_Gravitational_Potential(&P);
-
-  #if defined(RT) && defined(RT_OTVET)
-    G.Rad.ComputeEddingtonTensor(P, G.Grav);
-  #endif
-#endif
-
-#ifdef RT
-    G.Rad.rtBoundaries();
+    G.Compute_Gravitational_Potential(&P, pmap);
 #endif
 
     // add one to the timestep count
     G.H.n_step++;
 
     // Set the Grid boundary conditions for next time step
-    G.Set_Boundary_Conditions_Grid(P);
+    G.Set_Boundary_Conditions_Grid(P, pmap);
 
 #ifdef GRAVITY_ANALYTIC_COMP
     G.Add_Analytic_Potential();

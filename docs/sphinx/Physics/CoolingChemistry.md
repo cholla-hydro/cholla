@@ -20,8 +20,10 @@ We will cover this in more detail down below.
 Supported options include:
 - `"piecewise-cie"`: a piecewise-parabolic fit to a collisional ionization equilibrium (CIE) cooling function at solar metallicity (see Appendix A.2 in [Schneider & Robertson, 2018](https://ui.adsabs.harvard.edu/abs/2018ApJ...860..135S/abstract) for a description)
 - `"piecewise-ti+cie"`: Analytic cooling/heating recipe that roughly matches the "TI" cooling runs shown in
- [Kim & Ostriker 2015](https://ui.adsabs.harvard.edu/abs/2015ApJ...802...99K/abstract)
+ [Kim & Ostriker, 2015](https://ui.adsabs.harvard.edu/abs/2015ApJ...802...99K/abstract)
 - `"tabulated-cloudy"`: a cooling / heating function based on a solar metallicity Cloudy model with a Hardt & Madau 2005 UV background (see Appendix C in [Schneider & Robertson, 2017](https://ui.adsabs.harvard.edu/abs/2017ApJ...834..144S/abstract) for a description)
+- `"primordial"`: a cooling function based on the cooling rates for a gas of primordial composition described in [Katz et al., 1996](https://ui.adsabs.harvard.edu/abs/1996ApJS..105...19K/abstract)
+- `"metal-dependent"`: a cooling function that combines primordial cooling (following [Katz et al., 1996](https://ui.adsabs.harvard.edu/abs/1996ApJS..105...19K/abstract)) with a scaled metal-line contribution
 
 ### Selecting your solver
 
@@ -42,6 +44,10 @@ The choice of simple-solver is specified through the {par:param}`chemistry.kind`
 * - "piecewise-ti+cie"
   - Analytic cooling/heating recipe that roughly matches the "TI" cooling runs shown in
  in [Kim & Ostriker 2015](https://ui.adsabs.harvard.edu/abs/2015ApJ...802...99K/abstract)
+* - "primordial"
+  - Cooling for a gas of primordial composition
+* - "metal-dependent"
+  - Cooling recipe for a gas of a given metallicity
 :::
 
 ### More about the solvers
@@ -50,7 +56,7 @@ The choice of simple-solver is specified through the {par:param}`chemistry.kind`
 
 This solver provides an analytic fit to a solar metallicity CIE cooling curve calculated using Cloudy, with no cooling below 1e4 K.
 
-Not currently compatible with photoelectric heating.
+**Not currently compatible with photoelectric heating.**
 
 #### "piecewise-ti+cie"
 
@@ -68,7 +74,30 @@ The provided table spans densities `log(n) = -6` to `log(n) = 6` (cm^-3) and tem
 Cooling and heating are computed from the table using bilinear interpolation.
 A custom function is used for double precision because the CUDA built-in performs interpolation using 8-bit accuracy.
 
+Heating is enabled by default. To run with cooling only, set {par:param}`chemistry.enable_heating` to `false`.
+
 **Compatible with photoelectric heating.**
+
+#### "primordial"
+
+This solver computes cooling for a gas of primordial (hydrogen/helium) composition following the collisional ionization/recombination rates described in Table 2 of [Katz et al., 1996](https://ui.adsabs.harvard.edu/abs/1996ApJS..105...19K/abstract). The total cooling rate is calculated by summing the cooling from the radiative processes described in Table 1.
+
+**Compatible with photoelectric heating.**
+
+#### "metal-dependent"
+
+This solver computes the cooling rate for a gas of a given metallicity. The cooling is computed by combining primordial cooling (following [Katz et al., 1996](https://ui.adsabs.harvard.edu/abs/1996ApJS..105...19K/abstract)) with a metal-line contribution. This is estimated by scaling the metal-line contribution of a solar metallicity Cloudy model by a cell's metallicity. 
+
+:::{figure} metallicities.png 
+:::
+
+This model closely aligns with Cloudy models ran with the true metallicity (see below).
+
+:::{figure} models.png 
+:::
+
+**Not currently compatible with photoelectric heating, and must disable heating with {par:param}`enable_heating` = `false`.**
+
 
 ### Modelling Photoelectric Heating
 

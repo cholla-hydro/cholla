@@ -154,7 +154,7 @@ void Potential_SOR_3D::Poisson_Partial_Iteration(int n_step, Real omega, Real ep
                                F.density_d, F.potential_d, F.converged_h, F.converged_d);
 }
 
-void Grid3D::Get_Potential_SOR(Real Grav_Constant, Real dens_avrg, Real current_a, struct Parameters *P)
+void Grid3D::Get_Potential_SOR(Real Grav_Constant, Real dens_avrg, Real current_a, struct Parameters *P, ParameterMap &pmap)
 {
   #ifdef TIME_SOR
   Real time_start, time_end, time;
@@ -195,7 +195,7 @@ void Grid3D::Get_Potential_SOR(Real Grav_Constant, Real dens_avrg, Real current_
     Grav.Poisson_solver.iteration_parity = 0;
     if (set_boundaries) {
       Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = true;
-      Set_Boundary_Conditions(*P);
+      Set_Boundary_Conditions(*P, pmap);
       Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = false;
     }
     Grav.Poisson_solver.Poisson_Partial_Iteration(Grav.Poisson_solver.iteration_parity, omega, epsilon);
@@ -204,7 +204,7 @@ void Grid3D::Get_Potential_SOR(Real Grav_Constant, Real dens_avrg, Real current_
     Grav.Poisson_solver.iteration_parity = 1;
     if (set_boundaries) {
       Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = true;
-      Set_Boundary_Conditions(*P);
+      Set_Boundary_Conditions(*P, pmap);
       Grav.Poisson_solver.TRANSFER_POISSON_BOUNDARIES = false;
     }
     Grav.Poisson_solver.Poisson_Partial_Iteration(Grav.Poisson_solver.iteration_parity, omega, epsilon);
