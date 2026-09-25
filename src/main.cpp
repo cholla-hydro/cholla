@@ -80,9 +80,6 @@ int main(int argc, char *argv[])
     param_file = argv[1];
   }
 
-  // create the grid
-  Grid3D G;
-
   // read in contents from the parameter file
   ParameterMap pmap(param_file, argc, argv);
 
@@ -93,6 +90,15 @@ int main(int argc, char *argv[])
   //              initializes the simulation using parameter values from P
   //   -> modern: code initializes the simulation by getting values directly from pmap
   Parameters P(pmap);
+
+  // Check the configuration
+  // -> this needs to happen before we construct the grid because the constructor
+  //    currently mutates the contents of P
+  // -> TODO: shift more checks to location where we load values from pmap
+  Check_Configuration(P);
+
+  // create the grid
+  Grid3D G(P);
 
   // write a description of simulation configuration to console
   chprintf("Git Commit Hash = %s\n", GIT_HASH);
@@ -119,9 +125,6 @@ int main(int argc, char *argv[])
   }
   chprintf("Output directory:  %s\n", writer_manager.fname_template().nominal_output_dir_path().c_str());
 
-  // Check the configuration
-  Check_Configuration(P);
-
   // Create a Log file to output run-time messages and output the git hash and
   // macro flags used
   Create_Log_File(P);
@@ -130,8 +133,6 @@ int main(int argc, char *argv[])
   message = "Macro Flags     = " + std::string(MACRO_FLAGS);
   Write_Message_To_Log_File(message.c_str());
 
-  // initialize the grid
-  G.Initialize(&P);
   chprintf("Local number of grid cells: %d %d %d %d\n", G.H.nx_real, G.H.ny_real, G.H.nz_real, G.H.n_cells);
 
   message = "Initializing Simulation";
@@ -254,7 +255,7 @@ int main(int argc, char *argv[])
   chprintf("Nstep = %d  Simulation time = %f\n", G.H.n_step, G.H.t);
 
 #ifdef OUTPUT
-  if (!is_restart || G.H.Output_Now) {
+  if (!is_restart || G.state.Output_Now) {
     // write the initial conditions to file
     chprintf("Writing initial conditions to file...\n");
     Write_Data(G, P, nfile, writer_manager);
@@ -402,7 +403,7 @@ int main(int argc, char *argv[])
         "%9.3f ms   total time = %9.4f s\n\n",
         G.H.n_step, G.H.t, G.H.dt, (stop_step - start_step) * 1000, G.H.t_wall);
 
-    if (P.output_always) G.H.Output_Now = true;
+    if (P.output_always) G.state.Output_Now = true;
 
 #ifdef ANALYSIS
     if (G.Analysis.Output_Now) G.Compute_and_Output_Analysis(&P);
@@ -412,9 +413,9 @@ int main(int argc, char *argv[])
 #endif
 
     // if ( P.n_steps_output > 0 && G.H.n_step % P.n_steps_output == 0)
-    // G.H.Output_Now = true;
+    // G.state.Output_Now = true;
 
-    if (G.H.t == outtime || G.H.Output_Now) {
+    if (G.H.t == outtime || G.state.Output_Now) {
 #ifdef OUTPUT
       /*output the grid data*/
       Write_Data(G, P, nfile, writer_manager);

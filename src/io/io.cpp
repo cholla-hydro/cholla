@@ -104,15 +104,15 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
 #ifdef N_OUTPUT_COMPLETE
   // If nfile is multiple of N_OUTPUT_COMPLETE then output all data
   if (nfile % N_OUTPUT_COMPLETE == 0) {
-    G.H.Output_Complete_Data = true;
+    G.state.Output_Complete_Data = true;
     chprintf(" Writing all data ( Restart File ).\n");
   } else {
-    G.H.Output_Complete_Data = false;
+    G.state.Output_Complete_Data = false;
   }
 
 #else
   // If NOT N_OUTPUT_COMPLETE: always output complete data
-  G.H.Output_Complete_Data = true;
+  G.state.Output_Complete_Data = true;
 #endif
 
 #ifdef COSMOLOGY
@@ -127,12 +127,12 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
   write_manager.Apply_Writers(G, P, nfile);
 
 #ifdef COSMOLOGY
-  if (G.H.OUTPUT_SCALE_FACTOR || G.H.Output_Initial) {
+  if (G.H.OUTPUT_SCALE_FACTOR || G.state.Output_Initial) {
     G.Cosmo.Set_Next_Scale_Output();
     if (!G.Cosmo.exit_now) {
       chprintf(" Saved Snapshot: %d     z:%f   next_output: %f\n", nfile, G.Cosmo.current_z,
                1 / G.Cosmo.next_output - 1);
-      G.H.Output_Initial = false;
+      G.state.Output_Initial = false;
     } else {
       chprintf(" Saved Snapshot: %d     z:%f   Exiting now\n", nfile, G.Cosmo.current_z);
     }
@@ -142,7 +142,7 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
   }
   G.Change_Cosmological_Frame_System(true);
   chprintf("\n");
-  G.H.Output_Now = false;
+  G.state.Output_Now = false;
 #endif
 
 #ifdef HDF5
