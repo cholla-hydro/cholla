@@ -127,7 +127,7 @@ class FieldInfo
   std::optional<std::string> pack_name(uint8_t pack_id) const
   {
     // todo: fix me when we support multiple packs
-    return (pack_id == 0) ? std::optional<std::string>{"fluid"} : std::nullopt;
+    return (pack_id == 0) ? std::optional<std::string>{"conserved"} : std::nullopt;
   }
 
   /*! \brief try to lookup the associated pack_id */
@@ -140,7 +140,7 @@ class FieldInfo
   std::optional<uint8_t> pack_id(std::string_view pack_name) const
   {
     // todo: fix me when we support multiple packs
-    return (pack_name == "fluid") ? std::optional<uint8_t>{0} : std::nullopt;
+    return (pack_name == "conserved") ? std::optional<uint8_t>{0} : std::nullopt;
   }
 
   /*! try to look up whether the field id refers to a cell-centered field
