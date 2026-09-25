@@ -14,6 +14,11 @@ namespace field_detail
 class Storage;
 }  // namespace field_detail
 
+// the following declaration is here because I'm not sure where is a better place
+
+/*! \brief Represents a memory space */
+enum class MemSpace { HOST, DEV };
+
 /*! \brief Represents a field identifier
  *
  *  Code outside of the field machinery should always treat this like the

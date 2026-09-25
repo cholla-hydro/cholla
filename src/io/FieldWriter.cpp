@@ -58,12 +58,12 @@ struct DsetSpecListBuilder {
   /*! returns the output name used for a field based upon the original field name */
   OutNameRecipie out_name_recipe;
   /*! When specified, overides the typical choice associated with a field */
-  std::optional<field::IOBuf> force_buf_choice;
+  std::optional<MemSpace> force_buf_choice;
 
  public:
   /*! make a new instance */
   DsetSpecListBuilder(std::vector<io::DatasetSpecEntry>& wrapped_vec, const FieldInfo& field_info,
-                      OutNameRecipie out_name_recipe, std::optional<field::IOBuf> force_buf_choice = std::nullopt)
+                      OutNameRecipie out_name_recipe, std::optional<MemSpace> force_buf_choice = std::nullopt)
       : wrapped_vec(wrapped_vec),
         field_info(field_info),
         out_name_recipe(out_name_recipe),
@@ -87,7 +87,7 @@ struct DsetSpecListBuilder {
     if (force_buf_choice.has_value()) {
       wrapped_vec.emplace_back(field_id, std::move(dset_name), force_buf_choice.value(), cond);
     } else {
-      std::optional<field::IOBuf> io_buf = field_info.io_buf(field_id);
+      std::optional<MemSpace> io_buf = field_info.io_buf(field_id);
       wrapped_vec.emplace_back(field_id, std::move(dset_name), get_or_abort(io_buf), cond);
     }
   }
@@ -151,11 +151,11 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
   // ==============================================
 
   // Part 1A: determine configuration parameters for DsetSpecListBuilder_
-  std::optional<field::IOBuf> force_buf_choice = std::nullopt;
+  std::optional<MemSpace> force_buf_choice = std::nullopt;
   std::function<std::string(std::string_view)> out_name_recipe;
   switch (this->file_format_) {
     case FileFormat::TEXT:
-      force_buf_choice = std::optional<field::IOBuf>{field::IOBuf::HOST};
+      force_buf_choice = std::optional<MemSpace>{MemSpace::HOST};
       // set output name to legacy short name (fall back to field name if there isn't a short name)
       out_name_recipe = [](std::string_view field_name) -> std::string {
         std::optional<std::string> maybe_out_name = lookup_legacy_short_name_(field_name);
@@ -164,7 +164,7 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
       };
       break;
     case FileFormat::H5_F32:
-      force_buf_choice = std::optional<field::IOBuf>{field::IOBuf::DEVICE};
+      force_buf_choice = std::optional<MemSpace>{MemSpace::DEV};
       [[fallthrough]];
     case FileFormat::H5_NATIVE_PRECISION:
       out_name_recipe = [](std::string_view field_name) { return '/' + std::string(field_name); };
@@ -305,13 +305,13 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
     if constexpr (ForceF32Output) {
       // todo: consider more robust behavior here
       CHOLLA_ASSERT(cur_spec.condition == io::WriteCond::ALWAYS, "unexpected case");
-      CHOLLA_ASSERT(cur_spec.io_buf == field::IOBuf::DEVICE, "unexpected case");
+      CHOLLA_ASSERT(cur_spec.io_buf == MemSpace::DEV, "unexpected case");
       const Real* ptr = f_man.field_or_abort(MemSpace::DEV, cur_spec.field_id);
       Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf,
                           ptr, cur_spec.name.c_str());
     } else {
       if (cur_spec.condition == io::WriteCond::REQUIRE_COMPLETE_DATA && not G.state.Output_Complete_Data) continue;
-      if (cur_spec.io_buf == field::IOBuf::HOST) {
+      if (cur_spec.io_buf == MemSpace::HOST) {
         const Real* ptr = f_man.field_or_abort(MemSpace::HOST, cur_spec.field_id);
         Write_Grid_HDF5_Field_CPU(H, file_id, host_dataset_buf, ptr, cur_spec.name.c_str());
       } else {
@@ -442,7 +442,7 @@ int Record_Colnames_And_Get_Field_Ptrs_(const Real** ptr_arr, bool* is_cell_cent
   for (const io::DatasetSpecEntry& entry : dataset_spec.cc_dataset_entries) {
     // perform 2 simple sanity checks (these check invariants that should be satisfied
     // during initialization)
-    CHOLLA_ASSERT(entry.io_buf == field::IOBuf::HOST, "io_buf sanity check failed!");
+    CHOLLA_ASSERT(entry.io_buf == MemSpace::HOST, "io_buf sanity check failed!");
     CHOLLA_ASSERT(field_info.is_cell_centered(entry.field_id).value_or(false), "field-centering sanity-check failed!");
 
     if (entry.condition == io::WriteCond::REQUIRE_COMPLETE_DATA and not G.state.Output_Complete_Data) {

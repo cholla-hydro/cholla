@@ -16,7 +16,7 @@ namespace
 struct PropPack {
   const char* name;
   field::Kind kind;
-  field::IOBuf io_buf;
+  MemSpace io_buf;
 };
 
 }  // anonymous namespace
@@ -26,43 +26,43 @@ struct PropPack {
  *  This must remain synchronized with grid_enum.h
  */
 static constexpr PropPack pack_arr_[] = {
-    {"density", field::Kind::HYDRO, field::IOBuf::DEVICE},
-    {"momentum_x", field::Kind::HYDRO, field::IOBuf::DEVICE},
-    {"momentum_y", field::Kind::HYDRO, field::IOBuf::DEVICE},
-    {"momentum_z", field::Kind::HYDRO, field::IOBuf::DEVICE},
-    {"Energy", field::Kind::HYDRO, field::IOBuf::DEVICE},
+    {"density", field::Kind::HYDRO, MemSpace::DEV},
+    {"momentum_x", field::Kind::HYDRO, MemSpace::DEV},
+    {"momentum_y", field::Kind::HYDRO, MemSpace::DEV},
+    {"momentum_z", field::Kind::HYDRO, MemSpace::DEV},
+    {"Energy", field::Kind::HYDRO, MemSpace::DEV},
 
 #ifdef SCALAR
   #ifdef BASIC_SCALAR
     // we use the name "scalar0" for better consistency with the name recorded during IO
-    {"scalar0", field::Kind::PASSIVE_SCALAR, field::IOBuf::DEVICE},
+    {"scalar0", field::Kind::PASSIVE_SCALAR, MemSpace::DEV},
   #endif
 
   #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
-    {"HI_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
-    {"HII_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
-    {"HeI_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
-    {"HeII_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
-    {"HeIII_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
-    {"e_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
+    {"HI_density", field::Kind::PASSIVE_SCALAR, MemSpace::HOST},
+    {"HII_density", field::Kind::PASSIVE_SCALAR, MemSpace::HOST},
+    {"HeI_density", field::Kind::PASSIVE_SCALAR, MemSpace::HOST},
+    {"HeII_density", field::Kind::PASSIVE_SCALAR, MemSpace::HOST},
+    {"HeIII_density", field::Kind::PASSIVE_SCALAR, MemSpace::HOST},
+    {"e_density", field::Kind::PASSIVE_SCALAR, MemSpace::HOST},
     #ifdef GRACKLE_METALS
-    {"metal_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
+    {"metal_density", field::Kind::PASSIVE_SCALAR, MemSpace::HOST},
     #endif
   #endif
 
   #ifdef DUST
-    {"dust_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::DEVICE},
+    {"dust_density", field::Kind::PASSIVE_SCALAR, MemSpace::DEV},
   #endif  // DUST
 
 #endif  // SCALAR
 
 #ifdef MHD
-    {"magnetic_x", field::Kind::MAGNETIC, field::IOBuf::DEVICE},
-    {"magnetic_y", field::Kind::MAGNETIC, field::IOBuf::DEVICE},
-    {"magnetic_z", field::Kind::MAGNETIC, field::IOBuf::DEVICE},
+    {"magnetic_x", field::Kind::MAGNETIC, MemSpace::DEV},
+    {"magnetic_y", field::Kind::MAGNETIC, MemSpace::DEV},
+    {"magnetic_z", field::Kind::MAGNETIC, MemSpace::DEV},
 #endif
 #ifdef DE
-    {"GasEnergy", field::Kind::HYDRO, field::IOBuf::DEVICE}
+    {"GasEnergy", field::Kind::HYDRO, MemSpace::DEV}
 #endif
 };
 

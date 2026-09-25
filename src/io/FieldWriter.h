@@ -73,14 +73,14 @@ struct DatasetSpecEntry {
   /// - For text-file outputs, this is the name of the column that holds the data
   std::string name;
   /// indicates whether we record values from the host or device buffers
-  field::IOBuf io_buf;
+  MemSpace io_buf;
   /// the condition for writing this dataset
   WriteCond condition;
 
   // the following constructor is defined in order to make this type work with
   // std::vector::emplace_back. Delete it, once we require C++20 or newer
 #if __cpp_aggregate_paren_init < 201902L
-  DatasetSpecEntry(FieldId field_id, std::string name, field::IOBuf io_buf, WriteCond condition)
+  DatasetSpecEntry(FieldId field_id, std::string name, MemSpace io_buf, WriteCond condition)
       : field_id{field_id}, name{std::move(name)}, io_buf{io_buf}, condition{condition}
   {
   }

@@ -246,7 +246,7 @@ Grid3D::Grid3D(Parameters &P)
  */
 static void populate_conserved_fields_(Grid3D &G, FieldManager &f_manager, MemSpace space)
 {
-  Real *root_ptr = f_manager.pack(space, "fluid").value_or(nullptr);
+  Real *root_ptr = f_manager.pack(space, "grid").value_or(nullptr);
   bool is_host   = space == MemSpace::HOST;
 
 #ifndef ONLY_PARTICLES

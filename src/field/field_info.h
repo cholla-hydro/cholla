@@ -18,9 +18,6 @@ namespace field
 // note: HYDRO includes GasEnergy (if present)
 enum class Kind { HYDRO, PASSIVE_SCALAR, MAGNETIC };
 
-/*! Specifies which buffer to use for IO */
-enum class IOBuf { HOST, DEVICE };
-
 /*! Specifies centering */
 
 /*! This is a "range" in the C++ 20 sense
@@ -52,7 +49,9 @@ class FieldInfo
   std::vector<FieldId> hydro_field_ids_;
   std::vector<FieldId> scalar_field_ids_;
   std::vector<FieldId> magnetic_field_ids_;
-  std::vector<field::IOBuf> io_buf_;
+
+  /// specifies the buffer to use for IO
+  std::vector<MemSpace> io_buf_;
 
   // We make the default-constructor private to force the use of the factory method
   FieldInfo() = default;
@@ -168,10 +167,10 @@ class FieldInfo
    *
    *  \note We may want to revisit whether this actually should be tracked by FieldInfo in the future.
    */
-  std::optional<field::IOBuf> io_buf(FieldId field_id) const
+  std::optional<MemSpace> io_buf(FieldId field_id) const
   {
     bool bad_id = (field_id.pack_id != 0 || field_id.slot_idx >= n_fields());
-    return bad_id ? std::nullopt : std::optional<field::IOBuf>{io_buf_[field_id.slot_idx]};
+    return bad_id ? std::nullopt : std::optional<MemSpace>{io_buf_[field_id.slot_idx]};
   }
 
   /*! Returns the number of fields */

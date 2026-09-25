@@ -18,9 +18,6 @@
 // forward declarations
 class FieldInfo;
 
-/*! \brief Represents a memory space */
-enum class MemSpace { HOST, DEV };
-
 /*! \brief Holds implementation details pertaining to field data */
 namespace field_detail
 {
