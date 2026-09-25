@@ -4,7 +4,7 @@ Convert a legacy parameter file so the string-parameters are now quoted.
 Importantly, the program assumes that the file format is valid.
 """
 
-# for portability, only use built-in package packages present in python 3.7
+# for portability, only use built-in packages present in python 3.7
 import argparse
 from contextlib import nullcontext
 import shutil
@@ -89,11 +89,14 @@ _STRING_PARAMS = {
     "chemistry.data_file",
     "init",
     "custom_bcnd",
+    "cosmo_ics_pk_file",
+    "indir",
     "outdir",
     "snr_filename",
     "sw_filename",
     "scale_outputs_file",
     "UVB_rates_file",
+    "wDE_file",
     "analysis_scale_outputs_file",
     "analysisdir",
     "skewersdir",
@@ -104,6 +107,7 @@ _STRING_PARAMS = {
     "feedback.snr_filename",
     "feedback.sn_model",
     "feedback.sn_rate",
+    "feedback.sw_model",
 }
 
 

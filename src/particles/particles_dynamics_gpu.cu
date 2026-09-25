@@ -17,7 +17,7 @@
 // #include "../cosmology/cosmology_functions_gpu.h"
 
 // FUTURE FIX: The Hubble function was defined here because I couldn't get it
-// form other file, tried -dc flag when compiling buu paris broke.
+// form other file, tried -dc flag when compiling but paris broke.
 __device__ Real Get_Hubble_Parameter_dev(Real a, Real H0, Real Omega_M, Real Omega_L, Real Omega_K, Real Omega_R,
                                          Real w0, Real wa)
 {
@@ -48,8 +48,6 @@ __global__ void Calc_Particles_dti_Kernel(part_int_t n_local, Real dx, Real dy, 
   __syncthreads();
 
   Real vx, vy, vz;
-
-  // if( tid == 0 ) printf("%f  %f  %f \n", dx, dy, dz );
 
   // threads corresponding to real cells do the calculation
   if (id < n_local) {

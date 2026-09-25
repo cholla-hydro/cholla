@@ -1,0 +1,17 @@
+#-- Compiler and flags for different build type
+CXX               = mpicxx
+CXXFLAGS_DEBUG    = -g -O0 -std=c++17
+CXXFLAGS_OPTIMIZE = -Ofast -std=c++17
+GPUFLAGS_OPTIMIZE = -g -O3 -std=c++17 -rdc=true
+CUDA_ARCH       = sm_100
+OMP_NUM_THREADS   = 16
+
+#-- Library
+GCC_ROOT	:= $(BETTY_GCC)
+CUDA_ROOT       := $(BETTY_CUDA)
+HDF5_ROOT       := $(BETTY_HDF5)
+MPI_ROOT 	:= $(BETTY_OPENMPI)
+# GOOGLETEST_ROOT := ${GOOGLETEST_ROOT}
+
+#-- MPI calls accept GPU buffers (requires GPU-aware MPI)
+MPI_GPU = -DMPI_GPU

@@ -34,6 +34,13 @@ env:
 jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # we list suffix (of the image name) path (to the dockerfile) pairs
+        sp_pair:
+          - [ROCm, docker/rocm/Dockerfile]
+          - [cuda, docker/cuda/Dockerfile]
+
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in
     # this job.
     permissions:
@@ -70,7 +77,7 @@ jobs:
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
           # the `images` argument sets the base name that we use for the image
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-ROCm
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.sp_pair[0] }}
           # we primarily name the image based on the (shortenned) hash of the
           # git-commit that we used to generate the image.
           tags: type=sha
@@ -82,9 +89,9 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: ${{ env.IS_WORKFLOW_DISPATCH }}
-          context: .
+          context: ./docker
           # obviously specifies the path to the docker file
-          file: docker/rocm/Dockerfile
+          file: ${{ matrix.sp_pair[1] }}
           # use the tags collected by the "Extract metadata" step
           tags: ${{ steps.meta.outputs.tags }}
           # use the labels collected by the "Extract metadata" step

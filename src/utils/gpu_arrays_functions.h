@@ -14,8 +14,10 @@ void Extend_GPU_Array(T **current_array_d, int current_size, int new_size, bool 
   if (new_size <= current_size) {
     return;
   }
+
   if (print_out) {
-    std::cout << " Extending GPU Array, size: " << current_size << "  new_size: " << new_size << std::endl;
+    std::cout << " procID " << procID << " Extending GPU Array (T), current_size: " << current_size
+              << "  new_size: " << new_size << std::endl;
   }
 
   size_t global_free, global_total;

@@ -182,7 +182,7 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id,
     }
 
     // record slices of all cell-centered fields
-    for (const std::pair<int, std::string> pair : cc_field_id_dset_name_pairs) {
+    for (const std::pair<int, std::string> &pair : cc_field_id_dset_name_pairs) {
       int field_id          = pair.first;
       std::string dset_name = pair.second;
 

@@ -15,7 +15,7 @@ void Chem_GPU::Load_UVB_Ionization_and_Heating_Rates(struct Parameters *P)
   char uvb_filename[100];
   // create the filename to read from
   strcpy(uvb_filename, P->UVB_rates_file);
-  chprintf(" Loading UVB rates: %s\n", uvb_filename);
+  chprintf(" Loading UVB rates: %s %s\n", uvb_filename, P->UVB_rates_file);
 
   std::fstream in(uvb_filename);
   std::string line;
@@ -43,8 +43,6 @@ void Chem_GPU::Load_UVB_Ionization_and_Heating_Rates(struct Parameters *P)
 
   int n_lines = i;
 
-  chprintf(" Loaded %d lines in file\n", n_lines);
-
   rates_z_h         = (float *)malloc(sizeof(float) * n_lines);
   Heat_rates_HI_h   = (float *)malloc(sizeof(float) * n_lines);
   Heat_rates_HeI_h  = (float *)malloc(sizeof(float) * n_lines);
@@ -55,8 +53,20 @@ void Chem_GPU::Load_UVB_Ionization_and_Heating_Rates(struct Parameters *P)
 
   Real eV_to_ergs, heat_units, ion_units;
   eV_to_ergs = 1.60218e-12;
+
   heat_units = eV_to_ergs / H.cooling_units;
-  ion_units  = H.time_units;
+
+  // TODO(brant): Currently the RT implementation assumes a different
+  // set of units than the other Cholla modules, including the cooling
+  // units. The following unit change was added by Nick, and it's
+  // now been couched within an RT ifdef, whereas the original RT branch
+  // just directly implmemented the change and overwrote the original
+  // unit system. This needs to be resolved in the future.
+  #ifdef RT
+  // reconcile units for RT, NG
+  heat_units = eV_to_ergs * 1e-10 * H.time_units * H.density_units / MH / MH;
+  #endif
+  ion_units = H.time_units;
 
   for (i = 0; i < n_lines; i++) {
     rates_z_h[i]         = v[i][0];
@@ -66,9 +76,10 @@ void Chem_GPU::Load_UVB_Ionization_and_Heating_Rates(struct Parameters *P)
     Heat_rates_HeI_h[i]  = v[i][4] * heat_units;
     Ion_rates_HeII_h[i]  = v[i][5] * ion_units;
     Heat_rates_HeII_h[i] = v[i][6] * heat_units;
-    // chprintf( " %f  %e  %e  %e   \n", rates_z_h[i], Heat_rates_HI_h[i],
-    // Heat_rates_HeI_h[i],  Heat_rates_HeII_h[i]); chprintf( " %f  %f  \n",
-    // rates_z_h[i], Heat_rates_HI_h[i] );
+    /*chprintf( "Heat %f  %e  %e  %e   \n", rates_z_h[i], Heat_rates_HI_h[i],Heat_rates_HeI_h[i], Heat_rates_HeII_h[i]);
+    chprintf( "Heat %f  %f  \n", rates_z_h[i], Heat_rates_HI_h[i] );
+    chprintf( "Ion %f  %e  %e  %e   \n", rates_z_h[i], Ion_rates_HI_h[i],Ion_rates_HeI_h[i],Ion_rates_HeII_h[i]);
+    chprintf( "Ion %f  %f  \n", rates_z_h[i], Ion_rates_HI_h[i] );*/
   }
 
   for (i = 0; i < n_lines - 1; i++) {

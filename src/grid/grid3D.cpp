@@ -33,14 +33,26 @@
 #ifdef PARALLEL_OMP
   #include "../utils/parallel_omp.h"
 #endif
-
+#ifdef RT
+  #include "../radiation/radiation.h"
+#endif
 #ifdef DUST
   #include "../dust/dust_cuda.h"  // provides Dust_Update
+#endif
+#ifdef CHEMISTRY_GPU
+  #include "../chemistry_gpu/chemistry_gpu.h"  // provides Print_Chemistry_kernel
 #endif
 
 /*! \fn Grid3D(void)
  *  \brief Constructor for the Grid. */
+#ifndef RT
 Grid3D::Grid3D(void) : field_info(FieldInfo::create())
+#else
+// it's ok to pass in `this->H` to the constructor of `Rad3D` since `Rad3D`'s
+// constructor is only registering a reference to `this->H` for later usage.
+// TODO: initialize `this->H` before passing it to `Rad3D`
+Grid3D::Grid3D(void) : field_info(FieldInfo::create()), Rad(this->H)
+#endif
 {
   // set initialization flag to 0
   flag_init = 0;
@@ -126,6 +138,8 @@ void Grid3D::Initialize(struct Parameters *P)
   }
 #endif
 
+  H.gas_only_use_static_grav = P->gas_only_use_static_grav;
+
   // Set the CFL coefficient (a global variable)
   C_cfl = 0.3;
 
@@ -194,9 +208,6 @@ void Grid3D::Initialize(struct Parameters *P)
   // Set output to true when data has to be written to file;
   H.Output_Now = false;
 
-  // allocate memory
-  AllocateMemory();
-
 // Values for lower limit for density and temperature
 #ifdef TEMPERATURE_FLOOR
   H.temperature_floor = P->temperature_floor;
@@ -211,7 +222,7 @@ void Grid3D::Initialize(struct Parameters *P)
 #endif
 
 #ifdef COSMOLOGY
-  H.OUTPUT_SCALE_FACOR = not(P->scale_outputs_file[0] == '\0');
+  H.OUTPUT_SCALE_FACTOR = not(P->scale_outputs_file[0] == '\0');
 #endif
 
 #ifdef SCALAR
@@ -221,6 +232,17 @@ void Grid3D::Initialize(struct Parameters *P)
 #endif
 
   H.Output_Initial = true;
+
+  Set_Domain_Properties(*P);  // move the domain info forward
+
+#if defined(COSMOLOGY) && defined(FFT)
+  Generate_Cosmo_Phi_Init(P);  // memory intensive -- before grid allocation
+  // chprintf("D info before main %d %d\n",Cosmo.D_array.size(),Cosmo.a_array.size());
+
+#endif
+
+  // allocate memory
+  AllocateMemory();
 }
 
 /*! \fn void AllocateMemory(void)
@@ -289,7 +311,8 @@ void Grid3D::AllocateMemory(void)
   C.d_Grav_potential = NULL;
 #endif
 
-#ifdef CHEMISTRY_GPU
+#if defined(RT) || defined(CHEMISTRY_GPU)
+  chprintf(" Setting pointers for: HI, HII, HeI, HeII, HeIII, densities\n");
   C.HI_density    = &C.host[H.n_cells * grid_enum::HI_density];
   C.HII_density   = &C.host[H.n_cells * grid_enum::HII_density];
   C.HeI_density   = &C.host[H.n_cells * grid_enum::HeI_density];
@@ -364,6 +387,24 @@ void Grid3D::Execute_Hydro_Integrator(void)
   Timer.Hydro_Integrator.Start();
 #endif  // CPU_TIME
 
+  [[maybe_unused]] Real *d_Grav_potential = nullptr;
+  if (H.gas_only_use_static_grav) {
+    // this supports a crude-workaround for when we run cholla with
+    // - particles that are influenced by their own self-gravity, the gravity of the gas, and a static
+    //   analytic potential
+    // - AND we only want the gas to be influenced by the static analytic poential
+    //
+    // Be aware, STATIC_GRAV won't directly use this pointer (in fact, when STATIC_GRAV is defined, this
+    // pointer should be NULL). We should probably refactor to unify STATIC_GRAV and GRAVITY
+#ifdef GRAVITY
+    d_Grav_potential = Grav.F.analytic_potential_d;
+#else
+    CHOLLA_ERROR("this should be unreachable when GRAVITY isn't defined");
+#endif
+  } else {
+    d_Grav_potential = C.d_Grav_potential;
+  }
+
   // this buffer holds 1 element that is initialized to 0
   cuda_utilities::DeviceVector<int> error_code_buffer(1, true);
 
@@ -389,17 +430,20 @@ void Grid3D::Execute_Hydro_Integrator(void)
   } else if (H.nx > 1 && H.ny > 1 && H.nz > 1)  // 3D
   {
 #ifdef VL
-    VL_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
-                         H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, H.density_floor,
+    VL_Algorithm_3D_CUDA(C.device, d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy, H.dz,
+                         H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, H.density_floor,
                          C.Grav_potential, SlowCellConditionChecker(1.0 / H.min_dt_slow, H.dx, H.dy, H.dz),
                          error_code_buffer.data());
 #endif  // VL
 #ifdef SIMPLE
-    Simple_Algorithm_3D_CUDA(C.device, C.d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
+    Simple_Algorithm_3D_CUDA(C.device, d_Grav_potential, H.nx, H.ny, H.nz, x_off, y_off, z_off, H.n_ghost, H.dx, H.dy,
                              H.dz, H.xbound, H.ybound, H.zbound, H.dt, H.n_fields, H.custom_grav, H.density_floor,
                              C.Grav_potential, SlowCellConditionChecker(1.0 / H.min_dt_slow, H.dx, H.dy, H.dz),
                              error_code_buffer.data());
-#endif  // SIMPLE
+  #ifdef CHEMISTRY_GPU
+    Do_Print_Chemistry(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields);
+  #endif  // CHEMISTRY_GPU
+#endif    // SIMPLE
   } else {
     chprintf("Error: Grid dimensions nx: %d  ny: %d  nz: %d  not supported.\n", H.nx, H.ny, H.nz);
     chexit(-1);
@@ -414,7 +458,8 @@ void Grid3D::Execute_Hydro_Integrator(void)
 #endif  // CPU_TIME
 }
 
-Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &chemistry_callback)
+Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &feedback_callback,
+                               std::function<void(Grid3D &)> &chemistry_callback)
 {
 #ifdef ONLY_PARTICLES
   // Don't integrate the Hydro when only solving for particles
@@ -431,7 +476,12 @@ Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &chemistry_callback
   Extrapolate_Grav_Potential();
 #endif  // GRAVITY
 
+  // Evolve the hydrodynamical quantities
   Execute_Hydro_Integrator();
+
+  // apply the floors
+  // ================
+  // -> we need do this before we handle source terms because it is necessary for chemistry/cooling
 
 #ifdef TEMPERATURE_FLOOR
   // Set the lower limit temperature (Internal Energy)
@@ -450,6 +500,12 @@ Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &chemistry_callback
   Apply_Scalar_Floor(C.device, H.nx, H.ny, H.nz, H.n_ghost, grid_enum::dust_density, H.scalar_floor);
   #endif
 #endif  // SCALAR_FLOOR
+
+  // apply source terms
+  // ==================
+  if (feedback_callback) {
+    feedback_callback(*this);
+  }
 
   // == Perform chemistry/cooling (there are a few different cases) ==
 
@@ -482,6 +538,8 @@ Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &chemistry_callback
   Timer.Chemistry.RecordTime(Chem.H.runtime_chemistry_step);
   non_hydro_elapsed_time += Chem.H.runtime_chemistry_step;
   #endif
+#endif
+#if defined(CHEMISTRY_GPU) || defined(RT)
   C.HI_density    = &C.host[H.n_cells * grid_enum::HI_density];
   C.HII_density   = &C.host[H.n_cells * grid_enum::HII_density];
   C.HeI_density   = &C.host[H.n_cells * grid_enum::HeI_density];
@@ -513,6 +571,11 @@ Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &chemistry_callback
   non_hydro_elapsed_time += cur_grackle_timing;
   #endif  // CPU_TIME
 #endif    // COOLING_GRACKLE
+
+  // Finally, it is time to handle calculation of the timestep for the next cycle
+  // ============================================================================
+  // -> first, we perform certain modifications to the fields that are partially
+  //    motivated by the impact that they have on the size of the timestep
 
   // Temperature Ceiling
 #ifdef TEMPERATURE_CEILING

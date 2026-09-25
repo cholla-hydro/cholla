@@ -12,7 +12,7 @@ Problems arise in simulations with large Mach numbers (such as cosmological simu
 
 The solution to this numerical problem is to use the "dual-energy formalism" (more details are provided in [Bryan+ 2014](https://ui.adsabs.harvard.edu/abs/2014ApJS..211...19B)). The core idea is to track an extra separately-advected "thermal energy" field at each cell-location, in addition to the total energy field and use this "thermal energy" field in cases where {math}`(E - E_{\rm thermal})` provides insufficient precision. 
 
-The dual-energy formalism is parameterized by two parameters, {math}`\eta_1` and {math}`\eta_2`. It's easiest to understand their meaning by discussing how they are used. The [Bryan+2014](https://ui.adsabs.harvard.edu/abs/2014ApJS..211...19B) paper describes two main steps:
+The dual-energy formalism is parameterized by two parameters, {math}`\eta_1` and {math}`\eta_2`. It's easiest to understand their meaning by discussing how they are used. The [Bryan+ 2014](https://ui.adsabs.harvard.edu/abs/2014ApJS..211...19B) paper describes two main steps:
 1. During a given timestep, when we want to compute thermal pressure, we compare quotient of the "thermal energy" field divided by {math}`E` to {math}`\eta_1`.
     - When the ratio is smaller than {math}`\eta_1` we use the "thermal energy" field. When it exceeds {math}`\eta_1`, we use {math}`(E-E_{\rm kinetic})`.
     - In effect, {math}`\eta_1` directly parameterizes the precision where the dual-energy formalism kicks in.
@@ -21,7 +21,7 @@ The dual-energy formalism is parameterized by two parameters, {math}`\eta_1` and
     - To motivate this step, it's important to understand that when we separately advect the "thermal energy" and add the {math}`-p(\nabla \cdot {\bf v})\Delta t/ \rho` source term, we are effectively ignoring the effects of shock heating.
     - Consequently, we might want to overwrite the "thermal energy" to capture the effects of shock heating. 
     - The precise condition that dictates when we overwrite the "thermal energy" field involves a comparison of {math}`\eta_2` and the values in neighboring cells. When {math}`\eta_2` is too high, we would effectively exclude shock-heating from weaker shocks. When {math}`\eta_2` is too low we may include spurious heating that is introduced by the truncation error of {math}`(E-E_{\rm kinetic})`.
-    - **NOTE:** [Bryan+2014](https://ui.adsabs.harvard.edu/abs/2014ApJS..211...19B) call this step "synchronization" - we find that name somewhat confusing since it may imply a bidirectional update (updating both "thermal energy" and {math}`E`).
+    - **NOTE:** [Bryan+ 2014](https://ui.adsabs.harvard.edu/abs/2014ApJS..211...19B) call this step "synchronization" - we find that name somewhat confusing since it may imply a bidirectional update (updating both "thermal energy" and {math}`E`).
 
 In practice, Cholla does something slightly different:
 1. It implements step 1 exactly as described above.

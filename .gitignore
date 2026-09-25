@@ -4,6 +4,8 @@ googletest*
 tidy_results*.txt
 bin/*
 docs/cached_mtimes.json
+src/cholla_config.h
+build
 
 # Compiled source #
 ###################
@@ -92,3 +94,8 @@ Thumbs.db
 docs/doxygen/build
 docs/sphinx/build
 _build
+
+
+# compilation #
+#############################
+compile_commands.json

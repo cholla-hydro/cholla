@@ -1,10 +1,10 @@
 # 2D Disk
-This models the Milky Way's stellar disk following a Kuzmin profile. Gamma is set to 1.001. Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Disk_2D()`. This test is performed with the static gravity build (`cholla/builds/make.type.static_grav`) and Van Leer integrator.  
+This models the Milky Way's stellar disk following a Kuzmin profile. Gamma is set to 1.001. Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Disk_2D()`. This test is performed with the static gravity build ({repository-file}`config/make.type.static_grav`) and Van Leer integrator.  
 
 The parameter file can be found at: {repository-file}`examples/2D/disk.txt`
 
 ## Parameter file: 
-```
+```toml
 #
 # Parameter File for a 2D disk in keplerian rotation.
 #
@@ -23,7 +23,7 @@ outstep=2185.9
 # value of gamma
 gamma=1.001
 # name of initial conditions
-init=Disk_2D
+init="Disk_2D"
 # static gravity flag
 custom_grav=4
 # domain properties
@@ -41,7 +41,7 @@ yu_bcnd=3
 zl_bcnd=3
 zu_bcnd=3
 # path to output directory
-outdir=./
+outdir="./"
 ```
 While the parameter file claims to be for a 2D disk in keplerian rotation (custom_grav = 3), the initial condition Disk_2D matches the ICs of custom_grav = 4.   
   

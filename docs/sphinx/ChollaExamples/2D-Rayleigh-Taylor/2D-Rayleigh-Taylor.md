@@ -1,6 +1,6 @@
 # 2D Rayleigh-Taylor Test
 
-This test demonstrates the mixing resulting from a dense fluid placed on top of a less dense fluid. The bottom half of the grid is given of density of 1.0 while the top has a value of 2.0. Y velocities across the grid are set as a small pertubation tapering off from the center. For both halves, pressure is initialized as decreasing with increasing y position. Gamma is set to 1.4. This test is performed with the static gravity build (`cholla/builds/make.type.static_grav`) and Van Leer integrator.
+This test demonstrates the mixing resulting from a dense fluid placed on top of a less dense fluid. The bottom half of the grid is given of density of 1.0 while the top has a value of 2.0. Y velocities across the grid are set as a small pertubation tapering off from the center. For both halves, pressure is initialized as decreasing with increasing y position. Gamma is set to 1.4. This test is performed with the static gravity build ({repository-file}`config/make.type.static_grav`) and Van Leer integrator.
 Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Rayleigh_Taylor()`. 
 
 The parameter file can be found at: {repository-file}`examples/2D/Rayleigh_Taylor.txt`
@@ -8,7 +8,7 @@ The parameter file can be found at: {repository-file}`examples/2D/Rayleigh_Taylo
 ## Parameter file:
 
 Parameter file can be found on the `dev` branch.
-```
+```toml
 #
 # Parameter File for the 2D Rayleigh-Taylor test.
 #
@@ -27,7 +27,7 @@ outstep=0.05
 # value of gamma
 gamma=1.4
 # name of initial conditions
-init=Rayleigh_Taylor
+init="Rayleigh_Taylor"
 #static gravity flag
 custom_grav=2
 # domain properties
@@ -45,7 +45,7 @@ yu_bcnd=2
 zl_bcnd=0
 zu_bcnd=0
 # path to output directory
-outdir=./
+outdir="./"
 ```
 To run on main:
 You must add the following lines to `src/gravity/static_grav.h` under the function `inline __device__ void calc_g_2D()`:

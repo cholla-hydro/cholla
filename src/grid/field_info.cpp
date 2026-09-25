@@ -78,7 +78,7 @@ FieldInfo FieldInfo::create()
   std::vector<std::string> v;
   v.reserve(n_fields_);
   for (std::size_t i = 0; i < n_fields_; i++) {
-    v.push_back(std::string(pack_arr_[i].name));
+    v.emplace_back(pack_arr_[i].name);
     out.io_buf_.push_back(pack_arr_[i].io_buf);
     switch (pack_arr_[i].kind) {
       case field::Kind::HYDRO:
