@@ -15,7 +15,7 @@ tout=0.2
 # time interval for output
 outstep=0.2
 # name of initial conditions
-init=MHD_Spherical_Blast
+init="MHD_Spherical_Blast"
 # domain properties
 xmin=-0.5
 ymin=-0.75
@@ -31,7 +31,7 @@ yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
-outdir=./
+outdir="./"
 
 #################################################
 # Parameters for MHD Blast Wave problem

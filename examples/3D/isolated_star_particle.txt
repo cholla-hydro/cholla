@@ -17,7 +17,7 @@ n_hydro=10
 # value of gamma
 gamma=1.66666667
 # name of initial conditions
-init=Isolated_Stellar_Cluster
+init="Isolated_Stellar_Cluster"
 bc_potential_type=1
 # domain properties
 xmin=-0.5
@@ -44,7 +44,7 @@ yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
-outdir=./
+outdir="./"
 prng_seed=41
 
 [chemistry]

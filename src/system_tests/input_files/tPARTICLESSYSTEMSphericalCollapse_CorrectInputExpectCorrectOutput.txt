@@ -16,7 +16,7 @@ outstep=0.25
 # value of gamma
 gamma=1.66666667
 # name of initial conditions
-init=Spherical_Overdensity_3D
+init="Spherical_Overdensity_3D"
 # Random Seed
 prng_seed=42
 # domain properties
@@ -34,4 +34,4 @@ yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
-outdir=./
+outdir="./"
