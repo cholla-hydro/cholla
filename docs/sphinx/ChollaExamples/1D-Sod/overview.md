@@ -5,7 +5,7 @@ This test highlights the ability of a code to resolve shocks and contact discont
 The parameter file can be found at {repository-file}`examples/1D/sod.txt`
 
 ## Parameter File:
-```
+```toml
 #
 # Parameter File for 1D Sod Shock tube
 #
@@ -22,7 +22,7 @@ tout=0.2
 # time interval for output
 outstep=0.2
 # name of initial conditions
-init=Riemann
+init="Riemann"
 # domain properties
 xmin=0.0
 ymin=0.0
@@ -38,7 +38,7 @@ yu_bcnd=0
 zl_bcnd=0
 zu_bcnd=0
 # path to output directory
-outdir=./
+outdir="./"
 
 #################################################
 # Parameters for 1D Riemann problems
