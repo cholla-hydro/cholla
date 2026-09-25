@@ -4,7 +4,7 @@ This test highlights the ability of a code to resolve mixing caused by shear flo
 The parameter file can be found at: {repository-file}`examples/2D/KH_discontinuous_2D.txt`
 
 ## Parameter file: 
-```
+```toml
 #
 # Parameter File for the 2D discontinuous Kelvin-Helmholtz test.
 #
@@ -24,7 +24,7 @@ n_hydro=1
 # value of gamma
 gamma=1.666667
 # name of initial conditions
-init=KH
+init="KH"
 # domain properties
 xmin=0.0
 ymin=0.0
@@ -40,7 +40,7 @@ yu_bcnd=1
 zl_bcnd=0
 zu_bcnd=0
 # path to output directory
-outdir=./
+outdir="./"
 ```
 Upon completion, you should obtain 201 output files. The initial and final density (in code units) is shown below. Examples of how to plot projections and slices can be found in the [General 2D plotting example](../../PythonExamples/2D-plotting.md). 
 Density:  

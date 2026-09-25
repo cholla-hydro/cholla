@@ -16,14 +16,14 @@ outstep=1000
 # value of gamma
 gamma=1.66666667
 # name of initial conditions
-init=Read_Grid
+init="Read_Grid"
 nfile=0
 #Cosmological Parameters 
 H0=67.74
 Omega_M=0.3089
 Omega_L=0.6911
 tile_length=25000.0 
-scale_outputs_file=scale_output_files/outputs_single_output.txt
+scale_outputs_file="scale_output_files/outputs_single_output.txt"
 # domain properties
 xmin=0.0
 ymin=0.0
@@ -42,5 +42,5 @@ zu_bcnd=1
 #indir=/gpfs/alpine/proj-shared/ast149/cosmo_tests/scale_256/ics_25Mpc/
 #outdir=/gpfs/alpine/proj-shared/ast149/cosmo_tests/scale_256/output_data/
 indir=/raid/bruno/data/cosmo_sims/cholla_pm/256_25Mpc/ics/
-outdir=/raid/bruno/data/cosmo_sims/cholla_pm/256_25Mpc/
+outdir="/raid/bruno/data/cosmo_sims/cholla_pm/256_25Mpc/"
 

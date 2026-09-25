@@ -14,9 +14,9 @@
 
 #include <cstdio>  // std::FILE
 #include <string>
-#include <string_view>
 
 #include "../utils/error_handling.h"
+#include "to_from_string.h"
 
 /*! Abstract class that provides the interface for recording file header information
  *
@@ -78,22 +78,6 @@ class AttrRecorderInterface
   }
 };
 
-namespace io_detail
-{
-
-/*! Construct the proper toml representation of the specified key
- *
- *  This performs any necessary escaping.
- */
-std::string encode_toml_key(std::string_view key);
-
-/*! Construct the proper toml representation of the specified string
- *
- *  This performs any necessary escaping.
- */
-std::string encode_toml_str(std::string_view s);
-}  // namespace io_detail
-
 /*! Provides a nice wrapper around an text file pointer for the purpose of recording
  *  attributes
  *
@@ -128,7 +112,7 @@ class TextAttrRecorder : public AttrRecorderInterface
     } else if constexpr (std::is_same_v<T, double>) {
       std::fprintf(this->fp_, "%.17g", val);
     } else if constexpr (std::is_same_v<T, const char*>) {
-      std::string tmp = io_detail::encode_toml_str(val);
+      std::string tmp = io::encode_toml_str(val);
       std::fputs(tmp.c_str(), this->fp_);
     } else {
       static_assert(always_false<T>, "unexpected type");
@@ -141,7 +125,7 @@ class TextAttrRecorder : public AttrRecorderInterface
     if (is_closed_) {
       CHOLLA_ERROR("can't record any more header attributes after closing the recorder");
     }
-    std::string key = io_detail::encode_toml_key(name);
+    std::string key = io::encode_toml_key(name);
     std::fprintf(this->fp_, "%s = ", key.c_str());
     if (length < 0) {  // denotes a scalar
       this->write_val_<T>(*val);
