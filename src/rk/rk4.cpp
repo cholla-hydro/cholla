@@ -53,7 +53,7 @@ void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, const std::vector<R
   Real max_error = 0;
   Real error_factor;
   Real h;
-  int max_iters = 20;
+  int max_iters = 100;
   int iters     = 0;
   bool flag     = true;
 

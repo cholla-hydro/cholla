@@ -14,6 +14,9 @@
 #include <fstream>
 #include <iostream>
 
+#include <cstring>
+#include <cstdint>
+
 #include "../global/global.h"
 #include "../grid/grid3D.h"
 #include "../io/io.h"
@@ -25,6 +28,21 @@
 #ifdef COSMOLOGY
   #include "../cosmology/cosmology.h"
 #endif
+
+// Check for a 32-bit float NaN
+bool fast_math_isnan(float x) {
+    uint32_t u;
+    std::memcpy(&u, &x, sizeof(x));
+    // In IEEE 754, a float is NaN if all exponent bits are 1 and the mantissa is non-zero
+    return (u & 0x7F800000) == 0x7F800000 && (u & 0x007FFFFF) != 0;
+}
+
+// Check for a 64-bit double NaN
+bool fast_math_isnand(double x) {
+    uint64_t u;
+    std::memcpy(&u, &x, sizeof(x));
+    return (u & 0x7FF0000000000000ULL) == 0x7FF0000000000000ULL && (u & 0x000FFFFFFFFFFFFFULL) != 0;
+}
 
 /*! Set the initial conditions based on info in the parameters structure. */
 void Grid3D::Set_Initial_Conditions(Parameters P, const ParameterMap &pmap)
@@ -2381,6 +2399,11 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   chprintf("Cosmological ICs: z-velocity     field average = %e, rms = %e\n", vz_mean, vz_rms);
   chprintf("Cosmological ICs: overdensity    field average = %e, rms = %e\n", d_mean, d_rms);
   chprintf("Cosmological ICs: overdensity    field minimum = %e, max = %e\n", dens_min, dens_max);
+
+  if( fast_math_isnand(xix_mean) || fast_math_isnand(xiy_mean) || fast_math_isnand(xiz_mean) ) {
+    chprintf("Error setting Cosmological ICs, aborting.\n");
+    chexit(-1);
+  }
 
   // correct the overdensity for non-zero mean
   d_rms         = 0;
