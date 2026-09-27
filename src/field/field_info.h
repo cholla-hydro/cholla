@@ -11,14 +11,29 @@
 
 #include "../utils/FrozenKeyIdxBiMap.h"
 #include "field_id.h"
+#include "iter.h"
+
+// define constructs that code outside of the field submodule never directly encounters
+namespace field_detail
+{
+
+/*! \brief specifies information about a single field pack */
+struct PackInfo {
+  /// slice `flat_idx` values for each field in the field pack
+  ///
+  /// @note
+  /// `flat_idx` used for implementing @ref FieldInfo -- for more information, see the
+  /// section in its docstring about implementation details.
+  IdxSlc flat_idx_slc;
+};
+
+}  // namespace field_detail
 
 namespace field
 {
 
 // note: HYDRO includes GasEnergy (if present)
 enum class Kind { HYDRO, PASSIVE_SCALAR, MAGNETIC };
-
-/*! Specifies centering */
 
 /*! This is a "range" in the C++ 20 sense
  *
@@ -41,17 +56,63 @@ class IdRange
 
 }  // namespace field
 
-/*! Dynamically describes the available fields and associated properties
+/*! \brief Queryable object describing available fields and associated properties
+ *
+ *  This allows querying of properties about fields or packs of fields.
+ *
+ *  Every field belongs to one field-pack. Fields are ordered within a field pack. The
+ *  index of a given field in a field pack is called the ``slot_idx``.
+ *
+ *  You can have one or more host data register register and one or more device data
+ *  registers for each field in a field pack (management of the memory allocations that
+ *  store field data is handled outside of FieldInfo). For a given register of a field
+ *  pack, the data of all fields in that pack is stored in a contiguous memory
+ *  allocation. This allows solvers that know about the `slot_idx` of each field in a
+ *  field-pack at compile-time (like the hydro/mhd solver) to just be passed a pointer
+ *  to the full field pack (this facillitates certain optimizations).
+ *
+ *  Each field has a unique field_id. This is a handle encoded inside the opaque
+ *  \ref FieldId type (opaque means that the internal representation of a \ref FieldId
+ *  is obscured from non-field machinery -- allowing us to change in the future).
+ *
+ *  Each field-pack has a unique pack_id. External machinery *should* generally treat
+ *  this as if its a handle type.
+ *
+ *  Implementation Details
+ *  ======================
+ *  Under the hood, a field currently maps to a `flat_idx` in addition to a unique
+ *  \ref FieldId. Whereas external code may interact with \ref FieldId objects (i.e.
+ *  they are handed existing objects, they can copy them and then pass them back to the
+ *  field machinery), a `flat_idx` is only used inside of \ref FieldInfo (and perhaps to
+ *  implement interators/ranges if we're feeling ambitious in the future).
+ *
+ *  Current definition of a `flat_idx`:
+ *  - it corresponds to the index of a field in a flat, contiguous sequence of all field
+ *    names. This list is constructed by concatenating the sequences of field names from
+ *    each field pack.
+ *  - the `flat_idx` of a given field is the sum of the field's `slot_idx` and the
+ *    `flat_idx` corresponding to `slot_idx = 0` of the field's field pack.
  */
 class FieldInfo
 {
+  /// bidirectional mapping between field names and the corresponding flat_idx
   utils::FrozenKeyIdxBiMap name_id_bimap_;
+
+  /// bidirectional mapping between pack names and the corresponding pack_id
+  utils::FrozenKeyIdxBiMap pname_id_bimap_;
+
+  // in the near future, I want to rethink these...
   std::vector<FieldId> hydro_field_ids_;
   std::vector<FieldId> scalar_field_ids_;
   std::vector<FieldId> magnetic_field_ids_;
 
   /// specifies the buffer to use for IO
   std::vector<MemSpace> io_buf_;
+
+  /// tracks properties of each field pack
+  ///
+  /// @note always has the same number of entries as pname_id_bimap_
+  std::vector<field_detail::PackInfo> pack_info_;
 
   // We make the default-constructor private to force the use of the factory method
   FieldInfo() = default;
@@ -60,6 +121,28 @@ class FieldInfo
    *  @ref field::Kind
    */
   const std::vector<FieldId>& get_kind_ids_(field::Kind kind) const;
+
+  const std::optional<std::size_t> flat_idx_from_FieldId_(FieldId id) const
+  {
+    if (id.slot_idx >= n_fields(id.pack_id)) {
+      return std::nullopt;
+    }
+    const field_detail::IdxSlc& slc = pack_info_[id.pack_id].flat_idx_slc;
+    return {slc.start() + id.slot_idx};
+  }
+
+  const std::optional<FieldId> FieldId_from_flat_idx_(std::size_t flat_idx) const
+  {
+    // if number of packs is LARGE, linear search gets slow & we should refactor
+    uint8_t n_packs = static_cast<uint8_t>(pack_info_.size());
+    for (uint8_t pack_id = 0; pack_id < n_packs; pack_id++) {
+      const field_detail::IdxSlc& slc = pack_info_[pack_id].flat_idx_slc;
+      if (slc.stop() >= flat_idx) continue;
+      FieldId out(pack_id, static_cast<uint8_t>(flat_idx - slc.start()));
+      return {out};
+    }
+    return std::nullopt;
+  }
 
  public:
   /*! Factory method
@@ -87,8 +170,7 @@ class FieldInfo
   {
     std::optional<int> tmp = name_id_bimap_.find(field_name);
     if (tmp.has_value()) {
-      uint8_t pack_id = 0;  // todo: fix me when we support multiple packs
-      return {FieldId(pack_id, static_cast<uint8_t>(*tmp))};
+      return FieldId_from_flat_idx_(tmp.value());
     }
     return std::nullopt;
   }
@@ -114,19 +196,21 @@ class FieldInfo
   /*! \brief try to look up the field name from the field id */
   std::optional<std::string> field_name(FieldId field_id) const
   {
-    if (field_id.slot_idx >= n_fields(field_id.pack_id)) {
-      return std::nullopt;
+    std::optional<std::size_t> tmp = flat_idx_from_FieldId_(field_id);
+    if (tmp.has_value()) {
+      return std::optional<std::string>{name_id_bimap_.inverse_find(tmp.value())};
     }
-    // todo: fix me when we support multiple packs
-    return std::optional<std::string>{name_id_bimap_.inverse_find(field_id.slot_idx)};
+    return std::nullopt;
   }
 
   /*! \brief try to look up the associated pack name */
   std::optional<std::string> pack_name(FieldId field_id) const { return pack_name(field_id.pack_id); }
   std::optional<std::string> pack_name(uint8_t pack_id) const
   {
-    // todo: fix me when we support multiple packs
-    return (pack_id == 0) ? std::optional<std::string>{"conserved"} : std::nullopt;
+    if (static_cast<int>(pack_id) < n_packs()) {
+      return std::optional<std::string>{pname_id_bimap_.inverse_find(pack_id)};
+    }
+    return std::nullopt;
   }
 
   /*! \brief try to lookup the associated pack_id */
@@ -138,8 +222,9 @@ class FieldInfo
   }
   std::optional<uint8_t> pack_id(std::string_view pack_name) const
   {
-    // todo: fix me when we support multiple packs
-    return (pack_name == "conserved") ? std::optional<uint8_t>{0} : std::nullopt;
+    std::optional<int> tmp = pname_id_bimap_.find(pack_name);
+    if (tmp.has_value()) return std::optional<uint8_t>{tmp.value()};
+    return std::nullopt;
   }
 
   /*! try to look up whether the field id refers to a cell-centered field
@@ -180,10 +265,16 @@ class FieldInfo
   int n_fields(field::Kind kind) const { return static_cast<int>(get_kind_ids_(kind).size()); }
 
   /*! \brief Returns the number of fields associated with a the specified pack_id */
-  int n_fields(uint8_t pack_id) const { return (pack_id == 0) ? n_fields() : 0; }
+  int n_fields(uint8_t pack_id) const
+  {
+    if (pack_id < n_packs()) {
+      return static_cast<int>(pack_info_[pack_id].flat_idx_slc.size());
+    }
+    return 0;
+  }
 
   /*! \brief Returns the number of field-packs */
-  int n_packs() const { return (n_fields() > 0) ? 1 : 0; }
+  int n_packs() const { return pname_id_bimap_.size(); }
 
   /*! This returns a "range" over all ids
    *

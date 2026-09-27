@@ -74,11 +74,27 @@ FieldInfo FieldInfo::create()
 {
   FieldInfo out;
 
-  // convert n_fields to a vector of std::string
-  std::vector<std::string> v;
-  v.reserve(n_fields_);
-  for (std::size_t i = 0; i < n_fields_; i++) {
-    v.emplace_back(pack_arr_[i].name);
+  // here we construct 2 vectors that exist just as we initialize FieldInfo
+  std::vector<std::string> pack_names{};
+  pack_names.reserve(1);
+  std::vector<std::string> flat_field_names;
+  flat_field_names.reserve(n_fields_);
+
+  // now we'll handle each each field-pack
+  // (currently there's just 1 field-pack)
+
+  // handle the conserved field pack
+  // -------------------------------
+  int n_conserved_fields = n_fields_;
+  // -> enroll relevant field-pack information
+  pack_names.emplace_back("conserved");
+  field_detail::PackInfo conserved_pack_info{
+      field_detail::IdxSlc(flat_field_names.size(), flat_field_names.size() + n_conserved_fields)};
+  out.pack_info_.emplace_back(std::move(conserved_pack_info));
+
+  // -> enroll info about each conserved field
+  for (std::size_t i = 0; i < n_conserved_fields; i++) {
+    flat_field_names.emplace_back(pack_arr_[i].name);
     out.io_buf_.push_back(pack_arr_[i].io_buf);
     FieldId field_id(0, static_cast<uint8_t>(i));
     switch (pack_arr_[i].kind) {
@@ -95,7 +111,10 @@ FieldInfo FieldInfo::create()
         CHOLLA_ERROR("This branch should be unreachable");
     }
   }
-  out.name_id_bimap_ = utils::FrozenKeyIdxBiMap(v);
+
+  // now that we're done with all field packs, let's finalize things
+  out.pname_id_bimap_ = utils::FrozenKeyIdxBiMap(pack_names);
+  out.name_id_bimap_  = utils::FrozenKeyIdxBiMap(flat_field_names);
   return out;
 }
 
