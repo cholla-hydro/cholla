@@ -79,7 +79,7 @@ void Grid3D::Transfer_Particles_Density_Boundaries(struct Parameters P)
   // Transfer the Particles Density Boundares
 
   Particles.TRANSFER_DENSITY_BOUNDARIES = true;
-  Set_Boundary_Conditions(P;
+  Set_Boundary_Conditions(P);
   Particles.TRANSFER_DENSITY_BOUNDARIES = false;
 }
 
