@@ -182,7 +182,7 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id,
     }
 
     // record slices of all cell-centered fields
-    for (const std::pair<int, std::string> pair : cc_field_id_dset_name_pairs) {
+    for (const std::pair<int, std::string> &pair : cc_field_id_dset_name_pairs) {
       int field_id          = pair.first;
       std::string dset_name = pair.second;
 
@@ -253,7 +253,8 @@ void SliceWriter::operator()(Grid3D &G, struct Parameters P, int nfile, const Fn
   hid_t file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   // Write header (file attributes)
-  G.Write_Header_HDF5(file_id);
+  H5AttrRecorder attr_recorder(file_id);
+  G.Write_Header(attr_recorder);
 
   // Write slices of all variables to the output file
   Write_Slices_HDF5_(G, file_id, cc_field_id_dset_name_pairs_);

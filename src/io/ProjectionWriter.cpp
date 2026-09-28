@@ -185,7 +185,8 @@ void ProjectionWriter::operator()(Grid3D &G, Parameters P, int nfile, const Fnam
   hid_t file_id = H5Fcreate(filename.data(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   // Write header (file attributes)
-  G.Write_Header_HDF5(file_id);
+  H5AttrRecorder attr_recorder(file_id);
+  G.Write_Header(attr_recorder);
 
   // Write the density and temperature projections to the output file
   Write_Projection_HDF5_(G, file_id);

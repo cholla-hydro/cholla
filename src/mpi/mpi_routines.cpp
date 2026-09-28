@@ -293,6 +293,7 @@ void DomainDecompositionBLOCK(struct Parameters *P, struct Header *H, int nx_gin
   /*tile the MPI processes in blocks*/
   /*this sets nproc_x, nproc_y, nproc_z */
   // chprintf("About to enter tiling block decomp\n");
+
   MPI_Barrier(world);
   TileBlockDecomposition();
 
@@ -434,8 +435,6 @@ void DomainDecompositionBLOCK(struct Parameters *P, struct Header *H, int nx_gin
   source[4] = tiling[ix[procID]][iy[procID]][source[4]];
   source[5] = tiling[ix[procID]][iy[procID]][source[5]];
 
-  chprintf("nproc_x %d nproc_y %d nproc_z %d\n", nproc_x, nproc_y, nproc_z);
-
   // free the tiling
   deallocate_three_dimensional_int_array(tiling, nproc_x, nproc_y, nproc_z);
 
@@ -552,6 +551,20 @@ void Allocate_MPI_DeviceBuffers(struct Header *H)
     xbsize = H->n_fields * H->n_ghost * (H->ny - 2 * H->n_ghost) * (H->nz - 2 * H->n_ghost);
     ybsize = H->n_fields * H->n_ghost * (H->nx) * (H->nz - 2 * H->n_ghost);
     zbsize = H->n_fields * H->n_ghost * (H->nx) * (H->ny);
+  #ifdef RT
+    #ifdef RT_OTVET
+    // Assuming n_freq = 3
+    xbsize = std::max(xbsize, 12 * H->n_ghost * H->ny * H->nz);
+    ybsize = std::max(ybsize, 12 * H->n_ghost * H->nx * H->nz);
+    zbsize = std::max(zbsize, 12 * H->n_ghost * H->nx * H->ny);
+    #endif  // RT_OTVET
+    #ifdef RT_M1
+    // Assuming n_freq = 4, n_fpfreq = 4
+    xbsize = std::max(xbsize, 16 * H->n_ghost * H->ny * H->nz);
+    ybsize = std::max(ybsize, 16 * H->n_ghost * H->nx * H->nz);
+    zbsize = std::max(zbsize, 16 * H->n_ghost * H->nx * H->ny);
+    #endif  // RT_M1
+  #endif
   } else {
     throw std::runtime_error("MPI buffer size failed to set.");
   }

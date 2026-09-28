@@ -14,11 +14,7 @@ std::function<void(Grid3D&)> configure_chemistry_callback(ParameterMap& pmap)
   // breaking older setups.
   // -> in the future, I think we can do away with this...
   std::string default_kind = "none";
-#if defined(COOLING_GPU) && defined(CLOUDY_COOL)
-  default_kind = "tabulated-cloudy";
-#elif defined(COOLING_GPU)
-  default_kind = "piecewise-cie";
-#elif defined(CHEMISTRY_GPU)
+#if defined(CHEMISTRY_GPU)
   default_kind = "chemistry-gpu";
 #elif defined(COOLING_GRACKLE)
   default_kind = "grackle";

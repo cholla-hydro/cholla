@@ -104,19 +104,32 @@ IfMacros:
 IncludeBlocks:   Regroup
 IncludeCategories:
   - Regex:           '^<ext/.*\.h>'
-    Priority:        2
+    Priority:        4
     SortPriority:    0
     CaseSensitive:   false
-  - Regex:           '^<.*\.h>'
+  # it's critical that <hip/hip_runtime.h> is included before the
+  # <hip/hip_cooperative_groups.h> header
+  # -> I spent a LOT of time trying to get SortPriority to work properly, and
+  #    I've concluded that SortPriority is probably buggy or the documentation isn't
+  #    accurate (or I'm missing something obvious)
+  - Regex:           '^<hip/hip_runtime.h>$'
     Priority:        1
+    SortPriority:    0
+    CaseSensitive:   true
+  - Regex:           '^<hip/.*>$'
+    Priority:        2
+    SortPriority:    0
+    CaseSensitive:   true
+  - Regex:           '^<.*\.h>'
+    Priority:        3
     SortPriority:    0
     CaseSensitive:   false
   - Regex:           '^<.*'
-    Priority:        2
+    Priority:        4
     SortPriority:    0
     CaseSensitive:   false
   - Regex:           '.*'
-    Priority:        3
+    Priority:        5
     SortPriority:    0
     CaseSensitive:   false
 IncludeIsMainRegex: '([-_](test|unittest))?$'

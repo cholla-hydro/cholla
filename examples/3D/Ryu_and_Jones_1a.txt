@@ -19,7 +19,7 @@ tout=0.08
 # time interval for output
 outstep=0.08
 # name of initial conditions
-init=Riemann
+init="Riemann"
 
 # domain properties
 xmin=0.0
@@ -38,7 +38,7 @@ zl_bcnd=3
 zu_bcnd=3
 
 # path to output directory
-outdir=./
+outdir="./"
 
 #################################################
 # Parameters for 1D Riemann problems

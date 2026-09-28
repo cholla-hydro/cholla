@@ -149,6 +149,8 @@ void Grav3D::AllocateMemory_CPU(void)
 
   #ifdef GRAVITY_ANALYTIC_COMP
   F.analytic_potential_h = (Real *)malloc(n_cells_potential * sizeof(Real));
+  #else
+  F.analytic_potential_h = nullptr;
   #endif
 }
 

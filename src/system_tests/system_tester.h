@@ -11,18 +11,118 @@
 // STL includes
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
 // External Libraries and Headers
 #include <H5Cpp.h>
 
+#include "../io/io.h"              // to_string_exact
+#include "../io/to_from_string.h"  // io::encode_toml_str
+#include "../utils/error_handling.h"
+
 /*!
- * \brief This namespace contains one class, SystemTestRunner, whose
- * purpose is to (as you might expect) run system tests.
+ * \brief This namespace defines \ref SystemTestRunner (and all relevant machinery).
  */
 namespace system_test
 {
+
+/*! Build up a string that builds up the parameter specified as command line args */
+class ParamArgListBuilder
+{
+  /// The string that is built up
+  std::string s_;
+
+  /*! called by @ref param to update @ref s_ after the value is stringified */
+  ParamArgListBuilder &update_(std::string_view name, std::string_view val)
+  {
+    s_.reserve(s_.size() + 2 + name.size() + val.size());
+    s_ += ' ';
+    s_ += name;
+    s_ += '=';
+    s_ += val;
+    return *this;
+  }
+
+ public:
+  /*! Return the argument list that has been built up */
+  const std::string &getCombinedArgList() const { return s_; }
+
+  /*! Static method that implements the core logic for setting up key-value pairs
+   *  (when the value is a string) when launching Cholla
+   *
+   *  \note
+   *  This has been implemented as a static method (rather than directly as part of
+   *  the appropriate overload of \ref param), because we need it to determine the
+   *  outdir override, which is handled outside of this class
+   */
+  static std::string format_key_str_val_pair(std::string_view name, std::string_view val)
+  {
+    // That we launch Cholla via `system`, makes this messy. In more detail,
+    // - POSIX specifies that `system(<arg>)` passes `<arg>` to the `sh` command. For
+    //   context `sh`, nominally refers to a POSIX-compliant shell. (The precise details
+    //   about which shell is used are implementation-defined)
+    // - consequently, `<arg>` is subject to the quoting rules of `sh`
+    // - cholla also expects string values to adhere to TOML's quoting rules (and
+    //   character escaping)
+    // - thus, we need to honor both sets of quoting/escaping rules (this can be
+    //   annoying when it comes to backslashes)
+    //
+    // We implement a "good-enough" strategy that will work as long as `val` doesn't
+    // include a single-quote (it would also be a problem if there's a single-quote
+    // in `name`, but that's not allowed in any overload of param)
+    //
+    // ASIDE: the "optimal" strategy is to bypass the shell when launching Cholla (see
+    // comments in the definition of `SystemTestRunner::launchCholla()` for details)
+
+    if (val.find('\'') != std::string_view::npos) {
+      CHOLLA_ERROR("can't handle a string that contains a ' character");
+    }
+
+    std::string tmp = io::encode_toml_str(val);
+    // we enclose the whole key-value pair to within a pair of single-quotes to ensure
+    // that all occurences of `"` are preserved.
+    std::string out;
+    out.reserve(3 + name.size() + tmp.size());
+    out.push_back('\'');
+    out.append(name);
+    out.push_back('=');
+    out.append(tmp);
+    out.push_back('\'');
+    return out;
+  }
+
+  // we may need to add more overloads over time
+  ///@{
+  /*! Add a parameter
+   *
+   *  A reference to `*this` is returned to facillitate method chaining
+   *
+   *  \param name The name of the parameter
+   *  \param val The value to be passed
+   *
+   *  \note
+   *  Pass a \p name that contains characters other than
+   *    A-Za-z0-9_-
+   *  currently produces undefined behavior. For context, these are the characters that
+   *  TOML allows in "bare" keys (aka unquoted keys).
+   */
+  ParamArgListBuilder &param(std::string_view name, int val) { return update_(name, std::to_string(val)); }
+  ParamArgListBuilder &param(std::string_view name, size_t val) { return update_(name, std::to_string(val)); }
+  ParamArgListBuilder &param(std::string_view name, float val) { return update_(name, to_string_exact(val)); }
+  ParamArgListBuilder &param(std::string_view name, double val) { return update_(name, to_string_exact(val)); }
+  ParamArgListBuilder &param(std::string_view name, std::string_view val)
+  {
+    std::string tmp = format_key_str_val_pair(name, val);
+    s_.reserve(s_.size() + 1 + tmp.size());
+    s_.push_back(' ');
+    s_.append(tmp);
+    return *this;
+  }
+  ///@}
+};
+
 /*!
  * \brief Runs a system test using the full test name to determine all
  * paths.
@@ -64,7 +164,7 @@ class system_test::SystemTestRunner
    * Cholla's standard launch paramters work except `outdir` as that is
    * reserved for usage in the system_test::SystemTestRunner.runTest() method
    */
-  std::string chollaLaunchParams;
+  system_test::ParamArgListBuilder chollaLaunchParams;
 
   /*!
    * \brief Run the system test that has been set up

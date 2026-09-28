@@ -1,10 +1,10 @@
 # 1D Sound Wave
-This test initializes a compression/rarefaction wave across the grid. The setup consists of an initial density and pressure of 1.0 and 0.6, respectively. A sound wave is initialized as a sinusoidal wave with amplitude 1e-4 and wavelength of 1.0. Gamma is set to 1.666666666666667. This test was performed with the hydro build (`cholla/builds/make.type.hydro`) and Van Leer integrator. Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Sound_Wave()`. 
+This test initializes a compression/rarefaction wave across the grid. The setup consists of an initial density and pressure of 1.0 and 0.6, respectively. A sound wave is initialized as a sinusoidal wave with amplitude 1e-4 and wavelength of 1.0. Gamma is set to 1.666666666666667. This test was performed with the hydro build ({repository-file}`config/make.type.hydro`) and Van Leer integrator. Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`under `Sound_Wave()`. 
 
 The parameter file can be found at: {repository-file}`examples/1D/sound_wave.txt`
 
 ## Parameter file:
-```
+```toml
 #
 # Parameter File for sound wave test
 #
@@ -21,7 +21,7 @@ tout=0.05
 # time interval for output
 outstep=0.01
 # name of initial conditions
-init=Sound_Wave
+init="Sound_Wave"
 # size of domain
 xmin=0.0
 ymin=0.0
@@ -37,7 +37,7 @@ yu_bcnd=0
 zl_bcnd=0
 zu_bcnd=0
 # path to output directory
-outdir=./sowvout
+outdir="./sowvout"
 
 #################################################
 # Parameters for linear wave problems

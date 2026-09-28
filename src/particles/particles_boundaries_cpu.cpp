@@ -555,7 +555,7 @@ void Particles3D::Unload_Particles_from_Buffer_CPU(int direction, int side, Real
 }
 
 // Remove the particles that were transferred outside the local domain
-void Particles3D::Remove_Transfered_Particles(void)
+void Particles3D::Remove_Transferred_Particles(void)
 {
   // Get the number of particles to delete
   part_int_t n_delete = 0;

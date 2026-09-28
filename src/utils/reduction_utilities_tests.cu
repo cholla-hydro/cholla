@@ -7,7 +7,10 @@
  */
 
 // STL Includes
+#include <algorithm>
+#include <cstdio>
 #include <iostream>
+#include <limits>
 #include <random>
 #include <string>
 #include <vector>
@@ -21,6 +24,49 @@
 #include "../utils/cuda_utilities.h"
 #include "../utils/reduction_utilities.h"
 #include "../utils/testing_utilities.h"
+
+long long perform_atomic_min(const std::vector<long long>& host_vals)
+{
+  // it appears that we need to define the lambda function outside of a googletest
+  // test case (which is why this function exists)
+
+  // construct a device vector that holds copies of each host value
+  cuda_utilities::DeviceVector<long long> device_vals(host_vals.size());
+  device_vals.cpyHostToDevice(host_vals);
+
+  // construct an output buffer where we will write the results
+  cuda_utilities::DeviceVector<long long> device_outbuffer(1);
+  device_outbuffer.assign(std::numeric_limits<long long>::max());
+
+  // invoke the kernel that we want to check
+
+  const long long* device_vals_ptr = device_vals.data();
+  long long* device_out_ptr        = device_outbuffer.data();
+
+  auto loop_fn = [device_vals_ptr, device_out_ptr] __device__(int index) {
+    reduction_utilities::backport::atomicMin(device_out_ptr, device_vals_ptr[index]);
+  };
+  gpuFor(host_vals.size(), loop_fn);
+  return device_outbuffer[0];
+}
+
+TEST(tALLBackports, AtomicMinLL)
+{
+  // construct a vector of values to compute the minimum of
+  std::vector<long long> host_vals(64);
+  for (std::size_t i = 0; i < host_vals.size(); i++) {
+    host_vals[i] = static_cast<long long>(i);
+  }
+  host_vals[1] = host_vals[0];
+  host_vals[2] = std::numeric_limits<long long>::min();
+  host_vals[3] = std::numeric_limits<long long>::max();
+
+  // get the expected value
+  long long expected = *(std::min_element(host_vals.begin(), host_vals.end()));
+  long long actual   = perform_atomic_min(host_vals);
+
+  ASSERT_EQ(expected, actual) << "reduction_utilities::backport::atomicMin produced an unexpected result";
+}
 
 // =============================================================================
 // Tests for divergence max reduction

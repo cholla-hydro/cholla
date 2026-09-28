@@ -23,7 +23,9 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
 
   Chem.H.runtime_chemistry_step = 0;
 
-  Chem.use_case_B_recombination = false;
+  if (Chem.recombination_case == 0) {
+    Chem.recombination_case = 0;
+  }
 
   // Initialize the Chemistry Header
   Chem.H.gamma       = gama;
@@ -31,7 +33,12 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   Chem.H.Temp_start  = 1.0;
   Chem.H.Temp_end    = 1000000000.0;
 
-  Chem.H.H_fraction = INITIAL_FRACTION_HI + INITIAL_FRACTION_HII;
+  if (Chem.H.H_fraction == 0) {
+    if (P->YHe != 0) {
+      CHOLLA_ERROR("About to initialize Chem.H.H_fraction incorrectly (P->YHe = %e)", P->YHe);
+    }
+    Chem.H.H_fraction = INITIAL_FRACTION_HI + INITIAL_FRACTION_HII;
+  }
 
   #ifdef COSMOLOGY
   Chem.H.H0      = P->H0;
@@ -50,9 +57,18 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   #endif  // COSMOLOGY
 
   // These are conversions from code units to cgs. Following Grackle
-  Chem.H.density_units    = dens_to_CGS;
-  Chem.H.length_units     = kpc_cgs;
-  Chem.H.time_units       = kpc_km;
+  Chem.H.density_units = dens_to_CGS;
+  Chem.H.length_units  = kpc_cgs;
+  Chem.H.time_units    = kpc_km;
+  #ifdef RT
+  // TODO(brant): Currently the RT implementation assumes a different
+  // set of units than the other Cholla modules, including the cooling
+  // units.  The following unit change was added by Nick, and have
+  // been couched within an RT ifdef, whereas the original RT branch
+  // just directly implmemented the change and overwrote the original
+  // unit system. This needs to be resolved in the future.
+  Chem.H.time_units = TIME_UNIT;
+  #endif
   Chem.H.dens_number_conv = Chem.H.density_units / MH;
   #ifdef COSMOLOGY
   Chem.H.a_value       = Cosmo.current_a;
@@ -70,8 +86,19 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   length_base = length_base / Chem.H.a_value;
   #endif  // COSMOLOGY
 
-  time_base             = Chem.H.time_units;
-  Chem.H.cooling_units  = (pow(length_base, 2) * pow(MH, 2)) / (dens_base * pow(time_base, 3));
+  time_base            = Chem.H.time_units;
+  Chem.H.cooling_units = (pow(length_base, 2) * pow(MH, 2)) / (dens_base * pow(time_base, 3));
+  #ifdef RT
+  // TODO(brant): Currently the RT implementation assumes a different
+  // set of units than the other Cholla modules, including the cooling
+  // units.  The following two comments are original to Nick, and have
+  // been couched within an RT ifdef, whereas the original RT branch
+  // just directly implmemented the change and overwrote the original
+  // unit system. This needs to be resolved in the future.
+  /// Chem.H.cooling_units   = ( pow(length_base, 2) * pow(MH, 2) ) / ( dens_base * pow(time_base, 3) ); NG 221127 -
+  /// this is incorrect
+  Chem.H.cooling_units = 1.0e10 * MH * MH / (dens_base * time_base);  // NG 221127 - fixed
+  #endif
   Chem.H.reaction_units = MH / (dens_base * time_base);
   Chem.H.max_iter       = 10000;
 
@@ -91,6 +118,16 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   Chem.H.density_conversion = 1.0;
   Chem.H.energy_conversion  = 1.0;
   #endif
+  #ifdef RT
+  // TODO(brant): Currently the RT implementation assumes a different
+  // set of units than the other Cholla modules, including the cooling
+  // units. The following two unit changes were added by Nick, and have
+  // been couched within an RT ifdef, whereas the original RT branch
+  // just directly implmemented the change and overwrote the original
+  // unit system. This needs to be resolved in the future.
+  Chem.H.density_conversion = DENSITY_UNIT;
+  Chem.H.energy_conversion  = ENERGY_UNIT / DENSITY_UNIT;  // NG: this is energy per unit mass
+  #endif
   Chem.H.n_uvb_rates_samples    = Chem.n_uvb_rates_samples;
   Chem.H.uvb_rates_redshift_d   = Chem.rates_z_d;
   Chem.H.photo_ion_HI_rate_d    = Chem.Ion_rates_HI_d;
@@ -99,6 +136,15 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   Chem.H.photo_heat_HI_rate_d   = Chem.Heat_rates_HI_d;
   Chem.H.photo_heat_HeI_rate_d  = Chem.Heat_rates_HeI_d;
   Chem.H.photo_heat_HeII_rate_d = Chem.Heat_rates_HeII_d;
+
+  #ifdef RT
+  Chem.H.dTables[0] = Rad.photoRates->bTables[0];
+  Chem.H.dTables[1] = (Rad.photoRates->bTables.Count() > 1 ? Rad.photoRates->bTables[1] : nullptr);
+  Chem.H.dStretch   = Rad.photoRates->bStretch.DevicePtr();
+
+  Chem.H.unitPhotoHeating    = KB * 1e-10 * Chem.H.time_units * Chem.H.density_units / MH / MH;
+  Chem.H.unitPhotoIonization = Chem.H.time_units;
+  #endif  // RT
 
   chprintf("Allocating Memory. \n\n");
   int n_cells               = H.nx * H.ny * H.nz;
@@ -139,7 +185,9 @@ void Chem_GPU::Initialize(struct Parameters *P)
 
   Initialize_Reaction_Rates();
 
+  #ifndef RT
   Initialize_UVB_Ionization_and_Heating_Rates(P);
+  #endif  // RT
 }
 
 void Chem_GPU::Initialize_Cooling_Rates()
@@ -155,14 +203,20 @@ void Chem_GPU::Initialize_Cooling_Rates()
   Generate_Reaction_Rate_Table(&H.cool_ciHeII_d, cool_ciHeII_rate, units);
   Generate_Reaction_Rate_Table(&H.cool_ciHeIS_d, cool_ciHeIS_rate, units);
 
-  if (!use_case_B_recombination) {
-    Generate_Reaction_Rate_Table(&H.cool_reHII_d, cool_reHII_rate_case_A, units);
-    Generate_Reaction_Rate_Table(&H.cool_reHeII_1_d, cool_reHeII1_rate_case_A, units);
-    Generate_Reaction_Rate_Table(&H.cool_reHeIII_d, cool_reHeIII_rate_case_A, units);
-  } else {
-    Generate_Reaction_Rate_Table(&H.cool_reHII_d, cool_reHII_rate_case_B, units);
-    Generate_Reaction_Rate_Table(&H.cool_reHeII_1_d, cool_reHeII1_rate_case_B, units);
-    Generate_Reaction_Rate_Table(&H.cool_reHeIII_d, cool_reHeIII_rate_case_B, units);
+  switch (recombination_case) {
+    case 0: {
+      Generate_Reaction_Rate_Table(&H.cool_reHII_d, cool_reHII_rate_case_A, units);
+      Generate_Reaction_Rate_Table(&H.cool_reHeII_1_d, cool_reHeII1_rate_case_A, units);
+      Generate_Reaction_Rate_Table(&H.cool_reHeIII_d, cool_reHeIII_rate_case_A, units);
+      break;
+    }
+    case 1:
+    case 2: {
+      Generate_Reaction_Rate_Table(&H.cool_reHII_d, cool_reHII_rate_case_B, units);
+      Generate_Reaction_Rate_Table(&H.cool_reHeII_1_d, cool_reHeII1_rate_case_B, units);
+      Generate_Reaction_Rate_Table(&H.cool_reHeIII_d, cool_reHeIII_rate_case_B, units);
+      break;
+    }
   }
   Generate_Reaction_Rate_Table(&H.cool_reHeII_2_d, cool_reHeII2_rate, units);
 
@@ -173,7 +227,7 @@ void Chem_GPU::Initialize_Cooling_Rates()
 
 void Chem_GPU::Initialize_Reaction_Rates()
 {
-  chprintf(" Initializing Reaction Rates... \n");
+  chprintf(" Initializing Reaction Rates (rec case = %d)... \n", recombination_case);
   Real units = H.reaction_units;
   Generate_Reaction_Rate_Table(&H.k_coll_i_HI_d, coll_i_HI_rate, units);
   Generate_Reaction_Rate_Table(&H.k_coll_i_HeI_d, coll_i_HeI_rate, units);
@@ -181,20 +235,32 @@ void Chem_GPU::Initialize_Reaction_Rates()
   Generate_Reaction_Rate_Table(&H.k_coll_i_HI_HI_d, coll_i_HI_HI_rate, units);
   Generate_Reaction_Rate_Table(&H.k_coll_i_HI_HeI_d, coll_i_HI_HeI_rate, units);
 
-  if (!use_case_B_recombination) {
-    Generate_Reaction_Rate_Table(&H.k_recomb_HII_d, recomb_HII_rate_case_A, units);
-    Generate_Reaction_Rate_Table(&H.k_recomb_HeII_d, recomb_HeII_rate_case_A, units);
-    Generate_Reaction_Rate_Table(&H.k_recomb_HeIII_d, recomb_HeIII_rate_case_A, units);
-  } else {
-    Generate_Reaction_Rate_Table(&H.k_recomb_HII_d, recomb_HII_rate_case_B, units);
-    Generate_Reaction_Rate_Table(&H.k_recomb_HeII_d, recomb_HeII_rate_case_B, units);
-    Generate_Reaction_Rate_Table(&H.k_recomb_HeIII_d, recomb_HeIII_rate_case_B, units);
+  switch (recombination_case) {
+    case 0: {
+      Generate_Reaction_Rate_Table(&H.k_recomb_HII_d, recomb_HII_rate_case_A, units);
+      Generate_Reaction_Rate_Table(&H.k_recomb_HeII_d, recomb_HeII_rate_case_A, units);
+      Generate_Reaction_Rate_Table(&H.k_recomb_HeIII_d, recomb_HeIII_rate_case_A, units);
+      break;
+    }
+    case 1: {
+      Generate_Reaction_Rate_Table(&H.k_recomb_HII_d, recomb_HII_rate_case_B, units);
+      Generate_Reaction_Rate_Table(&H.k_recomb_HeII_d, recomb_HeII_rate_case_B, units);
+      Generate_Reaction_Rate_Table(&H.k_recomb_HeIII_d, recomb_HeIII_rate_case_B, units);
+      break;
+    }
+    case 2: {
+      Generate_Reaction_Rate_Table(&H.k_recomb_HII_d, recomb_HII_rate_case_Iliev1, units);
+      Generate_Reaction_Rate_Table(&H.k_recomb_HeII_d, recomb_HeII_rate_case_B, units);
+      Generate_Reaction_Rate_Table(&H.k_recomb_HeIII_d, recomb_HeIII_rate_case_B, units);
+      break;
+    }
   }
 }
 
 void Chem_GPU::Initialize_UVB_Ionization_and_Heating_Rates(struct Parameters *P)
 {
   chprintf(" Initializing UVB Rates... \n");
+  chprintf("In Initialize_UVB_Ionization_and_Heating_Rates() UVB_rates %s\n", P->UVB_rates_file);
   Load_UVB_Ionization_and_Heating_Rates(P);
 
   Copy_UVB_Rates_to_GPU();
@@ -232,7 +298,12 @@ void Grid3D::Update_Chemistry()
   Chem.H.current_z = 0;
   #endif
 
-  Do_Chemistry_Update(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, Chem.H);
+  #ifdef RT
+  Do_Chemistry_Update(C.device, Rad.rtFields.dev_rf, Rad.n_fpfreq, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt,
+                      Chem.H);
+  #else
+  Do_Chemistry_Update(C.device, nullptr, 0, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, H.dt, Chem.H);
+  #endif
 }
 
 void Grid3D::Compute_Gas_Temperature(Real *temperature, bool convert_cosmo_units)

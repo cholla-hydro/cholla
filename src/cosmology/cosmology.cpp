@@ -21,6 +21,11 @@ void Cosmology::Initialize(struct Parameters *P, Grav3D &Grav, Particles3D &Part
   w0      = P->w0;
   wa      = P->wa;
 
+  if (P->wDE_file.length() != 0) {
+    // set pointer to DynamicalDE EOS
+    tab_dynamicalDE_EoS = std::make_unique<TabulatedDynamicalDarkEnergyEoS>(P->wDE_file);
+  }
+
   if (strcmp(P->init, "Read_Grid") == 0) {
     // Read scale factor value from Particles
     current_z = Particles.current_z;

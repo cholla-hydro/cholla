@@ -8,6 +8,9 @@
 // Define the type of a generic rate function.
 typedef Real (*Rate_Function_T)(Real, Real);
 
+#include "../radiation/alt/photo_rates_csi.ANY.h"
+#include "../radiation/alt/photo_rates_csi_gpu.h"
+
 // #define TEXTURES_UVB_INTERPOLATION
 
 struct ChemistryHeader {
@@ -16,7 +19,7 @@ struct ChemistryHeader {
   Real energy_conversion;
   Real current_z;
   Real runtime_chemistry_step;
-  Real H_fraction;
+  Real H_fraction = 0;
 
   // Units system
   Real a_value;
@@ -77,6 +80,13 @@ struct ChemistryHeader {
   float *photo_heat_HeI_rate_d;
   float *photo_heat_HeII_rate_d;
 
+#ifdef RT
+  const StaticTableGPU<float, 3, 'x'> *dTables[2];
+  const PhotoRateTableStretchCSI *dStretch;
+  Real unitPhotoHeating;
+  Real unitPhotoIonization;
+#endif
+
   // inherit the temperature floor
   // from Parameters
   float temperature_floor;
@@ -91,7 +101,13 @@ class Chem_GPU
   int ny;
   int nz;
 
-  bool use_case_B_recombination;
+  /*! \brief specifies the recombination model
+   *
+   *  * 0: case A
+   *  * 1: case B
+   *  * 2: special case for Iliev1 test
+   */
+  int recombination_case = 0;
 
   Real scale_factor_UVB_on;
 
@@ -155,8 +171,9 @@ n_ghost, int n_fields, Real dt, Real gamma)
 *  \brief When passed an array of conserved variables and a timestep, update the
 ionization fractions of H and He and update the internal energy to account for
 radiative cooling and photoheating from the UV background. */
-void Do_Chemistry_Update(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields, Real dt,
-                         ChemistryHeader &Chem_H);
+void Do_Chemistry_Update(Real *dev_conserved, const Real *dev_rf, int n_fpfreq, int nx, int ny, int nz, int n_ghost,
+                         int n_fields, Real dt, ChemistryHeader &Chem_H);
 
+void Do_Print_Chemistry(Real *dev_conserved, int nx, int ny, int nz, int n_ghost, int n_fields);
 #endif
 #endif

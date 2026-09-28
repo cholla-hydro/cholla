@@ -26,6 +26,8 @@ __host__ __device__ Real recomb_HII_rate(Real T, Real units, bool use_case_B);
 __host__ __device__ Real recomb_HII_rate_case_A(Real T, Real units);
 // k2_rate Case B
 __host__ __device__ Real recomb_HII_rate_case_B(Real T, Real units);
+// Special Iliev rates
+__host__ __device__ Real recomb_HII_rate_case_Iliev1(Real T, Real units);
 
 // Calculation of k5 (HeII + e --> HeIII + 2e)
 //  k5_rate

@@ -1,0 +1,3 @@
+# z     Pi_HI       Ph_HI       Pi_HeI   Ph_HeI   Pi_HeII   Ph_HeII 
+0       1.6274e-06 1.02987e-05  0        0        0         0
+1       1.6274e-06 1.02987e-05  0        0        0         0

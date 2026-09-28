@@ -64,7 +64,7 @@ tout=50000
 outstep=100
 gamma=1.4
 # name of initial conditions
-init=Disk_3D
+init="Disk_3D"
 n_hydro=10
 xmin=-5
 mypar=true
@@ -91,7 +91,7 @@ TEST(tALLParameterMap, Methodparamhastype)
 # tout is large enough that it can't be represented by a 32-bit integer
 tout=3000000000
 gamma=1.4
-init=Disk_3D
+init="Disk_3D"
 xmin=-5
 mypar=true
 )LITERAL";
@@ -108,13 +108,13 @@ mypar=true
   }
   EXPECT_FALSE(pmap.param_has_type<bool>("tout"));
   EXPECT_TRUE(pmap.param_has_type<double>("tout"));
-  EXPECT_TRUE(pmap.param_has_type<std::string>("tout"));
+  EXPECT_FALSE(pmap.param_has_type<std::string>("tout"));
 
   EXPECT_FALSE(pmap.param_has_type<std::int64_t>("gamma"));
   EXPECT_FALSE(pmap.param_has_type<int>("gamma"));
   EXPECT_FALSE(pmap.param_has_type<bool>("gamma"));
   EXPECT_TRUE(pmap.param_has_type<double>("gamma"));
-  EXPECT_TRUE(pmap.param_has_type<std::string>("gamma"));
+  EXPECT_FALSE(pmap.param_has_type<std::string>("gamma"));
 
   EXPECT_FALSE(pmap.param_has_type<std::int64_t>("init"));
   EXPECT_FALSE(pmap.param_has_type<int>("init"));
@@ -126,13 +126,13 @@ mypar=true
   EXPECT_TRUE(pmap.param_has_type<int>("xmin"));
   EXPECT_FALSE(pmap.param_has_type<bool>("xmin"));
   EXPECT_TRUE(pmap.param_has_type<double>("xmin"));
-  EXPECT_TRUE(pmap.param_has_type<std::string>("xmin"));
+  EXPECT_FALSE(pmap.param_has_type<std::string>("xmin"));
 
   EXPECT_FALSE(pmap.param_has_type<std::int64_t>("mypar"));
   EXPECT_FALSE(pmap.param_has_type<int>("mypar"));
   EXPECT_TRUE(pmap.param_has_type<bool>("mypar"));
   EXPECT_FALSE(pmap.param_has_type<double>("mypar"));
-  EXPECT_TRUE(pmap.param_has_type<std::string>("mypar"));
+  EXPECT_FALSE(pmap.param_has_type<std::string>("mypar"));
 }
 
 TEST(tALLParameterMap, Methodvalue)
@@ -183,6 +183,24 @@ TEST(tALLParameterMap, Methodvalueor)
   EXPECT_EQ(original_size, pmap.size());
 }
 
+TEST(tALLParameterMap, VariousStringFormats)
+{
+  const char* CONTENTS = R"LITERAL(
+# My sample parameters
+key_a="Hello World"
+key_b="Hello\nWorld"
+key_c='Hello World'
+key_d='Hello\nWorld'
+)LITERAL";
+  DummyFile dummy      = DummyFile(CONTENTS);
+  ParameterMap pmap    = ParameterMap(dummy.fp, 0, nullptr);
+
+  EXPECT_EQ(pmap.value<std::string>("key_a"), std::string("Hello World"));
+  EXPECT_EQ(pmap.value<std::string>("key_b"), std::string("Hello\nWorld"));
+  EXPECT_EQ(pmap.value<std::string>("key_c"), std::string("Hello World"));
+  EXPECT_EQ(pmap.value<std::string>("key_d"), std::string("Hello\\nWorld"));
+}
+
 TEST(tALLParameterMap, Methodwarnunusedparameters)
 {
   const char* CONTENTS = R"LITERAL(
@@ -208,7 +226,7 @@ mypar=true
   // using param_has_type - confirm this has no effect (whether it exists or not)
   EXPECT_FALSE(pmap.param_has_type<std::string>("NOTREAL"));
   ASSERT_EQ(pmap.warn_unused_parameters({}, false, true), 3);
-  EXPECT_TRUE(pmap.param_has_type<std::string>("tout"));
+  EXPECT_FALSE(pmap.param_has_type<std::string>("tout"));
   ASSERT_EQ(pmap.warn_unused_parameters({}, false, true), 3);
   ASSERT_EQ(pmap.warn_unused_parameters({"tout", "gamma", "mypar"}, false, true), 0);
 

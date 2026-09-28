@@ -49,7 +49,7 @@ enum : int {
   basic_scalar,
   #endif
 
-  #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
+  #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU) || defined(RT)
   HI_density,
   HII_density,
   HeI_density,

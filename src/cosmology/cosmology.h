@@ -6,10 +6,12 @@
     #include <stdio.h>
 
     #include <cmath>
+    #include <memory>
 
     #include "../global/global.h"
     #include "../gravity/grav3D.h"
     #include "../particles/particles_3D.h"
+    #include "tabulated_dynamicalDE_EoS.h"
 
 class Cosmology
 {
@@ -22,6 +24,15 @@ class Cosmology
   Real Omega_R;
   Real w0;
   Real wa;
+
+  /*! Calculate rho_DE(z) / rho_DE(z=0) at some scale factor */
+  Real Get_DE_Density_from_a(Real a);
+
+  /*! Stores pointer to dynamical DE equation of state table class */
+  std::unique_ptr<TabulatedDynamicalDarkEnergyEoS> tab_dynamicalDE_EoS;
+
+  /*! Indicate whether the simulation is configured to use a DynamicalDE EOS table */
+  bool Using_DynamicalDE_Table() { return tab_dynamicalDE_EoS != nullptr; }
 
   Real cosmo_G;
   Real cosmo_h;
@@ -72,10 +83,36 @@ class Cosmology
   Real Get_da_from_dt(Real dt);
   Real Get_dt_from_da(Real da, Real a);
 
+  // growth function calculation
+  // and interpolation
+  /*! \brief Precompue the cosmological growth function */
+  void Compute_Growth_Function(struct Parameters *P);
+  /*! \brief Create the file for recording the growth function history */
+  void Create_Growth_Function_File(struct Parameters *P);
+  /*! \brief Perform linear interpolation on vectors */
+  Real LinearInterpolation(const std::vector<Real> &x, const std::vector<Real> &y, Real a);
+  /*! \brief Cosmological growth function at scale factor a */
+  Real D_Growth(Real a);
+  /*! \brief Cosmological growth function time derivative at scale factor a */
+  Real dDdt_Growth(Real a);
+  /*! \brief Function to precompute the growth function scale factor derivative */
+  Real dDda_Growth(Real a);
+
+  std::vector<Real> t_array;
+  std::vector<Real> a_array;
+  std::vector<Real> D_array;
+  std::vector<Real> dDdt_array;
+  // Real OmegaDEz(Real z);
+  // std::vector<Real> growth_factor_system(Real z, std::vector<Real> y, std::vector<Real> params);
+
   // write expansion history log file
   void Create_Expansion_History_File(struct Parameters *P);
   void Write_Expansion_History_Entry(void);
 };
+Real Hubble_Growth_Function(Real a, Real H0, Real Omega_r, Real Omega_m, Real Omega_DE, Real w0, Real wa);
+Real dHda_Growth_Function(Real a, Real H0, Real Omega_r, Real Omega_m, Real Omega_DE, Real w0, Real wa);
+Real OmegaDEz_Growth_Function(Real z, Real Omega_DE, Real w0, Real wa);
+static std::vector<Real> growth_factor_system(Real z, const std::vector<Real> &y, const std::vector<Real> &params);
 
   #endif
 #endif

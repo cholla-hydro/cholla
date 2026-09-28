@@ -129,4 +129,22 @@ inline __device__ __host__ void Cyclic_Permute_Twice(hydro_utilities::VectorXYZ<
 }
 // =====================================================================================================================
 
+/*!
+ * \brief When `val` lies within the inclusive range `[lo, hi]`, returns `val`. Otherwise, return the closest value in
+ * the range.
+ *
+ * \warning
+ * The behavior is undefined when `lo>hi` or any of the values are `std::nan`.
+ *
+ * \note
+ * Instead of using this implementation, we may be able to use `std::clamp` (unclear if supported by CUDA/Rocm). We
+ * could also consider using CUDA/Rocm intrinsics to speed this up
+ */
+template <typename T>
+__device__ __host__ T clamp(T val, T lo, T hi)
+{
+  const T tmp = val < lo ? lo : val;
+  return tmp > hi ? hi : tmp;
+}
+
 }  // namespace math_utils
