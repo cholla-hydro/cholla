@@ -2045,11 +2045,13 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   if(n_nan > 0) {
     printf("Cosmological ICs: ERROR Nans found in potential procID %d n_nan %d\n",procID,n_nan);
   }
-  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &n_nan, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   if(n_nan > 0) {
+    chprintf("Cosmological ICs: ERROR Nans found in potential all n_nan %d\n",procID,n_nan);
     chexit(-1);
+  } else {
+    chprintf("Cosmological ICs: No NaNs in cosmological potential.\n");
   }
-
 
   // now we can proceed with computing the gradients
   #ifndef ONLY_PARTICLES
