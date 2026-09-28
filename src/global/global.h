@@ -99,7 +99,8 @@ typedef double Real;
 
 // Solar Metal Mass Fraction
 #define SOLAR_METAL_MASS_FRAC     0.01295
-#define HYDROGEN_FRAC_BY_MASS     0.716
+#define HYDROGEN_FRAC_BY_MASS     0.716 
+//TODO: this HYDROGEN_FRAC_BY_MASS constant is currently incompatible with the YHe parameter (cosmology only)
 
 // Default Particles Compiler Flags
 #define PARTICLES_LONG_INTS
