@@ -246,13 +246,14 @@ Grid3D::Grid3D(Parameters &P)
  */
 static void populate_conserved_fields_(Grid3D &G, FieldManager &f_manager, MemSpace space)
 {
-  Real *root_ptr = f_manager.pack(space, "grid").value_or(nullptr);
-  bool is_host   = space == MemSpace::HOST;
+  const char *pack_name = "conserved";
+  Real *root_ptr        = f_manager.pack(space, pack_name).value_or(nullptr);
+  bool is_host          = space == MemSpace::HOST;
 
 #ifndef ONLY_PARTICLES
   if (root_ptr == nullptr) {
     const char *name = (is_host) ? "host" : "device";
-    CHOLLA_ERROR("issue locating pointer for the %s fluid field-pack", name);
+    CHOLLA_ERROR("issue locating %s pointer for the \"%s\" field-pack", name, pack_name);
   }
 #endif  // ONLY_PARTICLES
 
