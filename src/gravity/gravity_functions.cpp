@@ -358,7 +358,7 @@ static void printDiff(const Real *p, const Real *q, const int nx, const int ny, 
   #endif
 
 // Initialize the Grav Object at the beginning of the simulation
-void Grid3D::Initialize_Gravity(struct Parameters *P, ParameterMap &pmap)
+void Grid3D::Initialize_Gravity(struct Parameters *P)
 {
   chprintf("\nInitializing Gravity... \n");
   SpatialDomainProps spatial_props = SpatialDomainProps::From_Grid3D(*this, P);
@@ -429,7 +429,7 @@ void Grid3D::Initialize_Gravity(struct Parameters *P, ParameterMap &pmap)
     Grav.Poisson_solver_test.Get_Potential(Grav.F.density_h, Grav.F.potential_h, Grav.Gconst, *galaxy_model);
     chprintf(" Paris Galactic");
     printDiff(Grav.F.potential_h, exact.data(), Grav.nx_local, Grav.ny_local, Grav.nz_local);
-    Get_Potential_SOR(Grav.Gconst, 0, 0, P, pmap);
+    Get_Potential_SOR(Grav.Gconst, 0, 0, P);
     chprintf(" SOR");
     printDiff(Grav.F.potential_h, exact.data(), Grav.nx_local, Grav.ny_local, Grav.nz_local);
   #endif
@@ -457,7 +457,7 @@ void Grid3D::Initialize_Gravity(struct Parameters *P, ParameterMap &pmap)
 }
 
 // Compute the Gravitational Potential by solving Poisson Equation
-void Grid3D::Compute_Gravitational_Potential(struct Parameters *P, ParameterMap &pmap)
+void Grid3D::Compute_Gravitational_Potential(struct Parameters *P)
 {
   #ifdef CPU_TIME
   Timer.Grav_Potential.Start();
@@ -465,7 +465,7 @@ void Grid3D::Compute_Gravitational_Potential(struct Parameters *P, ParameterMap 
 
   #ifdef PARTICLES
   // Copy the particles density to the grav_density array
-  Copy_Particles_Density_to_Gravity(*P, pmap);
+  Copy_Particles_Density_to_Gravity(*P);
   #endif
 
   #ifndef ONLY_PARTICLES
@@ -490,7 +490,7 @@ void Grid3D::Compute_Gravitational_Potential(struct Parameters *P, ParameterMap 
 
   if (!Grav.BC_FLAGS_SET) {
     Grav.TRANSFER_POTENTIAL_BOUNDARIES = true;
-    Set_Boundary_Conditions(*P, pmap);
+    Set_Boundary_Conditions(*P);
     Grav.TRANSFER_POTENTIAL_BOUNDARIES = false;
     // #ifdef MPI_CHOLLA
     // printf(" Pid: %d Gravity Boundary Flags: %d %d %d %d %d %d \n", procID,
@@ -551,11 +551,11 @@ void Grid3D::Compute_Gravitational_Potential(struct Parameters *P, ParameterMap 
   Grav.Poisson_solver_test.Get_Potential(input_density, output_potential, Grav_Constant, *galaxy_model);
 
   std::vector<Real> p(output_potential, output_potential + Grav.n_cells_potential);
-  Get_Potential_SOR(Grav_Constant, dens_avrg, current_a, P, pmap);
+  Get_Potential_SOR(Grav_Constant, dens_avrg, current_a, P);
   chprintf(" Paris vs SOR");
   printDiff(p.data(), output_potential, Grav.nx_local, Grav.ny_local, Grav.nz_local, N_GHOST_POTENTIAL, false);
     #else
-  Get_Potential_SOR(Grav_Constant, dens_avrg, current_a, P, pmap);
+  Get_Potential_SOR(Grav_Constant, dens_avrg, current_a, P);
     #endif
 
   #elif defined PARIS_GALACTIC

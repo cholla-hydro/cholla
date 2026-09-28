@@ -18,7 +18,7 @@
   #endif    // MPI_CHOLLA
 
 // Transfer the particles that moved outside the local domain
-void Grid3D::Transfer_Particles_Boundaries(struct Parameters P, ParameterMap &pmap)
+void Grid3D::Transfer_Particles_Boundaries(struct Parameters P)
 {
   GPU_Error_Check();
   // Transfer Particles Boundaries
@@ -26,7 +26,7 @@ void Grid3D::Transfer_Particles_Boundaries(struct Parameters P, ParameterMap &pm
   #ifdef CPU_TIME
   Timer.Part_Boundaries.Start();
   #endif
-  Set_Boundary_Conditions(P, pmap);
+  Set_Boundary_Conditions(P);
   #ifdef CPU_TIME
   Timer.Part_Boundaries.End();
   #endif

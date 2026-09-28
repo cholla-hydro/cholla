@@ -170,11 +170,11 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef GRAVITY
-  G.Initialize_Gravity(&P, pmap);
+  G.Initialize_Gravity(&P);
 #endif
 
 #ifdef PARTICLES
-  G.Initialize_Particles(&P, pmap);
+  G.Initialize_Particles(&P);
 #endif
 
 #ifdef COSMOLOGY
@@ -222,7 +222,7 @@ int main(int argc, char *argv[])
 
 #ifdef GRAVITY
   // Get the gravitational potential for the first timestep
-  G.Compute_Gravitational_Potential(&P, pmap);
+  G.Compute_Gravitational_Potential(&P);
   #if defined(RT) && defined(RT_OTVET)
   chprintf("RT: Setting Eddington Tensor...\n");
   G.Rad.ComputeEddingtonTensor(P, G.Grav);
@@ -237,7 +237,7 @@ int main(int argc, char *argv[])
   // Set boundary conditions (assign appropriate values to ghost cells) for
   // hydro and potential
   chprintf("Setting boundary conditions...\n");
-  G.Set_Boundary_Conditions_Grid(P, pmap);
+  G.Set_Boundary_Conditions_Grid(P);
   chprintf("Boundary conditions set.\n");
 
 #ifdef GRAVITY_ANALYTIC_COMP
@@ -333,7 +333,7 @@ int main(int argc, char *argv[])
     // and positions are updated by dt
     G.Advance_Particles(1);
     // Transfer the particles that moved outside the local domain
-    G.Transfer_Particles_Boundaries(P, pmap);
+    G.Transfer_Particles_Boundaries(P);
 #endif
 
 #ifdef RT
@@ -349,14 +349,14 @@ int main(int argc, char *argv[])
 
 #ifdef GRAVITY
     // Compute Gravitational potential for next step
-    G.Compute_Gravitational_Potential(&P, pmap);
+    G.Compute_Gravitational_Potential(&P);
 #endif
 
     // add one to the timestep count
     G.H.n_step++;
 
     // Set the Grid boundary conditions for next time step
-    G.Set_Boundary_Conditions_Grid(P, pmap);
+    G.Set_Boundary_Conditions_Grid(P);
 
 #ifdef GRAVITY_ANALYTIC_COMP
     G.Add_Analytic_Potential();

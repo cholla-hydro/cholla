@@ -331,9 +331,14 @@ Parameters::Parameters(ParameterMap &pmap)
   // a negative value means that the parameter wasn't set
   parms->bc_potential_type = pmap.value_or("bc_potential_type", -1);
 
-#if defined(SCALAR) && defined(DUST)
+#ifdef SCALAR 
+  #ifdef DUST
   parms->grain_radius = pmap.value<double>("grain_radius");
-#endif  // defined(SCALAR) && defined(DUST)
+  #endif // DUST 
+  #ifdef METALS
+  parms->metallicity_wind = pmap.value_or("metallicity_wind", 1.0);
+  #endif // METALS
+#endif  // SCALAR
 
   // in the future, it would probably be good to move this logic into Cosmology::Initialize (or somewhere similar)
   // and remove these parameters from the global struct. This would provide a few benefits:

@@ -10,13 +10,13 @@
 
 #ifdef MPI_CHOLLA
 
-void Grid3D::Set_Boundaries_MPI(struct Parameters P, ParameterMap &pmap)
+void Grid3D::Set_Boundaries_MPI(struct Parameters P)
 {
   int flags[6] = {0, 0, 0, 0, 0, 0};
 
   if (Check_Custom_Boundary(&flags[0], P)) {
     // perform custom boundaries
-    Custom_Boundary(P.custom_bcnd, pmap);
+    Custom_Boundary(P.custom_bcnd, P);
   }
 
   Set_Boundaries_MPI_BLOCK(flags, P);
