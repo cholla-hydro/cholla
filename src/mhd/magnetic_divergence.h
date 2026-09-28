@@ -53,11 +53,14 @@ __global__ void calculateMagneticDivergence(Real const *dev_conserved, Real *max
  * magnetic divergence limit is 1E-14 as determined by Athena as a
  * reasonable upper bound for correctness.
  *
- * \param G The grid object
  * \return Real The maximum magnetic divergence found in the grid. Can
  * usually be ignored since all checking is done in the fucntion, mostly
  * this return is for testing.
  */
-Real checkMagneticDivergence(Grid3D const &G);
+Real checkMagneticDivergence(Real const *dev_conserved, Real dx, Real dy, Real dz, int nx, int ny, int nz, int n_cells);
+inline Real checkMagneticDivergence(Grid3D const &G)
+{
+  return checkMagneticDivergence(G.C.device, G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny, G.H.nz, G.H.n_cells);
+}
 // =========================================================================
 }  // end namespace mhd
