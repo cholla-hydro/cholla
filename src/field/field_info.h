@@ -137,7 +137,7 @@ class FieldInfo
     uint8_t n_packs = static_cast<uint8_t>(pack_info_.size());
     for (uint8_t pack_id = 0; pack_id < n_packs; pack_id++) {
       const field_detail::IdxSlc& slc = pack_info_[pack_id].flat_idx_slc;
-      if (slc.stop() >= flat_idx) continue;
+      if (slc.stop() <= flat_idx) continue;
       FieldId out(pack_id, static_cast<uint8_t>(flat_idx - slc.start()));
       return {out};
     }
