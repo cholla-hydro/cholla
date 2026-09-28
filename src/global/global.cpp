@@ -335,10 +335,9 @@ Parameters::Parameters(ParameterMap &pmap)
   #ifdef DUST
   parms->grain_radius = pmap.value<double>("grain_radius");
   #endif // DUST 
-  #ifdef METALS
-  parms->metallicity_wind = pmap.value_or("metallicity_wind", 1.0);
-  #endif // METALS
 #endif  // SCALAR
+
+  parms->metallicity_wind = pmap.value_or("metallicity_wind", 1.0);
 
   // in the future, it would probably be good to move this logic into Cosmology::Initialize (or somewhere similar)
   // and remove these parameters from the global struct. This would provide a few benefits:

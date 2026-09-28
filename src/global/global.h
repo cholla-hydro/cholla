@@ -387,6 +387,7 @@ struct Parameters {
   Real grain_radius;
   #endif
 #endif
+  Real metallicity_wind;
 };
 
 /*! \brief prints a warning if pmap contains any unused parameters */
