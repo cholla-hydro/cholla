@@ -68,6 +68,8 @@ class Cosmology
   Real next_output;
   bool exit_now;
 
+  int n_fields;
+
   Cosmology(void);
   void Initialize(struct Parameters *P, Grav3D &Grav, Particles3D &Particles);
 

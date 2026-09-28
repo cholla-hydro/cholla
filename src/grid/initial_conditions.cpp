@@ -1688,7 +1688,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   exit(-1);
 #else
 
-  int n_cells = nx_local * ny_local * nz_local;
+  int n_local_cells = nx_local * ny_local * nz_local;
 
   chprintf("Cosmological ICs: Setting gas grid initial conditions ...\n");
 
@@ -1917,7 +1917,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   int ii, jj, kk;
 
   // copy memory -- only real, local cells
-  cudaMemcpy(CP.delta_m, CP.phi_1, n_cells * sizeof(Real), cudaMemcpyHostToHost);
+  cudaMemcpy(CP.delta_m, CP.phi_1, n_local_cells * sizeof(Real), cudaMemcpyHostToHost);
 
   // check before the remap
   Real delta_rm_check   = 0;
@@ -1987,7 +1987,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
   // repeat for baryons if present
   #ifndef ONLY_PARTICLES
-  cudaMemcpy(CP.delta_m, CP.phi_2, n_cells * sizeof(Real), cudaMemcpyHostToHost);
+  cudaMemcpy(CP.delta_m, CP.phi_2, n_local_cells * sizeof(Real), cudaMemcpyHostToHost);
   // now, we remap the potential fields from the density fields
   for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
     for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
