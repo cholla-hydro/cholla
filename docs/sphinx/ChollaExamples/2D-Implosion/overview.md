@@ -4,7 +4,7 @@ This tests a code's ability to resolve contact discontinuities for a non-grid al
 The parameter file can be found at: {repository-file}`examples/2D/Implosion_2D.txt`
 
 ## Parameter file: 
-```
+```toml
 #
 # Parameter File for the 2D implosion test described in Liska, 2003.
 #
@@ -24,7 +24,7 @@ n_hydro=1
 # value of gamma
 gamma=1.4
 # name of initial conditions
-init=Implosion_2D
+init="Implosion_2D"
 # domain properties
 xmin=0.0
 ymin=0.0
@@ -40,7 +40,7 @@ yu_bcnd=2
 zl_bcnd=0
 zu_bcnd=0
 # path to output directory
-outdir=./
+outdir="./"
 ```
 Upon completion, you should obtain 251 output files. An evolution of the pressure overlaid with density contours is seen here at 10 fps. Examples of how to plot projections and slices can be found in the [General 2D plotting example](../../PythonExamples/2D-plotting.md).
 

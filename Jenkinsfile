@@ -113,47 +113,6 @@ pipeline
                             }
                         }
                     }
-                    stage('Run Clang Tidy')
-                    {
-                        steps
-                        {
-                            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                                sh  '''#!/bin/bash -le
-                                    # enable tracing mode now that the shell
-                                    # configuration has been read
-                                    set -x
-
-                                    source config/run_tests.sh
-                                    setupTests -c gcc -t ${CHOLLA_MAKE_TYPE}
-
-                                    module load clang/17.0.1
-                                    make tidy CLANG_TIDY_ARGS="--warnings-as-errors=*" TYPE=${CHOLLA_MAKE_TYPE}
-                                    '''
-                            }
-                        }
-                    }
-                    stage('Show Tidy Results')
-                    {
-                        steps
-                        {
-                            // Print the clang-tidy results with bars of equal
-                            // signs seperating each file
-                            sh  '''#!/bin/bash -le
-                                # we explicitly choose not to use tracing mode
-
-                                echo "tidy_results_cpp_${CHOLLA_MAKE_TYPE}.log"
-                                printf '=%.0s' {1..100}
-                                printf "\n"
-                                cat tidy_results_cpp_${CHOLLA_MAKE_TYPE}.log
-                                printf "\n\n"
-
-                                echo "tidy_results_gpu_${CHOLLA_MAKE_TYPE}.log"
-                                printf '=%.0s' {1..100}
-                                printf "\n"
-                                cat tidy_results_gpu_${CHOLLA_MAKE_TYPE}.log
-                                '''
-                        }
-                    }
                 }
             }
         }

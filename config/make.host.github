@@ -9,7 +9,7 @@ OMP_NUM_THREADS   = 7
 
 #-- Library
 ifdef HIPCONFIG
-	HIPCONFIG := -I$(shell hipconfig -R)/include $(shell hipconfig -C)
+	HIPCONFIG := -isystem $(shell hipconfig -R)/include $(shell hipconfig -C)
 	GPUFLAGS_DEBUG = -g -O0 -std=c++17
 endif
 CUDA_ROOT       := $(CUDA_ROOT)

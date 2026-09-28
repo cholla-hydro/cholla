@@ -16,7 +16,7 @@ tout=1e4
 outstep=1.0
 outstep_dexinc=0.1
 # name of initial conditions
-init=Read_Grid
+init="Read_Grid"
 # domain properties
 xmin=0.0
 ymin=0.0
@@ -32,11 +32,11 @@ yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
-outdir=OUT/
+outdir="OUT/"
 indir=OUT/
 nfile=92
 
 #################################################
 # value of gamma
 gamma=1.666666667
-UVB_rates_file=uvb_rates_I0end.txt
+UVB_rates_file="uvb_rates_I0end.txt"

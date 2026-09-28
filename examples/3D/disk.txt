@@ -16,7 +16,7 @@ outstep=100
 # value of gamma
 gamma=1.6666667
 # name of initial conditions
-init=Disk_3D
+init="Disk_3D"
 n_hydro=10
 # domain properties
 xmin=-5
@@ -43,7 +43,7 @@ Lz=15.0
 flag_delta=2
 ddelta_dt=-0.001
 # path to output directory
-outdir=./
+outdir="./"
 
 [chemistry]
 kind=piecewise-cie

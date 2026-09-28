@@ -4,7 +4,7 @@ This test is designed to assess the performance of a code near strong shocks and
 The parameter file can be found at {repository-file}`examples/1D/blast_1D.txt`
 
 ## Parameter File
-```
+```toml
 #
 # Parameter File for the 1D interacting blast wave test from
 #     Woodward & Collela, 1984. See also Stone et al., 2008, Section 8.1
@@ -24,7 +24,7 @@ outstep=0.00038
 # value of gamma
 gamma=1.4
 # name of initial conditions
-init=Blast_1D
+init="Blast_1D"
 # domain properties
 xmin=0.0
 ymin=0.0
@@ -40,7 +40,7 @@ yu_bcnd=0
 zl_bcnd=0
 zu_bcnd=0
 # path to output directory
-outdir=./
+outdir="./"
 ```
 Upon completion, you should obtain 101 output files. The initial and final density, pressure, and velocity (in code units) of the solution is shown below.  Examples of how to extract and plot data can be found in the [General 1D Plotting Example](../../PythonExamples/1D-plotting.md).  
 
