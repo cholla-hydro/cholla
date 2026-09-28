@@ -2053,6 +2053,39 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
     chprintf("Cosmological ICs: No NaNs in cosmological potential.\n");
   }
 
+  for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
+    for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
+      for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+        id_ld = (i - 1) + (j - 1) * H.nx + k * H.ny * H.nx;
+        id_lu = (i - 1) + (j + 1) * H.nx + k * H.ny * H.nx;
+        id_rd = (i + 1) + (j - 1) * H.nx + k * H.ny * H.nx;
+        id_ru = (i + 1) + (j + 1) * H.nx + k * H.ny * H.nx;
+        if( fast_math_isnand(CP.phi_1[id_ld]) ) {
+          n_nan += 1;
+        }
+        if( fast_math_isnand(CP.phi_1[id_lu]) ) {
+          n_nan += 1;
+        }
+        if( fast_math_isnand(CP.phi_1[id_rd]) ) {
+          n_nan += 1;
+        }
+        if( fast_math_isnand(CP.phi_1[id_ru]) ) {
+          n_nan += 1;
+        }
+      }
+    }
+  }
+  if(n_nan > 0) {
+    printf("Cosmological ICs: ERROR Nans found in potential cross check procID %d n_nan %d\n",procID,n_nan);
+  }
+  MPI_Allreduce(MPI_IN_PLACE, &n_nan, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  if(n_nan > 0) {
+    chprintf("Cosmological ICs: ERROR Nans found in potential cross check all n_nan %d\n",procID,n_nan);
+    chexit(-1);
+  } else {
+    chprintf("Cosmological ICs: No NaNs in cosmological potential cross check.\n");
+  }
+
   // now we can proceed with computing the gradients
   #ifndef ONLY_PARTICLES
 
