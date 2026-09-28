@@ -325,7 +325,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
   if (dir == 0) {
     if (flags[0] == 5) {
       // load left x communication buffer
-      if (H.TRANSFER_HYDRO_BOUNDARIES) {
+      if (state.TRANSFER_HYDRO_BOUNDARIES) {
         buffer_length = Load_Hydro_DeviceBuffer_X0(d_send_buffer_x0);
   #ifndef MPI_GPU
         cudaMemcpy(h_send_buffer_x0, d_send_buffer_x0, xbsize * sizeof(Real), cudaMemcpyDeviceToHost);
@@ -395,7 +395,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
 
     if (flags[1] == 5) {
       // load right x communication buffer
-      if (H.TRANSFER_HYDRO_BOUNDARIES) {
+      if (state.TRANSFER_HYDRO_BOUNDARIES) {
         buffer_length = Load_Hydro_DeviceBuffer_X1(d_send_buffer_x1);
   #ifndef MPI_GPU
         cudaMemcpy(h_send_buffer_x1, d_send_buffer_x1, xbsize * sizeof(Real), cudaMemcpyDeviceToHost);
@@ -476,7 +476,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
   if (dir == 1) {
     if (flags[2] == 5) {
       // load left y communication buffer
-      if (H.TRANSFER_HYDRO_BOUNDARIES) {
+      if (state.TRANSFER_HYDRO_BOUNDARIES) {
         buffer_length = Load_Hydro_DeviceBuffer_Y0(d_send_buffer_y0);
   #ifndef MPI_GPU
         cudaMemcpy(h_send_buffer_y0, d_send_buffer_y0, ybsize * sizeof(Real), cudaMemcpyDeviceToHost);
@@ -548,7 +548,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
 
     if (flags[3] == 5) {
       // load right y communication buffer
-      if (H.TRANSFER_HYDRO_BOUNDARIES) {
+      if (state.TRANSFER_HYDRO_BOUNDARIES) {
         buffer_length = Load_Hydro_DeviceBuffer_Y1(d_send_buffer_y1);
   #ifndef MPI_GPU
         cudaMemcpy(h_send_buffer_y1, d_send_buffer_y1, ybsize * sizeof(Real), cudaMemcpyDeviceToHost);
@@ -628,7 +628,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
   if (dir == 2) {
     if (flags[4] == 5) {
       // left z communication buffer
-      if (H.TRANSFER_HYDRO_BOUNDARIES) {
+      if (state.TRANSFER_HYDRO_BOUNDARIES) {
         buffer_length = Load_Hydro_DeviceBuffer_Z0(d_send_buffer_z0);
   #ifndef MPI_GPU
         cudaMemcpy(h_send_buffer_z0, d_send_buffer_z0, zbsize * sizeof(Real), cudaMemcpyDeviceToHost);
@@ -699,7 +699,7 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers(int dir, int *flags)
 
     if (flags[5] == 5) {
       // load right z communication buffer
-      if (H.TRANSFER_HYDRO_BOUNDARIES) {
+      if (state.TRANSFER_HYDRO_BOUNDARIES) {
         buffer_length = Load_Hydro_DeviceBuffer_Z1(d_send_buffer_z1);
   #ifndef MPI_GPU
         cudaMemcpy(h_send_buffer_z1, d_send_buffer_z1, zbsize * sizeof(Real), cudaMemcpyDeviceToHost);
@@ -840,7 +840,7 @@ void Grid3D::Unload_MPI_Comm_Buffers(int index)
   Grid3D_PMF_UnloadGravityPotential Fptr_Unload_Gravity_Potential;
   Grid3D_PMF_UnloadParticleDensity Fptr_Unload_Particle_Density;
 
-  if (H.TRANSFER_HYDRO_BOUNDARIES) {
+  if (state.TRANSFER_HYDRO_BOUNDARIES) {
   #ifndef MPI_GPU
     copyHostToDeviceReceiveBuffer(index);
   #endif

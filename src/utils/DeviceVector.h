@@ -73,8 +73,7 @@ class DeviceVector
   /*! Define move assignment */
   DeviceVector &operator=(DeviceVector<T> &&other) noexcept
   {
-    std::swap(_size, other._size);
-    std::swap(_ptr, other._ptr);
+    swap(other);
     return *this;
   }
 
@@ -91,6 +90,13 @@ class DeviceVector
   DeviceVector(const DeviceVector<T> &)                    = delete;
   DeviceVector<T> &operator=(const DeviceVector<T> &other) = delete;
 
+  /*! swaps contents with \p other */
+  void swap(DeviceVector<T> &other) noexcept
+  {
+    std::swap(_size, other._size);
+    std::swap(_ptr, other._ptr);
+  }
+
   /*!
    * \brief Get the raw device pointer
    *
@@ -98,12 +104,14 @@ class DeviceVector
    */
   T *data() { return _ptr; }
 
+  const T *data() const noexcept { return _ptr; }
+
   /*!
    * \brief Get the number of elements in the array.
    *
    * \return size_t The number of elements in the array
    */
-  size_t size() { return _size; }
+  size_t size() const noexcept { return _size; }
 
   /*!
    * \brief Overload the [] operator to return a value from device memory.
