@@ -25,6 +25,12 @@ DFLAGS    += -DTEMPERATURE_FLOOR
 OUTPUT    ?=  -DOUTPUT -DHDF5
 DFLAGS    += $(OUTPUT)
 
+# Define metals macro and evolve additional scalars
+DFLAGS    += -DSCALAR
+DFLAGS    += -DSCALAR_FLOOR
+DFLAGS    += -DMETALS
+#DFLAGS    += -DBASIC_SCALAR
+
 #Select if the Hydro Conserved data will reside in the GPU
 #and the MPI transfers are done from the GPU
 #If not specified, MPI_GPU is off by default
