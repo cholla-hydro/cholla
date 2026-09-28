@@ -524,7 +524,6 @@ void Grid3D::Custom_Boundary(char bcnd[MAXLEN], Parameters P)
  *  \brief Apply wind boundary */
 void Grid3D::Wind_Boundary(Parameters P)
 {
-  P.metallicity_wind;
   int x_off, y_off, z_off;
   // set x, y, & z offsets of local CPU volume to pass to GPU
   // so global position on the grid is known
