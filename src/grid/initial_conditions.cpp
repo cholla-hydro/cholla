@@ -2357,7 +2357,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
     }
   }
   if( fast_math_isnand(xix_mean) || fast_math_isnand(xiy_mean) || fast_math_isnand(xiz_mean) ) {
-    printf("Error setting Cosmological ICs on procID %d (%e %e %e), aborting.\n",procID,xix_mean,xiy_mean,xiz_mean); 
+    printf("Error setting Cosmological ICs on procID %d (%e %e %e) (%e %e %e), aborting.\n",procID,xix_mean,xiy_mean,xiz_mean,dx,dy,dz); 
     fflush(stdout);
   }
   MPI_Allreduce(MPI_IN_PLACE, &xix_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
