@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
 
   // Set initial conditions
   chprintf("Setting initial conditions...\n");
-
+  chprintf("basic nx/ny/nz %d/%d/%d\n",P.nx,P.ny,P.nz);
   G.Set_Initial_Conditions(P, pmap);
   chprintf("Initial conditions set.\n");
 

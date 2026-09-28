@@ -840,6 +840,7 @@ void Grid3D::Set_Field_Boundaries_Periodic(int direction, int side, int *flags, 
   int i, j, k, indx_src, indx_dst;
   int nGHST, nx_g, ny_g, nz_g;
   nGHST = H.n_ghost;
+  //nGHST = N_GHOST_POTENTIAL;
   nx_g  = nx_local + 2 * nGHST;
   ny_g  = ny_local + 2 * nGHST;
   nz_g  = nz_local + 2 * nGHST;
@@ -912,17 +913,24 @@ void Grid3D::Allocate_Boundary_Conditions_Field_MPI()
   }
   // 2D
   else if (H.ny > 1 && H.nz == 1) {
-    xbsize = H.n_fields * H.n_ghost * (H.ny - 2 * H.n_ghost);
-    ybsize = H.n_fields * H.n_ghost * (H.nx);
+    //xbsize = H.n_fields * H.n_ghost * (H.ny - 2 * H.n_ghost);
+    //ybsize = H.n_fields * H.n_ghost * (H.nx);
+    xbsize = H.n_fields * H.n_ghost * ny_local;
+    ybsize = H.n_fields * H.n_ghost * (nx_local + 2 * H.n_ghost);
   }
   // 3D
   else if (H.ny > 1 && H.nz > 1) {
-    xbsize = H.n_fields * H.n_ghost * (H.ny - 2 * H.n_ghost) * (H.nz - 2 * H.n_ghost);
-    ybsize = H.n_fields * H.n_ghost * (H.nx) * (H.nz - 2 * H.n_ghost);
-    zbsize = H.n_fields * H.n_ghost * (H.nx) * (H.ny);
+    //xbsize = H.n_fields * H.n_ghost * (H.ny - 2 * H.n_ghost) * (H.nz - 2 * H.n_ghost);
+    //ybsize = H.n_fields * H.n_ghost * (H.nx) * (H.nz - 2 * H.n_ghost);
+    //zbsize = H.n_fields * H.n_ghost * (H.nx) * (H.ny);
+    xbsize = H.n_fields * H.n_ghost * (ny_local) * (nz_local);
+    ybsize = H.n_fields * H.n_ghost * (nx_local + 2 * H.n_ghost) * (nz_local);
+    zbsize = H.n_fields * H.n_ghost * (nx_local + 2 * H.n_ghost) * (ny_local + 2 * H.n_ghost);
   } else {
     throw std::runtime_error("MPI buffer size failed to set.");
   }
+
+  chprintf("Cosmological ICs: Grid sizes nx_local %d ny_local %d nz_local %d xbsize %d ybsize %d zbsize %d\n",nx_local,ny_local,nz_local,xbsize,ybsize,zbsize);
 
     #if defined(MPI_GPU)  // these won't be allocated yet
   h_send_buffer_x0 = (Real *)malloc(xbsize * sizeof(Real));
@@ -1025,8 +1033,6 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_Field(int dir, int *flags, Real *fie
 {
   int ireq;
   ireq = 0;
-
-  int xbsize = x_buffer_length, ybsize = y_buffer_length, zbsize = z_buffer_length;
 
   int buffer_length;
 
@@ -1236,13 +1242,50 @@ int Grid3D::Load_Field_To_Buffer(int direction, int side, Real *buffer, int buff
 {
   int i, j, k, indx, indx_buff, length;
   int nGHST, nx_g, ny_g, nz_g;
+  int nx_f, ny_f, nz_f;
   nGHST = H.n_ghost;
-  nx_g  = nx_local + 2 * nGHST;
-  ny_g  = ny_local + 2 * nGHST;
-  nz_g  = nz_local + 2 * nGHST;
+  nx_f  = nx_local + 2 * nGHST;
+  ny_f  = ny_local + 2 * nGHST;
+  nz_f  = nz_local + 2 * nGHST;
+
+
+    //xbsize = H.n_fields * H.n_ghost * (H.ny - 2 * H.n_ghost) * (H.nz - 2 * H.n_ghost);
+    //For x, the real cells ny_local*nz_local only copied into buffer
+    //
+    //ybsize = H.n_fields * H.n_ghost * (H.nx) * (H.nz - 2 * H.n_ghost);
+    //For y, all along nx, nz_local only copied
+    //
+    //zbsize = H.n_fields * H.n_ghost * (H.nx) * (H.ny);
+    //For z, all along nx and all along ny copied
+    //h_send_buffer_x0 = (Real *)malloc(xbsize * sizeof(Real));
+    //h_send_buffer_x1 = (Real *)malloc(xbsize * sizeof(Real));
+    //h_recv_buffer_x0 = (Real *)malloc(xbsize * sizeof(Real));
+    //h_recv_buffer_x1 = (Real *)malloc(xbsize * sizeof(Real));
+    //h_send_buffer_y0 = (Real *)malloc(ybsize * sizeof(Real));
+    //h_send_buffer_y1 = (Real *)malloc(ybsize * sizeof(Real));
+    //h_recv_buffer_y0 = (Real *)malloc(ybsize * sizeof(Real));
+    //h_recv_buffer_y1 = (Real *)malloc(ybsize * sizeof(Real));
+    //h_send_buffer_z0 = (Real *)malloc(zbsize * sizeof(Real));
+    //h_send_buffer_z1 = (Real *)malloc(zbsize * sizeof(Real));
+    //h_recv_buffer_z0 = (Real *)malloc(zbsize * sizeof(Real));
+    //h_recv_buffer_z1 = (Real *)malloc(zbsize * sizeof(Real));
+    //buffer_length = Load_Field_To_Buffer(0, 0, h_send_buffer_x0, 0, field);  // check
+    //buffer_length = Load_Field_To_Buffer(0, 1, h_send_buffer_x1, 0, field);
+    //buffer_length = Load_Field_To_Buffer(1, 0, h_send_buffer_y0, 0, field);
+    //buffer_length = Load_Field_To_Buffer(1, 1, h_send_buffer_y1, 0, field);
+    //buffer_length = Load_Field_To_Buffer(2, 0, h_send_buffer_z0, 0, field);
+    //buffer_length = Load_Field_To_Buffer(2, 1, h_send_buffer_z1, 0, field);
+    //buffer_start == 0 in all
 
   // Load X boundaries
-  if (direction == 0) {
+  //
+  //For x, the real cells ny_local*nz_local only copied into buffer
+  //nx_g  = nx_local + 2 * nGHST;
+  //ny_g  = ny_local + 2 * nGHST;
+  //nz_g  = nz_local + 2 * nGHST;
+  //
+  //original
+  /*if (direction == 0) {
     length = nGHST * nz_g * ny_g;
     for (k = 0; k < nz_g; k++) {
       for (j = 0; j < ny_g; j++) {
@@ -1258,19 +1301,45 @@ int Grid3D::Load_Field_To_Buffer(int direction, int side, Real *buffer, int buff
         }
       }
     }
+  }*/
+  //For x, the real cells ny_local*nz_local only copied into buffer
+  //xbsize = H.n_fields * H.n_ghost * (H.ny - 2 * H.n_ghost) * (H.nz - 2 * H.n_ghost);
+  if (direction == 0) {
+    nz_g = nz_local;
+    ny_g = ny_local;
+    length = nGHST * nz_g * ny_g;
+    for (k = 0; k < nz_g; k++) {
+      for (j = 0; j < ny_g; j++) {
+        for (i = 0; i < nGHST; i++) {
+          if (side == 0) {
+            indx = (i + nGHST) + (j + nGHST)*nx_f + (k + nGHST)*nx_f * ny_f;
+          }
+          if (side == 1) {
+            indx = (nx_f - 2 * nGHST + i) + (j + nGHST)*nx_f + (k + nGHST)*nx_f * ny_f;
+          }
+          indx_buff                        = (j) + (k)*ny_g + i * ny_g * nz_g;
+          buffer[buffer_start + indx_buff] = field[indx];
+        }
+      }
+    }
   }
 
+
   // Load Y boundaries
+  //ybsize = H.n_fields * H.n_ghost * (H.nx) * (H.nz - 2 * H.n_ghost);
+  //For y, all along nx, nz_local only copied
   if (direction == 1) {
+    nz_g = nz_local;
+    nx_g = nx_f;
     length = nGHST * nz_g * nx_g;
     for (k = 0; k < nz_g; k++) {
       for (j = 0; j < nGHST; j++) {
         for (i = 0; i < nx_g; i++) {
           if (side == 0) {
-            indx = (i) + (j + nGHST) * nx_g + (k)*nx_g * ny_g;
+            indx = (i) + (j + nGHST)*nx_f + (k + nGHST)*nx_f * ny_f;
           }
           if (side == 1) {
-            indx = (i) + (ny_g - 2 * nGHST + j) * nx_g + (k)*nx_g * ny_g;
+            indx = (i) + (ny_f - 2 * nGHST + j)*nx_f + (k + nGHST)*nx_f * ny_f;
           }
           indx_buff                        = (i) + (k)*nx_g + j * nx_g * nz_g;
           buffer[buffer_start + indx_buff] = field[indx];
@@ -1280,16 +1349,20 @@ int Grid3D::Load_Field_To_Buffer(int direction, int side, Real *buffer, int buff
   }
 
   // Load Z boundaries
+  //zbsize = H.n_fields * H.n_ghost * (H.nx) * (H.ny);
+  //For z, all along nx and all along ny copied
   if (direction == 2) {
+    ny_g = ny_f;
+    nx_g = nx_f;
     length = nGHST * nx_g * ny_g;
     for (k = 0; k < nGHST; k++) {
       for (j = 0; j < ny_g; j++) {
         for (i = 0; i < nx_g; i++) {
           if (side == 0) {
-            indx = (i) + (j)*nx_g + (k + nGHST) * nx_g * ny_g;
+            indx = (i) + (j)*nx_f + (k + nGHST) * nx_f * ny_f;
           }
           if (side == 1) {
-            indx = (i) + (j)*nx_g + (nz_g - 2 * nGHST + k) * nx_g * ny_g;
+            indx = (i) + (j)*nx_f + (nz_f - 2 * nGHST + k) * nx_f * ny_f;
           }
           indx_buff                        = (i) + (j)*nx_g + k * nx_g * ny_g;
           buffer[buffer_start + indx_buff] = field[indx];
@@ -1304,14 +1377,33 @@ void Grid3D::Unload_Field_from_Buffer(int direction, int side, Real *buffer, int
 {
   int i, j, k, indx, indx_buff;
   int nGHST, nx_g, ny_g, nz_g;
+  int nx_f, ny_f, nz_f;
   nGHST = H.n_ghost;
+  //nGHST = N_GHOST_POTENTIAL;
 
-  nx_g = nx_local + 2 * nGHST;
-  ny_g = ny_local + 2 * nGHST;
-  nz_g = nz_local + 2 * nGHST;
+  nx_f = nx_local + 2 * nGHST;
+  ny_f = ny_local + 2 * nGHST;
+  nz_f = nz_local + 2 * nGHST;
 
   // Load X boundaries
-  if (direction == 0) {
+  /*if (direction == 0) {
+    length = nGHST * nz_g * ny_g;
+    for (k = 0; k < nz_g; k++) {
+      for (j = 0; j < ny_g; j++) {
+        for (i = 0; i < nGHST; i++) {
+          if (side == 0) {
+            indx = (i + nGHST) + (j)*nx_g + (k)*nx_g * ny_g;
+          }
+          if (side == 1) {
+            indx = (nx_g - 2 * nGHST + i) + (j)*nx_g + (k)*nx_g * ny_g;
+          }
+          indx_buff                        = (j) + (k)*ny_g + i * ny_g * nz_g;
+          buffer[buffer_start + indx_buff] = field[indx];
+        }
+      }
+    }
+  }*/
+  /*if (direction == 0) {
     for (k = 0; k < nz_g; k++) {
       for (j = 0; j < ny_g; j++) {
         for (i = 0; i < nGHST; i++) {
@@ -1326,10 +1418,29 @@ void Grid3D::Unload_Field_from_Buffer(int direction, int side, Real *buffer, int
         }
       }
     }
+  }*/
+  if (direction == 0) {
+    nz_g = nz_local;
+    ny_g = ny_local;
+    for (k = 0; k < nz_g; k++) {
+      for (j = 0; j < ny_g; j++) {
+        for (i = 0; i < nGHST; i++) {
+          if (side == 0) {
+            indx = (i) + (j + nGHST)*nx_f + (k + nGHST)*nx_f * ny_f;
+          }
+          if (side == 1) {
+            indx = (nx_f - nGHST + i) + (j + nGHST)*nx_f + (k + nGHST)*nx_f * ny_f;
+          }
+          indx_buff   = (j) + (k)*ny_g + i * ny_g * nz_g;
+          field[indx] = buffer[buffer_start + indx_buff];
+        }
+      }
+    }
   }
 
+
   // Load Y boundaries
-  if (direction == 1) {
+  /*if (direction == 1) {
     for (k = 0; k < nz_g; k++) {
       for (j = 0; j < nGHST; j++) {
         for (i = 0; i < nx_g; i++) {
@@ -1344,10 +1455,30 @@ void Grid3D::Unload_Field_from_Buffer(int direction, int side, Real *buffer, int
         }
       }
     }
+  }*/
+  //ybsize = H.n_fields * H.n_ghost * (H.nx) * (H.nz - 2 * H.n_ghost);
+  //For y, all along nx, nz_local only copied
+  if (direction == 1) {
+    nz_g = nz_local;
+    nx_g = nx_local + 2 * nGHST;
+    for (k = 0; k < nz_g; k++) {
+      for (j = 0; j < nGHST; j++) {
+        for (i = 0; i < nx_g; i++) {
+          if (side == 0) {
+            indx = (i) + (j)*nx_f + (k + nGHST)*nx_f * ny_f;
+          }
+          if (side == 1) {
+            indx = (i) + (ny_f - nGHST + j) * nx_f + (k + nGHST)*nx_f * ny_f;
+          }
+          indx_buff   = (i) + (k)*nx_g + j * nx_g * nz_g;
+          field[indx] = buffer[buffer_start + indx_buff];
+        }
+      }
+    }
   }
 
   // Load Z boundaries
-  if (direction == 2) {
+  /*if (direction == 2) {
     for (k = 0; k < nGHST; k++) {
       for (j = 0; j < ny_g; j++) {
         for (i = 0; i < nx_g; i++) {
@@ -1356,6 +1487,24 @@ void Grid3D::Unload_Field_from_Buffer(int direction, int side, Real *buffer, int
           }
           if (side == 1) {
             indx = (i) + (j)*nx_g + (nz_g - nGHST + k) * nx_g * ny_g;
+          }
+          indx_buff   = (i) + (j)*nx_g + k * nx_g * ny_g;
+          field[indx] = buffer[buffer_start + indx_buff];
+        }
+      }
+    }
+  }*/
+  if (direction == 2) {
+    ny_g = ny_f;
+    nx_g = nx_f;
+    for (k = 0; k < nGHST; k++) {
+      for (j = 0; j < ny_g; j++) {
+        for (i = 0; i < nx_g; i++) {
+          if (side == 0) {
+            indx = (i) + (j)*nx_f + (k) * nx_f * ny_f;
+          }
+          if (side == 1) {
+            indx = (i) + (j)*nx_f + (nz_f - nGHST + k) * nx_f * ny_f;
           }
           indx_buff   = (i) + (j)*nx_g + k * nx_g * ny_g;
           field[indx] = buffer[buffer_start + indx_buff];

@@ -2,8 +2,10 @@
 #define FEEDBACK_RATECALC_H
 
 #ifdef O_HIP
-  #include <hiprand/hiprand.h>
-  #include <hiprand/hiprand_kernel.h>
+  //#include <hiprand/hiprand.h>
+  //#include <hiprand/hiprand_kernel.h>
+  #include <hiprand.h>
+  #include <hiprand_kernel.h>
 #else
   #include <curand.h>
   #include <curand_kernel.h>

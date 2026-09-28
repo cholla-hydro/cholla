@@ -47,6 +47,7 @@ bool fast_math_isnand(double x) {
 /*! Set the initial conditions based on info in the parameters structure. */
 void Grid3D::Set_Initial_Conditions(Parameters P, const ParameterMap &pmap)
 {
+  Set_Domain_Properties(P);
   Set_Gammas(P.gamma);
 
   if (strcmp(P.init, "Constant") == 0 or strcmp(P.init, "Isolated_Stellar_Cluster") == 0) {
@@ -2025,6 +2026,10 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   #endif  // ONLY_PARTICLES
   Free_Boundary_Conditions_Field_MPI();
 
+  MPI_Barrier(MPI_COMM_WORLD);
+  chprintf("Cosmological ICs: Done with field boundary exchange.\n");
+
+
   // now we can proceed with computing the gradients
   #ifndef ONLY_PARTICLES
 
@@ -2350,6 +2355,10 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         n_d_mean += 1.;
       }
     }
+  }
+  if( fast_math_isnand(xix_mean) || fast_math_isnand(xiy_mean) || fast_math_isnand(xiz_mean) ) {
+    printf("Error setting Cosmological ICs on procID %d (%e %e %e), aborting.\n",procID,xix_mean,xiy_mean,xiz_mean); 
+    fflush(stdout);
   }
   MPI_Allreduce(MPI_IN_PLACE, &xix_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(MPI_IN_PLACE, &xiy_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
