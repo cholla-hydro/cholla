@@ -13,6 +13,10 @@ namespace field_detail
 {
 class Storage;
 }  // namespace field_detail
+namespace field
+{
+class Iterator;
+}
 
 // the following declaration is here because I'm not sure where is a better place
 
@@ -35,6 +39,7 @@ struct FieldId {
   friend FieldInfo;
   friend FieldManager;
   friend field_detail::Storage;
+  friend field::Iterator;
 
  private:
 #endif

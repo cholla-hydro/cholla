@@ -35,25 +35,6 @@ namespace field
 // note: HYDRO includes GasEnergy (if present)
 enum class Kind { HYDRO, PASSIVE_SCALAR, MAGNETIC };
 
-/*! This is a "range" in the C++ 20 sense
- *
- *  See \ref FieldInfo::get_id_range for an example
- */
-class IdRange
-{
-  const std::vector<FieldId>& id_vec_;
-
- public:
-  explicit IdRange(const std::vector<FieldId>& id_vec) : id_vec_(id_vec) {}
-
-  // the fact that the iterator aliases a const iterator of a std::vector is an
-  // implementation detail
-  using iterator = std::vector<FieldId>::const_iterator;
-
-  iterator begin() const { return id_vec_.begin(); }
-  iterator end() const { return id_vec_.end(); }
-};
-
 }  // namespace field
 
 /*! \brief Queryable object describing available fields and associated properties
@@ -101,11 +82,6 @@ class FieldInfo
   /// bidirectional mapping between pack names and the corresponding pack_id
   utils::FrozenKeyIdxBiMap pname_id_bimap_;
 
-  // in the near future, I want to rethink these...
-  std::vector<FieldId> hydro_field_ids_;
-  std::vector<FieldId> scalar_field_ids_;
-  std::vector<FieldId> magnetic_field_ids_;
-
   /// specifies the buffer to use for IO
   std::vector<MemSpace> io_buf_;
 
@@ -116,11 +92,6 @@ class FieldInfo
 
   // We make the default-constructor private to force the use of the factory method
   FieldInfo() = default;
-
-  /*! return a reference to the internal vector of field ids corresponding to
-   *  @ref field::Kind
-   */
-  const std::vector<FieldId>& get_kind_ids_(field::Kind kind) const;
 
   const std::optional<std::size_t> flat_idx_from_FieldId_(FieldId id) const
   {
@@ -239,13 +210,14 @@ class FieldInfo
    */
   std::optional<bool> is_cell_centered(FieldId field_id) const
   {
-    if (field_id.pack_id != 0 || field_id.slot_idx >= n_fields()) {
-      return std::nullopt;
-    }
-    for (FieldId id : magnetic_field_ids_) {
+    for (FieldId id : get_id_range(field::Kind::MAGNETIC)) {
       if (field_id == id) return std::optional<bool>{false};
     }
-    return std::optional<bool>{true};
+    if (flat_idx_from_FieldId_(field_id).has_value()) {
+      return std::optional<bool>{true};
+    } else {
+      return std::nullopt;
+    }
   }
 
   /*! try to look up the IOBuf value associated with a field
@@ -262,7 +234,7 @@ class FieldInfo
   int n_fields() const { return static_cast<int>(name_id_bimap_.size()); }
 
   /*! Returns the number of fields of a given category */
-  int n_fields(field::Kind kind) const { return static_cast<int>(get_kind_ids_(kind).size()); }
+  int n_fields(field::Kind kind) const { return get_id_range(kind).n_items(); }
 
   /*! \brief Returns the number of fields associated with a the specified pack_id */
   int n_fields(uint8_t pack_id) const
@@ -285,5 +257,5 @@ class FieldInfo
    *  }
    *  \endcode
    */
-  field::IdRange get_id_range(field::Kind kind) const { return field::IdRange(get_kind_ids_(kind)); }
+  field::IdRange get_id_range(field::Kind kind) const;
 };
