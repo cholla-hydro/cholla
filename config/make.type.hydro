@@ -8,6 +8,7 @@ DFLAGS    += -DHLLC
 ifeq ($(findstring cosmology,$(TYPE)),cosmology)
 DFLAGS    += -DSIMPLE
 DFLAGS    += -DPPMP
+#DFLAGS    += -DPLMP
 else
 DFLAGS    += -DVL
 DFLAGS    += -DPLMC

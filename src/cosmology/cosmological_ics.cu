@@ -818,25 +818,23 @@ void Grid3D::Set_Field_Boundaries_Periodic(int direction, int side, int *flags, 
   // Flags: 1 (periodic), 2 (reflective), 3 (transmissive), 4 (custom), 5 (mpi)
 
   int i, j, k, indx_src, indx_dst;
-  int nGHST, nx_g, ny_g, nz_g;
-  nGHST = H.n_ghost;
-  //nGHST = N_GHOST_POTENTIAL;
-  nx_g  = nx_local + 2 * nGHST;
-  ny_g  = ny_local + 2 * nGHST;
-  nz_g  = nz_local + 2 * nGHST;
+  int nx_g, ny_g, nz_g;
+  nx_g  = H.nx;
+  ny_g  = H.ny;
+  nz_g  = H.nz;
 
   // Copy X boundaries
   if (direction == 0) {
     for (k = 0; k < nz_g; k++) {
       for (j = 0; j < ny_g; j++) {
-        for (i = 0; i < nGHST; i++) {
+        for (i = 0; i < H.n_ghost; i++) {
           if (side == 0) {
-            indx_src = (nx_g - 2 * nGHST + i) + (j)*nx_g + (k)*nx_g * ny_g;  // Periodic
+            indx_src = (nx_g - 2 * H.n_ghost + i) + (j)*nx_g + (k)*nx_g * ny_g;  // Periodic
             indx_dst = (i) + (j)*nx_g + (k)*nx_g * ny_g;
           }
           if (side == 1) {
-            indx_src = (i + nGHST) + (j)*nx_g + (k)*nx_g * ny_g;  // Periodic
-            indx_dst = (nx_g - nGHST + i) + (j)*nx_g + (k)*nx_g * ny_g;
+            indx_src = (i + H.n_ghost) + (j)*nx_g + (k)*nx_g * ny_g;  // Periodic
+            indx_dst = (nx_g - H.n_ghost + i) + (j)*nx_g + (k)*nx_g * ny_g;
           }
           field[indx_dst] = field[indx_src];
         }
@@ -847,15 +845,15 @@ void Grid3D::Set_Field_Boundaries_Periodic(int direction, int side, int *flags, 
   // Copy Y boundaries
   if (direction == 1) {
     for (k = 0; k < nz_g; k++) {
-      for (j = 0; j < nGHST; j++) {
+      for (j = 0; j < H.n_ghost; j++) {
         for (i = 0; i < nx_g; i++) {
           if (side == 0) {
-            indx_src = (i) + (ny_g - 2 * nGHST + j) * nx_g + (k)*nx_g * ny_g;  // Periodic
+            indx_src = (i) + (ny_g - 2 * H.n_ghost + j) * nx_g + (k)*nx_g * ny_g;  // Periodic
             indx_dst = (i) + (j)*nx_g + (k)*nx_g * ny_g;
           }
           if (side == 1) {
-            indx_src = (i) + (j + nGHST) * nx_g + (k)*nx_g * ny_g;  // Periodic
-            indx_dst = (i) + (ny_g - nGHST + j) * nx_g + (k)*nx_g * ny_g;
+            indx_src = (i) + (j + H.n_ghost) * nx_g + (k)*nx_g * ny_g;  // Periodic
+            indx_dst = (i) + (ny_g - H.n_ghost + j) * nx_g + (k)*nx_g * ny_g;
           }
           field[indx_dst] = field[indx_src];
         }
@@ -865,16 +863,16 @@ void Grid3D::Set_Field_Boundaries_Periodic(int direction, int side, int *flags, 
 
   // Copy Z boundaries
   if (direction == 2) {
-    for (k = 0; k < nGHST; k++) {
+    for (k = 0; k < H.n_ghost; k++) {
       for (j = 0; j < ny_g; j++) {
         for (i = 0; i < nx_g; i++) {
           if (side == 0) {
-            indx_src = (i) + (j)*nx_g + (nz_g - 2 * nGHST + k) * nx_g * ny_g;  // Periodic
+            indx_src = (i) + (j)*nx_g + (nz_g - 2 * H.n_ghost + k) * nx_g * ny_g;  // Periodic
             indx_dst = (i) + (j)*nx_g + (k)*nx_g * ny_g;
           }
           if (side == 1) {
-            indx_src = (i) + (j)*nx_g + (k + nGHST) * nx_g * ny_g;  // Periodic
-            indx_dst = (i) + (j)*nx_g + (nz_g - nGHST + k) * nx_g * ny_g;
+            indx_src = (i) + (j)*nx_g + (k + H.n_ghost) * nx_g * ny_g;  // Periodic
+            indx_dst = (i) + (j)*nx_g + (nz_g - H.n_ghost + k) * nx_g * ny_g;
           }
           field[indx_dst] = field[indx_src];
         }
@@ -1413,7 +1411,6 @@ void Grid3D::Unload_Field_from_Buffer(int direction, int side, Real *buffer, int
             indx = (i) + (j)*H.nx + (H.nz - H.n_ghost + k) * H.nx * H.ny;
           }
           indx_buff   = (i) + (j)*nx_g + k * nx_g * ny_g;
-          indx_buff                        = (i) + (j)*nx_g + k * nx_g * ny_g;
           field[indx] = buffer[buffer_start + indx_buff];
         }
       }
