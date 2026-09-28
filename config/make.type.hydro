@@ -20,27 +20,16 @@ DFLAGS    += -DTEMPERATURE_FLOOR
 # Solve the Gas Internal Energy using a Dual Energy Formalism
 DFLAGS    += -DDE
 
-<<<<<<< HEAD:builds/make.type.hydro
-# Apply cooling on the GPU from precomputed tables
-DFLAGS    += -DCOOLING_GPU
-
 # Apply reference frame shift to track cloud
 DFLAGS += -DCLOUD_TRACKING
 
-=======
->>>>>>> dev:config/make.type.hydro
 # Measure the Timing of the different stages
 #DFLAGS    += -DCPU_TIME
 
 
 # Select output format
-<<<<<<< HEAD:builds/make.type.hydro
-# Can also add -DSLICES and -DPROJECTIONS
-OUTPUT    ?=  -DOUTPUT -DHDF5 
-=======
 # Can also add -DSLICES and -DPROJECTION
 OUTPUT    ?=  -DOUTPUT -DHDF5
->>>>>>> dev:config/make.type.hydro
 DFLAGS    += $(OUTPUT)
 
 DFLAGS += -DSLICES 
