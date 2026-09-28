@@ -13,7 +13,7 @@
 #include "../mpi/mpi_routines.h"
 #include "../utils/error_handling.h"
 
-/*! \fn void Set_Boundary_Conditions_Grid(Parameters P )
+/*! \fn void Set_Boundary_Conditions_Grid(Parameters P)
  *  \brief Set the boundary conditions for all components based on info in the
  * parameters structure. */
 void Grid3D::Set_Boundary_Conditions_Grid(Parameters P)
@@ -48,7 +48,7 @@ void Grid3D::Set_Boundary_Conditions_Grid(Parameters P)
 #endif    // GRAVITY
 }
 
-/*! \fn void Set_Boundary_Conditions(Parameters P )
+/*! \fn void Set_Boundary_Conditions(Parameters P)
  *  \brief Set the boundary conditions based on info in the parameters
  * structure. */
 void Grid3D::Set_Boundary_Conditions(Parameters P)
@@ -98,7 +98,7 @@ void Grid3D::Set_Boundary_Conditions(Parameters P)
 
   // Check for custom boundary conditions and set boundary flags
   if (Check_Custom_Boundary(&flags[0], P)) {
-    Custom_Boundary(P.custom_bcnd);
+    Custom_Boundary(P.custom_bcnd, P);
   }
 
   // set regular boundaries
@@ -504,16 +504,16 @@ void Grid3D::Set_Boundary_Extents(int dir, int *imin, int *imax)
   }
 }
 
-/*! \fn void Custom_Boundary(char bcnd[MAXLEN])
+/*! \fn void Custom_Boundary(char bcnd[MAXLEN], Parameters P)
  *  \brief Select appropriate custom boundary function. */
-void Grid3D::Custom_Boundary(char bcnd[MAXLEN])
+void Grid3D::Custom_Boundary(char bcnd[MAXLEN], Parameters P)
 {
   if (strcmp(bcnd, "noh") == 0) {
     // from grid/cuda_boundaries.cu
     Noh_Boundary();
   } else if (strcmp(bcnd, "wind") == 0) {
     // from grid/cuda_boundaries.cu
-    Wind_Boundary();
+    Wind_Boundary(P);
   } else {
     printf("ABORT: %s -> Unknown custom boundary condition.\n", bcnd);
     exit(0);
@@ -522,7 +522,7 @@ void Grid3D::Custom_Boundary(char bcnd[MAXLEN])
 
 /*! \fn void Wind_Boundary()
  *  \brief Apply wind boundary */
-void Grid3D::Wind_Boundary()
+void Grid3D::Wind_Boundary(Parameters P)
 {
   int x_off, y_off, z_off;
   // set x, y, & z offsets of local CPU volume to pass to GPU
@@ -535,7 +535,7 @@ void Grid3D::Wind_Boundary()
 #endif
 
   Wind_Boundary_CUDA(C.device, H.nx, H.ny, H.nz, H.n_cells, H.n_ghost, x_off, y_off, z_off, H.dx, H.dy, H.dz, H.xbound,
-                     H.ybound, H.zbound, gama, H.t);
+                     H.ybound, H.zbound, gama, H.t, P.metallicity_wind);
 }
 
 /*! \fn void Noh_Boundary()

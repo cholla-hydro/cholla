@@ -17,9 +17,6 @@ endif
 DFLAGS    += -DDENSITY_FLOOR
 DFLAGS    += -DTEMPERATURE_FLOOR
 
-# Solve the Gas Internal Energy using a Dual Energy Formalism
-#DFLAGS    += -DDE
-
 # Measure the Timing of the different stages
 #DFLAGS    += -DCPU_TIME
 

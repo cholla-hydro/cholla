@@ -16,7 +16,7 @@ void Grid3D::Set_Boundaries_MPI(struct Parameters P)
 
   if (Check_Custom_Boundary(&flags[0], P)) {
     // perform custom boundaries
-    Custom_Boundary(P.custom_bcnd);
+    Custom_Boundary(P.custom_bcnd, P);
   }
 
   Set_Boundaries_MPI_BLOCK(flags, P);

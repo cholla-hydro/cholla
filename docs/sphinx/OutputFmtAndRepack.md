@@ -269,6 +269,9 @@ If an MHD simulation is run, Cholla writes the following face-centered fields:
 - 'magnetic\_y'
 - 'magnetic\_z'
 
+If Cholla is run with 'METALS':
+- 'metal\_density', the metal density in code units (M{sub}`⊙` / kpc{sup}`3`)
+
 ## Slices, Projections, and Rotated Projections
 For 3D simulations, Cholla can also be run with flags to output slices and projections of the data.
 (This can be useful for larges simulations if saving the full dataset is too costly to achieve a high time resolution for snapshots.)
@@ -298,6 +301,8 @@ Datasets are called:
 - 'T\_xz'
 - 'd\_dust\_xy', (if 'DUST' was used)
 - 'd\_dust\_xz', (if 'DUST' was used)
+- 'metal\_density\_xy', (if 'METALS' was used)
+- 'metal\_density\_xz', (if 'METALS' was used)
 
 Rotated projections are similar, but are integrated along an axis specified by the input parameter file (see the relevant wiki page for details).
 
