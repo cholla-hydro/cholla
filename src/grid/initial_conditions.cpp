@@ -1838,6 +1838,12 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   chprintf("Cosmological ICs: Growth Function Info: D %e dDdt %e dDda %e dlnDdlna %e\n", D, dDdt, dDda,
            dlogDdloga);  // note dDdt is in km/s/kpc
 
+  if( fast_math_isnand(D) || fast_math_isnand(dDdt) || fast_math_isnand(dDda) || fast_math_isnand(dlogDdloga) ) {
+    printf("Cosmological ICs: Growth Function Error on procID %d : (%e, %e, %e, %e)\n",procID,D,dDdt,dDda,dlogDdloga);
+    fflush(stdout);
+  }
+
+
   // scaling is A = a*H*dlogD/dloga = a^2 (H/D) dD/da
   // these units will be in km/s/kpc, and multiplying by
   // displacement will convert into a velocity
