@@ -1841,8 +1841,8 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
   int bcast_flag = procID + 1;
   if( Cosmo.fast_math_isnand(D) || Cosmo.fast_math_isnand(dDdt) || Cosmo.fast_math_isnand(dDda) || Cosmo.fast_math_isnand(dlogDdloga) ) {
-    printf("Cosmological ICs: Growth Function Error on procID %d : (%e, %e, %e, %e, %e, %e)\n",procID,z_init,a_init,D,dDdt,dDda,dlogDdloga);
-    fflush(stdout);
+    //printf("Cosmological ICs: Growth Function Error on procID %d : (%e, %e, %e, %e, %e, %e)\n",procID,z_init,a_init,D,dDdt,dDda,dlogDdloga);
+    //fflush(stdout);
     bcast_flag = 0;
   }
   //MPI_Barrier(MPI_COMM_WORLD);
