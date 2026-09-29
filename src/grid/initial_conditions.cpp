@@ -1840,16 +1840,25 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   chprintf("Cosmological ICs: Growth Function Info: D %e dDdt %e dDda %e dlnDdlna %e\n", D, dDdt, dDda,
            dlogDdloga);  // note dDdt is in km/s/kpc
 
+
+  int bcast_flag = procID + 1;
   if( Cosmo.fast_math_isnand(D) || Cosmo.fast_math_isnand(dDdt) || Cosmo.fast_math_isnand(dDda) || Cosmo.fast_math_isnand(dlogDdloga) ) {
     printf("Cosmological ICs: Growth Function Error on procID %d : (%e, %e, %e, %e, %e, %e)\n",procID,z_init,a_init,D,dDdt,dDda,dlogDdloga);
     fflush(stdout);
+    bcast_flag = 0;
   }
+  //MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &bcast_flag, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+
+  chprintf("Cosmological ICs: bcast_flag %d\n",bcast_flag);)
+
+  bcast_flag -= 1;
 
   // Kludge -- broadcast growth info from procID = 0
-  MPI_Bcast(&D, 1, MPI_CHREAL, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&dDdt, 1, MPI_CHREAL, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&dDda, 1, MPI_CHREAL, 0, MPI_COMM_WORLD);
-  MPI_Bcast(&dlogDdloga, 1, MPI_CHREAL, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&D, 1, MPI_CHREAL, bcast_flag, MPI_COMM_WORLD);
+  MPI_Bcast(&dDdt, 1, MPI_CHREAL, bcast_flag, MPI_COMM_WORLD);
+  MPI_Bcast(&dDda, 1, MPI_CHREAL, bcast_flag, MPI_COMM_WORLD);
+  MPI_Bcast(&dlogDdloga, 1, MPI_CHREAL, bcast_flag, MPI_COMM_WORLD);
 
 
 
