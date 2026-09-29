@@ -10,6 +10,21 @@
   #include "../io/io.h"
   #include "../rk/rk4.h"
 
+// Check for a 32-bit float NaN
+bool fast_math_isnan(float x) {
+    uint32_t u;
+    std::memcpy(&u, &x, sizeof(x));
+    // In IEEE 754, a float is NaN if all exponent bits are 1 and the mantissa is non-zero
+    return (u & 0x7F800000) == 0x7F800000 && (u & 0x007FFFFF) != 0;
+}
+
+// Check for a 64-bit double NaN
+bool fast_math_isnand(double x) {
+    uint64_t u;
+    std::memcpy(&u, &x, sizeof(x));
+    return (u & 0x7FF0000000000000ULL) == 0x7FF0000000000000ULL && (u & 0x000FFFFFFFFFFFFFULL) != 0;
+}
+
 void Grid3D::Initialize_Cosmology(struct Parameters *P)
 {
   chprintf("Initializing Cosmology... \n");
@@ -259,6 +274,10 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
 
     // update the redshift step
     dt = dt_new;
+
+    if( fast_math_isnand(t) || fast_math_isnand(y_n[0]) || fast_math_isnand(y_n[1]) || fast_math_isnand(y_n[2]) ) {
+      printf("Error computing growth function on procID %d: (%e %e %e %e)\n",procID,t,y_n[0],y_n[1],y_n[2]);
+    }
 
     t_array.push_back(t);
     a_array.push_back(y_n[0]);
