@@ -294,6 +294,7 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
     dDdt_array.push_back(y_n[2]);
   }
 
+  /*
   // Kludge -- bcast from process 0
   int t_size = t_array.size();
   MPI_Bcast(&t_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -307,6 +308,7 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
   MPI_Bcast(a_array.data(), t_size, MPI_CHREAL, 0, MPI_COMM_WORLD);
   MPI_Bcast(D_array.data(), t_size, MPI_CHREAL, 0, MPI_COMM_WORLD);
   MPI_Bcast(dDdt_array.data(), t_size, MPI_CHREAL, 0, MPI_COMM_WORLD);
+  */
 
 }
 

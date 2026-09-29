@@ -55,6 +55,7 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
       //fflush(stdout);
       bcast_flag = 0;
     }
+    /*
     //MPI_Barrier(MPI_COMM_WORLD);
     MPI_Allreduce(MPI_IN_PLACE, &bcast_flag, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 
@@ -65,7 +66,8 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
     // Kludge -- broadcast growth info from procID = 0
     MPI_Bcast(&D, 1, MPI_CHREAL, bcast_flag, MPI_COMM_WORLD);
     MPI_Bcast(&dDdt, 1, MPI_CHREAL, bcast_flag, MPI_COMM_WORLD);
-    MPI_Bcast(&dDda, 1, MPI_CHREAL, bcast_flag, MPI_COMM_WORLD);
+    MPI_Bcast(&dDda, 1, MPI_CHREAL, bcast_flag, MPI_COMM_WORLD);*/
+
     Particles.CP.D      = D;
     Particles.CP.dDdt   = dDdt;;
     Particles.CP.dDda   = dDda;    
