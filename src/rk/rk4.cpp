@@ -42,6 +42,21 @@ RKIntegrator::RKIntegrator(int ny_in)
   bij[6][5] = 253. / 4096.;
 }
 
+  // Check for a 32-bit float NaN
+bool RKIntegrator::fast_math_isnan(float x) {
+    uint32_t u;
+    std::memcpy(&u, &x, sizeof(x));
+    // In IEEE 754, a float is NaN if all exponent bits are 1 and the mantissa is non-zero
+    return (u & 0x7F800000) == 0x7F800000 && (u & 0x007FFFFF) != 0;
+}
+
+// Check for a 64-bit double NaN
+bool RKIntegrator::fast_math_isnand(double x) {
+    uint64_t u;
+    std::memcpy(&u, &x, sizeof(x));
+    return (u & 0x7FF0000000000000ULL) == 0x7FF0000000000000ULL && (u & 0x000FFFFFFFFFFFFFULL) != 0;
+}
+
 void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, const std::vector<Real>& y,
                                                      const std::vector<Real>& params),
                            Real x, const std::vector<Real>& y, Real* h_this, Real* h_pass,
@@ -102,7 +117,7 @@ void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, const std::vector<R
       Real scaled_error = fabs(yp[k] - yprime[k]) / scale;
 
       // 3. Trap NaNs and Infinities IMMEDIATELY
-      if (std::isnan(scaled_error) || std::isinf(scaled_error)) {
+      if (fast_math_isnand(scaled_error) || fast_math_isnand(scaled_error)) {
           scaled_error = 1.0e10; // Force a massive error to guarantee step rejection
       }
 
@@ -129,7 +144,7 @@ void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, const std::vector<R
         printf("RKIntegrator: procID %d: Max Number of Iterations Exceeded (%d)!\n", procID, max_iters);
         // Let the caller handle failure rather than killing the process abruptly, 
         // or set a flag to break safely.
-        exit(1); 
+        chexit(-1); 
       }
 
     } else {
