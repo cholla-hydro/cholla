@@ -174,7 +174,7 @@ static std::vector<Real> growth_factor_system(Real z, const std::vector<Real> &y
   Real wa       = params[5];
 
   aa = a;
-  if (aa < 1.0e-7) aa = 1.0e-7;
+  if (aa < 1.0e-8) aa = 1.0e-8;
 
   // get current hubble parameter at this
   // scale factor and time
@@ -191,7 +191,7 @@ static std::vector<Real> growth_factor_system(Real z, const std::vector<Real> &y
   Real Omega_tot  = Omega_m_z + Omega_DE_z + Omega_r_z;
 
   // get the current da/dt = H*a
-  da_dt = H * a;
+  da_dt = H * aa;
 
   // get the current d^2 delta/dt^2 = -2 H ddelta/dt + 4\piG\rho_0 \delta
   // \rho_0 = 3 \Omega_m(z)/\Omega_tot H^2 / 8 \pi G
@@ -265,7 +265,7 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
 
   Real a_max = 1.0;
 
-  while ((t < tmax) & (y_n[0] < a_max)) {
+  while ((t < tmax) && (y_n[0] < a_max)) {
     if (t + dt > tmax) {
       dt = tmax - t;
     }
@@ -279,7 +279,7 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
     for (int i = 0; i < yp.size(); i++) y_n[i] = yp[i];
 
     // limit to the largest dz allowable
-    if (dt_new < dt_max) dt_new = dt_max;
+    if (dt_new > dt_max) dt_new = dt_max;
 
     // update the redshift step
     dt = dt_new;
