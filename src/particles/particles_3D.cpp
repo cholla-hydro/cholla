@@ -1666,11 +1666,11 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
     }
   }
 
-  printf("Transfers procID %d nxlt %d nxut %d xix_rms %e nylt %d nyut %d xiy_rms %e nzlt %d nzut %d xiz_rms %e\n",
+  /*printf("Transfers procID %d nxlt %d nxut %d xix_rms %e nylt %d nyut %d xiy_rms %e nzlt %d nzut %d xiz_rms %e\n",
          procID, nxlt, nxut, sqrt(xix_rms / xix_n), nylt, nyut, sqrt(xiy_rms / xix_n), nzlt, nzut,
          sqrt(xiz_rms / xix_n));
   fflush(stdout);
-  MPI_Barrier(world);
+  MPI_Barrier(world);*/
 
   MPI_Allreduce(MPI_IN_PLACE, &xix_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(MPI_IN_PLACE, &xiy_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
