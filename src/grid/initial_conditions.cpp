@@ -1841,9 +1841,16 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
            dlogDdloga);  // note dDdt is in km/s/kpc
 
   if( Cosmo.fast_math_isnand(D) || Cosmo.fast_math_isnand(dDdt) || Cosmo.fast_math_isnand(dDda) || Cosmo.fast_math_isnand(dlogDdloga) ) {
-    printf("Cosmological ICs: Growth Function Error on procID %d : (%e, %e, %e, %e)\n",procID,D,dDdt,dDda,dlogDdloga);
+    printf("Cosmological ICs: Growth Function Error on procID %d : (%e, %e, %e, %e, %e, %e)\n",procID,z_init,a_init,D,dDdt,dDda,dlogDdloga);
     fflush(stdout);
   }
+
+  // Kludge -- broadcast growth info from procID = 0
+  MPI_Bcast(&D, 1, MPI_CHREAL, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&dDdt, 1, MPI_CHREAL, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&dDda, 1, MPI_CHREAL, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&dlogDdloga, 1, MPI_CHREAL, 0, MPI_COMM_WORLD);
+
 
 
   // scaling is A = a*H*dlogD/dloga = a^2 (H/D) dD/da
