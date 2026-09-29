@@ -4,6 +4,8 @@
 
 #include <cmath>
 #include <vector>
+#include <cstring>
+
 
 #include "../utils/error_handling.h"
 
