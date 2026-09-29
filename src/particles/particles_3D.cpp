@@ -50,8 +50,8 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
     Real D      = Cosmo.D_Growth(a_init);
     Real dDdt   = Cosmo.dDdt_Growth(a_init);
     Real dDda   = Cosmo.dDda_Growth(a_init);
-    if( Cosmo.fast_math_isnand(D) || Cosmo.fast_math_isnand(dDdt) || Cosmo.fast_math_isnand(dDda) || Cosmo.fast_math_isnand(dlogDdloga) ) {
-      printf("Cosmological ICs: Particles growth Function Error on procID %d : (%e, %e, %e, %e, %e, %e)\n",procID,z_init,a_init,D,dDdt,dDda,dlogDdloga);
+    if( Cosmo.fast_math_isnand(D) || Cosmo.fast_math_isnand(dDdt) || Cosmo.fast_math_isnand(dDda) ) {
+      printf("Cosmological ICs: Particles growth Function Error on procID %d : (%e, %e, %e, %e, %e)\n",procID,z_init,a_init,D,dDdt,dDda);
       fflush(stdout);
       bcast_flag = 0;
     }
