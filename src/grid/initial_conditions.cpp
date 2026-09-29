@@ -1850,7 +1850,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   //MPI_Barrier(MPI_COMM_WORLD);
   MPI_Allreduce(MPI_IN_PLACE, &bcast_flag, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 
-  chprintf("Cosmological ICs: bcast_flag %d\n",bcast_flag);)
+  chprintf("Cosmological ICs: bcast_flag %d\n",bcast_flag);
 
   bcast_flag -= 1;
 
