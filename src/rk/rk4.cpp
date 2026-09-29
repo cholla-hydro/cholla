@@ -89,10 +89,70 @@ void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, const std::vector<R
     }
 
     max_error = 0;
+
+    // Standardized tolerances (adjust these depending on required precision)
+    Real abs_tol = 1.0e-14; // Must be smaller than your smallest initial value (1e-9)
+    Real rel_tol = 1.0e-5;
+
+    for (int k = 0; k < ny; k++) {
+      // 1. Calculate proper scale for this specific variable
+      Real scale = abs_tol + rel_tol * fabs(y[k]);
+      
+      // 2. Calculate fractional error relative to the scale
+      Real scaled_error = fabs(yp[k] - yprime[k]) / scale;
+
+      // 3. Trap NaNs and Infinities IMMEDIATELY
+      if (std::isnan(scaled_error) || std::isinf(scaled_error)) {
+          scaled_error = 1.0e10; // Force a massive error to guarantee step rejection
+      }
+
+      // 4. Track the maximum scaled error
+      if (scaled_error > max_error) {
+          max_error = scaled_error;
+      }
+    }
+
+    // Since we scaled the error metric above, our target tolerance is now 1.0.
+    // We override the old error_tol check here:
+    error_tol = 1.0; 
+
+    if (max_error > error_tol) {
+      // decrease h
+      error_factor = Safety * pow(max_error, -0.25);
+      if (error_factor < 0.1) error_factor = 0.1;
+
+      *h_pass = h * error_factor;
+      *h_this = h * error_factor;
+
+      iters++;
+      if (iters >= max_iters) {
+        printf("RKIntegrator: procID %d: Max Number of Iterations Exceeded (%d)!\n", procID, max_iters);
+        // Let the caller handle failure rather than killing the process abruptly, 
+        // or set a flag to break safely.
+        exit(1); 
+      }
+
+    } else {
+      flag = false;
+
+      // increase h
+      if (max_error > 0) {
+        error_factor = Safety * pow(max_error, -0.20);
+      } else {
+        error_factor = 5.0;
+      }
+
+      if (error_factor > 5.0) error_factor = 5.0;
+      if (error_factor < 1.0) error_factor = 1.0;
+      
+      *h_pass = h * error_factor;
+    }
+    /*
+    max_error = 0;
     for (int k = 0; k < ny; k++) {
       error = (yp[k] - yprime[k]);
 
-      if ((fabs(y[k]) > 0) & (fabs(yp[k] - y[k]) / fabs(y[k]) > 0.01)) error = 0.1;
+      if ((fabs(y[k]) > 0) && (fabs(yp[k] - y[k]) / fabs(y[k]) > 0.01)) error = 0.1;
 
       if (fabs(error) > fabs(max_error)) max_error = error;
 
@@ -130,6 +190,6 @@ void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, const std::vector<R
       // step size cannot go down
       if (error_factor < 1.0) error_factor = 1.0;
       *h_pass = h * error_factor;
-    }
+    }*/
   }
 }
