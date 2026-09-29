@@ -293,6 +293,21 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
     D_array.push_back(y_n[1]);
     dDdt_array.push_back(y_n[2]);
   }
+
+  // Kludge -- bcast from process 0
+  int t_size = t_array.size();
+  MPI_Bcast(&t_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  if(procID!=0) {
+    t_array.resize(t_size);
+    a_array.resize(t_size);
+    D_array.resize(t_size);
+    dDdt_array.resize(t_size);
+  }
+  MPI_Bcast(t_array.data(), t_size, MPI_CHREAL, 0, MPI_COMM_WORLD);
+  MPI_Bcast(a_array.data(), t_size, MPI_CHREAL, 0, MPI_COMM_WORLD);
+  MPI_Bcast(D_array.data(), t_size, MPI_CHREAL, 0, MPI_COMM_WORLD);
+  MPI_Bcast(dDdt_array.data(), t_size, MPI_CHREAL, 0, MPI_COMM_WORLD);
+
 }
 
 Real Cosmology::LinearInterpolation(const std::vector<Real> &x, const std::vector<Real> &y, Real a)
