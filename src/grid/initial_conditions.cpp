@@ -1837,8 +1837,6 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   dDdt       = Cosmo.dDdt_Growth(a_init);
   dDda       = Cosmo.dDda_Growth(a_init);
   dlogDdloga = dDda * (a_init / D);
-  chprintf("Cosmological ICs: Growth Function Info: D %e dDdt %e dDda %e dlnDdlna %e\n", D, dDdt, dDda,
-           dlogDdloga);  // note dDdt is in km/s/kpc
 
 
   int bcast_flag = procID + 1;
@@ -1860,6 +1858,8 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   MPI_Bcast(&dDda, 1, MPI_CHREAL, bcast_flag, MPI_COMM_WORLD);
   MPI_Bcast(&dlogDdloga, 1, MPI_CHREAL, bcast_flag, MPI_COMM_WORLD);
 
+  chprintf("Cosmological ICs: Growth Function Info: D %e dDdt %e dDda %e dlnDdlna %e\n", D, dDdt, dDda,
+           dlogDdloga);  // note dDdt is in km/s/kpc
 
 
   // scaling is A = a*H*dlogD/dloga = a^2 (H/D) dD/da
@@ -2123,7 +2123,8 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   Real d_rms          = 0;
 
   Real dens, vel, U, E;
-  Real Daf = Cosmo.D_Growth(a_init) / a_init;
+  //Real Daf = Cosmo.D_Growth(a_init) / a_init;
+  Real Daf = D / a_init;
 
   // With radiation the perturbation ratio D/a keeps
   // increasing to large redshift
