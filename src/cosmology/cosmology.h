@@ -112,7 +112,7 @@ class Cosmology
   void Write_Expansion_History_Entry(void);
 
   // check for NaN when using fast math
-  bool fast_math_isnan(double x);
+  bool fast_math_isnan(float x);
   bool fast_math_isnand(double x);
 };
 Real Hubble_Growth_Function(Real a, Real H0, Real Omega_r, Real Omega_m, Real Omega_DE, Real w0, Real wa);
