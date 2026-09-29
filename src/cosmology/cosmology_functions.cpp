@@ -312,6 +312,7 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
 
 Real Cosmology::LinearInterpolation(const std::vector<Real> &x, const std::vector<Real> &y, Real a)
 {
+  /*
   // clamp if needed
   if (a <= x.front()) return y.front();
   if (a >= x.back()) return y.back();
@@ -323,6 +324,23 @@ Real Cosmology::LinearInterpolation(const std::vector<Real> &x, const std::vecto
   auto index = std::distance(x.begin(), it);
 
   return y[index] + (y[index + 1] - y[index]) * (a - x[index]) / (x[index + 1] - x[index]);
+  */
+  // clamp if needed
+  if (a <= x.front()) return y.front();
+  if (a >= x.back()) return y.back();
+
+  // lower_bound finds the first element >= a
+  auto it = std::lower_bound(x.begin(), x.end(), a);
+
+  // Step back one index to get the left bound of the interval
+  auto index = std::distance(x.begin(), it) - 1;
+
+  // Prevent division by zero if x values are duplicated
+  Real dx = x[index + 1] - x[index];
+  if (dx == 0.0) return y[index]; 
+
+  // interpolate
+  return y[index] + (y[index + 1] - y[index]) * (a - x[index]) / dx; 
 }
 
 Real Cosmology::D_Growth(Real a)
