@@ -11,7 +11,7 @@
   #include "../rk/rk4.h"
 
   // Check for a 32-bit float NaN
-bool Grid::fast_math_isnan(float x) {
+bool Cosmology::fast_math_isnan(float x) {
     uint32_t u;
     std::memcpy(&u, &x, sizeof(x));
     // In IEEE 754, a float is NaN if all exponent bits are 1 and the mantissa is non-zero
@@ -19,7 +19,7 @@ bool Grid::fast_math_isnan(float x) {
 }
 
 // Check for a 64-bit double NaN
-bool Grid::fast_math_isnand(double x) {
+bool Cosmology::fast_math_isnand(double x) {
     uint64_t u;
     std::memcpy(&u, &x, sizeof(x));
     return (u & 0x7FF0000000000000ULL) == 0x7FF0000000000000ULL && (u & 0x000FFFFFFFFFFFFFULL) != 0;
