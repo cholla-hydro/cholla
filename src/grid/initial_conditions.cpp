@@ -29,6 +29,7 @@
   #include "../cosmology/cosmology.h"
 #endif
 
+/*
 // Check for a 32-bit float NaN
 bool fast_math_isnan(float x) {
     uint32_t u;
@@ -43,6 +44,7 @@ bool fast_math_isnand(double x) {
     std::memcpy(&u, &x, sizeof(x));
     return (u & 0x7FF0000000000000ULL) == 0x7FF0000000000000ULL && (u & 0x000FFFFFFFFFFFFFULL) != 0;
 }
+*/
 
 /*! Set the initial conditions based on info in the parameters structure. */
 void Grid3D::Set_Initial_Conditions(Parameters P, const ParameterMap &pmap)

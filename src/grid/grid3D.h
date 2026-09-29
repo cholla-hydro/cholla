@@ -264,6 +264,8 @@ class Grid3D
 #ifdef COSMOLOGY
   // Object that contains data for cosmology
   Cosmology Cosmo;
+  bool fast_math_isnan(double x);
+  bool fast_math_isnand(double x);
 #endif
 
 #ifdef COOLING_GRACKLE
