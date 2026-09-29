@@ -238,9 +238,13 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
   params[5] = wa;
 
   // initial scale factor, not important
-  y_n[0] = 1.0e-7;
+  /*y_n[0] = 1.0e-7;
   y_n[1] = 1.0e-8;
-  y_n[2] = 1.0e-8;
+  y_n[2] = 1.0e-8;*/
+
+  y_n[0] = 1.0e-8;
+  y_n[1] = 1.0e-9;
+  y_n[2] = 1.0e-9;
 
   Real t = 0;
 
@@ -250,9 +254,14 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
   dDdt_array.push_back(y_n[2]);
   Real tmax = 1. / H0;
 
-  Real dt = 1.0e-4 * tmax;
+  // these need to be revised
+  /*Real dt = 1.0e-4 * tmax;
   Real dt_new;
-  Real dt_max = 1.0e-2 * tmax;
+  Real dt_max = 1.0e-2 * tmax;*/
+
+  Real dt = 1.0e-5 * tmax;
+  Real dt_new;
+  Real dt_max = 1.0e-3 * tmax;
 
   Real a_max = 1.0;
 
