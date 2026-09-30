@@ -10,6 +10,21 @@
   #include "../io/io.h"
   #include "../rk/rk4.h"
 
+  // Check for a 32-bit float NaN
+bool Cosmology::fast_math_isnan(float x) {
+    uint32_t u;
+    std::memcpy(&u, &x, sizeof(x));
+    // In IEEE 754, a float is NaN if all exponent bits are 1 and the mantissa is non-zero
+    return (u & 0x7F800000) == 0x7F800000 && (u & 0x007FFFFF) != 0;
+}
+
+// Check for a 64-bit double NaN
+bool Cosmology::fast_math_isnand(double x) {
+    uint64_t u;
+    std::memcpy(&u, &x, sizeof(x));
+    return (u & 0x7FF0000000000000ULL) == 0x7FF0000000000000ULL && (u & 0x000FFFFFFFFFFFFFULL) != 0;
+}
+
 void Grid3D::Initialize_Cosmology(struct Parameters *P)
 {
   chprintf("Initializing Cosmology... \n");
@@ -159,7 +174,7 @@ static std::vector<Real> growth_factor_system(Real z, const std::vector<Real> &y
   Real wa       = params[5];
 
   aa = a;
-  if (aa < 1.0e-7) aa = 1.0e-7;
+  if (aa < 1.0e-8) aa = 1.0e-8;
 
   // get current hubble parameter at this
   // scale factor and time
@@ -176,7 +191,7 @@ static std::vector<Real> growth_factor_system(Real z, const std::vector<Real> &y
   Real Omega_tot  = Omega_m_z + Omega_DE_z + Omega_r_z;
 
   // get the current da/dt = H*a
-  da_dt = H * a;
+  da_dt = H * aa;
 
   // get the current d^2 delta/dt^2 = -2 H ddelta/dt + 4\piG\rho_0 \delta
   // \rho_0 = 3 \Omega_m(z)/\Omega_tot H^2 / 8 \pi G
@@ -223,9 +238,13 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
   params[5] = wa;
 
   // initial scale factor, not important
-  y_n[0] = 1.0e-7;
+  /*y_n[0] = 1.0e-7;
   y_n[1] = 1.0e-8;
-  y_n[2] = 1.0e-8;
+  y_n[2] = 1.0e-8;*/
+
+  y_n[0] = 1.0e-8;
+  y_n[1] = 1.0e-9;
+  y_n[2] = 1.0e-9;
 
   Real t = 0;
 
@@ -235,13 +254,18 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
   dDdt_array.push_back(y_n[2]);
   Real tmax = 1. / H0;
 
-  Real dt = 1.0e-4 * tmax;
+  // these need to be revised
+  /*Real dt = 1.0e-4 * tmax;
   Real dt_new;
-  Real dt_max = 1.0e-2 * tmax;
+  Real dt_max = 1.0e-2 * tmax;*/
+
+  Real dt = 1.0e-5 * tmax;
+  Real dt_new;
+  Real dt_max = 1.0e-3 * tmax;
 
   Real a_max = 1.0;
 
-  while ((t < tmax) & (y_n[0] < a_max)) {
+  while ((t < tmax) && (y_n[0] < a_max)) {
     if (t + dt > tmax) {
       dt = tmax - t;
     }
@@ -255,20 +279,42 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
     for (int i = 0; i < yp.size(); i++) y_n[i] = yp[i];
 
     // limit to the largest dz allowable
-    if (dt_new < dt_max) dt_new = dt_max;
+    if (dt_new > dt_max) dt_new = dt_max;
 
     // update the redshift step
     dt = dt_new;
+
+    if( fast_math_isnand(t) || fast_math_isnand(y_n[0]) || fast_math_isnand(y_n[1]) || fast_math_isnand(y_n[2]) ) {
+      printf("Error computing growth function on procID %d: (%e %e %e %e)\n",procID,t,y_n[0],y_n[1],y_n[2]);
+    }
 
     t_array.push_back(t);
     a_array.push_back(y_n[0]);
     D_array.push_back(y_n[1]);
     dDdt_array.push_back(y_n[2]);
   }
+
+  /*
+  // Kludge -- bcast from process 0
+  int t_size = t_array.size();
+  MPI_Bcast(&t_size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  if(procID!=0) {
+    t_array.resize(t_size);
+    a_array.resize(t_size);
+    D_array.resize(t_size);
+    dDdt_array.resize(t_size);
+  }
+  MPI_Bcast(t_array.data(), t_size, MPI_CHREAL, 0, MPI_COMM_WORLD);
+  MPI_Bcast(a_array.data(), t_size, MPI_CHREAL, 0, MPI_COMM_WORLD);
+  MPI_Bcast(D_array.data(), t_size, MPI_CHREAL, 0, MPI_COMM_WORLD);
+  MPI_Bcast(dDdt_array.data(), t_size, MPI_CHREAL, 0, MPI_COMM_WORLD);
+  */
+
 }
 
 Real Cosmology::LinearInterpolation(const std::vector<Real> &x, const std::vector<Real> &y, Real a)
 {
+  /*
   // clamp if needed
   if (a <= x.front()) return y.front();
   if (a >= x.back()) return y.back();
@@ -280,6 +326,23 @@ Real Cosmology::LinearInterpolation(const std::vector<Real> &x, const std::vecto
   auto index = std::distance(x.begin(), it);
 
   return y[index] + (y[index + 1] - y[index]) * (a - x[index]) / (x[index + 1] - x[index]);
+  */
+  // clamp if needed
+  if (a <= x.front()) return y.front();
+  if (a >= x.back()) return y.back();
+
+  // lower_bound finds the first element >= a
+  auto it = std::lower_bound(x.begin(), x.end(), a);
+
+  // Step back one index to get the left bound of the interval
+  auto index = std::distance(x.begin(), it) - 1;
+
+  // Prevent division by zero if x values are duplicated
+  Real dx = x[index + 1] - x[index];
+  if (dx == 0.0) return y[index]; 
+
+  // interpolate
+  return y[index] + (y[index + 1] - y[index]) * (a - x[index]) / dx; 
 }
 
 Real Cosmology::D_Growth(Real a)

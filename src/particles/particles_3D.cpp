@@ -45,9 +45,35 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
     Real a_init         = 1. / (1. + z_init);
     Particles.CP.phi_1  = CP.phi_1;
     Particles.CP.phi_bc = CP.phi_2;  // delta_bc has been replaced by phi_bc
-    Particles.CP.D      = Cosmo.D_Growth(a_init);
-    Particles.CP.dDdt   = Cosmo.dDdt_Growth(a_init);
-    Particles.CP.dDda   = Cosmo.dDda_Growth(a_init);
+
+    int bcast_flag = procID + 1;
+    Real D      = Cosmo.D_Growth(a_init);
+    Real dDdt   = Cosmo.dDdt_Growth(a_init);
+    Real dDda   = Cosmo.dDda_Growth(a_init);
+    if( Cosmo.fast_math_isnand(D) || Cosmo.fast_math_isnand(dDdt) || Cosmo.fast_math_isnand(dDda) ) {
+      //printf("Cosmological ICs: Particles growth Function Error on procID %d : (%e, %e, %e, %e, %e)\n",procID,z_init,a_init,D,dDdt,dDda);
+      //fflush(stdout);
+      bcast_flag = 0;
+    }
+    /*
+    //MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &bcast_flag, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+
+    chprintf("Cosmological ICs: Particles bcast_flag %d\n",bcast_flag);
+
+    bcast_flag -= 1; // select process with valid growth function
+
+    // Kludge -- broadcast growth info from procID = 0
+    MPI_Bcast(&D, 1, MPI_CHREAL, bcast_flag, MPI_COMM_WORLD);
+    MPI_Bcast(&dDdt, 1, MPI_CHREAL, bcast_flag, MPI_COMM_WORLD);
+    MPI_Bcast(&dDda, 1, MPI_CHREAL, bcast_flag, MPI_COMM_WORLD);*/
+
+    Particles.CP.D      = D;
+    Particles.CP.dDdt   = dDdt;;
+    Particles.CP.dDda   = dDda;    
+    //Particles.CP.D      = Cosmo.D_Growth(a_init);
+    //Particles.CP.dDdt   = Cosmo.dDdt_Growth(a_init);
+    //Particles.CP.dDda   = Cosmo.dDda_Growth(a_init);
     Real Omega_m        = P->Omega_M;
     Real Omega_r        = P->Omega_R;
     Real Omega_DE       = P->Omega_L;
@@ -1642,11 +1668,11 @@ void Particles3D::Initialize_Cosmological_ICs_Particles(struct Parameters *P, Re
     }
   }
 
-  printf("Transfers procID %d nxlt %d nxut %d xix_rms %e nylt %d nyut %d xiy_rms %e nzlt %d nzut %d xiz_rms %e\n",
+  /*printf("Transfers procID %d nxlt %d nxut %d xix_rms %e nylt %d nyut %d xiy_rms %e nzlt %d nzut %d xiz_rms %e\n",
          procID, nxlt, nxut, sqrt(xix_rms / xix_n), nylt, nyut, sqrt(xiy_rms / xix_n), nzlt, nzut,
          sqrt(xiz_rms / xix_n));
   fflush(stdout);
-  MPI_Barrier(world);
+  MPI_Barrier(world);*/
 
   MPI_Allreduce(MPI_IN_PLACE, &xix_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(MPI_IN_PLACE, &xiy_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);

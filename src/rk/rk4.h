@@ -27,6 +27,10 @@ class RKIntegrator
   std::vector<Real> yprime;
   std::vector<Real> error;
 
+  // check for NaN when using fast math
+  bool fast_math_isnan(float x);
+  bool fast_math_isnand(double x);
+
   RKIntegrator() = delete;  // ensure that instances are always fully initialized
 
   /*! \brief Constructor */

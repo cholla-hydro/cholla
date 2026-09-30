@@ -7,7 +7,8 @@ module load cray-python
 module load rocm
 module load craype-accel-amd-gfx90a
 module load cray-hdf5 cray-fftw
-module load googletest/1.14.0
+module load googletest
+#/1.14.0
 
 #-- GPU-aware MPI
 export MPICH_GPU_SUPPORT_ENABLED=1
