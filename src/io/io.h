@@ -83,8 +83,7 @@ class H5Space1D
   hid_t id_;
 
  public:
-  //H5Space1D() : dim_(nullptr), id_{H5I_INVALID_HID} {}
-  H5Space1D() : id_{H5I_INVALID_HID} {}
+  H5Space1D() : dim_(nullptr), id_{H5I_INVALID_HID} {}
   H5Space1D(hsize_t dim) : H5Space1D() { this->ensure_dim(dim); }
   H5Space1D(H5Space1D&& other) noexcept : H5Space1D() { *this = std::move(other); }
 
