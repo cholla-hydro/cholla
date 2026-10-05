@@ -125,7 +125,7 @@ void Grav3D::Initialize(Real x_min, Real y_min, Real z_min, Real x_max, Real y_m
 void Grav3D::AllocateMemory_CPU(void)
 {
   // allocate memory for the density and potential arrays
-  F.density_h = (Real *)malloc(n_cells * sizeof(Real));              // array for the
+  F.density_h   = (Real *)malloc(n_cells * sizeof(Real));            // array for the
                                                                      // density
   F.potential_h = (Real *)malloc(n_cells_potential * sizeof(Real));  // array for the potential at the n-th timestep
   F.potential_1_h =
