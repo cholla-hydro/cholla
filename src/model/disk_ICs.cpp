@@ -751,12 +751,12 @@ void Grid3D::Disk_3D(Parameters p)
   DiskGalaxy galaxy = galaxies::MW;  // NOLINT(cppcoreguidelines-slicing)
   // M82 model galaxies::M82;
 
-  M_vir = galaxy.getM_vir();    // viral mass in M_sun
-  M_d   = galaxy.getM_d();      // mass of disk in M_sun (assume all stars)
-  R_d   = galaxy.getR_d();      // stellar disk scale length in kpc
-  z_d   = galaxy.getZ_d();      // stellar disk scale height in kpc
-  R_vir = galaxy.getR_vir();    // viral radius in kpc
-  c_vir = galaxy.getC_vir();    // halo concentration (to account for adiabatic
+  M_vir  = galaxy.getM_vir();   // viral mass in M_sun
+  M_d    = galaxy.getM_d();     // mass of disk in M_sun (assume all stars)
+  R_d    = galaxy.getR_d();     // stellar disk scale length in kpc
+  z_d    = galaxy.getZ_d();     // stellar disk scale height in kpc
+  R_vir  = galaxy.getR_vir();   // viral radius in kpc
+  c_vir  = galaxy.getC_vir();   // halo concentration (to account for adiabatic
                                 // contraction)
   r_cool = galaxy.getR_cool();  // cooling radius in kpc (MW)
 

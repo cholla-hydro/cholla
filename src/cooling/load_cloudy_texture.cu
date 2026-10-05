@@ -149,7 +149,7 @@ void Load_Cuda_Textures()
                                                   // dimension 0
   texDesc.addressMode[1] = cudaAddressModeClamp;  // out-of-bounds fetches return border values
                                                   // dimension 1
-  texDesc.filterMode = cudaFilterModePoint;
+  texDesc.filterMode     = cudaFilterModePoint;
   // We use point mode instead of Linear mode in order to do the interpolation
   // ourselves. Linear mode introduces errors since it only uses 8 bits.
   // cudaFilterModeLinear;

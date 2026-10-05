@@ -244,12 +244,12 @@ __device__ Real primordial_cool(Real n, Real T)
       n_h0    = n_h * alpha_hp / (alpha_hp + gamma_eh0 + gamma_lh0 / n_e);
       n_hp    = n_h - n_h0;
       n_hep   = y * n_h /
-              (1.0 + (alpha_hep + alpha_d) / (gamma_ehe0 + gamma_lhe0 / n_e) +
-               (gamma_ehep + gamma_lhep / n_e) / alpha_hepp);
-      n_he0  = n_hep * (alpha_hep + alpha_d) / (gamma_ehe0 + gamma_lhe0 / n_e);
-      n_hepp = n_hep * (gamma_ehep + gamma_lhep / n_e) / alpha_hepp;
-      n_e    = n_hp + n_hep + 2 * n_hepp;
-      diff   = fabs(n_e_old - n_e);
+                (1.0 + (alpha_hep + alpha_d) / (gamma_ehe0 + gamma_lhe0 / n_e) +
+                 (gamma_ehep + gamma_lhep / n_e) / alpha_hepp);
+      n_he0   = n_hep * (alpha_hep + alpha_d) / (gamma_ehe0 + gamma_lhe0 / n_e);
+      n_hepp  = n_hep * (gamma_ehep + gamma_lhep / n_e) / alpha_hepp;
+      n_e     = n_hp + n_hep + 2 * n_hepp;
+      diff    = fabs(n_e_old - n_e);
       if (diff < tol) {
         break;
       }

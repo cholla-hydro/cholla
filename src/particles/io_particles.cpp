@@ -719,8 +719,8 @@ void Grid3D::Write_Particles_Data_HDF5(hid_t file_id)
   for (k = 0; k < Particles.G.nz_local; k++) {
     for (j = 0; j < Particles.G.ny_local; j++) {
       for (i = 0; i < Particles.G.nx_local; i++) {
-        id = (i + nGHST) + (j + nGHST) * (Particles.G.nx_local + 2 * nGHST) +
-             (k + nGHST) * (Particles.G.nx_local + 2 * nGHST) * (Particles.G.ny_local + 2 * nGHST);
+        id                     = (i + nGHST) + (j + nGHST) * (Particles.G.nx_local + 2 * nGHST) +
+                                 (k + nGHST) * (Particles.G.nx_local + 2 * nGHST) * (Particles.G.ny_local + 2 * nGHST);
         buf_id                 = k + j * Particles.G.nz_local + i * Particles.G.nz_local * Particles.G.ny_local;
         dataset_buffer[buf_id] = Particles.G.density[id];
       }
