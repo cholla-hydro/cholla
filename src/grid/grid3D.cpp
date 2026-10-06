@@ -35,21 +35,14 @@
 #ifdef PARALLEL_OMP
   #include "../utils/parallel_omp.h"
 #endif
-<<<<<<< HEAD
-
-#ifdef COOLING_GPU
-  #include "../cooling/cooling_cuda.h"  // provides Cooling_Update
-#endif
 
 #ifdef CLOUD_TRACKING
   #include "../cloud_tracking/cloud_tracking.h"
 #endif
 
-=======
 #ifdef RT
   #include "../radiation/radiation.h"
 #endif
->>>>>>> dev
 #ifdef DUST
   #include "../dust/dust_cuda.h"  // provides Dust_Update
 #endif

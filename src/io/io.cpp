@@ -89,7 +89,7 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
   chprintf("\nSaving Snapshot: %d \n", nfile);
 
   #ifdef CLOUD_TRACKING
-    chprintf("Average cloud velocity = %e km/s\n", G.H.velocity_cloud_avg_curr * KPC / TIME_UNIT);
+    chprintf("Average cloud velocity = %e km/s\n", G.H.velocity_x_cloud_avg * KPC / TIME_UNIT);
   #endif
 
   // ensure the output-directory exists (try to create it if it doesn't exist)
@@ -179,6 +179,10 @@ void Grid3D::Write_Header(AttrRecorderInterface &attr_recorder) const
   attr_recorder.record("velocity_unit", double{VELOCITY_UNIT});
   attr_recorder.record("density_unit", double{DENSITY_UNIT});
   attr_recorder.record("energy_unit", double{ENERGY_UNIT});
+
+#ifdef CLOUD_TRACKING
+  attr_recorder.record("velocity_x_cloud_avg", H.velocity_x_cloud_avg);
+#endif 
 
 #ifdef MHD
   attr_recorder.record("magnetic_field_unit", double{MAGNETIC_FIELD_UNIT});
@@ -948,6 +952,11 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
   attribute_id = H5Aopen(file_id, "n_step", H5P_DEFAULT);
   status       = H5Aread(attribute_id, H5T_NATIVE_INT, &H.n_step);
   status       = H5Aclose(attribute_id);
+#ifdef CLOUD_TRACKING
+  attribute_id = H5Aopen(file_id, "velocity_x_cloud_avg", H5P_DEFAULT);
+  status       = H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &H.velocity_x_cloud_avg);
+  status       = H5Aclose(attribute_id);
+#endif
 
   #ifdef MHD
   dataset_buffer = (Real *)malloc((H.nz_real + 1) * (H.ny_real + 1) * (H.nx_real + 1) * sizeof(Real));
