@@ -4,7 +4,7 @@ This test highlights a collision between two shocks. This test is from Toro's *R
 The parameter file can be found at: {repository-file}`examples/1D/two_shocks.txt`
 
 ## Parameter file:
-```
+```toml
 #
 # Parameter File for Toro test 4, a collision of two shocks.
 # Parameters derived from Toro, Sec. 6.4.4, test 4
@@ -22,7 +22,7 @@ tout=0.035
 # time interval for output
 outstep=0.035
 # name of initial conditions
-init=Riemann
+init="Riemann"
 # domain properties
 xmin=0.0
 ymin=0.0
@@ -38,7 +38,7 @@ yu_bcnd=0
 zl_bcnd=0
 zu_bcnd=0
 # path to output directory
-outdir=./
+outdir="./"
 
 #################################################
 # Parameters for 1D Riemann problems

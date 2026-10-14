@@ -6,7 +6,7 @@ Full initial conditions can be found in `cholla/src/grid/initial_conditions.cpp`
 ## Parameter file:
 
 This parameter file can be found in [examples/3D/Adiabatic_Expansion.txt](https://github.com/cholla-hydro/cholla/blob/main/examples/3D/Adiabatic_Expansion.txt) on the `dev` branch.
-```
+```toml
 #
 # Parameter File for the 3D Adiabatic Expansion test.
 #
@@ -25,7 +25,7 @@ outstep=1000
 # value of gamma
 gamma=1.66666667
 # name of initial conditions
-init=Adiabatic_Expansion
+init="Adiabatic_Expansion"
 #Cosmological Parameters
 Init_redshift=20.0
 #Init_redshift=0.998294693667
@@ -34,7 +34,7 @@ Omega_M=1.0
 Omega_L=0.0
 Omega_b=1.0
 temperature_floor=1.0e-2
-scale_outputs_file=scale_output_files/outputs_adiabatic_expansion.txt
+scale_outputs_file="scale_output_files/outputs_adiabatic_expansion.txt"
 # domain properties
 xmin=0.0
 ymin=0.0
@@ -50,8 +50,8 @@ yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
-indir=ics/
-outdir=./
+indir="ics/"
+outdir="./"
 ```
   
 Upon completion, you should obtain two output files. The final density, velocity, and temperature in physical units are shown below. Examples of how to plot projections and slices can be found in the [General 2D plotting example](../../PythonExamples/2D-plotting.md). 
