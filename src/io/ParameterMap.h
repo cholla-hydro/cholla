@@ -103,6 +103,8 @@ constexpr std::pair<int64_t, int64_t> lossless_conversion_bounds_()
   } else {
     static_assert(always_false<T>, "template has unexpected type.");
   }
+  // this is unreachable, but we need to return a value to silence warnings
+  return {-1, -1};
 }
 
 template <typename T>

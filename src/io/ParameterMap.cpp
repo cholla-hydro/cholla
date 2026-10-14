@@ -113,7 +113,7 @@ static std::optional<Value> try_parse_val_(std::string buf, bool& range_err)
 
   // try to parse buf as a string
   std::pair<std::size_t, std::string> str_rslt = io::try_parse_param_str(buf);
-  if (str_rslt.first == 0 || str_rslt.first != buf_size) {
+  if (str_rslt.first != 0 || str_rslt.first == buf_size) {
     // str_rslt == 0 ->
     //   `buf` simply did NOT hold a valid string
     // str_rslt != str.size() ->
@@ -201,7 +201,7 @@ KeyValueExtraction Try_Extract_Key_Value(std::string_view full_view)
 
   std::string error_msg;
   if (not maybe_value.has_value()) {
-    error_msg = "error interpretting the value associated with the " + key_parse_rslt.val + " parameter";
+    error_msg = "error interpretting the value associated with the `" + key_parse_rslt.val + "` parameter";
     if (range_err) error_msg += ": value is out of range";
   }
   return {key_parse_rslt.val, maybe_value, key_parse_rslt.n_segments, error_msg};
@@ -264,7 +264,7 @@ struct FileLineStream {
   {
     std::string out = "   on line ";
     out += std::to_string(this->line_num);
-    out += "of the parameter file: ";
+    out += " of the parameter file: ";
     out += this->s;
     out += '\n';
     return out;
