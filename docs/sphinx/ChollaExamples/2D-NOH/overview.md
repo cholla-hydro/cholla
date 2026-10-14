@@ -5,7 +5,7 @@ The parameter file can be found at: {repository-file}`examples/2D/Noh_2D.txt`
 
 ## Parameter file:
 
-```
+```toml
 #
 # Parameter File for the 2D Noh problem described in Liska, 2003.
 #
@@ -24,7 +24,7 @@ outstep=0.01
 # value of gamma
 gamma=1.66666667
 # name of initial conditions
-init=Noh_2D
+init="Noh_2D"
 # domain properties
 xmin=0.0
 ymin=0.0
@@ -39,9 +39,9 @@ yl_bcnd=2
 yu_bcnd=4
 zl_bcnd=0
 zu_bcnd=0
-custom_bcnd=noh
+custom_bcnd="noh"
 # path to output directory
-outdir=./
+outdir="./"
 ```
 Upon completion, you should obtain 201 output files. The evolution of the density is shown below. Examples of how to plot projections and slices can be found in the [General 2D plotting example](../../PythonExamples/2D-plotting.md).
 

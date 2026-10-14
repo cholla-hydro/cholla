@@ -4,7 +4,7 @@ This test highlights the ability of a code to resolve mixing caused by shear flo
 This parameter file can be found at: ({repository-file}`examples/2D/KKH_res_ind_2D.txt`) 
 
 ## Parameter File:
-```
+```toml
 #
 # Parameter File for the 2D resolution independent Kelvin-Helmholtz test.
 #
@@ -23,7 +23,7 @@ outstep=0.01
 # value of gamma
 gamma=1.6666666666666667
 # name of initial conditions
-init=KH_res_ind
+init="KH_res_ind"
 # domain properties
 xmin=0.0
 ymin=0.0
@@ -39,7 +39,7 @@ yu_bcnd=1
 zl_bcnd=0
 zu_bcnd=0
 # path to output directory
-outdir=./
+outdir="./"
 ```
 
 Upon completion, you should obtain 201 output files. The initial and final densities for two different resolutions (in code units) of a slice along the y-midplane is shown below. Default resolution (128x128) is compared to a high-res version (256x256). Examples of how to plot projections and slices can be found in the [General 2D plotting example](../../PythonExamples/2D-plotting.md). 

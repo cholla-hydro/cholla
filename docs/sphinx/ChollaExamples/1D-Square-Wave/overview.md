@@ -4,7 +4,7 @@ This test initializes a square wave density pertubation. The setup consists of a
 The parameter file can be found at: {repository-file}`examples/1D/square_wave.txt`
 
 ## Parameter file:
-```
+```toml
 #
 # Parameter File for square wave test
 #
@@ -22,7 +22,7 @@ tout=1.0
 outstep=0.01
 n_hydro=1
 # name of initial conditions
-init=Square_Wave
+init="Square_Wave"
 # size of domain
 xmin=0.0
 ymin=0.0
@@ -38,7 +38,7 @@ yu_bcnd=0
 zl_bcnd=0
 zu_bcnd=0
 # path to output directory
-outdir=./
+outdir="./"
 
 #################################################
 # Parameters for square wave 
