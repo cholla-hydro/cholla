@@ -16,7 +16,7 @@ outstep=0.01
 # value of gamma
 gamma=1.66666667
 # name of initial conditions
-init=Noh_3D
+init="Noh_3D"
 # domain properties
 xmin=0.0
 ymin=0.0
@@ -31,7 +31,7 @@ yl_bcnd=2
 yu_bcnd=4
 zl_bcnd=2
 zu_bcnd=4
-custom_bcnd=noh
+custom_bcnd="noh"
 # path to output directory
-outdir=./
+outdir="./"
 
