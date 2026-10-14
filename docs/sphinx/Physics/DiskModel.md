@@ -97,7 +97,7 @@ Consider the parameterization of a Miyamoto-Nagai potential (this will be import
 :::
 
 At the time of writing, we always define {math}`\Phi_{\rm stars,old}(R,z)=\Phi_{\rm MN}(R,z; M_{\rm stars}, R_{\rm stars}, z_{\rm stars})`, where {math}`R` & {math}`z` are cylindrical coordinates, {math}`R_{\rm stars}` & {math}`z_{\rm stars}` are the scale radius/height, and {math}`M_{\rm stars}` is the mass of the disk.
-Currently, these values are hardcoded where we initialize the `ClusteredDiskGalaxy` struct that holds the Milky Way properties (in {repository-file}`src/model/disk_galaxy.cu`).
+These values are specified by the {par:param}`!model.galaxy.static_potential.old_stellar_disk` family of runtime parameters (see {ref}`here <Reference-GalaxyModel-RuntimeParams-OldStellarPotential>`).
 
 At the time of writing, {math}`\Phi_{\rm dm}` is always assumed to be an NFW profile, or
 
@@ -106,6 +106,7 @@ At the time of writing, {math}`\Phi_{\rm dm}` is always assumed to be an NFW pro
 :::
 
 where {math}`r=\sqrt{R^2+z^2}` is radius in spherical coordinates, {math}`M_{\rm vir}` is the dark matter mass, {math}`c` is halo concentration, and {math}`R_{\rm dm}` is the scale length of the halo.
+These values are specified by the {par:paramfmt}`model.galaxy.static_potential.halo` family of runtime parameters (see {ref}`here <Reference-GalaxyModel-RuntimeParams-HaloPotential>`).
 
 
 ### Analytic Self-Gravity Estimate
@@ -357,12 +358,7 @@ Thus {math}`a = {\rm SFR}_{\rm tot} k_s^2 / (2 \pi R_{\rm gas-scale-length})` an
 \Sigma_{\rm SFR} (r_{\rm cyl}) =  \frac{k_s^2\ {\rm SFR}_{\rm tot}}{2\pi R_{\rm gas-scale-length}^2} \exp(-k_s r_{\rm cyl} / R_{\rm gas-scale-length})
 :::
 
-At the time of writing, the SFR is hardcoded within the `disk_stellar_cluster_init_` C++ function (in {repository-file}`src/particles/particles_3D.cpp`).
-
-:::{todo}
-Adjust the location where SFR is set to be co-located with other parameters.
-(Ideally, it would be a runtime parameter)
-:::
+The values of {math}`{\rm SFR}_{\rm tot}` and {math}`k_s` are set by the {par:param}`model.galaxy.star_forming_disk.global_sfr_Msun_per_kyr` and {par:param}`model.galaxy.star_forming_disk.kennicut_schmidt_power` runtime parameters.
 
 ### Cluster Mass Distribution
 
@@ -384,10 +380,7 @@ P_{cl}(M_{cl}) =
 
 where {math}`\alpha \neq 1` and {math}`0 < M_{\rm lo} < M_{\rm hi}`.
 
-:::{todo}
-Make this configurable in the input parameter file.
-Right now the parameters are hardcoded within {repository-file}`src/model/disk_galaxy.cu`
-:::
+The values of the parameters are set through the {par:param}`!model.galaxy.star_forming_disk.cluster_mass_dist` family of parameters (see {ref}`here <Reference-GalaxyModel-RuntimeParams-ClusterMassDist>`).
 
 ### Actually Seeding the Particle Distribution
 
@@ -401,11 +394,10 @@ In both cases:
 - our cluster-generation logic may indicate that a cluster should be formed somewhere beyond the truncation radius of the stellar disk.
   In that case, we act like the cluster is formed (and compute all of its properties), but stop short of actually creating the particle.
 
-Now let's discuss the approaches:
 
-:::{important}
-At this time, the codebase is hardcoded to use the Poisson point-process approach (this is set in {repository-file}`src/particles/particles_3D.cpp` within ``Particles3D::Initialize_Disk_Stellar_Clusters``).
-:::
+You specify you preferred choice by setting the {par:param}`model.galaxy.star_forming_disk.poisson_point_process` runtim parameter.
+
+Now let's discuss the approaches:
 
 :::{note}
 For the purposes of this discussion, we act as if the cluster mass distribution can vary with {math}`r_{\rm cyl}` to demonstrate that the model can indeed support this behavior.
