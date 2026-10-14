@@ -112,9 +112,9 @@ void Grid3D::Get_Gravity_Field_Particles_function(int g_start, int g_end)
   potential  = Grav.F.potential_h;
   nGHST_grid = N_GHOST_POTENTIAL;
 
-  nx_grid = Grav.nx_local + 2 * nGHST_grid;
-  ny_grid = Grav.ny_local + 2 * nGHST_grid;
-  nz_grid = Grav.nz_local + 2 * nGHST_grid;
+  nx_grid = Grav.spatial_props.nx_local + 2 * nGHST_grid;
+  ny_grid = Grav.spatial_props.ny_local + 2 * nGHST_grid;
+  nz_grid = Grav.spatial_props.nz_local + 2 * nGHST_grid;
 
   int nGHST = nGHST_grid - nGHST_grav;
 

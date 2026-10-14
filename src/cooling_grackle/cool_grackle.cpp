@@ -113,9 +113,9 @@ void Cool_GK::Initialize(struct Parameters *P, Cosmology &Cosmo)
 void Grid3D::Allocate_Memory_Grackle()
 {
   int n_cells = H.nx * H.ny * H.nz;
-  int nx      = Grav.nx_local;
-  int ny      = Grav.ny_local;
-  int nz      = Grav.nz_local;
+  int nx      = Grav.spatial_props.nx_local;
+  int ny      = Grav.spatial_props.ny_local;
+  int nz      = Grav.spatial_props.nz_local;
   // Set grid dimension and size.
   Cool.field_size               = n_cells;
   Cool.fields.grid_rank         = 3;

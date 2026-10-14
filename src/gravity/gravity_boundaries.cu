@@ -1,24 +1,33 @@
+#include <cmath>
+#include <utility>
+
+#include "../gravity/grav3D.h"
+#include "../grid/grid3D.h"
+#include "../io/io.h"
+#include "../model/galaxy/disk_galaxy.h"
+#include "../model/galaxy/potentials.h"
+#include "../model/model_collection.h"
+#include "../utils/error_handling.h"
+#include "cholla_config.h"
+
 #ifdef GRAVITY
 
-  #include <cmath>
-  #include <utility>
-
-  #include "../gravity/grav3D.h"
-  #include "../grid/grid3D.h"
-  #include "../io/io.h"
-  #include "../model/galaxy/disk_galaxy.h"
-  #include "../model/galaxy/potentials.h"
-  #include "../model/model_collection.h"
-  #include "../utils/error_handling.h"
-
-/*! \brief aggregates properties of the buffer for boundary vals of the potential */
+/*! \brief aggregates properties of the buffer for boundary vals of the potential
+ *
+ *  \note It *might* make sense to generalize this for handling other kinds of boundary
+ *  conditions.
+ */
 struct BoundaryBufProps {
   int n_i;
   int n_j;
   int nGHST;
 };
 
-/*! \brief retrieve the boundary_buf for the potential and associated properties */
+/*! \brief retrieve the boundary_buf for the potential and associated properties
+ *
+ *  \note This is labelled maybe_unused since it isn't used unless certain compiler
+ *      macros are configured.
+ */
 [[maybe_unused]] static std::pair<Real *, BoundaryBufProps> Get_Boundary_Buf_(const Grav3D &Grav, int direction,
                                                                               int side)
 {
@@ -26,23 +35,25 @@ struct BoundaryBufProps {
   CHOLLA_ASSERT(0 <= direction and direction <= 2, "sanity check failed");
   CHOLLA_ASSERT(side == 0 or side == 1, "sanity check failed");
 
+  const SpatialDomainProps &spatial_props = Grav.spatial_props;
+
   int n_i, n_j;
   Real *pot_boundary = nullptr;
   if (direction == 0) {
-    n_i = Grav.ny_local;
-    n_j = Grav.nz_local;
+    n_i = spatial_props.ny_local;
+    n_j = spatial_props.nz_local;
   #ifdef GRAV_ISOLATED_BOUNDARY_X
     pot_boundary = (side == 0) ? Grav.F.pot_boundary_x0 : Grav.F.pot_boundary_x1;
   #endif
   } else if (direction == 1) {
-    n_i = Grav.nx_local;
-    n_j = Grav.nz_local;
+    n_i = spatial_props.nx_local;
+    n_j = spatial_props.nz_local;
   #ifdef GRAV_ISOLATED_BOUNDARY_Y
     pot_boundary = (side == 0) ? Grav.F.pot_boundary_y0 : Grav.F.pot_boundary_y1;
   #endif
   } else {  // direction == 2
-    n_i = Grav.nx_local;
-    n_j = Grav.ny_local;
+    n_i = spatial_props.nx_local;
+    n_j = spatial_props.ny_local;
   #ifdef GRAV_ISOLATED_BOUNDARY_Z
     pot_boundary = (side == 0) ? Grav.F.pot_boundary_z0 : Grav.F.pot_boundary_z1;
   #endif
@@ -89,14 +100,12 @@ void Grid3D::Set_Potential_Boundaries_Isolated(int direction, int side, int *fla
   int n_j                                 = tmp.second.n_j;
   int nGHST                               = tmp.second.nGHST;
 
-  int nx_g, ny_g, nz_g;
-  int nx_local, ny_local, nz_local;
-  nx_g     = Grav.nx_local + 2 * nGHST;
-  ny_g     = Grav.ny_local + 2 * nGHST;
-  nz_g     = Grav.nz_local + 2 * nGHST;
-  nx_local = Grav.nx_local;
-  ny_local = Grav.ny_local;
-  nz_local = Grav.nz_local;
+  int nx_g     = Grav.spatial_props.nx_local + 2 * nGHST;
+  int ny_g     = Grav.spatial_props.ny_local + 2 * nGHST;
+  int nz_g     = Grav.spatial_props.nz_local + 2 * nGHST;
+  int nx_local = Grav.spatial_props.nx_local;
+  int ny_local = Grav.spatial_props.ny_local;
+  int nz_local = Grav.spatial_props.nz_local;
 
   int i, j, k, id_buffer, id_grid;
 
@@ -141,29 +150,22 @@ void Grid3D::Set_Potential_Boundaries_Isolated(int direction, int side, int *fla
  *
  *  \param[out] pot_boundary the buffer to be filled with the computed potential
  *  \param[in] boundary_buf_props Describes properties of \p pot_boundary
- *  \param[in] Grav Holds information needed to compute the spatial location of each
- *      location.
+ *  \param[in] SpatialDomainProps Holds information needed to compute the spatial
+ *      location of each location.
  *  \param[in] direction Encodes the axis of the boundary
  *  \param[in] side Encodes whether we are consider a left or right boundary
  *  \param[in] fn A function object that effectively has the signature
  *      `Real fn(Real x, Real y, Real z)`. In more detail, it returns the potential
  *      computed at a specified position.
- *
- *  \note
- *  Ideally, we might replace \p Grav with an instance of \ref SpatialDomainProps (or
- *  something similar). This will become in a future planned change that will factor
- *  out this logic and other logic pertaining the estimate for the dynamical potential.
- *  It's also more elegant (i.e. \ref Grav3D contains a lot of superfluous info) and
- *  makes it possible to invoke this logic on GPUs (we would just need to replace the
- *  for-loop with \ref gpuFor)
  */
 template <typename PotentialFn>
 static void Compute_Potential_Isolated_Boundary_Helper(Real *pot_boundary, const BoundaryBufProps &boundary_buf_props,
-                                                       const Grav3D &Grav, int direction, int side, PotentialFn fn)
+                                                       const SpatialDomainProps &spatial_props, int direction, int side,
+                                                       PotentialFn fn)
 {
-  Real Lx_local = Grav.nx_local * Grav.dx;
-  Real Ly_local = Grav.ny_local * Grav.dy;
-  Real Lz_local = Grav.nz_local * Grav.dz;
+  Real Lx_local = spatial_props.nx_local * spatial_props.dx;
+  Real Ly_local = spatial_props.ny_local * spatial_props.dy;
+  Real Lz_local = spatial_props.nz_local * spatial_props.dz;
 
   int n_i   = boundary_buf_props.n_i;
   int n_j   = boundary_buf_props.n_j;
@@ -177,29 +179,29 @@ static void Compute_Potential_Isolated_Boundary_Helper(Real *pot_boundary, const
         // calculate the position
         Real pos_x, pos_y, pos_z;
         if (direction == 0) {
-          // pos_x = Grav.xMin - ( nGHST + k + 0.5 ) * Grav.dx;
-          pos_x = Grav.xMin + (k + 0.5 - nGHST) * Grav.dx;
+          // pos_x = spatial_props.xMin - ( nGHST + k + 0.5 ) * spatial_props.dx;
+          pos_x = spatial_props.xMin + (k + 0.5 - nGHST) * spatial_props.dx;
           if (side == 1) {
-            pos_x += Lx_local + nGHST * Grav.dx;
+            pos_x += Lx_local + nGHST * spatial_props.dx;
           }
-          pos_y = Grav.yMin + (i + 0.5) * Grav.dy;
-          pos_z = Grav.zMin + (j + 0.5) * Grav.dz;
+          pos_y = spatial_props.yMin + (i + 0.5) * spatial_props.dy;
+          pos_z = spatial_props.zMin + (j + 0.5) * spatial_props.dz;
         } else if (direction == 1) {
-          // pos_y = Grav.yMin - ( nGHST + k + 0.5 ) * Grav.dy;
-          pos_y = Grav.yMin + (k + 0.5 - nGHST) * Grav.dy;
+          // pos_y = spatial_props.yMin - ( nGHST + k + 0.5 ) * spatial_props.dy;
+          pos_y = spatial_props.yMin + (k + 0.5 - nGHST) * spatial_props.dy;
           if (side == 1) {
-            pos_y += Ly_local + nGHST * Grav.dy;
+            pos_y += Ly_local + nGHST * spatial_props.dy;
           }
-          pos_x = Grav.xMin + (i + 0.5) * Grav.dx;
-          pos_z = Grav.zMin + (j + 0.5) * Grav.dz;
+          pos_x = spatial_props.xMin + (i + 0.5) * spatial_props.dx;
+          pos_z = spatial_props.zMin + (j + 0.5) * spatial_props.dz;
         } else {  // (direction == 2)
-          // pos_z = Grav.zMin - ( nGHST + k + 0.5 ) * Grav.dz;
-          pos_z = Grav.zMin + (k + 0.5 - nGHST) * Grav.dz;
+          // pos_z = spatial_props.zMin - ( nGHST + k + 0.5 ) * spatial_props.dz;
+          pos_z = spatial_props.zMin + (k + 0.5 - nGHST) * spatial_props.dz;
           if (side == 1) {
-            pos_z += Lz_local + nGHST * Grav.dz;
+            pos_z += Lz_local + nGHST * spatial_props.dz;
           }
-          pos_x = Grav.xMin + (i + 0.5) * Grav.dx;
-          pos_y = Grav.yMin + (j + 0.5) * Grav.dy;
+          pos_x = spatial_props.xMin + (i + 0.5) * spatial_props.dx;
+          pos_y = spatial_props.yMin + (j + 0.5) * spatial_props.dy;
         }
         pot_boundary[id] = fn(pos_x, pos_y, pos_z);
       }
@@ -231,7 +233,8 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
     };
 
     // now, use the calc_potential function to actually fill the boundaries
-    Compute_Potential_Isolated_Boundary_Helper(pot_boundary, boundary_buf_props, Grav, direction, side, calc_potential);
+    Compute_Potential_Isolated_Boundary_Helper(pot_boundary, boundary_buf_props, Grav.spatial_props, direction, side,
+                                               calc_potential);
   } else if (bc_potential_type == 1) {
     // The underlying assumption of PARIS_GALACTIC is that we have a good analytic
     // approximation the gravitation potential at the boundaries due to the dynamical density
@@ -265,7 +268,8 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
     };
 
     // now, use the calc_potential function to actually fill the boundaries
-    Compute_Potential_Isolated_Boundary_Helper(pot_boundary, boundary_buf_props, Grav, direction, side, calc_potential);
+    Compute_Potential_Isolated_Boundary_Helper(pot_boundary, boundary_buf_props, Grav.spatial_props, direction, side,
+                                               calc_potential);
   } else {
     CHOLLA_ERROR("Invalid bc_potential_type value: %d", bc_potential_type);
   }
@@ -280,9 +284,9 @@ void Grid3D::Set_Potential_Boundaries_Periodic(int direction, int side, int *fla
   int i, j, k, indx_src, indx_dst;
   int nGHST, nx_g, ny_g, nz_g;
   nGHST = N_GHOST_POTENTIAL;
-  nx_g  = Grav.nx_local + 2 * nGHST;
-  ny_g  = Grav.ny_local + 2 * nGHST;
-  nz_g  = Grav.nz_local + 2 * nGHST;
+  nx_g  = Grav.spatial_props.nx_local + 2 * nGHST;
+  ny_g  = Grav.spatial_props.ny_local + 2 * nGHST;
+  nz_g  = Grav.spatial_props.nz_local + 2 * nGHST;
 
   // Copy X boundaries
   if (direction == 0) {
@@ -348,9 +352,9 @@ int Grid3D::Load_Gravity_Potential_To_Buffer(int direction, int side, Real *buff
   int i, j, k, indx, indx_buff, length;
   int nGHST, nx_g, ny_g, nz_g;
   nGHST = N_GHOST_POTENTIAL;
-  nx_g  = Grav.nx_local + 2 * nGHST;
-  ny_g  = Grav.ny_local + 2 * nGHST;
-  nz_g  = Grav.nz_local + 2 * nGHST;
+  nx_g  = Grav.spatial_props.nx_local + 2 * nGHST;
+  ny_g  = Grav.spatial_props.ny_local + 2 * nGHST;
+  nz_g  = Grav.spatial_props.nz_local + 2 * nGHST;
 
   // Load X boundaries
   if (direction == 0) {
@@ -416,9 +420,9 @@ void Grid3D::Unload_Gravity_Potential_from_Buffer(int direction, int side, Real 
   int i, j, k, indx, indx_buff;
   int nGHST, nx_g, ny_g, nz_g;
   nGHST = N_GHOST_POTENTIAL;
-  nx_g  = Grav.nx_local + 2 * nGHST;
-  ny_g  = Grav.ny_local + 2 * nGHST;
-  nz_g  = Grav.nz_local + 2 * nGHST;
+  nx_g  = Grav.spatial_props.nx_local + 2 * nGHST;
+  ny_g  = Grav.spatial_props.ny_local + 2 * nGHST;
+  nz_g  = Grav.spatial_props.nz_local + 2 * nGHST;
 
   // Load X boundaries
   if (direction == 0) {

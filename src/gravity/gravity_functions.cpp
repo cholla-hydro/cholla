@@ -368,9 +368,9 @@ void Grid3D::Initialize_Gravity(struct Parameters *P)
   if (P->bc_potential_type == 1) {
     const int ng    = N_GHOST_POTENTIAL;
     const int twoNG = ng + ng;
-    const int nk    = Grav.nz_local + twoNG;
-    const int nj    = Grav.ny_local + twoNG;
-    const int ni    = Grav.nx_local + twoNG;
+    const int nk    = spatial_props.nz_local + twoNG;
+    const int nj    = spatial_props.ny_local + twoNG;
+    const int ni    = spatial_props.nx_local + twoNG;
     const Real dr   = 0.5 - ng;
 
     const ClusteredDiskGalaxy *galaxy_model = models().try_get<ClusteredDiskGalaxy>();
@@ -381,23 +381,23 @@ void Grid3D::Initialize_Gravity(struct Parameters *P)
     std::vector<Real> exact(Grav.n_cells_potential);
     std::vector<Real> potential(Grav.n_cells_potential);
     const Real scale      = 4.0 * M_PI * Grav.Gconst;
-    const Real ddx        = 1.0 / (scale * Grav.dx * Grav.dx);
-    const Real ddy        = 1.0 / (scale * Grav.dy * Grav.dy);
-    const Real ddz        = 1.0 / (scale * Grav.dz * Grav.dz);
+    const Real ddx        = 1.0 / (scale * spatial_props.dx * spatial_props.dx);
+    const Real ddy        = 1.0 / (scale * spatial_props.dy * spatial_props.dy);
+    const Real ddz        = 1.0 / (scale * spatial_props.dz * spatial_props.dz);
     const Real *const phi = Grav.F.potential_h;
     const int nij         = ni * nj;
     const Real a0         = galaxy_model->phi_disk_D3D(0, 0);
     const Real da0        = 2.0 / (25.0 * scale);
     #pragma omp parallel for
     for (int k = 0; k < nk; k++) {
-      const Real z  = Grav.zMin + Grav.dz * (k + dr);
+      const Real z  = spatial_props.zMin + spatial_props.dz * (k + dr);
       const int njk = nj * k;
       for (int j = 0; j < nj; j++) {
-        const Real y   = Grav.yMin + Grav.dy * (j + dr);
+        const Real y   = spatial_props.yMin + spatial_props.dy * (j + dr);
         const Real yy  = y * y;
         const int nijk = ni * (j + njk);
         for (int i = 0; i < ni; i++) {
-          const Real x  = Grav.xMin + Grav.dx * (i + dr);
+          const Real x  = spatial_props.xMin + spatial_props.dx * (i + dr);
           const Real r  = sqrt(x * x + yy);
           const int ijk = i + nijk;
           exact[ijk] = potential[ijk] = Grav.F.potential_h[ijk] = galaxy_model->phi_disk_D3D(r, z);
@@ -405,16 +405,16 @@ void Grid3D::Initialize_Gravity(struct Parameters *P)
       }
     }
     #pragma omp parallel for
-    for (int k = 0; k < Grav.nz_local; k++) {
-      const Real z  = Grav.zMin + Grav.dz * (k + 0.5);
+    for (int k = 0; k < spatial_props.nz_local; k++) {
+      const Real z  = spatial_props.zMin + spatial_props.dz * (k + 0.5);
       const Real zz = z * z;
-      const int njk = Grav.ny_local * k;
-      for (int j = 0; j < Grav.ny_local; j++) {
-        const Real y   = Grav.yMin + Grav.dy * (j + 0.5);
+      const int njk = spatial_props.ny_local * k;
+      for (int j = 0; j < spatial_props.ny_local; j++) {
+        const Real y   = spatial_props.yMin + spatial_props.dy * (j + 0.5);
         const Real yy  = y * y;
-        const int nijk = Grav.nx_local * (j + njk);
-        for (int i = 0; i < Grav.nx_local; i++) {
-          const Real x          = Grav.xMin + Grav.dx * (i + 0.5);
+        const int nijk = spatial_props.nx_local * (j + njk);
+        for (int i = 0; i < spatial_props.nx_local; i++) {
+          const Real x          = spatial_props.xMin + spatial_props.dx * (i + 0.5);
           const Real r          = sqrt(x * x + yy);
           const int ijk         = i + nijk;
           const Real rr         = x * x + yy + zz;
@@ -428,24 +428,26 @@ void Grid3D::Initialize_Gravity(struct Parameters *P)
     }
     Grav.Poisson_solver_test.Get_Potential(Grav.F.density_h, Grav.F.potential_h, Grav.Gconst, *galaxy_model);
     chprintf(" Paris Galactic");
-    printDiff(Grav.F.potential_h, exact.data(), Grav.nx_local, Grav.ny_local, Grav.nz_local);
+    printDiff(Grav.F.potential_h, exact.data(), Grav.spatial_props.nx_local, Grav.spatial_props.ny_local,
+              Grav.spatial_props.nz_local);
     Get_Potential_SOR(Grav.Gconst, 0, 0, P);
     chprintf(" SOR");
-    printDiff(Grav.F.potential_h, exact.data(), Grav.nx_local, Grav.ny_local, Grav.nz_local);
+    printDiff(Grav.F.potential_h, exact.data(), Grav.spatial_props.nx_local, Grav.spatial_props.ny_local,
+              Grav.spatial_props.nz_local);
   #endif
 
   #ifdef SOR
     chprintf(" Initializing disk analytic potential\n");
     #pragma omp parallel for
     for (int k = 0; k < nk; k++) {
-      const Real z  = Grav.zMin + Grav.dz * (k + dr);
+      const Real z  = spatial_props.zMin + spatial_props.dz * (k + dr);
       const int njk = nj * k;
       for (int j = 0; j < nj; j++) {
-        const Real y   = Grav.yMin + Grav.dy * (j + dr);
+        const Real y   = spatial_props.yMin + spatial_props.dy * (j + dr);
         const Real yy  = y * y;
         const int nijk = ni * (j + njk);
         for (int i = 0; i < ni; i++) {
-          const Real x            = Grav.xMin + Grav.dx * (i + dr);
+          const Real x            = spatial_props.xMin + spatial_props.dx * (i + dr);
           const Real r            = sqrt(x * x + yy);
           const int ijk           = i + nijk;
           Grav.F.potential_h[ijk] = galaxy_model->phi_disk_D3D(r, z);
@@ -553,7 +555,8 @@ void Grid3D::Compute_Gravitational_Potential(struct Parameters *P)
   std::vector<Real> p(output_potential, output_potential + Grav.n_cells_potential);
   Get_Potential_SOR(Grav_Constant, dens_avrg, current_a, P);
   chprintf(" Paris vs SOR");
-  printDiff(p.data(), output_potential, Grav.nx_local, Grav.ny_local, Grav.nz_local, N_GHOST_POTENTIAL, false);
+  printDiff(p.data(), output_potential, Grav.spatial_props.nx_local, Grav.spatial_props.ny_local,
+            Grav.spatial_props.nz_local, N_GHOST_POTENTIAL, false);
     #else
   Get_Potential_SOR(Grav_Constant, dens_avrg, current_a, P);
     #endif
@@ -582,7 +585,7 @@ void Grid3D::Setup_Analytic_Potential(struct Parameters *P)
   CHOLLA_ASSERT(galaxy_model != nullptr, "no galaxy model was initialized");
 
     #ifndef PARALLEL_OMP
-  Setup_Analytic_Galaxy_Potential(0, Grav.nz_local + 2 * N_GHOST_POTENTIAL, *galaxy_model);
+  Setup_Analytic_Galaxy_Potential(0, Grav.spatial_props.nz_local + 2 * N_GHOST_POTENTIAL, *galaxy_model);
     #else
       #pragma omp parallel num_threads(N_OMP_THREADS)
   {
@@ -591,7 +594,7 @@ void Grid3D::Setup_Analytic_Potential(struct Parameters *P)
 
     omp_id      = omp_get_thread_num();
     n_omp_procs = omp_get_num_threads();
-    Get_OMP_Grid_Indxs(Grav.nz_local + 2 * N_GHOST_POTENTIAL, n_omp_procs, omp_id, &g_start, &g_end);
+    Get_OMP_Grid_Indxs(Grav.spatial_props.nz_local + 2 * N_GHOST_POTENTIAL, n_omp_procs, omp_id, &g_start, &g_end);
 
     Setup_Analytic_Galaxy_Potential(g_start, g_end, *galaxy_model);
   }
@@ -609,7 +612,7 @@ void Grid3D::Add_Analytic_Potential()
   Add_Analytic_Potential_GPU();
     #else
       #ifndef PARALLEL_OMP
-  Add_Analytic_Potential(0, Grav.nz_local + 2 * N_GHOST_POTENTIAL);
+  Add_Analytic_Potential(0, Grav.spatial_props.nz_local + 2 * N_GHOST_POTENTIAL);
       #else
         #pragma omp parallel num_threads(N_OMP_THREADS)
   {
@@ -618,7 +621,7 @@ void Grid3D::Add_Analytic_Potential()
 
     omp_id      = omp_get_thread_num();
     n_omp_procs = omp_get_num_threads();
-    Get_OMP_Grid_Indxs(Grav.nz_local + 2 * N_GHOST_POTENTIAL, n_omp_procs, omp_id, &g_start, &g_end);
+    Get_OMP_Grid_Indxs(Grav.spatial_props.nz_local + 2 * N_GHOST_POTENTIAL, n_omp_procs, omp_id, &g_start, &g_end);
 
     Add_Analytic_Potential(g_start, g_end);
   }
@@ -634,10 +637,10 @@ void Grid3D::Copy_Hydro_Density_to_Gravity_Function(int g_start, int g_end)
   Real dens;
   int i, j, k, id, id_grav;
   for (k = g_start; k < g_end; k++) {
-    for (j = 0; j < Grav.ny_local; j++) {
-      for (i = 0; i < Grav.nx_local; i++) {
+    for (j = 0; j < Grav.spatial_props.ny_local; j++) {
+      for (i = 0; i < Grav.spatial_props.nx_local; i++) {
         id      = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
-        id_grav = (i) + (j)*Grav.nx_local + (k)*Grav.nx_local * Grav.ny_local;
+        id_grav = (i) + (j)*Grav.spatial_props.nx_local + (k)*Grav.spatial_props.nx_local * Grav.spatial_props.ny_local;
 
         dens = C.density[id];
 
@@ -663,7 +666,7 @@ void Grid3D::Copy_Hydro_Density_to_Gravity()
   #else
 
     #ifndef PARALLEL_OMP
-  Copy_Hydro_Density_to_Gravity_Function(0, Grav.nz_local);
+  Copy_Hydro_Density_to_Gravity_Function(0, Grav.spatial_props.nz_local);
     #else
 
       #pragma omp parallel num_threads(N_OMP_THREADS)
@@ -673,7 +676,7 @@ void Grid3D::Copy_Hydro_Density_to_Gravity()
 
     omp_id      = omp_get_thread_num();
     n_omp_procs = omp_get_num_threads();
-    Get_OMP_Grid_Indxs(Grav.nz_local, n_omp_procs, omp_id, &g_start, &g_end);
+    Get_OMP_Grid_Indxs(Grav.spatial_props.nz_local, n_omp_procs, omp_id, &g_start, &g_end);
 
     Copy_Hydro_Density_to_Gravity_Function(g_start, g_end);
   }
@@ -685,20 +688,22 @@ void Grid3D::Copy_Hydro_Density_to_Gravity()
   #ifdef GRAVITY_ANALYTIC_COMP
 void Grid3D::Setup_Analytic_Galaxy_Potential(int g_start, int g_end, const DiskGalaxy &gal)
 {
-  int nx = Grav.nx_local + 2 * N_GHOST_POTENTIAL;
-  int ny = Grav.ny_local + 2 * N_GHOST_POTENTIAL;
-  int nz = Grav.nz_local + 2 * N_GHOST_POTENTIAL;
+  int nx = Grav.spatial_props.nx_local + 2 * N_GHOST_POTENTIAL;
+  int ny = Grav.spatial_props.ny_local + 2 * N_GHOST_POTENTIAL;
+  int nz = Grav.spatial_props.nz_local + 2 * N_GHOST_POTENTIAL;
+
+  const SpatialDomainProps &spatial_props = Grav.spatial_props;
 
   int k, j, i, id;
   Real x_pos, y_pos, z_pos, R;
   for (k = g_start; k < g_end; k++) {
     for (j = 0; j < ny; j++) {
       for (i = 0; i < nx; i++) {
-        id                              = i + j * nx + k * nx * ny;
-        x_pos                           = Grav.xMin + Grav.dx * (i - N_GHOST_POTENTIAL) + 0.5 * Grav.dx;
-        y_pos                           = Grav.yMin + Grav.dy * (j - N_GHOST_POTENTIAL) + 0.5 * Grav.dy;
-        z_pos                           = Grav.zMin + Grav.dz * (k - N_GHOST_POTENTIAL) + 0.5 * Grav.dz;
-        R                               = sqrt(x_pos * x_pos + y_pos * y_pos);
+        id    = i + j * nx + k * nx * ny;
+        x_pos = spatial_props.xMin + spatial_props.dx * (i - N_GHOST_POTENTIAL) + 0.5 * spatial_props.dx;
+        y_pos = spatial_props.yMin + spatial_props.dy * (j - N_GHOST_POTENTIAL) + 0.5 * spatial_props.dy;
+        z_pos = spatial_props.zMin + spatial_props.dz * (k - N_GHOST_POTENTIAL) + 0.5 * spatial_props.dz;
+        R     = sqrt(x_pos * x_pos + y_pos * y_pos);
         Grav.F.analytic_potential_h[id] = gal.phi_disk_D3D(R, z_pos) + gal.phi_halo_D3D(R, z_pos);
       }
     }
@@ -711,9 +716,9 @@ void Grid3D::Setup_Analytic_Galaxy_Potential(int g_start, int g_end, const DiskG
  */
 void Grid3D::Add_Analytic_Potential(int g_start, int g_end)
 {
-  int nx = Grav.nx_local + 2 * N_GHOST_POTENTIAL;
-  int ny = Grav.ny_local + 2 * N_GHOST_POTENTIAL;
-  int nz = Grav.nz_local + 2 * N_GHOST_POTENTIAL;
+  int nx = Grav.spatial_props.nx_local + 2 * N_GHOST_POTENTIAL;
+  int ny = Grav.spatial_props.ny_local + 2 * N_GHOST_POTENTIAL;
+  int nz = Grav.spatial_props.nz_local + 2 * N_GHOST_POTENTIAL;
 
   int k, j, i, id;
   Real x_pos, y_pos, z_pos, R;
@@ -733,9 +738,9 @@ void Grid3D::Extrapolate_Grav_Potential_Function(int g_start, int g_end)
 {
   // Use phi_n-1 and phi_n to extrapolate the potential and obtain phi_n+1/2
 
-  int nx_pot = Grav.nx_local + 2 * N_GHOST_POTENTIAL;
-  int ny_pot = Grav.ny_local + 2 * N_GHOST_POTENTIAL;
-  int nz_pot = Grav.nz_local + 2 * N_GHOST_POTENTIAL;
+  int nx_pot = Grav.spatial_props.nx_local + 2 * N_GHOST_POTENTIAL;
+  int ny_pot = Grav.spatial_props.ny_local + 2 * N_GHOST_POTENTIAL;
+  int nz_pot = Grav.spatial_props.nz_local + 2 * N_GHOST_POTENTIAL;
 
   int n_ghost_grid, nx_grid, ny_grid, nz_grid;
   Real *potential_in, *potential_out;
@@ -749,9 +754,9 @@ void Grid3D::Extrapolate_Grav_Potential_Function(int g_start, int g_end)
   n_ghost_grid = H.n_ghost;
 
   // Grid size for the output potential
-  nx_grid = Grav.nx_local + 2 * n_ghost_grid;
-  ny_grid = Grav.ny_local + 2 * n_ghost_grid;
-  nz_grid = Grav.nz_local + 2 * n_ghost_grid;
+  nx_grid = Grav.spatial_props.nx_local + 2 * n_ghost_grid;
+  ny_grid = Grav.spatial_props.ny_local + 2 * n_ghost_grid;
+  nz_grid = Grav.spatial_props.nz_local + 2 * n_ghost_grid;
 
   int nGHST = n_ghost_grid - N_GHOST_POTENTIAL;
   Real pot_now, pot_prev, pot_extrp;
@@ -795,7 +800,7 @@ void Grid3D::Extrapolate_Grav_Potential()
   #else
 
     #ifndef PARALLEL_OMP
-  Extrapolate_Grav_Potential_Function(0, Grav.nz_local + 2 * N_GHOST_POTENTIAL);
+  Extrapolate_Grav_Potential_Function(0, Grav.spatial_props.nz_local + 2 * N_GHOST_POTENTIAL);
     #else
 
       #pragma omp parallel num_threads(N_OMP_THREADS)
@@ -805,7 +810,7 @@ void Grid3D::Extrapolate_Grav_Potential()
 
     omp_id      = omp_get_thread_num();
     n_omp_procs = omp_get_num_threads();
-    Get_OMP_Grid_Indxs(Grav.nz_local + 2 * N_GHOST_POTENTIAL, n_omp_procs, omp_id, &g_start, &g_end);
+    Get_OMP_Grid_Indxs(Grav.spatial_props.nz_local + 2 * N_GHOST_POTENTIAL, n_omp_procs, omp_id, &g_start, &g_end);
 
     Extrapolate_Grav_Potential_Function(g_start, g_end);
   }
