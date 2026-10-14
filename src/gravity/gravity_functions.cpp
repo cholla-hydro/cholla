@@ -473,19 +473,27 @@ void Grid3D::Compute_Gravitational_Potential(struct Parameters *P)
   Copy_Hydro_Density_to_Gravity();
   #endif
 
+  Real dens_avrg, current_a;
   #ifdef COSMOLOGY
   // If using cosmology, set the gravitational constant to the one in the
   // correct units
   const Real Grav_Constant = Cosmo.cosmo_G;
-  const Real current_a     = Cosmo.current_a;
-  const Real dens_avrg     = Cosmo.rho_0_gas;
+  dens_avrg                = Cosmo.rho_0_gas;
+  current_a                = Cosmo.current_a;
   #else
   const Real Grav_Constant = Grav.Gconst;
   // If slowing the Sphere Collapse problem ( bc_potential_type=0 )
-  const Real dens_avrg = (P->bc_potential_type == 0) ? H.sphere_background_density : 0;
-  const Real r0        = H.sphere_radius;
-  // Re-use current_a as the total mass of the sphere
-  const Real current_a = (H.sphere_density - dens_avrg) * 4.0 * M_PI * r0 * r0 * r0 / 3.0;
+  if (P->bc_potential_type == 0) {
+    const SphericalOverdensity *overdensity_model = models().try_get<SphericalOverdensity>();
+    CHOLLA_ASSERT(overdensity_model != nullptr, "spherical overdensity model wasn't initialized");
+    dens_avrg = overdensity_model->bkg_density;
+    Real r0   = overdensity_model->radius;
+    // Re-use current_a as the total mass of the sphere
+    current_a = (overdensity_model->overdensity - dens_avrg) * 4.0 * M_PI * r0 * r0 * r0 / 3.0;
+  } else {
+    dens_avrg = 0.0;
+    current_a = NAN;  // <- never used
+  }
   #endif
 
   if (!Grav.BC_FLAGS_SET) {

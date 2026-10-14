@@ -43,3 +43,10 @@ These parameters should all be specified in the `[gravity]` parameter table.
 :::{include} param/Gravity.md
 :::
 
+## Spherical Overdensity Model
+
+These parameters should all be specified in the `[model.spherical_overdensity]` parameter table.
+They are required if the {par:param}`init` runtime parameter is set to ``"Spherical_Overpressure_3D"``.
+
+:::{include} param/ModelSphericalOverdensity.md
+:::
