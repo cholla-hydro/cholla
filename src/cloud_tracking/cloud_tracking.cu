@@ -80,10 +80,9 @@ __global__ void Cloud_Reduction_Kernel(Real *dev_conserved, int nx, int ny, int 
       density    = dev_conserved[id + n_cells * grid_enum::density];
       velocity_x = dev_conserved[id + n_cells * grid_enum::momentum_x] / density;
       mass       = density * dx * dy * dz;
+      // alternatively use the geometric mean of the cloud and wind density to index cloud material
       // if ((density * DENSITY_UNIT) >= (pow(density_cloud_init * density_wind_init, 0.5))) {
       if ((density * DENSITY_UNIT) >= (density_cloud_init / 3)) {
-        // printf("density_cloud_init/3 %e\n", criteria);
-        // printf("id: %e, density: %e\n", id, density);
         mass_stride += mass;
         // (Shin et al. (2008) eq. 9)
         integrand_stride += velocity_x * density * dx * dy * dz;

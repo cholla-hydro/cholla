@@ -560,46 +560,6 @@ Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &feedback_callback,
 
   MPI_Allreduce(&integrand_cloud, &integrand_reduced, 1, MPI_CHREAL, MPI_SUM, world);
   MPI_Allreduce(&mass_cloud, &mass_reduced, 1, MPI_CHREAL, MPI_SUM, world);
-  
-  // Perform the MPI sum reduction
-
-  // Initialize buffer for root to hold each process's partial integrands and masses
-  /*Real *integrands_cloud = NULL;
-  Real *masses_cloud     = NULL;
-  if (procID == root) {
-    integrands_cloud = (Real *)malloc(sizeof(Real) * nproc);
-    masses_cloud     = (Real *)malloc(sizeof(Real) * nproc);
-  }
-
-  // Gather each process's integrand and mass into buffer
-  MPI_Gather(&integrand_cloud, 1, MPI_CHREAL, integrands_cloud, 1, MPI_CHREAL, root, world);
-  MPI_Gather(&mass_cloud, 1, MPI_CHREAL, masses_cloud, 1, MPI_CHREAL, root, world);
-
-  // Root process gets the total mass and integrand and calculates the mass-weighted average velocity
-  if (procID == root) {
-    Real root_integrand_cloud = 0;
-    Real root_mass_cloud      = 0;
-    for (int i = 0; i < nproc; i++) {
-      printf("different velocities: %e\n", integrands_cloud[i]/masses_cloud[i]);
-      root_integrand_cloud += integrands_cloud[i];
-      root_mass_cloud += masses_cloud[i];
-    }
-    // Calculate the mass-averaged x-velocity (Shin et al. (2008) eq. 9)
-    if ((root_integrand_cloud == 0) or (root_mass_cloud == 0)) {
-      velocity_x_cloud_avg = 0;
-    } else {
-      velocity_x_cloud_avg = root_integrand_cloud / root_mass_cloud;
-    }
-    mass_cloud_tot = root_mass_cloud;
-  }
-
-  // Send the total values to all processes
-  MPI_Bcast(&velocity_x_cloud_avg, 1, MPI_CHREAL, root, world);
-  MPI_Bcast(&mass_cloud_tot, 1, MPI_CHREAL, root, world);
-
-  free(integrands_cloud);
-  free(masses_cloud);
-  */ 
 
     #endif  // MPI_CHOLLA
 
@@ -615,12 +575,6 @@ Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &feedback_callback,
 
   H.velocity_cloud_avg_curr = H.velocity_x_cloud_avg;
 
-  // printf("cumulative velocity: %e\n", H.velocity_x_cloud_avg);
-
-  // chprintf("Average cloud velocity = %e km/s\n", velocity_x_cloud_avg * KPC / TIME_UNIT);
-  // chprintf("Mass = %e M_sun\n", mass_reduced);
-  // std::string message = "Average cloud velocity = " + std::string(velocity_x_cloud_avg * KPC / TIME_UNIT) + " km/s\n";
-  // Write_Message_To_Log_File(message.c_str());
 
   #ifdef MPI_CHOLLA
   MPI_Barrier(world);
