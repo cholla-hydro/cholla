@@ -140,7 +140,7 @@ TEST(tALLKernelReduceSum, CorrectInputExpectCorrectOutput)
   // Do the reduction
   // ================
   // .data() passes the a pointer to the kernel
-  hipLaunchKernelGGL(reduction_utilities::Kernel_Reduce_Add, launch_params.numBlocks, launch_params.threadsPerBlock, 0,
+  hipLaunchKernelGGL(reduction_utilities::Kernel_Reduce_Add, launch_params.get_numBlocks(), launch_params.get_threadsPerBlock(), 0,
                      0, dev_grid.data(), dev_sum.data(), host_grid.size());
   cudaDeviceSynchronize();
   CudaCheckError();
