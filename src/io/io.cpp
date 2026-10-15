@@ -176,6 +176,10 @@ void Grid3D::Write_Header(AttrRecorderInterface &attr_recorder) const
   attr_recorder.record("density_unit", double{DENSITY_UNIT});
   attr_recorder.record("energy_unit", double{ENERGY_UNIT});
 
+#ifdef CLOUD_TRACKING
+  attr_recorder.record("velocity_x_cloud_avg", H.velocity_x_cloud_avg);
+#endif 
+
 #ifdef MHD
   attr_recorder.record("magnetic_field_unit", double{MAGNETIC_FIELD_UNIT});
 #endif  // MHD
@@ -186,6 +190,10 @@ void Grid3D::Write_Header(AttrRecorderInterface &attr_recorder) const
   attr_recorder.record("Omega_L", Cosmo.Omega_L);
   attr_recorder.record("Current_z", Cosmo.current_z);
   attr_recorder.record("Current_a", Cosmo.current_a);
+#endif
+
+#ifdef CLOUD_TRACKING
+  attr_recorder.record("velocity_x_cloud_avg", H.velocity_x_cloud_avg);
 #endif
 
   // Now, do 3-element attributes
@@ -944,6 +952,21 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
   attribute_id = H5Aopen(file_id, "n_step", H5P_DEFAULT);
   status       = H5Aread(attribute_id, H5T_NATIVE_INT, &H.n_step);
   status       = H5Aclose(attribute_id);
+#ifdef CLOUD_TRACKING
+  attribute_id = H5Aopen(file_id, "velocity_x_cloud_avg", H5P_DEFAULT);
+  status       = H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &H.velocity_x_cloud_avg);
+  status       = H5Aclose(attribute_id);
+#endif
+
+  #ifdef CLOUD_TRACKING
+    attribute_id = H5Aopen(file_id, "velocity_x_cloud_avg", H5P_DEFAULT);
+    if (attribute_id < 0) {
+      H.velocity_x_cloud_avg = 0;
+    } else {
+      status = H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &H.velocity_x_cloud_avg);
+      status = H5Aclose(attribute_id);
+    }
+  #endif
 
   #ifdef MHD
   dataset_buffer = (Real *)malloc((H.nz_real + 1) * (H.ny_real + 1) * (H.nx_real + 1) * sizeof(Real));
