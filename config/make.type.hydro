@@ -32,9 +32,6 @@ DFLAGS += -DCLOUD_TRACKING
 OUTPUT    ?=  -DOUTPUT -DHDF5
 DFLAGS    += $(OUTPUT)
 
-DFLAGS += -DSLICES 
-DFLAGS += -DPROJECTION
-
 #Select if the Hydro Conserved data will reside in the GPU
 #and the MPI transfers are done from the GPU
 #If not specified, MPI_GPU is off by default

@@ -171,30 +171,29 @@ __global__ void cooling_kernel(Real *dev_conserved, int nx, int ny, int nz, int 
     // calculate cooling rate per volume
     T = T_init;
     // call the cooling function
-    if (T < 9e5){
+    cool = recipe.cool_rate(n, T);
+
+    // calculate change in temperature given dt
+    del_T = cool * dt * TIME_UNIT * (gamma - 1.0) / (n * KB);
+
+    // limit change in temperature to 1% (we use fabs for when heating dominates)
+    while (fabs(del_T / T) > 0.01) {
+      // what dt gives del_T with a magnitude of 0.01*T? (we use fabs for cases when heating dominates)
+      dt_sub = fabs(0.01 * T * n * KB / (cool * TIME_UNIT * (gamma - 1.0)));
+      // apply that dt
+      T -= cool * dt_sub * TIME_UNIT * (gamma - 1.0) / (n * KB);
+      // how much time is left from the original timestep?
+      dt -= dt_sub;
+
+      // calculate cooling again
       cool = recipe.cool_rate(n, T);
-
-      // calculate change in temperature given dt
+      // calculate new change in temperature
       del_T = cool * dt * TIME_UNIT * (gamma - 1.0) / (n * KB);
-
-      // limit change in temperature to 1% (we use fabs for when heating dominates)
-      while (fabs(del_T / T) > 0.01) {
-        // what dt gives del_T with a magnitude of 0.01*T? (we use fabs for cases when heating dominates)
-        dt_sub = fabs(0.01 * T * n * KB / (cool * TIME_UNIT * (gamma - 1.0)));
-        // apply that dt
-        T -= cool * dt_sub * TIME_UNIT * (gamma - 1.0) / (n * KB);
-        // how much time is left from the original timestep?
-        dt -= dt_sub;
-
-        // calculate cooling again
-        cool = recipe.cool_rate(n, T);
-        // calculate new change in temperature
-        del_T = cool * dt * TIME_UNIT * (gamma - 1.0) / (n * KB);
-      }
-
-      // calculate final temperature
-      T -= del_T;
     }
+
+    // calculate final temperature
+    T -= del_T;
+
     // adjust value of energy based on total change in temperature
     del_T = T_init - T;  // total change in T
     E -= n * KB * del_T / ((gamma - 1.0) * ENERGY_UNIT);

@@ -88,10 +88,6 @@ void Write_Data(Grid3D &G, struct Parameters P, int nfile, const io::WriterManag
 
   chprintf("\nSaving Snapshot: %d \n", nfile);
 
-  #ifdef CLOUD_TRACKING
-    chprintf("Average cloud velocity = %e km/s\n", G.H.velocity_x_cloud_avg * KPC / TIME_UNIT);
-  #endif
-
   // ensure the output-directory exists (try to create it if it doesn't exist)
   Ensure_Dir_Exists(write_manager.fname_template().effective_output_dir_path(nfile));
 
