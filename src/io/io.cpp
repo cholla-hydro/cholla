@@ -192,6 +192,10 @@ void Grid3D::Write_Header(AttrRecorderInterface &attr_recorder) const
   attr_recorder.record("Current_a", Cosmo.current_a);
 #endif
 
+#ifdef CLOUD_TRACKING
+  attr_recorder.record("velocity_x_cloud_avg", H.velocity_x_cloud_avg);
+#endif
+
   // Now, do 3-element attributes
 
   // todo: we should stop narrowing the datatype from ptrdiff_t to int
@@ -953,6 +957,16 @@ void Grid3D::Read_Grid_HDF5(hid_t file_id, struct Parameters P)
   status       = H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &H.velocity_x_cloud_avg);
   status       = H5Aclose(attribute_id);
 #endif
+
+  #ifdef CLOUD_TRACKING
+    attribute_id = H5Aopen(file_id, "velocity_x_cloud_avg", H5P_DEFAULT);
+    if (attribute_id < 0) {
+      H.velocity_x_cloud_avg = 0;
+    } else {
+      status = H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &H.velocity_x_cloud_avg);
+      status = H5Aclose(attribute_id);
+    }
+  #endif
 
   #ifdef MHD
   dataset_buffer = (Real *)malloc((H.nz_real + 1) * (H.ny_real + 1) * (H.nx_real + 1) * sizeof(Real));
