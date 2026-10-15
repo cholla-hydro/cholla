@@ -142,12 +142,11 @@ TEST(tALLKernelReduceSum, CorrectInputExpectCorrectOutput)
   // .data() passes the a pointer to the kernel
   hipLaunchKernelGGL(reduction_utilities::Kernel_Reduce_Add, launch_params.get_numBlocks(), launch_params.get_threadsPerBlock(), 0,
                      0, dev_grid.data(), dev_sum.data(), host_grid.size());
-  cudaDeviceSynchronize();
-  CudaCheckError();
+  GPU_Error_Check();
 
   dev_sum.cpyDeviceToHost(host_sum);
-  CudaCheckError();
+  GPU_Error_Check();
 
   // Perform comparison
-  testingUtilities::checkResults(size, host_sum[0], "sum found");
+  testingUtilities::Check_Results(size, host_sum[0], "sum found");
 }
