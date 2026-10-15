@@ -148,5 +148,5 @@ TEST(tALLKernelReduceSum, CorrectInputExpectCorrectOutput)
   GPU_Error_Check();
 
   // Perform comparison
-  testingUtilities::Check_Results(size, host_sum[0], "sum found");
+  testing_utilities::Check_Results(size, host_sum[0], "sum found");
 }
