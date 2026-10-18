@@ -21,10 +21,16 @@ namespace field_detail
 struct PackInfo {
   /// slice `flat_idx` values for each field in the field pack
   ///
-  /// @note
-  /// `flat_idx` used for implementing @ref FieldInfo -- for more information, see the
+  /// \note
+  /// `flat_idx` used for implementing \ref FieldInfo -- for more information, see the
   /// section in its docstring about implementation details.
   IdxSlc flat_idx_slc;
+
+  /// the ghost depth nominall shared by each field in the field pack
+  ///
+  /// \note
+  /// Things are a little weird with the way ghost_depth works for conserved fields
+  int ghost_depth;
 };
 
 }  // namespace field_detail
@@ -121,7 +127,7 @@ class FieldInfo
    *  Ideally, we would make it possible to customize the active scalars, but that's a
    *  topic for the future.
    */
-  static FieldInfo create();
+  static FieldInfo create(int normal_ghost_depth);
 
   FieldInfo(FieldInfo&&)            = default;
   FieldInfo& operator=(FieldInfo&&) = default;
@@ -197,6 +203,16 @@ class FieldInfo
     if (tmp.has_value()) return std::optional<uint8_t>{tmp.value()};
     return std::nullopt;
   }
+
+  /*! \brief retrieve the ghost depth shared by fields in the specified pack */
+  std::optional<int> ghost_depth_from_pack_id(uint8_t pack_id) const
+  {
+    if (pack_id < pack_info_.size()) return {pack_info_[pack_id].ghost_depth};
+    return std::nullopt;
+  }
+
+  /*! \brief retrieve the ghost depth of the specified field */
+  std::optional<int> ghost_depth(FieldId field_id) const { return ghost_depth_from_pack_id(field_id.pack_id); }
 
   /*! try to look up whether the field id refers to a cell-centered field
    *

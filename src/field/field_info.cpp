@@ -114,8 +114,9 @@ field::IdRange FieldInfo::get_id_range(field::Kind kind) const
   // NOLINTEND(bugprone-branch-clone)
 }
 
-FieldInfo FieldInfo::create()
+FieldInfo FieldInfo::create(int normal_ghost_depth)
 {
+  CHOLLA_ASSERT(normal_ghost_depth >= 0, "ghost_depth can't be negative");
   FieldInfo out;
 
   // here we construct 2 vectors that exist just as we initialize FieldInfo
@@ -133,7 +134,7 @@ FieldInfo FieldInfo::create()
   // -> enroll relevant field-pack information
   pack_names.emplace_back("conserved");
   field_detail::PackInfo conserved_pack_info{
-      field_detail::IdxSlc(flat_field_names.size(), flat_field_names.size() + n_conserved_fields)};
+      field_detail::IdxSlc(flat_field_names.size(), flat_field_names.size() + n_conserved_fields), normal_ghost_depth};
   out.pack_info_.emplace_back(conserved_pack_info);
 
   // -> enroll info about each conserved field

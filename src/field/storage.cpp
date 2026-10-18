@@ -12,7 +12,7 @@
 namespace field_detail
 {
 
-Storage::Storage(const FieldInfo& info, std::array<int, 3> shape_xyz, int ghost_depth)
+Storage::Storage(const FieldInfo& info, std::array<int, 3> shape_xyz)
 {
   // we do some dumb stuff right now
   // (i.e. I suspect we'll end up using a builder pattern once we start having multiple
@@ -20,7 +20,6 @@ Storage::Storage(const FieldInfo& info, std::array<int, 3> shape_xyz, int ghost_
 
   const int n_registers = 1;
   // error checks:
-  CHOLLA_ASSERT(ghost_depth >= 0, "ghost_depth can't be negative");
   if (shape_xyz[0] == 1) {
     CHOLLA_ERROR("x-axis extent can never be 1");
   } else if ((shape_xyz[1] == 1) and (shape_xyz[2] != 1)) {
@@ -35,9 +34,13 @@ Storage::Storage(const FieldInfo& info, std::array<int, 3> shape_xyz, int ghost_
   CHOLLA_ASSERT(tmp <= UINT8_MAX, "something went wrong!");
   uint8_t n_packs = static_cast<uint8_t>(tmp);
   for (uint8_t pack_id = 0; pack_id < n_packs; pack_id++) {
-    // in the future, n_registers & cur_ghost_depth may to vary between packs
-    int n_registers     = 1;
-    int cur_ghost_depth = ghost_depth;
+    // in the future, n_registers may vary between packs
+    int n_registers                      = 1;
+    std::optional<int> maybe_ghost_depth = info.ghost_depth_from_pack_id(pack_id);
+    if (!maybe_ghost_depth.has_value()) {
+      CHOLLA_ERROR("problem accessing the ghost depth of the pack");
+    }
+    int cur_ghost_depth = maybe_ghost_depth.value();
 
     // let's compute slots_stride (you can think of this as elements per field)
     std::size_t elem_per_field = 1;

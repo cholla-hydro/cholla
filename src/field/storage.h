@@ -125,14 +125,8 @@ class Storage
   }
 
  public:
-  /*! \brief Construct a new instance
-   *
-   *  \note
-   *  This is intentionally very simple right now. In the future, different packs of
-   *  fields may have different numbers of ghost zones (and ideally we would allow the
-   *  number of ghost zones to vary with direction)
-   */
-  Storage(const FieldInfo& info, std::array<int, 3> shape_xyz, int ghost_depth);
+  /*! \brief Construct a new instance */
+  Storage(const FieldInfo& info, std::array<int, 3> shape_xyz);
 
   // we use default definitions for move construction/assingment
   Storage(Storage&&)            = default;

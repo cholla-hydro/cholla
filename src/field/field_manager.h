@@ -28,15 +28,10 @@ class FieldManager
   FieldInfo field_info_;
 
  public:
-  /*! \brief Construct a new instance
-   *
-   *  \note
-   *  This is intentionally very simple right now. See the constructor of
-   *  \ref field_detail::Storage for details.
-   */
-  FieldManager(FieldInfo info, std::array<int, 3> shape_xyz, int ghost_depth)
+  /*! \brief Construct a new instance */
+  FieldManager(FieldInfo info, std::array<int, 3> shape_xyz)
       // reminder: the order that data members are declared in is quite important
-      : storage_(info, shape_xyz, ghost_depth), field_info_(std::move(info))
+      : storage_(info, shape_xyz), field_info_(std::move(info))
   {
   }
 
