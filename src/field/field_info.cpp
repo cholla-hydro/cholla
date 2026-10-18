@@ -79,6 +79,7 @@ field::IdRange FieldInfo::get_id_range(field::Kind kind) const
   }
   uint8_t conserved_pack_id = tmp.value();
 
+  // NOLINTBEGIN(bugprone-branch-clone)
   switch (kind) {
     case field::Kind::HYDRO: {
       field_detail::IdxSlc primary_slc(0, grid_enum::Energy + 1);
@@ -110,6 +111,7 @@ field::IdRange FieldInfo::get_id_range(field::Kind kind) const
     default:
       CHOLLA_ERROR("This branch should be unreachable");
   }
+  // NOLINTEND(bugprone-branch-clone)
 }
 
 FieldInfo FieldInfo::create()
