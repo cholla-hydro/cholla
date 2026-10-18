@@ -74,7 +74,7 @@ struct Iterator {
   }
 
   /*! \brief implements the dereference operation */
-  reference operator*() const { return FieldId(pack_id, static_cast<uint8_t>(slot_slc->start() + slot_offset)); }
+  reference operator*() const { return {pack_id, static_cast<uint8_t>(slot_slc->start() + slot_offset)}; }
 
   /*! \brief implements the prefix increment operation
    *
@@ -133,8 +133,8 @@ class IdRange
 
   int n_items() const { return static_cast<int>(slot_slc_seq_[0].size() + slot_slc_seq_[1].size()); }
 
-  Iterator begin() const { return Iterator(pack_id_, slot_slc_seq_); }
-  Iterator end() const { return Iterator(pack_id_, slot_slc_seq_ + n_slc_); }
+  Iterator begin() const { return {pack_id_, slot_slc_seq_}; }
+  Iterator end() const { return {pack_id_, slot_slc_seq_ + n_slc_}; }
 };
 
 }  // namespace field

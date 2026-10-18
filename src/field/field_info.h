@@ -93,7 +93,7 @@ class FieldInfo
   // We make the default-constructor private to force the use of the factory method
   FieldInfo() = default;
 
-  const std::optional<std::size_t> flat_idx_from_FieldId_(FieldId id) const
+  std::optional<std::size_t> flat_idx_from_FieldId_(FieldId id) const
   {
     if (id.slot_idx >= n_fields(id.pack_id)) {
       return std::nullopt;
@@ -102,7 +102,7 @@ class FieldInfo
     return {slc.start() + id.slot_idx};
   }
 
-  const std::optional<FieldId> FieldId_from_flat_idx_(std::size_t flat_idx) const
+  std::optional<FieldId> FieldId_from_flat_idx_(std::size_t flat_idx) const
   {
     // if number of packs is LARGE, linear search gets slow & we should refactor
     uint8_t n_packs = static_cast<uint8_t>(pack_info_.size());

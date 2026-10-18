@@ -75,7 +75,7 @@ field::IdRange FieldInfo::get_id_range(field::Kind kind) const
   using namespace std::literals;
   std::optional<uint8_t> tmp = pack_id("conserved"sv);
   if (!tmp.has_value()) {  // if there isn't a conserved field pack, return an empty range
-    return field::IdRange(0, field_detail::IdxSlc());
+    return {0, field_detail::IdxSlc()};
   }
   uint8_t conserved_pack_id = tmp.value();
 
@@ -84,65 +84,65 @@ field::IdRange FieldInfo::get_id_range(field::Kind kind) const
       field_detail::IdxSlc primary_slc(0, grid_enum::Energy + 1);
 #ifdef DE
       field_detail::IdxSlc secondary_slc(grid_enum::GasEnergy, grid_enum::GasEnergy + 1);
-      return field::IdRange(conserved_pack_id, primary_slc, secondary_slc);
+      return {conserved_pack_id, primary_slc, secondary_slc};
 #else
-      return field::IdRange(conserved_pack_id, primary_slc);
+      return {conserved_pack_id, primary_slc};
 #endif
     }
     case field::Kind::PASSIVE_SCALAR: {
 #ifdef SCALAR
-      return field::IdRange(conserved_pack_id, field_detail::IdxSlc(grid_enum::scalar, grid_enum::finalscalar_plus_1));
+      return {conserved_pack_id, field_detail::IdxSlc(grid_enum::scalar, grid_enum::finalscalar_plus_1)};
 #else
       // when SCALAR isn't defined, this range has no entries
-      return field::IdRange(conserved_pack_id, field_detail::IdxSlc());
+      return {conserved_pack_id, field_detail::IdxSlc()};
 #endif
     }
     case field::Kind::MAGNETIC: {
 #ifdef MHD
       static_assert(grid_enum::magnetic_x + 1 == grid_enum::magnetic_y, "bfields have unexpected order");
       static_assert(grid_enum::magnetic_y + 1 == grid_enum::magnetic_z, "bfields have unexpected order");
-      return field::IdRange(conserved_pack_id, field_detail::IdxSlc(grid_enum::scalar, grid_enum::finalscalar_plus_1));
+      return {conserved_pack_id, field_detail::IdxSlc(grid_enum::scalar, grid_enum::finalscalar_plus_1)};
 #else
       // when MHD isn't defined, this has no entries
-      return field::IdRange(conserved_pack_id, field_detail::IdxSlc());
-    }
+      return {conserved_pack_id, field_detail::IdxSlc()};
 #endif
-      default:
-        CHOLLA_ERROR("This branch should be unreachable");
     }
+    default:
+      CHOLLA_ERROR("This branch should be unreachable");
+  }
+}
+
+FieldInfo FieldInfo::create()
+{
+  FieldInfo out;
+
+  // here we construct 2 vectors that exist just as we initialize FieldInfo
+  std::vector<std::string> pack_names{};
+  pack_names.reserve(1);
+  std::vector<std::string> flat_field_names;
+  flat_field_names.reserve(n_fields_);
+
+  // now we'll handle each field-pack
+  // (currently there's just 1 field-pack)
+
+  // handle the conserved field pack
+  // -------------------------------
+  int n_conserved_fields = n_fields_;
+  // -> enroll relevant field-pack information
+  pack_names.emplace_back("conserved");
+  field_detail::PackInfo conserved_pack_info{
+      field_detail::IdxSlc(flat_field_names.size(), flat_field_names.size() + n_conserved_fields)};
+  out.pack_info_.emplace_back(conserved_pack_info);
+
+  // -> enroll info about each conserved field
+  for (std::size_t i = 0; i < n_conserved_fields; i++) {
+    flat_field_names.emplace_back(pack_arr_[i].name);
+    out.io_buf_.push_back(pack_arr_[i].io_buf);
+    FieldId field_id(0, static_cast<uint8_t>(i));
   }
 
-  FieldInfo FieldInfo::create()
-  {
-    FieldInfo out;
-
-    // here we construct 2 vectors that exist just as we initialize FieldInfo
-    std::vector<std::string> pack_names{};
-    pack_names.reserve(1);
-    std::vector<std::string> flat_field_names;
-    flat_field_names.reserve(n_fields_);
-
-    // now we'll handle each each field-pack
-    // (currently there's just 1 field-pack)
-
-    // handle the conserved field pack
-    // -------------------------------
-    int n_conserved_fields = n_fields_;
-    // -> enroll relevant field-pack information
-    pack_names.emplace_back("conserved");
-    field_detail::PackInfo conserved_pack_info{
-        field_detail::IdxSlc(flat_field_names.size(), flat_field_names.size() + n_conserved_fields)};
-    out.pack_info_.emplace_back(std::move(conserved_pack_info));
-
-    // -> enroll info about each conserved field
-    for (std::size_t i = 0; i < n_conserved_fields; i++) {
-      flat_field_names.emplace_back(pack_arr_[i].name);
-      out.io_buf_.push_back(pack_arr_[i].io_buf);
-      FieldId field_id(0, static_cast<uint8_t>(i));
-    }
-
-    // now that we're done with all field packs, let's finalize things
-    out.pname_id_bimap_ = utils::FrozenKeyIdxBiMap(pack_names);
-    out.name_id_bimap_  = utils::FrozenKeyIdxBiMap(flat_field_names);
-    return out;
-  }
+  // now that we're done with all field packs, let's finalize things
+  out.pname_id_bimap_ = utils::FrozenKeyIdxBiMap(pack_names);
+  out.name_id_bimap_  = utils::FrozenKeyIdxBiMap(flat_field_names);
+  return out;
+}
