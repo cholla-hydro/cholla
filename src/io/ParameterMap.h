@@ -174,15 +174,13 @@ class ParameterMap
 
   /* Warns about parameters that have not been accessed with the ``value`` OR ``value_or`` methods.
    *
-   * \param ignore_params a set of parameter names that should never be reported as unused
    * \param abort_on_warning when true, the warning is reported as error that causes the program to
    *    abort. Default is false.
    * \param suppress_warning_msg when true, the warning isn't actually printed (this only exists for
    *    testing purposes)
    * \returns the number of unused parameters
    */
-  int warn_unused_parameters(const std::set<std::string>& ignore_params, bool abort_on_warning = false,
-                             bool suppress_warning_msg = false) const;
+  int warn_unused_parameters(bool abort_on_warning = false, bool suppress_warning_msg = false) const;
 
   /*! \brief Checks whether the specified table name was specified in the parameter file */
   bool Contains_Table(std::string table_name) const;

@@ -424,15 +424,14 @@ ParameterMap::ParameterMap(const std::string& fname, int argc, char** argv)
 {
 }
 
-int ParameterMap::warn_unused_parameters(const std::set<std::string>& ignore_params, bool abort_on_warning,
-                                         bool suppress_warning_msg) const
+int ParameterMap::warn_unused_parameters(bool abort_on_warning, bool suppress_warning_msg) const
 {
   int unused_params = 0;
   for (const auto& kv_pair : entries_) {
     const std::string& name                     = kv_pair.first;
     const ParameterMap::ParamEntry& param_entry = kv_pair.second;
 
-    if ((not param_entry.accessed) and (ignore_params.find(name) == ignore_params.end())) {
+    if (not param_entry.accessed) {
       unused_params++;
       const std::string& value = param_entry.param_str;
       if (abort_on_warning) {
