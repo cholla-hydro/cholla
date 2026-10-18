@@ -216,7 +216,9 @@ int main(int argc, char *argv[])
 #endif
 
   // now that we are done with initializing various modules, let's check for unused parameters
-  Warn_Unused_Params(pmap);
+  // -> in the future, we may want to consider making the program abort if it receives
+  //    unused parameters (perhaps introduce a parameter that enforces that behavior?)
+  pmap.warn_unused_parameters(/*abort_on_warning=*/false);
 
   // do work in anticipation of the first timestep
 
