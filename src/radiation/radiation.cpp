@@ -27,11 +27,9 @@ Rad3D::~Rad3D()
 {
   delete photoRates;
   rt_physics::rt_atomic_data::Delete();
-  cudaFree(rtFields.dev_rf);
   cudaFree(rtFields.dev_abc);
   cudaFree(rtFields.dev_rfNew);
   if (rtFields.rs != nullptr) free(rtFields.rs);
-  free(rtFields.rf);
 
   #ifdef RT_OTVET
   if (rtFields.et != nullptr) free(rtFields.et);
@@ -39,7 +37,7 @@ Rad3D::~Rad3D()
   #endif  // RT_OTVET
 }
 
-void Rad3D::Initialize_Start(const Parameters& params)
+void Rad3D::Initialize_Start(const Parameters& params, FieldManager& field_manager)
 {
   num_iterations = params.rt_num_iterations;
 
@@ -63,8 +61,12 @@ void Rad3D::Initialize_Start(const Parameters& params)
 
   #endif  // RT_M1
 
-  // Allocate radiation field
-  rtFields.rf = (Real*)malloc(n_rf * grid.n_cells * sizeof(Real));
+  // get pointer to pre-allocated radiation field-pack
+  std::optional<uint8_t> maybe_pack_id = field_manager.info().pack_id("radiation_fields");
+  if (!maybe_pack_id.has_value()) {
+    CHOLLA_ERROR("radiation_fields not already allocated");
+  }
+  rtFields.rf = field_manager.pack_or_abort(MemSpace::HOST, maybe_pack_id.value());
 
   // set boundary flags
   flags[0] = params.xl_bcnd;
@@ -94,8 +96,12 @@ void Rad3D::Initialize_Finish(FieldManager& field_manager)
   // Allocate memory for radiation fields (non-advecting, 2 per frequency plus 1 optically thin field)
   chprintf("Allocating memory for radiation fields. \n");
 
-  // allocate memory on the device
-  GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_rf, n_rf * grid.n_cells * sizeof(Real)));
+  // get pointer to pre-allocated radiation field-pack
+  std::optional<uint8_t> maybe_pack_id = field_manager.info().pack_id("radiation_fields");
+  if (!maybe_pack_id.has_value()) {
+    CHOLLA_ERROR("radiation_fields not already allocated");
+  }
+  rtFields.dev_rf = field_manager.pack_or_abort(MemSpace::DEV, maybe_pack_id.value());
 
   #ifdef RT_OTVET
   // Allocate memory for Eddington tensor only on device

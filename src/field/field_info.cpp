@@ -191,13 +191,36 @@ static void add_gravity_pack_spec_(std::vector<FieldPackSpec>& pack_specs, int n
 
 static void add_radiation_pack_spec_(std::vector<FieldPackSpec>& pack_specs, int normal_ghost_depth)
 {
-  FieldPackSpec& pack_spec   = pack_specs.emplace_back();
-  pack_spec.pack_name        = "radiation_source";
-  pack_spec.ghost_depth      = normal_ghost_depth;
-  pack_spec.n_host_registers = 0;
-  pack_spec.n_dev_registers  = 1;
-  pack_spec.io_buf           = MemSpace::DEV;  // <- not totally sure this is right...
-  pack_spec.field_names      = {"source"};
+  {
+    FieldPackSpec& pack_spec   = pack_specs.emplace_back();
+    pack_spec.pack_name        = "radiation_source";
+    pack_spec.ghost_depth      = normal_ghost_depth;
+    pack_spec.n_host_registers = 0;
+    pack_spec.n_dev_registers  = 1;
+    pack_spec.io_buf           = MemSpace::DEV;
+    pack_spec.field_names      = {"source"};
+  }
+
+  {
+    FieldPackSpec& pack_spec   = pack_specs.emplace_back();
+    pack_spec.pack_name        = "radiation_fields";
+    pack_spec.ghost_depth      = normal_ghost_depth;
+    pack_spec.n_host_registers = 1;
+    pack_spec.n_dev_registers  = 1;
+    pack_spec.io_buf           = MemSpace::DEV;
+    pack_spec.field_names      = {"source"};
+#ifdef RT_OTVET
+    pack_spec.field_names = {"rf_intensity", "rf_HI_near", "rf_HeI_near", "rf_HeII_near",
+                             "rf_HI_far",    "rf_HeI_far", "rf_HeII_far"};
+#elif defined(RT_M1)
+    pack_spec.field_names = {"rf_intensity", "rf_intensity_Mx", "rf_intensity_My", "rf_intensity_Mz",
+                             "rf_HI",        "rf_HI_Mx",        "rf_HI_My",        "rf_HI_Mz",
+                             "rf_HeI",       "rf_HeI_Mx",       "rf_HeI_My",       "rf_HeI_Mz",
+                             "rf_HeII",      "rf_HeII_Mx",      "rf_HeII_My",      "rf_HeII_Mz"};
+#else
+    CHOLLA_ERROR("this function shouldn't be executed if not using otvet/m1 rt");
+#endif
+  }
 }
 
 FieldInfo FieldInfo::create(int normal_ghost_depth)

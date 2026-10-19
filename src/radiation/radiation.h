@@ -96,7 +96,7 @@ class Rad3D
   explicit Rad3D(const Header &grid_);
   ~Rad3D();
 
-  void Initialize_Start(const Parameters &params);
+  void Initialize_Start(const Parameters &params, FieldManager &field_manager);
   void Initialize_Finish(FieldManager &field_manager);
   void Initialize_GPU();
 
