@@ -192,10 +192,6 @@ void Grid3D::Write_Header(AttrRecorderInterface &attr_recorder) const
   attr_recorder.record("Current_a", Cosmo.current_a);
 #endif
 
-#ifdef CLOUD_TRACKING
-  attr_recorder.record("velocity_x_cloud_avg", H.velocity_x_cloud_avg);
-#endif
-
   // Now, do 3-element attributes
 
   // todo: we should stop narrowing the datatype from ptrdiff_t to int
