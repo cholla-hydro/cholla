@@ -95,7 +95,12 @@ typedef double Real;
 #define INITIAL_FRACTION_HEII     9.59999999903e-15
 #define INITIAL_FRACTION_HEIII    9.59999999903e-18
 #define INITIAL_FRACTION_ELECTRON 1.53965115054e-4
-#define INITIAL_FRACTION_METAL    1.00000000000e-10
+#define INITIAL_FRACTION_METAL    1.00000000000e-10   
+
+// Solar Metal Mass Fraction
+#define SOLAR_METAL_MASS_FRAC     0.01295
+#define HYDROGEN_FRAC_BY_MASS     0.716 
+//TODO: this HYDROGEN_FRAC_BY_MASS constant is currently incompatible with the YHe parameter (cosmology only)
 
 // Default Particles Compiler Flags
 #define PARTICLES_LONG_INTS
@@ -383,6 +388,7 @@ struct Parameters {
   Real grain_radius;
   #endif
 #endif
+  Real metallicity_wind;
 };
 
 /*! \brief prints a warning if pmap contains any unused parameters */

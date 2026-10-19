@@ -85,6 +85,7 @@
 #configurefile_define SCALAR
 #configurefile_define BASIC_SCALAR
 #configurefile_define DUST
+#configurefile_define METALS
 
 // ======================
 // Analysis Configuration

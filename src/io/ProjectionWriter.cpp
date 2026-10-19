@@ -54,6 +54,10 @@ void Write_Projection_HDF5_(const Grid3D &G, hid_t file_id)
   std::vector<Real> dataset_buffer_dust_xy(H.nx_real * H.ny_real);
   std::vector<Real> dataset_buffer_dust_xz(H.nx_real * H.nz_real);
   #endif
+  #ifdef METALS
+  std::vector<Real> dataset_buffer_metals_xy(H.nx_real * H.ny_real);
+  std::vector<Real> dataset_buffer_metals_xz(H.nx_real * H.nz_real);
+  #endif
 
   // Create the data space for the datasets
   dims[0]               = nx_dset;
@@ -102,6 +106,9 @@ void Write_Projection_HDF5_(const Grid3D &G, hid_t file_id)
   #ifdef DUST
       Real dust_xy = 0;
   #endif
+  #ifdef METALS
+      Real metals_xy = 0;
+  #endif
       // for each xy element, sum over the z column
       for (int k = 0; k < H.nz_real; k++) {
         int const xid = i + H.n_ghost;
@@ -115,6 +122,9 @@ void Write_Projection_HDF5_(const Grid3D &G, hid_t file_id)
   #ifdef DUST
         dust_xy += C.dust_density[id] * H.dz;
   #endif
+  #ifdef METALS
+        metals_xy += C.metal_density[id] * H.dz;
+  #endif
         Txy += calc_T(xid, yid, zid) * d * H.dz;
       }
       int const buf_id           = j + i * H.ny_real;
@@ -122,6 +132,9 @@ void Write_Projection_HDF5_(const Grid3D &G, hid_t file_id)
       dataset_buffer_Txy[buf_id] = Txy;
   #ifdef DUST
       dataset_buffer_dust_xy[buf_id] = dust_xy;
+  #endif
+  #ifdef METALS
+      dataset_buffer_metals_xy[buf_id] = metals_xy;
   #endif
     }
   }
@@ -133,6 +146,9 @@ void Write_Projection_HDF5_(const Grid3D &G, hid_t file_id)
       Real Txz = 0;
   #ifdef DUST
       Real dust_xz = 0;
+  #endif
+  #ifdef METALS
+      Real metals_xz = 0;
   #endif
       // for each xz element, sum over the y column
       for (int j = 0; j < H.ny_real; j++) {
@@ -146,6 +162,9 @@ void Write_Projection_HDF5_(const Grid3D &G, hid_t file_id)
   #ifdef DUST
         dust_xz += C.dust_density[id] * H.dy;
   #endif
+  #ifdef METALS
+        metals_xz += C.metal_density[id] * H.dy;
+  #endif
         Txz += calc_T(xid, yid, zid) * d * H.dy;
       }
       int const buf_id           = k + i * H.nz_real;
@@ -153,6 +172,9 @@ void Write_Projection_HDF5_(const Grid3D &G, hid_t file_id)
       dataset_buffer_Txz[buf_id] = Txz;
   #ifdef DUST
       dataset_buffer_dust_xz[buf_id] = dust_xz;
+  #endif
+   #ifdef METALS
+      dataset_buffer_metals_xz[buf_id] = metals_xz;
   #endif
     }
   }
@@ -165,6 +187,10 @@ void Write_Projection_HDF5_(const Grid3D &G, hid_t file_id)
   #ifdef DUST
   status = Write_HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_dust_xy.data(), "/d_dust_xy");
   status = Write_HDF5_Dataset(file_id, dataspace_xz_id, dataset_buffer_dust_xz.data(), "/d_dust_xz");
+  #endif
+  #ifdef METALS
+  status = Write_HDF5_Dataset(file_id, dataspace_xy_id, dataset_buffer_metals_xy.data(), "/d_metals_xy");
+  status = Write_HDF5_Dataset(file_id, dataspace_xz_id, dataset_buffer_metals_xz.data(), "/d_metals_xz");
   #endif
 
   // Free the dataspace ids
