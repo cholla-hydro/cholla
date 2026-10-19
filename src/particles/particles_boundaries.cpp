@@ -93,7 +93,7 @@ void Grid3D::Unload_Particles_From_Buffers_BLOCK(int index, int *flags)
   if (Particles.TRANSFER_DENSITY_BOUNDARIES) {
     return;
   }
-  if (H.TRANSFER_HYDRO_BOUNDARIES) {
+  if (state.TRANSFER_HYDRO_BOUNDARIES) {
     return;
   }
     #ifdef GRAVITY
