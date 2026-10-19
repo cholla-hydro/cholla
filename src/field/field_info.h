@@ -307,7 +307,7 @@ class FieldInfo
   /*! \brief Returns the number of field-packs */
   int n_packs() const { return pname_id_bimap_.size(); }
 
-  /*! This returns a "range" over all ids
+  /*! This returns a "range" over all "conserved" ids satisfying a particular property
    *
    *  This might be used in a case like the following:
    *  \code{c++}
@@ -330,5 +330,28 @@ class FieldInfo
     }
     // if we haven't prebuilt the conserved_id_ranges, return an empty range
     return {0, field_detail::IdxSlc()};
+  }
+
+  /*! This returns a "range" over all FieldIds in a given pack
+   *
+   *  This might be used in a case like the following:
+   *  \code{c++}
+   *  for (FieldId field_id: field_info.get_id_range_from_pack_id(pack_id)) {
+   *    // ...
+   *  }
+   *  \endcode
+   */
+  field::IdRange get_id_range_from_pack_id(uint8_t pack_id) const
+  {
+    if (static_cast<int>(pack_id) >= n_packs()) {
+      CHOLLA_ERROR("%d is an invalid pack_id", (int)pack_id);
+    }
+    std::size_t n_fields = pack_info_[pack_id].flat_idx_slc.size();
+
+    // we can't directly use flat_idx_slc, here since the flat_idx_slc specifies a
+    // slice of flat indices and we need a slice over the slot indices (they are
+    // offset from each other by constant value)
+    field_detail::IdxSlc slot_idx_slc(0, n_fields);
+    return {pack_id, slot_idx_slc};
   }
 };
