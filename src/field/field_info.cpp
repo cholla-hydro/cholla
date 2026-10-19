@@ -146,6 +146,45 @@ static void add_conserved_pack_spec_(std::vector<FieldPackSpec>& pack_specs, int
   pack_spec.conserved_id_ranges = field_detail::ConservedIdRanges{hydro, scalar, magnetic};
 }
 
+static void add_gravity_pack_spec_(std::vector<FieldPackSpec>& pack_specs, int normal_ghost_depth)
+{
+  {
+    FieldPackSpec& pack_spec   = pack_specs.emplace_back();
+    pack_spec.pack_name        = "gravity_misc";
+    pack_spec.ghost_depth      = normal_ghost_depth;
+    pack_spec.n_host_registers = 1;
+#if defined(GRAVITY_GPU)
+    pack_spec.n_dev_registers = 1;
+    pack_spec.io_buf          = MemSpace::DEV;  // <- not totally sure this is right...
+#else
+    pack_spec.n_dev_registers = 0;
+    pack_spec.io_buf          = MemSpace::HOST;
+#endif
+    pack_spec.field_names = {"total_density"};
+  }
+
+  {
+    FieldPackSpec& pack_spec   = pack_specs.emplace_back();
+    pack_spec.pack_name        = "gravity_potentials";
+    pack_spec.ghost_depth      = N_GHOST_POTENTIAL;
+    pack_spec.n_host_registers = 1;
+#if defined(GRAVITY_GPU)
+    pack_spec.n_dev_registers = 1;
+    pack_spec.io_buf          = MemSpace::DEV;  // <- not totally sure this is right...
+#else
+    pack_spec.n_dev_registers = 0;
+    pack_spec.io_buf          = MemSpace::HOST;
+#endif
+    pack_spec.field_names = {
+        "potential",
+        "potential_1",
+#ifdef GRAVITY_ANALYTIC_COMP
+        "analytic_potential",
+#endif
+    };
+  }
+}
+
 FieldInfo FieldInfo::create(int normal_ghost_depth)
 {
   CHOLLA_ASSERT(normal_ghost_depth >= 0, "ghost_depth can't be negative");
@@ -153,6 +192,9 @@ FieldInfo FieldInfo::create(int normal_ghost_depth)
   // construct a vector of FieldPackSpec objects
   std::vector<FieldPackSpec> pack_specs;
   add_conserved_pack_spec_(pack_specs, normal_ghost_depth);
+#if defined(GRAVITY)
+  add_gravity_pack_spec_(pack_specs, normal_ghost_depth);
+#endif
 
   // move onto build FieldInfo from pack_specs
   // -----------------------------------------
