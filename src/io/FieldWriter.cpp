@@ -313,10 +313,12 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
       if (cur_spec.condition == io::WriteCond::REQUIRE_COMPLETE_DATA && not G.state.Output_Complete_Data) continue;
       if (cur_spec.io_buf == MemSpace::HOST) {
         const Real* ptr = f_man.field_or_abort(MemSpace::HOST, cur_spec.field_id);
-        Write_Grid_HDF5_Field_CPU(H, file_id, host_dataset_buf, ptr, cur_spec.name.c_str());
+        Write_Generic_HDF5_Field_CPU(H.nx, H.ny, H.nz, H.nx_real, H.ny_real, H.nz_real, H.n_ghost, file_id,
+                                     host_dataset_buf, ptr, cur_spec.name.c_str());
       } else {
         const Real* ptr = f_man.field_or_abort(MemSpace::DEV, cur_spec.field_id);
-        Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, ptr, cur_spec.name.c_str());
+        Write_Generic_HDF5_Field_GPU(H.nx, H.ny, H.nz, H.nx_real, H.ny_real, H.nz_real, H.n_ghost, file_id,
+                                     host_dataset_buf, dev_dataset_buf, ptr, cur_spec.name.c_str());
       }
     }
   }

@@ -154,6 +154,10 @@ void Write_Grid_HDF5_Field_CPU(Header H, hid_t file_id, Real* dataset_buffer, co
 void Write_Grid_HDF5_Field_GPU(Header H, hid_t file_id, Real* dataset_buffer, Real* device_hdf5_buffer,
                                const Real* device_grid_buffer, const char* name);
 
+/*! Generic field writer from CPU */
+void Write_Generic_HDF5_Field_CPU(int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, int n_ghost,
+                                  hid_t file_id, Real* dataset_buffer, const Real* source_buffer, const char* name);
+
 /*! Generic field writer from GPU */
 void Write_Generic_HDF5_Field_GPU(int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, int n_ghost,
                                   hid_t file_id, Real* dataset_buffer, Real* device_hdf5_buffer,
