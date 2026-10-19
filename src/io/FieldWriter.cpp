@@ -309,22 +309,30 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
 
   // write out regular cell-centered fields
   for (const io::DatasetSpecEntry& cur_spec : dataset_spec.cc_dataset_entries) {
+    // get the dimensions of the source buffer
+    int nx_src = nx_dset + 2 * cur_spec.ghost_depth;
+    int ny_src = (ny_dset == 1) ? 1 : ny_dset + 2 * cur_spec.ghost_depth;
+    int nz_src = (nz_dset == 1) ? 1 : nz_dset + 2 * cur_spec.ghost_depth;
+
+    // if cur_spec.ghost_depth == H.n_ghost, then:
+    // nx_src == H.nx && ny_src == H.ny && nz_src == H.nz_src
+
     if constexpr (ForceF32Output) {
       // todo: consider more robust behavior here
       CHOLLA_ASSERT(cur_spec.condition == io::WriteCond::ALWAYS, "unexpected case");
       CHOLLA_ASSERT(cur_spec.io_buf == MemSpace::DEV, "unexpected case");
       const Real* ptr = f_man.field_or_abort(MemSpace::DEV, cur_spec.field_id);
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, cur_spec.ghost_depth, file_id, host_dataset_buf,
+      Write_HDF5_Field_3D(nx_src, ny_src, nx_dset, ny_dset, nz_dset, cur_spec.ghost_depth, file_id, host_dataset_buf,
                           dev_dataset_buf, ptr, cur_spec.name.c_str());
     } else {
       if (cur_spec.condition == io::WriteCond::REQUIRE_COMPLETE_DATA && not G.state.Output_Complete_Data) continue;
       if (cur_spec.io_buf == MemSpace::HOST) {
         const Real* ptr = f_man.field_or_abort(MemSpace::HOST, cur_spec.field_id);
-        Write_Generic_HDF5_Field_CPU(H.nx, H.ny, H.nz, H.nx_real, H.ny_real, H.nz_real, cur_spec.ghost_depth, file_id,
+        Write_Generic_HDF5_Field_CPU(nx_src, ny_src, nz_src, nx_dset, ny_dset, nz_dset, cur_spec.ghost_depth, file_id,
                                      host_dataset_buf, ptr, cur_spec.name.c_str());
       } else {
         const Real* ptr = f_man.field_or_abort(MemSpace::DEV, cur_spec.field_id);
-        Write_Generic_HDF5_Field_GPU(H.nx, H.ny, H.nz, H.nx_real, H.ny_real, H.nz_real, cur_spec.ghost_depth, file_id,
+        Write_Generic_HDF5_Field_GPU(nx_src, ny_src, nz_src, nx_dset, ny_dset, nz_dset, cur_spec.ghost_depth, file_id,
                                      host_dataset_buf, dev_dataset_buf, ptr, cur_spec.name.c_str());
       }
     }
