@@ -44,10 +44,6 @@ class FieldManager
 
   ///@{
   /*! \brief try to retrieve the specified field
-   *
-   *  \note
-   *  The ``or_abort`` variant is only defined for the ``FieldId`` argument since the
-   *  caller presumably already looked up the ``FieldId``.
    */
   std::optional<Real*> field(MemSpace s, FieldId id, std::size_t register_idx = 0);
   std::optional<const Real*> field(MemSpace s, FieldId id, std::size_t register_idx = 0) const;
@@ -55,6 +51,8 @@ class FieldManager
   std::optional<const Real*> field(MemSpace s, std::string_view name, std::size_t register_idx = 0) const;
   Real* field_or_abort(MemSpace s, FieldId id, std::size_t register_idx = 0);
   const Real* field_or_abort(MemSpace s, FieldId id, std::size_t register_idx = 0) const;
+  Real* field_or_abort(MemSpace s, std::string_view name, std::size_t register_idx = 0);
+  const Real* field_or_abort(MemSpace s, std::string_view name, std::size_t register_idx = 0) const;
   ///@}
 
   ///@{

@@ -12,8 +12,25 @@
 
 // a helper function intended to produce an informative error message for when either
 // FieldManager::field_or_abort or FieldManager::pack_or_abort fails
+
+static std::string infer_abort_msg_from_field_name_(MemSpace s, std::string_view field_name, std::size_t register_idx,
+                                                    const FieldInfo& info)
+{
+  if (!info.field_id(field_name).has_value()) {
+    std::ostringstream sstream;
+    sstream << '"' << field_name << "\" isn't a known field name";
+    return sstream.str();
+  }
+
+  const char* space_name = (s == MemSpace::DEV) ? "device" : "host";
+  std::ostringstream sstream;
+  sstream << "Cholla is NOT configured to track a " << space_name << " register (with register_idx=" << register_idx
+          << ") for the \"" << field_name << "\" field";
+  return sstream.str();
+}
+
 template <typename T>
-static std::string infer_abort_msg_(MemSpace s, const T& id, std::size_t register_idx, const FieldInfo& info)
+static std::string infer_abort_msg_from_id_(MemSpace s, const T& id, std::size_t register_idx, const FieldInfo& info)
 {
   const char* data_type = nullptr;
   std::optional<std::string> maybe_name;
@@ -81,7 +98,7 @@ Real* FieldManager::field_or_abort(MemSpace s, FieldId id, std::size_t register_
   if (maybe_ptr.has_value()) {
     return *maybe_ptr;
   }
-  std::string msg = infer_abort_msg_(s, id, register_idx, field_info_);
+  std::string msg = infer_abort_msg_from_id_(s, id, register_idx, field_info_);
   CHOLLA_ERROR("%s", msg.c_str());
 }
 
@@ -91,7 +108,27 @@ const Real* FieldManager::field_or_abort(MemSpace s, FieldId id, std::size_t reg
   if (maybe_ptr.has_value()) {
     return *maybe_ptr;
   }
-  std::string msg = infer_abort_msg_(s, id, register_idx, field_info_);
+  std::string msg = infer_abort_msg_from_id_(s, id, register_idx, field_info_);
+  CHOLLA_ERROR("%s", msg.c_str());
+}
+
+Real* FieldManager::field_or_abort(MemSpace s, std::string_view name, std::size_t register_idx)
+{
+  std::optional<Real*> maybe_ptr = field(s, name, register_idx);
+  if (maybe_ptr.has_value()) {
+    return *maybe_ptr;
+  }
+  std::string msg = infer_abort_msg_from_field_name_(s, name, register_idx, field_info_);
+  CHOLLA_ERROR("%s", msg.c_str());
+}
+
+const Real* FieldManager::field_or_abort(MemSpace s, std::string_view name, std::size_t register_idx) const
+{
+  std::optional<const Real*> maybe_ptr = field(s, name, register_idx);
+  if (maybe_ptr.has_value()) {
+    return *maybe_ptr;
+  }
+  std::string msg = infer_abort_msg_from_field_name_(s, name, register_idx, field_info_);
   CHOLLA_ERROR("%s", msg.c_str());
 }
 
@@ -133,7 +170,7 @@ Real* FieldManager::pack_or_abort(MemSpace s, uint8_t id, std::size_t register_i
   if (maybe_ptr.has_value()) {
     return *maybe_ptr;
   }
-  std::string msg = infer_abort_msg_(s, id, register_idx, field_info_);
+  std::string msg = infer_abort_msg_from_id_(s, id, register_idx, field_info_);
   CHOLLA_ERROR("%s", msg.c_str());
 }
 
@@ -143,6 +180,6 @@ const Real* FieldManager::pack_or_abort(MemSpace s, uint8_t id, std::size_t regi
   if (maybe_ptr.has_value()) {
     return *maybe_ptr;
   }
-  std::string msg = infer_abort_msg_(s, id, register_idx, field_info_);
+  std::string msg = infer_abort_msg_from_id_(s, id, register_idx, field_info_);
   CHOLLA_ERROR("%s", msg.c_str());
 }
