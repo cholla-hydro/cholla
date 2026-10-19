@@ -4,6 +4,7 @@
 #ifndef RT_H
 #define RT_H
 
+#include "../field/field_manager.h"
 #include "../global/global.h"
 #include "../io/FnameTemplate.h"
 
@@ -96,7 +97,7 @@ class Rad3D
   ~Rad3D();
 
   void Initialize_Start(const Parameters &params);
-  void Initialize_Finish();
+  void Initialize_Finish(FieldManager &field_manager);
   void Initialize_GPU();
 
   #ifdef GRAVITY

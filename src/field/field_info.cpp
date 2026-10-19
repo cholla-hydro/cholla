@@ -164,10 +164,10 @@ static void add_gravity_pack_spec_(std::vector<FieldPackSpec>& pack_specs, int n
   }
 
   {
-    FieldPackSpec& pack_spec   = pack_specs.emplace_back();
-    pack_spec.pack_name        = "gravity_potentials";
+    FieldPackSpec& pack_spec = pack_specs.emplace_back();
+    pack_spec.pack_name      = "gravity_potentials";
 #ifdef N_GHOST_POTENTIAL
-    pack_spec.ghost_depth      = N_GHOST_POTENTIAL;
+    pack_spec.ghost_depth = N_GHOST_POTENTIAL;
 #else
     CHOLLA_ERROR("N_GHOST_POTENTIAL is not defined");
 #endif
@@ -189,6 +189,17 @@ static void add_gravity_pack_spec_(std::vector<FieldPackSpec>& pack_specs, int n
   }
 }
 
+static void add_radiation_pack_spec_(std::vector<FieldPackSpec>& pack_specs, int normal_ghost_depth)
+{
+  FieldPackSpec& pack_spec   = pack_specs.emplace_back();
+  pack_spec.pack_name        = "radiation_source";
+  pack_spec.ghost_depth      = normal_ghost_depth;
+  pack_spec.n_host_registers = 0;
+  pack_spec.n_dev_registers  = 1;
+  pack_spec.io_buf           = MemSpace::DEV;  // <- not totally sure this is right...
+  pack_spec.field_names      = {"source"};
+}
+
 FieldInfo FieldInfo::create(int normal_ghost_depth)
 {
   CHOLLA_ASSERT(normal_ghost_depth >= 0, "ghost_depth can't be negative");
@@ -198,6 +209,10 @@ FieldInfo FieldInfo::create(int normal_ghost_depth)
   add_conserved_pack_spec_(pack_specs, normal_ghost_depth);
 #if defined(GRAVITY)
   add_gravity_pack_spec_(pack_specs, normal_ghost_depth);
+#endif
+
+#if defined(RT)
+  add_radiation_pack_spec_(pack_specs, normal_ghost_depth);
 #endif
 
   // move onto build FieldInfo from pack_specs

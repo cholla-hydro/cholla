@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
   }
 
 #ifdef RT
-  G.Rad.Initialize_Finish();
+  G.Rad.Initialize_Finish(G.field_manager());
 #endif
 
 #ifdef DE

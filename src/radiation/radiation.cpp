@@ -28,7 +28,6 @@ Rad3D::~Rad3D()
   delete photoRates;
   rt_physics::rt_atomic_data::Delete();
   cudaFree(rtFields.dev_rf);
-  cudaFree(rtFields.dev_rs);
   cudaFree(rtFields.dev_abc);
   cudaFree(rtFields.dev_rfNew);
   if (rtFields.rs != nullptr) free(rtFields.rs);
@@ -77,7 +76,7 @@ void Rad3D::Initialize_Start(const Parameters& params)
 }
 
 // function to do various initialization tasks, i.e. allocating memory, etc.
-void Rad3D::Initialize_Finish()
+void Rad3D::Initialize_Finish(FieldManager& field_manager)
 {
   #ifdef RT_OTVET
   int eqn_mode = 2;  // Updating to 4
@@ -103,8 +102,8 @@ void Rad3D::Initialize_Finish()
   GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_et, 6 * grid.n_cells * sizeof(Real)));
   #endif
 
-  // Allocate memory for radiation source field only on device
-  GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_rs, grid.n_cells * sizeof(Real)));
+  // get pre-allocated pointer memory for radiation source field (only on device)
+  rtFields.dev_rs = field_manager.field_or_abort(MemSpace::DEV, "source");
 
   // Allocate temporary fields on device
   GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_abc, n_freq * grid.n_cells * sizeof(Real)));
