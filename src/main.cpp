@@ -333,7 +333,7 @@ int main(int argc, char *argv[])
     // and positions are updated by dt
     G.Advance_Particles(1);
 
-    // Transfer the particles that moved outside the local domain
+    //  Transfer the particles that moved outside the local domain
     G.Transfer_Particles_Boundaries(P);
 #endif
 
@@ -360,6 +360,7 @@ int main(int argc, char *argv[])
 #ifdef RT
     G.Rad.rtBoundaries();
 #endif
+
     // add one to the timestep count
     G.H.n_step++;
 
