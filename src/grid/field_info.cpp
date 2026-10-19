@@ -48,9 +48,7 @@ static constexpr PropPack pack_arr_[] = {
   #endif
   #ifdef GRACKLE_METALS
     {"metal_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
-  #endif
-
-  #ifdef METALS
+  #elif defined(METALS)
     {"metal_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::DEVICE},
   #endif
 
