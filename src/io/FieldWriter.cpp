@@ -81,14 +81,21 @@ struct DsetSpecListBuilder {
     }
     FieldId field_id = maybe_field_id.value();
 
+    // determine the ghost_depth
+    std::optional<int> maybe_ghost_depth = field_info.ghost_depth(field_id);
+    if (!maybe_ghost_depth.has_value()) {
+      CHOLLA_ERROR("sanity check failed!");
+    }
+    int ghost_depth = maybe_ghost_depth.value();
+
     // determine the dset_name
     std::string dset_name = out_name_recipe(name);
 
     if (force_buf_choice.has_value()) {
-      wrapped_vec.emplace_back(field_id, std::move(dset_name), force_buf_choice.value(), cond);
+      wrapped_vec.emplace_back(field_id, std::move(dset_name), force_buf_choice.value(), cond, ghost_depth);
     } else {
       std::optional<MemSpace> io_buf = field_info.io_buf(field_id);
-      wrapped_vec.emplace_back(field_id, std::move(dset_name), get_or_abort(io_buf), cond);
+      wrapped_vec.emplace_back(field_id, std::move(dset_name), get_or_abort(io_buf), cond, ghost_depth);
     }
   }
 };
@@ -307,17 +314,17 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
       CHOLLA_ASSERT(cur_spec.condition == io::WriteCond::ALWAYS, "unexpected case");
       CHOLLA_ASSERT(cur_spec.io_buf == MemSpace::DEV, "unexpected case");
       const Real* ptr = f_man.field_or_abort(MemSpace::DEV, cur_spec.field_id);
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf,
-                          ptr, cur_spec.name.c_str());
+      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, cur_spec.ghost_depth, file_id, host_dataset_buf,
+                          dev_dataset_buf, ptr, cur_spec.name.c_str());
     } else {
       if (cur_spec.condition == io::WriteCond::REQUIRE_COMPLETE_DATA && not G.state.Output_Complete_Data) continue;
       if (cur_spec.io_buf == MemSpace::HOST) {
         const Real* ptr = f_man.field_or_abort(MemSpace::HOST, cur_spec.field_id);
-        Write_Generic_HDF5_Field_CPU(H.nx, H.ny, H.nz, H.nx_real, H.ny_real, H.nz_real, H.n_ghost, file_id,
+        Write_Generic_HDF5_Field_CPU(H.nx, H.ny, H.nz, H.nx_real, H.ny_real, H.nz_real, cur_spec.ghost_depth, file_id,
                                      host_dataset_buf, ptr, cur_spec.name.c_str());
       } else {
         const Real* ptr = f_man.field_or_abort(MemSpace::DEV, cur_spec.field_id);
-        Write_Generic_HDF5_Field_GPU(H.nx, H.ny, H.nz, H.nx_real, H.ny_real, H.nz_real, H.n_ghost, file_id,
+        Write_Generic_HDF5_Field_GPU(H.nx, H.ny, H.nz, H.nx_real, H.ny_real, H.nz_real, cur_spec.ghost_depth, file_id,
                                      host_dataset_buf, dev_dataset_buf, ptr, cur_spec.name.c_str());
       }
     }

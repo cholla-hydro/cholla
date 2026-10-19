@@ -76,12 +76,14 @@ struct DatasetSpecEntry {
   MemSpace io_buf;
   /// the condition for writing this dataset
   WriteCond condition;
+  /// the ghost-depth of the field
+  int ghost_depth;
 
   // the following constructor is defined in order to make this type work with
   // std::vector::emplace_back. Delete it, once we require C++20 or newer
 #if __cpp_aggregate_paren_init < 201902L
-  DatasetSpecEntry(FieldId field_id, std::string name, MemSpace io_buf, WriteCond condition)
-      : field_id{field_id}, name{std::move(name)}, io_buf{io_buf}, condition{condition}
+  DatasetSpecEntry(FieldId field_id, std::string name, MemSpace io_buf, WriteCond condition, int ghost_depth)
+      : field_id{field_id}, name{std::move(name)}, io_buf{io_buf}, condition{condition}, ghost_depth{ghost_depth}
   {
   }
 #endif
