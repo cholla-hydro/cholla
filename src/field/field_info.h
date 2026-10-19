@@ -31,6 +31,13 @@ struct PackInfo {
   /// \note
   /// Things are a little weird with the way ghost_depth works for conserved fields
   int ghost_depth;
+
+  /// tracks the number of pack registers stored on host or on device
+  ///
+  /// \note
+  /// For now, this just tracks 0 or 1, but in the future, we will track more info
+  int n_host_registers;
+  int n_dev_registers;
 };
 
 }  // namespace field_detail
@@ -213,6 +220,22 @@ class FieldInfo
 
   /*! \brief retrieve the ghost depth of the specified field */
   std::optional<int> ghost_depth(FieldId field_id) const { return ghost_depth_from_pack_id(field_id.pack_id); }
+
+  /*! \brief retrieve the number of field-pack registers that are stored */
+  std::optional<int> n_registers_from_pack_id(uint8_t pack_id, MemSpace s) const
+  {
+    if (pack_id < pack_info_.size()) {
+      const field_detail::PackInfo& pack_info = pack_info_[pack_id];
+      return {(s == MemSpace::HOST) ? pack_info.n_host_registers : pack_info.n_dev_registers};
+    }
+    return std::nullopt;
+  }
+
+  /*! \brief retrieve the number of registers of the specified field that are stored */
+  std::optional<int> n_registers(FieldId field_id, MemSpace s) const
+  {
+    return n_registers_from_pack_id(field_id.pack_id, s);
+  }
 
   /*! try to look up whether the field id refers to a cell-centered field
    *

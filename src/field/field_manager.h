@@ -27,6 +27,13 @@ class FieldManager
   /// tracks field information
   FieldInfo field_info_;
 
+  // the following 2 methods are helper functions used to help implement other methods
+  bool pack_has_register_(MemSpace s, uint8_t pack_id, std::size_t register_idx) const;
+  bool field_has_register_(MemSpace s, FieldId field_id, std::size_t register_idx) const
+  {
+    return pack_has_register_(s, field_id.pack_id, register_idx);
+  }
+
  public:
   /*! \brief Construct a new instance */
   FieldManager(FieldInfo info, std::array<int, 3> shape_xyz)

@@ -133,7 +133,8 @@ FieldInfo FieldInfo::create(int normal_ghost_depth)
   // -> enroll relevant field-pack information
   pack_names.emplace_back("conserved");
   field_detail::PackInfo conserved_pack_info{
-      field_detail::IdxSlc(flat_field_names.size(), flat_field_names.size() + n_conserved_fields), normal_ghost_depth};
+      field_detail::IdxSlc(flat_field_names.size(), flat_field_names.size() + n_conserved_fields), normal_ghost_depth,
+      1, 1};
   out.pack_info_.emplace_back(conserved_pack_info);
 
   // -> enroll info about each conserved field
