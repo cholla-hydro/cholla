@@ -227,6 +227,10 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
         registrar.add_entry(name.c_str(), WriteCond::ALWAYS);
       }
     }
+
+#if defined(GRAVITY) && defined(OUTPUT_POTENTIAL)
+    registrar.add_entry("potential", WriteCond::ALWAYS)
+#endif
   }
 
   // Part 3: record the face-centered fields that will be recorded
@@ -249,8 +253,8 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
     this->dataset_spec_.write_mag[bfield_name_to_012_(field_name)] = write;
   }
 
-  // For now, we don't bothered migrating temperature and gravitational potential
-  // away from ifdefs, the handling remains very manual
+  // For now, we don't bothered migrating temperature away from ifdefs, the handling
+  // remains very manual
 }
 
 // the following anonymous namespace encloses functions used to help us implement
@@ -370,16 +374,6 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
   #elif defined(OUTPUT_TEMPERATURE) && defined(COOLING_GRACKLE)
     Write_Grid_HDF5_Field_CPU(H, file_id, host_dataset_buf, G.Cool.temperature, "/temperature");
   #endif
-
-  #if defined(GRAVITY) && defined(OUTPUT_POTENTIAL)
-    if (is_3D) {  // 3D case
-      const Grav3D& Grav = G.Grav;
-      Write_Generic_HDF5_Field_GPU(Grav.nx_local + 2 * N_GHOST_POTENTIAL, Grav.ny_local + 2 * N_GHOST_POTENTIAL,
-                                   Grav.nz_local + 2 * N_GHOST_POTENTIAL, Grav.nx_local, Grav.ny_local, Grav.nz_local,
-                                   N_GHOST_POTENTIAL, file_id, host_dataset_buf, dev_dataset_buf, Grav.F.potential_d,
-                                   "/grav_potential");
-    }
-  #endif  // GRAVITY and OUTPUT_POTENTIAL
   }
 
   // Likely needs editing, check device or host array and offset
