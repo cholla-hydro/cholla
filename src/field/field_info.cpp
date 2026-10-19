@@ -15,7 +15,6 @@ namespace
 
 struct PropPack {
   const char* name;
-  field::Kind kind;
   MemSpace io_buf;
 };
 
@@ -26,43 +25,43 @@ struct PropPack {
  *  This must remain synchronized with grid_enum.h
  */
 static constexpr PropPack pack_arr_[] = {
-    {"density", field::Kind::HYDRO, MemSpace::DEV},
-    {"momentum_x", field::Kind::HYDRO, MemSpace::DEV},
-    {"momentum_y", field::Kind::HYDRO, MemSpace::DEV},
-    {"momentum_z", field::Kind::HYDRO, MemSpace::DEV},
-    {"Energy", field::Kind::HYDRO, MemSpace::DEV},
+    {"density", MemSpace::DEV},
+    {"momentum_x", MemSpace::DEV},
+    {"momentum_y", MemSpace::DEV},
+    {"momentum_z", MemSpace::DEV},
+    {"Energy", MemSpace::DEV},
 
 #ifdef SCALAR
   #ifdef BASIC_SCALAR
     // we use the name "scalar0" for better consistency with the name recorded during IO
-    {"scalar0", field::Kind::PASSIVE_SCALAR, MemSpace::DEV},
+    {"scalar0", MemSpace::DEV},
   #endif
 
   #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
-    {"HI_density", field::Kind::PASSIVE_SCALAR, MemSpace::HOST},
-    {"HII_density", field::Kind::PASSIVE_SCALAR, MemSpace::HOST},
-    {"HeI_density", field::Kind::PASSIVE_SCALAR, MemSpace::HOST},
-    {"HeII_density", field::Kind::PASSIVE_SCALAR, MemSpace::HOST},
-    {"HeIII_density", field::Kind::PASSIVE_SCALAR, MemSpace::HOST},
-    {"e_density", field::Kind::PASSIVE_SCALAR, MemSpace::HOST},
+    {"HI_density", MemSpace::HOST},
+    {"HII_density", MemSpace::HOST},
+    {"HeI_density", MemSpace::HOST},
+    {"HeII_density", MemSpace::HOST},
+    {"HeIII_density", MemSpace::HOST},
+    {"e_density", MemSpace::HOST},
     #ifdef GRACKLE_METALS
-    {"metal_density", field::Kind::PASSIVE_SCALAR, MemSpace::HOST},
+    {"metal_density", MemSpace::HOST},
     #endif
   #endif
 
   #ifdef DUST
-    {"dust_density", field::Kind::PASSIVE_SCALAR, MemSpace::DEV},
+    {"dust_density", MemSpace::DEV},
   #endif  // DUST
 
 #endif  // SCALAR
 
 #ifdef MHD
-    {"magnetic_x", field::Kind::MAGNETIC, MemSpace::DEV},
-    {"magnetic_y", field::Kind::MAGNETIC, MemSpace::DEV},
-    {"magnetic_z", field::Kind::MAGNETIC, MemSpace::DEV},
+    {"magnetic_x", MemSpace::DEV},
+    {"magnetic_y", MemSpace::DEV},
+    {"magnetic_z", MemSpace::DEV},
 #endif
 #ifdef DE
-    {"GasEnergy", field::Kind::HYDRO, MemSpace::DEV}
+    {"GasEnergy", MemSpace::DEV}
 #endif
 };
 
