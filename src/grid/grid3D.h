@@ -167,6 +167,13 @@ struct Header {
    *         AVERAGE_SLOW_CELLS macro isn't defined. */
   Real min_dt_slow;
 
+#ifdef CLOUD_TRACKING
+  Real density_cloud_init;
+  Real density_wind_init;
+  Real velocity_x_cloud_avg = 0;
+  Real velocity_cloud_avg_curr = 0;
+#endif  // CLOUD_TRACKING
+
   /*! \var t_wall
    *  \brief Wall time */
   Real t_wall;
@@ -401,7 +408,7 @@ class Grid3D
   /*! Set the initial conditions based on already-parsed parameter info in the
    *  \ref Parameters arg or unparsed parameter-info in the \ref ParameterMap arg
    */
-  void Set_Initial_Conditions(Parameters P, const ParameterMap &pmap);
+  void Set_Initial_Conditions(Parameters P, ParameterMap &pmap);
 
   /*! \fn void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real
    * *zpos) \brief Get the cell-centered position based on cell index */
@@ -616,7 +623,7 @@ class Grid3D
    * gravitational collapse */
   void Spherical_Overdensity_3D();
 
-  void Clouds();
+  void Clouds(ParameterMap &pmap);
 
   void Uniform_Grid();
 

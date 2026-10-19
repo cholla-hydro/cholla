@@ -86,6 +86,9 @@
 #configurefile_define BASIC_SCALAR
 #configurefile_define DUST
 
+// When defined, cloud-tracking is enabled
+#configurefile_define CLOUD_TRACKING
+
 // ======================
 // Analysis Configuration
 // ======================
