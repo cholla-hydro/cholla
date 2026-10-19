@@ -352,6 +352,13 @@ int main(int argc, char *argv[])
     G.Compute_Gravitational_Potential(&P);
 #endif
 
+  #if defined(RT) && defined(RT_OTVET)
+    G.Rad.ComputeEddingtonTensor(P, G.Grav);
+  #endif
+#endif
+
+#ifdef RT
+    G.Rad.rtBoundaries();
     // add one to the timestep count
     G.H.n_step++;
 

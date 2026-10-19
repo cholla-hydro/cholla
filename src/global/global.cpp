@@ -331,11 +331,9 @@ Parameters::Parameters(ParameterMap &pmap)
   // a negative value means that the parameter wasn't set
   parms->bc_potential_type = pmap.value_or("bc_potential_type", -1);
 
-#ifdef SCALAR 
-  #ifdef DUST
+#if defined(SCALAR) && defined(DUST)
   parms->grain_radius = pmap.value<double>("grain_radius");
-  #endif // DUST 
-#endif  // SCALAR
+#endif  // defined(SCALAR) && defined(DUST)
 
   parms->metallicity_wind = pmap.value_or("metallicity_wind", 1.0);
 
