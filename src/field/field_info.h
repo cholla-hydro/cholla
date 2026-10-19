@@ -40,6 +40,18 @@ struct PackInfo {
   int n_dev_registers;
 };
 
+/*! \brief aggregates id ranges for the 3 kinds of fields (hydro, scalar, magnetic) in
+ *  the conserved field-pack
+ *
+ * @note Long term, it would probably be better if we tracked the 3 kinds of fields in
+ * distinct field-packs
+ */
+struct ConservedIdRanges {
+  field::IdRange hydro;
+  field::IdRange scalar;
+  field::IdRange magnetic;
+};
+
 }  // namespace field_detail
 
 namespace field
@@ -102,6 +114,14 @@ class FieldInfo
   ///
   /// @note always has the same number of entries as pname_id_bimap_
   std::vector<field_detail::PackInfo> pack_info_;
+
+  /// holds id ranges for the 3 kinds of fields (hydro, scalar, magnetic) in the
+  /// conserved field-pack
+  ///
+  /// @note this should theoretically be empty if the conserved field-pack isn't being
+  /// tracked. Long term, it would probably be better if we tracked the 3 kinds of
+  /// fields in distinct field-packs
+  std::optional<field_detail::ConservedIdRanges> conserved_id_ranges_;
 
   // We make the default-constructor private to force the use of the factory method
   FieldInfo() = default;
@@ -296,5 +316,19 @@ class FieldInfo
    *  }
    *  \endcode
    */
-  field::IdRange get_id_range(field::Kind kind) const;
+  field::IdRange get_id_range(field::Kind kind) const
+  {
+    if (conserved_id_ranges_.has_value()) {
+      switch (kind) {
+        case field::Kind::HYDRO:
+          return conserved_id_ranges_->hydro;
+        case field::Kind::PASSIVE_SCALAR:
+          return conserved_id_ranges_->scalar;
+        case field::Kind::MAGNETIC:
+          return conserved_id_ranges_->magnetic;
+      }
+    }
+    // if we haven't prebuilt the conserved_id_ranges, return an empty range
+    return {0, field_detail::IdxSlc()};
+  }
 };

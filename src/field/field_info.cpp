@@ -69,48 +69,43 @@ static constexpr int n_fields_ = static_cast<int>(sizeof(pack_arr_) / sizeof(Pro
 
 static_assert(n_fields_ == grid_enum::num_fields, "pack_arr_ and grid_enum::num_fields are no longer synchronized");
 
-field::IdRange FieldInfo::get_id_range(field::Kind kind) const
+static field_detail::ConservedIdRanges build_ConservedIdRanges_(uint8_t conserved_pack_id)
 {
-  using namespace std::literals;
-  std::optional<uint8_t> tmp = pack_id("conserved"sv);
-  if (!tmp.has_value()) {  // if there isn't a conserved field pack, return an empty range
-    return {0, field_detail::IdxSlc()};
-  }
-  uint8_t conserved_pack_id = tmp.value();
+  using field::IdRange;
+  using field_detail::IdxSlc;
 
-  // NOLINTBEGIN(bugprone-branch-clone)
-  switch (kind) {
-    case field::Kind::HYDRO: {
-      field_detail::IdxSlc primary_slc(0, grid_enum::Energy + 1);
+  // build the IdRange for hydro fields
+  // ----------------------------------
 #ifdef DE
-      field_detail::IdxSlc secondary_slc(grid_enum::GasEnergy, grid_enum::GasEnergy + 1);
-      return {conserved_pack_id, primary_slc, secondary_slc};
+  // when using dual-energy, the IdRange spans 2 separate index-slices
+  IdRange hydro(conserved_pack_id, IdxSlc(0, grid_enum::Energy + 1),
+                IdxSlc(grid_enum::GasEnergy, grid_enum::GasEnergy + 1));
 #else
-      return {conserved_pack_id, primary_slc};
+  // when not using dual-energy, the IdRange spans 2 separate index-slices
+  IdRange hydro(conserved_pack_id, IdxSlc(0, grid_enum::Energy + 1));
 #endif
-    }
-    case field::Kind::PASSIVE_SCALAR: {
+
+  // build the IdRange for passive scalar fields
+  // -------------------------------------------
 #ifdef SCALAR
-      return {conserved_pack_id, field_detail::IdxSlc(grid_enum::scalar, grid_enum::finalscalar_plus_1)};
+  IdRange scalar(conserved_pack_id, IdxSlc(grid_enum::scalar, grid_enum::finalscalar_plus_1));
 #else
-      // when SCALAR isn't defined, this range has no entries
-      return {conserved_pack_id, field_detail::IdxSlc()};
+  // when SCALAR isn't defined, the range has no entries
+  IdRange scalar(conserved_pack_id, IdxSlc());
 #endif
-    }
-    case field::Kind::MAGNETIC: {
+
+  // build the IdRange for magnetic fields scalar fields
+  // -------------------------------------------
 #ifdef MHD
-      static_assert(grid_enum::magnetic_x + 1 == grid_enum::magnetic_y, "bfields have unexpected order");
-      static_assert(grid_enum::magnetic_y + 1 == grid_enum::magnetic_z, "bfields have unexpected order");
-      return {conserved_pack_id, field_detail::IdxSlc(grid_enum::scalar, grid_enum::finalscalar_plus_1)};
+  static_assert(grid_enum::magnetic_x + 1 == grid_enum::magnetic_y, "bfields have unexpected order");
+  static_assert(grid_enum::magnetic_y + 1 == grid_enum::magnetic_z, "bfields have unexpected order");
+  IdRange magnetic(conserved_pack_id, IdxSlc(grid_enum::magnetic_x, grid_enum::magnetic_z + 1));
 #else
-      // when MHD isn't defined, this has no entries
-      return {conserved_pack_id, field_detail::IdxSlc()};
+  // when MHD isn't defined, the range has no entries
+  IdRange magnetic(conserved_pack_id, field_detail::IdxSlc());
 #endif
-    }
-    default:
-      CHOLLA_ERROR("This branch should be unreachable");
-  }
-  // NOLINTEND(bugprone-branch-clone)
+
+  return {hydro, scalar, magnetic};
 }
 
 FieldInfo FieldInfo::create(int normal_ghost_depth)
@@ -143,6 +138,10 @@ FieldInfo FieldInfo::create(int normal_ghost_depth)
     out.io_buf_.push_back(pack_arr_[i].io_buf);
     FieldId field_id(0, static_cast<uint8_t>(i));
   }
+  // construct the ConservedIdRanges so that we can easily iterate over subsets of the
+  // conserved fields later
+  uint8_t conserved_pack_id = static_cast<uint8_t>(pack_names.size() - 1);
+  out.conserved_id_ranges_  = build_ConservedIdRanges_(conserved_pack_id);
 
   // now that we're done with all field packs, let's finalize things
   out.pname_id_bimap_ = utils::FrozenKeyIdxBiMap(pack_names);
