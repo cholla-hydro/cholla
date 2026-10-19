@@ -362,7 +362,7 @@ void Grid3D::Initialize_Gravity(struct Parameters *P)
 {
   chprintf("\nInitializing Gravity... \n");
   SpatialDomainProps spatial_props = SpatialDomainProps::From_Grid3D(*this, P);
-  Grav.Initialize(spatial_props, H.xdglobal, H.ydglobal, H.zdglobal, H.n_ghost_potential_offset, P);
+  Grav.Initialize(spatial_props, H.xdglobal, H.ydglobal, H.zdglobal, H.n_ghost_potential_offset, P, field_manager());
   chprintf("Gravity Successfully Initialized. \n\n");
 
   if (P->bc_potential_type == 1) {

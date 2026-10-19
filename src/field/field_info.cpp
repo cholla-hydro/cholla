@@ -168,20 +168,20 @@ static void add_gravity_pack_spec_(std::vector<FieldPackSpec>& pack_specs, int n
     pack_spec.pack_name        = "gravity_potentials";
     pack_spec.ghost_depth      = N_GHOST_POTENTIAL;
     pack_spec.n_host_registers = 1;
-#if defined(GRAVITY_GPU)
-    pack_spec.n_dev_registers = 1;
-    pack_spec.io_buf          = MemSpace::DEV;  // <- not totally sure this is right...
-#else
-    pack_spec.n_dev_registers = 0;
-    pack_spec.io_buf          = MemSpace::HOST;
-#endif
-    pack_spec.field_names = {
+    pack_spec.n_dev_registers  = 1;
+    pack_spec.io_buf           = MemSpace::DEV;
+    pack_spec.field_names      = {
         "potential",
         "potential_1",
 #ifdef GRAVITY_ANALYTIC_COMP
         "analytic_potential",
 #endif
     };
+
+    // quick note: if GRAVITY_GPU isn't defined, we historically would not define the
+    // analytic_potential on the GPU. Rather than make another field-pack dedicated to
+    // holding analytic_potential, I just decided to allocate the memory in this case
+    // (I don't think this scenario ever comes up in practice)
   }
 }
 

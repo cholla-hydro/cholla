@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 
+#include "../field/field_manager.h"
 #include "../global/global.h"
 #include "../grid/spatial_domain_props.h"
 #include "../io/FnameTemplate.h"
@@ -196,9 +197,9 @@ class Grav3D
   /*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
    *  \brief Initialize the grid. */
   void Initialize(const SpatialDomainProps &spatial_props, Real Lx, Real Ly, Real Lz, int n_ghost_pot_offset,
-                  Parameters *P);
+                  Parameters *P, FieldManager &field_man);
 
-  void AllocateMemory_CPU(void);
+  void AllocateMemory_CPU(FieldManager &field_man);
   void Initialize_values_CPU();
   void FreeMemory_CPU(void);
 
@@ -216,7 +217,7 @@ class Grav3D
 #endif
 
 #ifdef GRAVITY_GPU
-  void AllocateMemory_GPU(void);
+  void AllocateMemory_GPU(FieldManager &field_man);
   void FreeMemory_GPU(void);
 #endif
 };
