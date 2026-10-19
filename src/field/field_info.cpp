@@ -166,7 +166,11 @@ static void add_gravity_pack_spec_(std::vector<FieldPackSpec>& pack_specs, int n
   {
     FieldPackSpec& pack_spec   = pack_specs.emplace_back();
     pack_spec.pack_name        = "gravity_potentials";
+#ifdef N_GHOST_POTENTIAL
     pack_spec.ghost_depth      = N_GHOST_POTENTIAL;
+#else
+    CHOLLA_ERROR("N_GHOST_POTENTIAL is not defined");
+#endif
     pack_spec.n_host_registers = 1;
     pack_spec.n_dev_registers  = 1;
     pack_spec.io_buf           = MemSpace::DEV;
