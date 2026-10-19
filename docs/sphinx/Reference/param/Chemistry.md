@@ -85,3 +85,5 @@ It is an error to specify this parameter when {par:param}`chemistry.photoelectri
 :Default: `true`
 
 When {par:param}`enable_heating` is `true`, the net Cloudy cooling rate will take into account heating from a Hardt & Madau 2005 UV background. Must be set to `false` when using metallicity-dependent cooling (`chemistry.kind = metal-dependent`)
+
+:::
