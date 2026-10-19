@@ -332,6 +332,7 @@ int main(int argc, char *argv[])
     // Advance the particles KDK( first step ): Velocities are updated by 0.5*dt
     // and positions are updated by dt
     G.Advance_Particles(1);
+
     // Transfer the particles that moved outside the local domain
     G.Transfer_Particles_Boundaries(P);
 #endif
@@ -350,7 +351,6 @@ int main(int argc, char *argv[])
 #ifdef GRAVITY
     // Compute Gravitational potential for next step
     G.Compute_Gravitational_Potential(&P);
-#endif
 
   #if defined(RT) && defined(RT_OTVET)
     G.Rad.ComputeEddingtonTensor(P, G.Grav);
@@ -359,6 +359,7 @@ int main(int argc, char *argv[])
 
 #ifdef RT
     G.Rad.rtBoundaries();
+#endif
     // add one to the timestep count
     G.H.n_step++;
 
