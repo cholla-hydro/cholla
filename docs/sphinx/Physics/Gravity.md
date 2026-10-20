@@ -67,8 +67,9 @@ In general, this module relies on a particle-mesh scheme. Broadly speaking, for 
 
 ``PARIS_5PT``: Use a 5-point gradient for the divergence operator approximation in Paris
 
-``PARIS_GALACTIC``: Use the Paris Poisson solver on a domain with analytic boundaries set to match the selected model in the DiskGalaxy class.
-As of 10-27-2023, this is hard-coded to a Milky Way galaxy model in the function `Compute_Gravitational_Potential` from [gravity_functions.cpp](https://github.com/cholla-hydro/cholla/blob/dev/src/gravity/gravity_functions.cpp) and in `Compute_Potential_Isolated_Boundary` from [gravity_boundaries.cpp](https://github.com/cholla-hydro/cholla/blob/dev/src/gravity/gravity_boundaries.cpp).
+``PARIS_GALACTIC``: Use the Paris Poisson solver on a domain with analytic boundaries set to match the selected model in the ``DiskGalaxy`` class.
+On the main branch (as of 10-27-2023) this is hard-coded to a Milky Way galaxy model in the function `Compute_Gravitational_Potential` from [gravity_functions.cpp](https://github.com/cholla-hydro/cholla/blob/dev/src/gravity/gravity_functions.cpp) and in `Compute_Potential_Isolated_Boundary` from [gravity_boundaries.cpp](https://github.com/cholla-hydro/cholla/blob/dev/src/gravity/gravity_boundaries.cpp).
+On the dev branch, this automatically uses the parameterization of the potential managed by the Galaxy model class.
 
 ``PARIS_GALACTIC_3PT``: Same as above but for the analytic boundary version
 

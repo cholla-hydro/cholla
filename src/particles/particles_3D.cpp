@@ -983,22 +983,25 @@ struct StarClusterInitRsltPack {
  */
 template <bool UsePoissonPointProcess = false>
 StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64 &generator, const Real R_max, const Real t_max,
-                                                   const Particles3D::Grid &G, const ClusteredDiskGalaxy &model_galaxy)
+                                                   const Particles3D::Grid &G, const DiskGalaxy &model_galaxy)
 {
   // todo: move away from using the distribution functions defined in the standard library
   //  -> apparently, the results of distribution functions are not portable across different
   //     implementions (the C++ standard was not precise enough to guarantee this)
   //  -> with that said, it's fine to use the generator classes (e.g. std::mt19937_64)
+
+  const StarFormingDiskProps *star_forming_disk_props = model_galaxy.tryGetStarFormingDiskProps();
+  if (star_forming_disk_props == nullptr) {
+    CHOLLA_ERROR("the galaxy model doesn't have star forming disk properties");
+  }
+
   const bool provide_summary = true;
 
   // fetch governing physical parameters:
-  // todo: store the following directly within the Galaxy object
-  const Real SFR               = 2e3;                           // global MW SFR: 2 SM / yr
-  const Real Rgas_scale_length = model_galaxy.getGasDiskR_d();  // gas-disk scale length
-  // the following are theoretically tunable
-  const Real k_s_power = 1.4;              // the power in the Kennicut-Schmidt law
-                                           // (at the moment, this isn't tunable)
-  const Real earliest_t_formation = -4e4;  // earliest cluster time
+  const Real SFR                  = star_forming_disk_props->global_sfr_Msun_per_kyr;
+  const Real Rgas_scale_length    = model_galaxy.getGasDiskR_d();  // gas-disk scale length
+  const Real k_s_power            = star_forming_disk_props->kennicut_schmidt_power;
+  const Real earliest_t_formation = star_forming_disk_props->earliest_t_formation;
 
   if (provide_summary) {
     chprintf(
@@ -1009,6 +1012,11 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64 &generator, c
         "  earliest-cluster-formation time: %.3e kyr\n",
         SFR, Rgas_scale_length, k_s_power, earliest_t_formation);
   }
+
+  CHOLLA_ASSERT(earliest_t_formation < t_max,
+                "latest cluster formation time (%g) must exceed earliest cluster "
+                "formation time (%g)",
+                t_max, earliest_t_formation);
 
   // define distribution for generating cyclindrical radii
   std::gamma_distribution<Real> radialDistHelper(2, 1);
@@ -1047,7 +1055,7 @@ StarClusterInitRsltPack disk_stellar_cluster_init_(std::mt19937_64 &generator, c
   std::uniform_real_distribution<Real> phiDist(0, 2 * M_PI);  // for generating phi
   std::normal_distribution<Real> speedDist(0, 1);             // for generating random speeds.
 
-  ClusterCreator<UsePoissonPointProcess> cluster_creator(model_galaxy.getClusterMassDistribution(), SFR,
+  ClusterCreator<UsePoissonPointProcess> cluster_creator(star_forming_disk_props->cluster_mass_distribution, SFR,
                                                          earliest_t_formation);
 
   // initialize the std::map instances of vectors used to hold the output properties
@@ -1156,8 +1164,12 @@ void Particles3D::Initialize_Disk_Stellar_Clusters(struct Parameters *P, const M
   // properties (e.g. "age", "mass", "ids"). These assumptions are explicitly checked
   // for us within Initialize_Stellar_Clusters_Helper_ at runtime
 
-  const ClusteredDiskGalaxy *galaxy_model = model_collection.try_get<ClusteredDiskGalaxy>();
+  const DiskGalaxy *galaxy_model = model_collection.try_get<DiskGalaxy>();
   CHOLLA_ASSERT(galaxy_model != nullptr, "no galaxy model was initialized");
+  const StarFormingDiskProps *star_forming_disk_props = galaxy_model->tryGetStarFormingDiskProps();
+  if (star_forming_disk_props == nullptr) {
+    CHOLLA_ERROR("the galaxy model doesn't have star forming disk properties");
+  }
 
   chprintf(" Initializing Particles Stellar Disk\n");
 
@@ -1165,11 +1177,18 @@ void Particles3D::Initialize_Disk_Stellar_Clusters(struct Parameters *P, const M
   std::mt19937_64 generator(P->prng_seed);
 
   Real R_max = Get_StarCluster_Truncation_Radius(*P);
-  Real t_max = P->tout;
+  Real t_max;
+  if (star_forming_disk_props->latest_t_formation.has_value()) {
+    t_max = star_forming_disk_props->latest_t_formation.value();
+    chprintf("  -> max formation time explicitly set by user: %g\n", t_max);
+  } else {
+    t_max = P->tout;
+    chprintf("  -> infer max formation time from stopping time: %g\n", t_max);
+  }
 
   // in the future, we may want to let users adjust this parameter OR we may want
   // to remove the older strategy of determining cluster formation times
-  bool poisson_process_formation_strat = true;
+  bool poisson_process_formation_strat = star_forming_disk_props->poisson_point_process;
 
   StarClusterInitRsltPack pack =
       (poisson_process_formation_strat)

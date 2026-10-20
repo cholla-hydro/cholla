@@ -1,53 +1,46 @@
+#include "../../io/ParameterMap.h"
 #include "disk_galaxy.h"
+#include "gas_props.h"
 #include "potentials.h"
 
-ClusteredDiskGalaxy galaxies::make_MW_model()
+ClusterMassDistribution::ClusterMassDistribution(ParameterMap& pmap)
+    : ClusterMassDistribution(pmap.value<double>("model.galaxy.star_forming_disk.cluster_mass_dist.lo_Msun"),
+                              pmap.value<double>("model.galaxy.star_forming_disk.cluster_mass_dist.hi_Msun"),
+                              pmap.value<double>("model.galaxy.star_forming_disk.cluster_mass_dist.alpha"))
 {
-  // Here we actually define the galaxy models that are accessed from elsewhere
-
-  // all masses in M_sun and all distances in kpc
-
-  // Original Philosophy
-  // -------------------
-  // For the MilkyWay model, we adopt radial scale lengths of 2.5 kpc and 3.5 kpc for
-  // the stellar and gas disks, respectively. If the newly formed stars follow the
-  // Kennicut-Schmidt law with a power of 1.4, the newly formed stars will organize
-  // into a disk with scale-length of 2.5 kpc.
-  // We also liked an upper cluster-mass limit of 5e5 Msun
-  //
-  // Actual Choice
-  // -------------
-  // For consistency with the CGOLs style model:
-  //  -> stellar disk scale-length of 2.7 kpc
-  //  -> gas disk scale-length of 5.4 kpc
-  //  -> upper cluster-mass limit of 2e5 Msun
-  return ClusteredDiskGalaxy(ClusterMassDistribution{1e2, 2e5, 2.0},
-                             MiyamotoNagaiPotential{6.5e10, 2.7, 0.7},                // stellar_disk
-                             GasDiskProps{0.15 * 6.5e10, 5.4, 0.7, 1e4, true, 0.02},  // gas_disk
-                             1.077e12, 261, 18, 157.0);
-  // DiskGalaxy M82(MiyamotoNagaiPotential{1.0e10, 0.8, 0.15},                       // stellar_disk
-  //                GasDiskProps{0.25 * 1.0e10, 2 * 0.8, 0.15, 1e4, true, 2 * 0.8},  // gas_disk
-  //                5.0e10, 0.8 / 0.015, 10, 100.0);
-  // return M82;
 }
 
-// here we define the methods
+StarFormingDiskProps::StarFormingDiskProps(ParameterMap& pmap)
+    : cluster_mass_distribution(pmap),
+      global_sfr_Msun_per_kyr{pmap.value<double>("model.galaxy.star_forming_disk.global_sfr_Msun_per_kyr")},
+      poisson_point_process{pmap.value<bool>("model.galaxy.star_forming_disk.poisson_point_process")},
+      kennicut_schmidt_power{pmap.value_or("model.galaxy.star_forming_disk.kennicut_schmidt_power", 1.4)},
+      earliest_t_formation{pmap.value<double>("model.galaxy.star_forming_disk.earliest_t_formation")}
+{
+  CHOLLA_ASSERT(global_sfr_Msun_per_kyr >= 0.0, "global_sfr_Msun_per_kyr must be non-negative: %g",
+                global_sfr_Msun_per_kyr);
+
+  std::string latest_t_formation_param_name = "model.galaxy.star_forming_disk.latest_t_formation";
+  if (pmap.has_param(latest_t_formation_param_name)) {
+    latest_t_formation = std::make_optional<double>(pmap.value<double>(latest_t_formation_param_name));
+  }
+}
 
 // this is empty since the std::shared_ptr automatically handles things
 // (but we need to explicitly handle the case since the definitions of the wrapped
 //  classes aren't available when define DiskGalaxy)
 DiskGalaxy::~DiskGalaxy() {}
 
-DiskGalaxy::DiskGalaxy(const MiyamotoNagaiPotential& stellar_disk, const GasDiskProps& gas_disk, Real mvir, Real rvir,
-                       Real cvir, Real rcool)
-    : stellar_disk(new MiyamotoNagaiPotential(stellar_disk)),
-      gas_disk(new GasDiskProps(gas_disk)),
-      halo_potential(new NFWHaloPotential{/* halo mass: */ mvir - stellar_disk.M_d,
-                                          /* scale length:*/ (rvir / cvir), cvir})
+DiskGalaxy::DiskGalaxy(ParameterMap& pmap)
+    : stellar_disk(new MiyamotoNagaiPotential(pmap)),
+      gas_disk(new GasDiskProps(pmap)),
+      halo_potential(new NFWHaloPotential(pmap)),
+      initial_cgm_props(new galaxy_detail::InitialCGMProps(pmap)),
+      star_forming_disk_props_{nullptr}
 {
-  M_vir  = mvir;
-  R_vir  = rvir;
-  r_cool = rcool;
+  if (pmap.Contains_Table("model.galaxy.star_forming_disk")) {
+    star_forming_disk_props_ = std::make_shared<StarFormingDiskProps>(pmap);
+  }
 }
 
 Real DiskGalaxy::gr_disk_D3D(Real R, Real z) const noexcept { return stellar_disk->gr_disk_D3D(R, z); }
