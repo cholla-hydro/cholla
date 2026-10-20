@@ -1,5 +1,6 @@
 #include "to_from_string.h"
 
+#include <algorithm>  // std::min
 #include <optional>
 #include <string_view>
 #include <utility>
@@ -8,6 +9,96 @@
 
 namespace io
 {
+
+/*! return the number of contiguous bare key characters in \p s (starting from
+ *  position \p pos )
+ *
+ *  \param s The string segment to attempt to parse
+ *  \param pos The index to start counting from
+ *
+ *  A bare TOML key only consists of ASCII characters that are letters, digits,
+ *  underscores or dashes. These do not need to be quoted. More details can be found is
+ *  defined at https://toml.io/en/v1.1.0#keys
+ */
+static std::size_t count_contig_bare_key_chars(std::string_view s, std::size_t pos = 0)
+{
+  const std::size_t size = s.size();
+  if (pos > size) return pos;
+
+  for (std::size_t i = pos; i < size; i++) {
+    char chr = s[i];
+    // if this ends up being slow, we should look into replacing `or` & `and` with the
+    // bitwise analogues since they don't short-circuit
+    bool is_digit             = ('0' <= chr) and (chr <= '9');
+    bool is_upper             = ('A' <= chr) and (chr <= 'Z');
+    bool is_lower             = ('a' <= chr) and (chr <= 'z');
+    bool is_underscore_hyphen = ('_' == chr) or ('-' == chr);
+
+    bool is_valid = is_digit or is_upper or is_lower or is_underscore_hyphen;
+    if (not is_valid) return i;
+  }
+
+  return size;
+}
+
+using namespace std::literals;
+constexpr inline std::string_view SPACE_OR_TAB = " \t"sv;
+
+// the equivalent regex is "[ \\t]*\\.[ \\t]*"
+static std::size_t match_dot_sep_(std::string_view s, std::size_t pos = 0)
+{
+  // check for leading whitespace
+  std::size_t tmp = s.find_first_not_of(SPACE_OR_TAB, pos);
+  if (tmp != std::string_view::npos) pos = tmp;
+  // check for the dot
+  if (s[pos] != '.') {
+    return std::string_view::npos;
+  }
+  pos++;
+  // check for trailing whitespace
+  tmp = s.find_first_not_of(SPACE_OR_TAB, pos);
+  if (tmp != std::string_view::npos) pos = tmp;
+  return pos;
+}
+
+KeyParseRslt try_parse_param_key(std::string_view s, std::size_t pos)
+{
+  std::size_t size = s.size();
+  if (pos > size) CHOLLA_ERROR("pos can't exceed s.size()");
+
+  auto err = [](std::string msg) -> KeyParseRslt { return {0, msg, 0}; };
+
+  std::string out;
+  int n_segments = 0;
+  while (true) {
+    std::size_t n_chars = count_contig_bare_key_chars(s, pos);
+    if (n_chars == 0) {
+      bool end_of_s = pos == size;
+      char invalid  = (end_of_s) ? '\0' : s[pos];
+      if (n_segments == 0) {
+        if (end_of_s) return err("no characters to parse");
+        if (invalid == '.') return err("can't start with a dot");
+        return err(std::string("invalid character: '") + invalid + std::string("'"));
+      } else {
+        if (end_of_s) return err("can't end with '.'");
+        if (invalid == '.') return err("can't contain 2 '.' characters in a row");
+        return err(std::string("can't end with '.' (the next character, '") + invalid +
+                   std::string("', isn't a valid key character in a bare key)"));
+      }
+    }
+
+    out.append(s, pos, n_chars);
+    n_segments++;
+    pos += n_chars;
+
+    std::size_t tmp = match_dot_sep_(s, pos);
+    if (tmp == std::string_view::npos) {
+      return {pos, out, n_segments};
+    }
+    out.push_back('.');
+    pos = tmp;
+  }
+}
 
 // this lists all compact escape sequences known to TOML
 // (for now, we ignore the sequence for escaping arbitrary unicode characters)
@@ -79,28 +170,8 @@ std::string encode_toml_str(std::string_view s)
 
 std::string encode_toml_key(std::string_view key)
 {
-  const std::size_t size = key.size();
-
-  // determine whether we can write a bare key (i.e. without enclosing quotes)
-  // -> we can do this if each character matches one of A-Za-z0-9_-
-  //    https://toml.io/en/v1.1.0#keys
-  bool allow_bare_key = size > 0;  // <- if the key has zero characters it needs quotes
-  for (std::size_t i = 0; i < size; i++) {
-    char chr = key[i];
-    // if this ends up being slow, we should look into replacing `or` & `and` with the
-    // bitwise analogues since they don't short-circuit
-    bool is_digit             = ('0' <= chr) and (chr <= '9');
-    bool is_upper             = ('A' <= chr) and (chr <= 'Z');
-    bool is_lower             = ('a' <= chr) and (chr <= 'z');
-    bool is_underscore_hyphen = ('_' == chr) or ('-' == chr);
-
-    if (is_digit or is_upper or is_lower or is_underscore_hyphen) {
-      continue;
-    } else {
-      allow_bare_key = false;
-    }
-  }
-
+  std::size_t tmp     = count_contig_bare_key_chars(key);
+  bool allow_bare_key = (tmp == key.size()) and (tmp > 0);
   return allow_bare_key ? std::string(key) : encode_toml_str(key);
 }
 
