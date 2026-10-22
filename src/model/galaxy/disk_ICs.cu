@@ -12,12 +12,12 @@
 #include <cmath>
 #include <vector>
 
-#include "../global/global.h"
-#include "../grid/grid3D.h"
-#include "../io/io.h"
-#include "../mpi/mpi_routines.h"
-#include "../utils/error_handling.h"
-#include "../utils/math_utilities.h"
+#include "../../global/global.h"
+#include "../../grid/grid3D.h"
+#include "../../io/io.h"
+#include "../../mpi/mpi_routines.h"
+#include "../../utils/error_handling.h"
+#include "../../utils/math_utilities.h"
 #include "disk_galaxy.h"
 #include "potentials.h"
 #include "selfgrav_hydrostatic_col.h"
@@ -831,9 +831,10 @@ void Grid3D::Disk_3D(Parameters p)
   Real T_d, T_h, mu;
   Real K_eos, rho_eos, cs, rho_eos_h;
 
-  // MW model
-  const DiskGalaxy& galaxy = galaxies::MW;
-  // M82 model galaxies::M82;
+  // load the galaxy model
+  const ClusteredDiskGalaxy* tmp = models().try_get<ClusteredDiskGalaxy>();
+  CHOLLA_ASSERT(tmp != nullptr, "no galaxy model was initialized");
+  const DiskGalaxy& galaxy = *tmp;
 
   const MiyamotoNagaiPotential stellar_disk = galaxy.getStaticStellarDiskPotential();
   const GasDiskProps gas_disk               = galaxy.getGasDisk();

@@ -1,3 +1,8 @@
+/*! /file
+ *  /brief Implements FFT filtering machinery */
+
+#include "../global/global.h"
+
 #if defined(PARIS) && defined(FFT)
 
   #include <cassert>
@@ -25,10 +30,6 @@ FFT_3D::FFT_3D()
 
 __host__ __device__ static inline double Sqr(const double x) { return x * x; }
 
-/*! \fn void Initialize(const Real lx, const Real ly, const Real lz, const Real xMin, const Real yMin, const Real zMin,
-                        const int nx, const int ny, const int nz, const int nxReal, const int nyReal, const int nzReal,
-                        const Real dx, const Real dy, const Real dz)
- *  \brief Populate information for 3D FFTs with Henry */
 void FFT_3D::Initialize(const Real lx, const Real ly, const Real lz, const Real xMin, const Real yMin, const Real zMin,
                         const int nx, const int ny, const int nz, const int nxReal, const int nyReal, const int nzReal,
                         const Real dx, const Real dy, const Real dz)
@@ -117,8 +118,6 @@ void FFT_3D::Initialize(const Real lx, const Real ly, const Real lz, const Real 
   assert(db_);
 }
 
-/*! \fn void Reset(void)
- *  \brief Free FFT_3D memory and reset*/
 void FFT_3D::Reset()
 {
   if (db_) GPU_Error_Check(cudaFree(db_));

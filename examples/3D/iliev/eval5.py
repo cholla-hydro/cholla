@@ -58,7 +58,7 @@ def Scan(dname, t, err=0.05, lbox=2):
         d = h5.File(fname, "r")
         try:
             tf = d.attrs["t"] * 1.0e-3
-        except:
+        except KeyError:
             continue
         ##
         if tf > 0 and abs(np.log10(t) - np.log10(tf)) < 0.005:

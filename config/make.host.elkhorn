@@ -1,0 +1,20 @@
+#-- make.inc for the Shamrock Server
+
+#-- Compiler and flags for different build type
+CXX               = mpicxx
+CXXFLAGS_DEBUG    = -g -O0 -std=c++17
+CXXFLAGS_OPTIMIZE = -Ofast -std=c++17 #-Wno-unused-result
+
+GPUFLAGS          = --std=c++17 
+
+
+OMP_NUM_THREADS = 10
+
+#-- Library
+#CUDA_ROOT    = /hb/software/libs/cuda/13.1.1/targets/x86_64-linux/
+CUDA_ROOT    = /software/libs/cuda/12.8.1/
+HDF5_ROOT    = /opt/ohpc/pub/libs/gnu15/hdf5/2.1.1
+MPI_ROOT     = /opt/ohpc/pub/mpi/openmpi5-gnu15/5.0.10/
+
+#Paris does not do GPU_MPI transfers
+PARIS_MPI_GPU = -DPARIS_NO_GPU_MPI

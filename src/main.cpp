@@ -34,7 +34,7 @@
 
 #include "grid/grid_enum.h"
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   // timing variables
   double start_total, stop_total, start_step, stop_step;
@@ -69,7 +69,6 @@ int main(int argc, char *argv[])
 */
 
   // input parameter variables
-  char *param_file;
   int nfile    = 0;  // number of output files
   Real outtime = 0;  // current output time
 
@@ -79,15 +78,17 @@ int main(int argc, char *argv[])
     chprintf("Git Commit Hash = %s\n", GIT_HASH);
     chprintf("Macro Flags     = %s\n", MACRO_FLAGS);
     chexit(-1);
-  } else {
-    param_file = argv[1];
   }
+
+  const char* param_file = argv[1];
+  char** param_overrides = argv + 2;
+  int n_param_overrides  = argc - 2;
 
   // create the grid
   Grid3D G;
 
   // read in contents from the parameter file
-  ParameterMap pmap(param_file, argc, argv);
+  ParameterMap pmap(param_file, n_param_overrides, param_overrides);
 
   // construct P, a `Parameters` instance, using information from pmap
   // - `Parameters` is a legacy type that we're phasing out (see docstring for details)
@@ -120,7 +121,8 @@ int main(int argc, char *argv[])
   if (is_restart) {
     chprintf("Input directory:  %s\n", P.indir);
   }
-  chprintf("Output directory:  %s\n", writer_manager.fname_template().nominal_output_dir_path().c_str());
+  std::strncpy(P.outdir, writer_manager.fname_template().nominal_output_dir_path().c_str(), sizeof(P.outdir) - 1);
+  chprintf("Output directory:  %s\n", P.outdir);
 
   // Check the configuration
   Check_Configuration(P);
@@ -140,13 +142,15 @@ int main(int argc, char *argv[])
   message = "Initializing Simulation";
   Write_Message_To_Log_File(message.c_str());
 
+  G.Initialize_Models(pmap);
+
 #ifdef RT
   G.Rad.Initialize_Start(P);
 #endif
 
   // Set initial conditions
   chprintf("Setting initial conditions...\n");
-
+  chprintf("basic nx/ny/nz %d/%d/%d\n", P.nx, P.ny, P.nz);
   G.Set_Initial_Conditions(P, pmap);
   chprintf("Initial conditions set.\n");
 
@@ -188,7 +192,7 @@ int main(int argc, char *argv[])
 
   // in the future, we plan to consolidate COOLING_GRACKLE and CHEMISTRY_GPU
   // within chemistry_callback
-  std::function<void(Grid3D &)> chemistry_callback = configure_chemistry_callback(pmap);
+  std::function<void(Grid3D&)> chemistry_callback = configure_chemistry_callback(pmap);
 
 #ifdef COOLING_GRACKLE
   G.Initialize_Grackle(&P);
@@ -205,7 +209,7 @@ int main(int argc, char *argv[])
   }
 #endif
 
-  std::function<void(Grid3D &)> feedback_callback;
+  std::function<void(Grid3D&)> feedback_callback;
 
 #if defined(FEEDBACK) && defined(PARTICLE_AGE)
   FeedbackAnalysis sn_analysis(G, &P);

@@ -18,7 +18,6 @@ CUDA_ROOT    = /usr/local/cuda
 CUDA_LIB     = -L$(CUDA_ROOT)/lib64 -lcudart -lcufft
 HDF5_ROOT    = /home/brant/code/hdf5/
 HDF5_LIB     = -L${HDF5_ROOT}/lib
-HDF5_INCLUDE = -I${HDF5_ROOT}/include
 FFTW_ROOT    = /home/brant/code/fftw
 #PFFT_ROOT    = /home/bruno/code/pfft
 #GRACKLE_ROOT = /home/bruno/code/grackle_modified

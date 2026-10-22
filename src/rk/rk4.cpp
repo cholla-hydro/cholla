@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include <cmath>
+#include <cstring>
 #include <vector>
 
 #include "../utils/error_handling.h"
@@ -19,9 +20,11 @@ RKIntegrator::RKIntegrator(int ny_in)
   error.resize(ny);
 
   int i, j;
-  for (i = 0; i < 7; i++)
-    for (j = 0; j < 6; j++) bij[i][j] = 0;
-
+  for (i = 0; i < 7; i++) {
+    for (j = 0; j < 6; j++) {
+      bij[i][j] = 0;
+    }
+  }
   // initialize bij
   bij[2][1] = 0.2;
   bij[3][1] = 3. / 40.;
@@ -40,9 +43,27 @@ RKIntegrator::RKIntegrator(int ny_in)
   bij[6][5] = 253. / 4096.;
 }
 
-void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y, std::vector<Real> params), Real x,
-                           std::vector<Real> y, Real *h_this, Real *h_pass, std::vector<Real> params,
-                           std::vector<Real> &yp, Real *error_pass)
+// Check for a 32-bit float NaN
+bool RKIntegrator::fast_math_isnan(float x)
+{
+  uint32_t u;
+  std::memcpy(&u, &x, sizeof(x));
+  // In IEEE 754, a float is NaN if all exponent bits are 1 and the mantissa is non-zero
+  return (u & 0x7F800000U) == 0x7F800000U && (u & 0x007FFFFFU) != 0U;
+}
+
+// Check for a 64-bit double NaN
+bool RKIntegrator::fast_math_isnand(double x)
+{
+  uint64_t u;
+  std::memcpy(&u, &x, sizeof(x));
+  return (u & 0x7FF0000000000000ULL) == 0x7FF0000000000000ULL && (u & 0x000FFFFFFFFFFFFFULL) != 0;
+}
+
+void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, const std::vector<Real>& y,
+                                                     const std::vector<Real>& params),
+                           Real x, const std::vector<Real>& y, Real* h_this, Real* h_pass,
+                           const std::vector<Real>& params, std::vector<Real>& yp, Real* error_pass)
 {
   Real Safety    = 0.9;
   Real error_tol = 1.0e-5;  // absolute error
@@ -50,7 +71,7 @@ void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y
   Real max_error = 0;
   Real error_factor;
   Real h;
-  int max_iters = 20;
+  int max_iters = 100;
   int iters     = 0;
   bool flag     = true;
 
@@ -85,10 +106,71 @@ void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y
       }
     }
 
+    max_error = 0;
+
+    // Standardized tolerances (adjust these depending on required precision)
+    Real abs_tol = 1.0e-14;  // Must be smaller than your smallest initial value (1e-9)
+    Real rel_tol = 1.0e-5;
+
+    for (int k = 0; k < ny; k++) {
+      // 1. Calculate proper scale for this specific variable
+      Real scale = abs_tol + rel_tol * fabs(y[k]);
+
+      // 2. Calculate fractional error relative to the scale
+      Real scaled_error = fabs(yp[k] - yprime[k]) / scale;
+
+      // 3. Trap NaNs and Infinities IMMEDIATELY
+      if (fast_math_isnand(scaled_error) || fast_math_isnand(scaled_error)) {
+        scaled_error = 1.0e10;  // Force a massive error to guarantee step rejection
+      }
+
+      // 4. Track the maximum scaled error
+      if (scaled_error > max_error) {
+        max_error = scaled_error;
+      }
+    }
+
+    // Since we scaled the error metric above, our target tolerance is now 1.0.
+    // We override the old error_tol check here:
+    error_tol = 1.0;
+
+    if (max_error > error_tol) {
+      // decrease h
+      error_factor = Safety * pow(max_error, -0.25);
+      if (error_factor < 0.1) error_factor = 0.1;
+
+      *h_pass = h * error_factor;
+      *h_this = h * error_factor;
+
+      iters++;
+      if (iters >= max_iters) {
+        printf("RKIntegrator: procID %d: Max Number of Iterations Exceeded (%d)!\n", procID, max_iters);
+        // Let the caller handle failure rather than killing the process abruptly,
+        // or set a flag to break safely.
+        chexit(-1);
+      }
+
+    } else {
+      flag = false;
+
+      // increase h
+      if (max_error > 0) {
+        error_factor = Safety * pow(max_error, -0.20);
+      } else {
+        error_factor = 5.0;
+      }
+
+      if (error_factor > 5.0) error_factor = 5.0;
+      if (error_factor < 1.0) error_factor = 1.0;
+
+      *h_pass = h * error_factor;
+    }
+    /*
+    max_error = 0;
     for (int k = 0; k < ny; k++) {
       error = (yp[k] - yprime[k]);
 
-      if ((fabs(y[k]) > 0) & (fabs(yp[k] - y[k]) / fabs(y[k]) > 0.01)) error = 0.1;
+      if ((fabs(y[k]) > 0) && (fabs(yp[k] - y[k]) / fabs(y[k]) > 0.01)) error = 0.1;
 
       if (fabs(error) > fabs(max_error)) max_error = error;
 
@@ -126,6 +208,6 @@ void RKIntegrator::rk4_ode(std::vector<Real> (*dydx)(Real x, std::vector<Real> y
       // step size cannot go down
       if (error_factor < 1.0) error_factor = 1.0;
       *h_pass = h * error_factor;
-    }
+    }*/
   }
 }

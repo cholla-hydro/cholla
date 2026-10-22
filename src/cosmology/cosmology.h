@@ -68,6 +68,8 @@ class Cosmology
   Real next_output;
   bool exit_now;
 
+  int n_fields;
+
   Cosmology(void);
   void Initialize(struct Parameters *P, Grav3D &Grav, Particles3D &Particles);
 
@@ -85,11 +87,17 @@ class Cosmology
 
   // growth function calculation
   // and interpolation
+  /*! \brief Precompue the cosmological growth function */
   void Compute_Growth_Function(struct Parameters *P);
+  /*! \brief Create the file for recording the growth function history */
   void Create_Growth_Function_File(struct Parameters *P);
+  /*! \brief Perform linear interpolation on vectors */
   Real LinearInterpolation(const std::vector<Real> &x, const std::vector<Real> &y, Real a);
+  /*! \brief Cosmological growth function at scale factor a */
   Real D_Growth(Real a);
+  /*! \brief Cosmological growth function time derivative at scale factor a */
   Real dDdt_Growth(Real a);
+  /*! \brief Function to precompute the growth function scale factor derivative */
   Real dDda_Growth(Real a);
 
   std::vector<Real> t_array;
@@ -102,11 +110,15 @@ class Cosmology
   // write expansion history log file
   void Create_Expansion_History_File(struct Parameters *P);
   void Write_Expansion_History_Entry(void);
+
+  // check for NaN when using fast math
+  bool fast_math_isnan(float x);
+  bool fast_math_isnand(double x);
 };
 Real Hubble_Growth_Function(Real a, Real H0, Real Omega_r, Real Omega_m, Real Omega_DE, Real w0, Real wa);
 Real dHda_Growth_Function(Real a, Real H0, Real Omega_r, Real Omega_m, Real Omega_DE, Real w0, Real wa);
 Real OmegaDEz_Growth_Function(Real z, Real Omega_DE, Real w0, Real wa);
-std::vector<Real> growth_factor_system(Real z, std::vector<Real> y, std::vector<Real> params);
+static std::vector<Real> growth_factor_system(Real z, const std::vector<Real> &y, const std::vector<Real> &params);
 
   #endif
 #endif

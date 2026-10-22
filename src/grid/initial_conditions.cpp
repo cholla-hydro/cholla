@@ -11,6 +11,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 
@@ -25,6 +27,23 @@
 #ifdef COSMOLOGY
   #include "../cosmology/cosmology.h"
 #endif
+
+/*
+// Check for a 32-bit float NaN
+bool fast_math_isnan(float x) {
+    uint32_t u;
+    std::memcpy(&u, &x, sizeof(x));
+    // In IEEE 754, a float is NaN if all exponent bits are 1 and the mantissa is non-zero
+    return (u & 0x7F800000) == 0x7F800000 && (u & 0x007FFFFF) != 0;
+}
+
+// Check for a 64-bit double NaN
+bool fast_math_isnand(double x) {
+    uint64_t u;
+    std::memcpy(&u, &x, sizeof(x));
+    return (u & 0x7FF0000000000000ULL) == 0x7FF0000000000000ULL && (u & 0x000FFFFFFFFFFFFFULL) != 0;
+}
+*/
 
 /*! Set the initial conditions based on info in the parameters structure. */
 void Grid3D::Set_Initial_Conditions(Parameters P, const ParameterMap &pmap)
@@ -1670,7 +1689,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   exit(-1);
 #else
 
-  int n_cells = nx_local * ny_local * nz_local;
+  int n_local_cells = nx_local * ny_local * nz_local;
 
   chprintf("Cosmological ICs: Setting gas grid initial conditions ...\n");
 
@@ -1739,53 +1758,6 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   chprintf("Cosmological ICs: LENGTH_UNIT %e\n", LENGTH_UNIT);
   chprintf("Cosmological ICs: PRESSURE_UNIT %e\n", PRESSURE_UNIT);
   chprintf("Cosmological ICs: VELOCITY_UNIT %e\n", VELOCITY_UNIT);
-  /*
-  MP 1.672622e-24 [g]
-  KB 1.380658e-16 [cgs]
-  DENSITY_UNIT 6.768110e-32
-  ENERGY_UNIT 6.471126e-10
-  LENGTH_UNIT 3.085678e+21
-  PRESSURE_UNIT 6.471126e-10
-  VELOCITY_UNIT 9.778139e+10
-  */
-
-  /*
-    // Set Normalization factors
-    r_0_dm          = P->xlen / P->nx; // kpc/h
-    t_0_dm          = 1. / H0; // kpc / (km/s)
-    v_0_dm          = r_0_dm / t_0_dm / cosmo_h; // km/s
-    rho_0_dm        = 3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_M / cosmo_h / cosmo_h;
-    rho_mean_baryon = 3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_b / cosmo_h / cosmo_h;
-    // dens_avrg = 0;
-
-    r_0_gas   = 1.0; // kpc/h
-    rho_0_gas = 3 * H0 * H0 / (8 * M_PI * cosmo_G) * Omega_M / cosmo_h / cosmo_h;
-    t_0_gas   = 1 / H0 * cosmo_h; // (kpc/h) / (km/s)
-    v_0_gas   = r_0_gas / t_0_gas;// km/s
-    phi_0_gas = v_0_gas * v_0_gas;// (km/s)^2
-    p_0_gas   = rho_0_gas * v_0_gas * v_0_gas; h^2 Msun kpc^-3 (km/s)^2
-    e_0_gas   = v_0_gas * v_0_gas;// (km/s)^2
-  */
-
-  /*
-    if (forward) {
-    dens_factor     = 1 / Cosmo.rho_0_gas;
-    momentum_factor = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas * Cosmo.current_a;
-    energy_factor   = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas / Cosmo.v_0_gas * Cosmo.current_a * Cosmo.current_a;
-  } else {
-    dens_factor     = Cosmo.rho_0_gas;
-    momentum_factor = Cosmo.rho_0_gas * Cosmo.v_0_gas / Cosmo.current_a;
-    energy_factor   = Cosmo.rho_0_gas * Cosmo.v_0_gas * Cosmo.v_0_gas / Cosmo.current_a / Cosmo.current_a;
-  }
-        C.density[id]    = C.density[id] * dens_factor;
-        C.momentum_x[id] = C.momentum_x[id] * momentum_factor;
-        C.momentum_y[id] = C.momentum_y[id] * momentum_factor;
-        C.momentum_z[id] = C.momentum_z[id] * momentum_factor;
-        C.Energy[id]     = C.Energy[id] * energy_factor;
-
-  #ifdef DE
-        C.GasEnergy[id] = C.GasEnergy[id] * energy_factor;
-  */
 
   Real r_0_dm          = P.xlen / P.nx;
   Real t_0_dm          = 1. / H0;
@@ -1853,11 +1825,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
   chprintf("Cosmological ICs: z_init %e a_init %e\n", z_init, a_init);
 
-  // chprintf("D size %d a size %d\n",Cosmo.D_array.size(),Cosmo.a_array.size());
-
   // get growth function and time derivative
-  // chprintf("Dinfo a %e %e D %e
-  // %e\n",Cosmo.a_array.front(),Cosmo.a_array.back(),Cosmo.D_array.front(),Cosmo.D_array.back());
   Ha = Hubble_Growth_Function(a_init, H0, Omega_r, Omega_m, Omega_DE, w0, wa);  // H(a) is about 39 km/s/kpc at z~100
   Real dHda =
       dHda_Growth_Function(a_init, H0, Omega_r, Omega_m, Omega_DE, w0, wa);  // dHda is about -5.9e3 km/s/kpc at z~100
@@ -1868,6 +1836,29 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   dDdt       = Cosmo.dDdt_Growth(a_init);
   dDda       = Cosmo.dDda_Growth(a_init);
   dlogDdloga = dDda * (a_init / D);
+
+  int bcast_flag = procID + 1;
+  if (Cosmo.fast_math_isnand(D) || Cosmo.fast_math_isnand(dDdt) || Cosmo.fast_math_isnand(dDda) ||
+      Cosmo.fast_math_isnand(dlogDdloga)) {
+    // printf("Cosmological ICs: Growth Function Error on procID %d : (%e, %e, %e, %e, %e,
+    // %e)\n",procID,z_init,a_init,D,dDdt,dDda,dlogDdloga); fflush(stdout);
+    bcast_flag = 0;
+  }
+  /*
+  //MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &bcast_flag, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+
+  chprintf("Cosmological ICs: bcast_flag %d\n",bcast_flag);
+
+  bcast_flag -= 1;
+
+  // Kludge -- broadcast growth info from procID = 0
+  MPI_Bcast(&D, 1, MPI_CHREAL, bcast_flag, MPI_COMM_WORLD);
+  MPI_Bcast(&dDdt, 1, MPI_CHREAL, bcast_flag, MPI_COMM_WORLD);
+  MPI_Bcast(&dDda, 1, MPI_CHREAL, bcast_flag, MPI_COMM_WORLD);
+  MPI_Bcast(&dlogDdloga, 1, MPI_CHREAL, bcast_flag, MPI_COMM_WORLD);
+  */
+
   chprintf("Cosmological ICs: Growth Function Info: D %e dDdt %e dDda %e dlnDdlna %e\n", D, dDdt, dDda,
            dlogDdloga);  // note dDdt is in km/s/kpc
 
@@ -1941,77 +1932,6 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   // 4) Compute delta b from delta_m and delta_bc
   ////////////////////////////////////////////////
 
-  // We have to skip almost everthing because we won't have
-  // the particles yet
-
-  // we can compute the baryon field
-  // densities only at this stage
-  /*
-  #ifndef ONLY_PARTICLES
-    // set the initial values of the conserved variables
-    for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
-      for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
-        for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
-
-          // this is the full index with ghost cells
-          id = i + j * H.nx + k * H.nx * H.ny;
-
-          kk = k - H.n_ghost;
-          jj = j - H.n_ghost;
-          ii = i - H.n_ghost;
-
-          // this is the real index with only local real cells
-          index =  ii + jj * nx_local + kk * nx_local * ny_local;
-
-          // rho_b * (1+delta_b) = rho_b * (1 + delta_m + f_c * delta_bc)
-          // this is the comoving mean density
-          // in our units, this is usually ~ 13.7 h^2 Msun/kpc^3
-          dens = rho_b * (1 + (D*CP.delta_m[index] + f_c * CP.delta_bc[index])/a_init);
-
-          // note that if gamma = 1.6667
-          // then 1./(gamma-1) * KB *1e-10 / MP = 0.012381617873714293 in (km/s)^2/K
-          // so a 100K gas has U ~ 1.24 * density
-          // with the comoving mean density, these units are correct for U
-          // U is in Msun/kpc^3 (km/s)^2
-          U    = T_init / (gamma - 1) / MP * KB * 1e-10 * dens;
-
-        // forward
-          //dens_factor     = 1 / Cosmo.rho_0_gas;
-          //momentum_factor = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas * Cosmo.current_a;
-          //energy_factor   = 1 / Cosmo.rho_0_gas / Cosmo.v_0_gas / Cosmo.v_0_gas * Cosmo.current_a * Cosmo.current_a;
-          //C.density[id]    = C.density[id] * dens_factor;
-          //C.momentum_x[id] = C.momentum_x[id] * momentum_factor;
-          //C.momentum_y[id] = C.momentum_y[id] * momentum_factor;
-          //C.momentum_z[id] = C.momentum_z[id] * momentum_factor;
-          //C.Energy[id]     = C.Energy[id] * energy_factor;
-          //C.GasEnergy[id] = C.GasEnergy[id] * energy_factor;
-          //C.HI_density[id] *= dens_factor;
-          //C.HII_density[id] *= dens_factor;
-
-
-          // initialize hydro grid properties
-          // using the index for the whole grid
-          C.density[id]    = dens;
-
-    #ifdef CHEMISTRY_GPU
-          C.HI_density[id]    = (1-xHp)*(1-YHe)*dens; //HI    density
-          C.HII_density[id]   = xHp*(1-YHe)*dens;     //HII   density
-          C.HeI_density[id]   = (1-xHep)*YHe*dens;    //HeI   density
-          C.HeII_density[id]  = Hep*YHe*dens;         //HeII  density
-          C.HeIII_density[id] = 0;                    //HeIII density
-          //C.e_density[id]     = dens_factor;
-    #endif
-
-          // add the internal energy, will update
-          // after momentum is computed
-          C.Energy[id]    = U;
-
-        }
-      }
-    }
-  #endif
-  */
-
   // At this point, we need the potentials, and delta_bc
   // and we can delta_m to help transfer the potentials
 
@@ -2021,7 +1941,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   int ii, jj, kk;
 
   // copy memory -- only real, local cells
-  cudaMemcpy(CP.delta_m, CP.phi_1, n_cells * sizeof(Real), cudaMemcpyHostToHost);
+  cudaMemcpy(CP.delta_m, CP.phi_1, n_local_cells * sizeof(Real), cudaMemcpyHostToHost);
 
   // check before the remap
   Real delta_rm_check   = 0;
@@ -2042,7 +1962,6 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
   // find the average
   delta_rm_check = delta_rm_check / (nx_global * ny_global * nz_global);
-  // printf("Before the remap, mean(phi) = %e\n",delta_rm_check);
 
   Real delta_m_check   = 0;
   Real delta_m_check_n = 0;
@@ -2076,10 +1995,6 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
         // this is the real index with only local real cells
         index = ii + jj * nx_local + kk * nx_local * ny_local;
-        // maybe the field is not iso
-        // index =  jj + ii * nx_local + kk * nx_local * ny_local;
-        // index =  jj + kk * nx_local + ii * nx_local * ny_local;//really
-        // index =  ii + kk * nx_local + jj * nx_local * ny_local;//really
 
         // copy from delta back to phi
         CP.phi_1[id] = CP.delta_m[index];
@@ -2096,7 +2011,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
   // repeat for baryons if present
   #ifndef ONLY_PARTICLES
-  cudaMemcpy(CP.delta_m, CP.phi_2, n_cells * sizeof(Real), cudaMemcpyHostToHost);
+  cudaMemcpy(CP.delta_m, CP.phi_2, n_local_cells * sizeof(Real), cudaMemcpyHostToHost);
   // now, we remap the potential fields from the density fields
   for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
     for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
@@ -2126,9 +2041,6 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   // perform the ghost cell transfers between
   // subdomains of the computational volume
 
-  // the ghost cells are not set correctly here
-  // and we need to investigate why
-
   chprintf("Cosmological ICs: Exchanging ghost cells for cosmological potential phi_1.\n");
   Allocate_Boundary_Conditions_Field_MPI();
   Set_Boundary_Conditions_Field(P, CP.phi_1);
@@ -2137,6 +2049,68 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   Set_Boundary_Conditions_Field(P, CP.phi_2);
   #endif  // ONLY_PARTICLES
   Free_Boundary_Conditions_Field_MPI();
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  chprintf("Cosmological ICs: Done with field boundary exchange.\n");
+
+  // check potential DEBUGGING
+  /*
+  int n_nan = 0;
+  for (k = 0; k < H.nz; k++) {
+    for (j = 0; j < H.ny; j++) {
+      for (i = 0; i < H.nx; i++) {
+        id = i + j * H.nx + k * H.ny * H.nx;
+        if( Cosmo.fast_math_isnand(CP.phi_1[id]) ) {
+          n_nan += 1;
+        }
+      }
+    }
+  }
+  if(n_nan > 0) {
+    printf("Cosmological ICs: ERROR Nans found in potential procID %d n_nan %d\n",procID,n_nan);
+    fflush(stdout);
+  }
+  MPI_Allreduce(MPI_IN_PLACE, &n_nan, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  if(n_nan > 0) {
+    chprintf("Cosmological ICs: ERROR Nans found in potential all n_nan %d\n",procID,n_nan);
+    chexit(-1);
+  } else {
+    chprintf("Cosmological ICs: No NaNs in cosmological potential.\n");
+  }*/
+
+  /*
+  for (k = H.n_ghost; k < H.nz - H.n_ghost; k++) {
+    for (j = H.n_ghost; j < H.ny - H.n_ghost; j++) {
+      for (i = H.n_ghost; i < H.nx - H.n_ghost; i++) {
+        id_ld = (i - 1) + (j - 1) * H.nx + k * H.ny * H.nx;
+        id_lu = (i - 1) + (j + 1) * H.nx + k * H.ny * H.nx;
+        id_rd = (i + 1) + (j - 1) * H.nx + k * H.ny * H.nx;
+        id_ru = (i + 1) + (j + 1) * H.nx + k * H.ny * H.nx;
+        if( Cosmo.fast_math_isnand(CP.phi_1[id_ld]) ) {
+          n_nan += 1;
+        }
+        if( Cosmo.fast_math_isnand(CP.phi_1[id_lu]) ) {
+          n_nan += 1;
+        }
+        if( Cosmo.fast_math_isnand(CP.phi_1[id_rd]) ) {
+          n_nan += 1;
+        }
+        if( Cosmo.fast_math_isnand(CP.phi_1[id_ru]) ) {
+          n_nan += 1;
+        }
+      }
+    }
+  }
+  if(n_nan > 0) {
+    printf("Cosmological ICs: ERROR Nans found in potential cross check procID %d n_nan %d\n",procID,n_nan);
+  }
+  MPI_Allreduce(MPI_IN_PLACE, &n_nan, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  if(n_nan > 0) {
+    chprintf("Cosmological ICs: ERROR Nans found in potential cross check all n_nan %d\n",procID,n_nan);
+    chexit(-1);
+  } else {
+    chprintf("Cosmological ICs: No NaNs in cosmological potential cross check.\n");
+  }*/
 
   // now we can proceed with computing the gradients
   #ifndef ONLY_PARTICLES
@@ -2151,7 +2125,8 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   Real d_rms          = 0;
 
   Real dens, vel, U, E;
-  Real Daf = Cosmo.D_Growth(a_init) / a_init;
+  // Real Daf = Cosmo.D_Growth(a_init) / a_init;
+  Real Daf = D / a_init;
 
   // With radiation the perturbation ratio D/a keeps
   // increasing to large redshift
@@ -2200,18 +2175,31 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         phi_r = CP.phi_1[id_r];
 
     #ifdef GRAVITY_5_POINTS_GRADIENT
-        id_ll      = (i - 2) + j * H.nx + k * H.ny * H.nx;
-        id_rr      = (i + 2) + j * H.nx + k * H.ny * H.nx;
-        phi_ll     = CP.phi_1[id_ll];
-        phi_rr     = CP.phi_1[id_rr];
-        grad_phi_x = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
-        // grad_x_T[0][0]   = -1*D*(-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dx*dx);
+        id_ll          = (i - 2) + j * H.nx + k * H.ny * H.nx;
+        id_rr          = (i + 2) + j * H.nx + k * H.ny * H.nx;
+        phi_ll         = CP.phi_1[id_ll];
+        phi_rr         = CP.phi_1[id_rr];
+        grad_phi_x     = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dx);
         grad_x_T[0][0] = D * (-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll) / (12 * dx * dx);
     #else
-        grad_phi_x = 0.5 * (phi_r - phi_l) / dx;
-        // grad_x_T[0][0]   = -1*D*(phi_r - 2 * phi + phi_l)/(dx*dx);
+        grad_phi_x     = 0.5 * (phi_r - phi_l) / dx;
         grad_x_T[0][0] = D * (phi_r - 2 * phi + phi_l) / (dx * dx);
     #endif
+
+        /*
+        if( Cosmo.fast_math_isnand(phi) || Cosmo.fast_math_isnand(phi_l) || Cosmo.fast_math_isnand(phi_r) ) {
+          printf("Error setting Cosmological ICs on procID %d X (%e %e %e) (%d %d %d),
+        aborting.\n",procID,phi,phi_l,phi_r,i,j,k); fflush(stdout); } else if( (phi==0) || (phi_l==0) || (phi_r==0) ) {
+          printf("Error setting Cosmological ICs on procID %d X (%e %e %e) (%d %d %d),
+        aborting.\n",procID,phi,phi_l,phi_r,i,j,k); fflush(stdout);
+        }
+        if( Cosmo.fast_math_isnand(phi_ll) || Cosmo.fast_math_isnand(phi_rr) ) {
+          printf("Error setting larger stecil Cosmological ICs on procID %d X (%e %e) (%d %d %d),
+        aborting.\n",procID,phi_ll,phi_rr,i,j,k); fflush(stdout); } else if( (phi_ll==0) || (phi_rr==0) ) {
+          printf("Error setting larger stecil Cosmological ICs on procID %d X (%e %e) (%d %d %d),
+        aborting.\n",procID,phi_ll,phi_rr,i,j,k); fflush(stdout);
+        }*/
+
         /*
         2nd
         Cosmological ICs: x-displacement field average = 1.035328e-17, rms = 5.977859e+01
@@ -2232,6 +2220,8 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         Cosmological ICs: overdensity    field average = 3.909169e-03, rms = 6.561782e-02
         Cosmological ICs: corr overdens. field average = 5.729687e-16, rms = 6.550127e-02
         */
+
+        // TODO(brant): for baryon-dm fluctuations
         /*
                 // repeat for nabla^-2 \delta_bc
                 // which affects LLA only
@@ -2258,19 +2248,32 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         phi_l = CP.phi_1[id_l];
         phi_r = CP.phi_1[id_r];
     #ifdef GRAVITY_5_POINTS_GRADIENT
-        id_ll      = i + (j - 2) * H.nx + k * H.ny * H.nx;
-        id_rr      = i + (j + 2) * H.nx + k * H.ny * H.nx;
-        phi_ll     = CP.phi_1[id_ll];
-        phi_rr     = CP.phi_1[id_rr];
-        grad_phi_y = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dy);
-        // grad_x_T[1][1]   = -1*D*(-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dy*dy);
+        id_ll          = i + (j - 2) * H.nx + k * H.ny * H.nx;
+        id_rr          = i + (j + 2) * H.nx + k * H.ny * H.nx;
+        phi_ll         = CP.phi_1[id_ll];
+        phi_rr         = CP.phi_1[id_rr];
+        grad_phi_y     = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dy);
         grad_x_T[1][1] = D * (-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll) / (12 * dy * dy);
     #else
-        grad_phi_y = 0.5 * (phi_r - phi_l) / dy;
-        // grad_x_T[1][1]   = -1*D*(phi_r - 2 * phi + phi_l)/(dy*dy);
+        grad_phi_y     = 0.5 * (phi_r - phi_l) / dy;
         grad_x_T[1][1] = D * (phi_r - 2 * phi + phi_l) / (dy * dy);
     #endif
 
+        /*
+        if( Cosmo.fast_math_isnand(phi) || Cosmo.fast_math_isnand(phi_l) || Cosmo.fast_math_isnand(phi_r) ) {
+          printf("Error setting Cosmological ICs on procID %d Y (%e %e %e) (%d %d %d),
+        aborting.\n",procID,phi,phi_l,phi_r,i,j,k); fflush(stdout); } else if( (phi==0) || (phi_l==0) || (phi_r==0) ) {
+          printf("Error setting Cosmological ICs on procID %d Y (%e %e %e) (%d %d %d),
+        aborting.\n",procID,phi,phi_l,phi_r,i,j,k); fflush(stdout);
+        }
+        if( Cosmo.fast_math_isnand(phi_ll) || Cosmo.fast_math_isnand(phi_rr) ) {
+          printf("Error setting larger stecil Cosmological ICs on procID %d Y (%e %e) (%d %d %d),
+        aborting.\n",procID,phi_ll,phi_rr,i,j,k); fflush(stdout); } else if( (phi_ll==0) || (phi_rr==0) ) {
+          printf("Error setting larger stecil Cosmological ICs on procID %d Y (%e %e) (%d %d %d),
+        aborting.\n",procID,phi_ll,phi_rr,i,j,k); fflush(stdout);
+        }
+        */
+        // TODO(brant): for baryon-dm fluctuations
         /*
                 // repeat for nabla^-2 \delta_bc
                 // which affects which affects LLA only
@@ -2298,20 +2301,33 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         phi_l = CP.phi_1[id_l];
         phi_r = CP.phi_1[id_r];
     #ifdef GRAVITY_5_POINTS_GRADIENT
-        id_ll      = i + j * H.nx + (k - 2) * H.ny * H.nx;
-        id_rr      = i + j * H.nx + (k + 2) * H.ny * H.nx;
-        phi_ll     = CP.phi_1[id_ll];
-        phi_rr     = CP.phi_1[id_rr];
-        grad_phi_z = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
-        // grad_x_T[2][2] = -1*D*(-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll)/(12 * dz*dz);
+        id_ll          = i + j * H.nx + (k - 2) * H.ny * H.nx;
+        id_rr          = i + j * H.nx + (k + 2) * H.ny * H.nx;
+        phi_ll         = CP.phi_1[id_ll];
+        phi_rr         = CP.phi_1[id_rr];
+        grad_phi_z     = (-phi_rr + 8 * phi_r - 8 * phi_l + phi_ll) / (12 * dz);
         grad_x_T[2][2] = D * (-phi_rr + 16 * phi_r - 30 * phi + 16 * phi_l - phi_ll) / (12 * dz * dz);
     #else
-        grad_phi_z = 0.5 * (phi_r - phi_l) / dz;
-        // grad_x_T[2][2] = -1*D*(phi_r - 2 * phi + phi_l)/(dz*dz);
+        grad_phi_z     = 0.5 * (phi_r - phi_l) / dz;
         grad_x_T[2][2] = D * (phi_r - 2 * phi + phi_l) / (dz * dz);
     #endif
         grad_phi_z = 0.5 * (phi_r - phi_l) / dz;
 
+        /*
+        if( Cosmo.fast_math_isnand(phi) || Cosmo.fast_math_isnand(phi_l) || Cosmo.fast_math_isnand(phi_r) ) {
+          printf("Error setting Cosmological ICs on procID %d Z (%e %e %e) (%d %d %d),
+        aborting.\n",procID,phi,phi_l,phi_r,i,j,k); fflush(stdout); } else if( (phi==0) || (phi_l==0) || (phi_r==0) ) {
+          printf("Error setting Cosmological ICs on procID %d Z (%e %e %e) (%d %d %d),
+        aborting.\n",procID,phi,phi_l,phi_r,i,j,k); fflush(stdout);
+        }
+        if( Cosmo.fast_math_isnand(phi_ll) || Cosmo.fast_math_isnand(phi_rr) ) {
+          printf("Error setting larger stecil Cosmological ICs on procID %d Z (%e %e) (%d %d %d),
+        aborting.\n",procID,phi_ll,phi_rr,i,j,k); fflush(stdout); } else if( (phi_ll==0) || (phi_rr==0) ) {
+          printf("Error setting larger stecil Cosmological ICs on procID %d Z (%e %e) (%d %d %d),
+        aborting.\n",procID,phi_ll,phi_rr,i,j,k); fflush(stdout);
+        } */
+
+        // TODO(brant): for baryon-dm fluctuations
         /*
                 // repeat for nabla^-2 \delta_bc
                 // which affects which affects LLA only
@@ -2335,7 +2351,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         id_rd = (i + 1) + (j - 1) * H.nx + k * H.ny * H.nx;
         id_ru = (i + 1) + (j + 1) * H.nx + k * H.ny * H.nx;
 
-        // for baryon-dm fluctuations
+        // TODO(brant): for baryon-dm fluctuations
         // phi_ld = D*CP.phi_1[id_ld] + f_c*CP.phi_2[id_ld];
         // phi_lu = D*CP.phi_1[id_lu] + f_c*CP.phi_2[id_lu];
         // phi_rd = D*CP.phi_1[id_rd] + f_c*CP.phi_2[id_rd];
@@ -2349,13 +2365,24 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         // grad_x_T[0][1] = -1*0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dx*dy);
         grad_x_T[1][0] = grad_x_T[0][1];
 
+        /*
+        if( Cosmo.fast_math_isnand(phi_ld) || Cosmo.fast_math_isnand(phi_lu) || Cosmo.fast_math_isnand(phi_rd) ||
+        Cosmo.fast_math_isnand(phi_ru) ) { printf("Error setting Cosmological ICs on procID %d XY (%e %e %e %e %e) (%e
+        %e %e %e) (%d %d %d) (%d %d %d %d %d),
+        aborting.\n",procID,D,phi_ld,phi_lu,phi_rd,phi_ru,CP.phi_1[id_ld],CP.phi_1[id_lu],CP.phi_1[id_rd],CP.phi_1[id_ru],i,j,k,id,id_ld,id_lu,id_rd,id_ru);
+          fflush(stdout);
+        } else if( (phi_ld==0) || (phi_lu==0) || (phi_rd==0) || (phi_ru==0) ) {
+          printf("Error setting Cosmological ICs on procID %d XY (%e %e %e %e %e) (%d %d %d),
+        aborting.\n",procID,D,phi_ld,phi_lu,phi_rd,phi_ru,i,j,k); fflush(stdout);
+        } */
+
         // second xz
         id_ld = (i - 1) + j * H.nx + (k - 1) * H.ny * H.nx;
         id_lu = (i - 1) + j * H.nx + (k + 1) * H.ny * H.nx;
         id_rd = (i + 1) + j * H.nx + (k - 1) * H.ny * H.nx;
         id_ru = (i + 1) + j * H.nx + (k + 1) * H.ny * H.nx;
 
-        // for baryon-dm fluctuations
+        // TODO(brant): for baryon-dm fluctuations
         // phi_ld = D*CP.phi_1[id_ld] + f_c*CP.phi_2[id_ld];
         // phi_lu = D*CP.phi_1[id_lu] + f_c*CP.phi_2[id_lu];
         // phi_rd = D*CP.phi_1[id_rd] + f_c*CP.phi_2[id_rd];
@@ -2369,13 +2396,23 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         // grad_x_T[0][2] = -1*0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dx*dz);
         grad_x_T[2][0] = grad_x_T[0][2];
 
+        /*
+        if( Cosmo.fast_math_isnand(phi_ld) || Cosmo.fast_math_isnand(phi_lu) || Cosmo.fast_math_isnand(phi_rd) ||
+        Cosmo.fast_math_isnand(phi_ru) ) { printf("Error setting Cosmological ICs on procID %d XZ (%e %e %e %e %e) (%d
+        %d %d) (%d %d %d %d %d), aborting.\n",procID,D,phi_ld,phi_lu,phi_rd,phi_ru,i,j,k,id,id_ld,id_lu,id_rd,id_ru);
+          fflush(stdout);
+        } else if( (phi_ld==0) || (phi_lu==0) || (phi_rd==0) || (phi_ru==0) ) {
+          printf("Error setting Cosmological ICs on procID %d XZ (%e %e %e %e %e) (%d %d %d),
+        aborting.\n",procID,D,phi_ld,phi_lu,phi_rd,phi_ru,i,j,k); fflush(stdout);
+        }*/
+
         // third yz
         id_ld = i + (j - 1) * H.nx + (k - 1) * H.ny * H.nx;
         id_lu = i + (j - 1) * H.nx + (k + 1) * H.ny * H.nx;
         id_rd = i + (j + 1) * H.nx + (k - 1) * H.ny * H.nx;
         id_ru = i + (j + 1) * H.nx + (k + 1) * H.ny * H.nx;
 
-        // for baryon-dm fluctuations
+        // TODO(brant): for baryon-dm fluctuations
         // phi_ld = D*CP.phi_1[id_ld] + f_c*CP.phi_2[id_ld];
         // phi_lu = D*CP.phi_1[id_lu] + f_c*CP.phi_2[id_lu];
         // phi_rd = D*CP.phi_1[id_rd] + f_c*CP.phi_2[id_rd];
@@ -2388,6 +2425,16 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         grad_x_T[1][2] = 0.25 * (phi_ld - phi_lu - phi_rd + phi_ru) / (dy * dz);
         // grad_x_T[1][2] = -1*0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dy*dz);
         grad_x_T[2][1] = grad_x_T[1][2];
+
+        /*
+        if( Cosmo.fast_math_isnand(phi_ld) || Cosmo.fast_math_isnand(phi_lu) || Cosmo.fast_math_isnand(phi_rd) ||
+        Cosmo.fast_math_isnand(phi_ru) ) { printf("Error setting Cosmological ICs on procID %d YZ (%e %e %e %e %e) (%d
+        %d %d) (%d %d %d %d %d), aborting.\n",procID,D,phi_ld,phi_lu,phi_rd,phi_ru,i,j,k,id,id_ld,id_lu,id_rd,id_ru);
+          fflush(stdout);
+        } else if( (phi_ld==0) || (phi_lu==0) || (phi_rd==0) || (phi_ru==0) ) {
+          printf("Error setting Cosmological ICs on procID %d YZ (%e %e %e %e %e) (%d %d %d),
+        aborting.\n",procID,D,phi_ld,phi_lu,phi_rd,phi_ru,i,j,k); fflush(stdout);
+        }*/
 
         //////////////////////////////////////////
         // compute displacements
@@ -2451,9 +2498,10 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         if (det_grad_x > det_grad_x_max) det_grad_x_max = det_grad_x;
 
         // retrieve the gas overdensity
-        // delta_b = (1+f_c \delta_bc )/(det grad x) - 1
         /// dens = ((1 + CP.delta_bc[index])/det_grad_x - 1);
         dens = (1 / det_grad_x - 1);
+        // TODO(brant): baryon-dm relative fluctuations
+        // delta_b = (1+f_c \delta_bc )/(det grad x) - 1
 
         if (dens < dens_min) dens_min = dens;
         if (dens > dens_max) dens_max = dens;
@@ -2464,6 +2512,11 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         n_d_mean += 1.;
       }
     }
+  }
+  if (Cosmo.fast_math_isnand(xix_mean) || Cosmo.fast_math_isnand(xiy_mean) || Cosmo.fast_math_isnand(xiz_mean)) {
+    printf("Error setting Cosmological ICs on procID %d (%e %e %e) (%e %e %e), aborting.\n", procID, xix_mean, xiy_mean,
+           xiz_mean, dx, dy, dz);
+    fflush(stdout);
   }
   MPI_Allreduce(MPI_IN_PLACE, &xix_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(MPI_IN_PLACE, &xiy_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -2513,6 +2566,11 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   chprintf("Cosmological ICs: z-velocity     field average = %e, rms = %e\n", vz_mean, vz_rms);
   chprintf("Cosmological ICs: overdensity    field average = %e, rms = %e\n", d_mean, d_rms);
   chprintf("Cosmological ICs: overdensity    field minimum = %e, max = %e\n", dens_min, dens_max);
+
+  if (Cosmo.fast_math_isnand(xix_mean) || Cosmo.fast_math_isnand(xiy_mean) || Cosmo.fast_math_isnand(xiz_mean)) {
+    chprintf("Error setting Cosmological ICs, aborting.\n");
+    chexit(-1);
+  }
 
   // correct the overdensity for non-zero mean
   d_rms         = 0;
@@ -2746,9 +2804,6 @@ void Grid3D::Iliev0(struct Parameters P)
   chprintf("ICs: Iliev0: rho=%g U=%g\n", rho, U);
 
   int i, j, k, id;
-  //  for (k=H.n_ghost; k<H.nz-H.n_ghost; k++) {
-  //    for (j=H.n_ghost; j<H.ny-H.n_ghost; j++) {
-  //      for (i=H.n_ghost; i<H.nx-H.n_ghost; i++) {
   for (k = 0; k < H.nz; k++) {
     for (j = 0; j < H.ny; j++) {
       for (i = 0; i < H.nx; i++) {
@@ -2869,9 +2924,8 @@ void Grid3D::Iliev15(struct Parameters P, int test)
         C.HeII_density[id]  = rho * 1.0e-20;
         C.HeIII_density[id] = rho * 1.0e-20;
 
-        // BRANT ALTER
+        // TODO(brant): e_density may be duplicative without metals
         C.e_density[id] = C.HII_density[id] + C.HeI_density[id] + 2 * C.HeIII_density[id];
-        // BRANT ALTER
 
         double x[3] = {H.xblocal + H.dx * (i + 0.5 - H.n_ghost), H.yblocal + H.dy * (j + 0.5 - H.n_ghost),
                        H.zblocal + H.dz * (k + 0.5 - H.n_ghost)};
@@ -2901,8 +2955,7 @@ void Grid3D::Iliev15(struct Parameters P, int test)
         Rad.rtFields.et[id + 3 * H.n_cells] = (x[2] * x[0]) / (eps2et + r2);
         Rad.rtFields.et[id + 4 * H.n_cells] = (x[2] * x[1]) / (eps2et + r2);
         Rad.rtFields.et[id + 5 * H.n_cells] = (eps2et / 3 + x[2] * x[2]) / (eps2et + r2);
-  #endif  // RT_OTVET
-  #ifdef RT_M1
+ #elif defined(RT_M1)
         for (int ii = 0; ii < Rad.n_fpfreq * Rad.n_freq; ii++) Rad.rtFields.rf[id + ii * H.n_cells] = 0;
   #endif  // RT_M1
       }
@@ -2911,7 +2964,7 @@ void Grid3D::Iliev15(struct Parameters P, int test)
 
   chprintf("ICs: Iliev%d initial conditions finalized...\n",(test == 1 ? 1 : 5));
 
-#else   // defined(RT) && defined(CHEMISTRY_GPU)
+#else   // !defined(RT) && defined(CHEMISTRY_GPU)
   chprintf("This requires RT && CHEMISTRY_GPU turned on! \n");
   chexit(-1);
 #endif  // defined(RT) && defined(CHEMISTRY_GPU)
@@ -3008,7 +3061,7 @@ void Grid3D::Iliev6(struct Parameters P)
     }
   }
 
-#else   // defined(RT) && defined(CHEMISTRY_GPU)
+#else   // !defined(RT) && defined(CHEMISTRY_GPU)
   chprintf("This requires RT && CHEMISTRY_GPU turned on! \n");
   chexit(-1);
 #endif  // defined(RT) && defined(CHEMISTRY_GPU)

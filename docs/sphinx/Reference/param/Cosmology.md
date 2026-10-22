@@ -96,7 +96,84 @@ When specified, overrides {par:param}`w0` and {par:param}`wa`.
 
 ---
 
-:::{todo}
+:::{par:parameter} Init_redshift
 
-include Init_redshift
+:Summary: Initial redshift for initializing the cosmological simulation.
+:Type: {par:typefmt}`float`
+:Default: *-1.0*
+
+Redshift should be set self-consistently with the initial gas temperature and ionization states.
+:::
+
+---
+
+:::{par:parameter} T_init
+
+:Summary: Initial gas temperature for initializing the cosmological simulation.
+:Type: {par:typefmt}`float`
+:Default: *-1.0*
+
+The initial gas temperature should be set self-consistently with the initial redshift and gas ionization states.
+:::
+
+---
+
+:::{par:parameter} xHp_ion_init
+
+:Summary: Initial hydrogen ionization fraction.
+:Type: {par:typefmt}`float`
+:Default: *0.0*
+
+`xHp_ion_init` should be set self-consistently with the initial redshift and gas temperature.
+:::
+
+---
+
+:::{par:parameter} xHep_ion_init
+
+:Summary: Initial helium II ionization fraction.
+:Type: {par:typefmt}`float`
+:Default: *0.0*
+
+`xHep_ion_init` should be set self-consistently with the initial redshift and gas temperature.
+:::
+
+---
+
+:::{par:parameter} YHe
+
+:Summary: Initial helium mass fraction.
+:Type: {par:typefmt}`float`
+:Default: *0.24*
+
+:::
+
+---
+
+:::{par:parameter} cosmoics_seed
+
+:Summary: Initial RNG seed for cosmological ICs.
+:Type: {par:typefmt}`int`
+:Default: *1337*
+
+:::
+
+---
+
+:::{par:parameter} cosmo_ics_pk_file
+
+:Summary: Cosmological power spectrum for generating ICs.
+:Type: {par:typefmt}`str`
+:Default: *Pk.txt*
+
+Expects the wavenumber, total linear matter power spectrum (at `z=0`), and the baryon-CDM cross power spectrum (not yet implemented).
+
+```shell-session
+#k/h [Mpc]	pk_tot     	pk_bc
+1.0000e-04	4.1727e+02	0.0000e+00
+1.0163e-04	4.2382e+02	3.0739e-18
+1.0328e-04	4.3048e+02	1.3670e-17
+...
+```
+
 :::

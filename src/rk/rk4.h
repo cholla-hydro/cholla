@@ -1,8 +1,8 @@
-#pragma once
-
 /*! \file
  *  \brief Defines \ref RKIntegrator
  */
+
+#pragma once
 
 #include <vector>
 
@@ -27,6 +27,10 @@ class RKIntegrator
   std::vector<Real> yprime;
   std::vector<Real> error;
 
+  // check for NaN when using fast math
+  bool fast_math_isnan(float x);
+  bool fast_math_isnand(double x);
+
   RKIntegrator() = delete;  // ensure that instances are always fully initialized
 
   /*! \brief Constructor */
@@ -42,6 +46,7 @@ class RKIntegrator
    *    The params vector allows for other parameters required
    *    for the integrator to be provided. None of the arguments
    *    should be a null pointer. .*/
-  void rk4_ode(std::vector<Real>(dydx)(Real x, std::vector<Real> y, std::vector<Real> params), Real x,
-               std::vector<Real> y, Real *h, Real *hpass, std::vector<Real> params, std::vector<Real> &yp, Real *error);
+  void rk4_ode(std::vector<Real>(dydx)(Real x, const std::vector<Real>& y, const std::vector<Real>& params), Real x,
+               const std::vector<Real>& y, Real* h, Real* hpass, const std::vector<Real>& params, std::vector<Real>& yp,
+               Real* error);
 };

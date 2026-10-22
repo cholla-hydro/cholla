@@ -71,7 +71,7 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real const *dev_conserved, Real const 
       left_state.energy       = dev_bounds_L[4 * n_cells + tid];
 #ifdef SCALAR
       for (int i = 0; i < NSCALARS; i++) {
-        left_state.scalar[i] = dev_bounds_L[(5 + i) * n_cells + tid];
+        left_state.scalar[i] = dev_bounds_L[(5 + i) * n_cells + tid] / left_state.density;
       }
 #endif
 #ifdef DE
@@ -85,7 +85,7 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real const *dev_conserved, Real const 
       right_state.energy       = dev_bounds_R[4 * n_cells + tid];
 #ifdef SCALAR
       for (int i = 0; i < NSCALARS; i++) {
-        right_state.scalar[i] = dev_bounds_R[(5 + i) * n_cells + tid];
+        right_state.scalar[i] = dev_bounds_R[(5 + i) * n_cells + tid] / right_state.density;
       }
 #endif
 #ifdef DE
@@ -193,7 +193,7 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real const *dev_conserved, Real const 
 #endif
 #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
-      f_sc_l[i] = left_state.scalar[i] * left_state.velocity.x();
+      f_sc_l[i] = left_state.scalar[i] * f_d_l;
     }
 #endif
 
@@ -207,7 +207,7 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real const *dev_conserved, Real const 
 #endif
 #ifdef SCALAR
     for (int i = 0; i < NSCALARS; i++) {
-      f_sc_r[i] = right_state.scalar[i] * right_state.velocity.x();
+      f_sc_r[i] = right_state.scalar[i] * f_d_r;
     }
 #endif
 
@@ -259,8 +259,11 @@ __global__ void Calculate_HLL_Fluxes_CUDA(Real const *dev_conserved, Real const 
 #endif
 #ifdef SCALAR
       for (int i = 0; i < NSCALARS; i++) {
-        f_sc[i] = ((Sr * f_sc_l[i]) - (Sl * f_sc_r[i]) + Sl * Sr * (right_state.scalar[i] - left_state.scalar[i])) /
-                  (Sr - Sl);
+        double left_scalar_density  = left_state.scalar[i] * left_state.density;
+        double right_scalar_density = right_state.scalar[i] * right_state.density;
+
+        f_sc[i] =
+            ((Sr * f_sc_l[i]) - (Sl * f_sc_r[i]) + Sl * Sr * (right_scalar_density - left_scalar_density)) / (Sr - Sl);
       }
 #endif
 

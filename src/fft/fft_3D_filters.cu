@@ -1,10 +1,14 @@
+/*! /file
+ *  /brief Implements FFT filtering machinery */
+
+#include "../global/global.h"
+
 #if defined(PARIS) && defined(FFT)
 
   #include <cassert>
   #include <cfloat>
   #include <climits>
 
-  #include "../global/global.h"
   #include "../io/io.h"
   #include "../utils/gpu.hpp"
   #include "fft_3D.h"
@@ -71,15 +75,12 @@ void FFT_3D::Filter_rescale_by_k_k2(Real *input, Real *output, bool in_device, i
 
   // Provide FFT filter with a lambda that multiplies by k / k^2 / D
   henry_->filter(bytes, db_, da_, [=] __device__(const int i, const int j, const int k, const cufftDoubleComplex b) {
-    if (i || j || k) {
+    if (i != 0 || j != 0 || k != 0) {
       // Get the global indices
       int id_i = i < ni / 2 ? i : i - ni;
       int id_j = j < nj / 2 ? j : j - nj;
       int id_k = k < nk / 2 ? k : k - nk;
       // Compute kx, ky, and kz from the indices
-      // Real kz = id_i * ddi;
-      // Real ky = id_j * ddj;
-      // Real kx = id_k * ddk;
       Real kx = id_i * ddi;
       Real ky = id_j * ddj;
       Real kz = id_k * ddk;
@@ -87,9 +88,6 @@ void FFT_3D::Filter_rescale_by_k_k2(Real *input, Real *output, bool in_device, i
       Real k2 = kx * kx + ky * ky + kz * kz;
       if (k2 == 0) k2 = 1.0;
       Real factor;
-      // if      (direction == 0) factor = kz / k2 / D;
-      // else if (direction == 1) factor = ky / k2 / D;
-      // else if (direction == 2) factor = kx / k2 / D;
       if (direction == 0)
         factor = kx / k2 / D;
       else if (direction == 1)
@@ -111,8 +109,6 @@ void FFT_3D::Filter_rescale_by_k_k2(Real *input, Real *output, bool in_device, i
     GPU_Error_Check(cudaMemcpy(output, da_, outputBytes_, cudaMemcpyDeviceToHost));
   }
 }
-/*! void FFT_3D::Filter_rescale_by_power_spectrum( Real *input, Real *output, bool in_device, int size, Real *dev_k,
- * Real *dev_pk ) const \brief Filter that rescales by a scale-dependent power spectrum */
 void FFT_3D::Filter_rescale_by_power_spectrum(Real *input, Real *output, bool in_device, int size, Real *dev_k,
                                               Real *dev_pk) const
 {
@@ -129,20 +125,13 @@ void FFT_3D::Filter_rescale_by_power_spectrum(Real *input, Real *output, bool in
 
   // Provide FFT filter with a lambda that multiplies by P(k)
   henry_->filter(bytes, db_, da_, [=] __device__(const int i, const int j, const int k, const cufftDoubleComplex b) {
-    if (i || j || k) {
-      /*
-              // Compute kx, ky, and kz from the indices
-              const double i2 = sqr(double(min(i, ni - i)) * ddi);
-              const double j2 = sqr(double(min(j, nj - j)) * ddj);
-              const double k2 = sqr(double(k) * ddk);
-
-              // Compute the magnitude of k
-              const Real k_mag = sqrt( i2 + j2 + k2);
-      */
+    if (i != 0 || j != 0 || k != 0) {
       // Get the global indices
       int id_i = i < ni / 2 ? i : i - ni;
       int id_j = j < nj / 2 ? j : j - nj;
-      // no difference?
+      // The following options for id_k are kept
+      // to reflect possible FFT data layout
+      // in memory
       // int id_k = k < nk/2 ? k : k - nk;
       int id_k         = k;
       const Real k_mag = sqrt(sqr(id_i * ddi) + sqr(id_j * ddj) + sqr(id_k * ddk));
@@ -167,10 +156,6 @@ void FFT_3D::Filter_rescale_by_power_spectrum(Real *input, Real *output, bool in
 
 void FFT_3D::Filter_inv_k2(Real *const input, Real *const output, bool in_device) const
 {
-  // Local copies of members for lambda capture
-  // const int ni = ni_, nj = nj_, nk = nk_;
-  // const Real ddi = ddi_, ddj = ddj_, ddk = ddk_;
-
   // Local copies of members for lambda capture
   const int ni = ni_, nj = nj_;
   const double ddi = ddi_, ddj = ddj_, ddk = ddk_;
@@ -201,17 +186,7 @@ void FFT_3D::Filter_inv_k2(Real *const input, Real *const output, bool in_device
   // ngpu=4, Cosmological ICs: RMS  of overdensity field after P(k) 5.327733e+00
 
   // Poisson-solve constants that depend on divergence-operator approximation
-  // #ifdef PARIS_3PT
   const int nk = nk_;
-  /*const double si = M_PI / double(ni);
-  const double sj = M_PI / double(nj);
-  const double sk = M_PI / double(nk);*/
-  /*#elif defined PARIS_5PT
-  const int nk    = nk_;
-  const double si = 2.0 * M_PI / double(ni);
-  const double sj = 2.0 * M_PI / double(nj);
-  const double sk = 2.0 * M_PI / double(nk);
-  #endif*/
   // note that we may need these differentials for derivatives
   // keeping them here
   /*
@@ -228,44 +203,31 @@ void FFT_3D::Filter_inv_k2(Real *const input, Real *const output, bool in_device
       ddj_=(2.0 * M_PI * double(n[1] - 1) / (double(n[1]) * (hi[1] - lo_[1])));
       ddk_=(2.0 * M_PI * double(n[2] - 1) / (double(n[2]) * (hi[2] - lo_[2])));
   #endif*/
-  /*
-    // for fft
-    dx_ = dx;
-    dy_ = dy;
-    dz_ = dz;
-    ddi_ = 2.0*M_PI*double(n[0]-1)/(double(n[0])*(hi[0]-lo_[0]));
-    ddj_ = 2.0*M_PI*double(n[1]-1)/(double(n[1])*(hi[1]-lo_[1]));
-    ddk_ = 2.0*M_PI*double(n[2]-1)/(double(n[2])*(hi[2]-lo_[2]));
-  */
   if (in_device) {
     GPU_Error_Check(cudaMemcpy(db_, input, inputBytes_, cudaMemcpyDeviceToDevice));
   } else {
     GPU_Error_Check(cudaMemcpy(db_, input, inputBytes_, cudaMemcpyHostToDevice));
   }
 
-  /*
-    // Using the spectral operator -- consider others to control low-frequency modes
-    const int n = ni * nj * nk;
-
-    const Real si = M_PI / Real(ni);
-    const Real sj = M_PI / Real(nj);
-    const Real sk = M_PI / Real(nk);*/
-
   // Provide FFT filter with a lambda that does 1/k^2 solve in frequency space
   henry_->filter(bytes, db_, da_, [=] __device__(const int i, const int j, const int k, const cufftDoubleComplex b) {
-    if (i || j || k) {
+    if (i != 0 || j != 0 || k != 0) {
       // Get the global indices
       int id_i = i < ni / 2 ? i : i - ni;
       int id_j = j < nj / 2 ? j : j - nj;
-      // no difference?
+      // The following options for id_k are kept
+      // to reflect possible FFT data layout
+      // in memory
       // int id_k = k < nk/2 ? k : k - nk;
       int id_k = k;
       Real kx  = id_i * ddi;
       Real ky  = id_j * ddj;
       Real kz  = id_k * ddk;
-      // spectral
-      // double ksq = kx*kx + ky*ky + kz*kz;
-      // this gives the same answer as spectral
+
+      // These options for ksq are retained
+      // as comments for potential testing
+      // with the cosmological ICs generator
+      // double ksq = kx*kx + ky*ky + kz*kz; // spectral
       const double ci = cos(2.0 * M_PI * id_i / Real(ni));
       const double cj = cos(2.0 * M_PI * id_j / Real(nj));
       const double ck = cos(2.0 * M_PI * id_k / Real(nk));
@@ -273,7 +235,6 @@ void FFT_3D::Filter_inv_k2(Real *const input, Real *const output, bool in_device
       const double j2 = (2.0 * cj * cj - 16.0 * cj + 14.0) / (6 * dy * dy);
       const double k2 = (2.0 * ck * ck - 16.0 * ck + 14.0) / (6 * dz * dz);
       double ksq      = i2 + j2 + k2;
-      // this gives the same answer as spectral
       // double ksq = sqr(2*sin(0.5*kx*dx)/dx) + sqr(2*sin(0.5*ky*dy)/dy) + sqr(2*sin(0.5*kz*dz)/dz);
       double d = -1. / ksq;
 
@@ -293,8 +254,6 @@ void FFT_3D::Filter_inv_k2(Real *const input, Real *const output, bool in_device
   }
 }
 
-/*! void FFT_3D::Filter_identity( const size_t bytes, Real *const input, Real *const output) const
- *  \brief The identity function filter */
 void FFT_3D::Filter_identity(Real *const input, Real *output, bool in_device) const
 {
   // Local copies of members for lambda capture
@@ -321,8 +280,6 @@ void FFT_3D::Filter_identity(Real *const input, Real *output, bool in_device) co
   }
 }
 
-/*! void FFT_3D::Filter_rescale( const size_t bytes, Real *const input, Real A, Real *const output) const
- *  \brief A filter that rescales the grid in Fourier space*/
 void FFT_3D::Filter_rescale(Real *const input, Real A, Real *output, bool in_device) const
 {
   // Local copies of members for lambda capture
@@ -340,12 +297,9 @@ void FFT_3D::Filter_rescale(Real *const input, Real A, Real *output, bool in_dev
 
   const int n = ni * nj * nk;
 
-  // rescale and apply offset
-  // gpuFor(
-  //     n, GPU_LAMBDA(const int i) { db_[i] = A * db_[i]; });
-  //  Provide FFT filter that simply rescales
+  // Provide FFT filter that simply rescales
   henry_->filter(bytes, db_, da_, [=] __device__(const int i, const int j, const int k, const cufftDoubleComplex b) {
-    if (i || j || k) {
+    if (i != 0 || j != 0 || k != 0) {
       return cufftDoubleComplex{A * b.x, A * b.y};
     } else {
       return cufftDoubleComplex{0.0, 0.0};
@@ -354,10 +308,8 @@ void FFT_3D::Filter_rescale(Real *const input, Real A, Real *output, bool in_dev
 
   // copy results to output
   if (in_device) {
-    // GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToDevice));
     GPU_Error_Check(cudaMemcpy(output, db_, outputBytes_, cudaMemcpyDeviceToDevice));
   } else {
-    // GPU_Error_Check( cudaMemcpy( output, da_, outputBytes_, cudaMemcpyDeviceToHost));
     GPU_Error_Check(cudaMemcpy(output, db_, outputBytes_, cudaMemcpyDeviceToHost));
   }
 }

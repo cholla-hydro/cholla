@@ -16,6 +16,7 @@
 #include "../global/global_cuda.h"
 #include "../grid/field_info.h"
 #include "../io/FnameTemplate.h"
+#include "../model/model_collection.h"
 
 #ifdef HDF5
   #include <hdf5.h>
@@ -28,8 +29,6 @@
 #ifdef PARTICLES
   #include "../particles/particles_3D.h"
 #endif
-
-#include "../model/disk_galaxy.h"
 
 #ifdef COSMOLOGY
   #include "../cosmology/cosmology.h"
@@ -248,6 +247,9 @@ class Grid3D
 
   /*! Describes the mapping between field names and field indices */
   FieldInfo field_info;
+
+  /*! Holds all models (if any) */
+  ModelCollection model_collection;
 
 #ifdef GRAVITY
   // Object that contains data for gravity
@@ -689,6 +691,12 @@ class Grid3D
   void Unload_Hydro_DeviceBuffer_Z1(Real *buffer);
 #endif /*MPI_CHOLLA*/
 
+  /*! \brief initialize the model collection */
+  void Initialize_Models(ParameterMap &pmap) { model_collection = ModelCollection(pmap); }
+
+  /*! \brief get the model collection */
+  const ModelCollection &models() const { return model_collection; }
+
 #ifdef GRAVITY
   void Initialize_Gravity(struct Parameters *P);
   void Compute_Gravitational_Potential(struct Parameters *P);
@@ -822,19 +830,29 @@ class Grid3D
   void Advance_Particles_KDK_Cosmo_Step2_GPU();
   #endif  // PARTICLES_GPU
 
+  /*! \brief Create the potentials for cosmological ICs */
   void Generate_Cosmo_Phi_Init(struct Parameters *P);
+  /*! \brief Write out the cosmological potential field to hdf5 files*/
   void Save_Cosmo_Potential(struct Parameters const *P);
+  /*! \brief Initialize the RNG for cosmological ICs potentials */
   void Initialize_Cosmo_Potential_RNG(struct Parameters *P);
+  /*! \brief Free memory for cosmological potential*/
   void Free_Cosmo_Potential_RNG();
+  /*! \brief Allocate memory and load cosmological power spectrum*/
   void Load_Cosmo_Power_Spectrum(struct Parameters *P);
+  /*! \brief Free memory for cosmological power spectrum*/
   void Free_Cosmo_Power_Spectrum();
+  /*! \brief Allocate the memory allocated for cosmological ICs potentials */
   void Allocate_Cosmo_Potential_Memory();
+  /*!  \brief Free the memory allocated for cosmological ICs potentials */
   void Free_Cosmo_Potential_Memory();
+  /*! \brief Rescale a field by a constant multiplicative factor.
+   *
+   *  \param[inout] d_x is a field without ghost zones
+   *  \param[in]    A is the multiplicative factor
+   */
   void Rescale_Field(Real *d_x, Real A);
-  void Field_Elementwise_Product(Real *d_x, Real *d_y);
-  void FFT_Populate_Wavevectors(Real *d_kx, Real *d_ky, Real *d_kz, Real *d_kk);
-  void FFT_Field_Reverse_Laplacian(Real *d_x_k, Real *d_kk);
-  // void Generate_Normal_Random_Field(Real *d_field, rng_parallel_state_t *state);
+  /*! \brief Create a Gaussian random field on a grid */
   void Generate_Normal_Random_Field(Real *d_field, struct Parameters *P, rng_parallel_state_t *state);
 
   struct CosmoPotentials {
@@ -917,12 +935,17 @@ class Grid3D
   // Cosmo ICs potential comms
   void Allocate_Boundary_Conditions_Field_MPI();
   void Free_Boundary_Conditions_Field_MPI();
+  /*! \brief Set the boundary conditions for all components based on info in the
+   * parameters structure. */
   void Set_Field_Boundaries_Periodic(int direction, int side, int *flags, Real *field);
   void Set_Boundary_Conditions_Field(Parameters P, Real *field);
+  /*! \brief Apply boundary conditions to the grid. */
   void Set_Boundaries_Field(int dir, int flags[], Real *field);
+  /*! \brief Load the MPI buffers for field comms. */
   int Load_Field_To_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *field);
   void Unload_Field_from_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *field);
   #ifdef MPI_CHOLLA
+  /*! \brief Unload the MPI buffers for field comms. */
   void Unload_MPI_Comm_Buffers_Field(int index, Real *field);
   void Wait_and_Unload_MPI_Comm_Buffers_Field(int dir, int *flags, Real *field);
   void Load_and_Send_MPI_Comm_Buffers_Field(int dir, int *flags, Real *field);

@@ -1,11 +1,12 @@
-#if defined(COSMOLOGY) && defined(FFT)
+#include "../global/global.h"
+
+#if defined(COSMOLOGY) && defined(FFT) && defined(HDF5)
   #include <hdf5.h>
 
   #include <cstdio>
   #include <fstream>
 
   #include "../fft/fft_3D.h"
-  #include "../global/global.h"
   #include "../grid/grid3D.h"
   #include "../grid/grid_enum.h"
   #include "../io/io.h"
@@ -14,8 +15,6 @@
   #include "field_operations.h"
   #include "rng.h"
 
-/*! \fn void Generate_Cosmo_Phi_Init(void)
- *  \brief Create the potentials for cosmological ICs */
 void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 {
   // This function generates the initial potentials required
@@ -31,33 +30,15 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   }
 
   int i, j, k, id;
-  int istart, jstart, kstart, iend, jend, kend;
-  int n_cells = nx_local * ny_local * nz_local;
-
-  istart = H.n_ghost;
-  iend   = H.nx - H.n_ghost;
-  if (H.ny > 1) {
-    jstart = H.n_ghost;
-    jend   = H.ny - H.n_ghost;
-  } else {
-    jstart = 0;
-    jend   = H.ny;
-  }
-  if (H.nz > 1) {
-    kstart = H.n_ghost;
-    kend   = H.nz - H.n_ghost;
-  } else {
-    kstart = 0;
-    kend   = H.nz;
-  }
+  int n_local_cells = nx_local * ny_local * nz_local;
 
   // OK, let's proceed
   chprintf("Cosmological ICs: Generating potentials....\n");
 
   // set the number of fields
-  CP.n_fields = 2;  // initial potential and overdensity field
+  CP.n_fields = 1;  // initial potential and overdensity field
   #ifndef ONLY_PARTICLES
-  CP.n_fields += 1;  // add a baryon overdensity field
+  CP.n_fields += 1;  // add a baryon potential and overdensity field
   #endif
 
   Real H0      = P->H0;
@@ -95,16 +76,11 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // step 1) sample xi(m) by generating independent
   //         zero-mean normal deviates with variance N**d at
   //         each spatial point
-  // Generate_Normal_Random_Field(CP.d_delta_m,rng_states);
   Generate_Normal_Random_Field(CP.d_delta_m, P, rng_states);
 
   // copy memory -- only real, local cells
-  cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+  cudaMemcpy(CP.delta_m, CP.d_delta_m, n_local_cells * sizeof(Real), cudaMemcpyDeviceToHost);
 
-  // printf("procID %d rngs: %e %e %e\n",procID,CP.delta_m[0],CP.delta_m[1],CP.delta_m[2]);
-  // fflush(stdout);
-
-  // chexit(0);
   Real delta_rms = 0;
   Real delta_ave = 0;
   // reduce the grid values
@@ -120,7 +96,7 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
       }
     }
   }
-  GPU_Error_Check(cudaMemcpy(CP.d_delta_m, CP.delta_m, n_cells * sizeof(Real), cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(CP.d_delta_m, CP.delta_m, n_local_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
   // get the total of the grid to compute the rms
   MPI_Allreduce(MPI_IN_PLACE, &delta_rms, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -147,14 +123,14 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   }
 
   // copy mean zero phi back to GPU
-  GPU_Error_Check(cudaMemcpy(CP.d_delta_m, CP.delta_m, n_cells * sizeof(Real), cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(CP.d_delta_m, CP.delta_m, n_local_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
   // step 2) Take the fourier transform
   //         xi(k) = N**-d \sum_m exp( -(2 pi i / M) * kappa \dot m) * xi(m)
 
   #ifndef ONLY_PARTICLES
   // step 2.5) Copy random field to baryonic field
-  GPU_Error_Check(cudaMemcpy(CP.d_delta_bc, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
+  GPU_Error_Check(cudaMemcpy(CP.d_delta_bc, CP.d_delta_m, n_local_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
   #endif
 
   // step 2.7)
@@ -175,9 +151,9 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   #endif
 
   // copy memory back to host
-  cudaMemcpy(CP.delta_m, CP.d_delta_m, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+  cudaMemcpy(CP.delta_m, CP.d_delta_m, n_local_cells * sizeof(Real), cudaMemcpyDeviceToHost);
   #ifndef ONLY_PARTICLES
-  cudaMemcpy(CP.delta_bc, CP.d_delta_bc, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+  cudaMemcpy(CP.delta_bc, CP.d_delta_bc, n_local_cells * sizeof(Real), cudaMemcpyDeviceToHost);
   #endif
 
   // free the P(k)
@@ -269,9 +245,9 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
   // and need to remap before populating
   // the potential. We can re-use existing
   // density arrays for the interim.
-  cudaMemcpy(CP.phi_1, CP.d_phi_1, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+  cudaMemcpy(CP.phi_1, CP.d_phi_1, n_local_cells * sizeof(Real), cudaMemcpyDeviceToHost);
   #ifndef ONLY_PARTICLES
-  cudaMemcpy(CP.phi_2, CP.d_phi_2, n_cells * sizeof(Real), cudaMemcpyDeviceToHost);
+  cudaMemcpy(CP.phi_2, CP.d_phi_2, n_local_cells * sizeof(Real), cudaMemcpyDeviceToHost);
   #endif  // ONLY_PARTICLES
 
   delta_ave = 0;
@@ -304,12 +280,8 @@ void Grid3D::Generate_Cosmo_Phi_Init(struct Parameters *P)
 
   // clear the FFT memory
   fft.Reset();
-
-  // chexit(0);  //BRANT
 }
 
-/*! \fn void Save_Cosmo_Potential(struct Parameters *P)
- *  \brief Write out the cosmological potential field to hdf5 files*/
 void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
 {
   char fname[200];
@@ -330,8 +302,7 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
   Real *phi_out;  // output cosmological potential
 
   // Create a file name for each hdf5 output
-  // sprintf(fname, "%s0/delta_ini.h5.%d", P->outdir, procID);
-  sprintf(fname, "delta_ini.h5.%d", procID);
+  sprintf(fname, "%s0/delta_ini.h5.%d", P->outdir, procID);
 
   // create a file
   f_id = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -499,16 +470,13 @@ void Grid3D::Save_Cosmo_Potential(struct Parameters const *P)
   H5Fclose(f_id);
 }
 
-/*! \fn void Initialize_Cosmo_Potential_RNG(void)
- *  \brief Initialize the RNG for cosmological ICs potentials */
 void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
 {
   // Initialize the parameters for the Philox RNG
   int n_cells = nx_local * ny_local * nz_local;
-  //  int n_cells = H.nx * H.ny * H.nz;
 
   // Record the RNG seed from the parameter file
-  CP.rng_seed = P->cosmoics_seed;
+  CP.rng_seed = P->cosmo_ics_seed;
 
   // Call the RNG initialization function on the GPUs
   GPU_Error_Check(cudaMalloc((void **)&rng_states, n_cells * sizeof(rng_parallel_state_t)));
@@ -518,25 +486,18 @@ void Grid3D::Initialize_Cosmo_Potential_RNG(struct Parameters *P)
   hipLaunchKernelGGL(RNG_Init_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0, nx_local,
                      ny_local, nz_local, nx_local_start, ny_local_start, nz_local_start, P->nx, P->ny, P->nz,
                      CP.rng_seed, rng_states);
-  // hipLaunchKernelGGL(RNG_Init_TEST, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
-  //                    procID,nx_local,ny_local,nz_local,nx_local_start,ny_local_start,nz_local_start,P->nx,P->ny,P->nz,CP.rng_seed,
-  //                    rng_states);
 
   GPU_Error_Check();
 
   chprintf("Cosmological ICs: Initialized RNG states (seed = %d).\n", CP.rng_seed);
 }
 
-/*! \fn void Free_Cosmo_Potential_RNG()
- *  \brief Free memory for cosmological potential*/
 void Grid3D::Free_Cosmo_Potential_RNG()
 {
   // free rng states info
   GPU_Error_Check(cudaFree(rng_states));
 }
 
-/*! \fn void Free_Cosmo_Power_Spectrum()
- *  \brief Free memory for cosmological power spectrum*/
 void Grid3D::Free_Cosmo_Power_Spectrum()
 {
   // free host P(k) info
@@ -551,8 +512,6 @@ void Grid3D::Free_Cosmo_Power_Spectrum()
   GPU_Error_Check(cudaFree(CP.d_pk_bc_array));
 }
 
-/*! \fn void Load_Cosmo_Power_Spectrum(struct Parameters *P)
- *  \brief Allocate memory and load cosmological power spectrum*/
 void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
 {
   char pk_filename[MAXLEN];
@@ -630,18 +589,6 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
   // Multiplying by the square root of the power spectrum
   // if we transfer forward, multiply by 1, and then backward, we get the same variance we input
   Real pk_factor = 1.0e9 * (nx_global * ny_global * nz_global) / (P->xlen * P->ylen * P->zlen);
-  // Real pk_factor = 0.5e9*(nx_global*ny_global*nz_global)/(P->xlen*P->ylen*P->zlen);
-
-  // see if answer changes in different box
-
-  // Real pk_factor = 1.0e9; // convert (Mpc/h)^3 to (kpc/h)^3 RMS of density field over entire grid = 1.449342e+04
-  // Real pk_factor = 1.0e9/pow(50000,3); // convert (Mpc/h)^3 to (kpc/h)^3 1.296331e-03
-  // Real pk_factor = 1.0e9/pow(50000/(2*M_PI),3); // convert (Mpc/h)^3 to (kpc/h)^3 2e-2
-  // Real pk_factor = 1; // RMS of density field over entire grid = 4.583223e-01
-  // Real pk_factor = 1/(2.0*M_PI*M_PI); // RMS of density field over entire grid = 4.583223e-01
-  // Real pk_factor = pow(50,3)/(2.0); // RMS of density field over entire grid = 4.583223e-01
-  //  (50/256)**3 = 0.007450580596923828
-  //  (50000/256)**3 = 7450580.596923828
 
   // The value of the power spectrum at redshift 0 and a ~195 kpc/h ~ 5 h/Mpc cell is ~ 1
 
@@ -674,15 +621,12 @@ void Grid3D::Load_Cosmo_Power_Spectrum(struct Parameters *P)
   GPU_Error_Check(cudaMemcpy(CP.d_pk_bc_array, CP.pk_bc_array, CP.n_pk * sizeof(Real), cudaMemcpyHostToDevice));
 }
 
-/*! \fn void Allocate_Cosmo_Potential_Memory(void)
- *  \brief Allocate the memory allocated for cosmological ICs potentials */
 void Grid3D::Allocate_Cosmo_Potential_Memory()
 {
   // allocate memory for the phi arrays
   // allocate all the memory to phi_1, to ensure contiguous memory
-  int n_cells = nx_local * ny_local * nz_local;
-  // int n_cells = H.n_cells;
-  int offset = n_cells;
+  int n_cells = nx_local * ny_local * nz_local;  // this is only the local memory, for overdensities
+  int offset  = n_cells;
 
   GPU_Error_Check(cudaHostAlloc((void **)&CP.host, CP.n_fields * n_cells * sizeof(Real), cudaHostAllocDefault));
   chprintf("Cosmological ICs: Host memory allocated for %d fields in cosmological ICs initial deltas (n = %d).\n",
@@ -749,8 +693,6 @@ void Grid3D::Allocate_Cosmo_Potential_Memory()
   }
 }
 
-/*! \fn void Free_Cosmo_Potential_Memory(void)
- *  \brief Free the memory allocated for cosmological ICs potentials */
 void Grid3D::Free_Cosmo_Potential_Memory(void)
 {
   // free the host delta arrays
@@ -766,37 +708,26 @@ void Grid3D::Free_Cosmo_Potential_Memory(void)
   GPU_Error_Check(cudaFree(CP.devicep));
 }
 
-/*! \fn void Generate_Normal_Random_Field(Real *d_field, rng_parallel_state_t *state)
- *  \brief Create a Gaussian random field on a grid */
 void Grid3D::Generate_Normal_Random_Field(Real *d_field, struct Parameters *P, rng_parallel_state_t *state)
 {
   // Here, d_field has been pre-allocated on the device
   int n_cells = nx_local * ny_local * nz_local;
-  // chprintf("nx_local %d ny_local %d nz_local %d\n",nx_local,ny_local,nz_local);
-  // chexit(0);
-  // int n_cells = H.nx * H.ny * H.nz;
   cuda_utilities::AutomaticLaunchParams static const launchParams(RNG_Normal_Field_GPU, n_cells);
   hipLaunchKernelGGL(RNG_Normal_Field_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0,
                      d_field, nx_local, ny_local, nz_local, nx_local_start, ny_local_start, nz_local_start, P->nx,
-                     P->ny, P->nz, P->cosmoics_seed, rng_states);
+                     P->ny, P->nz, P->cosmo_ics_seed, rng_states);
 }
 
-/*! \fn void Rescale_Field(Real *d_x, Real A)
- *  \brief Rescale a field by a constant multiplicative factor. */
 void Grid3D::Rescale_Field(Real *d_x, Real A)
 {
   // Here, d_x has been pre-allocated on the device
   // Rescale the field by a multiplicative factor.
   int n_cells = nx_local * ny_local * nz_local;
-  // int n_cells = H.nx * H.ny * H.nz;
   cuda_utilities::AutomaticLaunchParams static const launchParams(Rescale_Field_GPU, n_cells);
   hipLaunchKernelGGL(Rescale_Field_GPU, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(), 0, 0, d_x, A,
                      nx_local, ny_local, nz_local, 0);
 }
 
-/*! \fn void Set_Boundary_Conditions_Field(Parameters P )
- *  \brief Set the boundary conditions for all components based on info in the
- * parameters structure. */
 void Grid3D::Set_Boundary_Conditions_Field(Parameters P, Real *field)
 {
   #ifndef MPI_CHOLLA
@@ -832,8 +763,6 @@ void Grid3D::Set_Boundary_Conditions_Field(Parameters P, Real *field)
   #endif /*MPI_CHOLLA*/
 }
 
-/*! \fn void Set_Boundaries_Field(int dir, int flags[])
- *  \brief Apply boundary conditions to the grid. */
 void Grid3D::Set_Boundaries_Field(int dir, int flags[], Real *field)
 {
   int i, j, k;
@@ -889,24 +818,23 @@ void Grid3D::Set_Field_Boundaries_Periodic(int direction, int side, int *flags, 
   // Flags: 1 (periodic), 2 (reflective), 3 (transmissive), 4 (custom), 5 (mpi)
 
   int i, j, k, indx_src, indx_dst;
-  int nGHST, nx_g, ny_g, nz_g;
-  nGHST = H.n_ghost;
-  nx_g  = nx_local + 2 * nGHST;
-  ny_g  = ny_local + 2 * nGHST;
-  nz_g  = nz_local + 2 * nGHST;
+  int nx_g, ny_g, nz_g;
+  nx_g = H.nx;
+  ny_g = H.ny;
+  nz_g = H.nz;
 
   // Copy X boundaries
   if (direction == 0) {
     for (k = 0; k < nz_g; k++) {
       for (j = 0; j < ny_g; j++) {
-        for (i = 0; i < nGHST; i++) {
+        for (i = 0; i < H.n_ghost; i++) {
           if (side == 0) {
-            indx_src = (nx_g - 2 * nGHST + i) + (j)*nx_g + (k)*nx_g * ny_g;  // Periodic
+            indx_src = (nx_g - 2 * H.n_ghost + i) + (j)*nx_g + (k)*nx_g * ny_g;  // Periodic
             indx_dst = (i) + (j)*nx_g + (k)*nx_g * ny_g;
           }
           if (side == 1) {
-            indx_src = (i + nGHST) + (j)*nx_g + (k)*nx_g * ny_g;  // Periodic
-            indx_dst = (nx_g - nGHST + i) + (j)*nx_g + (k)*nx_g * ny_g;
+            indx_src = (i + H.n_ghost) + (j)*nx_g + (k)*nx_g * ny_g;  // Periodic
+            indx_dst = (nx_g - H.n_ghost + i) + (j)*nx_g + (k)*nx_g * ny_g;
           }
           field[indx_dst] = field[indx_src];
         }
@@ -917,15 +845,15 @@ void Grid3D::Set_Field_Boundaries_Periodic(int direction, int side, int *flags, 
   // Copy Y boundaries
   if (direction == 1) {
     for (k = 0; k < nz_g; k++) {
-      for (j = 0; j < nGHST; j++) {
+      for (j = 0; j < H.n_ghost; j++) {
         for (i = 0; i < nx_g; i++) {
           if (side == 0) {
-            indx_src = (i) + (ny_g - 2 * nGHST + j) * nx_g + (k)*nx_g * ny_g;  // Periodic
+            indx_src = (i) + (ny_g - 2 * H.n_ghost + j) * nx_g + (k)*nx_g * ny_g;  // Periodic
             indx_dst = (i) + (j)*nx_g + (k)*nx_g * ny_g;
           }
           if (side == 1) {
-            indx_src = (i) + (j + nGHST) * nx_g + (k)*nx_g * ny_g;  // Periodic
-            indx_dst = (i) + (ny_g - nGHST + j) * nx_g + (k)*nx_g * ny_g;
+            indx_src = (i) + (j + H.n_ghost) * nx_g + (k)*nx_g * ny_g;  // Periodic
+            indx_dst = (i) + (ny_g - H.n_ghost + j) * nx_g + (k)*nx_g * ny_g;
           }
           field[indx_dst] = field[indx_src];
         }
@@ -935,16 +863,16 @@ void Grid3D::Set_Field_Boundaries_Periodic(int direction, int side, int *flags, 
 
   // Copy Z boundaries
   if (direction == 2) {
-    for (k = 0; k < nGHST; k++) {
+    for (k = 0; k < H.n_ghost; k++) {
       for (j = 0; j < ny_g; j++) {
         for (i = 0; i < nx_g; i++) {
           if (side == 0) {
-            indx_src = (i) + (j)*nx_g + (nz_g - 2 * nGHST + k) * nx_g * ny_g;  // Periodic
+            indx_src = (i) + (j)*nx_g + (nz_g - 2 * H.n_ghost + k) * nx_g * ny_g;  // Periodic
             indx_dst = (i) + (j)*nx_g + (k)*nx_g * ny_g;
           }
           if (side == 1) {
-            indx_src = (i) + (j)*nx_g + (k + nGHST) * nx_g * ny_g;  // Periodic
-            indx_dst = (i) + (j)*nx_g + (nz_g - nGHST + k) * nx_g * ny_g;
+            indx_src = (i) + (j)*nx_g + (k + H.n_ghost) * nx_g * ny_g;  // Periodic
+            indx_dst = (i) + (j)*nx_g + (nz_g - H.n_ghost + k) * nx_g * ny_g;
           }
           field[indx_dst] = field[indx_src];
         }
@@ -957,23 +885,29 @@ void Grid3D::Set_Field_Boundaries_Periodic(int direction, int side, int *flags, 
 
 void Grid3D::Allocate_Boundary_Conditions_Field_MPI()
 {
+  // Note: this allocates exchange for a single field at a time
+
   int xbsize = 1, ybsize = 1, zbsize = 1;
   if (H.ny == 1 && H.nz == 1) {
-    xbsize = H.n_fields * H.n_ghost;
+    xbsize = H.n_ghost;
   }
   // 2D
   else if (H.ny > 1 && H.nz == 1) {
-    xbsize = H.n_fields * H.n_ghost * (H.ny - 2 * H.n_ghost);
-    ybsize = H.n_fields * H.n_ghost * (H.nx);
+    xbsize = H.n_ghost * (H.ny - 2 * H.n_ghost);
+    ybsize = H.n_ghost * (H.nx);
   }
   // 3D
   else if (H.ny > 1 && H.nz > 1) {
-    xbsize = H.n_fields * H.n_ghost * (H.ny - 2 * H.n_ghost) * (H.nz - 2 * H.n_ghost);
-    ybsize = H.n_fields * H.n_ghost * (H.nx) * (H.nz - 2 * H.n_ghost);
-    zbsize = H.n_fields * H.n_ghost * (H.nx) * (H.ny);
+    xbsize = H.n_ghost * (H.ny - 2 * H.n_ghost) * (H.nz - 2 * H.n_ghost);
+    ybsize = H.n_ghost * (H.nx) * (H.nz - 2 * H.n_ghost);
+    zbsize = H.n_ghost * (H.nx) * (H.ny);
   } else {
     throw std::runtime_error("MPI buffer size failed to set.");
   }
+
+  chprintf("Cosmological ICs: Grid sizes nx_local %d ny_local %d nz_local %d xbsize %d ybsize %d zbsize %d\n", nx_local,
+           ny_local, nz_local, xbsize, ybsize, zbsize);
+  chprintf("Cosmological ICs: Grid sizes H.nx %d H.ny %d H.nz %d CP.n_fields %d\n", H.nx, H.ny, H.nz, CP.n_fields);
 
     #if defined(MPI_GPU)  // these won't be allocated yet
   h_send_buffer_x0 = (Real *)malloc(xbsize * sizeof(Real));
@@ -1076,8 +1010,6 @@ void Grid3D::Load_and_Send_MPI_Comm_Buffers_Field(int dir, int *flags, Real *fie
 {
   int ireq;
   ireq = 0;
-
-  int xbsize = x_buffer_length, ybsize = y_buffer_length, zbsize = z_buffer_length;
 
   int buffer_length;
 
@@ -1247,8 +1179,6 @@ void Grid3D::Wait_and_Unload_MPI_Comm_Buffers_Field(int dir, int *flags, Real *f
   }
 }
 
-/*! \fn void Grid3D::Unload_MPI_Comm_Buffers_Field(int index, Real *field)
- *  \brief Unload the MPI buffers for field comms. */
 void Grid3D::Unload_MPI_Comm_Buffers_Field(int index, Real *field)
 {
   // local recv buffers
@@ -1285,19 +1215,115 @@ void Grid3D::Unload_MPI_Comm_Buffers_Field(int index, Real *field)
   }
 }
 
-/*! \fn void Grid3D::Load_Field_To_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *field)
- *  \brief Load the MPI buffers for field comms. */
 int Grid3D::Load_Field_To_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *field)
 {
   int i, j, k, indx, indx_buff, length;
-  int nGHST, nx_g, ny_g, nz_g;
-  nGHST = H.n_ghost;
-  nx_g  = nx_local + 2 * nGHST;
-  ny_g  = ny_local + 2 * nGHST;
-  nz_g  = nz_local + 2 * nGHST;
+  int nx_g, ny_g, nz_g;
+
+  // xbsize = H.n_fields * H.n_ghost * (H.ny - 2 * H.n_ghost) * (H.nz - 2 * H.n_ghost);
+  // For x, the real cells ny_local*nz_local only copied into buffer
+  //
+  // ybsize = H.n_fields * H.n_ghost * (H.nx) * (H.nz - 2 * H.n_ghost);
+  // For y, all along nx, nz_local only copied
+  //
+  // zbsize = H.n_fields * H.n_ghost * (H.nx) * (H.ny);
+  // For z, all along nx and all along ny copied
+  // h_send_buffer_x0 = (Real *)malloc(xbsize * sizeof(Real));
+  // h_send_buffer_x1 = (Real *)malloc(xbsize * sizeof(Real));
+  // h_recv_buffer_x0 = (Real *)malloc(xbsize * sizeof(Real));
+  // h_recv_buffer_x1 = (Real *)malloc(xbsize * sizeof(Real));
+  // h_send_buffer_y0 = (Real *)malloc(ybsize * sizeof(Real));
+  // h_send_buffer_y1 = (Real *)malloc(ybsize * sizeof(Real));
+  // h_recv_buffer_y0 = (Real *)malloc(ybsize * sizeof(Real));
+  // h_recv_buffer_y1 = (Real *)malloc(ybsize * sizeof(Real));
+  // h_send_buffer_z0 = (Real *)malloc(zbsize * sizeof(Real));
+  // h_send_buffer_z1 = (Real *)malloc(zbsize * sizeof(Real));
+  // h_recv_buffer_z0 = (Real *)malloc(zbsize * sizeof(Real));
+  // h_recv_buffer_z1 = (Real *)malloc(zbsize * sizeof(Real));
+  // buffer_length = Load_Field_To_Buffer(0, 0, h_send_buffer_x0, 0, field);  // check
+  // buffer_length = Load_Field_To_Buffer(0, 1, h_send_buffer_x1, 0, field);
+  // buffer_length = Load_Field_To_Buffer(1, 0, h_send_buffer_y0, 0, field);
+  // buffer_length = Load_Field_To_Buffer(1, 1, h_send_buffer_y1, 0, field);
+  // buffer_length = Load_Field_To_Buffer(2, 0, h_send_buffer_z0, 0, field);
+  // buffer_length = Load_Field_To_Buffer(2, 1, h_send_buffer_z1, 0, field);
+  // buffer_start == 0 in all
 
   // Load X boundaries
   if (direction == 0) {
+    nz_g   = nz_local;
+    ny_g   = ny_local;
+    length = H.n_ghost * nz_g * ny_g;
+    for (k = 0; k < nz_g; k++) {
+      for (j = 0; j < ny_g; j++) {
+        for (i = 0; i < H.n_ghost; i++) {
+          if (side == 0) {
+            indx = (i + H.n_ghost) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
+          }
+          if (side == 1) {
+            indx = (H.nx - 2 * H.n_ghost + i) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
+          }
+          indx_buff                        = (j) + (k)*ny_g + i * ny_g * nz_g;
+          buffer[buffer_start + indx_buff] = field[indx];
+        }
+      }
+    }
+  }
+
+  // Load Y boundaries
+  // ybsize = H.n_fields * H.n_ghost * (H.nx) * (H.nz - 2 * H.n_ghost);
+  // For y, all along nx, nz_local only copied
+  if (direction == 1) {
+    nz_g   = nz_local;
+    nx_g   = H.nx;
+    length = H.n_ghost * nz_g * nx_g;
+    for (k = 0; k < nz_g; k++) {
+      for (j = 0; j < H.n_ghost; j++) {
+        for (i = 0; i < nx_g; i++) {
+          if (side == 0) {
+            indx = (i) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
+          }
+          if (side == 1) {
+            indx = (i) + (H.ny - 2 * H.n_ghost + j) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
+          }
+          indx_buff                        = (i) + (k)*nx_g + j * nx_g * nz_g;
+          buffer[buffer_start + indx_buff] = field[indx];
+        }
+      }
+    }
+  }
+
+  // Load Z boundaries
+  // zbsize = H.n_fields * H.n_ghost * (H.nx) * (H.ny);
+  // For z, all along nx and all along ny copied
+  if (direction == 2) {
+    ny_g   = H.ny;
+    nx_g   = H.nx;
+    length = H.n_ghost * nx_g * ny_g;
+    for (k = 0; k < H.n_ghost; k++) {
+      for (j = 0; j < ny_g; j++) {
+        for (i = 0; i < nx_g; i++) {
+          if (side == 0) {
+            indx = (i) + (j)*H.nx + (k + H.n_ghost) * H.nx * H.ny;
+          }
+          if (side == 1) {
+            indx = (i) + (j)*H.nx + (H.nz - 2 * H.n_ghost + k) * H.nx * H.ny;
+          }
+          indx_buff                        = (i) + (j)*nx_g + k * nx_g * ny_g;
+          buffer[buffer_start + indx_buff] = field[indx];
+        }
+      }
+    }
+  }
+  return length;
+}
+
+void Grid3D::Unload_Field_from_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *field)
+{
+  int i, j, k, indx, indx_buff;
+  int nx_g, ny_g, nz_g;
+
+  // Load X boundaries
+  /*if (direction == 0) {
     length = nGHST * nz_g * ny_g;
     for (k = 0; k < nz_g; k++) {
       for (j = 0; j < ny_g; j++) {
@@ -1313,60 +1339,8 @@ int Grid3D::Load_Field_To_Buffer(int direction, int side, Real *buffer, int buff
         }
       }
     }
-  }
-
-  // Load Y boundaries
-  if (direction == 1) {
-    length = nGHST * nz_g * nx_g;
-    for (k = 0; k < nz_g; k++) {
-      for (j = 0; j < nGHST; j++) {
-        for (i = 0; i < nx_g; i++) {
-          if (side == 0) {
-            indx = (i) + (j + nGHST) * nx_g + (k)*nx_g * ny_g;
-          }
-          if (side == 1) {
-            indx = (i) + (ny_g - 2 * nGHST + j) * nx_g + (k)*nx_g * ny_g;
-          }
-          indx_buff                        = (i) + (k)*nx_g + j * nx_g * nz_g;
-          buffer[buffer_start + indx_buff] = field[indx];
-        }
-      }
-    }
-  }
-
-  // Load Z boundaries
-  if (direction == 2) {
-    length = nGHST * nx_g * ny_g;
-    for (k = 0; k < nGHST; k++) {
-      for (j = 0; j < ny_g; j++) {
-        for (i = 0; i < nx_g; i++) {
-          if (side == 0) {
-            indx = (i) + (j)*nx_g + (k + nGHST) * nx_g * ny_g;
-          }
-          if (side == 1) {
-            indx = (i) + (j)*nx_g + (nz_g - 2 * nGHST + k) * nx_g * ny_g;
-          }
-          indx_buff                        = (i) + (j)*nx_g + k * nx_g * ny_g;
-          buffer[buffer_start + indx_buff] = field[indx];
-        }
-      }
-    }
-  }
-  return length;
-}
-
-void Grid3D::Unload_Field_from_Buffer(int direction, int side, Real *buffer, int buffer_start, Real *field)
-{
-  int i, j, k, indx, indx_buff;
-  int nGHST, nx_g, ny_g, nz_g;
-  nGHST = H.n_ghost;
-
-  nx_g = nx_local + 2 * nGHST;
-  ny_g = ny_local + 2 * nGHST;
-  nz_g = nz_local + 2 * nGHST;
-
-  // Load X boundaries
-  if (direction == 0) {
+  }*/
+  /*if (direction == 0) {
     for (k = 0; k < nz_g; k++) {
       for (j = 0; j < ny_g; j++) {
         for (i = 0; i < nGHST; i++) {
@@ -1381,18 +1355,38 @@ void Grid3D::Unload_Field_from_Buffer(int direction, int side, Real *buffer, int
         }
       }
     }
+  }*/
+  if (direction == 0) {
+    nz_g = H.nz - 2 * H.n_ghost;
+    ny_g = H.ny - 2 * H.n_ghost;
+    for (k = 0; k < nz_g; k++) {
+      for (j = 0; j < ny_g; j++) {
+        for (i = 0; i < H.n_ghost; i++) {
+          if (side == 0) {
+            indx = (i) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
+          }
+          if (side == 1) {
+            indx = (H.nx - H.n_ghost + i) + (j + H.n_ghost) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
+          }
+          indx_buff   = (j) + (k)*ny_g + i * ny_g * nz_g;
+          field[indx] = buffer[buffer_start + indx_buff];
+        }
+      }
+    }
   }
 
   // Load Y boundaries
   if (direction == 1) {
+    nz_g = nz_local;
+    nx_g = H.nx;
     for (k = 0; k < nz_g; k++) {
-      for (j = 0; j < nGHST; j++) {
+      for (j = 0; j < H.n_ghost; j++) {
         for (i = 0; i < nx_g; i++) {
           if (side == 0) {
-            indx = (i) + (j)*nx_g + (k)*nx_g * ny_g;
+            indx = (i) + (j)*H.nx + (k + H.n_ghost) * H.nx * H.ny;
           }
           if (side == 1) {
-            indx = (i) + (ny_g - nGHST + j) * nx_g + (k)*nx_g * ny_g;
+            indx = (i) + (H.ny - H.n_ghost + j) * H.nx + (k + H.n_ghost) * H.nx * H.ny;
           }
           indx_buff   = (i) + (k)*nx_g + j * nx_g * nz_g;
           field[indx] = buffer[buffer_start + indx_buff];
@@ -1403,14 +1397,16 @@ void Grid3D::Unload_Field_from_Buffer(int direction, int side, Real *buffer, int
 
   // Load Z boundaries
   if (direction == 2) {
-    for (k = 0; k < nGHST; k++) {
+    ny_g = H.ny;
+    nx_g = H.nx;
+    for (k = 0; k < H.n_ghost; k++) {
       for (j = 0; j < ny_g; j++) {
         for (i = 0; i < nx_g; i++) {
           if (side == 0) {
-            indx = (i) + (j)*nx_g + (k)*nx_g * ny_g;
+            indx = (i) + (j)*H.nx + (k)*H.nx * H.ny;
           }
           if (side == 1) {
-            indx = (i) + (j)*nx_g + (nz_g - nGHST + k) * nx_g * ny_g;
+            indx = (i) + (j)*H.nx + (H.nz - H.n_ghost + k) * H.nx * H.ny;
           }
           indx_buff   = (i) + (j)*nx_g + k * nx_g * ny_g;
           field[indx] = buffer[buffer_start + indx_buff];

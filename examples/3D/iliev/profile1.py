@@ -6,7 +6,7 @@ import os
 import glob
 
 dir = os.getenv("ALTAIR_ROOT")
-if dir == None:
+if dir is None:
     withALTAIR = False
 else:
     withALTAIR = True
@@ -59,8 +59,8 @@ def PlotC1(ax, t, fnames, color="orange", lbox=2, alpha=0, eps=0.001):
                 print("tf=", tf)
                 break
             ##
-        except:
-            pass
+        except FileNotFoundError, KeyError:
+            continue
         ##
     else:
         print("No file for time=%g" % t)
@@ -69,7 +69,7 @@ def PlotC1(ax, t, fnames, color="orange", lbox=2, alpha=0, eps=0.001):
 
     rho = d["density"][...]
     xHI = d["HI_density"][...] / (rho)
-    xHII = d["HII_density"][...] / (rho)
+    # xHII = d["HII_density"][...] / (rho)
 
     rbins = np.arange(0, 1.001, 0.01)
     r = 0.5 * (rbins[0:-1] + rbins[1:])

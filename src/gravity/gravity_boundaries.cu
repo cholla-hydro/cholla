@@ -1,16 +1,58 @@
 #ifdef GRAVITY
 
   #include <cmath>
+  #include <utility>
 
   #include "../gravity/grav3D.h"
   #include "../grid/grid3D.h"
   #include "../io/io.h"
-  #include "../model/disk_galaxy.h"
-  #include "../model/potentials.h"
+  #include "../model/galaxy/disk_galaxy.h"
+  #include "../model/galaxy/potentials.h"
+  #include "../model/model_collection.h"
   #include "../utils/error_handling.h"
 
-  #if defined(GRAV_ISOLATED_BOUNDARY_X) || defined(GRAV_ISOLATED_BOUNDARY_Y) || defined(GRAV_ISOLATED_BOUNDARY_Z)
+/*! \brief aggregates properties of the buffer for boundary vals of the potential */
+struct BoundaryBufProps {
+  int n_i;
+  int n_j;
+  int nGHST;
+};
 
+/*! \brief retrieve the boundary_buf for the potential and associated properties */
+[[maybe_unused]] static std::pair<Real *, BoundaryBufProps> Get_Boundary_Buf_(const Grav3D &Grav, int direction,
+                                                                              int side)
+{
+  // maybe we should convert direction and side to enums (so its more obvious)
+  CHOLLA_ASSERT(0 <= direction and direction <= 2, "sanity check failed");
+  CHOLLA_ASSERT(side == 0 or side == 1, "sanity check failed");
+
+  int n_i, n_j;
+  Real *pot_boundary = nullptr;
+  if (direction == 0) {
+    n_i = Grav.ny_local;
+    n_j = Grav.nz_local;
+  #ifdef GRAV_ISOLATED_BOUNDARY_X
+    pot_boundary = (side == 0) ? Grav.F.pot_boundary_x0 : Grav.F.pot_boundary_x1;
+  #endif
+  } else if (direction == 1) {
+    n_i = Grav.nx_local;
+    n_j = Grav.nz_local;
+  #ifdef GRAV_ISOLATED_BOUNDARY_Y
+    pot_boundary = (side == 0) ? Grav.F.pot_boundary_y0 : Grav.F.pot_boundary_y1;
+  #endif
+  } else {  // direction == 2
+    n_i = Grav.nx_local;
+    n_j = Grav.ny_local;
+  #ifdef GRAV_ISOLATED_BOUNDARY_Z
+    pot_boundary = (side == 0) ? Grav.F.pot_boundary_z0 : Grav.F.pot_boundary_z1;
+  #endif
+  }
+
+  CHOLLA_ASSERT(pot_boundary != nullptr, "sanity check failed!");
+  return {pot_boundary, {n_i, n_j, N_GHOST_POTENTIAL}};
+}
+
+  #if defined(GRAV_ISOLATED_BOUNDARY_X) || defined(GRAV_ISOLATED_BOUNDARY_Y) || defined(GRAV_ISOLATED_BOUNDARY_Z)
 void Grid3D::Compute_Potential_Boundaries_Isolated(int dir, struct Parameters *P)
 {
   // Set Isolated Boundaries for the ghost cells.
@@ -41,54 +83,20 @@ void Grid3D::Compute_Potential_Boundaries_Isolated(int dir, struct Parameters *P
 
 void Grid3D::Set_Potential_Boundaries_Isolated(int direction, int side, int *flags)
 {
-  Real *pot_boundary;
-  int n_i, n_j, nGHST;
+  std::pair<Real *, BoundaryBufProps> tmp = Get_Boundary_Buf_(Grav, direction, side);
+  Real *pot_boundary                      = tmp.first;
+  int n_i                                 = tmp.second.n_i;
+  int n_j                                 = tmp.second.n_j;
+  int nGHST                               = tmp.second.nGHST;
+
   int nx_g, ny_g, nz_g;
   int nx_local, ny_local, nz_local;
-  nGHST    = N_GHOST_POTENTIAL;
   nx_g     = Grav.nx_local + 2 * nGHST;
   ny_g     = Grav.ny_local + 2 * nGHST;
   nz_g     = Grav.nz_local + 2 * nGHST;
   nx_local = Grav.nx_local;
   ny_local = Grav.ny_local;
   nz_local = Grav.nz_local;
-
-    #ifdef GRAV_ISOLATED_BOUNDARY_X
-  if (direction == 0) {
-    n_i = Grav.ny_local;
-    n_j = Grav.nz_local;
-    if (side == 0) {
-      pot_boundary = Grav.F.pot_boundary_x0;
-    }
-    if (side == 1) {
-      pot_boundary = Grav.F.pot_boundary_x1;
-    }
-  }
-    #endif
-    #ifdef GRAV_ISOLATED_BOUNDARY_Y
-  if (direction == 1) {
-    n_i = Grav.nx_local;
-    n_j = Grav.nz_local;
-    if (side == 0) {
-      pot_boundary = Grav.F.pot_boundary_y0;
-    }
-    if (side == 1) {
-      pot_boundary = Grav.F.pot_boundary_y1;
-    }
-  }
-    #endif
-    #ifdef GRAV_ISOLATED_BOUNDARY_Z
-  if (direction == 2) {
-    n_i = Grav.nx_local;
-    n_j = Grav.ny_local;
-    if (side == 0) {
-      pot_boundary = Grav.F.pot_boundary_z0;
-    }
-    if (side == 1) {
-      pot_boundary = Grav.F.pot_boundary_z1;
-    }
-  }
-    #endif
 
   int i, j, k, id_buffer, id_grid;
 
@@ -128,74 +136,46 @@ void Grid3D::Set_Potential_Boundaries_Isolated(int direction, int side, int *fla
   }
 }
 
-void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc_potential_type)
+/*! \brief A helper function that computes the gravitational potential at the
+ *         simulation boundaries using a callback function
+ *
+ *  \param[out] pot_boundary the buffer to be filled with the computed potential
+ *  \param[in] boundary_buf_props Describes properties of \p pot_boundary
+ *  \param[in] Grav Holds information needed to compute the spatial location of each
+ *      location.
+ *  \param[in] direction Encodes the axis of the boundary
+ *  \param[in] side Encodes whether we are consider a left or right boundary
+ *  \param[in] fn A function object that effectively has the signature
+ *      `Real fn(Real x, Real y, Real z)`. In more detail, it returns the potential
+ *      computed at a specified position.
+ *
+ *  \note
+ *  Ideally, we might replace \p Grav with an instance of \ref SpatialDomainProps (or
+ *  something similar). This will become in a future planned change that will factor
+ *  out this logic and other logic pertaining the estimate for the dynamical potential.
+ *  It's also more elegant (i.e. \ref Grav3D contains a lot of superfluous info) and
+ *  makes it possible to invoke this logic on GPUs (we would just need to replace the
+ *  for-loop with \ref gpuFor)
+ */
+template <typename PotentialFn>
+static void Compute_Potential_Isolated_Boundary_Helper(Real *pot_boundary, const BoundaryBufProps &boundary_buf_props,
+                                                       const Grav3D &Grav, int direction, int side, PotentialFn fn)
 {
-  Real domain_l, Lx_local, Ly_local, Lz_local;
-  Real *pot_boundary;
-  int n_i, n_j, nGHST;
-  nGHST = N_GHOST_POTENTIAL;
+  Real Lx_local = Grav.nx_local * Grav.dx;
+  Real Ly_local = Grav.ny_local * Grav.dy;
+  Real Lz_local = Grav.nz_local * Grav.dz;
 
-  Lx_local = Grav.nx_local * Grav.dx;
-  Ly_local = Grav.ny_local * Grav.dy;
-  Lz_local = Grav.nz_local * Grav.dz;
+  int n_i   = boundary_buf_props.n_i;
+  int n_j   = boundary_buf_props.n_j;
+  int nGHST = boundary_buf_props.nGHST;
 
-    #ifdef GRAV_ISOLATED_BOUNDARY_X
-  if (direction == 0) {
-    domain_l = Grav.xMin;
-    n_i      = Grav.ny_local;
-    n_j      = Grav.nz_local;
-    if (side == 0) {
-      pot_boundary = Grav.F.pot_boundary_x0;
-    }
-    if (side == 1) {
-      pot_boundary = Grav.F.pot_boundary_x1;
-    }
-  }
-    #endif
-    #ifdef GRAV_ISOLATED_BOUNDARY_Y
-  if (direction == 1) {
-    domain_l = Grav.yMin;
-    n_i      = Grav.nx_local;
-    n_j      = Grav.nz_local;
-    if (side == 0) {
-      pot_boundary = Grav.F.pot_boundary_y0;
-    }
-    if (side == 1) {
-      pot_boundary = Grav.F.pot_boundary_y1;
-    }
-  }
-    #endif
-    #ifdef GRAV_ISOLATED_BOUNDARY_Z
-  if (direction == 2) {
-    domain_l = Grav.zMin;
-    n_i      = Grav.nx_local;
-    n_j      = Grav.ny_local;
-    if (side == 0) {
-      pot_boundary = Grav.F.pot_boundary_z0;
-    }
-    if (side == 1) {
-      pot_boundary = Grav.F.pot_boundary_z1;
-    }
-  }
-    #endif
+  for (int k = 0; k < nGHST; k++) {
+    for (int i = 0; i < n_i; i++) {
+      for (int j = 0; j < n_j; j++) {
+        int id = i + j * n_i + k * n_i * n_j;
 
-  Real M, cm_pos_x, cm_pos_y, cm_pos_z, pos_x, pos_y, pos_z, r, delta_x, delta_y, delta_z;
-
-  if (bc_potential_type == 0) {
-    const Real r0 = H.sphere_radius;
-    M             = (H.sphere_density - H.sphere_background_density) * 4.0 * M_PI * r0 * r0 * r0 / 3.0;
-    cm_pos_x      = H.sphere_center_x;
-    cm_pos_y      = H.sphere_center_y;
-    cm_pos_z      = H.sphere_center_z;
-  }
-
-  Real pot_val = 0.0;
-  int i, j, k, id;
-  for (k = 0; k < nGHST; k++) {
-    for (i = 0; i < n_i; i++) {
-      for (j = 0; j < n_j; j++) {
-        id = i + j * n_i + k * n_i * n_j;
-
+        // calculate the position
+        Real pos_x, pos_y, pos_z;
         if (direction == 0) {
           // pos_x = Grav.xMin - ( nGHST + k + 0.5 ) * Grav.dx;
           pos_x = Grav.xMin + (k + 0.5 - nGHST) * Grav.dx;
@@ -204,9 +184,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
           }
           pos_y = Grav.yMin + (i + 0.5) * Grav.dy;
           pos_z = Grav.zMin + (j + 0.5) * Grav.dz;
-        }
-
-        if (direction == 1) {
+        } else if (direction == 1) {
           // pos_y = Grav.yMin - ( nGHST + k + 0.5 ) * Grav.dy;
           pos_y = Grav.yMin + (k + 0.5 - nGHST) * Grav.dy;
           if (side == 1) {
@@ -214,9 +192,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
           }
           pos_x = Grav.xMin + (i + 0.5) * Grav.dx;
           pos_z = Grav.zMin + (j + 0.5) * Grav.dz;
-        }
-
-        if (direction == 2) {
+        } else {  // (direction == 2)
           // pos_z = Grav.zMin - ( nGHST + k + 0.5 ) * Grav.dz;
           pos_z = Grav.zMin + (k + 0.5 - nGHST) * Grav.dz;
           if (side == 1) {
@@ -225,40 +201,73 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
           pos_x = Grav.xMin + (i + 0.5) * Grav.dx;
           pos_y = Grav.yMin + (j + 0.5) * Grav.dy;
         }
-
-        if (bc_potential_type == 0) {
-          // Point mass potential GM/r
-          delta_x = pos_x - cm_pos_x;
-          delta_y = pos_y - cm_pos_y;
-          delta_z = pos_z - cm_pos_z;
-          r       = sqrt((delta_x * delta_x) + (delta_y * delta_y) + (delta_z * delta_z));
-          pot_val = -Grav.Gconst * M / r;
-        } else if (bc_potential_type == 1) {
-          // M-W disk potential
-
-          // The underlying assumption of PARIS_GALACTIC is that we have a good analytic
-          // approximation the gravitation potential at the boundaries due to the dynamical density
-          // (i.e. gas density and particle density)
-          // - we implicitly make use of that potential when solving for the potential
-          // - we also make use of it here to overwrite the values of the potential at the boundary
-
-          // Currently, we need to make sure this stays synchronized with the approximation used within
-          // Paris_Galactic. We should refactor so that we don't need to do that
-          // Right now:
-          // -> we are implicitly assuming that the gas disk is the only source of dynamical density
-          //    (i.e. the `rho_real` array is dominated by gas density)
-          // -> we are currently ignoring contributions from particles
-          const ApproxExponentialDisk3MN approx_potential = galaxies::MW.getGasDisk().selfgrav_approx_potential;
-
-          r       = sqrt((pos_x * pos_x) + (pos_y * pos_y));
-          pot_val = approx_potential.phi_disk_D3D(r, pos_z);
-        } else {
-          CHOLLA_ERROR("Invalid bc_potential_type value: %d", bc_potential_type);
-        }
-
-        pot_boundary[id] = pot_val;
+        pot_boundary[id] = fn(pos_x, pos_y, pos_z);
       }
     }
+  }
+}
+
+void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc_potential_type)
+{
+  std::pair<Real *, BoundaryBufProps> tmp = Get_Boundary_Buf_(Grav, direction, side);
+  auto [pot_boundary, boundary_buf_props] = tmp;
+
+  if (bc_potential_type == 0) {
+    // Point mass potential GM/r
+    const Real r0       = H.sphere_radius;
+    const Real M        = (H.sphere_density - H.sphere_background_density) * 4.0 * M_PI * r0 * r0 * r0 / 3.0;
+    const Real cm_pos_x = H.sphere_center_x;
+    const Real cm_pos_y = H.sphere_center_y;
+    const Real cm_pos_z = H.sphere_center_z;
+    const Real Gconst   = Grav.Gconst;
+
+    // define a local function that actually computes the potential
+    auto calc_potential = [=](Real pos_x, Real pos_y, Real pos_z) -> Real {
+      Real delta_x = pos_x - cm_pos_x;
+      Real delta_y = pos_y - cm_pos_y;
+      Real delta_z = pos_z - cm_pos_z;
+      Real r       = sqrt((delta_x * delta_x) + (delta_y * delta_y) + (delta_z * delta_z));
+      return -Gconst * M / r;
+    };
+
+    // now, use the calc_potential function to actually fill the boundaries
+    Compute_Potential_Isolated_Boundary_Helper(pot_boundary, boundary_buf_props, Grav, direction, side, calc_potential);
+  } else if (bc_potential_type == 1) {
+    // The underlying assumption of PARIS_GALACTIC is that we have a good analytic
+    // approximation the gravitation potential at the boundaries due to the dynamical density
+    // (i.e. gas density and particle density)
+    // - we implicitly make use of that potential when solving for the potential
+    // - we also make use of it here to overwrite the values of the potential at the boundary
+
+    // Currently, we need to make sure this stays synchronized with the approximation used within
+    // Paris_Galactic. We should refactor so that we don't need to do that
+    // Right now:
+    // -> we are implicitly assuming that the gas disk is the only source of dynamical density
+    //    (i.e. the `rho_real` array is dominated by gas density)
+    // -> we are currently ignoring contributions from particles
+    const ClusteredDiskGalaxy *galaxy_model = models().try_get<ClusteredDiskGalaxy>();
+    CHOLLA_ASSERT(galaxy_model != nullptr, "no galaxy model was initialized");
+
+    // NOTE: The way that we access galaxy_model from the model-collection every time is
+    // a little inefficient
+    // - it's probably fine when there is only a small number of models, but it will get
+    //   proportionally more expensive as we add more kinds of models.
+    // - the solution to this problem and the problem of keeping the approximation
+    //   synchronized with the approximation in Paris_Galactic is to create some kind
+    //   of callback/plugin inside of the Grav3D type for this purpose (we would
+    //   probably implement that via inheritance)
+    const ApproxExponentialDisk3MN approx_potential = galaxy_model->getGasDisk().selfgrav_approx_potential;
+
+    // define a local function that actually computes the potential
+    auto calc_potential = [=](Real pos_x, Real pos_y, Real pos_z) -> Real {
+      Real r = sqrt((pos_x * pos_x) + (pos_y * pos_y));
+      return approx_potential.phi_disk_D3D(r, pos_z);
+    };
+
+    // now, use the calc_potential function to actually fill the boundaries
+    Compute_Potential_Isolated_Boundary_Helper(pot_boundary, boundary_buf_props, Grav, direction, side, calc_potential);
+  } else {
+    CHOLLA_ERROR("Invalid bc_potential_type value: %d", bc_potential_type);
   }
 }
 

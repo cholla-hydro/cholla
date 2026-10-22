@@ -1,8 +1,10 @@
+/*! \file
+ *! \brief defines field-wide operations
+ */
+
 #include "../utils/gpu.hpp"
 #include "field_operations.h"
 
-/*! \fn void Rescale_Field_GPU(Real *d_x, Real A, int nx, int ny, int nz, int n_ghost)
- *  \brief Multiply one field a multiplicative constant */
 __global__ void Rescale_Field_GPU(Real *d_x, const Real A, int nx, int ny, int nz, int n_ghost)
 {
   // Rescale a field by a multiplicative constant
@@ -23,8 +25,6 @@ __global__ void Rescale_Field_GPU(Real *d_x, const Real A, int nx, int ny, int n
   }
 }
 
-/*! \fn void Field_Elementwise_Product_GPU(Real *d_x, Real *d_y, int nx, int ny, int nz, int n_ghost)
- *  \brief Multiply one field elementwise by another */
 inline __device__ void Field_Elementwise_Product_GPU(Real *d_x, Real *d_y, int nx, int ny, int nz, int n_ghost)
 {
   // determine the cell location
@@ -37,8 +37,6 @@ inline __device__ void Field_Elementwise_Product_GPU(Real *d_x, Real *d_y, int n
   xid = id - zid * nx * ny - yid * nx;
 
   // only real cells participate
-  /*if (xid > n_ghost - 1 && xid < nx - n_ghost && yid > n_ghost - 1 && yid < ny - n_ghost && zid > n_ghost - 1 &&
-      zid < nz - n_ghost) {*/
   if ((xid >= 0) and (xid < nx) and (yid >= 0) and (yid < ny) and (zid >= 0) and (zid < nz)) {  // all cells are real
 
     // rescale x by y
@@ -46,8 +44,6 @@ inline __device__ void Field_Elementwise_Product_GPU(Real *d_x, Real *d_y, int n
   }
 }
 
-/*! \fn void FFT_Populate_Wavevectors_GPU(Real *d_kx, Real *d_ky, Real *d_kz, Real *d_kk, int n_cells, int n_ghost)
- *  \brief Multiply one field elementwise by another */
 /*
 inline __device__ void FFT_Populate_Wavevectors_GPU(Real *d_kx, Real *d_ky, Real *d_kz, Real *d_kk, int n_cells, int
 n_ghost)
