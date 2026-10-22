@@ -77,11 +77,10 @@ Real Grid3D::Calc_Particles_dt_GPU()
   // initial estimate, so grow the host/device buffers here to avoid launching a
   // kernel that writes (and a copy that reads) out of bounds, which shows up as
   // a "invalid argument" GPU error in Calc_Particles_dt_GPU_function.
-  if (ngrid > Particles.G.size_blocks_array)
-  {
+  if (ngrid > Particles.G.size_blocks_array) {
     part_int_t new_size = 2 * (part_int_t)ngrid;
     printf(" Warning: growing particles dt_array from %ld to %ld blocks (n_local = %ld, procid %d)\n",
-      (long)Particles.G.size_blocks_array, (long)new_size, (long)Particles.n_local, procID);
+           (long)Particles.G.size_blocks_array, (long)new_size, (long)Particles.n_local, procID);
     fflush(stdout);
 
     Particles.Free_GPU_Array_Real(Particles.G.dti_array_dev);
@@ -90,7 +89,6 @@ Real Grid3D::Calc_Particles_dt_GPU()
     Particles.G.size_blocks_array = new_size;
     Particles.Allocate_Particles_Grid_Field_Real(&Particles.G.dti_array_dev, new_size);
     Particles.G.dti_array_host = (Real *)malloc(new_size * sizeof(Real));
-
   }
 
   Real max_dti;
