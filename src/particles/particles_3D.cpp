@@ -47,12 +47,12 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
     Particles.CP.phi_bc = CP.phi_2;  // delta_bc has been replaced by phi_bc
 
     int bcast_flag = procID + 1;
-    Real D      = Cosmo.D_Growth(a_init);
-    Real dDdt   = Cosmo.dDdt_Growth(a_init);
-    Real dDda   = Cosmo.dDda_Growth(a_init);
-    if( Cosmo.fast_math_isnand(D) || Cosmo.fast_math_isnand(dDdt) || Cosmo.fast_math_isnand(dDda) ) {
-      //printf("Cosmological ICs: Particles growth Function Error on procID %d : (%e, %e, %e, %e, %e)\n",procID,z_init,a_init,D,dDdt,dDda);
-      //fflush(stdout);
+    Real D         = Cosmo.D_Growth(a_init);
+    Real dDdt      = Cosmo.dDdt_Growth(a_init);
+    Real dDda      = Cosmo.dDda_Growth(a_init);
+    if (Cosmo.fast_math_isnand(D) || Cosmo.fast_math_isnand(dDdt) || Cosmo.fast_math_isnand(dDda)) {
+      // printf("Cosmological ICs: Particles growth Function Error on procID %d : (%e, %e, %e, %e,
+      // %e)\n",procID,z_init,a_init,D,dDdt,dDda); fflush(stdout);
       bcast_flag = 0;
     }
     /*
@@ -68,12 +68,13 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
     MPI_Bcast(&dDdt, 1, MPI_CHREAL, bcast_flag, MPI_COMM_WORLD);
     MPI_Bcast(&dDda, 1, MPI_CHREAL, bcast_flag, MPI_COMM_WORLD);*/
 
-    Particles.CP.D      = D;
-    Particles.CP.dDdt   = dDdt;;
-    Particles.CP.dDda   = dDda;    
-    //Particles.CP.D      = Cosmo.D_Growth(a_init);
-    //Particles.CP.dDdt   = Cosmo.dDdt_Growth(a_init);
-    //Particles.CP.dDda   = Cosmo.dDda_Growth(a_init);
+    Particles.CP.D    = D;
+    Particles.CP.dDdt = dDdt;
+    ;
+    Particles.CP.dDda = dDda;
+    // Particles.CP.D      = Cosmo.D_Growth(a_init);
+    // Particles.CP.dDdt   = Cosmo.dDdt_Growth(a_init);
+    // Particles.CP.dDda   = Cosmo.dDda_Growth(a_init);
     Real Omega_m        = P->Omega_M;
     Real Omega_r        = P->Omega_R;
     Real Omega_DE       = P->Omega_L;

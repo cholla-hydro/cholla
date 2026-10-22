@@ -10,19 +10,21 @@
   #include "../io/io.h"
   #include "../rk/rk4.h"
 
-  // Check for a 32-bit float NaN
-bool Cosmology::fast_math_isnan(float x) {
-    uint32_t u;
-    std::memcpy(&u, &x, sizeof(x));
-    // In IEEE 754, a float is NaN if all exponent bits are 1 and the mantissa is non-zero
-    return (u & 0x7F800000) == 0x7F800000 && (u & 0x007FFFFF) != 0;
+// Check for a 32-bit float NaN
+bool Cosmology::fast_math_isnan(float x)
+{
+  uint32_t u;
+  std::memcpy(&u, &x, sizeof(x));
+  // In IEEE 754, a float is NaN if all exponent bits are 1 and the mantissa is non-zero
+  return (u & 0x7F800000) == 0x7F800000 && (u & 0x007FFFFF) != 0;
 }
 
 // Check for a 64-bit double NaN
-bool Cosmology::fast_math_isnand(double x) {
-    uint64_t u;
-    std::memcpy(&u, &x, sizeof(x));
-    return (u & 0x7FF0000000000000ULL) == 0x7FF0000000000000ULL && (u & 0x000FFFFFFFFFFFFFULL) != 0;
+bool Cosmology::fast_math_isnand(double x)
+{
+  uint64_t u;
+  std::memcpy(&u, &x, sizeof(x));
+  return (u & 0x7FF0000000000000ULL) == 0x7FF0000000000000ULL && (u & 0x000FFFFFFFFFFFFFULL) != 0;
 }
 
 void Grid3D::Initialize_Cosmology(struct Parameters *P)
@@ -284,8 +286,8 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
     // update the redshift step
     dt = dt_new;
 
-    if( fast_math_isnand(t) || fast_math_isnand(y_n[0]) || fast_math_isnand(y_n[1]) || fast_math_isnand(y_n[2]) ) {
-      printf("Error computing growth function on procID %d: (%e %e %e %e)\n",procID,t,y_n[0],y_n[1],y_n[2]);
+    if (fast_math_isnand(t) || fast_math_isnand(y_n[0]) || fast_math_isnand(y_n[1]) || fast_math_isnand(y_n[2])) {
+      printf("Error computing growth function on procID %d: (%e %e %e %e)\n", procID, t, y_n[0], y_n[1], y_n[2]);
     }
 
     t_array.push_back(t);
@@ -309,7 +311,6 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
   MPI_Bcast(D_array.data(), t_size, MPI_CHREAL, 0, MPI_COMM_WORLD);
   MPI_Bcast(dDdt_array.data(), t_size, MPI_CHREAL, 0, MPI_COMM_WORLD);
   */
-
 }
 
 Real Cosmology::LinearInterpolation(const std::vector<Real> &x, const std::vector<Real> &y, Real a)
@@ -339,10 +340,10 @@ Real Cosmology::LinearInterpolation(const std::vector<Real> &x, const std::vecto
 
   // Prevent division by zero if x values are duplicated
   Real dx = x[index + 1] - x[index];
-  if (dx == 0.0) return y[index]; 
+  if (dx == 0.0) return y[index];
 
   // interpolate
-  return y[index] + (y[index + 1] - y[index]) * (a - x[index]) / dx; 
+  return y[index] + (y[index + 1] - y[index]) * (a - x[index]) / dx;
 }
 
 Real Cosmology::D_Growth(Real a)

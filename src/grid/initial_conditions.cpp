@@ -11,11 +11,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <cstring>
 #include <fstream>
 #include <iostream>
-
-#include <cstring>
-#include <cstdint>
 
 #include "../global/global.h"
 #include "../grid/grid3D.h"
@@ -1838,11 +1837,11 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   dDda       = Cosmo.dDda_Growth(a_init);
   dlogDdloga = dDda * (a_init / D);
 
-
   int bcast_flag = procID + 1;
-  if( Cosmo.fast_math_isnand(D) || Cosmo.fast_math_isnand(dDdt) || Cosmo.fast_math_isnand(dDda) || Cosmo.fast_math_isnand(dlogDdloga) ) {
-    //printf("Cosmological ICs: Growth Function Error on procID %d : (%e, %e, %e, %e, %e, %e)\n",procID,z_init,a_init,D,dDdt,dDda,dlogDdloga);
-    //fflush(stdout);
+  if (Cosmo.fast_math_isnand(D) || Cosmo.fast_math_isnand(dDdt) || Cosmo.fast_math_isnand(dDda) ||
+      Cosmo.fast_math_isnand(dlogDdloga)) {
+    // printf("Cosmological ICs: Growth Function Error on procID %d : (%e, %e, %e, %e, %e,
+    // %e)\n",procID,z_init,a_init,D,dDdt,dDda,dlogDdloga); fflush(stdout);
     bcast_flag = 0;
   }
   /*
@@ -1862,7 +1861,6 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
 
   chprintf("Cosmological ICs: Growth Function Info: D %e dDdt %e dDda %e dlnDdlna %e\n", D, dDdt, dDda,
            dlogDdloga);  // note dDdt is in km/s/kpc
-
 
   // scaling is A = a*H*dlogD/dloga = a^2 (H/D) dD/da
   // these units will be in km/s/kpc, and multiplying by
@@ -2055,7 +2053,6 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   MPI_Barrier(MPI_COMM_WORLD);
   chprintf("Cosmological ICs: Done with field boundary exchange.\n");
 
-
   // check potential DEBUGGING
   /*
   int n_nan = 0;
@@ -2128,7 +2125,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   Real d_rms          = 0;
 
   Real dens, vel, U, E;
-  //Real Daf = Cosmo.D_Growth(a_init) / a_init;
+  // Real Daf = Cosmo.D_Growth(a_init) / a_init;
   Real Daf = D / a_init;
 
   // With radiation the perturbation ratio D/a keeps
@@ -2189,20 +2186,18 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         grad_x_T[0][0] = D * (phi_r - 2 * phi + phi_l) / (dx * dx);
     #endif
 
-	/*
+        /*
         if( Cosmo.fast_math_isnand(phi) || Cosmo.fast_math_isnand(phi_l) || Cosmo.fast_math_isnand(phi_r) ) {
-          printf("Error setting Cosmological ICs on procID %d X (%e %e %e) (%d %d %d), aborting.\n",procID,phi,phi_l,phi_r,i,j,k); 
-          fflush(stdout);
-        } else if( (phi==0) || (phi_l==0) || (phi_r==0) ) {
-          printf("Error setting Cosmological ICs on procID %d X (%e %e %e) (%d %d %d), aborting.\n",procID,phi,phi_l,phi_r,i,j,k); 
-          fflush(stdout);
+          printf("Error setting Cosmological ICs on procID %d X (%e %e %e) (%d %d %d),
+        aborting.\n",procID,phi,phi_l,phi_r,i,j,k); fflush(stdout); } else if( (phi==0) || (phi_l==0) || (phi_r==0) ) {
+          printf("Error setting Cosmological ICs on procID %d X (%e %e %e) (%d %d %d),
+        aborting.\n",procID,phi,phi_l,phi_r,i,j,k); fflush(stdout);
         }
         if( Cosmo.fast_math_isnand(phi_ll) || Cosmo.fast_math_isnand(phi_rr) ) {
-          printf("Error setting larger stecil Cosmological ICs on procID %d X (%e %e) (%d %d %d), aborting.\n",procID,phi_ll,phi_rr,i,j,k); 
-          fflush(stdout);
-        } else if( (phi_ll==0) || (phi_rr==0) ) {
-          printf("Error setting larger stecil Cosmological ICs on procID %d X (%e %e) (%d %d %d), aborting.\n",procID,phi_ll,phi_rr,i,j,k); 
-          fflush(stdout);
+          printf("Error setting larger stecil Cosmological ICs on procID %d X (%e %e) (%d %d %d),
+        aborting.\n",procID,phi_ll,phi_rr,i,j,k); fflush(stdout); } else if( (phi_ll==0) || (phi_rr==0) ) {
+          printf("Error setting larger stecil Cosmological ICs on procID %d X (%e %e) (%d %d %d),
+        aborting.\n",procID,phi_ll,phi_rr,i,j,k); fflush(stdout);
         }*/
 
         /*
@@ -2264,22 +2259,20 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         grad_x_T[1][1] = D * (phi_r - 2 * phi + phi_l) / (dy * dy);
     #endif
 
-	/*
+        /*
         if( Cosmo.fast_math_isnand(phi) || Cosmo.fast_math_isnand(phi_l) || Cosmo.fast_math_isnand(phi_r) ) {
-          printf("Error setting Cosmological ICs on procID %d Y (%e %e %e) (%d %d %d), aborting.\n",procID,phi,phi_l,phi_r,i,j,k); 
-          fflush(stdout);
-        } else if( (phi==0) || (phi_l==0) || (phi_r==0) ) {
-          printf("Error setting Cosmological ICs on procID %d Y (%e %e %e) (%d %d %d), aborting.\n",procID,phi,phi_l,phi_r,i,j,k); 
-          fflush(stdout);
+          printf("Error setting Cosmological ICs on procID %d Y (%e %e %e) (%d %d %d),
+        aborting.\n",procID,phi,phi_l,phi_r,i,j,k); fflush(stdout); } else if( (phi==0) || (phi_l==0) || (phi_r==0) ) {
+          printf("Error setting Cosmological ICs on procID %d Y (%e %e %e) (%d %d %d),
+        aborting.\n",procID,phi,phi_l,phi_r,i,j,k); fflush(stdout);
         }
         if( Cosmo.fast_math_isnand(phi_ll) || Cosmo.fast_math_isnand(phi_rr) ) {
-          printf("Error setting larger stecil Cosmological ICs on procID %d Y (%e %e) (%d %d %d), aborting.\n",procID,phi_ll,phi_rr,i,j,k); 
-          fflush(stdout);
-        } else if( (phi_ll==0) || (phi_rr==0) ) {
-          printf("Error setting larger stecil Cosmological ICs on procID %d Y (%e %e) (%d %d %d), aborting.\n",procID,phi_ll,phi_rr,i,j,k); 
-          fflush(stdout);
+          printf("Error setting larger stecil Cosmological ICs on procID %d Y (%e %e) (%d %d %d),
+        aborting.\n",procID,phi_ll,phi_rr,i,j,k); fflush(stdout); } else if( (phi_ll==0) || (phi_rr==0) ) {
+          printf("Error setting larger stecil Cosmological ICs on procID %d Y (%e %e) (%d %d %d),
+        aborting.\n",procID,phi_ll,phi_rr,i,j,k); fflush(stdout);
         }
-	*/
+        */
         // TODO(brant): for baryon-dm fluctuations
         /*
                 // repeat for nabla^-2 \delta_bc
@@ -2320,20 +2313,18 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
     #endif
         grad_phi_z = 0.5 * (phi_r - phi_l) / dz;
 
-	/*
+        /*
         if( Cosmo.fast_math_isnand(phi) || Cosmo.fast_math_isnand(phi_l) || Cosmo.fast_math_isnand(phi_r) ) {
-          printf("Error setting Cosmological ICs on procID %d Z (%e %e %e) (%d %d %d), aborting.\n",procID,phi,phi_l,phi_r,i,j,k); 
-          fflush(stdout);
-        } else if( (phi==0) || (phi_l==0) || (phi_r==0) ) {
-          printf("Error setting Cosmological ICs on procID %d Z (%e %e %e) (%d %d %d), aborting.\n",procID,phi,phi_l,phi_r,i,j,k); 
-          fflush(stdout);
+          printf("Error setting Cosmological ICs on procID %d Z (%e %e %e) (%d %d %d),
+        aborting.\n",procID,phi,phi_l,phi_r,i,j,k); fflush(stdout); } else if( (phi==0) || (phi_l==0) || (phi_r==0) ) {
+          printf("Error setting Cosmological ICs on procID %d Z (%e %e %e) (%d %d %d),
+        aborting.\n",procID,phi,phi_l,phi_r,i,j,k); fflush(stdout);
         }
         if( Cosmo.fast_math_isnand(phi_ll) || Cosmo.fast_math_isnand(phi_rr) ) {
-          printf("Error setting larger stecil Cosmological ICs on procID %d Z (%e %e) (%d %d %d), aborting.\n",procID,phi_ll,phi_rr,i,j,k); 
-          fflush(stdout);
-        } else if( (phi_ll==0) || (phi_rr==0) ) {
-          printf("Error setting larger stecil Cosmological ICs on procID %d Z (%e %e) (%d %d %d), aborting.\n",procID,phi_ll,phi_rr,i,j,k); 
-          fflush(stdout);
+          printf("Error setting larger stecil Cosmological ICs on procID %d Z (%e %e) (%d %d %d),
+        aborting.\n",procID,phi_ll,phi_rr,i,j,k); fflush(stdout); } else if( (phi_ll==0) || (phi_rr==0) ) {
+          printf("Error setting larger stecil Cosmological ICs on procID %d Z (%e %e) (%d %d %d),
+        aborting.\n",procID,phi_ll,phi_rr,i,j,k); fflush(stdout);
         } */
 
         // TODO(brant): for baryon-dm fluctuations
@@ -2374,13 +2365,15 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         // grad_x_T[0][1] = -1*0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dx*dy);
         grad_x_T[1][0] = grad_x_T[0][1];
 
-	/*
-        if( Cosmo.fast_math_isnand(phi_ld) || Cosmo.fast_math_isnand(phi_lu) || Cosmo.fast_math_isnand(phi_rd) || Cosmo.fast_math_isnand(phi_ru) ) {
-          printf("Error setting Cosmological ICs on procID %d XY (%e %e %e %e %e) (%e %e %e %e) (%d %d %d) (%d %d %d %d %d), aborting.\n",procID,D,phi_ld,phi_lu,phi_rd,phi_ru,CP.phi_1[id_ld],CP.phi_1[id_lu],CP.phi_1[id_rd],CP.phi_1[id_ru],i,j,k,id,id_ld,id_lu,id_rd,id_ru); 
+        /*
+        if( Cosmo.fast_math_isnand(phi_ld) || Cosmo.fast_math_isnand(phi_lu) || Cosmo.fast_math_isnand(phi_rd) ||
+        Cosmo.fast_math_isnand(phi_ru) ) { printf("Error setting Cosmological ICs on procID %d XY (%e %e %e %e %e) (%e
+        %e %e %e) (%d %d %d) (%d %d %d %d %d),
+        aborting.\n",procID,D,phi_ld,phi_lu,phi_rd,phi_ru,CP.phi_1[id_ld],CP.phi_1[id_lu],CP.phi_1[id_rd],CP.phi_1[id_ru],i,j,k,id,id_ld,id_lu,id_rd,id_ru);
           fflush(stdout);
         } else if( (phi_ld==0) || (phi_lu==0) || (phi_rd==0) || (phi_ru==0) ) {
-          printf("Error setting Cosmological ICs on procID %d XY (%e %e %e %e %e) (%d %d %d), aborting.\n",procID,D,phi_ld,phi_lu,phi_rd,phi_ru,i,j,k); 
-          fflush(stdout);
+          printf("Error setting Cosmological ICs on procID %d XY (%e %e %e %e %e) (%d %d %d),
+        aborting.\n",procID,D,phi_ld,phi_lu,phi_rd,phi_ru,i,j,k); fflush(stdout);
         } */
 
         // second xz
@@ -2403,15 +2396,15 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         // grad_x_T[0][2] = -1*0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dx*dz);
         grad_x_T[2][0] = grad_x_T[0][2];
 
-	/*
-        if( Cosmo.fast_math_isnand(phi_ld) || Cosmo.fast_math_isnand(phi_lu) || Cosmo.fast_math_isnand(phi_rd) || Cosmo.fast_math_isnand(phi_ru) ) {
-          printf("Error setting Cosmological ICs on procID %d XZ (%e %e %e %e %e) (%d %d %d) (%d %d %d %d %d), aborting.\n",procID,D,phi_ld,phi_lu,phi_rd,phi_ru,i,j,k,id,id_ld,id_lu,id_rd,id_ru); 
+        /*
+        if( Cosmo.fast_math_isnand(phi_ld) || Cosmo.fast_math_isnand(phi_lu) || Cosmo.fast_math_isnand(phi_rd) ||
+        Cosmo.fast_math_isnand(phi_ru) ) { printf("Error setting Cosmological ICs on procID %d XZ (%e %e %e %e %e) (%d
+        %d %d) (%d %d %d %d %d), aborting.\n",procID,D,phi_ld,phi_lu,phi_rd,phi_ru,i,j,k,id,id_ld,id_lu,id_rd,id_ru);
           fflush(stdout);
         } else if( (phi_ld==0) || (phi_lu==0) || (phi_rd==0) || (phi_ru==0) ) {
-          printf("Error setting Cosmological ICs on procID %d XZ (%e %e %e %e %e) (%d %d %d), aborting.\n",procID,D,phi_ld,phi_lu,phi_rd,phi_ru,i,j,k); 
-          fflush(stdout);
+          printf("Error setting Cosmological ICs on procID %d XZ (%e %e %e %e %e) (%d %d %d),
+        aborting.\n",procID,D,phi_ld,phi_lu,phi_rd,phi_ru,i,j,k); fflush(stdout);
         }*/
-
 
         // third yz
         id_ld = i + (j - 1) * H.nx + (k - 1) * H.ny * H.nx;
@@ -2433,14 +2426,14 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
         // grad_x_T[1][2] = -1*0.25*(phi_ld - phi_lu - phi_rd + phi_ru)/(dy*dz);
         grad_x_T[2][1] = grad_x_T[1][2];
 
-
-	/*
-        if( Cosmo.fast_math_isnand(phi_ld) || Cosmo.fast_math_isnand(phi_lu) || Cosmo.fast_math_isnand(phi_rd) || Cosmo.fast_math_isnand(phi_ru) ) {
-          printf("Error setting Cosmological ICs on procID %d YZ (%e %e %e %e %e) (%d %d %d) (%d %d %d %d %d), aborting.\n",procID,D,phi_ld,phi_lu,phi_rd,phi_ru,i,j,k,id,id_ld,id_lu,id_rd,id_ru); 
+        /*
+        if( Cosmo.fast_math_isnand(phi_ld) || Cosmo.fast_math_isnand(phi_lu) || Cosmo.fast_math_isnand(phi_rd) ||
+        Cosmo.fast_math_isnand(phi_ru) ) { printf("Error setting Cosmological ICs on procID %d YZ (%e %e %e %e %e) (%d
+        %d %d) (%d %d %d %d %d), aborting.\n",procID,D,phi_ld,phi_lu,phi_rd,phi_ru,i,j,k,id,id_ld,id_lu,id_rd,id_ru);
           fflush(stdout);
         } else if( (phi_ld==0) || (phi_lu==0) || (phi_rd==0) || (phi_ru==0) ) {
-          printf("Error setting Cosmological ICs on procID %d YZ (%e %e %e %e %e) (%d %d %d), aborting.\n",procID,D,phi_ld,phi_lu,phi_rd,phi_ru,i,j,k); 
-          fflush(stdout);
+          printf("Error setting Cosmological ICs on procID %d YZ (%e %e %e %e %e) (%d %d %d),
+        aborting.\n",procID,D,phi_ld,phi_lu,phi_rd,phi_ru,i,j,k); fflush(stdout);
         }*/
 
         //////////////////////////////////////////
@@ -2520,8 +2513,9 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
       }
     }
   }
-  if( Cosmo.fast_math_isnand(xix_mean) || Cosmo.fast_math_isnand(xiy_mean) || Cosmo.fast_math_isnand(xiz_mean) ) {
-    printf("Error setting Cosmological ICs on procID %d (%e %e %e) (%e %e %e), aborting.\n",procID,xix_mean,xiy_mean,xiz_mean,dx,dy,dz); 
+  if (Cosmo.fast_math_isnand(xix_mean) || Cosmo.fast_math_isnand(xiy_mean) || Cosmo.fast_math_isnand(xiz_mean)) {
+    printf("Error setting Cosmological ICs on procID %d (%e %e %e) (%e %e %e), aborting.\n", procID, xix_mean, xiy_mean,
+           xiz_mean, dx, dy, dz);
     fflush(stdout);
   }
   MPI_Allreduce(MPI_IN_PLACE, &xix_mean, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -2573,7 +2567,7 @@ void Grid3D::Cosmological_ICs(struct Parameters const P)
   chprintf("Cosmological ICs: overdensity    field average = %e, rms = %e\n", d_mean, d_rms);
   chprintf("Cosmological ICs: overdensity    field minimum = %e, max = %e\n", dens_min, dens_max);
 
-  if( Cosmo.fast_math_isnand(xix_mean) || Cosmo.fast_math_isnand(xiy_mean) || Cosmo.fast_math_isnand(xiz_mean) ) {
+  if (Cosmo.fast_math_isnand(xix_mean) || Cosmo.fast_math_isnand(xiy_mean) || Cosmo.fast_math_isnand(xiz_mean)) {
     chprintf("Error setting Cosmological ICs, aborting.\n");
     chexit(-1);
   }
