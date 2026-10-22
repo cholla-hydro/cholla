@@ -7,8 +7,7 @@ DFLAGS    += -DHLLC
 # Integrator
 ifeq ($(findstring cosmology,$(TYPE)),cosmology)
 DFLAGS    += -DSIMPLE
-#DFLAGS    += -DPPMP
-DFLAGS    += -DPLMP
+DFLAGS    += -DPPMP
 else
 DFLAGS    += -DVL
 DFLAGS    += -DPLMC
