@@ -49,7 +49,7 @@ bool RKIntegrator::fast_math_isnan(float x)
   uint32_t u;
   std::memcpy(&u, &x, sizeof(x));
   // In IEEE 754, a float is NaN if all exponent bits are 1 and the mantissa is non-zero
-  return (u & 0x7F800000u) == 0x7F800000u && (u & 0x007FFFFFu) != 0;
+  return (u & 0x7F800000U) == 0x7F800000U && (u & 0x007FFFFFU) != 0U;
 }
 
 // Check for a 64-bit double NaN
