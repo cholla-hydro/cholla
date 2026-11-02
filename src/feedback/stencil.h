@@ -309,8 +309,8 @@ struct LegacyCIC27 {
           f(scalar_weight, momentum_weights, indx);
 
         }  // k loop
-      }    // j loop
-    }      // i loop
+      }  // j loop
+    }  // i loop
   }
 
   /* calls the unary function f at ever location where there probably is non-zero overlap with

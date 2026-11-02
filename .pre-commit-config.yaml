@@ -15,15 +15,15 @@ repos:
   - id: check-yaml
 
 
--   repo: https://github.com/pre-commit/mirrors-clang-format
-    # unlike most pre-commit tools, the version of this repository exactly
-    # matches the version of clang-format
-    rev: v17.0.1
-    hooks:
-    -   id: clang-format
-        verbose: true
-        types_or: [c++, c, cuda]
-        args: ["-style=file", "--verbose"]
+- repo: https://github.com/pre-commit/mirrors-clang-format
+  # unlike most pre-commit tools, the version of this repository exactly
+  # matches the version of clang-format
+  rev: v19.1.7
+  hooks:
+  -   id: clang-format
+      verbose: true
+      types_or: [c++, c, cuda]
+      args: ["-style=file", "--verbose"]
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
   rev: v0.11.13

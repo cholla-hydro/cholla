@@ -46,6 +46,7 @@ AlwaysBreakBeforeMultilineStrings: true
 AlwaysBreakTemplateDeclarations: Yes
 AttributeMacros:
   - __capability
+  - DEVICE_ALIGN_DECL
 BinPackArguments: true
 BinPackParameters: true
 BraceWrapping:
