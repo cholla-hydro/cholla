@@ -330,7 +330,7 @@ herr_t Read_HDF5_Dataset(hid_t file_id, float *dataset_buffer, const char *name)
 
 // Helper function which uses the correct HDF5 arguments based on the type of
 // dataset_buffer to avoid writing garbage
-herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id, double *dataset_buffer, const char *name)
+herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id, const double *dataset_buffer, const char *name)
 {
   // Create the dataset id
   hid_t dataset_id = H5Dcreate(file_id, name, H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -341,7 +341,7 @@ herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id, double *dataset_buf
   return status;
 }
 
-herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id, float *dataset_buffer, const char *name)
+herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id, const float *dataset_buffer, const char *name)
 {
   // Create the dataset id
   hid_t dataset_id = H5Dcreate(file_id, name, H5T_IEEE_F32BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -409,7 +409,7 @@ void Write_HDF5_Field_2D_CPU(Header H, hid_t file_id, hid_t dataspace_id, float 
 
 /* \brief Before HDF5 reads data into a buffer, remap and write grid to HDF5 buffer. */
 void Fill_HDF5_Buffer_From_Grid_CPU(int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, int n_ghost,
-                                    Real *hdf5_buffer, Real *grid_buffer)
+                                    Real *hdf5_buffer, const Real *grid_buffer)
 {
   int i, j, k, id, buf_id;
   // 3D case
@@ -448,7 +448,7 @@ void Fill_HDF5_Buffer_From_Grid_CPU(int nx, int ny, int nz, int nx_real, int ny_
 
 /* \brief Before HDF5 reads data into a buffer, remap and write grid to HDF5 buffer. */
 void Fill_HDF5_Buffer_From_Grid_GPU(int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, int n_ghost,
-                                    Real *hdf5_buffer, Real *device_hdf5_buffer, Real *device_grid_buffer);
+                                    Real *hdf5_buffer, Real *device_hdf5_buffer, const Real *device_grid_buffer);
 // From src/io/io_gpu
 
 // Set up dataspace for grid formatted data and write dataset
@@ -492,7 +492,7 @@ void Write_HDF5_Dataset_Grid(int nx, int ny, int nz, int nx_real, int ny_real, i
 }
 
 // Data moves from host grid_buffer to dataset_buffer to hdf5 file
-void Write_Grid_HDF5_Field_CPU(Header H, hid_t file_id, Real *dataset_buffer, Real *grid_buffer, const char *name)
+void Write_Grid_HDF5_Field_CPU(Header H, hid_t file_id, Real *dataset_buffer, const Real *grid_buffer, const char *name)
 {
   Fill_HDF5_Buffer_From_Grid_CPU(H.nx, H.ny, H.nz, H.nx_real, H.ny_real, H.nz_real, H.n_ghost, dataset_buffer,
                                  grid_buffer);
@@ -501,7 +501,7 @@ void Write_Grid_HDF5_Field_CPU(Header H, hid_t file_id, Real *dataset_buffer, Re
 
 // Data moves from device_grid_buffer to device_hdf5_buffer to dataset_buffer to hdf5 file
 void Write_Grid_HDF5_Field_GPU(Header H, hid_t file_id, Real *dataset_buffer, Real *device_hdf5_buffer,
-                               Real *device_grid_buffer, const char *name)
+                               const Real *device_grid_buffer, const char *name)
 {
   Fill_HDF5_Buffer_From_Grid_GPU(H.nx, H.ny, H.nz, H.nx_real, H.ny_real, H.nz_real, H.n_ghost, dataset_buffer,
                                  device_hdf5_buffer, device_grid_buffer);
