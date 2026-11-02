@@ -354,10 +354,11 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
   #if defined(GRAVITY) && defined(OUTPUT_POTENTIAL)
     if (is_3D) {  // 3D case
       const Grav3D& Grav = G.Grav;
-      Write_Generic_HDF5_Field_GPU(Grav.nx_local + 2 * N_GHOST_POTENTIAL, Grav.ny_local + 2 * N_GHOST_POTENTIAL,
-                                   Grav.nz_local + 2 * N_GHOST_POTENTIAL, Grav.nx_local, Grav.ny_local, Grav.nz_local,
-                                   N_GHOST_POTENTIAL, file_id, host_dataset_buf, dev_dataset_buf, Grav.F.potential_d,
-                                   "/grav_potential");
+      Write_Generic_HDF5_Field_GPU(Grav.spatial_props.nx_local + 2 * N_GHOST_POTENTIAL,
+                                   Grav.spatial_props.ny_local + 2 * N_GHOST_POTENTIAL,
+                                   Grav.spatial_props.nz_local + 2 * N_GHOST_POTENTIAL, Grav.spatial_props.nx_local,
+                                   Grav.spatial_props.ny_local, Grav.spatial_props.nz_local, N_GHOST_POTENTIAL, file_id,
+                                   host_dataset_buf, dev_dataset_buf, Grav.F.potential_d, "/grav_potential");
     }
   #endif  // GRAVITY and OUTPUT_POTENTIAL
   }

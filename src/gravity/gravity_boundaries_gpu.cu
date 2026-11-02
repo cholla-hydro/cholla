@@ -1,11 +1,12 @@
+
+#include <cmath>
+
+#include "../gravity/grav3D.h"
+#include "../grid/grid3D.h"
+#include "../io/io.h"
+#include "cholla_config.h"
+
 #if defined(GRAVITY) && defined(GRAVITY_GPU)
-
-  #include <cmath>
-
-  #include "../gravity/grav3D.h"
-  #include "../grid/grid3D.h"
-  #include "../io/io.h"
-
   #if defined(GRAV_ISOLATED_BOUNDARY_X) || defined(GRAV_ISOLATED_BOUNDARY_Y) || defined(GRAV_ISOLATED_BOUNDARY_Z)
 
 void __global__ Set_Potential_Boundaries_Isolated_kernel(int direction, int side, int size_buffer, int n_i, int n_j,
@@ -58,15 +59,15 @@ void Grid3D::Set_Potential_Boundaries_Isolated_GPU(int direction, int side, int 
   int n_i, n_j, n_ghost, size_buffer;
   int nx_g, ny_g, nz_g;
   n_ghost = N_GHOST_POTENTIAL;
-  nx_g    = Grav.nx_local + 2 * n_ghost;
-  ny_g    = Grav.ny_local + 2 * n_ghost;
-  nz_g    = Grav.nz_local + 2 * n_ghost;
+  nx_g    = Grav.spatial_props.nx_local + 2 * n_ghost;
+  ny_g    = Grav.spatial_props.ny_local + 2 * n_ghost;
+  nz_g    = Grav.spatial_props.nz_local + 2 * n_ghost;
 
   Real *pot_boundary_h, *pot_boundary_d;
     #ifdef GRAV_ISOLATED_BOUNDARY_X
   if (direction == 0) {
-    n_i = Grav.ny_local;
-    n_j = Grav.nz_local;
+    n_i = Grav.spatial_props.ny_local;
+    n_j = Grav.spatial_props.nz_local;
     if (side == 0) {
       pot_boundary_h = Grav.F.pot_boundary_x0;
     }
@@ -83,8 +84,8 @@ void Grid3D::Set_Potential_Boundaries_Isolated_GPU(int direction, int side, int 
     #endif
     #ifdef GRAV_ISOLATED_BOUNDARY_Y
   if (direction == 1) {
-    n_i = Grav.nx_local;
-    n_j = Grav.nz_local;
+    n_i = Grav.spatial_props.nx_local;
+    n_j = Grav.spatial_props.nz_local;
     if (side == 0) {
       pot_boundary_h = Grav.F.pot_boundary_y0;
     }
@@ -101,8 +102,8 @@ void Grid3D::Set_Potential_Boundaries_Isolated_GPU(int direction, int side, int 
     #endif
     #ifdef GRAV_ISOLATED_BOUNDARY_Z
   if (direction == 2) {
-    n_i = Grav.nx_local;
-    n_j = Grav.ny_local;
+    n_i = Grav.spatial_props.nx_local;
+    n_j = Grav.spatial_props.ny_local;
     if (side == 0) {
       pot_boundary_h = Grav.F.pot_boundary_z0;
     }
@@ -203,9 +204,9 @@ void Grid3D::Set_Potential_Boundaries_Periodic_GPU(int direction, int side, int 
   int n_i, n_j, n_ghost, size;
   int nx_g, ny_g, nz_g;
   n_ghost = N_GHOST_POTENTIAL;
-  nx_g    = Grav.nx_local + 2 * n_ghost;
-  ny_g    = Grav.ny_local + 2 * n_ghost;
-  nz_g    = Grav.nz_local + 2 * n_ghost;
+  nx_g    = Grav.spatial_props.nx_local + 2 * n_ghost;
+  ny_g    = Grav.spatial_props.ny_local + 2 * n_ghost;
+  nz_g    = Grav.spatial_props.nz_local + 2 * n_ghost;
 
   if (direction == 0) {
     n_i = ny_g;
@@ -285,9 +286,9 @@ int Grid3D::Load_Gravity_Potential_To_Buffer_GPU(int direction, int side, Real *
   ;
   n_ghost_potential = N_GHOST_POTENTIAL;
   n_ghost_transfer  = N_GHOST_POTENTIAL;
-  nx_pot            = Grav.nx_local + 2 * n_ghost_potential;
-  ny_pot            = Grav.ny_local + 2 * n_ghost_potential;
-  nz_pot            = Grav.nz_local + 2 * n_ghost_potential;
+  nx_pot            = Grav.spatial_props.nx_local + 2 * n_ghost_potential;
+  ny_pot            = Grav.spatial_props.ny_local + 2 * n_ghost_potential;
+  nz_pot            = Grav.spatial_props.nz_local + 2 * n_ghost_potential;
 
   if (direction == 0) {
     n_i = ny_pot;
@@ -375,9 +376,9 @@ void Grid3D::Unload_Gravity_Potential_from_Buffer_GPU(int direction, int side, R
   ;
   n_ghost_potential = N_GHOST_POTENTIAL;
   n_ghost_transfer  = N_GHOST_POTENTIAL;
-  nx_pot            = Grav.nx_local + 2 * n_ghost_potential;
-  ny_pot            = Grav.ny_local + 2 * n_ghost_potential;
-  nz_pot            = Grav.nz_local + 2 * n_ghost_potential;
+  nx_pot            = Grav.spatial_props.nx_local + 2 * n_ghost_potential;
+  ny_pot            = Grav.spatial_props.ny_local + 2 * n_ghost_potential;
+  nz_pot            = Grav.spatial_props.nz_local + 2 * n_ghost_potential;
 
   if (direction == 0) {
     n_i = ny_pot;
