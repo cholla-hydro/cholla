@@ -4,7 +4,20 @@
 
   #include <stdio.h>
 
+  #include <filesystem>
+  #include <string>
+
   #include "../io/io.h"
+
+namespace
+{
+// Output paths like analysisdir/skewersdir are used as a prefix of the file name: if the last character is not a
+// '/', the substring after the final '/' is a file-prefix rather than a directory.
+std::string Dir_Path_From_Output_Prefix(const char *output_prefix)
+{
+  return std::filesystem::path(output_prefix).parent_path().string();
+}
+}  // namespace
 
 AnalysisModule::AnalysisModule(void) {}
 
@@ -18,10 +31,6 @@ void Grid3D::Compute_Lya_Statistics()
   // Copmpute Lya Statitics
   chprintf("Computing Lya Absorbiton along skewers \n");
   for (axis = 0; axis < 3; axis++) {
-    if (axis == 0) n_skewers = Analysis.n_skewers_local_x;
-    if (axis == 1) n_skewers = Analysis.n_skewers_local_y;
-    if (axis == 2) n_skewers = Analysis.n_skewers_local_z;
-
     if (axis == 0) chprintf(" Computing Along X axis: ");
     if (axis == 1) chprintf(" Computing Along Y axis: ");
     if (axis == 2) chprintf(" Computing Along Z axis: ");
@@ -30,10 +39,12 @@ void Grid3D::Compute_Lya_Statistics()
     Analysis.Initialize_Lya_Statistics_Measurements(axis);
     Analysis.Transfer_Skewers_Data(axis);
 
-    for (int skewer_id = 0; skewer_id < n_skewers; skewer_id++) {
-      Compute_Transmitted_Flux_Skewer(skewer_id, axis);
-      Analysis.Compute_Lya_Mean_Flux_Skewer(skewer_id, axis);
-    }
+    #ifdef GPU_LYA_FLUX
+    Compute_Transmitted_Flux_Skewers_GPU(axis);
+    #else
+    Compute_Transmitted_Flux_Skewers_CPU(axis);
+    #endif
+
     Analysis.Reduce_Lya_Mean_Flux_Axis(axis);
 
     #ifdef OUTPUT_SKEWERS
@@ -193,6 +204,12 @@ void AnalysisModule::Initialize(Real Lx, Real Ly, Real Lz, Real x_min, Real y_mi
   Initialize_Lya_Statistics(P);
   #endif
 
+  // ensure the analysis and skewers output directories exist (try to create them if they don't exist)
+  Ensure_Dir_Exists(Dir_Path_From_Output_Prefix(P->analysisdir));
+  #ifdef OUTPUT_SKEWERS
+  Ensure_Dir_Exists(Dir_Path_From_Output_Prefix(P->skewersdir));
+  #endif
+
   chprintf("Analysis Module Successfully Initialized.\n\n");
 }
 
@@ -313,6 +330,10 @@ void AnalysisModule::Reset()
       #endif
   }
 
+    #endif
+
+    #ifdef GPU_LYA_FLUX
+  Free_Lya_Statistics_GPU();
     #endif
   #endif
 }

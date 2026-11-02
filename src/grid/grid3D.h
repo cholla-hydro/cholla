@@ -992,7 +992,11 @@ class Grid3D
 
   #ifdef LYA_STATISTICS
   void Populate_Lya_Skewers_Local(int axis);
+  void Compute_Transmitted_Flux_Skewers_CPU(int axis);
   void Compute_Transmitted_Flux_Skewer(int skewer_id, int axis);
+    #ifdef GPU_LYA_FLUX
+  void Compute_Transmitted_Flux_Skewers_GPU(int axis);
+    #endif
   void Compute_Lya_Statistics();
   void Compute_Flux_Power_Spectrum_Skewer(int skewer_id, int axis);
   void Initialize_Power_Spectrum_Measurements(int axis);

@@ -91,6 +91,7 @@
 // ======================
 #configurefile_define ANALYSIS
 #configurefile_define LYA_STATISTICS
+#configurefile_define GPU_LYA_FLUX
 #configurefile_define PHASE_DIAGRAM
 
 
