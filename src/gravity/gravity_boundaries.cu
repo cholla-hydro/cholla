@@ -245,7 +245,7 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
     // -> we are implicitly assuming that the gas disk is the only source of dynamical density
     //    (i.e. the `rho_real` array is dominated by gas density)
     // -> we are currently ignoring contributions from particles
-    const ClusteredDiskGalaxy *galaxy_model = models().try_get<ClusteredDiskGalaxy>();
+    const DiskGalaxy *galaxy_model = models().try_get<DiskGalaxy>();
     CHOLLA_ASSERT(galaxy_model != nullptr, "no galaxy model was initialized");
 
     // NOTE: The way that we access galaxy_model from the model-collection every time is
