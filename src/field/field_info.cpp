@@ -100,9 +100,9 @@ static void add_conserved_pack_spec_(std::vector<FieldPackSpec>& pack_specs, int
   pack_spec.n_host_registers = 1;
 
   std::vector<MemSpace> io_bufs;
-  for (int i = 0; i < n_fields_; i++) {
-    auto [cur_field_name, cur_io_buf] = pack_arr_[i];
-    pack_spec.field_names.push_back(cur_field_name);
+  for (const PropPack& pack : pack_arr_) {
+    auto [cur_field_name, cur_io_buf] = pack;
+    pack_spec.field_names.emplace_back(cur_field_name);
     io_bufs.push_back(cur_io_buf);
   }
   pack_spec.io_buf = std::move(io_bufs);
@@ -164,10 +164,10 @@ static void add_gravity_pack_spec_(std::vector<FieldPackSpec>& pack_specs, int n
   }
 
   {
-    FieldPackSpec& pack_spec   = pack_specs.emplace_back();
-    pack_spec.pack_name        = "gravity_potentials";
+    FieldPackSpec& pack_spec = pack_specs.emplace_back();
+    pack_spec.pack_name      = "gravity_potentials";
 #ifdef N_GHOST_POTENTIAL
-    pack_spec.ghost_depth      = N_GHOST_POTENTIAL;
+    pack_spec.ghost_depth = N_GHOST_POTENTIAL;
 #else
     CHOLLA_ERROR("N_GHOST_POTENTIAL is not defined");
 #endif
