@@ -76,7 +76,7 @@ __global__ void calculateMagneticDivergence(Real const *dev_conserved, Real *dev
 // =========================================================================
 
 // =============================================================================
-Real checkMagneticDivergence(Grid3D const &G)
+Real checkMagneticDivergence(Real const *dev_conserved, Real dx, Real dy, Real dz, int nx, int ny, int nz, int n_cells)
 {
   // Compute the local value of the divergence
   // First let's create some variables we'll need.
@@ -89,8 +89,7 @@ Real checkMagneticDivergence(Grid3D const &G)
 
   // Now lets get the local maximum divergence
   hipLaunchKernelGGL(mhd::calculateMagneticDivergence, launchParams.get_numBlocks(), launchParams.get_threadsPerBlock(),
-                     0, 0, G.C.device, dev_maxDivergence.data(), G.H.dx, G.H.dy, G.H.dz, G.H.nx, G.H.ny, G.H.nz,
-                     G.H.n_cells);
+                     0, 0, dev_conserved, dev_maxDivergence.data(), dx, dy, dz, nx, ny, nz, n_cells);
   GPU_Error_Check();
   Real max_magnetic_divergence = dev_maxDivergence[0];
 

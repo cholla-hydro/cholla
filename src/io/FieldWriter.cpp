@@ -308,7 +308,7 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
       Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf,
                           ptr, cur_spec.name.c_str());
     } else {
-      if (cur_spec.condition == io::WriteCond::REQUIRE_COMPLETE_DATA && not H.Output_Complete_Data) continue;
+      if (cur_spec.condition == io::WriteCond::REQUIRE_COMPLETE_DATA && not G.state.Output_Complete_Data) continue;
       if (cur_spec.io_buf == field::IOBuf::HOST) {
         Real* ptr = &G.C.host[cur_spec.field_id * H.n_cells];
         Write_Grid_HDF5_Field_CPU(H, file_id, host_dataset_buf, ptr, cur_spec.name.c_str());
@@ -334,7 +334,7 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
         Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, host_dataset_buf,
                             dev_dataset_buf, ptr, dset_names[i]);
       } else {
-        if (not H.Output_Complete_Data) continue;
+        if (not G.state.Output_Complete_Data) continue;
         int real_shape[3] = {H.nx_real + (i == 0), H.ny_real + (i == 1), H.nz_real + (i == 2)};
         Write_HDF5_Field_3D(H.nx, H.ny, real_shape[0], real_shape[1], real_shape[2], H.n_ghost, file_id,
                             host_dataset_buf, dev_dataset_buf, ptr, dset_names[i], i);
@@ -441,7 +441,7 @@ int Record_Colnames_And_Get_Field_Ptrs_(const Real** ptr_arr, bool* is_cell_cent
     CHOLLA_ASSERT(entry.io_buf == field::IOBuf::HOST, "io_buf sanity check failed!");
     CHOLLA_ASSERT(field_info.is_cell_centered(entry.field_id).value_or(false), "field-centering sanity-check failed!");
 
-    if (entry.condition == io::WriteCond::REQUIRE_COMPLETE_DATA and not H.Output_Complete_Data) {
+    if (entry.condition == io::WriteCond::REQUIRE_COMPLETE_DATA and not G.state.Output_Complete_Data) {
       continue;
     }
 
@@ -519,7 +519,7 @@ void Write_Grid_Text_(const std::string& filename, const Grid3D& G, const Datase
   // Part 2: collect info about each field & write the initial header for the text file
   // ----------------------------------------------------------------------------------
   // these arrays will hold entries for each field that we want to serialize
-  // (the precise details may depend upon G.H.Output_Complete_Data)
+  // (the precise details may depend upon G.state.Output_Complete_Data)
   const Real* ptr_arr[MAX_FIELDS];
   bool is_cell_centered[MAX_FIELDS];
   int n_output_fields = Record_Colnames_And_Get_Field_Ptrs_(ptr_arr, is_cell_centered, fp, dataset_spec, G);

@@ -43,41 +43,6 @@
   #include "../chemistry_gpu/chemistry_gpu.h"  // provides Print_Chemistry_kernel
 #endif
 
-/*! \fn Grid3D(void)
- *  \brief Constructor for the Grid. */
-#ifndef RT
-Grid3D::Grid3D(void) : field_info(FieldInfo::create())
-#else
-// it's ok to pass in `this->H` to the constructor of `Rad3D` since `Rad3D`'s
-// constructor is only registering a reference to `this->H` for later usage.
-// TODO: initialize `this->H` before passing it to `Rad3D`
-Grid3D::Grid3D(void) : field_info(FieldInfo::create()), Rad(this->H)
-#endif
-{
-  // set initialization flag to 0
-  flag_init = 0;
-
-// set number of ghost cells
-#ifdef PCM
-  H.n_ghost = 2;
-#endif  // PCM
-#if defined(PLMP) or defined(PLMC)
-  H.n_ghost = 3;
-#endif  // PLMP or PLMC
-#if defined(PPMP) or defined(PPMC)
-  H.n_ghost = 4;
-#endif  // PPMP or PLMC
-
-#ifdef GRAVITY
-  H.n_ghost_potential_offset = H.n_ghost - N_GHOST_POTENTIAL;
-#endif
-
-#ifdef MHD
-  // Set the number of ghost cells high enough for MHD. MHD needs one extra for the left most face
-  H.n_ghost++;
-#endif  // MHD
-}
-
 /*! \fn void Get_Position(long i, long j, long k, Real *xpos, Real *ypos, Real
  * *zpos) \brief Get the cell-centered position based on cell index */
 void Grid3D::Get_Position(long i, long j, long k, Real *x_pos, Real *y_pos, Real *z_pos) const
@@ -121,24 +86,55 @@ Real Grid3D::Calc_Inverse_Timestep()
   return Calc_dt_GPU(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_cells, H.dx, H.dy, H.dz, gama);
 }
 
-/*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
- *  \brief Initialize the grid. */
-void Grid3D::Initialize(struct Parameters *P)
+/*! \fn Grid3D(void)
+ *  \brief Constructor for the Grid. */
+Grid3D::Grid3D(Parameters &P)
+#ifndef RT
+    : field_info(FieldInfo::create())
+#else
+    // it's ok to pass in `this->H` to the constructor of `Rad3D` since `Rad3D`'s
+    // constructor is only registering a reference to `this->H` for later usage.
+    // TODO: initialize `this->H` before passing it to `Rad3D`
+    : field_info(FieldInfo::create()), Rad(this->H)
+#endif
 {
+  // set initialization flag to 0
+  flag_init = 0;
+
+// set number of ghost cells
+#ifdef PCM
+  H.n_ghost = 2;
+#endif  // PCM
+#if defined(PLMP) or defined(PLMC)
+  H.n_ghost = 3;
+#endif  // PLMP or PLMC
+#if defined(PPMP) or defined(PPMC)
+  H.n_ghost = 4;
+#endif  // PPMP or PLMC
+
+#ifdef GRAVITY
+  H.n_ghost_potential_offset = H.n_ghost - N_GHOST_POTENTIAL;
+#endif
+
+#ifdef MHD
+  // Set the number of ghost cells high enough for MHD. MHD needs one extra for the left most face
+  H.n_ghost++;
+#endif  // MHD
+
   H.n_fields = field_info.n_fields();
 
-  int nx_in = P->nx;
-  int ny_in = P->ny;
-  int nz_in = P->nz;
+  int nx_in = P.nx;
+  int ny_in = P.ny;
+  int nz_in = P.nz;
 
 #ifdef STATIC_GRAV
-  H.custom_grav = P->custom_grav;  // Initialize the custom static gravity flag
+  H.custom_grav = P.custom_grav;  // Initialize the custom static gravity flag
   if (H.custom_grav == 0) {
     printf("WARNING: No custom gravity field given. Gravity field will be set to zero.\n");
   }
 #endif
 
-  H.gas_only_use_static_grav = P->gas_only_use_static_grav;
+  H.gas_only_use_static_grav = P.gas_only_use_static_grav;
 
   // Set the CFL coefficient (a global variable)
   C_cfl = 0.3;
@@ -173,7 +169,7 @@ void Grid3D::Initialize(struct Parameters *P)
   /* perform domain decomposition
    * and set grid dimensions
    * and allocate comm buffers */
-  DomainDecomposition(P, &H, nx_in, ny_in, nz_in);
+  DomainDecomposition(&P, &H, nx_in, ny_in, nz_in);
 
 #endif /*MPI_CHOLLA*/
 
@@ -201,42 +197,36 @@ void Grid3D::Initialize(struct Parameters *P)
   // and initialize the timestep
   H.dt = 0.0;
 
-  // Set Transfer flag to false, only set to true before Conserved boundaries
-  // are transferred
-  H.TRANSFER_HYDRO_BOUNDARIES = false;
-
-  // Set output to true when data has to be written to file;
-  H.Output_Now = false;
-
 // Values for lower limit for density and temperature
 #ifdef TEMPERATURE_FLOOR
-  H.temperature_floor = P->temperature_floor;
+  H.temperature_floor = P.temperature_floor;
 #endif
 
 #ifdef DENSITY_FLOOR
-  H.density_floor = P->density_floor;
+  H.density_floor = P.density_floor;
 #endif
 
 #ifdef SCALAR_FLOOR
-  H.scalar_floor = P->scalar_floor;
+  H.scalar_floor = P.scalar_floor;
 #endif
 
 #ifdef COSMOLOGY
-  H.OUTPUT_SCALE_FACTOR = not(P->scale_outputs_file[0] == '\0');
+  H.OUTPUT_SCALE_FACTOR = not(P.scale_outputs_file[0] == '\0');
 #endif
 
 #ifdef SCALAR
   #ifdef DUST
-  H.grain_radius = P->grain_radius;
+  H.grain_radius = P.grain_radius;
   #endif
 #endif
 
-  H.Output_Initial = true;
+  state.Output_Initial = true;
 
-  Set_Domain_Properties(*P);  // move the domain info forward
+  Set_Domain_Properties(P);  // move the domain info forward
 
 #if defined(COSMOLOGY) && defined(FFT)
-  Generate_Cosmo_Phi_Init(P);  // memory intensive -- before grid allocation
+  // TODO: start passing a const pointer or a const reference
+  Generate_Cosmo_Phi_Init(&P);  // memory intensive -- before grid allocation
   // chprintf("D info before main %d %d\n",Cosmo.D_array.size(),Cosmo.a_array.size());
 
 #endif
