@@ -17,7 +17,7 @@
 Grav3D::Grav3D(void) {}
 
 void Grav3D::Initialize(const SpatialDomainProps &spatial_props, Real Lx, Real Ly, Real Lz, int n_ghost_pot_offset,
-                        Parameters *P)
+                        Parameters *P, FieldManager &field_man)
 {
   // Set Box Size
   Lbox_x = Lx;
@@ -83,10 +83,10 @@ void Grav3D::Initialize(const SpatialDomainProps &spatial_props, Real Lx, Real L
   // Flag to set the gravity boundary flags
   BC_FLAGS_SET = false;
 
-  AllocateMemory_CPU();
+  AllocateMemory_CPU(field_man);
 
   #ifdef GRAVITY_GPU
-  AllocateMemory_GPU();
+  AllocateMemory_GPU(field_man);
   #endif
 
   Initialize_values_CPU();
@@ -121,15 +121,24 @@ void Grav3D::Initialize(const SpatialDomainProps &spatial_props, Real Lx, Real L
   }
 }
 
-void Grav3D::AllocateMemory_CPU(void)
+void Grav3D::AllocateMemory_CPU(FieldManager &field_man)
 {
-  // allocate memory for the density and potential arrays
-  F.density_h = (Real *)malloc(n_cells * sizeof(Real));              // array for the
-                                                                     // density
-  F.potential_h = (Real *)malloc(n_cells_potential * sizeof(Real));  // array for the potential at the n-th timestep
-  F.potential_1_h =
-      (Real *)malloc(n_cells_potential * sizeof(Real));  // array for the potential at the (n-1)-th timestep
-  boundary_flags = (int *)malloc(6 * sizeof(int));       // array for the gravity boundary flags
+  // copy pointers to pre-allocated field_buffers
+  // --------------------------------------------
+
+  // reminder: "total_density" has the same ghost depth as the hydro fields
+  F.density_h = field_man.field_or_abort(MemSpace::HOST, "total_density");
+
+  // reminder: other fields have a ghost depth of N_GHOST_POTENTIAL
+  F.potential_h   = field_man.field_or_abort(MemSpace::HOST, "potential");    // potential @ n-th timestep
+  F.potential_1_h = field_man.field_or_abort(MemSpace::HOST, "potential_1");  // potential @ (n-1)-th timestep
+
+  // "analytic_potential" field exists based on whether or not GRAVITY_ANALYTIC_COMP is defined
+  F.analytic_potential_h = field_man.field(MemSpace::HOST, "analytic_potential").value_or(nullptr);
+
+  // allocate memory for remaining arrays
+  // ------------------------------------
+  boundary_flags = (int *)malloc(6 * sizeof(int));  // array for the gravity boundary flags
 
   #ifdef GRAV_ISOLATED_BOUNDARY_X
   F.pot_boundary_x0 = (Real *)malloc(N_GHOST_POTENTIAL * ny_local * nz_local *
@@ -145,12 +154,6 @@ void Grav3D::AllocateMemory_CPU(void)
   F.pot_boundary_z0 = (Real *)malloc(N_GHOST_POTENTIAL * nx_local * ny_local *
                                      sizeof(Real));  // array for the potential isolated boundary
   F.pot_boundary_z1 = (Real *)malloc(N_GHOST_POTENTIAL * nx_local * ny_local * sizeof(Real));
-  #endif
-
-  #ifdef GRAVITY_ANALYTIC_COMP
-  F.analytic_potential_h = (Real *)malloc(n_cells_potential * sizeof(Real));
-  #else
-  F.analytic_potential_h = nullptr;
   #endif
 }
 
@@ -176,9 +179,6 @@ void Grav3D::Initialize_values_CPU(void)
 
 void Grav3D::FreeMemory_CPU(void)
 {
-  free(F.density_h);
-  free(F.potential_h);
-  free(F.potential_1_h);
   free(boundary_flags);
 
   #ifdef GRAV_ISOLATED_BOUNDARY_X
@@ -197,10 +197,6 @@ void Grav3D::FreeMemory_CPU(void)
   Poisson_solver.Reset();
   #if defined(PARIS_TEST) || defined(PARIS_GALACTIC_TEST)
   Poisson_solver_test.Reset();
-  #endif
-
-  #ifdef GRAVITY_ANALYTIC_COMP
-  free(F.analytic_potential_h);
   #endif
 }
 

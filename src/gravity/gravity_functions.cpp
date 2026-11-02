@@ -84,14 +84,14 @@ void Grid3D::set_dt_Gravity()
 
   // Limit delta_a if it's time to output
   if ((Cosmo.current_a + da_min) > Cosmo.next_output) {
-    da_min       = Cosmo.next_output - Cosmo.current_a;
-    H.Output_Now = true;
+    da_min           = Cosmo.next_output - Cosmo.current_a;
+    state.Output_Now = true;
   }
 
       #ifdef ANALYSIS
   // Limit delta_a if it's time to run analysis
   if (Analysis.next_output_indx < Analysis.n_outputs) {
-    if (H.Output_Now && fabs(Cosmo.current_a + da_min - Analysis.next_output) < 1e-6)
+    if (state.Output_Now && fabs(Cosmo.current_a + da_min - Analysis.next_output) < 1e-6)
       Analysis.Output_Now = true;
     else if (Cosmo.current_a + da_min > Analysis.next_output) {
       da_min              = Analysis.next_output - Cosmo.current_a;
@@ -362,7 +362,7 @@ void Grid3D::Initialize_Gravity(struct Parameters *P)
 {
   chprintf("\nInitializing Gravity... \n");
   SpatialDomainProps spatial_props = SpatialDomainProps::From_Grid3D(*this, P);
-  Grav.Initialize(spatial_props, H.xdglobal, H.ydglobal, H.zdglobal, H.n_ghost_potential_offset, P);
+  Grav.Initialize(spatial_props, H.xdglobal, H.ydglobal, H.zdglobal, H.n_ghost_potential_offset, P, field_manager());
   chprintf("Gravity Successfully Initialized. \n\n");
 
   if (P->bc_potential_type == 1) {

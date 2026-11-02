@@ -15,7 +15,7 @@
 #include <string_view>
 #include <vector>
 
-#include "../grid/field_info.h"
+#include "../field/field_info.h"
 #include "../grid/grid3D.h"
 #include "../io/io.h"
 #include "../utils/error_handling.h"
@@ -58,12 +58,12 @@ struct DsetSpecListBuilder {
   /*! returns the output name used for a field based upon the original field name */
   OutNameRecipie out_name_recipe;
   /*! When specified, overides the typical choice associated with a field */
-  std::optional<field::IOBuf> force_buf_choice;
+  std::optional<MemSpace> force_buf_choice;
 
  public:
   /*! make a new instance */
   DsetSpecListBuilder(std::vector<io::DatasetSpecEntry>& wrapped_vec, const FieldInfo& field_info,
-                      OutNameRecipie out_name_recipe, std::optional<field::IOBuf> force_buf_choice = std::nullopt)
+                      OutNameRecipie out_name_recipe, std::optional<MemSpace> force_buf_choice = std::nullopt)
       : wrapped_vec(wrapped_vec),
         field_info(field_info),
         out_name_recipe(out_name_recipe),
@@ -75,20 +75,27 @@ struct DsetSpecListBuilder {
   void add_entry(const char* name, WriteCond cond)
   {
     // lookup the field_id associated with name
-    std::optional<int> maybe_field_id = field_info.field_id(name);
+    std::optional<FieldId> maybe_field_id = field_info.field_id(name);
     if (!maybe_field_id.has_value()) {
       CHOLLA_ERROR("the current Cholla config has no \"%s\" field", name);
     }
-    int field_id = maybe_field_id.value();
+    FieldId field_id = maybe_field_id.value();
+
+    // determine the ghost_depth
+    std::optional<int> maybe_ghost_depth = field_info.ghost_depth(field_id);
+    if (!maybe_ghost_depth.has_value()) {
+      CHOLLA_ERROR("sanity check failed!");
+    }
+    int ghost_depth = maybe_ghost_depth.value();
 
     // determine the dset_name
     std::string dset_name = out_name_recipe(name);
 
     if (force_buf_choice.has_value()) {
-      wrapped_vec.emplace_back(field_id, std::move(dset_name), force_buf_choice.value(), cond);
+      wrapped_vec.emplace_back(field_id, std::move(dset_name), force_buf_choice.value(), cond, ghost_depth);
     } else {
-      std::optional<field::IOBuf> io_buf = field_info.io_buf(field_id);
-      wrapped_vec.emplace_back(field_id, std::move(dset_name), get_or_abort(io_buf), cond);
+      std::optional<MemSpace> io_buf = field_info.io_buf(field_id);
+      wrapped_vec.emplace_back(field_id, std::move(dset_name), get_or_abort(io_buf), cond, ghost_depth);
     }
   }
 };
@@ -151,11 +158,11 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
   // ==============================================
 
   // Part 1A: determine configuration parameters for DsetSpecListBuilder_
-  std::optional<field::IOBuf> force_buf_choice = std::nullopt;
+  std::optional<MemSpace> force_buf_choice = std::nullopt;
   std::function<std::string(std::string_view)> out_name_recipe;
   switch (this->file_format_) {
     case FileFormat::TEXT:
-      force_buf_choice = std::optional<field::IOBuf>{field::IOBuf::HOST};
+      force_buf_choice = std::optional<MemSpace>{MemSpace::HOST};
       // set output name to legacy short name (fall back to field name if there isn't a short name)
       out_name_recipe = [](std::string_view field_name) -> std::string {
         std::optional<std::string> maybe_out_name = lookup_legacy_short_name_(field_name);
@@ -164,7 +171,7 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
       };
       break;
     case FileFormat::H5_F32:
-      force_buf_choice = std::optional<field::IOBuf>{field::IOBuf::DEVICE};
+      force_buf_choice = std::optional<MemSpace>{MemSpace::DEV};
       [[fallthrough]];
     case FileFormat::H5_NATIVE_PRECISION:
       out_name_recipe = [](std::string_view field_name) { return '/' + std::string(field_name); };
@@ -181,8 +188,8 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
   // =============================================================
   // TODO: logic for determining recorded fields should be independent of file format
   if (this->file_format_ == FileFormat::H5_F32) {
-    for (int field_id : field_info.get_id_range(field::Kind::HYDRO)) {  // (includes GasEnergy, if applicable)
-      std::optional<std::string> maybe_field_name = field_info.field_name(field_id);
+    for (FieldId id : field_info.get_id_range(field::Kind::HYDRO)) {  // (includes GasEnergy, if applicable)
+      std::optional<std::string> maybe_field_name = field_info.field_name(id);
       std::string field_name                      = get_or_abort(maybe_field_name);
       std::string param_name                      = "out_float32_" + field_name;
       if (pmap.value_or(param_name, 0)) {
@@ -190,8 +197,8 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
       }
     }
 
-    for (int field_id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
-      std::optional<std::string> maybe_field_name = field_info.field_name(field_id);
+    for (FieldId id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
+      std::optional<std::string> maybe_field_name = field_info.field_name(id);
       std::string field_name                      = get_or_abort(maybe_field_name);
       std::string param_name                      = "out_float32_" + field_name;
       if (pmap.value_or(param_name, 0)) {
@@ -209,8 +216,8 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
     registrar.add_entry("GasEnergy", ENERGY_CONDITION);
 #endif
 
-    for (int field_id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
-      std::optional<std::string> maybe_field_name = field_info.field_name(field_id);
+    for (FieldId id : field_info.get_id_range(field::Kind::PASSIVE_SCALAR)) {
+      std::optional<std::string> maybe_field_name = field_info.field_name(id);
       std::string name                            = get_or_abort(maybe_field_name);
       if (name == "e_density") {
         registrar.add_entry(name.c_str(), ELECTRONS_CONDITION);
@@ -220,6 +227,10 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
         registrar.add_entry(name.c_str(), WriteCond::ALWAYS);
       }
     }
+
+#if defined(GRAVITY) && defined(OUTPUT_POTENTIAL)
+    registrar.add_entry("potential", WriteCond::ALWAYS)
+#endif
   }
 
   // Part 3: record the face-centered fields that will be recorded
@@ -229,8 +240,8 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
   dataset_spec_.write_mag = {false, false, false};
 
   // this loop is empty if not compiled with MHD
-  for (int field_id : field_info.get_id_range(field::Kind::MAGNETIC)) {
-    std::optional<std::string> maybe_field_name = field_info.field_name(field_id);
+  for (FieldId id : field_info.get_id_range(field::Kind::MAGNETIC)) {
+    std::optional<std::string> maybe_field_name = field_info.field_name(id);
     std::string field_name                      = get_or_abort(maybe_field_name);
     // TODO: logic for determining recorded fields should be independent of file format
     bool write;
@@ -242,8 +253,8 @@ FieldWriter::FieldWriter(FileFormat file_format, ParameterMap& pmap, const Field
     this->dataset_spec_.write_mag[bfield_name_to_012_(field_name)] = write;
   }
 
-  // For now, we don't bothered migrating temperature and gravitational potential
-  // away from ifdefs, the handling remains very manual
+  // For now, we don't bothered migrating temperature away from ifdefs, the handling
+  // remains very manual
 }
 
 // the following anonymous namespace encloses functions used to help us implement
@@ -298,23 +309,35 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
   T* dev_dataset_buf  = lazy_scratch_buf.get_buf_dev<T>(buffer_size);
   T* host_dataset_buf = lazy_scratch_buf.get_buf_host<T>(buffer_size);
 
+  const FieldManager& f_man = G.field_manager();
+
   // write out regular cell-centered fields
   for (const io::DatasetSpecEntry& cur_spec : dataset_spec.cc_dataset_entries) {
+    // get the dimensions of the source buffer
+    int nx_src = nx_dset + 2 * cur_spec.ghost_depth;
+    int ny_src = (ny_dset == 1) ? 1 : ny_dset + 2 * cur_spec.ghost_depth;
+    int nz_src = (nz_dset == 1) ? 1 : nz_dset + 2 * cur_spec.ghost_depth;
+
+    // if cur_spec.ghost_depth == H.n_ghost, then:
+    // nx_src == H.nx && ny_src == H.ny && nz_src == H.nz_src
+
     if constexpr (ForceF32Output) {
       // todo: consider more robust behavior here
       CHOLLA_ASSERT(cur_spec.condition == io::WriteCond::ALWAYS, "unexpected case");
-      CHOLLA_ASSERT(cur_spec.io_buf == field::IOBuf::DEVICE, "unexpected case");
-      Real* ptr = &G.C.device[cur_spec.field_id * H.n_cells];
-      Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf,
-                          ptr, cur_spec.name.c_str());
+      CHOLLA_ASSERT(cur_spec.io_buf == MemSpace::DEV, "unexpected case");
+      const Real* ptr = f_man.field_or_abort(MemSpace::DEV, cur_spec.field_id);
+      Write_HDF5_Field_3D(nx_src, ny_src, nx_dset, ny_dset, nz_dset, cur_spec.ghost_depth, file_id, host_dataset_buf,
+                          dev_dataset_buf, ptr, cur_spec.name.c_str());
     } else {
-      if (cur_spec.condition == io::WriteCond::REQUIRE_COMPLETE_DATA && not H.Output_Complete_Data) continue;
-      if (cur_spec.io_buf == field::IOBuf::HOST) {
-        Real* ptr = &G.C.host[cur_spec.field_id * H.n_cells];
-        Write_Grid_HDF5_Field_CPU(H, file_id, host_dataset_buf, ptr, cur_spec.name.c_str());
+      if (cur_spec.condition == io::WriteCond::REQUIRE_COMPLETE_DATA && not G.state.Output_Complete_Data) continue;
+      if (cur_spec.io_buf == MemSpace::HOST) {
+        const Real* ptr = f_man.field_or_abort(MemSpace::HOST, cur_spec.field_id);
+        Write_Generic_HDF5_Field_CPU(nx_src, ny_src, nz_src, nx_dset, ny_dset, nz_dset, cur_spec.ghost_depth, file_id,
+                                     host_dataset_buf, ptr, cur_spec.name.c_str());
       } else {
-        Real* ptr = &G.C.device[cur_spec.field_id * H.n_cells];
-        Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, ptr, cur_spec.name.c_str());
+        const Real* ptr = f_man.field_or_abort(MemSpace::DEV, cur_spec.field_id);
+        Write_Generic_HDF5_Field_GPU(nx_src, ny_src, nz_src, nx_dset, ny_dset, nz_dset, cur_spec.ghost_depth, file_id,
+                                     host_dataset_buf, dev_dataset_buf, ptr, cur_spec.name.c_str());
       }
     }
   }
@@ -325,16 +348,17 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
     const char* dset_names[3] = {"/magnetic_x", "/magnetic_y", "/magnetic_z"};
     for (int i = 0; i < 3; i++) {
       if (not dataset_spec.write_mag[i]) continue;
-      const char* field_name            = dset_names[i] + 1;
-      std::optional<int> maybe_field_id = G.field_info.field_id(field_name);
-      Real* ptr                         = &G.C.device[H.n_cells * get_or_abort(maybe_field_id)];
+      const char* field_name          = dset_names[i] + 1;
+      std::optional<FieldId> maybe_id = f_man.field_id(field_name);
+      const FieldId& field_id         = get_or_abort(maybe_id);
+      const Real* ptr                 = f_man.field_or_abort(MemSpace::DEV, field_id);
       if constexpr (ForceF32Output) {
         // TODO (by Alwin, for anyone) : Repair output format if needed and remove the chprintf when appropriate
         chprintf("WARNING: MHD float-32 output has a different output format than float-64\n");
         Write_HDF5_Field_3D(H.nx, H.ny, nx_dset + 1, ny_dset + 1, nz_dset + 1, H.n_ghost - 1, file_id, host_dataset_buf,
                             dev_dataset_buf, ptr, dset_names[i]);
       } else {
-        if (not H.Output_Complete_Data) continue;
+        if (not G.state.Output_Complete_Data) continue;
         int real_shape[3] = {H.nx_real + (i == 0), H.ny_real + (i == 1), H.nz_real + (i == 2)};
         Write_HDF5_Field_3D(H.nx, H.ny, real_shape[0], real_shape[1], real_shape[2], H.n_ghost, file_id,
                             host_dataset_buf, dev_dataset_buf, ptr, dset_names[i], i);
@@ -350,16 +374,6 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
   #elif defined(OUTPUT_TEMPERATURE) && defined(COOLING_GRACKLE)
     Write_Grid_HDF5_Field_CPU(H, file_id, host_dataset_buf, G.Cool.temperature, "/temperature");
   #endif
-
-  #if defined(GRAVITY) && defined(OUTPUT_POTENTIAL)
-    if (is_3D) {  // 3D case
-      const Grav3D& Grav = G.Grav;
-      Write_Generic_HDF5_Field_GPU(Grav.nx_local + 2 * N_GHOST_POTENTIAL, Grav.ny_local + 2 * N_GHOST_POTENTIAL,
-                                   Grav.nz_local + 2 * N_GHOST_POTENTIAL, Grav.nx_local, Grav.ny_local, Grav.nz_local,
-                                   N_GHOST_POTENTIAL, file_id, host_dataset_buf, dev_dataset_buf, Grav.F.potential_d,
-                                   "/grav_potential");
-    }
-  #endif  // GRAVITY and OUTPUT_POTENTIAL
   }
 
   // Likely needs editing, check device or host array and offset
@@ -427,7 +441,8 @@ int Record_Colnames_And_Get_Field_Ptrs_(const Real** ptr_arr, bool* is_cell_cent
 {
   const Header& H             = G.H;
   const Grid3D::Conserved& C  = G.C;
-  const FieldInfo& field_info = G.field_info;
+  const FieldManager& f_man   = G.field_manager();
+  const FieldInfo& field_info = f_man.info();
 
   // write the name of the first column (the index column)
   std::fprintf(fp, "id");
@@ -438,17 +453,17 @@ int Record_Colnames_And_Get_Field_Ptrs_(const Real** ptr_arr, bool* is_cell_cent
   for (const io::DatasetSpecEntry& entry : dataset_spec.cc_dataset_entries) {
     // perform 2 simple sanity checks (these check invariants that should be satisfied
     // during initialization)
-    CHOLLA_ASSERT(entry.io_buf == field::IOBuf::HOST, "io_buf sanity check failed!");
+    CHOLLA_ASSERT(entry.io_buf == MemSpace::HOST, "io_buf sanity check failed!");
     CHOLLA_ASSERT(field_info.is_cell_centered(entry.field_id).value_or(false), "field-centering sanity-check failed!");
 
-    if (entry.condition == io::WriteCond::REQUIRE_COMPLETE_DATA and not H.Output_Complete_Data) {
+    if (entry.condition == io::WriteCond::REQUIRE_COMPLETE_DATA and not G.state.Output_Complete_Data) {
       continue;
     }
 
     std::fprintf(fp, "\t%s", entry.name.c_str());  // <- write the column name
 
     // record the field's pointer and whether it is cell-centered
-    ptr_arr[field_ptr_counter]          = &G.C.host[entry.field_id * G.H.n_cells];
+    ptr_arr[field_ptr_counter]          = f_man.field_or_abort(MemSpace::HOST, entry.field_id);
     is_cell_centered[field_ptr_counter] = true;
     field_ptr_counter++;
   }
@@ -461,8 +476,8 @@ int Record_Colnames_And_Get_Field_Ptrs_(const Real** ptr_arr, bool* is_cell_cent
     const char* field_name = field_names[i];
     std::fprintf(fp, "\t%s", field_name);  // <- write the column name
 
-    std::optional<int> maybe_field_id   = field_info.field_id(field_name);
-    const Real* ptr                     = &G.C.host[H.n_cells * get_or_abort(maybe_field_id)];
+    std::optional<FieldId> maybe_id     = field_info.field_id(field_name);
+    const Real* ptr                     = f_man.field_or_abort(MemSpace::HOST, get_or_abort(maybe_id));
     ptr_arr[field_ptr_counter]          = ptr;
     is_cell_centered[field_ptr_counter] = false;
     field_ptr_counter++;
@@ -488,7 +503,7 @@ void Write_Grid_Text_(const std::string& filename, const Grid3D& G, const Datase
 {
   const Header& H             = G.H;
   const Grid3D::Conserved& C  = G.C;
-  const FieldInfo& field_info = G.field_info;
+  const FieldInfo& field_info = G.field_info();
 
   if (H.nx * H.ny * H.nz > 1000) std::printf("Ascii outputs only recommended for small problems!\n");
 
@@ -519,7 +534,7 @@ void Write_Grid_Text_(const std::string& filename, const Grid3D& G, const Datase
   // Part 2: collect info about each field & write the initial header for the text file
   // ----------------------------------------------------------------------------------
   // these arrays will hold entries for each field that we want to serialize
-  // (the precise details may depend upon G.H.Output_Complete_Data)
+  // (the precise details may depend upon G.state.Output_Complete_Data)
   const Real* ptr_arr[MAX_FIELDS];
   bool is_cell_centered[MAX_FIELDS];
   int n_output_fields = Record_Colnames_And_Get_Field_Ptrs_(ptr_arr, is_cell_centered, fp, dataset_spec, G);
