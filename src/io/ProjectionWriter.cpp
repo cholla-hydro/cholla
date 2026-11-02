@@ -173,7 +173,7 @@ void Write_Projection_HDF5_(const Grid3D &G, hid_t file_id)
   #ifdef DUST
       dataset_buffer_dust_xz[buf_id] = dust_xz;
   #endif
-   #ifdef METALS
+  #ifdef METALS
       dataset_buffer_metals_xz[buf_id] = metals_xz;
   #endif
     }

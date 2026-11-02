@@ -501,7 +501,6 @@ Real Grid3D::Update_Hydro_Grid(std::function<void(Grid3D &)> &feedback_callback,
   Apply_Temperature_Floor(C.device, H.nx, H.ny, H.nz, H.n_ghost, H.n_fields, U_floor);
 #endif  // TEMPERATURE_FLOOR
 
-
 #ifdef SCALAR_FLOOR
   #ifdef DUST
   Apply_Scalar_Floor(C.device, H.nx, H.ny, H.nz, H.n_ghost, grid_enum::dust_density, H.scalar_floor);

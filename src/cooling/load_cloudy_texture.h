@@ -53,12 +53,12 @@ class CloudyHeatAndCool
    *
    *  \note This constructor is useful for testing
    */
-  __host__ explicit CloudyHeatAndCool(std::string filename, bool enable_heating=true);
+  __host__ explicit CloudyHeatAndCool(std::string filename, bool enable_heating = true);
 
   /*! \brief Construct an instance from the ParameterMap */
   __host__ explicit CloudyHeatAndCool(ParameterMap& pmap)
       : CloudyHeatAndCool(pmap.value_or("chemistry.data_file", ""),
-                            pmap.value_or("chemistry.enable_heating", true))  // delegate to other constructor
+                          pmap.value_or("chemistry.enable_heating", true))  // delegate to other constructor
   {
   }
 
@@ -96,10 +96,10 @@ class CloudyHeatAndCool
       const Real remap_log_T = (log_T - 1.0) * 10;
       const Real remap_log_n = (log_n + 6.0) * 10;
 
-      lambda       = Bilinear_Texture(this->coolTexObj_.get(), remap_log_T, remap_log_n);
-      if (enable_heating_){
+      lambda = Bilinear_Texture(this->coolTexObj_.get(), remap_log_T, remap_log_n);
+      if (enable_heating_) {
         const Real H = Bilinear_Texture(this->heatTexObj_.get(), remap_log_T, remap_log_n);
-        heating      = pow(10, H); 
+        heating      = pow(10, H);
       }
     } else {
       // Do nothing below 10 K

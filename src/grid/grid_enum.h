@@ -58,7 +58,7 @@ enum : int {
   e_density,
   #endif
 
-  #if defined (GRACKLE_METALS) || defined(METALS)
+  #if defined(GRACKLE_METALS) || defined(METALS)
   metal_density,
   #endif
 

@@ -1364,8 +1364,8 @@ void Grid3D::Clouds(ParameterMap &pmap)
   Real cl_pos[N_cl][3];  // array of cloud positions
   Real r;
 
-  double metallicity_wind    = pmap.value_or("metallicity_wind", 1.0);
-  double metallicity_cloud   = pmap.value_or("metallicity_cloud", 1.0);
+  double metallicity_wind  = pmap.value_or("metallicity_wind", 1.0);
+  double metallicity_cloud = pmap.value_or("metallicity_cloud", 1.0);
 
   // Multiple Cloud Setup
   // for (int nn=0; nn<N_cl; nn++) {
@@ -1375,7 +1375,6 @@ void Grid3D::Clouds(ParameterMap &pmap)
   //  printf("Cloud positions: %f %f %f\n", cl_pos[nn][0], cl_pos[nn][1],
   //  cl_pos[nn][2]);
   //}
-
 
   // single centered cloud setup
   for (int nn = 0; nn < N_cl; nn++) {
@@ -1464,7 +1463,7 @@ void Grid3D::Clouds(ParameterMap &pmap)
             C.GasEnergy[id] = p_cl / (gama - 1.0);
 #endif  // DE
 #ifdef SCALAR
-#ifdef BASIC_SCALAR
+  #ifdef BASIC_SCALAR
             C.basic_scalar[id] = 0.1 * rho_bg;
   #endif
   #ifdef DUST

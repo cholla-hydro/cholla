@@ -175,7 +175,7 @@ static void Free_Single_Cuda_Texture(cudaTextureObject_t &texObj)
 }
 
 __host__ cool_component::CloudyHeatAndCool::CloudyHeatAndCool(std::string filename, bool enable_heating)
-  : enable_heating_(enable_heating)
+    : enable_heating_(enable_heating)
 {
   cudaTextureObject_t coolTexObj = 0;
   cudaTextureObject_t heatTexObj = 0;
