@@ -213,12 +213,14 @@ void Grid3D::Compute_Potential_Isolated_Boundary(int direction, int side, int bc
   auto [pot_boundary, boundary_buf_props] = tmp;
 
   if (bc_potential_type == 0) {
+    const SphericalOverdensity *overdensity_model = models().try_get<SphericalOverdensity>();
+    CHOLLA_ASSERT(overdensity_model != nullptr, "spherical overdensity model wasn't initialized");
     // Point mass potential GM/r
-    const Real r0       = H.sphere_radius;
-    const Real M        = (H.sphere_density - H.sphere_background_density) * 4.0 * M_PI * r0 * r0 * r0 / 3.0;
-    const Real cm_pos_x = H.sphere_center_x;
-    const Real cm_pos_y = H.sphere_center_y;
-    const Real cm_pos_z = H.sphere_center_z;
+    const Real r0 = overdensity_model->radius;
+    const Real M  = (overdensity_model->overdensity - overdensity_model->bkg_density) * 4.0 * M_PI * r0 * r0 * r0 / 3.0;
+    const Real cm_pos_x = overdensity_model->center_xyz[0];
+    const Real cm_pos_y = overdensity_model->center_xyz[1];
+    const Real cm_pos_z = overdensity_model->center_xyz[2];
     const Real Gconst   = Grav.Gconst;
 
     // define a local function that actually computes the potential
