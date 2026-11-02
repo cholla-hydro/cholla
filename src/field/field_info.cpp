@@ -7,8 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "../grid/grid_enum.h"
 #include "../utils/FrozenKeyIdxBiMap.h"
-#include "grid_enum.h"
 
 namespace
 {  // stuff in an anonymous namespace is local to this file
@@ -16,7 +16,7 @@ namespace
 struct PropPack {
   const char* name;
   field::Kind kind;
-  field::IOBuf io_buf;
+  MemSpace io_buf;
 };
 
 }  // anonymous namespace
@@ -26,43 +26,43 @@ struct PropPack {
  *  This must remain synchronized with grid_enum.h
  */
 static constexpr PropPack pack_arr_[] = {
-    {"density", field::Kind::HYDRO, field::IOBuf::DEVICE},
-    {"momentum_x", field::Kind::HYDRO, field::IOBuf::DEVICE},
-    {"momentum_y", field::Kind::HYDRO, field::IOBuf::DEVICE},
-    {"momentum_z", field::Kind::HYDRO, field::IOBuf::DEVICE},
-    {"Energy", field::Kind::HYDRO, field::IOBuf::DEVICE},
+    {"density", field::Kind::HYDRO, MemSpace::DEV},
+    {"momentum_x", field::Kind::HYDRO, MemSpace::DEV},
+    {"momentum_y", field::Kind::HYDRO, MemSpace::DEV},
+    {"momentum_z", field::Kind::HYDRO, MemSpace::DEV},
+    {"Energy", field::Kind::HYDRO, MemSpace::DEV},
 
 #ifdef SCALAR
   #ifdef BASIC_SCALAR
     // we use the name "scalar0" for better consistency with the name recorded during IO
-    {"scalar0", field::Kind::PASSIVE_SCALAR, field::IOBuf::DEVICE},
+    {"scalar0", field::Kind::PASSIVE_SCALAR, MemSpace::DEV},
   #endif
 
   #if defined(COOLING_GRACKLE) || defined(CHEMISTRY_GPU)
-    {"HI_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
-    {"HII_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
-    {"HeI_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
-    {"HeII_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
-    {"HeIII_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
-    {"e_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
+    {"HI_density", field::Kind::PASSIVE_SCALAR, MemSpace::HOST},
+    {"HII_density", field::Kind::PASSIVE_SCALAR, MemSpace::HOST},
+    {"HeI_density", field::Kind::PASSIVE_SCALAR, MemSpace::HOST},
+    {"HeII_density", field::Kind::PASSIVE_SCALAR, MemSpace::HOST},
+    {"HeIII_density", field::Kind::PASSIVE_SCALAR, MemSpace::HOST},
+    {"e_density", field::Kind::PASSIVE_SCALAR, MemSpace::HOST},
     #ifdef GRACKLE_METALS
-    {"metal_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::HOST},
+    {"metal_density", field::Kind::PASSIVE_SCALAR, MemSpace::HOST},
     #endif
   #endif
 
   #ifdef DUST
-    {"dust_density", field::Kind::PASSIVE_SCALAR, field::IOBuf::DEVICE},
+    {"dust_density", field::Kind::PASSIVE_SCALAR, MemSpace::DEV},
   #endif  // DUST
 
 #endif  // SCALAR
 
 #ifdef MHD
-    {"magnetic_x", field::Kind::MAGNETIC, field::IOBuf::DEVICE},
-    {"magnetic_y", field::Kind::MAGNETIC, field::IOBuf::DEVICE},
-    {"magnetic_z", field::Kind::MAGNETIC, field::IOBuf::DEVICE},
+    {"magnetic_x", field::Kind::MAGNETIC, MemSpace::DEV},
+    {"magnetic_y", field::Kind::MAGNETIC, MemSpace::DEV},
+    {"magnetic_z", field::Kind::MAGNETIC, MemSpace::DEV},
 #endif
 #ifdef DE
-    {"GasEnergy", field::Kind::HYDRO, field::IOBuf::DEVICE}
+    {"GasEnergy", field::Kind::HYDRO, MemSpace::DEV}
 #endif
 };
 
@@ -80,15 +80,16 @@ FieldInfo FieldInfo::create()
   for (std::size_t i = 0; i < n_fields_; i++) {
     v.emplace_back(pack_arr_[i].name);
     out.io_buf_.push_back(pack_arr_[i].io_buf);
+    FieldId field_id(0, static_cast<uint8_t>(i));
     switch (pack_arr_[i].kind) {
       case field::Kind::HYDRO:
-        out.hydro_field_ids_.push_back(i);
+        out.hydro_field_ids_.push_back(field_id);
         break;
       case field::Kind::PASSIVE_SCALAR:
-        out.scalar_field_ids_.push_back(i);
+        out.scalar_field_ids_.push_back(field_id);
         break;
       case field::Kind::MAGNETIC:
-        out.magnetic_field_ids_.push_back(i);
+        out.magnetic_field_ids_.push_back(field_id);
         break;
       default:
         CHOLLA_ERROR("This branch should be unreachable");
@@ -98,7 +99,7 @@ FieldInfo FieldInfo::create()
   return out;
 }
 
-const std::vector<int>& FieldInfo::get_kind_ids_(field::Kind kind) const
+const std::vector<FieldId>& FieldInfo::get_kind_ids_(field::Kind kind) const
 {
   switch (kind) {
     case field::Kind::HYDRO:
