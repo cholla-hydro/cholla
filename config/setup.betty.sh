@@ -7,3 +7,4 @@ module load gcc
 module load cuda
 module load openmpi
 module load hdf5
+module load miniconda3

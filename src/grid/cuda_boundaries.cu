@@ -304,7 +304,7 @@ __device__ int FindIndex(int ig, int nx, int flag, int face, int n_ghost, Real *
 
 __global__ void Wind_Boundary_kernel(Real *c_device, int nx, int ny, int nz, int n_cells, int n_ghost, int x_off,
                                      int y_off, int z_off, Real dx, Real dy, Real dz, Real xbound, Real ybound,
-                                     Real zbound, Real gamma, Real t)
+                                     Real zbound, Real gamma, Real t, Real velocity_x_cloud_avg, Real density_wind_init)
 {
   int id, xid, yid, zid, gid;
   Real n_0, T_0;
@@ -317,6 +317,9 @@ __global__ void Wind_Boundary_kernel(Real *c_device, int nx, int ny, int nz, int
   // same values as rho_bg and p_bg in cloud initial condition function
   d_0 = n_0 * mu * MP / DENSITY_UNIT;
   P_0 = n_0 * KB * T_0 / PRESSURE_UNIT;
+#ifdef CLOUD_TRACKING
+  d_0 = density_wind_init / DENSITY_UNIT;
+#endif
 
   vx = 100 * TIME_UNIT / KPC;  // km/s * (cholla unit conversion)
   vy = 0.0;
@@ -334,11 +337,21 @@ __global__ void Wind_Boundary_kernel(Real *c_device, int nx, int ny, int nz, int
 
   if (xid <= n_ghost && xid < nx && yid < ny && zid < nz) {
     // set conserved variables
-    c_device[gid]               = d_0;
-    c_device[gid + 1 * n_cells] = vx * d_0;
-    c_device[gid + 2 * n_cells] = vy * d_0;
-    c_device[gid + 3 * n_cells] = vz * d_0;
-    c_device[gid + 4 * n_cells] = P_0 / (gamma - 1.0) + 0.5 * d_0 * (vx * vx + vy * vy + vz * vz);
+    c_device[gid + n_cells * grid_enum::density]    = d_0;
+    c_device[gid + n_cells * grid_enum::momentum_x] = vx * d_0;
+    c_device[gid + n_cells * grid_enum::momentum_y] = vy * d_0;
+    c_device[gid + n_cells * grid_enum::momentum_z] = vz * d_0;
+    c_device[gid + n_cells * grid_enum::Energy] = P_0 / (gamma - 1.0) + 0.5 * d_0 * (vx * vx + vy * vy + vz * vz);
+#ifdef CLOUD_TRACKING
+    c_device[gid + n_cells * grid_enum::density]    = d_0;
+    c_device[gid + n_cells * grid_enum::momentum_x] = (vx - velocity_x_cloud_avg) * d_0;
+    c_device[gid + n_cells * grid_enum::momentum_y] = vy * d_0;
+    c_device[gid + n_cells * grid_enum::momentum_z] = vz * d_0;
+    c_device[gid + n_cells * grid_enum::Energy] = P_0 / (gamma - 1.0) + 0.5 * d_0 * (pow(vx - velocity_x_cloud_avg, 2) + pow(vy, 2) + pow(vz, 2));
+#endif  // CLOUD_TRACKING
+#ifdef DUST
+    c_device[gid + n_cells * grid_enum::dust_density] = 0.0;
+#endif
   }
   __syncthreads();
 }
@@ -514,7 +527,8 @@ __global__ void Noh_Boundary_kernel(Real *c_device, int nx, int ny, int nz, int 
 }
 
 void Wind_Boundary_CUDA(Real *c_device, int nx, int ny, int nz, int n_cells, int n_ghost, int x_off, int y_off,
-                        int z_off, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real gamma, Real t)
+                        int z_off, Real dx, Real dy, Real dz, Real xbound, Real ybound, Real zbound, Real gamma, Real t,
+                        Real velocity_x_cloud_avg, Real density_wind_init)
 {
   // determine the size of the grid to launch
   // need at least as many threads as the largest boundary face
@@ -529,7 +543,8 @@ void Wind_Boundary_CUDA(Real *c_device, int nx, int ny, int nz, int n_cells, int
 
   // launch the boundary kernel
   hipLaunchKernelGGL(Wind_Boundary_kernel, dim1dGrid, dim1dBlock, 0, 0, c_device, nx, ny, nz, n_cells, n_ghost, x_off,
-                     y_off, z_off, dx, dy, dz, xbound, ybound, zbound, gamma, t);
+                     y_off, z_off, dx, dy, dz, xbound, ybound, zbound, gamma, t, velocity_x_cloud_avg,
+                     density_wind_init);
 }
 
 void Noh_Boundary_CUDA(Real *c_device, int nx, int ny, int nz, int n_cells, int n_ghost, int x_off, int y_off,

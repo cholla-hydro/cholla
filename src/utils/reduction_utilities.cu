@@ -11,6 +11,7 @@
 // External Includes
 
 // Local Includes
+#include "../utils/DeviceVector.h"
 #include "../utils/reduction_utilities.h"
 
 namespace reduction_utilities
@@ -38,4 +39,18 @@ __global__ void kernelReduceMax(Real* in, Real* out, size_t N)
   gridReduceMax(maxVal, out);
 }
 // =====================================================================
+
+__global__ void Kernel_Reduce_Add(Real* in, Real* out, size_t N)
+{
+  Real sum_stride = 0;
+
+  // Each thread strides through the grid to perform a partial reduction
+  for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < N; i += blockDim.x * gridDim.x) {
+    sum_stride += in[i];
+  }
+  __syncthreads();
+
+  // Perform grid-wide reduction
+  Grid_Reduce_Add(sum_stride, out);
+}
 }  // namespace reduction_utilities
