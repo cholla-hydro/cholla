@@ -109,7 +109,7 @@ void Grav3D::Initialize(const SpatialDomainProps &spatial_props, Real Lx, Real L
 
   Poisson_solver.Initialize(Lbox_x, Lbox_y, Lbox_z, xMin, yMin, zMin, nx_total, ny_total, nz_total, nx_local, ny_local,
                             nz_local, dx, dy, dz);
-  #if defined(PARIS_TEST) || defined(PARIS_GALACTIC_TEST)
+  #if defined(PARIS_TEST)
   Poisson_solver_test.Initialize(Lbox_x, Lbox_y, Lbox_z, xMin, yMin, zMin, nx_total, ny_total, nz_total, nx_local,
                                  ny_local, nz_local, dx, dy, dz);
   #endif
@@ -195,7 +195,7 @@ void Grav3D::FreeMemory_CPU(void)
   #endif
 
   Poisson_solver.Reset();
-  #if defined(PARIS_TEST) || defined(PARIS_GALACTIC_TEST)
+  #if defined(PARIS_TEST)
   Poisson_solver_test.Reset();
   #endif
 
