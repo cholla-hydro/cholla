@@ -3,9 +3,8 @@
   #include <fstream>
   #include <iostream>
 
-  #include "../radiation/radiation.h"
   #include "../io/io.h"
-
+  #include "../radiation/radiation.h"
 
 void Rad3D::Load_Outputs(const Parameters& P, Real current_time)
 {
@@ -34,7 +33,7 @@ void Rad3D::Load_Outputs(const Parameters& P, Real current_time)
   chprintf("RT: Setting next output\n");
 
   int scale_indx = next_output_indx;
-  value        = rt_outputs[scale_indx];
+  value          = rt_outputs[scale_indx];
 
   while ((current_time - value) > 1e-3) {
     // chprintf( "%f   %f\n", a_value, current_a);
@@ -47,7 +46,7 @@ void Rad3D::Load_Outputs(const Parameters& P, Real current_time)
   chprintf("RT: Next output z value: %f  \n", 1. / next_output - 1);
   #else
   chprintf("RT: Next output time: %f  \n", next_output);
-  #endif // COSMOLOGY
+  #endif  // COSMOLOGY
 
   exit_now = false;
 }
@@ -57,22 +56,22 @@ void Rad3D::Set_Outputs(const Parameters& P, Real current_time)
   if (P.rt_outputs_file[0] == '\0') {
     chprintf("RT: Output every %d timesteps.\n", P.n_steps_output);
 
-    Real outtime = current_time;   // current output time
-    Real outstep = 1.0; // time between output times
-    Real tout = 1.0;    // final output time
-    if(P.outstep > 0) {
+    Real outtime = current_time;  // current output time
+    Real outstep = 1.0;           // time between output times
+    Real tout    = 1.0;           // final output time
+    if (P.outstep > 0) {
       outstep = P.outstep;
     }
-    if(P.tout > 0) {
+    if (P.tout > 0) {
       tout = P.tout;
     }
-    
-    rt_outputs.push_back(outtime); // always output initial step
-    while(outtime < tout) {
+
+    rt_outputs.push_back(outtime);  // always output initial step
+    while (outtime < tout) {
       if (P.outstep_dexinc != 0) outstep *= pow(10.0, P.outstep_dexinc);
       outtime = std::fmin(outtime + outstep, tout);  // get the next output time
       rt_outputs.push_back(outtime);
-      n_outputs = rt_outputs.size(); // record the number of output times
+      n_outputs = rt_outputs.size();  // record the number of output times
     }
   } else {
     Load_Outputs(P, current_time);
@@ -82,12 +81,12 @@ void Rad3D::Set_Outputs(const Parameters& P, Real current_time)
 void Rad3D::Set_Next_Output()
 {
   int scale_indx = next_output_indx;
-  Real value   = rt_outputs[scale_indx];
+  Real value     = rt_outputs[scale_indx];
 
   scale_indx += 1;
 
   if (scale_indx < n_outputs) {
-    value          = rt_outputs[scale_indx];
+    value            = rt_outputs[scale_indx];
     next_output_indx = scale_indx;
     next_output      = value;
   } else {

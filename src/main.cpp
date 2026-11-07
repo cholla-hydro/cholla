@@ -61,12 +61,12 @@ int main(int argc, char* argv[])
 
   Real dt_max = 0.0;  // maximum allowed time step
 
-/*
-#ifdef RT
-  // limit max time, added for RT tests
-  Real outstep;  // output timestep for RT
-#endif           // RT
-*/
+  /*
+  #ifdef RT
+    // limit max time, added for RT tests
+    Real outstep;  // output timestep for RT
+  #endif           // RT
+  */
 
   // input parameter variables
   int nfile    = 0;  // number of output files
@@ -163,9 +163,9 @@ int main(int argc, char* argv[])
 #ifdef RT
   #ifdef COSMOLOGY
   G.Rad.Initialize_Finish(P, G.C.current_a);
-  #else 
+  #else
   G.Rad.Initialize_Finish(P, G.H.t);
-  #endif  
+  #endif
 #endif
 
 #ifdef DE
@@ -308,7 +308,6 @@ int main(int argc, char* argv[])
   }
 
   while (G.H.t < P.tout) {
-
 // get the start time
 #ifdef CPU_TIME
     G.Timer.Total.Start();
@@ -324,7 +323,7 @@ int main(int argc, char* argv[])
 
     // calculate the timestep by calling MPI_Allreduce
     G.set_dt(dti);
-    chprintf("dti = %e G.H.dt %e\n",dti,G.H.dt);
+    chprintf("dti = %e G.H.dt %e\n", dti, G.H.dt);
 
     // adjust timestep based on the next available scheduled time
     const Real next_scheduled_time = fmin(outtime, P.tout);
@@ -418,7 +417,8 @@ int main(int argc, char* argv[])
     // if ( P.n_steps_output > 0 && G.H.n_step % P.n_steps_output == 0)
     // G.H.Output_Now = true;
 
-    chprintf("CHECK: G.H.t %e G.H.dt %e 1./dti %e outtime %e RT.next_output %e Output_Now %d dt_max %e\n",G.H.t,G.H.dt,1./dti,outtime,G.Rad.next_output,G.H.Output_Now,dt_max);
+    chprintf("CHECK: G.H.t %e G.H.dt %e 1./dti %e outtime %e RT.next_output %e Output_Now %d dt_max %e\n", G.H.t,
+             G.H.dt, 1. / dti, outtime, G.Rad.next_output, G.H.Output_Now, dt_max);
     if (G.H.t == outtime || G.H.Output_Now) {
 #ifdef OUTPUT
       /*output the grid data*/
@@ -432,7 +432,6 @@ int main(int argc, char* argv[])
         outtime = G.Update_Output_Time(outtime, P);
         outtime = std::fmin(outtime, P.tout);
       }
-
     }
 
 #ifdef CPU_TIME
@@ -457,7 +456,7 @@ int main(int argc, char* argv[])
 
 #ifdef RT
     // Exit the loop when reached the last rt time output
-    if(G.Rad.exit_now) {
+    if (G.Rad.exit_now) {
       chprintf("\nRT: Reached Last RT Output: Ending Simulation\n");
       break;
     }

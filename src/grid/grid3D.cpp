@@ -124,7 +124,7 @@ Real Grid3D::Calc_Inverse_Timestep()
 /*! \brief Update the next snapshot output time */
 Real Grid3D::Update_Output_Time(Real outtime_in, const Parameters &P)
 {
-  Real outtime = outtime_in; // current output time
+  Real outtime = outtime_in;  // current output time
 
   // increment by the default outstep
   outtime += P.outstep;
@@ -135,9 +135,8 @@ Real Grid3D::Update_Output_Time(Real outtime_in, const Parameters &P)
   outtime = fmax(outtime, Rad.next_output);
 #endif  // RT
 
-  return outtime; // return the next output time
+  return outtime;  // return the next output time
 }
-
 
 /*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
  *  \brief Initialize the grid. */
@@ -332,7 +331,7 @@ void Grid3D::AllocateMemory(void)
 #endif
 
 #if defined(RT) || defined(CHEMISTRY_GPU)
-  chprintf("Setting pointers for: HI, HII, HeI, HeII, HeIII densities (n_cells = %d).\n",H.n_cells);
+  chprintf("Setting pointers for: HI, HII, HeI, HeII, HeIII densities (n_cells = %d).\n", H.n_cells);
   C.HI_density    = &C.host[H.n_cells * grid_enum::HI_density];
   C.HII_density   = &C.host[H.n_cells * grid_enum::HII_density];
   C.HeI_density   = &C.host[H.n_cells * grid_enum::HeI_density];
@@ -375,7 +374,7 @@ void Grid3D::set_dt(Real dti)
 
   H.dt = C_cfl / max_dti;
 
-  chprintf("G: set_dti: C_cfl %e H.dt %e max_dti %e\n",C_cfl,H.dt,max_dti);
+  chprintf("G: set_dti: C_cfl %e H.dt %e max_dti %e\n", C_cfl, H.dt, max_dti);
 
 #endif  // ONLY_PARTICLES
 
@@ -387,7 +386,7 @@ void Grid3D::set_dt(Real dti)
 #ifdef RT
   // Set dt for radiative transfer
   set_dt_RT();
-#endif 
+#endif
 
 #ifdef CPU_TIME
   Timer.Calc_dt.End();

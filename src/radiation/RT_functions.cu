@@ -297,25 +297,24 @@ struct DEVICE_ALIGN_DECL PijFunctorRT_M1 {
   __device__ void operator()(int offset, int nx, int ny, int nz, int ic, int jc, int kc, const Real* rfi, Real* pij,
                              int deb)
   {
+    // Noting that here nx, ny, and nz contain 2*n_ghost cells plus the local grid dimensions
+    // the input rfi field contains the intensity, Mx, My, and Mz fields for one frequency
+    // the output rfiOut contains the clipped fields
 
-  // Noting that here nx, ny, and nz contain 2*n_ghost cells plus the local grid dimensions
-  // the input rfi field contains the intensity, Mx, My, and Mz fields for one frequency
-  // the output rfiOut contains the clipped fields
+    // offset here is n_ghost
 
-  // offset here is n_ghost
+    // The fields should be ordered as:
+    // *intensity, *intensity_Mx, *intensity_My, and *intensity_Mz
 
-  // The fields should be ordered as:
-  // *intensity, *intensity_Mx, *intensity_My, and *intensity_Mz
+    // def_rfNew should be n_fpfreq * grid.n_cells, which
+    // represents the intensity and moments at each frequency
 
-  // def_rfNew should be n_fpfreq * grid.n_cells, which
-  // represents the intensity and moments at each frequency
-
-  // the ic, jc, kc have already been filtered for real cells
+    // the ic, jc, kc have already been filtered for real cells
 
     if (ic < offset || jc < offset || kc < offset || ic >= nx - offset || jc >= ny - offset || kc >= nz - offset)
       return;
 
-    // here nw3 is the 
+    // here nw3 is the
     const int nw3  = nx * ny * nz;
     const int idx  = ic + nx * (jc + ny * kc);
     const float r  = rfi[idx];
@@ -390,7 +389,7 @@ void Rad3D::StepRFiIteration(Real cdt2dxRSL, Real gamma_sis)
   // note that grid.n_cells contains 2*n_ghost cells in each dimension
   // The ordering of the fields for each frequency are Intensity, Mx, My, Mz
   for (int freq = 0; freq < n_freq; freq++) {  /// hold -- 4 fields per freq * number of freq in RT_M1
-    int  fabc  = (freq < 3 ? freq : 0);
+    int fabc   = (freq < 3 ? freq : 0);
     auto rfOld = rtFields.dev_rf + grid.n_cells * (n_fpfreq * freq);  // old radiation fields at this frequency
     auto rfNew = rtFields.dev_rfNew;                                  // updated radiation fields at this frequency
     auto abc   = rtFields.dev_abc + fabc * grid.n_cells;              // absorption coefficients at this frequency
@@ -414,10 +413,11 @@ void Rad3D::StepRFiIteration(Real cdt2dxRSL, Real gamma_sis)
     // Step the radiation fields at this frequency
     // Defined in RT_kernels.cu
     hipLaunchKernelGGL(StepRFiIteration_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost,
-                       grid.dx, cdt2dxRSL, gamma_sis, rtFields.dev_rs, rfOld, abc, pij, rfNew, freq, (freq == 0 ? 1 : 0));
-    //GPU_Error_Check(cudaMemcpyAsync(rfNew, rfOld, n_fpfreq * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice)); // dummy
+                       grid.dx, cdt2dxRSL, gamma_sis, rtFields.dev_rs, rfOld, abc, pij, rfNew, freq,
+                       (freq == 0 ? 1 : 0));
+    // GPU_Error_Check(cudaMemcpyAsync(rfNew, rfOld, n_fpfreq * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
+    // // dummy
     GPU_Error_Check(cudaMemcpyAsync(rfOld, rfNew, n_fpfreq * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
-
 
     /*if(freq == 0) {
           GPU_Error_Check(cudaMemcpy(RFCatch, rfNew, n_fpfreq * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
@@ -612,13 +612,13 @@ void Rad3D::rtSolve(Real* dev_scalar)
 {
   auto dt = grid.dt;
 
-  chprintf("RT: in rtSolve dt = %e\n",dt);
+  chprintf("RT: in rtSolve dt = %e\n", dt);
 
   // first call absorption coefficient kernel
   Calc_Absorption(dev_scalar);
 
-  int niters                   = this->num_iterations;
-  //Real speedOfLightInCodeUnits = 3e10 / VELOCITY_UNIT;
+  int niters = this->num_iterations;
+  // Real speedOfLightInCodeUnits = 3e10 / VELOCITY_UNIT;
   Real speedOfLightInCodeUnits = 2.998e10 / VELOCITY_UNIT;
 
   int n_iters_check = 0;  // check the number of iterations
@@ -683,7 +683,7 @@ void Rad3D::rtSolve(Real* dev_scalar)
   }
 
   // int niters_cfl = 1 + speedOfLightInCodeUnits * dt / (CFL_RT * grid.dx);
-  Real f_CFL = speedOfLightInCodeUnits * dt / (CFL_RT * grid.dx);
+  Real f_CFL     = speedOfLightInCodeUnits * dt / (CFL_RT * grid.dx);
   int niters_cfl = 1 + ceil(f_CFL);
 
   // if (niters_cfl < this->num_iterations) niters_cfl = this->num_iterations;
@@ -695,11 +695,11 @@ void Rad3D::rtSolve(Real* dev_scalar)
   // niters_cfl = this->num_iterations;
   if (niters_cfl > this->num_iterations) niters_cfl = this->num_iterations;
 
-  //Real cdt2dxRSL = fminf(CFL_RT, speedOfLightInCodeUnits * dt / grid.dx);
-  //Real cdt2dxRSL = fminf(CFL_RT, speedOfLightInCodeUnits * dt / (grid.dx * niters_cfl)); 
+  // Real cdt2dxRSL = fminf(CFL_RT, speedOfLightInCodeUnits * dt / grid.dx);
+  // Real cdt2dxRSL = fminf(CFL_RT, speedOfLightInCodeUnits * dt / (grid.dx * niters_cfl));
 
-  //Real cdt2dxRSL = speedOfLightInCodeUnits * dt / (grid.dx * niters_cfl);
-  Real cdt2dxRSL = 1./niters_cfl;
+  // Real cdt2dxRSL = speedOfLightInCodeUnits * dt / (grid.dx * niters_cfl);
+  Real cdt2dxRSL = 1. / niters_cfl;
   /*if(cdt2dxRSL > CFL_RT) {
     niters_cfl = ceil(fmaxf(2,1./CFL_RT));
     cdt2dxRSL = 1./niters_cfl;
@@ -719,10 +719,9 @@ void Rad3D::rtSolve(Real* dev_scalar)
   chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, dt: %e, c: %e, dx %e, cdt2dxRSL %e)\n",
            niters_cfl, this->num_iterations, dt, speedOfLightInCodeUnits, grid.dx, cdt2dxRSL);
 
-//  for (int iter = 0; iter < niters_cfl; iter++) {
-//    this->lastIteration = (iter == niters_cfl - 1);
+  //  for (int iter = 0; iter < niters_cfl; iter++) {
+  //    this->lastIteration = (iter == niters_cfl - 1);
   for (int iter = 0; iter < niters_cfl; iter++) {
-
     // Call the StepRFi Iteration kernel
     // This must create and destroy the pressure fields
     StepRFiIteration(cdt2dxRSL, gamma_sis);

@@ -978,7 +978,7 @@ class Grid3D
 
 #ifdef RT
   void Initialize_RT();
-  void Update_RT(Real *dt_max, const Parameters& params);
+  void Update_RT(Real *dt_max, const Parameters &params);
   int Load_RT_Fields_To_Buffer(int direction, int side, Real *buffer, int buffer_start);
 
   /*! \fn void set_dt_RT()

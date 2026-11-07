@@ -464,8 +464,8 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
 
   const int nw3 = nx * ny * nz;
 
-  const Real* rf     = rfi;
-  const Real* fi[3]  = {rfi + nw3, rfi + 2 * nw3, rfi + 3 * nw3};
+  const Real* rf    = rfi;
+  const Real* fi[3] = {rfi + nw3, rfi + 2 * nw3, rfi + 3 * nw3};
 
   // check this indexing
   const Real* pij[6] = {pij_, pij_ + nw3, pij_ + 2 * nw3, pij_ + 3 * nw3, pij_ + 4 * nw3, pij_ + 5 * nw3};
@@ -484,29 +484,29 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
   Real d0, dF[3];
   Real w0, wF0[3];
   // Real abc0;
-  Real fu = dx * (nx - 2*n_ghost);
+  Real fu = dx * (nx - 2 * n_ghost);
   fu *= fu;
-  //Real fu = 1;
+  // Real fu = 1;
 
   Real rf1, cdt2dx, w1, w2;
 
   // absorption coefficient is 0 for freq >= 3
   Real abc0 = (freq < 3 ? abc[ic + nx * (jc + ny * kc)] : 0);
   if (Split) {
-    cdt2dx    = cdt2dxRSL / (1 + cdt2dxRSL * gamma * 3);
-    
-    Real tau  = cdt2dx * abc0;
-    w1        = expf(-tau);
+    cdt2dx = cdt2dxRSL / (1 + cdt2dxRSL * gamma * 3);
+
+    Real tau = cdt2dx * abc0;
+    w1       = expf(-tau);
     // maybe lower to 0.01?
-    w2        = (tau < 0.1F ? 1 - 0.5F * tau * (1 - (1.0F / 3.0F) * tau * (1 - 0.25F * tau)) : (1 - w1) / tau);
+    w2 = (tau < 0.1F ? 1 - 0.5F * tau * (1 - (1.0F / 3.0F) * tau * (1 - 0.25F * tau)) : (1 - w1) / tau);
 
     rf1 = rf[ic + nx * (jc + ny * kc)] * w1 + cdt2dx * d * w2;
 
     // copy
-    E0 = rf[ic + nx * (jc + ny * kc)];
-    E1 = rf1;
-    d0 = d;
-    w0 = cdt2dx * d * w2;
+    E0    = rf[ic + nx * (jc + ny * kc)];
+    E1    = rf1;
+    d0    = d;
+    w0    = cdt2dx * d * w2;
     f0[0] = fi[0][im + nx * (jc + ny * kc)];
     f0[1] = fi[0][ip + nx * (jc + ny * kc)];
     f0[2] = fi[1][ic + nx * (jm + ny * kc)];
@@ -519,10 +519,11 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
     rf1 = rf[ic + nx * (jc + ny * kc)] + cdt2dx * (d - abc0 * rf[ic + nx * (jc + ny * kc)]);
   }
 
-  if( (ic == nx/2) and (jc == ny/2) and (kc == nz/2) and deb) {
-    //printf("RT-GPU-E %6.3g -> %6.3g cdt2dx=%.6g d=%6.4g abc=%.6g f =(%.5g,%.5g,%.5g,%.5g,%.5g,%.5g) w=%6.3g\n",fu*E0,fu*E1,cdt2dx,fu*d0,abc0,fu*f0[0],fu*f0[1],fu*f0[2],fu*f0[3],fu*f0[4],fu*f0[5],fu*w0);
-    printf("RT-GPU-E %6.3f -> %6.3f cdt2dx=%.6f d=%6.4f abc=%.6f f =(%.5g,%.5g,%.5g,%.5g,%.5g,%.5g)\n",fu*E0,fu*E1,cdt2dx,fu*d0,abc0,fu*f0[0],fu*f0[1],fu*f0[2],fu*f0[3],fu*f0[4],fu*f0[5]);
-
+  if ((ic == nx / 2) and (jc == ny / 2) and (kc == nz / 2) and deb) {
+    // printf("RT-GPU-E %6.3g -> %6.3g cdt2dx=%.6g d=%6.4g abc=%.6g f =(%.5g,%.5g,%.5g,%.5g,%.5g,%.5g)
+    // w=%6.3g\n",fu*E0,fu*E1,cdt2dx,fu*d0,abc0,fu*f0[0],fu*f0[1],fu*f0[2],fu*f0[3],fu*f0[4],fu*f0[5],fu*w0);
+    printf("RT-GPU-E %6.3f -> %6.3f cdt2dx=%.6f d=%6.4f abc=%.6f f =(%.5g,%.5g,%.5g,%.5g,%.5g,%.5g)\n", fu * E0,
+           fu * E1, cdt2dx, fu * d0, abc0, fu * f0[0], fu * f0[1], fu * f0[2], fu * f0[3], fu * f0[4], fu * f0[5]);
   }
 
   rfiNew[ic + nx * (jc + ny * kc)] = (rf1 < 0 ? 0 : rf1);
@@ -544,31 +545,31 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
                 pij[iz[m]][ic + nx * (jc + ny * km)] - pij[iz[m]][ic + nx * (jc + ny * kp)]) +
         0.5F * (fi[m][im + nx * (jc + ny * kc)] + fi[m][ip + nx * (jc + ny * kc)] + fi[m][ic + nx * (jm + ny * kc)] +
                 fi[m][ic + nx * (jp + ny * kc)] + fi[m][ic + nx * (jc + ny * km)] + fi[m][ic + nx * (jc + ny * kp)] -
-                6 * fi[m][ic + nx * (jc + ny * kc)]); 
+                6 * fi[m][ic + nx * (jc + ny * kc)]);
 
     if (Split) {
       // this is fiNew = fi*exp(-tau) + df * cdt2dx * (1-exp(-tau))/tau
       fiNew[m][ic + nx * (jc + ny * kc)] = fi[m][ic + nx * (jc + ny * kc)] * w1 + cdt2dx * df * w2;  // testing RHS
 
-      E0 = fi[m][ic + nx * (jc + ny * kc)];
-      E1 = fiNew[m][ic + nx * (jc + ny * kc)];
-      d0 = df;
+      E0    = fi[m][ic + nx * (jc + ny * kc)];
+      E1    = fiNew[m][ic + nx * (jc + ny * kc)];
+      d0    = df;
       f0[0] = pij[ix[m]][im + nx * (jc + ny * kc)];
       f0[1] = pij[ix[m]][ip + nx * (jc + ny * kc)];
       f0[2] = pij[iy[m]][ic + nx * (jm + ny * kc)];
       f0[3] = pij[iy[m]][ic + nx * (jp + ny * kc)];
       f0[4] = pij[iz[m]][ic + nx * (jc + ny * km)];
       f0[5] = pij[iz[m]][ic + nx * (jc + ny * kp)];
-      w0 = cdt2dx * df * w2;
-      if( (ic == nx/2) and (jc == ny/2) and (kc == nz/2) and deb) {
-        // printf("RT-GPU-F[%d] %.5g -> %.5g d=%6.4g f=(%.6g,%.6g,%.6g,%.6g,%.6g,%.6g) w=%6.3g\n",m,fu*E0,fu*E1,fu*d0,fu*f0[0],fu*f0[1],fu*f0[2],fu*f0[3],fu*f0[4],fu*f0[5],fu*w0);
-        printf("RT-GPU-F[%d] %.5g -> %.5g d=%6.4g f=(%.6g,%.6g,%.6g,%.6g,%.6g,%.6g)\n",m,fu*E0,fu*E1,fu*d0,fu*f0[0],fu*f0[1],fu*f0[2],fu*f0[3],fu*f0[4],fu*f0[5]);
-
+      w0    = cdt2dx * df * w2;
+      if ((ic == nx / 2) and (jc == ny / 2) and (kc == nz / 2) and deb) {
+        // printf("RT-GPU-F[%d] %.5g -> %.5g d=%6.4g f=(%.6g,%.6g,%.6g,%.6g,%.6g,%.6g)
+        // w=%6.3g\n",m,fu*E0,fu*E1,fu*d0,fu*f0[0],fu*f0[1],fu*f0[2],fu*f0[3],fu*f0[4],fu*f0[5],fu*w0);
+        printf("RT-GPU-F[%d] %.5g -> %.5g d=%6.4g f=(%.6g,%.6g,%.6g,%.6g,%.6g,%.6g)\n", m, fu * E0, fu * E1, fu * d0,
+               fu * f0[0], fu * f0[1], fu * f0[2], fu * f0[3], fu * f0[4], fu * f0[5]);
       }
     } else {
       fiNew[m][ic + nx * (jc + ny * kc)] =
-          fi[m][ic + nx * (jc + ny * kc)] +
-          cdt2dx * (df - abc0 * fi[m][ic + nx * (jc + ny * kc)]);  // testing RHS
+          fi[m][ic + nx * (jc + ny * kc)] + cdt2dx * (df - abc0 * fi[m][ic + nx * (jc + ny * kc)]);  // testing RHS
     }
   }
 }
@@ -626,7 +627,6 @@ if(ic>=orig && jc>=orig && kc>=orig && ic<nmax && jc<nmax && kc<nmax)
 void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* __restrict__ rfi,
                                Real* __restrict__ rfiOut, int deb)
 {
-
   // Noting that here nx, ny, and nz contain 2*n_ghost cells plus the local grid dimensions
   // the input rfi field contains the intensity, Mx, My, and Mz fields for one frequency
   // the output rfiOut contains the clipped fields
@@ -685,7 +685,6 @@ void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* 
 
     // Loop over the moment fields
     for (int m = 0; m < 3; m++) {
-
       // limit the moment fields to be greater than -intensity and less than the intensity
       rfiOut[idx + nw3 * (m + 1)] = fminf(fmaxf(rfi[idx + nw3 * (m + 1)], -rfi[idx]), rfi[idx]);
     }

@@ -16,7 +16,6 @@ template <class PijFunctor>
 void __global__ GLFMakeP_Kernel(int nx, int ny, int nz, int n_ghost, float dx, const Real* rfi, Real* pij,
                                 PijFunctor pf, int deb)
 {
-
   // the operator() is defined in RT_functions.cu
   // Noting that here nx, ny, and nz contain 2*n_ghost cells plus the local grid dimensions
   // the input rfi field contains the intensity, Mx, My, and Mz fields for one frequency
@@ -53,8 +52,7 @@ void __global__ GLFMakeP_Kernel(int nx, int ny, int nz, int n_ghost, float dx, c
   // const int jc = j;
   // const int kc = k;
 
-//  pf(n_ghost, nx, ny, nz, ic, jc, kc, rfi, pij, deb);
+  //  pf(n_ghost, nx, ny, nz, ic, jc, kc, rfi, pij, deb);
   pf(n_ghost, nx, ny, nz, i, j, k, rfi, pij, deb);
-
 }
 #endif
