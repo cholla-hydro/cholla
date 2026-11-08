@@ -215,7 +215,7 @@ void Rad3D::Calc_Absorption(Real* dev_scalar)
   auto ufac =
       1.0e-24 / RTConstant::mb * DENSITY_UNIT * LENGTH_UNIT;  // ufac is per length, hence multiplied by Units::Length.
   #ifdef COSMOLOGY
-    #error "Not implemented.\n"
+  ufac *= rho_0_gas * current_a;  // adjust for comoving density and length
   #endif
   CrossSectionInCU xs;
   xs.HIatHI     = rt_physics::rt_atomic_data::CrossSections()->csHIatHI * ufac;
@@ -618,8 +618,12 @@ void Rad3D::rtSolve(Real* dev_scalar)
   Calc_Absorption(dev_scalar);
 
   int niters = this->num_iterations;
-  // Real speedOfLightInCodeUnits = 3e10 / VELOCITY_UNIT;
+
+  #ifdef COSMOLOGY
+  Real speedOfLightInCodeUnits = RTConstant::c / (v_0_gas * 1.0e5) / current_a;
+  #else
   Real speedOfLightInCodeUnits = 2.998e10 / VELOCITY_UNIT;
+  #endif
 
   int n_iters_check = 0;  // check the number of iterations
 
