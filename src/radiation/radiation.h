@@ -53,6 +53,13 @@ class Rad3D
   const static int n_fpfreq = 4;  // RT_M1 has four fields per frequencies
   #endif
 
+  #ifdef COSMOLOGY
+  Real current_a;  // current cosmological scale factor
+  Real hubble_a;   // hubble parameter at the current scale factor
+  Real rho_0_gas;  // comoving density unit
+  Real v_0_gas;    // velocity unit -- H_0/h in km/s kpc units
+  #endif 
+
   // array of boundary flags
   int flags[6] = {0, 0, 0, 0, 0, 0};
 

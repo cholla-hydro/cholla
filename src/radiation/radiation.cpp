@@ -120,7 +120,17 @@ void Rad3D::Initialize_Finish(const Parameters& params, Real current_time)
 // function to call the radiation solver from main
 void Grid3D::Update_RT(Real* dt_max, const Parameters& P)
 {
-  // passes d_scalar as that is the pointer to the first abundance array, rho_HI
+
+#ifdef COSMOLOGY
+// update the cosmological unit system for the current scale factor
+  Rad.current_a = Cosmo.current_a;
+  Rad.hubble_a  = Cosmo.Get_Hubble_Parameter(Cosmo.current_a)
+                  / (Cosmo.v_0_gas * 1.0e5 / (Cosmo.r_0_gas * RTConstant::kpc));
+  Rad.rho_0_gas = Cosmo.rho_0_gas;
+  Rad.v_0_gas   = Cosmo.v_0_gas;
+#endif
+
+// passes d_scalar as that is the pointer to the first abundance array, rho_HI
   Rad.rtSolve(C.d_scalar);  // in RT_functions.cu
 
   // update max logarithmic time increment
