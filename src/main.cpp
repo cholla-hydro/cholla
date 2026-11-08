@@ -417,8 +417,11 @@ int main(int argc, char* argv[])
     // if ( P.n_steps_output > 0 && G.H.n_step % P.n_steps_output == 0)
     // G.H.Output_Now = true;
 
+#ifdef RT
     chprintf("CHECK: G.H.t %e G.H.dt %e 1./dti %e outtime %e RT.next_output %e Output_Now %d dt_max %e\n", G.H.t,
              G.H.dt, 1. / dti, outtime, G.Rad.next_output, G.H.Output_Now, dt_max);
+#endif
+
     if (G.H.t == outtime || G.H.Output_Now) {
 #ifdef OUTPUT
       /*output the grid data*/
