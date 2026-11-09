@@ -261,18 +261,18 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
   Real dt_new;
   Real dt_max = 1.0e-2 * tmax;*/
 
-  Real dt = 1.0e-5 * tmax; // no large effect
+  Real dt = 1.0e-5 * tmax;
   Real dt_new;
   Real dt_max = 1.0e-3 * tmax;
 
   Real a_max = 1.0;
 
   //while ((t < tmax) && (y_n[0] < a_max)) {
-  while ((y_n[0] < a_max)) {
+  while ((t < tmax) && (y_n[0] < a_max)) {
 
-    /*if (t + dt > tmax) {
+    if (t + dt > tmax) {
       dt = tmax - t;
-    }*/
+    }
 
     // evolve ODE by one timestep
     RK.rk4_ode(growth_factor_system, t, y_n, &dt, &dt_new, params, yp, &error);
@@ -283,7 +283,7 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
     for (int i = 0; i < yp.size(); i++) y_n[i] = yp[i];
 
     // limit to the largest dz allowable
-    //if (dt_new > dt_max) dt_new = dt_max;
+    if (dt_new > dt_max) dt_new = dt_max;
 
     // update the redshift step
     dt = dt_new;
