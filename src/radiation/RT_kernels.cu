@@ -564,8 +564,8 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
       if ((ic == nx / 2) and (jc == ny / 2) and (kc == nz / 2) and deb) {
         // printf("RT-GPU-F[%d] %.5g -> %.5g d=%6.4g f=(%.6g,%.6g,%.6g,%.6g,%.6g,%.6g)
         // w=%6.3g\n",m,fu*E0,fu*E1,fu*d0,fu*f0[0],fu*f0[1],fu*f0[2],fu*f0[3],fu*f0[4],fu*f0[5],fu*w0);
-        printf("RT-GPU-F[%d] %.5g -> %.5g d=%6.4g f=(%.6g,%.6g,%.6g,%.6g,%.6g,%.6g)\n", m, fu * E0, fu * E1, fu * d0,
-               fu * f0[0], fu * f0[1], fu * f0[2], fu * f0[3], fu * f0[4], fu * f0[5]);
+        //printf("RT-GPU-F[%d] %.5g -> %.5g d=%6.4g f=(%.6g,%.6g,%.6g,%.6g,%.6g,%.6g)\n", m, fu * E0, fu * E1, fu * d0,
+        //       fu * f0[0], fu * f0[1], fu * f0[2], fu * f0[3], fu * f0[4], fu * f0[5]);
       }
     } else {
       fiNew[m][ic + nx * (jc + ny * kc)] =
