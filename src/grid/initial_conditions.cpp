@@ -3218,8 +3218,8 @@ void Grid3D::Iliev1_Cosmo(struct Parameters P)
   const Real r_S_i_kpc = r_S_i_cm / (LENGTH_UNIT);
 
   chprintf("ICs: Iliev1_Cosmo:\n");
-  chprintf("  t_i        = %g\n",    t_i);
-  t_i /= H0_cgs;
+  chprintf("  t_i        = %g\n", t_i);
+  t_i *= (1.0/(P.H0/1000.0)) * KPC; // convert to seconds
   chprintf("  P.H0       = %g\n", P.H0);
   chprintf("  H0_cgs     = %g\n", H0_cgs); // should be in seconds
   chprintf("  z_i        = %g\n",    z_i);
