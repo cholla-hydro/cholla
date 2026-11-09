@@ -874,8 +874,8 @@ void Grid3D::KH_res_ind()
 #endif  // DE
 
       }  // i loop
-    }    // j loop
-  }      // k loop
+    }  // j loop
+  }  // k loop
 }
 
 /*! \fn void Rayleigh_Taylor()
@@ -1623,7 +1623,7 @@ void Grid3D::Chemistry_Test(struct Parameters P)
 
   mu = (HI_frac + HII_frac + HeI_frac + HeII_frac + HeIII_frac) /
        (HI_frac + HII_frac + (HeI_frac + HeII_frac + HeIII_frac) / 4 + e_frac);
-  U = rho_gas_mean * T0 / (gama - 1) / MP / mu * KB * 1e-10;
+  U  = rho_gas_mean * T0 / (gama - 1) / MP / mu * KB * 1e-10;
   chprintf(" mu = %f \n", mu);
   chprintf(" U0 = %f \n", U);
 
