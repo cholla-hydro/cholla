@@ -519,12 +519,15 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
     rf1 = rf[ic + nx * (jc + ny * kc)] + cdt2dx * (d - abc0 * rf[ic + nx * (jc + ny * kc)]);
   }
 
+  // diagnostic messages
+  /*0
   if ((ic == nx / 2) and (jc == ny / 2) and (kc == nz / 2) and deb) {
     // printf("RT-GPU-E %6.3g -> %6.3g cdt2dx=%.6g d=%6.4g abc=%.6g f =(%.5g,%.5g,%.5g,%.5g,%.5g,%.5g)
     // w=%6.3g\n",fu*E0,fu*E1,cdt2dx,fu*d0,abc0,fu*f0[0],fu*f0[1],fu*f0[2],fu*f0[3],fu*f0[4],fu*f0[5],fu*w0);
     // printf("RT-GPU-E %6.3f -> %6.3f cdt2dx=%.6f d=%6.4f abc=%.6f f =(%.5g,%.5g,%.5g,%.5g,%.5g,%.5g)\n", fu * E0,
     //       fu * E1, cdt2dx, fu * d0, abc0, fu * f0[0], fu * f0[1], fu * f0[2], fu * f0[3], fu * f0[4], fu * f0[5]);
   }
+  */
 
   rfiNew[ic + nx * (jc + ny * kc)] = (rf1 < 0 ? 0 : rf1);
 
@@ -561,12 +564,16 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
       f0[4] = pij[iz[m]][ic + nx * (jc + ny * km)];
       f0[5] = pij[iz[m]][ic + nx * (jc + ny * kp)];
       w0    = cdt2dx * df * w2;
+
+      // diagnostic messages
+      /*
       if ((ic == nx / 2) and (jc == ny / 2) and (kc == nz / 2) and deb) {
         // printf("RT-GPU-F[%d] %.5g -> %.5g d=%6.4g f=(%.6g,%.6g,%.6g,%.6g,%.6g,%.6g)
         // w=%6.3g\n",m,fu*E0,fu*E1,fu*d0,fu*f0[0],fu*f0[1],fu*f0[2],fu*f0[3],fu*f0[4],fu*f0[5],fu*w0);
         //printf("RT-GPU-F[%d] %.5g -> %.5g d=%6.4g f=(%.6g,%.6g,%.6g,%.6g,%.6g,%.6g)\n", m, fu * E0, fu * E1, fu * d0,
         //       fu * f0[0], fu * f0[1], fu * f0[2], fu * f0[3], fu * f0[4], fu * f0[5]);
       }
+      */
     } else {
       fiNew[m][ic + nx * (jc + ny * kc)] =
           fi[m][ic + nx * (jc + ny * kc)] + cdt2dx * (df - abc0 * fi[m][ic + nx * (jc + ny * kc)]);  // testing RHS
