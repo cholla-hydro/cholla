@@ -346,6 +346,12 @@ Real Cosmology::LinearInterpolation(const std::vector<Real> &x, const std::vecto
   return y[index] + (y[index + 1] - y[index]) * (a - x[index]) / dx;
 }
 
+Real Cosmology::t_Growth(Real a)
+{
+  // interpolate (a,t)
+  return LinearInterpolation(a_array, t_array, a);
+}
+
 Real Cosmology::D_Growth(Real a)
 {
   // interpolate (a,D)
