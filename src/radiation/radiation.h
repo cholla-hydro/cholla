@@ -80,6 +80,7 @@ class Rad3D
   struct RT_Fields {
     // pointers to radiation fields on the host and device (including the OT field - packed together for chemistry
     // update)
+    // note that for COSMOLOGY, rf/dev_rf are stored in comoving units.
     Real *rf;
     Real *dev_rf;
 
@@ -90,6 +91,9 @@ class Rad3D
   #endif  // RT_OTVET
 
     // radiation source field. By default it is not needed on host, but some tests require it.
+    // note that for COSMOLOGY, rs/dev_rs are stored in comoving units. Any code that changes or
+    // populates rs/dev_rs needs to respect this or call RS_Physical_to_Comoving[_GPU]() after
+    // setting the source properties.
     Real *rs = nullptr;
     Real *dev_rs;
 
