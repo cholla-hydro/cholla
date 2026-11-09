@@ -2845,6 +2845,52 @@ void Grid3D::Iliev0(struct Parameters P)
 
 void Grid3D::Iliev15(struct Parameters P, int test)
 {
+  // Implements two test problems from the cosmological radiative transfer
+  // code comparison paper of Iliev et al. (2006), MNRAS 371, 1057.
+  //
+  // Both tests use a uniform, static, pure-hydrogen box with:
+  //   - Hydrogen number density: n_H = 1e-3 cm^-3
+  //   - A point source at the box center emitting Ndot = 5e48 photons/s
+  //   - Initial seed ionization fraction xe = 1.2e-3
+  //
+  // The source is deposited uniformly over the 8 cells nearest the box center
+  // (cells with r < dx), with amplitude 0.125/dx^3 so that the volume integral
+  // over those cells equals unity. It is then scaled by the spectral shape and
+  // the factor Ndot/(c * LENGTH_UNIT^2) to convert to code-unit radiation
+  // energy density rate per frequency bin.
+  //
+  // Under RT_M1 all radiation fields are initialized to zero; the field builds
+  // from the source during the run.
+  //
+  // test == 1: Iliev et al. (2006) Test 1 -- isothermal HII region expansion.
+  //   - T = 1e4 K (thermal energy density U = 1.5 * n * k_B * T in code units)
+  //   - Monochromatic source at the HI Lyman limit (13.6 eV).
+  //     The spectral shape is a delta function at the HI threshold frequency bin.
+  //     A correction factor of 6.34/5.92 is applied because the bin center sits
+  //     at nu_0 * exp(0.5*dxi) rather than exactly at threshold, shifting the
+  //     effective cross section from sigma_0 = 6.34e-18 cm^2 to 5.92e-18 cm^2.
+  //   - Case B recombination (recombinations to the ground state are on-the-spot).
+  //   - Has an analytic Stromgren radius solution; tests ionization front speed
+  //     and final HII region size.
+  //
+  // test == 5: Iliev et al. (2006) Test 5 -- HII region expansion with heating.
+  //   - T = 100 K (gas starts cold)
+  //   - Blackbody source spectrum at T* = 1e5 K, normalized to Ndot = 5e48 photons/s.
+  //     SpectralShape::BlackBody computes x^3/(e^x-1) in log-frequency (x = h*nu/k*T*),
+  //     normalized to integrate to unity above the HI threshold, then scaled by
+  //     Ndot/(c * LENGTH_UNIT^2).
+  //   - Case A recombination (ground-state recombination photons escape the medium).
+  //   - Tests both ionization front propagation and photoheating; gas temperature
+  //     rises from 100 K as the HII region expands.
+  //
+  // Units:
+  //   rho is in Cholla code units: physical mass density / DENSITY_UNIT,
+  //     where DENSITY_UNIT = MASS_UNIT / kpc^3.
+  //   U is in Cholla code units: physical energy density / ENERGY_UNIT,
+  //     where ENERGY_UNIT = DENSITY_UNIT * VELOCITY_UNIT^2.
+  //   rs (the source field) is in physical units at this point:
+  //     [photons / s / cm^3 / (code length)^3], normalized per frequency bin.
+
 #if defined(RT) && defined(CHEMISTRY_GPU)
 
   Chem.H.H_fraction       = 1;
