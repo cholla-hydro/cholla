@@ -3168,7 +3168,7 @@ void Grid3D::Iliev1_Cosmo(struct Parameters P)
 #if defined(RT) && defined(CHEMISTRY_GPU) && defined(COSMOLOGY)
 
   // ── Cosmological parameters from parameter file ──────────────────────────
-  const Real H0_cgs   = P.H0 / (1.0e3 * LENGTH_UNIT);  // H0: km/s/Mpc -> 1/s
+  const Real H0_cgs   = P.H0 * 1.0e5 / (1.0e3 * LENGTH_UNIT);  // H0: km/s/Mpc -> 1/s
   const Real h        = P.H0 / 100.0;
   const Real a_init   = 1./(1. + P.Init_redshift);     // = 1/(1+z_i)
   const Real z_i      = 1.0 / a_init - 1.0;
@@ -3219,6 +3219,7 @@ void Grid3D::Iliev1_Cosmo(struct Parameters P)
 
   chprintf("ICs: Iliev1_Cosmo:\n");
   chprintf("  t_i        = %g\n",    t_i);
+  chprintf("  P.H0       = %g\n", P.H0);
   chprintf("  H0_cgs     = %g\n", H0_cgs); // should be in seconds
   chprintf("  z_i        = %g\n",    z_i);
   chprintf("  t_i        = %g Myr\n", t_i / MYR);
