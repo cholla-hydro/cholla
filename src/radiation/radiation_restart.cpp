@@ -67,6 +67,7 @@ void Rad3D::Read_Restart_HDF5(Parameters* P, int nfile)
   double restart_a = 1.0;
   attribute_id = H5Aopen(file_id, "current_a", H5P_DEFAULT);
   H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &restart_a);
+  H5Aclose(attribute_id);
 
   // set the current scale factor from the restart
   current_a = (Real) restart_a;
