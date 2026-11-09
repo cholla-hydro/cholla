@@ -127,12 +127,10 @@ void Rad3D::RF_Physical_to_Comoving_Units_GPU(void)
 
   // number of cells in all fields
   const int n_rt = n_fpfreq * n_freq * grid.n_cells;
-  
-  // buffer size for 1 field
-  size_buffer = n_rt;
 
   // set values for GPU kernels
-  ngrid = (size_buffer - 1) / TPB_RT + 1;
+  int ngrid = (n_rt - 1) / TPB_RT + 1;
+
   // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block
@@ -153,11 +151,8 @@ void Rad3D::RF_Comoving_to_Physical_Units_GPU(void)
   // number of cells in all fields
   const int n_rt = n_fpfreq * n_freq * grid.n_cells;
 
-  // buffer size for 1 field
-  size_buffer = n_rt;
-
   // set values for GPU kernels
-  ngrid = (size_buffer - 1) / TPB_RT + 1;
+  int ngrid = (n_rt - 1) / TPB_RT + 1;
   // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block
@@ -168,11 +163,8 @@ void Rad3D::RF_Comoving_to_Physical_Units_GPU(void)
 }
 void Rad3D::RS_Physical_to_Comoving_Units_GPU(void)
 {
-  // buffer size for 1 field
-  size_buffer = grid.n_cells;
-
   // set values for GPU kernels
-  ngrid = (size_buffer - 1) / TPB_RT + 1;
+  int ngrid = (grid.n_cells - 1) / TPB_RT + 1;
   // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block
@@ -186,11 +178,8 @@ void Rad3D::RS_Comoving_to_Physical_Units_GPU(void)
   // comoving to physical requires undoing scale factor
   Real a_inv = 1./current_a;
 
-  // buffer size for 1 field
-  size_buffer = grid.n_cells;
-
   // set values for GPU kernels
-  ngrid = (size_buffer - 1) / TPB_RT + 1;
+  int ngrid = (grid.n_cells - 1) / TPB_RT + 1;
   // number of blocks per 1D grid
   dim3 dim1dGrid(ngrid, 1, 1);
   //  number of threads per 1D block
