@@ -467,9 +467,9 @@ Primitive __device__ __host__ __inline__ Characteristic_To_Primitive(Primitive c
   output.velocity_z = eigen.beta_z * (eigen.q_slow * (characteristic_slope.a0 - characteristic_slope.a6) +
                                       eigen.q_fast * (characteristic_slope.a4 - characteristic_slope.a2)) +
                       eigen.beta_y * (characteristic_slope.a1 - characteristic_slope.a5);
-  output.pressure = primitive.density * sound_speed_squared *
-                    (eigen.alpha_fast * (characteristic_slope.a0 + characteristic_slope.a6) +
-                     eigen.alpha_slow * (characteristic_slope.a2 + characteristic_slope.a4));
+  output.pressure   = primitive.density * sound_speed_squared *
+                      (eigen.alpha_fast * (characteristic_slope.a0 + characteristic_slope.a6) +
+                       eigen.alpha_slow * (characteristic_slope.a2 + characteristic_slope.a4));
   output.magnetic_y =
       eigen.beta_y * (eigen.a_slow * (characteristic_slope.a0 + characteristic_slope.a6) -
                       eigen.a_fast * (characteristic_slope.a2 + characteristic_slope.a4)) -

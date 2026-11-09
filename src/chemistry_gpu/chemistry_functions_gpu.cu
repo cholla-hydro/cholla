@@ -371,8 +371,8 @@ __device__ void Update_Step(Thermal_State &TS, Chemistry_Header &Chem_H, Real dt
   if (print) printf("Update HI  s_coef: %e    a_coef: %e   HIp: %e \n", s_coef, a_coef, d_HI_p);
 
   // Update HII
-  s_coef = k_coll_i_HI * d_HI_p * TS.d_e + k_coll_i_HI_HI * d_HI_p * d_HI_p +
-           k_coll_i_HI_HeI * d_HI_p * TS.d_HeI / 4.0 + photo_i_HI * d_HI_p;
+  s_coef  = k_coll_i_HI * d_HI_p * TS.d_e + k_coll_i_HI_HI * d_HI_p * d_HI_p +
+            k_coll_i_HI_HeI * d_HI_p * TS.d_HeI / 4.0 + photo_i_HI * d_HI_p;
   a_coef  = k_recomb_HII * TS.d_e;
   d_HII_p = (dt * s_coef + TS.d_HII) / (1.0 + dt * a_coef);
   if (print) printf("Update HII  s_coef: %e    a_coef: %e   HIIp: %e \n", s_coef, a_coef, d_HII_p);
@@ -382,7 +382,7 @@ __device__ void Update_Step(Thermal_State &TS, Chemistry_Header &Chem_H, Real dt
            photo_i_HeI * TS.d_HeI / 4.0 + photo_i_HeII * TS.d_HeII / 4.0;
   a_coef = -k_coll_i_HI * TS.d_HI + k_recomb_HII * TS.d_HII - k_coll_i_HeI * TS.d_HeI / 4.0 +
            k_recomb_HeII * TS.d_HeII / 4.0 - k_coll_i_HeII * TS.d_HeII / 4.0 + k_recomb_HeIII * TS.d_HeIII / 4.0;
-  d_e_p = (dt * s_coef + TS.d_e) / (1.0 + dt * a_coef);
+  d_e_p  = (dt * s_coef + TS.d_e) / (1.0 + dt * a_coef);
   if (print) printf("Update e  s_coef: %e    a_coef: %e   ep: %e \n", s_coef, a_coef, d_e_p);
 
   // Update HeI
