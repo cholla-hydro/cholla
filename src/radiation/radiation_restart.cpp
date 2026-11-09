@@ -61,12 +61,29 @@ void Rad3D::Read_Restart_HDF5(Parameters* P, int nfile)
   herr_t status      = H5Aread(attribute_id, H5T_NATIVE_INT, &rt_mode);
   status             = H5Aclose(attribute_id);
 
+  #ifdef COSMOLOGY
+  // Read in the current scale factor, required for
+  // conversion to comoving coordinates
+  double restart_a = 1.0;
+  attribute_id = H5Aopen(file_id, "current_a", H5P_DEFAULT);
+  H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &restart_a);
+
+  // set the current scale factor from the restart
+  current_a = (Real) restart_a;
+  #endif
+
   // Read source and copy to device
   Read_HDF5_Dataset(file_id, rtFields.rs, "/source");
+  #ifdef COSMOLOGY
+  RS_Physical_to_Comoving_Units();
+  #endif
   GPU_Error_Check(cudaMemcpy(rtFields.dev_rs, rtFields.rs, grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
-  // Read radiation fiels and copy to device
+  // Read radiation fields and copy to device
   Read_HDF5_Dataset(file_id, rtFields.rf, "/radiation");
+  #ifdef COSMOLOGY
+  RF_Physical_to_Comoving_Units();
+  #endif
   GPU_Error_Check(cudaMemcpy(rtFields.dev_rf, rtFields.rf, n_rf * grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
   H5Fclose(file_id);
@@ -169,6 +186,20 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
   // Close the dataspace
   status = H5Sclose(dataspace_id);
 
+  #ifdef COSMOLOGY
+  // We will save the RT data in physical units
+  // Store the scale factor so we can convert from
+  // physical to cosmological units after reading
+  // from the restart file.
+  attr_dims = 1;
+  dataspace_id = H5Screate_simple(1, &attr_dims, NULL);
+  double current_a_d = (double) current_a;  // current scale factor
+  attribute_id = H5Acreate(file_id, "current_a", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &current_a_d);
+  status       = H5Aclose(attribute_id);
+  H5Sclose(dataspace_id);
+  #endif
+
   // Source field
 
   // Copy device to host
@@ -177,7 +208,16 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
   // Write source field
   dims[0]      = grid.n_cells;
   dataspace_id = H5Screate_simple(1, dims, NULL);
+  #ifdef COSMOLOGY
+  // convert from comoving to physical units
+  RS_Comoving_to_Physical_Units();
+  #endif
   Write_HDF5_Dataset(file_id, dataspace_id, rtFields.rs, "/rf_sources");
+  #ifdef COSMOLOGY
+  // convert from physical to comoving units
+  RS_Physical_to_Comoving_Units();
+  #endif
+
   H5Sclose(dataspace_id);
 
   // Radiation fields
@@ -186,12 +226,6 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
   GPU_Error_Check(cudaMemcpy(rtFields.rf, rtFields.dev_rf, n_rf * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
 
   // Write radiation fields
-  /*
-  dims[0] = n_rf * grid.n_cells;
-  dataspace_id = H5Screate_simple(1, dims, NULL);
-  Write_HDF5_Dataset(file_id, dataspace_id, rtFields.rf, "/radiation");
-  H5Sclose(dataspace_id);
-  */
 
   #ifdef RT_OTVET
   const char* rt_dset_names[7] = {"/rf_intensity", "/rf_HI_near", "/rf_HeI_near", "/rf_HeII_near",
@@ -204,6 +238,11 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
   };
   #endif
 
+
+  #ifdef COSMOLOGY
+  // convert from comoving to physical units before writing
+  RF_Comoving_to_Physical_Units();
+  #endif
   dims[0] = grid.n_cells;
   for (int n = 0; n < n_rf; n++) {
     dataspace_id = H5Screate_simple(1, dims, NULL);
@@ -211,6 +250,10 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
     Write_HDF5_Dataset(file_id, dataspace_id, rtptr, rt_dset_names[n]);
     H5Sclose(dataspace_id);
   }
+  #ifdef COSMOLOGY
+  // convert from physical to comoving units
+  RF_Physical_to_Comoving_Units();
+  #endif
 
   // close the file
   H5Fclose(file_id);

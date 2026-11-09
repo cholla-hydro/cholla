@@ -21,6 +21,9 @@
   #ifdef MPI_CHOLLA
     #include "../mpi/mpi_routines.h"
   #endif
+  #ifdef COSMOLOGY
+    #include "../cosmology/field_operations.h"
+  #endif
 
 void Rad3D::Initialize_GPU()
 {
@@ -30,9 +33,14 @@ void Rad3D::Initialize_GPU()
                              cudaMemcpyHostToDevice));
   #endif  // RT_OTVET
   #ifdef RT_M1
-  // copy over data from CPU fields
-  GPU_Error_Check(cudaMemcpy(rtFields.dev_rf, rtFields.rf, n_fpfreq * n_freq * grid.n_cells * sizeof(Real),
-                             cudaMemcpyHostToDevice));
+    #ifdef COSMOLOGY
+    // the ICs are in physical units
+    // convert field units to comoving
+    RF_Physical_to_Comoving_Units();
+    #endif
+    // copy over data from CPU fields
+    GPU_Error_Check(cudaMemcpy(rtFields.dev_rf, rtFields.rf, n_fpfreq * n_freq * grid.n_cells * sizeof(Real),
+                               cudaMemcpyHostToDevice));
   #endif  // RT_M1
 
   // initialize values for the other fields:
@@ -50,11 +58,108 @@ void Rad3D::Initialize_GPU()
 
   // source radiation field
   if (rtFields.rs != nullptr) {
+    #ifdef COSMOLOGY
+    // the ICs are in physical units
+    // convert source units to comoving
+    RS_Physical_to_Comoving_Units();
+    #endif
     GPU_Error_Check(cudaMemcpy(rtFields.dev_rs, rtFields.rs, grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
   } else {
     GPU_Error_Check(cudaMemset(rtFields.dev_rs, 0, grid.n_cells * sizeof(Real)));
   }
 }
+
+#ifdef COSMOLOGY
+void Rad3D::RF_Physical_to_Comoving_Units(void)
+{
+  // This routine converts from physical to comoving
+  // units for the host fields
+
+  // number of cells in all fields
+  const int n_rt = n_fpfreq * n_freq * grid.n_cells;
+
+  // Physical -> comoving conversion factor
+  Real a_power = 1.0;
+  for (int i = 0; i < RT_COSMO_FIELD_ASCALE_POWER; i++) {
+    a_power *= current_a;
+  }
+
+  // Apply the conversion to the RF fields
+  for (int i = 0; i < n_rt; i++) rtFields.rf[i] *= a_power;
+}
+
+void Rad3D::RF_Comoving_to_Physical_Units(void)
+{
+  // This routine converts from comoving to physical
+  // units for the host fields
+
+  // number of cells in all fields
+  const int n_rt = n_fpfreq * n_freq * grid.n_cells;
+
+  // Comoving -> physical conversion factor
+  Real a_inv_power = 1.0;
+  for (int i = 0; i < RT_COSMO_FIELD_ASCALE_POWER; i++) {
+    a_inv_power /= current_a;
+  }
+
+  // Apply the conversion to the RF fields
+  for (int i = 0; i < n_rt; i++) rtFields.rf[i] *= a_inv_power;
+}
+
+void Rad3D::RS_Physical_to_Comoving_Units(void)
+{
+  // convert source field to comoving coordinate system
+  for (int i = 0; i < grid.n_cells; i++) rtFields.rs[i] *= current_a;
+}
+
+void Rad3D::RS_Comoving_to_Physical_Units(void)
+{
+  // convert source field to physical unit system
+  for (int i = 0; i < grid.n_cells; i++) rtFields.rs[i] /= current_a;
+}
+void Rad3D::RF_Physical_to_Comoving_Units_GPU(void)
+{
+  // Physical -> comoving conversion factor
+  Real a_power = 1.0;
+  for (int i = 0; i < RT_COSMO_FIELD_ASCALE_POWER; i++) {
+    a_power *= current_a;
+  }
+
+  // number of cells in all fields
+  const int n_rt = n_fpfreq * n_freq * grid.n_cells;
+
+  // rescale the fields on the device
+  hipLaunchKernelGGL(Rescale_Array_GPU, rtFields.dev_rf, a_power); 
+}
+void Rad3D::RF_Comoving_to_Physical_Units_GPU(void)
+{
+
+  // Comoving -> physical conversion factor
+  Real a_inv_power = 1.0;
+  for (int i = 0; i < RT_COSMO_FIELD_ASCALE_POWER; i++) {
+    a_inv_power /= current_a;
+  }
+
+  // number of cells in all fields
+  const int n_rt = n_fpfreq * n_freq * grid.n_cells;
+
+  // rescale the fields on the device
+  hipLaunchKernelGGL(Rescale_Array_GPU, rtFields.dev_rf, a_inv_power, n_rt); 
+}
+void Rad3D::RS_Physical_to_Comoving_Units_GPU(void)
+{
+  // rescale the fields on the device
+  hipLaunchKernelGGL(Rescale_Array_GPU, rtFields.dev_rs, current_a, grid.n_cells); 
+}
+void Rad3D::RS_Comoving_to_Physical_Units_GPU(void)
+{
+  // comoving to physical requires undoing scale factor
+  Real a_inv = 1./current_a;
+
+  // rescale the fields on the device
+  hipLaunchKernelGGL(Rescale_Array_GPU, rtFields.dev_rs, a_inv, grid.n_cells);
+}
+#endif 
 
 void Rad3D::Copy_RT_Fields(void)
 {

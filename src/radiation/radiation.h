@@ -53,6 +53,10 @@ class Rad3D
   const static int n_fpfreq = 4;  // RT_M1 has four fields per frequencies
   #endif
 
+  // powers of scale factor for converting
+  // to cosmological integration units
+  static constexpr int RT_COSMO_FIELD_ASCALE_POWER = 4;  // E = a^4 * E_phys
+
   #ifdef COSMOLOGY
   Real current_a;  // current cosmological scale factor
   Real hubble_a;   // hubble parameter at the current scale factor
@@ -143,6 +147,17 @@ class Rad3D
   #endif
 
   void rtBoundaries();
+
+  #ifdef COSMOLOGY
+  void RF_Physical_to_Comoving_Units(void);
+  void RF_Comoving_to_Physical_Units(void);
+  void RS_Physical_to_Comoving_Units(void);
+  void RS_Comoving_to_Physical_Units(void);
+  void RF_Physical_to_Comoving_Units_GPU(void);
+  void RF_Comoving_to_Physical_Units_GPU(void);
+  void RS_Physical_to_Comoving_Units_GPU(void);
+  void RS_Comoving_to_Physical_Units_GPU(void);
+  #endif
 };
 
 #endif
