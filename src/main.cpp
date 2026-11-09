@@ -170,7 +170,7 @@ int main(int argc, char* argv[])
   #endif 
   }
   #ifdef COSMOLOGY
-  G.Rad.Initialize_Finish(P, G.C.current_a);
+  G.Rad.Initialize_Finish(P, G.Cosmo.current_a);
   #else
   G.Rad.Initialize_Finish(P, G.H.t);
   #endif

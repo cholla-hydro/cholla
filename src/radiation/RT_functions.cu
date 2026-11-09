@@ -912,7 +912,7 @@ void Rad3D::rtSolve(Real* dev_scalar)
   chprintf("RT: Number of iterations executed: %d\n", n_iters_check);
 }
 
-  #ifdef GRAVITY
+  #ifdef RT_OTVET
 void Rad3D::ComputeEddingtonTensor(const Parameters& P, Grav3D& G)
 {
   // Compute the eddington tensor
@@ -930,6 +930,6 @@ void Rad3D::ComputeEddingtonTensor(const Parameters& P, Grav3D& G)
 
   G.Poisson_solver.Get_EddingtonTensor(grid.n_ghost, rs, et, ot);
 }
-  #endif  // GRAVITY
+  #endif  // RT_OTVET
 #endif    // RT
 // #endif    // CUDA

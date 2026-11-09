@@ -16,6 +16,7 @@
   #include "RT_functions.h"
   #include "alt/atomic_data.h"
   #include "alt/photo_rates_csi_gpu.h"
+  #include "alt/rt_constants.h"
 
 Rad3D::Rad3D(const Header& grid_) : grid(grid_)
 {
