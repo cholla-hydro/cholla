@@ -876,9 +876,9 @@ void Rad3D::rtSolve(Real* dev_scalar)
   chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, dt: %e, c: %e, dx %e, cdt2dxRSL %e)\n",
            niters_cfl, this->num_iterations, dt, speedOfLightInCodeUnits, grid.dx, cdt2dxRSL);
 
-  #ifdef COSMOLGY
+  #ifdef COSMOLOGY
   // rescale rs to match rf comoving convention
-  Read a3 = current_a * current_a * current_a;
+  Real a3 = current_a * current_a * current_a;
   // dx*rs needs same units as rf, so extra factor of 3
   RS_Scale_for_Kernel_GPU(a3);
   #endif
@@ -901,7 +901,7 @@ void Rad3D::rtSolve(Real* dev_scalar)
     // count the number of RT iterations
     n_iters_check++;
   }
-  #ifdef COSMOLGY
+  #ifdef COSMOLOGY
   // undo rescaling
   RS_Scale_for_Kernel_GPU(1./a3);
   #endif
