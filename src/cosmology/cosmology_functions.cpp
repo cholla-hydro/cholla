@@ -261,7 +261,7 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
   Real dt_new;
   Real dt_max = 1.0e-2 * tmax;*/
 
-  Real dt = 1.0e-5 * tmax;
+  Real dt = 1.0e-7 * tmax;
   Real dt_new;
   Real dt_max = 1.0e-3 * tmax;
 
