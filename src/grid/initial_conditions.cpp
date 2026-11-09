@@ -3170,9 +3170,9 @@ void Grid3D::Iliev1_Cosmo(struct Parameters P)
   // ── Cosmological parameters from parameter file ──────────────────────────
   const Real H0_cgs   = P.H0 / (1.0e3 * LENGTH_UNIT);  // H0: km/s/Mpc -> 1/s
   const Real h        = P.H0 / 100.0;
-  const Real a_init   = Cosmo.current_a;                // = 1/(1+z_i)
+  const Real a_init   = 1./(1. + P.Init_redshift);     // = 1/(1+z_i)
   const Real z_i      = 1.0 / a_init - 1.0;
-  const Real t_i      = Cosmo.t_secs;                   // cosmic time at z_i [s]
+  const Real t_i      = Cosmo.t_secs;                  // cosmic time at z_i [s]
   const Real q_0      = 0.5 * P.Omega_M - P.Omega_L;   // deceleration parameter
 
   // ── Gas setup: pure hydrogen, YHe = 0 ───────────────────────────────────
