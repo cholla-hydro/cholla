@@ -161,6 +161,11 @@ int main(int argc, char* argv[])
   }
 
 #ifdef RT
+  #ifdef HDF5
+  if (is_restart) {
+    G.Rad.Read_Restart_HDF5(&P, P.nfile);
+  }
+  #endif 
   #ifdef COSMOLOGY
   G.Rad.Initialize_Finish(P, G.C.current_a);
   #else
