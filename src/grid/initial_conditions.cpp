@@ -3176,7 +3176,7 @@ void Grid3D::Iliev1_Cosmo(struct Parameters P)
   // compute t vs. z using growth factor
   Cosmo.Compute_Growth_Function(&P);
 
-  const Real t_i      = Cosmo.t_Growth(a_init);          // cosmic time at z_i [1/H0]
+  Real t_i      = Cosmo.t_Growth(a_init);          // cosmic time at z_i [1/H0]
   const Real q_0      = 0.5 * P.Omega_M - P.Omega_L;     // deceleration parameter
 
   // ── Gas setup: pure hydrogen, YHe = 0 ───────────────────────────────────
