@@ -161,11 +161,14 @@ int main(int argc, char* argv[])
   }
 
 #ifdef RT
-  #ifdef HDF5
   if (is_restart) {
+    G.Rad.is_restart = true;
+  #ifdef HDF5
     G.Rad.Read_Restart_HDF5(&P, P.nfile);
-  }
+  #else
+    CHOLLA_ERROR("Radiation currently requires HDF5 for restarting.\n");
   #endif 
+  }
   #ifdef COSMOLOGY
   G.Rad.Initialize_Finish(P, G.C.current_a);
   #else

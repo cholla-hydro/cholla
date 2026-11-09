@@ -75,6 +75,7 @@ class Rad3D
   real_vector_t rt_outputs;
   Real next_output;
   bool exit_now;
+  bool is_restart = false;
 
   struct RT_Fields {
     // pointers to radiation fields on the host and device (including the OT field - packed together for chemistry

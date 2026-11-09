@@ -33,11 +33,13 @@ void Rad3D::Initialize_GPU()
                              cudaMemcpyHostToDevice));
   #endif  // RT_OTVET
   #ifdef RT_M1
-    #ifdef COSMOLOGY
-    // the ICs are in physical units
-    // convert field units to comoving
-    RF_Physical_to_Comoving_Units();
-    #endif
+    if(!is_restart) {
+      #ifdef COSMOLOGY
+      // the ICs are in physical units
+      // convert field units to comoving
+      RF_Physical_to_Comoving_Units();
+      #endif
+    }
     // copy over data from CPU fields
     GPU_Error_Check(cudaMemcpy(rtFields.dev_rf, rtFields.rf, n_fpfreq * n_freq * grid.n_cells * sizeof(Real),
                                cudaMemcpyHostToDevice));
@@ -58,11 +60,13 @@ void Rad3D::Initialize_GPU()
 
   // source radiation field
   if (rtFields.rs != nullptr) {
-    #ifdef COSMOLOGY
-    // the ICs are in physical units
-    // convert source units to comoving
-    RS_Physical_to_Comoving_Units();
-    #endif
+    if(!is_restart) {
+      #ifdef COSMOLOGY
+      // the ICs are in physical units
+      // convert source units to comoving
+      RS_Physical_to_Comoving_Units();
+      #endif
+    }
     GPU_Error_Check(cudaMemcpy(rtFields.dev_rs, rtFields.rs, grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
   } else {
     GPU_Error_Check(cudaMemset(rtFields.dev_rs, 0, grid.n_cells * sizeof(Real)));
