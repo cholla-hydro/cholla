@@ -267,10 +267,12 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
 void Rad3D::Read_Restart_HDF5(Parameters* P, int nfile)
 {
   chprintf("WARNING from file %s line %d: Rad3D::Read_Restart_HDF5 did nothing", __FILE__, __LINE__);
+  CHOLLA_ERROR("Radiation currently requires HDF5 for restarting.\n");
 }
 
 void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fname_template)
 {
   chprintf("WARNING from file %s line %d: Rad3D::Write_Restart_HDF5 did nothing", __FILE__, __LINE__);
+  CHOLLA_ERROR("Radiation currently requires HDF5 for checkpointing.\n");
 }
 #endif

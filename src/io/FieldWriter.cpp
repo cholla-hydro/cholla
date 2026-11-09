@@ -365,7 +365,7 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
   // Likely needs editing, check device or host array and offset
 
   #if defined(RT) && defined(OUTPUT_RADIATION)
-  const Rad3D& Rad = G.Rad;
+  Rad3D& Rad = G.Rad;
 
     #ifdef COSMOLOGY
   // convert the source field on the device
