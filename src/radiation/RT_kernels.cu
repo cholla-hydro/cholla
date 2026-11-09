@@ -522,8 +522,8 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
   if ((ic == nx / 2) and (jc == ny / 2) and (kc == nz / 2) and deb) {
     // printf("RT-GPU-E %6.3g -> %6.3g cdt2dx=%.6g d=%6.4g abc=%.6g f =(%.5g,%.5g,%.5g,%.5g,%.5g,%.5g)
     // w=%6.3g\n",fu*E0,fu*E1,cdt2dx,fu*d0,abc0,fu*f0[0],fu*f0[1],fu*f0[2],fu*f0[3],fu*f0[4],fu*f0[5],fu*w0);
-    printf("RT-GPU-E %6.3f -> %6.3f cdt2dx=%.6f d=%6.4f abc=%.6f f =(%.5g,%.5g,%.5g,%.5g,%.5g,%.5g)\n", fu * E0,
-           fu * E1, cdt2dx, fu * d0, abc0, fu * f0[0], fu * f0[1], fu * f0[2], fu * f0[3], fu * f0[4], fu * f0[5]);
+    // printf("RT-GPU-E %6.3f -> %6.3f cdt2dx=%.6f d=%6.4f abc=%.6f f =(%.5g,%.5g,%.5g,%.5g,%.5g,%.5g)\n", fu * E0,
+    //       fu * E1, cdt2dx, fu * d0, abc0, fu * f0[0], fu * f0[1], fu * f0[2], fu * f0[3], fu * f0[4], fu * f0[5]);
   }
 
   rfiNew[ic + nx * (jc + ny * kc)] = (rf1 < 0 ? 0 : rf1);
