@@ -127,9 +127,19 @@ void Rad3D::RF_Physical_to_Comoving_Units_GPU(void)
 
   // number of cells in all fields
   const int n_rt = n_fpfreq * n_freq * grid.n_cells;
+  
+  // buffer size for 1 field
+  size_buffer = n_rt;
+
+  // set values for GPU kernels
+  ngrid = (size_buffer - 1) / TPB_RT + 1;
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB_RT, 1, 1);
 
   // rescale the fields on the device
-  hipLaunchKernelGGL(Rescale_Array_GPU, rtFields.dev_rf, a_power); 
+  hipLaunchKernelGGL(Rescale_Array_GPU, dim1dGrid, dim1dBlock, 0, 0, rtFields.dev_rf, a_power, n_rt); 
 }
 void Rad3D::RF_Comoving_to_Physical_Units_GPU(void)
 {
@@ -143,21 +153,51 @@ void Rad3D::RF_Comoving_to_Physical_Units_GPU(void)
   // number of cells in all fields
   const int n_rt = n_fpfreq * n_freq * grid.n_cells;
 
+  // buffer size for 1 field
+  size_buffer = n_rt;
+
+  // set values for GPU kernels
+  ngrid = (size_buffer - 1) / TPB_RT + 1;
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB_RT, 1, 1);
+
   // rescale the fields on the device
-  hipLaunchKernelGGL(Rescale_Array_GPU, rtFields.dev_rf, a_inv_power, n_rt); 
+  hipLaunchKernelGGL(Rescale_Array_GPU, dim1dGrid, dim1dBlock, 0, 0, rtFields.dev_rf, a_inv_power, n_rt); 
 }
 void Rad3D::RS_Physical_to_Comoving_Units_GPU(void)
 {
+  // buffer size for 1 field
+  size_buffer = grid.n_cells;
+
+  // set values for GPU kernels
+  ngrid = (size_buffer - 1) / TPB_RT + 1;
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB_RT, 1, 1);
+
   // rescale the fields on the device
-  hipLaunchKernelGGL(Rescale_Array_GPU, rtFields.dev_rs, current_a, grid.n_cells); 
+  hipLaunchKernelGGL(Rescale_Array_GPU, dim1dGrid, dim1dBlock, 0, 0, rtFields.dev_rs, current_a, grid.n_cells);
 }
 void Rad3D::RS_Comoving_to_Physical_Units_GPU(void)
 {
   // comoving to physical requires undoing scale factor
   Real a_inv = 1./current_a;
 
+  // buffer size for 1 field
+  size_buffer = grid.n_cells;
+
+  // set values for GPU kernels
+  ngrid = (size_buffer - 1) / TPB_RT + 1;
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB_RT, 1, 1);
+
   // rescale the fields on the device
-  hipLaunchKernelGGL(Rescale_Array_GPU, rtFields.dev_rs, a_inv, grid.n_cells);
+  hipLaunchKernelGGL(Rescale_Array_GPU, dim1dGrid, dim1dBlock, 0, 0, rtFields.dev_rs, a_inv, grid.n_cells);
 }
 #endif 
 

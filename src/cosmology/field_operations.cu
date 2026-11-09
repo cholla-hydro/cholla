@@ -11,7 +11,7 @@ __global__ void Rescale_Array_GPU(Real *d_x, const Real A, int n)
 
   // get a global thread ID
   int id = threadIdx.x + blockIdx.x * blockDim.x;
-
+  if (id >= n) return;
   // Rescale the array
   d_x[id] *= A;
 }

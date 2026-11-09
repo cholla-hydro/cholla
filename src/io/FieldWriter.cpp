@@ -367,7 +367,7 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
   #if defined(RT) && defined(OUTPUT_RADIATION)
   const Rad3D& Rad = G.Rad;
 
-    #ifdef COSMOLOGY()
+    #ifdef COSMOLOGY
   // convert the source field on the device
   // to physical units
   Rad.RS_Comoving_to_Physical_Units_GPU();
@@ -380,7 +380,7 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
   } else {
     Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, rtptr, "/rf_sources");
   }
-    #ifdef COSMOLOGY()
+    #ifdef COSMOLOGY
   // convert the source field on the device
   // from physical back to comoving units
   Rad.RS_Physical_to_Comoving_Units_GPU();
@@ -398,12 +398,12 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
 
     #endif
 
-    #ifdef COSMOLOGY()
+    #ifdef COSMOLOGY
   // convert the source field on the device
   // to physical units
   Rad.RF_Comoving_to_Physical_Units_GPU();
     #endif
-    
+
   for (int n = 0; n < Rad.n_rf; n++) {
     rtptr = &Rad.rtFields.dev_rf[n * H.n_cells];
     if constexpr (ForceF32Output) {
@@ -413,7 +413,7 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
       Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, rtptr, rt_dset_names[n]);
     }
   }
-    #ifdef COSMOLOGY()
+    #ifdef COSMOLOGY
   // convert the source field on the device
   // from physical back to comoving units
   Rad.RF_Physical_to_Comoving_Units_GPU();
