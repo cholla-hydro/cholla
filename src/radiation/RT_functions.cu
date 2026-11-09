@@ -192,6 +192,20 @@ void Rad3D::RS_Comoving_to_Physical_Units_GPU(void)
   // rescale the fields on the device
   hipLaunchKernelGGL(Rescale_Array_GPU, dim1dGrid, dim1dBlock, 0, 0, rtFields.dev_rs, a_inv, grid.n_cells);
 }
+
+void Rad3D::RS_Scale_for_Kernel_GPU(Real factor)
+{
+  // set values for GPU kernels
+  int ngrid = (grid.n_cells - 1) / TPB_RT + 1;
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB_RT, 1, 1);
+
+  // rescale the fields on the device
+  hipLaunchKernelGGL(Rescale_Array_GPU, dim1dGrid, dim1dBlock, 0, 0, rtFields.dev_rs, factor, grid.n_cells); 
+}
+
 #endif 
 
 void Rad3D::Copy_RT_Fields(void)
@@ -840,6 +854,7 @@ void Rad3D::rtSolve(Real* dev_scalar)
   // Real cdt2dxRSL = fminf(CFL_RT, speedOfLightInCodeUnits * dt / grid.dx);
   // Real cdt2dxRSL = fminf(CFL_RT, speedOfLightInCodeUnits * dt / (grid.dx * niters_cfl));
 
+  // Note need to restore this, check CFL issues
   // Real cdt2dxRSL = speedOfLightInCodeUnits * dt / (grid.dx * niters_cfl);
   Real cdt2dxRSL = 1. / niters_cfl;
   /*if(cdt2dxRSL > CFL_RT) {
@@ -861,6 +876,15 @@ void Rad3D::rtSolve(Real* dev_scalar)
   chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, dt: %e, c: %e, dx %e, cdt2dxRSL %e)\n",
            niters_cfl, this->num_iterations, dt, speedOfLightInCodeUnits, grid.dx, cdt2dxRSL);
 
+  #ifdef COSMOLGY
+  // rescale rs to match rf comoving convention
+  Read a3 = current_a * current_a * current_a;
+  // dx*rs needs same units as rf, so extra factor of 3
+  RS_Scale_for_Kernel_GPU(a3);
+  #endif
+
+  // treating a as constant across substeps
+
   //  for (int iter = 0; iter < niters_cfl; iter++) {
   //    this->lastIteration = (iter == niters_cfl - 1);
   for (int iter = 0; iter < niters_cfl; iter++) {
@@ -877,6 +901,10 @@ void Rad3D::rtSolve(Real* dev_scalar)
     // count the number of RT iterations
     n_iters_check++;
   }
+  #ifdef COSMOLGY
+  // undo rescaling
+  RS_Scale_for_Kernel_GPU(1./a3);
+  #endif
   #endif
 
   // This should match niters_cfl.  Now we need to check that

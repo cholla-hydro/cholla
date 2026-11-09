@@ -158,6 +158,7 @@ class Rad3D
   void RF_Comoving_to_Physical_Units_GPU(void);
   void RS_Physical_to_Comoving_Units_GPU(void);
   void RS_Comoving_to_Physical_Units_GPU(void);
+  void RS_Scale_for_Kernel_GPU(Real factor);
   #endif
 };
 
