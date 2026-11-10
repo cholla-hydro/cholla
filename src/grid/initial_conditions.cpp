@@ -3288,7 +3288,8 @@ void Grid3D::Shapiro_Giroux_Cosmo(struct Parameters P)
 
   chprintf("ICs: Shapiro_Giroux_Cosmo initial conditions finalized.\n");
 #else
-  chprintf("Shapiro_Giroux_Cosmo requires RT, CHEMISTRY_GPU, and COSMOLOGY.\n");  chexit(-1);
+  chprintf("Shapiro_Giroux_Cosmo requires RT, CHEMISTRY_GPU, and COSMOLOGY.\n");
+  chexit(-1);
 #endif
 }
 
