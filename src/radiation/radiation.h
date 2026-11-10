@@ -60,6 +60,7 @@ class Rad3D
   #ifdef COSMOLOGY
   Real current_a;  // current cosmological scale factor
   Real hubble_a;   // hubble parameter at the current scale factor
+  Real cosmo_h;    // "little h", H0/100
   Real rho_0_gas;  // comoving density unit
   Real v_0_gas;    // velocity unit -- H_0/h in km/s kpc units
   #endif 

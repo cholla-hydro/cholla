@@ -367,7 +367,8 @@ void Rad3D::Calc_Absorption(Real* dev_scalar)
   auto ufac =
       1.0e-24 / RTConstant::mb * DENSITY_UNIT * LENGTH_UNIT;  // ufac is per length, hence multiplied by Units::Length.
   #ifdef COSMOLOGY
-  ufac *= rho_0_gas * current_a;  // adjust for comoving density and length
+//  ufac *= rho_0_gas * current_a;  // adjust for comoving density and length
+  ufac *= rho_0_gas * h / (current_a * current_a);  // adjust for comoving density and length
   #endif
   CrossSectionInCU xs;
   xs.HIatHI     = rt_physics::rt_atomic_data::CrossSections()->csHIatHI * ufac;

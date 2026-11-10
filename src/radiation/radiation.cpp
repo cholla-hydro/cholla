@@ -127,6 +127,7 @@ void Grid3D::Update_RT(Real* dt_max, const Parameters& P)
   Rad.current_a = Cosmo.current_a;
   Rad.hubble_a  = Cosmo.Get_Hubble_Parameter(Cosmo.current_a)
                   / (Cosmo.v_0_gas * 1.0e5 / (Cosmo.r_0_gas * RTConstant::kpc));
+  Rad.cosmo_h   = Cosmo.cosmo_h;
   Rad.rho_0_gas = Cosmo.rho_0_gas;
   Rad.v_0_gas   = Cosmo.v_0_gas;
 #endif
