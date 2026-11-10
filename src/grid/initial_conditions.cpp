@@ -3288,7 +3288,6 @@ void Grid3D::Iliev1_Cosmo(struct Parameters P)
   }
 
   chprintf("ICs: Iliev1_Cosmo initial conditions finalized.\n");
-  chexit(0);
 #else
   chprintf("Iliev1_Cosmo requires RT, CHEMISTRY_GPU, and COSMOLOGY.\n");
   chexit(-1);
