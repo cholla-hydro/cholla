@@ -116,8 +116,8 @@ void Grid3D::Set_Initial_Conditions(Parameters P, const ParameterMap &pmap)
     Iliev15(P, 5);
   } else if (strcmp(P.init, "Iliev6") == 0) {
     Iliev6(P);
-  } else if (strcmp(P.init, "Iliev1_Cosmo") == 0) {
-    Iliev1_Cosmo(P);
+  } else if (strcmp(P.init, "Shapiro_Giroux_Cosmo") == 0) {
+    Shapiro_Giroux_Cosmo(P);
 #ifdef MHD
   } else if (strcmp(P.init, "Circularly_Polarized_Alfven_Wave") == 0) {
     Circularly_Polarized_Alfven_Wave(P);
@@ -3113,7 +3113,7 @@ void Grid3D::Iliev6(struct Parameters P)
 #endif  // defined(RT) && defined(CHEMISTRY_GPU)
 }
 
-void Grid3D::Iliev1_Cosmo(struct Parameters P)
+void Grid3D::Shapiro_Giroux_Cosmo(struct Parameters P)
 {
   // Cosmological expanding-universe Strömgren sphere test.
   //
@@ -3220,7 +3220,7 @@ void Grid3D::Iliev1_Cosmo(struct Parameters P)
   const Real r_S_i_cm  = pow(3.0 * 5e48 / (4.0 * M_PI * alpha_B * n_H_comov * n_H_comov), 1.0 / 3.0);
   const Real r_S_i_kpc = r_S_i_cm / (LENGTH_UNIT);
 
-  chprintf("ICs: Iliev1_Cosmo:\n");
+  chprintf("ICs: Shapiro_Giroux_Cosmo:\n");
   chprintf("  P.H0       = %g\n", P.H0);
   chprintf("  H0_cgs     = %g\n", H0_cgs);  // should be in seconds
   chprintf("  z_i        = %g\n", z_i);
@@ -3286,10 +3286,9 @@ void Grid3D::Iliev1_Cosmo(struct Parameters P)
     }
   }
 
-  chprintf("ICs: Iliev1_Cosmo initial conditions finalized.\n");
+  chprintf("ICs: Shapiro_Giroux_Cosmo initial conditions finalized.\n");
 #else
-  chprintf("Iliev1_Cosmo requires RT, CHEMISTRY_GPU, and COSMOLOGY.\n");
-  chexit(-1);
+  chprintf("Shapiro_Giroux_Cosmo requires RT, CHEMISTRY_GPU, and COSMOLOGY.\n");  chexit(-1);
 #endif
 }
 

@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-iliev1_cosmo_analysis.py
+shapiro_giroux_cosmo_analysis.py
 
-Compare the ionization structure in a Cholla Iliev1_Cosmo snapshot with the
+Compare the ionization structure in a Cholla Shapiro_Giroux_Cosmo snapshot with the
 Shapiro & Giroux (1987) analytic solution.
 
 Usage:
-    python iliev1_cosmo_analysis.py data/3.h5 iliev1_cosmo.txt
-    python iliev1_cosmo_analysis.py data/3.h5 iliev1_cosmo.txt --nshells 96 --outfile z3.png
+    python shapiro_giroux_cosmo_analysis.py data/3.h5 shapiro_giroux_cosmo.txt
+    python shapiro_giroux_cosmo_analysis.py data/3.h5 shapiro_giroux_cosmo.txt --nshells 96 --outfile z3.png
 
-Requires iliev1_cosmo_common.py in the same directory.
+Requires shapiro_giroux_cosmo_common.py in the same directory.
 
 Two simulation front radii are reported (both in comoving kpc/h, Cholla's
 native length unit, and in comoving kpc):
@@ -21,7 +21,7 @@ x_HII = HII_density / (HI_density + HII_density), so no density-unit
 conversion enters the comparison.
 
 If the file contains a 'temperature' dataset (build with -DOUTPUT_TEMPERATURE),
-the script also runs the temperature check in iliev1_cosmo_common.py, plots the
+the script also runs the temperature check in shapiro_giroux_cosmo_common.py, plots the
 radial temperature profile, and reports the analytic front with alpha_B
 evaluated at the measured temperature of the ionized gas.
 """
@@ -34,7 +34,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-import iliev1_cosmo_common as C
+import shapiro_giroux_cosmo_common as C
 
 
 def radial_profile(field, bounds, dx, centre, nshells=None):
@@ -81,7 +81,7 @@ def main():
     )
     ap.add_argument("--threshold", type=float, default=0.5)
     ap.add_argument("--ndot", type=float, default=C.NDOT)
-    ap.add_argument("--outfile", default="iliev1_cosmo_comparison.png")
+    ap.add_argument("--outfile", default="shapiro_giroux_cosmo_comparison.png")
     args = ap.parse_args()
 
     P = C.parse_params(args.param_file)

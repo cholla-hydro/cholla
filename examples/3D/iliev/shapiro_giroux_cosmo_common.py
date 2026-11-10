@@ -1,7 +1,7 @@
 """
-iliev1_cosmo_common.py
+shapiro_giroux_cosmo_common.py
 
-Shared physics and I/O helpers for the Iliev1_Cosmo analysis scripts.
+Shared physics and I/O helpers for the Shapiro_Giroux_Cosmo analysis scripts.
 
 CONVENTIONS (verified against the cosmo-rt branch)
 --------------------------------------------------
@@ -51,7 +51,7 @@ G_CGS = 6.674e-8  # [cm^3 g^-1 s^-2]
 MPC_CM = 3.0857e24  # [cm]
 KPC_CM = 3.08567758e21  # [cm]  (Cholla LENGTH_UNIT)
 MYR_S = 31.536e12  # [s]
-NDOT = 5.0e48  # source luminosity [photons/s] (set in Iliev1_Cosmo)
+NDOT = 5.0e48  # source luminosity [photons/s] (set in Shapiro_Giroux_Cosmo)
 ALPHA_B_1E4 = 2.6e-13  # Case B recombination coefficient at 1e4 K [cm^3/s]
 MASS_UNIT_FALLBACK = 1.98847e33  # MASS_UNIT in src/global/global.h
 

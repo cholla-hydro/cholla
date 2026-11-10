@@ -634,8 +634,9 @@ class Grid3D
   void Iliev0(struct Parameters P);
   void Iliev15(struct Parameters P, int test);
   void Iliev6(struct Parameters P);
-  void Iliev1_Cosmo(struct Parameters P);  // Shapiro & Giroux 1987
-#ifdef MHD
+  void Shapiro_Giroux_Cosmo(struct Parameters P);  // Shapiro & Giroux 1987, ApJ 321, L107
+
+  #ifdef MHD
   /*!
    * \brief Initialize the grid with a circularly polarized Alfven wave. Only options are angle and Vx. See [Gardiner &
    * Stone 2008](https://arxiv.org/abs/0712.2634) pages 4134-4135 for details.

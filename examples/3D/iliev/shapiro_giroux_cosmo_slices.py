@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-iliev1_cosmo_slices.py
+shapiro_giroux_cosmo_slices.py
 
-Plot cross-sectional slices (x-y, y-z, z-x planes) of a Cholla Iliev1_Cosmo
+Plot cross-sectional slices (x-y, y-z, z-x planes) of a Cholla Shapiro_Giroux_Cosmo
 snapshot, one row of three panels per quantity, with the expected cosmological
 Stromgren sphere and ionization front (Shapiro & Giroux 1987) overlaid.
 
 Usage:
-    python iliev1_cosmo_slices.py data/3.h5 iliev1_cosmo.txt
-    python iliev1_cosmo_slices.py data/3.h5 iliev1_cosmo.txt --rows nhi xhii temperature
-    python iliev1_cosmo_slices.py data/3.h5 iliev1_cosmo.txt --rows nh --comoving --length-units ckpc
+    python shapiro_giroux_cosmo_slices.py data/3.h5 shapiro_giroux_cosmo.txt
+    python shapiro_giroux_cosmo_slices.py data/3.h5 shapiro_giroux_cosmo.txt --rows nhi xhii temperature
+    python shapiro_giroux_cosmo_slices.py data/3.h5 shapiro_giroux_cosmo.txt --rows nh --comoving --length-units ckpc
 
-Requires iliev1_cosmo_common.py in the same directory.
+Requires shapiro_giroux_cosmo_common.py in the same directory.
 
 Rows (--rows, default: nhi xhii):
   * nhi          : neutral hydrogen number density n_HI [cm^-3], from HI_density
@@ -24,7 +24,7 @@ Number densities are physical (proper) by default; --comoving gives comoving val
 
 Also printed:
   * the mean comoving n_H compared with Omega_b * rho_crit / m_p (density convention check)
-  * the temperature check from iliev1_cosmo_common.py, whenever the file has 'temperature'
+  * the temperature check from shapiro_giroux_cosmo_common.py, whenever the file has 'temperature'
 
 Display:
   * axes         : comoving kpc/h by default (Cholla's native coordinates)
@@ -48,7 +48,7 @@ from matplotlib.colors import LogNorm, Normalize
 from matplotlib.lines import Line2D
 from matplotlib.patches import Circle
 
-import iliev1_cosmo_common as C
+import shapiro_giroux_cosmo_common as C
 
 ROW_CHOICES = ("nhi", "xhii", "nh", "temperature")
 
@@ -144,9 +144,9 @@ def main():
         "--ndot",
         type=float,
         default=C.NDOT,
-        help="source luminosity in photons/s (default 5e48, as in Iliev1_Cosmo)",
+        help="source luminosity in photons/s (default 5e48, as in Shapiro_Giroux_Cosmo)",
     )
-    ap.add_argument("--outfile", default="iliev1_cosmo_slices.png")
+    ap.add_argument("--outfile", default="shapiro_giroux_cosmo_slices.png")
     args = ap.parse_args()
 
     P = C.parse_params(args.param_file)
@@ -314,7 +314,7 @@ def main():
     except ValueError:  # older matplotlib
         fig.legend(loc="upper center", bbox_to_anchor=(0.45, 0.0), **legend_style)
     fig.suptitle(
-        f"Iliev1_Cosmo  —  $z$ = {z:.3f}  ($a$ = {a:.4f}, $t$ = {exp['t'] / C.MYR_S:.0f} Myr)",
+        f"Shapiro_Giroux_Cosmo  —  $z$ = {z:.3f}  ($a$ = {a:.4f}, $t$ = {exp['t'] / C.MYR_S:.0f} Myr)",
         fontsize=13,
     )
 
