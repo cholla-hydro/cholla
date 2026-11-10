@@ -313,7 +313,9 @@ __device__ void Get_Current_UVB_Rates(Real current_z, ChemistryHeader &Chem_H, c
     Chem_H.dTables[0]->GetValues(x, pRates, 0, 6);
 
     for (unsigned int i = 0; i < 6; i++) {
-      pRates[i] *= rfN0;
+      // RT unit fix
+      pRates[i] *= rfN0 * Chem_H.rf_to_proper;
+      // pRates[i] *= rfN0;
     }
 
     #ifdef RT_OTVET
