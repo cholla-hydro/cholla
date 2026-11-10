@@ -147,11 +147,13 @@ void Grid3D::set_dt_RT()
   // limit to 0.2 ky at the
   // beginning of the simulation
 
+#ifndef COSMOLOGY
   // we may want to expand this
   // to allow for sources to "turn on"
   if (H.t < 2) {
-    H.dt = 0.2;
+    H.dt = fmin(H.dt,0.2);
   }
+#endif
 }
 
 // Set boundary cells for radiation fields

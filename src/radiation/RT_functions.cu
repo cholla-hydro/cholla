@@ -773,7 +773,7 @@ void Rad3D::rtSolve(Real* dev_scalar)
   int niters = this->num_iterations;
 
   #ifdef COSMOLOGY
-  Real speedOfLightInCodeUnits = RTConstant::c / (v_0_gas * 1.0e5) / current_a;
+  Real speedOfLightInCodeUnits = RTConstant::c * current_a / (v_0_gas * 1.0e5);
   #else
   Real speedOfLightInCodeUnits = 2.998e10 / VELOCITY_UNIT;
   #endif
@@ -840,8 +840,8 @@ void Rad3D::rtSolve(Real* dev_scalar)
   }
 
   // int niters_cfl = 1 + speedOfLightInCodeUnits * dt / (CFL_RT * grid.dx);
-  Real f_CFL     = speedOfLightInCodeUnits * dt / (CFL_RT * grid.dx);
-  int niters_cfl = 1 + ceil(f_CFL);
+  //Real f_CFL     = speedOfLightInCodeUnits * dt / (CFL_RT * grid.dx); // previous
+  //int niters_cfl = 1 + ceil(f_CFL); // previous
 
   // if (niters_cfl < this->num_iterations) niters_cfl = this->num_iterations;
 
@@ -850,14 +850,14 @@ void Rad3D::rtSolve(Real* dev_scalar)
   // if (niters > niters2) niters = niters2;
   // niters_cfl = niters;  // NEED TO SORT CFL ISSUES AFTER TESTING
   // niters_cfl = this->num_iterations;
-  if (niters_cfl > this->num_iterations) niters_cfl = this->num_iterations;
+  //if (niters_cfl > this->num_iterations) niters_cfl = this->num_iterations; // previous
 
   // Real cdt2dxRSL = fminf(CFL_RT, speedOfLightInCodeUnits * dt / grid.dx);
   // Real cdt2dxRSL = fminf(CFL_RT, speedOfLightInCodeUnits * dt / (grid.dx * niters_cfl));
 
   // Note need to restore this, check CFL issues
   // Real cdt2dxRSL = speedOfLightInCodeUnits * dt / (grid.dx * niters_cfl);
-  Real cdt2dxRSL = 1. / niters_cfl;
+  //Real cdt2dxRSL = 1. / niters_cfl; // previous
   /*if(cdt2dxRSL > CFL_RT) {
     niters_cfl = ceil(fmaxf(2,1./CFL_RT));
     cdt2dxRSL = 1./niters_cfl;
@@ -869,6 +869,13 @@ void Rad3D::rtSolve(Real* dev_scalar)
 
   //        fs.numSteps = 1 + mRSLFactor*cdt/(mSchemeCFL*dx);
   //        auto cdt2dx = cdt/(dx*fs.numSteps); // numSteps is because cdt2dxRSL is per step, not per update
+
+  // new CFL treatment
+  Real rt_reduced_c = 1; // make a parameter
+  Real f_CFL = rt_reduced_c * speedOfLightInCodeUnits * dt / (CFL_RT * grid.dx);
+  int niters_cfl = max(1, (int) ceil(f_CFL));
+  if (niters_cfl > num_iterations) niters_cfl = num_iterations;
+  Real cdt2dxRSL = fmin(rt_reduced_c * speedOfLightInCodeUnits * dt / (grid.dx * niters_cfl), CFL_RT);
 
   /*
   chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, niters2: %d, dt: %e, c: %e, dx %e)\n",

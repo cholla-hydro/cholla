@@ -644,13 +644,20 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
   // now been couched within an RT ifdef, whereas the original RT branch
   // just directly implmemented the change and overwrote the original
   // unit system. This needs to be resolved in the future.
-  #ifndef RT
-    dt_hydro = dt_hydro / Chem_H.time_units;  // Nick flagged this as a bug NG
-  #endif                                      // RT
+  //#ifndef RT
+  //  dt_hydro = dt_hydro / Chem_H.time_units;  // Nick flagged this as a bug NG
+  //#endif                                      // RT
+  //#ifdef COSMOLOGY
+  //  dt_hydro *= current_a * current_a / Chem_H.H0 * 1000 * KPC;
+  //#endif  // COSMOLOGY
 
   #ifdef COSMOLOGY
-    dt_hydro *= current_a * current_a / Chem_H.H0 * 1000 * KPC;
-  #endif  // COSMOLOGY
+    Real dt_sec = dt_hydro * current_a * current_a / Chem_H.H0 * 1000 * KPC;
+  #else
+    Real dt_sec = dt_hydro * TIME_UNIT;
+  #endif
+  dt_hydro = dt_sec / Chem_H.time_units;
+
     // dt_hydro = dt_hydro * current_a * current_a / Chem_H.H0 *
     // 1000 * KPC / Chem_H.time_units;
     //  delta_a = Chem_H.H0 * sqrt( Chem_H.Omega_M/current_a +

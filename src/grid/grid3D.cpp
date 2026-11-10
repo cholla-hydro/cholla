@@ -378,15 +378,15 @@ void Grid3D::set_dt(Real dti)
 
 #endif  // ONLY_PARTICLES
 
-#ifdef GRAVITY
-  // Set dt for hydro and particles
-  set_dt_Gravity();
-#endif  // GRAVITY
-
 #ifdef RT
   // Set dt for radiative transfer
   set_dt_RT();
 #endif
+
+#ifdef GRAVITY
+  // Set dt for hydro and particles
+  set_dt_Gravity();
+#endif  // GRAVITY
 
 #ifdef CPU_TIME
   Timer.Calc_dt.End();
