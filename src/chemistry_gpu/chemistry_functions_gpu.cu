@@ -313,9 +313,13 @@ __device__ void Get_Current_UVB_Rates(Real current_z, ChemistryHeader &Chem_H, c
     Chem_H.dTables[0]->GetValues(x, pRates, 0, 6);
 
     for (unsigned int i = 0; i < 6; i++) {
-      // RT unit fix
+  #ifdef COSMOLOGY
+      // Under COSMOLOGY dev_rf holds the comoving photon density (a^3 * n); convert it to
+      // the proper density before forming photo rates. Non-cosmological runs are unchanged.
       pRates[i] *= rfN0 * Chem_H.rf_to_proper;
-      // pRates[i] *= rfN0;
+  #else
+      pRates[i] *= rfN0;
+  #endif
     }
 
     #ifdef RT_OTVET

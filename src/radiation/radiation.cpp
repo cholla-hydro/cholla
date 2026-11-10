@@ -44,6 +44,7 @@ Rad3D::~Rad3D()
 void Rad3D::Initialize_Start(const Parameters& params)
 {
   num_iterations = params.rt_num_iterations;
+  reduced_c      = params.rt_reduced_c;  // reduced speed of light factor (see radiation.h)
 
   // allocate memory on the host
   #ifdef RT_OTVET
@@ -114,8 +115,11 @@ void Rad3D::Initialize_Finish(const Parameters& params, Real current_time)
   // Initialize Field values (for now)
   this->Initialize_GPU();
 
-  // Set the RT output times
+  #ifndef COSMOLOGY
+  // Set the RT output times. Under COSMOLOGY outputs are scheduled by scale factor in Cosmo;
+  // current_time is not a time there and RT must not schedule or end the run.
   Set_Outputs(params, current_time);
+  #endif
 }
 
 // function to call the radiation solver from main
@@ -123,13 +127,10 @@ void Grid3D::Update_RT(Real* dt_max, const Parameters& P)
 {
 
 #ifdef COSMOLOGY
-// update the cosmological unit system for the current scale factor
+  // Refresh the RT unit layer (speed of light, source factor, comoving->proper factor)
+  // for the current scale factor before the RT solve and the chemistry update.
   Rad.current_a = Cosmo.current_a;
-  Rad.hubble_a  = Cosmo.Get_Hubble_Parameter(Cosmo.current_a)
-                  / (Cosmo.v_0_gas * 1.0e5 / (Cosmo.r_0_gas * RTConstant::kpc));
-  Rad.cosmo_h   = Cosmo.cosmo_h;
-  Rad.rho_0_gas = Cosmo.rho_0_gas;
-  Rad.v_0_gas   = Cosmo.v_0_gas;
+  Rad.Set_Units(Cosmo.current_a, Cosmo.cosmo_h, Cosmo.rho_0_gas, Cosmo.v_0_gas);
 #endif
 
 // passes d_scalar as that is the pointer to the first abundance array, rho_HI

@@ -62,15 +62,12 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   Chem.H.density_units = dens_to_CGS;
   Chem.H.length_units  = kpc_cgs;
   Chem.H.time_units    = kpc_km;
-  // #ifdef RT
-  // TODO(brant): Currently the RT implementation assumes a different
-  // set of units than the other Cholla modules, including the cooling
-  // units.  The following unit change was added by Nick, and have
-  // been couched within an RT ifdef, whereas the original RT branch
-  // just directly implmemented the change and overwrote the original
-  // unit system. This needs to be resolved in the future.
-  // Chem.H.time_units = TIME_UNIT;
-  // #endif
+  #if defined(RT) && !defined(COSMOLOGY)
+  // Non-cosmological RT integrates the chemistry in kyr, the code time unit of H.dt.
+  // Under COSMOLOGY the cosmological time unit (kpc/(km/s)/h) is kept, with or without RT.
+  // The rate floors (tiny) are per time unit, so existing configurations must keep theirs.
+  Chem.H.time_units = TIME_UNIT;
+  #endif
   Chem.H.dens_number_conv = Chem.H.density_units / MH;
   #ifdef COSMOLOGY
   Chem.H.a_value       = Cosmo.current_a;
@@ -90,19 +87,12 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
 
   time_base            = Chem.H.time_units;
   Chem.H.cooling_units = 1.0e10 * MH * MH / (dens_base * time_base);
-  // RT unit fix
-  // Chem.H.cooling_units = (pow(length_base, 2) * pow(MH, 2)) / (dens_base * pow(time_base, 3));
-  // #ifdef RT
-  // TODO(brant): Currently the RT implementation assumes a different
-  // set of units than the other Cholla modules, including the cooling
-  // units.  The following two comments are original to Nick, and have
-  // been couched within an RT ifdef, whereas the original RT branch
-  // just directly implmemented the change and overwrote the original
-  // unit system. This needs to be resolved in the future.
-  /// Chem.H.cooling_units   = ( pow(length_base, 2) * pow(MH, 2) ) / ( dens_base * pow(time_base, 3) ); NG 221127 -
-  /// this is incorrect
-  // Chem.H.cooling_units = 1.0e10 * MH * MH / (dens_base * time_base);  // NG 221127 - fixed
-  // #endif
+  Chem.H.cooling_units = (pow(length_base, 2) * pow(MH, 2)) / (dens_base * pow(time_base, 3));
+  #ifdef RT
+  // RT runs use the general form (TS.U is in (km/s)^2), required when time_units = TIME_UNIT.
+  // It equals the line above whenever time_units is kpc/(km/s), as under COSMOLOGY.
+  Chem.H.cooling_units = 1.0e10 * MH * MH / (dens_base * time_base);
+  #endif
   Chem.H.reaction_units = MH / (dens_base * time_base);
   Chem.H.max_iter       = 10000;
 
@@ -119,22 +109,16 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   Chem.H.density_conversion = Cosmo.rho_0_gas * Cosmo.cosmo_h * Cosmo.cosmo_h / pow(kpc_cgs, 3) * MSUN_CGS;
   Chem.H.energy_conversion  = Cosmo.v_0_gas * Cosmo.v_0_gas * 1e10;  // km^2 -> cm^2 ;
   #else                                                              // Not COSMOLOGY
-  // Chem.H.density_conversion = 1.0;
-  // Chem.H.energy_conversion  = 1.0;
-  Chem.H.density_conversion = DENSITY_UNIT;
-  Chem.H.energy_conversion  = ENERGY_UNIT / DENSITY UNIT;
+  Chem.H.density_conversion = 1.0;
+  Chem.H.energy_conversion  = 1.0;
   #endif
-  // RT unit fixing
-  // #ifdef RT
-  // TODO(brant): Currently the RT implementation assumes a different
-  // set of units than the other Cholla modules, including the cooling
-  // units. The following two unit changes were added by Nick, and have
-  // been couched within an RT ifdef, whereas the original RT branch
-  // just directly implmemented the change and overwrote the original
-  // unit system. This needs to be resolved in the future.
-  // Chem.H.density_conversion = DENSITY_UNIT;
-  // Chem.H.energy_conversion  = ENERGY_UNIT / DENSITY_UNIT;  // NG: this is energy per unit mass
-  // #endif
+  #if defined(RT) && !defined(COSMOLOGY)
+  // Non-cosmological RT runs use Cholla code units (Msun, kpc, kyr): the code->CGS
+  // conversions are DENSITY_UNIT and ENERGY_UNIT/DENSITY_UNIT (specific energy).
+  // With COSMOLOGY the cosmological conversions above are used, with or without RT.
+  Chem.H.density_conversion = DENSITY_UNIT;
+  Chem.H.energy_conversion  = ENERGY_UNIT / DENSITY_UNIT;
+  #endif
   Chem.H.n_uvb_rates_samples    = Chem.n_uvb_rates_samples;
   Chem.H.uvb_rates_redshift_d   = Chem.rates_z_d;
   Chem.H.photo_ion_HI_rate_d    = Chem.Ion_rates_HI_d;
@@ -149,9 +133,10 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   Chem.H.dTables[1] = (Rad.photoRates->bTables.Count() > 1 ? Rad.photoRates->bTables[1] : nullptr);
   Chem.H.dStretch   = Rad.photoRates->bStretch.DevicePtr();
 
-  // RT unit fixing
-  // Chem.H.unitPhotoHeating    = KB * 1e-10 * Chem.H.time_units * Chem.H.density_units / MH / MH;
-  Chem.H.unitPhotoHeating    = KB / Chem.H.cooling_units;
+  // Use dens_base (comoving code->CGS density), as the UVB path does through cooling_units.
+  // density_units carries a 1/a^3 frozen at the initial scale factor under COSMOLOGY.
+  // Without COSMOLOGY dens_base == density_units, so non-cosmological runs are unchanged.
+  Chem.H.unitPhotoHeating    = KB * 1e-10 * Chem.H.time_units * dens_base / MH / MH;
   Chem.H.unitPhotoIonization = Chem.H.time_units;
   #endif  // RT
 

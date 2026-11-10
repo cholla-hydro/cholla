@@ -60,13 +60,6 @@ void Rad3D::Initialize_GPU()
 
   // source radiation field
   if (rtFields.rs != nullptr) {
-    if(!is_restart) {
-      #ifdef COSMOLOGY
-      // the ICs are in physical units
-      // convert source units to comoving
-      RS_Physical_to_Comoving_Units();
-      #endif
-    }
     GPU_Error_Check(cudaMemcpy(rtFields.dev_rs, rtFields.rs, grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
   } else {
     GPU_Error_Check(cudaMemset(rtFields.dev_rs, 0, grid.n_cells * sizeof(Real)));
@@ -125,7 +118,8 @@ void Rad3D::RF_Physical_to_Comoving_Units_GPU(void)
 {
   // Physical -> comoving conversion factor
   Real a_power = 1.0;
-  for (int i = 0; i < RT_COSMO_FIELD_ASCALE_POWER; i++) {
+  // Only the on-disk frame change is applied here (gas convention: power 0 = comoving).
+  for (int i = 0; i < RT_DISK_FIELD_ASCALE_POWER; i++) {
     a_power *= current_a;
   }
 
@@ -148,7 +142,8 @@ void Rad3D::RF_Comoving_to_Physical_Units_GPU(void)
 
   // Comoving -> physical conversion factor
   Real a_inv_power = 1.0;
-  for (int i = 0; i < RT_COSMO_FIELD_ASCALE_POWER; i++) {
+  // Only the on-disk frame change is applied here (gas convention: power 0 = comoving).
+  for (int i = 0; i < RT_DISK_FIELD_ASCALE_POWER; i++) {
     a_inv_power /= current_a;
   }
 
@@ -207,6 +202,21 @@ void Rad3D::RS_Scale_for_Kernel_GPU(Real factor)
 }
 
 #endif 
+
+// RT unit layer under COSMOLOGY, in Cholla's cosmological code units: comoving kpc/h,
+// super-conformal time dtau = H0 dt / a^2, and v_code = v_pec * a / v_0 (as for the gas).
+// Does nothing without COSMOLOGY.
+void Rad3D::Set_Units(Real a, Real h, Real rho_0, Real v_0)
+{
+#ifdef COSMOLOGY
+  cosmo_h      = h;
+  rho_0_gas    = rho_0;
+  v_0_gas      = v_0;
+  c_code       = RTConstant::c * a / (v_0 * 1.0e5);
+  rs_unit      = a;
+  rf_to_proper = pow(a, -RT_COSMO_FIELD_ASCALE_POWER);
+#endif
+}
 
 void Rad3D::Copy_RT_Fields(void)
 {
@@ -772,11 +782,9 @@ void Rad3D::rtSolve(Real* dev_scalar)
 
   int niters = this->num_iterations;
 
-  #ifdef COSMOLOGY
-  Real speedOfLightInCodeUnits = RTConstant::c * current_a / (v_0_gas * 1.0e5);
-  #else
-  Real speedOfLightInCodeUnits = 2.998e10 / VELOCITY_UNIT;
-  #endif
+  // Speed of light in code velocity units, from the RT unit layer. Non-cosmological value:
+  // c/VELOCITY_UNIT. Under COSMOLOGY: c*a/v_0 (Set_Units), because H.dt is super-conformal.
+  Real speedOfLightInCodeUnits = c_code;
 
   int n_iters_check = 0;  // check the number of iterations
 
@@ -870,12 +878,24 @@ void Rad3D::rtSolve(Real* dev_scalar)
   //        fs.numSteps = 1 + mRSLFactor*cdt/(mSchemeCFL*dx);
   //        auto cdt2dx = cdt/(dx*fs.numSteps); // numSteps is because cdt2dxRSL is per step, not per update
 
-  // new CFL treatment
-  Real rt_reduced_c = 1; // make a parameter
-  Real f_CFL = rt_reduced_c * speedOfLightInCodeUnits * dt / (CFL_RT * grid.dx);
-  int niters_cfl = max(1, (int) ceil(f_CFL));
-  if (niters_cfl > num_iterations) niters_cfl = num_iterations;
-  Real cdt2dxRSL = fmin(rt_reduced_c * speedOfLightInCodeUnits * dt / (grid.dx * niters_cfl), CFL_RT);
+  // Substeps from the (reduced) speed of light: the RT clock now follows the hydro dt.
+  // reduced_c > 0: light travels reduced_c*c*dt per hydro step (capped by num_iterations*CFL_RT).
+  // reduced_c <= 0: legacy scheme, light advances one cell per hydro step (identical to 5f10f1f).
+  int niters_cfl;
+  Real cdt2dxRSL;
+  if (reduced_c > 0) {
+    Real f_CFL = reduced_c * speedOfLightInCodeUnits * dt / (CFL_RT * grid.dx);
+    niters_cfl = (int)ceil(f_CFL);
+    if (niters_cfl < 1) niters_cfl = 1;
+    if (niters_cfl > num_iterations) niters_cfl = num_iterations;
+    cdt2dxRSL = fmin(reduced_c * speedOfLightInCodeUnits * dt / (grid.dx * niters_cfl), CFL_RT);
+  } else {
+    Real f_CFL = speedOfLightInCodeUnits * dt / (CFL_RT * grid.dx);
+    niters_cfl = 1 + ceil(f_CFL);
+    if (niters_cfl > num_iterations) niters_cfl = num_iterations;
+    cdt2dxRSL = 1. / niters_cfl;
+  }
+  if (dt > 0) chprintf("RT: c_eff/c = %e\n", cdt2dxRSL * niters_cfl * grid.dx / (speedOfLightInCodeUnits * dt));
 
   /*
   chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, niters2: %d, dt: %e, c: %e, dx %e)\n",
@@ -885,10 +905,10 @@ void Rad3D::rtSolve(Real* dev_scalar)
            niters_cfl, this->num_iterations, dt, speedOfLightInCodeUnits, grid.dx, cdt2dxRSL);
 
   #ifdef COSMOLOGY
-  // rescale rs to match rf comoving convention
-  Real a3 = current_a * current_a * current_a;
-  // dx*rs needs same units as rf, so extra factor of 3
-  RS_Scale_for_Kernel_GPU(a3);
+  // Source term of the comoving equation in cosmological code units: the kernel injects
+  // c_code*dtau*rs, while photons arrive at dt/dtau ~ a^2 per comoving volume and
+  // c_code ~ a, so the code-unit source shape is scaled by rs_unit = a.
+  RS_Scale_for_Kernel_GPU(rs_unit);
   #endif
 
   // treating a as constant across substeps
@@ -911,7 +931,7 @@ void Rad3D::rtSolve(Real* dev_scalar)
   }
   #ifdef COSMOLOGY
   // undo rescaling
-  RS_Scale_for_Kernel_GPU(1./a3);
+  RS_Scale_for_Kernel_GPU(1. / rs_unit);  // restore dev_rs to code units after the RT substeps
   #endif
   #endif
 

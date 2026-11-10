@@ -363,6 +363,7 @@ struct Parameters {
 #endif
 #ifdef RT
   int rt_num_iterations;
+  Real rt_reduced_c;  // reduced speed of light factor for RT_M1; <= 0 selects the legacy scheme
   char rt_outputs_file[MAXLEN];
 #endif
   Real temperature_floor = 0;

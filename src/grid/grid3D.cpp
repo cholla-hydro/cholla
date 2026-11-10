@@ -130,7 +130,7 @@ Real Grid3D::Update_Output_Time(Real outtime_in, const Parameters &P)
   outtime += P.outstep;
 
   // allow for other routines to alter
-#ifdef RT
+#if defined(RT) && !defined(COSMOLOGY)  // Cosmo schedules outputs by scale factor
   // increment to the next RT output time
   outtime = fmax(outtime, Rad.next_output);
 #endif  // RT

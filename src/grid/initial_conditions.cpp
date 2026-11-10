@@ -3194,8 +3194,10 @@ void Grid3D::Iliev1_Cosmo(struct Parameters P)
   const Real rho          = n_H_comov * MP / DENSITY_UNIT / (h*h);  // code units, physical at z_i
 
   // Thermal energy density: U = (3/2) * n * k_B * T (monatomic ideal gas, physical)
-  const Real U = 1.5 * KB * P.T_init * n_H_phys / ENERGY_UNIT;  // code units
-
+  // Energy in the cosmological 'physical' frame that Change_GAS_Frame_System expects:
+  // density (h^2 Msun/kpc^3) times specific energy (km/s)^2; neutral H, mu = 1.
+  const Real U = rho * 1.5 * KB * P.T_init / MP * 1.0e-10;
+  
   // ── Radiation source ─────────────────────────────────────────────────────
   // Monochromatic at the HI Lyman limit, Ndot = 5e48 photons/s.
   // Spectral shape identical to Iliev Test 1; see Iliev15() comments for
@@ -3204,9 +3206,9 @@ void Grid3D::Iliev1_Cosmo(struct Parameters P)
 
   auto xs = rt_physics::rt_atomic_data::CrossSections();
   std::vector<float> spectralShape(xs->nxi, 0);
+  // normalize with the code length (kpc/h under COSMOLOGY), consistent with rs_unit
   spectralShape[xs->thresholds[rt_physics::rt_atomic_data::CrossSection::IonizationHI].idx] =
-      5e48 / RTConstant::c / pow(LENGTH_UNIT, 2) / xs->dxi * 6.34 / 5.92;
-
+      5e48 / RTConstant::c / pow(Rad3D::Length_Unit_CGS(P), 2) / xs->dxi * 6.34 / 5.92;
   Rad.photoRates->Update(0, spectralShape.data(), xs->dxi * RTConstant::c * 1.0e-24);
 
   // ── Diagnostic: log derived quantities ───────────────────────────────────

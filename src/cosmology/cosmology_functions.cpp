@@ -393,6 +393,16 @@ void Grid3D::Change_Cosmological_Frame_System(bool forward)
   Change_GAS_Frame_System_GPU(forward);
 
   Change_GAS_Frame_System(forward);
+  #ifdef RT
+  // RT fields use the same frame change as the gas: comoving code units during the run,
+  // the cosmological physical frame on disk (RT_DISK_FIELD_ASCALE_POWER sets the convention).
+  Rad.current_a = Cosmo.current_a;
+  if (forward) {
+    Rad.RF_Physical_to_Comoving_Units_GPU();
+  } else {
+    Rad.RF_Comoving_to_Physical_Units_GPU();
+  }
+  #endif
   #endif  // ONLY_PARTICLES
 }
 void Grid3D::Change_DM_Frame_System(bool forward)

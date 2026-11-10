@@ -169,11 +169,9 @@ int main(int argc, char* argv[])
     CHOLLA_ERROR("Radiation currently requires HDF5 for restarting.\n");
   #endif 
   }
-  #ifdef COSMOLOGY
-  G.Rad.Initialize_Finish(P, G.Cosmo.current_a);
-  #else
+  // Cosmo is not initialized yet (Initialize_Cosmology comes later), so G.Cosmo.current_a
+  // is not valid here; RT does not schedule outputs under COSMOLOGY anyway.
   G.Rad.Initialize_Finish(P, G.H.t);
-  #endif
 #endif
 
 #ifdef DE
@@ -465,7 +463,7 @@ int main(int argc, char* argv[])
     }
 #endif
 
-#ifdef RT
+#if defined(RT) && !defined(COSMOLOGY)  // RT output list must not end a cosmological run
     // Exit the loop when reached the last rt time output
     if (G.Rad.exit_now) {
       chprintf("\nRT: Reached Last RT Output: Ending Simulation\n");

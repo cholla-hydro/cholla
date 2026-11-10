@@ -31,6 +31,10 @@ class Rad3D
   // computational domain.
   int num_iterations;
 
+  // Reduced speed of light: c_eff = reduced_c * c, limited by num_iterations substeps.
+  // reduced_c <= 0 selects the legacy scheme (light advances one cell per hydro step).
+  Real reduced_c;
+
   // Number of radiation fields, depends on the method
   int n_rf;
 
@@ -55,15 +59,36 @@ class Rad3D
 
   // powers of scale factor for converting
   // to cosmological integration units
-  static constexpr int RT_COSMO_FIELD_ASCALE_POWER = 4;  // E = a^4 * E_phys
+  // rf is a photon number density: comoving field Ntilde = a^3 * n (same convention as gas density)
+  static constexpr int RT_COSMO_FIELD_ASCALE_POWER = 3;
+  // power of a applied when writing to disk: 0 = comoving, like gas (default); 3 = proper
+  static constexpr int RT_DISK_FIELD_ASCALE_POWER = 0;
 
   #ifdef COSMOLOGY
   Real current_a;  // current cosmological scale factor
-  Real hubble_a;   // hubble parameter at the current scale factor
   Real cosmo_h;    // "little h", H0/100
   Real rho_0_gas;  // comoving density unit
   Real v_0_gas;    // velocity unit -- H_0/h in km/s kpc units
   #endif 
+
+  // RT unit layer: the only place RT code units are converted to CGS.
+  // Defaults are the non-cosmological values; Set_Units() overwrites them
+  // from Cosmo every step under COSMOLOGY.
+  Real c_code       = 2.998e10 / VELOCITY_UNIT;  // speed of light in code velocity units
+  Real rs_unit      = 1.0;                        // code source shape -> kernel source
+  Real rf_to_proper = 1.0;                        // code (comoving) field -> proper field
+  void Set_Units(Real a, Real h, Real rho_0, Real v_0);
+
+  // One code length in cm (comoving). Normalizes photo-rate tables and source
+  // shapes in the ICs, which run before Cosmo is initialized.
+  static Real Length_Unit_CGS(const Parameters &P)
+  {
+  #ifdef COSMOLOGY
+    return LENGTH_UNIT / (P.H0 / 100.0);
+  #else
+    return LENGTH_UNIT;
+  #endif
+  }
 
   // array of boundary flags
   int flags[6] = {0, 0, 0, 0, 0, 0};
