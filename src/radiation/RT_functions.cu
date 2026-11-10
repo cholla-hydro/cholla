@@ -33,13 +33,7 @@ void Rad3D::Initialize_GPU()
                              cudaMemcpyHostToDevice));
   #endif  // RT_OTVET
   #ifdef RT_M1
-    if(!is_restart) {
-      #ifdef COSMOLOGY
-      // the ICs are in physical units
-      // convert field units to comoving
-      RF_Physical_to_Comoving_Units();
-      #endif
-    }
+
     // copy over data from CPU fields
     GPU_Error_Check(cudaMemcpy(rtFields.dev_rf, rtFields.rf, n_fpfreq * n_freq * grid.n_cells * sizeof(Real),
                                cudaMemcpyHostToDevice));

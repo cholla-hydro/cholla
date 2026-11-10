@@ -365,15 +365,11 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
   // Likely needs editing, check device or host array and offset
 
   #if defined(RT) && defined(OUTPUT_RADIATION)
+
   Rad3D& Rad = G.Rad;
 
-    #ifdef COSMOLOGY
-  // convert the source field on the device
-  // to physical units
-  Rad.RS_Comoving_to_Physical_Units_GPU();
-    #endif
-
   Real* rtptr = Rad.rtFields.dev_rs;
+
   if constexpr (ForceF32Output) {
     Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf,
                         rtptr, "/rf_sources");

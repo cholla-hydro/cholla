@@ -86,7 +86,6 @@ void Grid3D::Initialize_Chemistry(struct Parameters *P)
   #endif  // COSMOLOGY
 
   time_base            = Chem.H.time_units;
-  Chem.H.cooling_units = 1.0e10 * MH * MH / (dens_base * time_base);
   Chem.H.cooling_units = (pow(length_base, 2) * pow(MH, 2)) / (dens_base * pow(time_base, 3));
   #ifdef RT
   // RT runs use the general form (TS.U is in (km/s)^2), required when time_units = TIME_UNIT.
