@@ -1,5 +1,6 @@
 ######################################
-# Parameter File for Iliev-1-Cosmo test 
+# Parameter file for the Shapiro_Giroux_Cosmo test:
+# cosmological Stromgren sphere (Shapiro & Giroux 1987)
 ######################################
 # number of grid cells in the x dimension
 nx=128
@@ -14,14 +15,14 @@ outstep=1000
 # value of gamma
 gamma=1.66666667
 # name of initial conditions
-init="Iliev1_Cosmo"
-# number of RT iterations
+init="Shapiro_Giroux_Cosmo"
+# RT: maximum number of substeps per hydro step
 rt_num_iterations=30
-# speed of light
-rt_reduced_c=1
-nfile=0
-scale_outputs_file="iliev1_cosmo_output_scale_factors.txt"
-# domain properties
+# RT: reduced speed of light; cosmological runs need rt_reduced_c > 0
+rt_reduced_c=1.0
+# snapshot scale factors
+scale_outputs_file="scale_output_files/outputs_shapiro_giroux_cosmo.txt"
+# domain properties (comoving kpc/h)
 xmin=0.0
 ymin=0.0
 zmin=0.0
@@ -36,25 +37,20 @@ yu_bcnd=1
 zl_bcnd=1
 zu_bcnd=1
 # path to output directory
-indir="ics/"
 outdir="data/"
-#UVB_rates_file="uvb_rates_V22.txt"
-#Hubble parameter in km/s/Mpc
+# Hubble parameter in km/s/Mpc
 H0=70.0
+# matter, baryon, dark energy and radiation density parameters
 Omega_M=1.0
-#Fractional baryon critical density
 Omega_b=0.1
-#Fractional DE critical density
 Omega_L=0
-#Fractional radiation critical density
 Omega_R=0
-#Initial hydrogen ionization fraction
+# initial ionization fractions of H and He
 xHp_ion_init=0
-#Initial helium single ionization fraction
 xHep_ion_init=0
-#Initial gas temperature
+# initial gas temperature (K)
 T_init=1e4
-#Initial helium mass fraction
+# helium mass fraction
 YHe=0
-#Initial redshift
+# initial redshift (source turn-on)
 Init_redshift=7.0
