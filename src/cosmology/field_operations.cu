@@ -16,7 +16,6 @@ __global__ void Rescale_Array_GPU(Real *d_x, const Real A, int n)
   d_x[id] *= A;
 }
 
-
 __global__ void Rescale_Field_GPU(Real *d_x, const Real A, int nx, int ny, int nz, int n_ghost)
 {
   // Rescale a field by a multiplicative constant

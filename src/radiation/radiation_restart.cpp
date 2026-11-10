@@ -65,12 +65,12 @@ void Rad3D::Read_Restart_HDF5(Parameters* P, int nfile)
   // Read in the current scale factor, required for
   // conversion to comoving coordinates
   double restart_a = 1.0;
-  attribute_id = H5Aopen(file_id, "current_a", H5P_DEFAULT);
+  attribute_id     = H5Aopen(file_id, "current_a", H5P_DEFAULT);
   H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &restart_a);
   H5Aclose(attribute_id);
 
   // set the current scale factor from the restart
-  current_a = (Real) restart_a;
+  current_a = (Real)restart_a;
   #endif
 
   // Read source and copy to device
@@ -186,12 +186,12 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
   // Store the scale factor so we can convert from
   // physical to cosmological units after reading
   // from the restart file.
-  attr_dims = 1;
-  dataspace_id = H5Screate_simple(1, &attr_dims, NULL);
-  double current_a_d = (double) current_a;  // current scale factor
-  attribute_id = H5Acreate(file_id, "current_a", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
-  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &current_a_d);
-  status       = H5Aclose(attribute_id);
+  attr_dims          = 1;
+  dataspace_id       = H5Screate_simple(1, &attr_dims, NULL);
+  double current_a_d = (double)current_a;  // current scale factor
+  attribute_id       = H5Acreate(file_id, "current_a", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status             = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &current_a_d);
+  status             = H5Aclose(attribute_id);
   H5Sclose(dataspace_id);
   #endif
 

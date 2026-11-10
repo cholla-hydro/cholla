@@ -3168,20 +3168,20 @@ void Grid3D::Iliev1_Cosmo(struct Parameters P)
 #if defined(RT) && defined(CHEMISTRY_GPU) && defined(COSMOLOGY)
 
   // ── Cosmological parameters from parameter file ──────────────────────────
-  const Real H0_cgs   = P.H0 * 1.0e5 / (1.0e3 * LENGTH_UNIT);  // H0: km/s/Mpc -> 1/s
-  const Real h        = P.H0 / 100.0;
-  const Real a_init   = 1./(1. + P.Init_redshift);     // = 1/(1+z_i)
-  const Real z_i      = 1.0 / a_init - 1.0;
+  const Real H0_cgs = P.H0 * 1.0e5 / (1.0e3 * LENGTH_UNIT);  // H0: km/s/Mpc -> 1/s
+  const Real h      = P.H0 / 100.0;
+  const Real a_init = 1. / (1. + P.Init_redshift);  // = 1/(1+z_i)
+  const Real z_i    = 1.0 / a_init - 1.0;
 
   // compute t vs. z using growth factor
   Cosmo.Compute_Growth_Function(&P);
 
-  Real t_i            = Cosmo.t_Growth(a_init) * KPC;    // cosmic time at z_i [1/s]
-  const Real q_0      = 0.5 * P.Omega_M - P.Omega_L;     // deceleration parameter
+  Real t_i       = Cosmo.t_Growth(a_init) * KPC;  // cosmic time at z_i [1/s]
+  const Real q_0 = 0.5 * P.Omega_M - P.Omega_L;   // deceleration parameter
 
   // ── Gas setup: pure hydrogen, YHe = 0 ───────────────────────────────────
   Chem.H.H_fraction       = 1.0;
-  Chem.recombination_case = 2;   // Case B, as in Iliev Test 1
+  Chem.recombination_case = 2;  // Case B, as in Iliev Test 1
 
   // Physical hydrogen number density at z_i [cm^-3]
   // rho_crit(H0) = 3*H0^2/(8*pi*G); n_H,i = Omega_b * rho_crit / m_p * (1+z_i)^3
@@ -3191,13 +3191,13 @@ void Grid3D::Iliev1_Cosmo(struct Parameters P)
 
   // Convert physical number density to Cholla code units (mass density)
   // const Real rho          = n_H_phys * MP / DENSITY_UNIT;  // code units, physical at z_i
-  const Real rho          = n_H_comov * MP / DENSITY_UNIT / (h*h);  // code units, physical at z_i
+  const Real rho = n_H_comov * MP / DENSITY_UNIT / (h * h);  // code units, physical at z_i
 
   // Thermal energy density: U = (3/2) * n * k_B * T (monatomic ideal gas, physical)
   // Energy in the cosmological 'physical' frame that Change_GAS_Frame_System expects:
   // density (h^2 Msun/kpc^3) times specific energy (km/s)^2; neutral H, mu = 1.
   const Real U = rho * 1.5 * KB * P.T_init / MP * 1.0e-10;
-  
+
   // ── Radiation source ─────────────────────────────────────────────────────
   // Monochromatic at the HI Lyman limit, Ndot = 5e48 photons/s.
   // Spectral shape identical to Iliev Test 1; see Iliev15() comments for
@@ -3213,8 +3213,8 @@ void Grid3D::Iliev1_Cosmo(struct Parameters P)
 
   // ── Diagnostic: log derived quantities ───────────────────────────────────
   // Case B recombination coefficient at T_init (Spitzer 1978)
-  const Real alpha_B  = 2.6e-13 * pow(P.T_init / 1.0e4, -0.8);  // cm^3/s
-  const Real lambda   = alpha_B * n_H_phys * t_i;
+  const Real alpha_B = 2.6e-13 * pow(P.T_init / 1.0e4, -0.8);  // cm^3/s
+  const Real lambda  = alpha_B * n_H_phys * t_i;
 
   // Comoving Strömgren radius at z_i [kpc, comoving]
   const Real r_S_i_cm  = pow(3.0 * 5e48 / (4.0 * M_PI * alpha_B * n_H_comov * n_H_comov), 1.0 / 3.0);
@@ -3222,25 +3222,23 @@ void Grid3D::Iliev1_Cosmo(struct Parameters P)
 
   chprintf("ICs: Iliev1_Cosmo:\n");
   chprintf("  P.H0       = %g\n", P.H0);
-  chprintf("  H0_cgs     = %g\n", H0_cgs); // should be in seconds
-  chprintf("  z_i        = %g\n",    z_i);
+  chprintf("  H0_cgs     = %g\n", H0_cgs);  // should be in seconds
+  chprintf("  z_i        = %g\n", z_i);
   chprintf("  t_i        = %g Myr\n", t_i / MYR);
   chprintf("  n_H_phys   = %g cm^-3\n", n_H_phys);
   chprintf("  n_H_comov  = %g cm^-3\n", n_H_comov);
-  chprintf("  q_0        = %g\n",    q_0);
-  chprintf("  lambda     = %g\n",    lambda);
+  chprintf("  q_0        = %g\n", q_0);
+  chprintf("  lambda     = %g\n", lambda);
   chprintf("  r_{S,i}    = %g kpc (comoving at z_i)\n", r_S_i_kpc);
-  chprintf("  T_init     = %g K\n",  P.T_init);
+  chprintf("  T_init     = %g K\n", P.T_init);
   chprintf("  alpha_B    = %g cm^3/s\n", alpha_B);
-  chprintf("  rho (code) = %g\n",    rho);
-  chprintf("  U   (code) = %g\n",    U);
+  chprintf("  rho (code) = %g\n", rho);
+  chprintf("  U   (code) = %g\n", U);
   chprintf("  recombination_case = %d\n", Chem.recombination_case);
 
   // ── Per-cell initialization ───────────────────────────────────────────────
-  double xcen[3] = {H.xbound + 0.5 * H.xdglobal,
-                    H.ybound + 0.5 * H.ydglobal,
-                    H.zbound + 0.5 * H.zdglobal};
-  double dx2 = H.dx * H.dx;
+  double xcen[3] = {H.xbound + 0.5 * H.xdglobal, H.ybound + 0.5 * H.ydglobal, H.zbound + 0.5 * H.zdglobal};
+  double dx2     = H.dx * H.dx;
 
   int i, j, k, id;
   for (k = 0; k < H.nz; k++) {
@@ -3254,9 +3252,9 @@ void Grid3D::Iliev1_Cosmo(struct Parameters P)
         C.momentum_y[id] = 0;
         C.momentum_z[id] = 0;
         C.Energy[id]     = U;
-#ifdef DE
-        C.GasEnergy[id]  = U;
-#endif
+  #ifdef DE
+        C.GasEnergy[id] = U;
+  #endif
         // Fully neutral: HI = rho, HII = 0, He negligible (YHe = 0)
         C.HI_density[id]    = rho;
         C.HII_density[id]   = 0.0;
@@ -3266,8 +3264,7 @@ void Grid3D::Iliev1_Cosmo(struct Parameters P)
         C.e_density[id]     = 0.0;
 
         // Cell position relative to box center
-        double x[3] = {H.xblocal + H.dx * (i + 0.5 - H.n_ghost),
-                       H.yblocal + H.dy * (j + 0.5 - H.n_ghost),
+        double x[3] = {H.xblocal + H.dx * (i + 0.5 - H.n_ghost), H.yblocal + H.dy * (j + 0.5 - H.n_ghost),
                        H.zblocal + H.dz * (k + 0.5 - H.n_ghost)};
         double r2   = 0;
         for (int axis = 0; axis < 3; axis++) {
@@ -3282,10 +3279,9 @@ void Grid3D::Iliev1_Cosmo(struct Parameters P)
         Rad.rtFields.rs[id] = (r2 < dx2 ? 0.125 / pow(H.dx, 3) : 0.0);
 
         // Radiation field: start from zero; builds from source during run.
-#ifdef RT_M1
-        for (int ii = 0; ii < Rad.n_fpfreq * Rad.n_freq; ii++)
-          Rad.rtFields.rf[id + ii * H.n_cells] = 0.0;
-#endif
+  #ifdef RT_M1
+        for (int ii = 0; ii < Rad.n_fpfreq * Rad.n_freq; ii++) Rad.rtFields.rf[id + ii * H.n_cells] = 0.0;
+  #endif
       }
     }
   }
@@ -3296,7 +3292,6 @@ void Grid3D::Iliev1_Cosmo(struct Parameters P)
   chexit(-1);
 #endif
 }
-
 
 #ifdef MHD
 void Grid3D::Circularly_Polarized_Alfven_Wave(struct Parameters const P)

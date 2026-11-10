@@ -69,14 +69,14 @@ class Rad3D
   Real cosmo_h;    // "little h", H0/100
   Real rho_0_gas;  // comoving density unit
   Real v_0_gas;    // velocity unit -- H_0/h in km/s kpc units
-  #endif 
+  #endif
 
   // RT unit layer: the only place RT code units are converted to CGS.
   // Defaults are the non-cosmological values; Set_Units() overwrites them
   // from Cosmo every step under COSMOLOGY.
   Real c_code       = 2.998e10 / VELOCITY_UNIT;  // speed of light in code velocity units
-  Real rs_unit      = 1.0;                        // code source shape -> kernel source
-  Real rf_to_proper = 1.0;                        // code (comoving) field -> proper field
+  Real rs_unit      = 1.0;                       // code source shape -> kernel source
+  Real rf_to_proper = 1.0;                       // code (comoving) field -> proper field
   void Set_Units(Real a, Real h, Real rho_0, Real v_0);
 
   // One code length in cm (comoving). Normalizes photo-rate tables and source

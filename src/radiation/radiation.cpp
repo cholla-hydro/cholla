@@ -125,15 +125,14 @@ void Rad3D::Initialize_Finish(const Parameters& params, Real current_time)
 // function to call the radiation solver from main
 void Grid3D::Update_RT(Real* dt_max, const Parameters& P)
 {
-
-#ifdef COSMOLOGY
+  #ifdef COSMOLOGY
   // Refresh the RT unit layer (speed of light, source factor, comoving->proper factor)
   // for the current scale factor before the RT solve and the chemistry update.
   Rad.current_a = Cosmo.current_a;
   Rad.Set_Units(Cosmo.current_a, Cosmo.cosmo_h, Cosmo.rho_0_gas, Cosmo.v_0_gas);
-#endif
+  #endif
 
-// passes d_scalar as that is the pointer to the first abundance array, rho_HI
+  // passes d_scalar as that is the pointer to the first abundance array, rho_HI
   Rad.rtSolve(C.d_scalar);  // in RT_functions.cu
 
   // update max logarithmic time increment
@@ -148,13 +147,13 @@ void Grid3D::set_dt_RT()
   // limit to 0.2 ky at the
   // beginning of the simulation
 
-#ifndef COSMOLOGY
+  #ifndef COSMOLOGY
   // we may want to expand this
   // to allow for sources to "turn on"
   if (H.t < 2) {
-    H.dt = fmin(H.dt,0.2);
+    H.dt = fmin(H.dt, 0.2);
   }
-#endif
+  #endif
 }
 
 // Set boundary cells for radiation fields

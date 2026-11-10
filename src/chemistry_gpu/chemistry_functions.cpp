@@ -354,7 +354,7 @@ void Grid3D::Compute_Gas_Temperature(Real *temperature, bool convert_cosmo_units
         // RT runs, 1.0 otherwise (unchanged).
         GE *= Chem.H.energy_conversion;
   #endif
-        temp = GE * MP * mu / d / KB * (gamma - 1.0);
+        temp            = GE * MP * mu / d / KB * (gamma - 1.0);
         temperature[id] = temp;
         // chprintf( "mu: %e \n", mu );
         // if ( temp > 1e7 ) chprintf( "Temperature: %e   mu: %e \n", temp, mu

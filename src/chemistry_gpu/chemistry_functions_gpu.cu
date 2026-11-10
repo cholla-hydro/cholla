@@ -313,13 +313,13 @@ __device__ void Get_Current_UVB_Rates(Real current_z, ChemistryHeader &Chem_H, c
     Chem_H.dTables[0]->GetValues(x, pRates, 0, 6);
 
     for (unsigned int i = 0; i < 6; i++) {
-  #ifdef COSMOLOGY
+    #ifdef COSMOLOGY
       // Under COSMOLOGY dev_rf holds the comoving photon density (a^3 * n); convert it to
       // the proper density before forming photo rates. Non-cosmological runs are unchanged.
       pRates[i] *= rfN0 * Chem_H.rf_to_proper;
-  #else
+    #else
       pRates[i] *= rfN0;
-  #endif
+    #endif
     }
 
     #ifdef RT_OTVET
@@ -644,25 +644,25 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
     d *= density_conv / a3;
     GE *= energy_conv / a2;
 
-  // TODO(brant): Currently the RT implementation assumes a different
-  // set of units than the other Cholla modules, including the cooling
-  // units. The following unit change was removed by Nick, and it's
-  // now been couched within an RT ifdef, whereas the original RT branch
-  // just directly implmemented the change and overwrote the original
-  // unit system. This needs to be resolved in the future.
-  //#ifndef RT
-  //  dt_hydro = dt_hydro / Chem_H.time_units;  // Nick flagged this as a bug NG
-  //#endif                                      // RT
-  //#ifdef COSMOLOGY
-  //  dt_hydro *= current_a * current_a / Chem_H.H0 * 1000 * KPC;
-  //#endif  // COSMOLOGY
+    // TODO(brant): Currently the RT implementation assumes a different
+    // set of units than the other Cholla modules, including the cooling
+    // units. The following unit change was removed by Nick, and it's
+    // now been couched within an RT ifdef, whereas the original RT branch
+    // just directly implmemented the change and overwrote the original
+    // unit system. This needs to be resolved in the future.
+    // #ifndef RT
+    //  dt_hydro = dt_hydro / Chem_H.time_units;  // Nick flagged this as a bug NG
+    // #endif                                      // RT
+    // #ifdef COSMOLOGY
+    //  dt_hydro *= current_a * current_a / Chem_H.H0 * 1000 * KPC;
+    // #endif  // COSMOLOGY
 
   #ifdef COSMOLOGY
     Real dt_sec = dt_hydro * current_a * current_a / Chem_H.H0 * 1000 * KPC;
   #else
     Real dt_sec = dt_hydro * TIME_UNIT;
   #endif
-  dt_hydro = dt_sec / Chem_H.time_units;
+    dt_hydro = dt_sec / Chem_H.time_units;
 
     // dt_hydro = dt_hydro * current_a * current_a / Chem_H.H0 *
     // 1000 * KPC / Chem_H.time_units;

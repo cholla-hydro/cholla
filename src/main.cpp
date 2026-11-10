@@ -167,7 +167,7 @@ int main(int argc, char* argv[])
     G.Rad.Read_Restart_HDF5(&P, P.nfile);
   #else
     CHOLLA_ERROR("Radiation currently requires HDF5 for restarting.\n");
-  #endif 
+  #endif
   }
   // Cosmo is not initialized yet (Initialize_Cosmology comes later), so G.Cosmo.current_a
   // is not valid here; RT does not schedule outputs under COSMOLOGY anyway.

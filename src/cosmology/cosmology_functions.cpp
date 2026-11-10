@@ -267,9 +267,8 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
 
   Real a_max = 1.0;
 
-  //while ((t < tmax) && (y_n[0] < a_max)) {
+  // while ((t < tmax) && (y_n[0] < a_max)) {
   while ((t < tmax) && (y_n[0] < a_max)) {
-
     if (t + dt > tmax) {
       dt = tmax - t;
     }
@@ -393,7 +392,7 @@ void Grid3D::Change_Cosmological_Frame_System(bool forward)
   Change_GAS_Frame_System_GPU(forward);
 
   Change_GAS_Frame_System(forward);
-  #ifdef RT
+    #ifdef RT
   // RT fields use the same frame change as the gas: comoving code units during the run,
   // the cosmological physical frame on disk (RT_DISK_FIELD_ASCALE_POWER sets the convention).
   Rad.current_a = Cosmo.current_a;
@@ -402,7 +401,7 @@ void Grid3D::Change_Cosmological_Frame_System(bool forward)
   } else {
     Rad.RF_Comoving_to_Physical_Units_GPU();
   }
-  #endif
+    #endif
   #endif  // ONLY_PARTICLES
 }
 void Grid3D::Change_DM_Frame_System(bool forward)

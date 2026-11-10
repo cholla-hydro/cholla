@@ -46,14 +46,14 @@ from scipy.special import expn  # expn(2, x) = E_2(x)
 # ---------------------------------------------------------------------------
 # Constants (CGS), matching src/global/global.h where applicable
 # ---------------------------------------------------------------------------
-MP = 1.672622e-24          # proton mass [g]
-G_CGS = 6.674e-8           # [cm^3 g^-1 s^-2]
-MPC_CM = 3.0857e24         # [cm]
-KPC_CM = 3.08567758e21     # [cm]  (Cholla LENGTH_UNIT)
-MYR_S = 31.536e12          # [s]
-NDOT = 5.0e48              # source luminosity [photons/s] (set in Iliev1_Cosmo)
-ALPHA_B_1E4 = 2.6e-13      # Case B recombination coefficient at 1e4 K [cm^3/s]
-MASS_UNIT_FALLBACK = 1.98847e33     # MASS_UNIT in src/global/global.h
+MP = 1.672622e-24  # proton mass [g]
+G_CGS = 6.674e-8  # [cm^3 g^-1 s^-2]
+MPC_CM = 3.0857e24  # [cm]
+KPC_CM = 3.08567758e21  # [cm]  (Cholla LENGTH_UNIT)
+MYR_S = 31.536e12  # [s]
+NDOT = 5.0e48  # source luminosity [photons/s] (set in Iliev1_Cosmo)
+ALPHA_B_1E4 = 2.6e-13  # Case B recombination coefficient at 1e4 K [cm^3/s]
+MASS_UNIT_FALLBACK = 1.98847e33  # MASS_UNIT in src/global/global.h
 
 
 # ---------------------------------------------------------------------------
@@ -91,15 +91,15 @@ def alpha_B(T):
 def hubble(a, c):
     """H(a) in 1/s."""
     return c["H0_cgs"] * math.sqrt(
-        c["Omega_R"] / a**4 + c["Omega_M"] / a**3
-        + c["Omega_K"] / a**2 + c["Omega_L"]
+        c["Omega_R"] / a**4 + c["Omega_M"] / a**3 + c["Omega_K"] / a**2 + c["Omega_L"]
     )
 
 
 def cosmic_time(a, c):
     """Cosmic time [s] at scale factor a:  t = int_0^a da' / (a' H(a'))."""
-    val, _ = quad(lambda ap: 1.0 / (ap * hubble(ap, c)), 1.0e-10, a,
-                  epsabs=0.0, epsrel=1e-10)
+    val, _ = quad(
+        lambda ap: 1.0 / (ap * hubble(ap, c)), 1.0e-10, a, epsabs=0.0, epsrel=1e-10
+    )
     return val
 
 
@@ -111,8 +111,11 @@ def derive_cosmology(P, ndot=NDOT):
     Omega_L = float(P.get("Omega_L", 0.0))
     Omega_R = float(P.get("Omega_R", 0.0))
     c = dict(
-        H0=H0, h=h,
-        Omega_M=Omega_M, Omega_L=Omega_L, Omega_R=Omega_R,
+        H0=H0,
+        h=h,
+        Omega_M=Omega_M,
+        Omega_L=Omega_L,
+        Omega_R=Omega_R,
         Omega_K=1.0 - Omega_M - Omega_L - Omega_R,
         Omega_b=float(P["Omega_b"]),
         YHe=float(P.get("YHe", 0.0)),
@@ -126,12 +129,14 @@ def derive_cosmology(P, ndot=NDOT):
 
     rho_crit = 3.0 * c["H0_cgs"] ** 2 / (8.0 * math.pi * G_CGS)
     c["rho_crit"] = rho_crit
-    c["nH_comov"] = (1.0 - c["YHe"]) * c["Omega_b"] * rho_crit / MP   # cm^-3
-    c["nH_i"] = c["nH_comov"] / c["a_i"] ** 3                          # cm^-3, proper at z_i
+    c["nH_comov"] = (1.0 - c["YHe"]) * c["Omega_b"] * rho_crit / MP  # cm^-3
+    c["nH_i"] = c["nH_comov"] / c["a_i"] ** 3  # cm^-3, proper at z_i
     c["alpha_B"] = alpha_B(c["T_init"])
-    c["t_i"] = cosmic_time(c["a_i"], c)                                # s
+    c["t_i"] = cosmic_time(c["a_i"], c)  # s
     c["lam"] = c["alpha_B"] * c["nH_i"] * c["t_i"]
-    c["K_kpc"] = (3.0 * ndot / (4.0 * math.pi * c["alpha_B"] * c["nH_comov"] ** 2)) ** (1.0 / 3.0) / KPC_CM
+    c["K_kpc"] = (3.0 * ndot / (4.0 * math.pi * c["alpha_B"] * c["nH_comov"] ** 2)) ** (
+        1.0 / 3.0
+    ) / KPC_CM
     return c
 
 
@@ -141,8 +146,11 @@ def y_front(a, c):
         return 0.0
 
     def rhs(ap, y):
-        return [c["lam"] * (1.0 - y[0] * (c["a_i"] / ap) ** 3)
-                / (c["t_i"] * ap * hubble(ap, c))]
+        return [
+            c["lam"]
+            * (1.0 - y[0] * (c["a_i"] / ap) ** 3)
+            / (c["t_i"] * ap * hubble(ap, c))
+        ]
 
     sol = solve_ivp(rhs, (c["a_i"], a), [0.0], method="LSODA", rtol=1e-10, atol=1e-14)
     return float(sol.y[0, -1])
@@ -168,7 +176,11 @@ def expected_radii(a, c):
         R_I=c["a_i"] * c["K_kpc"] * max(y, 0.0) ** (1.0 / 3.0),
         y_closed=None,
     )
-    if abs(c["q_0"] - 0.5) < 1e-6 and abs(c["Omega_L"]) < 1e-12 and abs(c["Omega_R"]) < 1e-12:
+    if (
+        abs(c["q_0"] - 0.5) < 1e-6
+        and abs(c["Omega_L"]) < 1e-12
+        and abs(c["Omega_R"]) < 1e-12
+    ):
         out["y_closed"] = y_eds_closed_form(out["t"], c)
     return out
 
@@ -190,7 +202,11 @@ def ckpc_to_native(h):
 
 
 def length_label(units):
-    return {"ckpc/h": r"comoving kpc/$h$", "ckpc": "comoving kpc", "pkpc": "proper kpc"}[units]
+    return {
+        "ckpc/h": r"comoving kpc/$h$",
+        "ckpc": "comoving kpc",
+        "pkpc": "proper kpc",
+    }[units]
 
 
 def density_to_nH(rho_out, attrs, c, a):
@@ -212,7 +228,9 @@ def species_number_density(rho_species_out, attrs, c, a):
     Returns (n_comoving, n_physical).
     """
     density_unit = float(attrs.get("density_unit", MASS_UNIT_FALLBACK / KPC_CM**3))
-    n_comov = np.asarray(rho_species_out, dtype=np.float64) * density_unit * c["h"] ** 2 / MP
+    n_comov = (
+        np.asarray(rho_species_out, dtype=np.float64) * density_unit * c["h"] ** 2 / MP
+    )
     return n_comov, n_comov / a**3
 
 
@@ -234,29 +252,45 @@ def read_field(hdf5_file, name):
     """Read one 3-D dataset, indexed [ix, iy, iz]."""
     with h5py.File(hdf5_file, "r") as f:
         if name not in f:
-            raise KeyError(f"dataset '{name}' not in {hdf5_file}; available: {list(f.keys())}")
+            raise KeyError(
+                f"dataset '{name}' not in {hdf5_file}; available: {list(f.keys())}"
+            )
         return f[name][()]
 
 
 def box_geometry(attrs, P):
     """Return (bounds[3], domain[3], dx[3]) in native units (comoving kpc/h)."""
     if "nprocs" in attrs and int(np.prod(attrs["nprocs"])) > 1:
-        raise SystemExit("This script reads a single-process output file "
-                         f"(file has nprocs = {tuple(attrs['nprocs'])}); concatenate first.")
-    bounds = np.array(attrs.get("bounds", [P.get("xmin", 0.0), P.get("ymin", 0.0), P.get("zmin", 0.0)]), float)
+        raise SystemExit(
+            "This script reads a single-process output file "
+            f"(file has nprocs = {tuple(attrs['nprocs'])}); concatenate first."
+        )
+    bounds = np.array(
+        attrs.get(
+            "bounds", [P.get("xmin", 0.0), P.get("ymin", 0.0), P.get("zmin", 0.0)]
+        ),
+        float,
+    )
     domain = np.array(attrs.get("domain", [P["xlen"], P["ylen"], P["zlen"]]), float)
-    dx = np.array(attrs.get("dx", [domain[0] / P["nx"], domain[1] / P["ny"], domain[2] / P["nz"]]), float)
+    dx = np.array(
+        attrs.get(
+            "dx", [domain[0] / P["nx"], domain[1] / P["ny"], domain[2] / P["nz"]]
+        ),
+        float,
+    )
     return bounds, domain, dx
 
 
 # ---------------------------------------------------------------------------
 # Temperature (requires the 'temperature' dataset, i.e. -DOUTPUT_TEMPERATURE)
 # ---------------------------------------------------------------------------
-TEMPERATURE_HINT = ("no 'temperature' dataset in the file: build with -DOUTPUT_TEMPERATURE "
-                    "(config/make.type.cosmo-m1 or config/make.type.m1)")
-NEUTRAL_XHII = 0.1   # cells with x_HII below this count as neutral
-IONIZED_XHII = 0.9   # cells with x_HII above this count as ionized
-T_IONIZED_RANGE = (3.0e3, 1.0e5)   # plausible range for photoheated gas [K]
+TEMPERATURE_HINT = (
+    "no 'temperature' dataset in the file: build with -DOUTPUT_TEMPERATURE "
+    "(config/make.type.cosmo-m1 or config/make.type.m1)"
+)
+NEUTRAL_XHII = 0.1  # cells with x_HII below this count as neutral
+IONIZED_XHII = 0.9  # cells with x_HII above this count as ionized
+T_IONIZED_RANGE = (3.0e3, 1.0e5)  # plausible range for photoheated gas [K]
 
 
 def read_optional_field(hdf5_file, name):
@@ -299,18 +333,25 @@ def temperature_check(T, xhii, a, c, P, start_tol=0.05, band=2.0):
     T = np.asarray(T, dtype=np.float64)
     neutral, ionized = xhii < NEUTRAL_XHII, xhii > IONIZED_XHII
     r = dict(
-        a=a, T_init=c["T_init"], at_start=abs(a / c["a_i"] - 1.0) < 1.0e-3,
+        a=a,
+        T_init=c["T_init"],
+        at_start=abs(a / c["a_i"] - 1.0) < 1.0e-3,
         T_expected_neutral=expected_neutral_temperature(a, c, P),
-        n_neutral=int(neutral.sum()), n_ionized=int(ionized.sum()), n_cells=T.size,
+        n_neutral=int(neutral.sum()),
+        n_ionized=int(ionized.sum()),
+        n_cells=T.size,
         T_neutral=float(np.median(T[neutral])) if neutral.any() else float("nan"),
         T_ionized=float(np.median(T[ionized])) if ionized.any() else float("nan"),
         T_ionized_mean=float(T[ionized].mean()) if ionized.any() else float("nan"),
-        T_min=float(T.min()), T_max=float(T.max()),
+        T_min=float(T.min()),
+        T_max=float(T.max()),
     )
     if r["at_start"]:
         T_all = float(np.median(T))
         r["T_start"] = T_all
-        r["neutral_status"] = "PASS" if abs(T_all / c["T_init"] - 1.0) <= start_tol else "FAIL"
+        r["neutral_status"] = (
+            "PASS" if abs(T_all / c["T_init"] - 1.0) <= start_tol else "FAIL"
+        )
     elif r["n_neutral"] > 0:
         ratio = r["T_neutral"] / r["T_expected_neutral"]
         r["neutral_status"] = "PASS" if 1.0 / band <= ratio <= band else "WARN"
@@ -328,20 +369,31 @@ def print_temperature_check(r):
     print("=== Temperature check ===")
     print(f"  T range in file: {r['T_min']:.4g} - {r['T_max']:.4g} K")
     if r["at_start"]:
-        print(f"  first snapshot: median T = {r['T_start']:.4g} K, T_init = {r['T_init']:.4g} K"
-              f"  -> {r['neutral_status']}")
+        print(
+            f"  first snapshot: median T = {r['T_start']:.4g} K, T_init = {r['T_init']:.4g} K"
+            f"  -> {r['neutral_status']}"
+        )
     else:
-        print(f"  neutral gas ({r['n_neutral']} cells, x_HII < {NEUTRAL_XHII}): median T = {r['T_neutral']:.4g} K;"
-              f" adiabatic from T_init = {r['T_expected_neutral']:.4g} K  -> {r['neutral_status']}")
+        print(
+            f"  neutral gas ({r['n_neutral']} cells, x_HII < {NEUTRAL_XHII}): median T = {r['T_neutral']:.4g} K;"
+            f" adiabatic from T_init = {r['T_expected_neutral']:.4g} K  -> {r['neutral_status']}"
+        )
     if r["n_ionized"] > 0:
         lo, hi = T_IONIZED_RANGE
-        print(f"  ionized gas ({r['n_ionized']} cells, x_HII > {IONIZED_XHII}): median T = {r['T_ionized']:.4g} K,"
-              f" mean {r['T_ionized_mean']:.4g} K; expected {lo:.0e}-{hi:.0e} K  -> {r['ionized_status']}")
+        print(
+            f"  ionized gas ({r['n_ionized']} cells, x_HII > {IONIZED_XHII}): median T = {r['T_ionized']:.4g} K,"
+            f" mean {r['T_ionized_mean']:.4g} K; expected {lo:.0e}-{hi:.0e} K  -> {r['ionized_status']}"
+        )
     else:
         print("  ionized gas: none (no cells with x_HII > %.1f)" % IONIZED_XHII)
-    if "FAIL" in (r["neutral_status"], r["ionized_status"]) or "WARN" in (r["neutral_status"], r["ionized_status"]):
-        print("  -> temperatures far from these expectations usually mean an energy-unit inconsistency"
-              " between the ICs, the chemistry and the output (see Compute_Gas_Temperature).")
+    if "FAIL" in (r["neutral_status"], r["ionized_status"]) or "WARN" in (
+        r["neutral_status"],
+        r["ionized_status"],
+    ):
+        print(
+            "  -> temperatures far from these expectations usually mean an energy-unit inconsistency"
+            " between the ICs, the chemistry and the output (see Compute_Gas_Temperature)."
+        )
 
 
 def expected_radii_at_temperature(a, P, T, ndot=NDOT):
