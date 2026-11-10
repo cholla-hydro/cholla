@@ -3190,7 +3190,8 @@ void Grid3D::Iliev1_Cosmo(struct Parameters P)
   const Real n_H_comov    = P.Omega_b * rho_crit_cgs / MP;                        // cm^-3, comoving
 
   // Convert physical number density to Cholla code units (mass density)
-  const Real rho          = n_H_phys * MP / DENSITY_UNIT;  // code units, physical at z_i
+  // const Real rho          = n_H_phys * MP / DENSITY_UNIT;  // code units, physical at z_i
+  const Real rho          = n_H_comov * MP / DENSITY_UNIT / (h*h);  // code units, physical at z_i
 
   // Thermal energy density: U = (3/2) * n * k_B * T (monatomic ideal gas, physical)
   const Real U = 1.5 * KB * P.T_init * n_H_phys / ENERGY_UNIT;  // code units
