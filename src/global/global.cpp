@@ -392,9 +392,10 @@ Parameters::Parameters(ParameterMap &pmap)
   // number of RT iterations
 #ifdef RT
   parms->rt_num_iterations = pmap.value_or("rt_num_iterations", 10);
-  // default 1.0 = full speed of light (limited by rt_num_iterations); 0 = legacy scheme
-  parms->rt_reduced_c       = Real(pmap.value_or("rt_reduced_c", 1.0));
-  parms->rt_outputs_file[0] = '\0';  // Default value
+  // default 0 = legacy subcycling (light advances one cell per hydro step), as before 297f550.
+  // Cosmological runs should set rt_reduced_c > 0: there the hydro step spans ~1000 light
+  // crossings of a cell, so the legacy scheme would make c_eff ~ c/1000.
+  parms->rt_reduced_c       = Real(pmap.value_or("rt_reduced_c", 0.0));  parms->rt_outputs_file[0] = '\0';  // Default value
   if (pmap.has_param("rt_outputs_file")) {
     Load_String_Param_Into_Char_Buffer(pmap, "rt_outputs_file", parms->rt_outputs_file, "");
   }
