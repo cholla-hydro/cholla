@@ -347,10 +347,14 @@ void Grid3D::Compute_Gas_Temperature(Real *temperature, bool convert_cosmo_units
         } else {
           GE *= 1e10;  // convert from (km/s)^2 to (cm/s)^2
         }
+  #else
+        // Without COSMOLOGY, GE/d is a specific energy in code units. Convert it to (cm/s)^2
+        // with the factor the chemistry solver uses (Chem.H.energy_conversion), so the output
+        // temperature matches the evolved one: ENERGY_UNIT/DENSITY_UNIT (= VELOCITY_UNIT^2) for
+        // RT runs, 1.0 otherwise (unchanged).
+        GE *= Chem.H.energy_conversion;
   #endif
-
         temp = GE * MP * mu / d / KB * (gamma - 1.0);
-        ;
         temperature[id] = temp;
         // chprintf( "mu: %e \n", mu );
         // if ( temp > 1e7 ) chprintf( "Temperature: %e   mu: %e \n", temp, mu
