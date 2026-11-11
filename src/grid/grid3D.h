@@ -980,6 +980,11 @@ class Grid3D
 #ifdef RT
   void Initialize_RT();
   void Update_RT(Real *dt_max, const Parameters &params);
+
+  /*! \fn void Update_RT_State(RT_State *state)
+   *  \brief Fill the RT source model's state (grid geometry, boundary flags, time). */
+  void Update_RT_State(RT_State *state);
+  
   int Load_RT_Fields_To_Buffer(int direction, int side, Real *buffer, int buffer_start);
 
   /*! \fn void set_dt_RT()

@@ -118,11 +118,12 @@ class Rad3D
     Real *dev_et;
   #endif  // RT_OTVET
 
-    // radiation source field(s). By default it is not needed on host, but some tests require it.
-    // note that for COSMOLOGY, rs/dev_rs are stored in comoving units. Any code that changes or
-    // populates rs/dev_rs needs to respect this or call RS_Physical_to_Comoving[_GPU]() after
-    // setting the source properties. In principle, rs/dev_rs can hold multipls source populations
-    // if n_pops > 1, but that's for the future
+    // dev_rs holds the source shape in code units: a source of luminosity L_ref (set in the
+    // photo-rate table) integrates to 1 over code (comoving) volume. It is NOT multiplied by the
+    // scale factor; under COSMOLOGY rtSolve applies rs_unit = a around the RT substeps.
+    // Layout: max(1, n_pops) fields of n_cells, one per source population. With n_pops > 0 the
+    // source model (sources/rt_sources.h) rebuilds dev_rs every step; with n_pops == 0 it is set
+    // once from the initial conditions or the restart file.
 
     Real *rs = nullptr;
     Real *dev_rs;
@@ -141,8 +142,8 @@ class Rad3D
 
   } rtFields;
 
-  int n_pops;  // Number of source populations (0 or 1 for now)
-  RTSourceModel sources; // RT source model
+  int n_pops = 0;         // Number of source populations (0 or 1 for now), from rt_n_pops
+  RTSourceModel sources;  // RT source model
 
   rt_photo_rates_csi::TableWrapperGPU *photoRates;
   const Header &grid;

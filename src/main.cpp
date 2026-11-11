@@ -230,10 +230,20 @@ int main(int argc, char* argv[])
   G.Setup_Analytic_Potential(&P);
 #endif
 
-#ifdef RT
-  G.Update_RT_State(&Rad.sources.state);
-  G.Rad.sources.Initialize(P);
-#endif
+  // Source populations: needs Cosmo (time, scale factor) and must run before Warn_Unused_Params
+  // so that the rt_pop* keys count as used.
+  if (P.rt_n_pops > 0) {
+    G.Update_RT_State(&G.Rad.sources.state);
+    char rt_restart_fname[MAXLEN];
+    const char* restart_fname = nullptr;
+  #ifdef HDF5
+    if (is_restart) {
+      G.Rad.Radiation_Restart_Filename(rt_restart_fname, P.indir, P.nfile);
+      restart_fname = rt_restart_fname;
+    }
+  #endif
+    G.Rad.sources.Initialize(P, pmap, G.Rad.photoRates, restart_fname);
+  }
 
   // now that we are done with initializing various modules, let's check for unused parameters
   Warn_Unused_Params(pmap);

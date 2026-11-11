@@ -51,6 +51,9 @@ void Rad3D::Read_Restart_HDF5(Parameters* P, int nfile)
   Radiation_Restart_Filename(filename, P->indir, nfile);
   hid_t file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
   int rt_mode;
+  
+  Real* rtptr; // pointer to radiation fields
+
 
   // Read dt_now
   //  hid_t attribute_id = H5Aopen(file_id, "dt_now", H5P_DEFAULT);
@@ -102,7 +105,7 @@ void Rad3D::Read_Restart_HDF5(Parameters* P, int nfile)
   H5close();
 
   // copy radiation fields to the device
-  GPU_Error_Check(cudaMemcpy(rtFields.dev_rf, rtFields.rf, n_rf * grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
+  // GPU_Error_Check(cudaMemcpy(rtFields.dev_rf, rtFields.rf, n_rf * grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 }
 
 void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fname_template)
@@ -217,9 +220,9 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
 
   // Source field
 
-  // Copy device to host
-  GPU_Error_Check(cudaMemcpy(rtFields.rs, rtFields.dev_rs, grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
-
+  // Copy device to host (the host array only exists if the ICs created it)
+  if (rtFields.rs == nullptr) rtFields.rs = (Real*)malloc(grid.n_cells * sizeof(Real));
+  
   // Write source field
   dims[0]      = grid.n_cells;
   dataspace_id = H5Screate_simple(1, dims, NULL);
@@ -251,6 +254,9 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
     Write_HDF5_Dataset(file_id, dataspace_id, rtptr, rt_dset_names[n]);
     H5Sclose(dataspace_id);
   }
+
+  // Source catalog of this rank (rt_n_pops > 0)
+  if (sources.Active()) sources.Write_Restart_HDF5(file_id);
 
   // close the file
   H5Fclose(file_id);

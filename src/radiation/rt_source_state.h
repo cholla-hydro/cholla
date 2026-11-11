@@ -7,12 +7,12 @@
 
 #ifdef RT
 
-  #include "../../global/global.h"
+  #include "../global/global.h"
 
 struct RT_State {
 
   /*! \var t_mid_myr
-  /*  \brief Simulation time at the middle of the current step [Myr].
+   *  \brief Simulation time at the middle of the current step [Myr].
    *  Source lifetimes and luminosities are evaluated here. */
   Real t_mid_myr = 0;
 
@@ -47,7 +47,7 @@ struct RT_State {
   Real xbound = 0;
 
   /*! \var xdglobal
-   *  \brief Global domain maximum in x-direction */
+   *  \brief Global domain length in x-direction */
   Real xdglobal = 0;
 
   /*! \var ybound
@@ -55,7 +55,7 @@ struct RT_State {
   Real ybound = 0;
 
   /*! \var ydglobal
-   *  \brief Global domain maximum in y-direction */
+   *  \brief Global domain length in y-direction */
   Real ydglobal = 0;
 
   /*! \var zbound
@@ -63,7 +63,7 @@ struct RT_State {
   Real zbound = 0;
 
   /*! \var zdglobal
-   *  \brief Global domain maximum in z-direction */
+   *  \brief Global domain length in z-direction */
   Real zdglobal = 0;
   
   /*! \var xblocal

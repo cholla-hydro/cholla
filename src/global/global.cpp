@@ -400,12 +400,9 @@ Parameters::Parameters(ParameterMap &pmap)
   if (pmap.has_param("rt_outputs_file")) {
     Load_String_Param_Into_Char_Buffer(pmap, "rt_outputs_file", parms->rt_outputs_file, "");
   }
-  // The param rt_n_pops reflects the number of source populations. 
-  // Currently only 0 or 1 allowed.
-  parms->rt_n_pops          = Real(pmap.value_or("rt_n_pops", 0));
-  if(!(parms->rt_n_pops == 0)||(parms->rt_n_pops == 1)) {
-    chprintf("RT: Only 0 or 1 source populations allowed, but rt_n_pops = %d.\n", parms->rt_n_pops);
-    chexit(-1);
+  parms->rt_n_pops = pmap.value_or("rt_n_pops", 0);
+  if (!((parms->rt_n_pops == 0) || (parms->rt_n_pops == 1))) {
+    CHOLLA_ERROR("RT: Only 0 or 1 source populations allowed, but rt_n_pops = %d.", parms->rt_n_pops);
   }
 
 #endif

@@ -9,7 +9,8 @@
   #include <stdio.h>
   #include <stdlib.h>
   #include <string.h>
-
+  #include <algorithm>
+  
   #include "../global/global.h"
   #include "../grid/grid3D.h"
   #include "../io/io.h"
@@ -44,6 +45,7 @@ Rad3D::~Rad3D()
 void Rad3D::Initialize_Start(const Parameters& params)
 {
   num_iterations = params.rt_num_iterations;
+  n_pops         = params.rt_n_pops;     // needed before the ICs and the restart read
   reduced_c      = params.rt_reduced_c;  // reduced speed of light factor (see radiation.h)
 
   // allocate memory on the host
@@ -106,7 +108,7 @@ void Rad3D::Initialize_Finish(const Parameters& params, Real current_time)
   #endif
 
   // Allocate memory for radiation source field(s) only on device
-  GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_rs, max(1, n_pops) * grid.n_cells * sizeof(Real)));
+  GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_rs, std::max(1, n_pops) * grid.n_cells * sizeof(Real)));
 
   // Allocate temporary fields on device
   GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_abc, n_freq * grid.n_cells * sizeof(Real)));
@@ -132,6 +134,12 @@ void Grid3D::Update_RT(Real* dt_max, const Parameters& P)
   Rad.Set_Units(Cosmo.current_a, Cosmo.cosmo_h, Cosmo.rho_0_gas, Cosmo.v_0_gas);
   #endif
 
+  // Rebuild dev_rs from the source populations (no-op when rt_n_pops = 0)
+  if (Rad.sources.Active()) {
+    Update_RT_State(&Rad.sources.state);
+    Rad.sources.Update(Rad.rtFields.dev_rs);
+  }
+
   // passes d_scalar as that is the pointer to the first abundance array, rho_HI
   Rad.rtSolve(C.d_scalar);  // in RT_functions.cu
 
@@ -139,6 +147,56 @@ void Grid3D::Update_RT(Real* dt_max, const Parameters& P)
   if (P.max_timestep_dexinc != 0) {
     *dt_max *= pow(10.0, P.max_timestep_dexinc);
   }
+}
+
+// Copy the grid and time information the RT source model needs into state.
+// Called once before RTSourceModel::Initialize and at the start of every Update_RT.
+void Grid3D::Update_RT_State(RT_State* state)
+{
+  state->dx     = H.dx;
+  state->dy     = H.dy;
+  state->dz     = H.dz;
+  state->nx     = H.nx;
+  state->ny     = H.ny;
+  state->nz     = H.nz;
+  state->nghost = H.n_ghost;
+  state->ncells = H.n_cells;
+
+  state->xbound   = H.xbound;
+  state->ybound   = H.ybound;
+  state->zbound   = H.zbound;
+  state->xdglobal = H.xdglobal;
+  state->ydglobal = H.ydglobal;
+  state->zdglobal = H.zdglobal;
+
+  state->xblocal     = H.xblocal;
+  state->yblocal     = H.yblocal;
+  state->zblocal     = H.zblocal;
+  state->xblocal_max = H.xblocal_max;
+  state->yblocal_max = H.yblocal_max;
+  state->zblocal_max = H.zblocal_max;
+
+  for (int i = 0; i < 6; i++) state->flags[i] = Rad.flags[i];
+
+  #ifdef COSMOLOGY
+  // At Update_RT, set_dt has already advanced Cosmo.t_secs to the END of the step, while
+  // Cosmo.current_a is still the scale factor at its start.
+  state->current_a = Cosmo.current_a;
+  state->dt_myr    = Cosmo.dt_secs / MYR;
+  state->t_mid_myr = (Cosmo.t_secs - 0.5 * Cosmo.dt_secs) / MYR;
+  // Same position drift as Advance_Particles_KDK_Step1_Cosmo_Kernel, so source velocities
+  // use the particle convention.
+  const Real da       = Cosmo.delta_a;
+  const Real a_half   = Cosmo.current_a + 0.5 * da;
+  const Real H_half   = Cosmo.Get_Hubble_Parameter(a_half);
+  state->drift_factor = da / (a_half * H_half) * Cosmo.cosmo_h / a_half;
+  #else
+  // H.t is the start of the step (Update_Time runs after Update_RT); code time unit is kyr.
+  state->current_a    = 1;
+  state->dt_myr       = H.dt * TIME_UNIT / MYR;
+  state->t_mid_myr    = (H.t + 0.5 * H.dt) * TIME_UNIT / MYR;
+  state->drift_factor = H.dt;
+  #endif
 }
 
 // Set the RT timestep

@@ -53,7 +53,10 @@ void Rad3D::Initialize_GPU()
   #endif  // RT_OTVET
 
   // source radiation field
-  if (rtFields.rs != nullptr) {
+  if (n_pops > 0) {
+    // The source model rebuilds dev_rs every step; anything the ICs put in rs is ignored.
+    GPU_Error_Check(cudaMemset(rtFields.dev_rs, 0, n_pops * grid.n_cells * sizeof(Real)));
+  } else if (rtFields.rs != nullptr) {
     GPU_Error_Check(cudaMemcpy(rtFields.dev_rs, rtFields.rs, grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
   } else {
     GPU_Error_Check(cudaMemset(rtFields.dev_rs, 0, grid.n_cells * sizeof(Real)));
