@@ -105,8 +105,8 @@ void Rad3D::Initialize_Finish(const Parameters& params, Real current_time)
   GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_et, 6 * grid.n_cells * sizeof(Real)));
   #endif
 
-  // Allocate memory for radiation source field only on device
-  GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_rs, grid.n_cells * sizeof(Real)));
+  // Allocate memory for radiation source field(s) only on device
+  GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_rs, max(1, n_pops) * grid.n_cells * sizeof(Real)));
 
   // Allocate temporary fields on device
   GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_abc, n_freq * grid.n_cells * sizeof(Real)));

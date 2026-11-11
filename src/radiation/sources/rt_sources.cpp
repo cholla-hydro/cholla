@@ -9,18 +9,18 @@ RTSourceModel::RTSourceModel(void)
 {
 }
 
-/*! \fn void Initialize(const Parameters &P, RT_State state)
+/*! \fn void Initialize(const Parameters &P)
   *  \brief Initializes the source model */
-void Initialize(const Parameters &P, RT_State state)
+void Initialize(const Parameters &P)
 {
 
 }
 
-/*! \fn void Update(RT_State state) 
+/*! \fn void Update(void) 
   *  \brief  Update the source properties */
-void Update(RT_State state)
+void Update(void)
 {
-  
+
 }
 
 
