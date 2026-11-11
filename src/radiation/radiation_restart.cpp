@@ -74,15 +74,35 @@ void Rad3D::Read_Restart_HDF5(Parameters* P, int nfile)
   #endif
 
   // Read source and copy to device
-  Read_HDF5_Dataset(file_id, rtFields.rs, "/source");
+  Read_HDF5_Dataset(file_id, rtFields.rs, "/rf_sources");
   GPU_Error_Check(cudaMemcpy(rtFields.dev_rs, rtFields.rs, grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
   // Read radiation fields and copy to device
   Read_HDF5_Dataset(file_id, rtFields.rf, "/radiation");
   GPU_Error_Check(cudaMemcpy(rtFields.dev_rf, rtFields.rf, n_rf * grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
+  #ifdef RT_OTVET
+  const char* rt_dset_names[7] = {"/rf_intensity", "/rf_HI_near", "/rf_HeI_near", "/rf_HeII_near",
+                                  "/rf_HI_far",    "/rf_HeI_far", "/rf_HeII_far"};
+  #endif
+  #ifdef RT_M1
+  const char* rt_dset_names[16] = {
+      "/rf_HI",   "/rf_HI_Mx",   "/rf_HI_My",   "/rf_HI_Mz",   "/rf_HeI", "/rf_HeI_Mx", "/rf_HeI_My", "/rf_HeI_Mz",
+      "/rf_HeII", "/rf_HeII_Mx", "/rf_HeII_My", "/rf_HeII_Mz", "/rf_0",   "/rf_0_Mx",   "/rf_0_My",   "/rf_0_Mz",
+  };
+  #endif
+
+  // Read rf fields from the HDF5 file
+  dims[0] = grid.n_cells;
+  for (int n = 0; n < n_rf; n++) {
+    rtptr        = &rtFields.rf[n * grid.n_cells];
+    Read_HDF5_Dataset(file_id, rtptr, rt_dset_names[n]);
+  }
   H5Fclose(file_id);
   H5close();
+
+  // copy radiation fields to the device
+  GPU_Error_Check(cudaMemcpy(rtFields.dev_rf, rtFields.rf, n_rf * grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 }
 
 void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fname_template)
