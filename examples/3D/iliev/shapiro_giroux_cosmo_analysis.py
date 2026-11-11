@@ -154,7 +154,9 @@ def main():
     # Photon-budget limit: if every photon emitted since turn-on ionized one H atom and
     # nothing recombined, the comoving ionized sphere would have this radius.
     n_photons = c["ndot"] * max(exp["t"] - c["t_i"], 0.0)
-    R_photon = (3.0 * n_photons / (4.0 * np.pi * c["nH_comov"])) ** (1.0 / 3.0) / C.KPC_CM * h
+    R_photon = (
+        (3.0 * n_photons / (4.0 * np.pi * c["nH_comov"])) ** (1.0 / 3.0) / C.KPC_CM * h
+    )
 
     print("=== Cosmology / derived ===")
     print(
@@ -235,9 +237,7 @@ def main():
     ax.axvline(
         R_S_nat, color="k", ls=":", lw=1.6, label=f"Expected $R_S(a)$ = {R_S_nat:.1f}"
     )
-    ax.axvline(
-        R_vol, color="b", ls=":", lw=1.4, label=f"Sim. {vol_tex} = {R_vol:.1f}"
-    )
+    ax.axvline(R_vol, color="b", ls=":", lw=1.4, label=f"Sim. {vol_tex} = {R_vol:.1f}")
     ax.set_xlabel(r"comoving radius [kpc/$h$]")
     ax.set_ylabel(r"$x_{\rm HII}$")
     ax.set_title(f"Ionization profile, $z$ = {z:.3f}")
@@ -248,9 +248,7 @@ def main():
     ax = axes[1]
     ax.plot(z_arr, RI_arr, "r-", lw=2, label="Expected ionization front $R_I$")
     ax.plot(z_arr, RS_arr, "k:", lw=1.6, label="Expected Strömgren radius $R_S(a)$")
-    ax.scatter(
-        [z], [R_vol], color="b", s=70, zorder=5, label=f"Simulation ({vol_tex})"
-    )
+    ax.scatter([z], [R_vol], color="b", s=70, zorder=5, label=f"Simulation ({vol_tex})")
     if not np.isnan(R_thresh):
         ax.scatter(
             [z],
