@@ -60,7 +60,9 @@ def read_catalog(fname):
     if cat.size == 0:
         cat = np.zeros((0, N_FIELDS))
     if cat.ndim != 2 or cat.shape[1] not in (N_FIELDS - 1, N_FIELDS):
-        sys.exit(f"{fname}: expected {N_FIELDS - 1} or {N_FIELDS} columns, got shape {cat.shape}")
+        sys.exit(
+            f"{fname}: expected {N_FIELDS - 1} or {N_FIELDS} columns, got shape {cat.shape}"
+        )
     if cat.shape[1] == N_FIELDS - 1:
         cat = np.column_stack([cat, np.arange(cat.shape[0], dtype=np.float64)])
     if not np.all(np.isfinite(cat)):
@@ -87,14 +89,44 @@ def local_ranges(n_global, n_proc):
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("catalog", help="global catalog (ASCII or .npy)")
-    ap.add_argument("--param", help="Cholla parameter file to take the grid and n_proc_* from")
-    ap.add_argument("--n", type=int, nargs=3, metavar=("NX", "NY", "NZ"), help="global cells (overrides --param)")
-    ap.add_argument("--min", type=float, nargs=3, metavar=("XMIN", "YMIN", "ZMIN"), help="domain minimum")
-    ap.add_argument("--len", type=float, nargs=3, metavar=("XLEN", "YLEN", "ZLEN"), help="domain length")
-    ap.add_argument("--nproc", type=int, nargs=3, metavar=("PX", "PY", "PZ"), help="MPI ranks per axis")
-    ap.add_argument("--prefix", required=True, help="output prefix; rank r writes <prefix>.h5.<r>")
+    ap.add_argument(
+        "--param", help="Cholla parameter file to take the grid and n_proc_* from"
+    )
+    ap.add_argument(
+        "--n",
+        type=int,
+        nargs=3,
+        metavar=("NX", "NY", "NZ"),
+        help="global cells (overrides --param)",
+    )
+    ap.add_argument(
+        "--min",
+        type=float,
+        nargs=3,
+        metavar=("XMIN", "YMIN", "ZMIN"),
+        help="domain minimum",
+    )
+    ap.add_argument(
+        "--len",
+        type=float,
+        nargs=3,
+        metavar=("XLEN", "YLEN", "ZLEN"),
+        help="domain length",
+    )
+    ap.add_argument(
+        "--nproc",
+        type=int,
+        nargs=3,
+        metavar=("PX", "PY", "PZ"),
+        help="MPI ranks per axis",
+    )
+    ap.add_argument(
+        "--prefix", required=True, help="output prefix; rank r writes <prefix>.h5.<r>"
+    )
     args = ap.parse_args()
 
     p = read_param_file(args.param) if args.param else {}
@@ -104,7 +136,9 @@ def main():
             return [cast(v) for v in cli]
         missing = [k for k in keys if k not in p]
         if missing:
-            sys.exit(f"missing {', '.join(missing)}: give them on the command line or in --param")
+            sys.exit(
+                f"missing {', '.join(missing)}: give them on the command line or in --param"
+            )
         return [cast(p[k]) for k in keys]
 
     n_glob = pick(args.n, GEOMETRY_KEYS[0:3], int)
@@ -153,11 +187,15 @@ def main():
             g.attrs["n_fields"] = np.int32(N_FIELDS)
             g.attrs["local_min"] = lmin
             g.attrs["local_max"] = lmax
-            if data.shape[0] > 0:  # the C++ writer also omits the dataset for empty ranks
+            if (
+                data.shape[0] > 0
+            ):  # the C++ writer also omits the dataset for empty ranks
                 g.create_dataset("data", data=data)
 
-    print(f"Split {cat.shape[0]} sources from {args.catalog} over {n_ranks} ranks "
-          f"({nproc[0]} x {nproc[1]} x {nproc[2]}) into {args.prefix}.h5.*")
+    print(
+        f"Split {cat.shape[0]} sources from {args.catalog} over {n_ranks} ranks "
+        f"({nproc[0]} x {nproc[1]} x {nproc[2]}) into {args.prefix}.h5.*"
+    )
     print(f"  sources per rank: min {counts.min()}, max {counts.max()}")
 
 

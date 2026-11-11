@@ -246,8 +246,7 @@ void Fold_Source_Ghosts(Real *dev_rs, const RT_State &s, FoldBuffers &buf)
       const int face = 2 * dir + side;
       if (s.flags[face] != 5) continue;
     #ifndef MPI_GPU
-      GPU_Error_Check(
-          cudaMemcpy(buf.dev[2 + side], buf.host[2 + side], n_slab * sizeof(Real), cudaMemcpyHostToDevice));
+      GPU_Error_Check(cudaMemcpy(buf.dev[2 + side], buf.host[2 + side], n_slab * sizeof(Real), cudaMemcpyHostToDevice));
     #endif
       // from the lower neighbor -> my lowest active slab; from the upper -> my highest
       Launch_Slab(dev_rs, buf.dev[2 + side], s, dir, side == 0 ? ng : n - 2 * ng, 1);

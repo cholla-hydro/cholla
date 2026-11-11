@@ -24,7 +24,7 @@ RT_State Make_State(int n_active = 8, int n_ghost = 3)
   RT_State s;
   s.nghost = n_ghost;
   s.nx = s.ny = s.nz = n_active + 2 * n_ghost;
-  s.ncells          = s.nx * s.ny * s.nz;
+  s.ncells           = s.nx * s.ny * s.nz;
   s.dx = s.dy = s.dz = 1.0;
   s.xbound = s.ybound = s.zbound = 0;
   s.xdglobal = s.ydglobal = s.zdglobal = n_active;
