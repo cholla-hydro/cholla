@@ -8,6 +8,7 @@ Shapiro & Giroux (1987) analytic solution.
 Usage:
     python shapiro_giroux_cosmo_analysis.py data/3.h5 shapiro_giroux_cosmo.txt
     python shapiro_giroux_cosmo_analysis.py data/3.h5 shapiro_giroux_cosmo.txt --nshells 96 --outfile z3.png
+    python shapiro_giroux_cosmo_analysis.py data/8.h5 shapiro_giroux_cosmo.txt --rvol-rmax 3
 
 Requires shapiro_giroux_cosmo_common.py in the same directory.
 
@@ -17,6 +18,12 @@ native length unit, and in comoving kpc):
                --threshold (default 0.5), linearly interpolated;
   * R_vol    : volume-equivalent radius, (3 V_ion / 4 pi)^(1/3) with
                V_ion = sum(x_HII) * dx^3.  Less sensitive to front thickness.
+               By default the sum runs over the whole box, so residual ionization
+               in the neutral gas far from the source also counts. With
+               --rvol-rmax F the sum is limited to cells within F times the
+               analytic R_I of the source; the script then also reports the
+               whole-box value, the mean x_HII of the excluded gas, and the
+               photon-budget limit (largest possible R_vol with no recombinations).
 x_HII = HII_density / (HI_density + HII_density), so no density-unit
 conversion enters the comparison.
 
@@ -37,15 +44,20 @@ import matplotlib.pyplot as plt
 import shapiro_giroux_cosmo_common as C
 
 
-def radial_profile(field, bounds, dx, centre, nshells=None):
+def cell_radii(shape, bounds, dx, center):
+    """Distance of every cell center from `center`, in native units, indexed [ix, iy, iz]."""
+    xs = [bounds[i] + (np.arange(n) + 0.5) * dx[i] for i, n in enumerate(shape)]
+    X, Y, Z = np.meshgrid(*xs, indexing="ij")
+    return np.sqrt((X - center[0]) ** 2 + (Y - center[1]) ** 2 + (Z - center[2]) ** 2)
+
+
+def radial_profile(field, bounds, dx, center, nshells=None):
     """
-    Spherically averaged profile about `centre`; coordinates in native units.
-    Default shell width is one cell; shells containing no cell centres are NaN.
+    Spherically averaged profile about `center`; coordinates in native units.
+    Default shell width is one cell; shells containing no cell centers are NaN.
     """
     nx, ny, nz = field.shape
-    xs = [bounds[i] + (np.arange(n) + 0.5) * dx[i] for i, n in enumerate((nx, ny, nz))]
-    X, Y, Z = np.meshgrid(*xs, indexing="ij")
-    r = np.sqrt((X - centre[0]) ** 2 + (Y - centre[1]) ** 2 + (Z - centre[2]) ** 2)
+    r = cell_radii((nx, ny, nz), bounds, dx, center)
     r_max = 0.5 * min(nx * dx[0], ny * dx[1], nz * dx[2])  # largest complete sphere
     if nshells is None:
         nshells = max(8, int(round(r_max / max(dx))))
@@ -80,6 +92,14 @@ def main():
         help="number of radial shells (default: shell width = one cell)",
     )
     ap.add_argument("--threshold", type=float, default=0.5)
+    ap.add_argument(
+        "--rvol-rmax",
+        type=float,
+        default=None,
+        metavar="F",
+        help="limit the R_vol sum to cells within F times the analytic R_I of the source "
+        "(default: whole box)",
+    )
     ap.add_argument("--ndot", type=float, default=C.NDOT)
     ap.add_argument("--outfile", default="shapiro_giroux_cosmo_comparison.png")
     args = ap.parse_args()
@@ -95,16 +115,46 @@ def main():
     R_I_nat, R_S_nat = exp["R_I"] * h, exp["R_S"] * h  # comoving kpc/h
 
     bounds, domain, dx = C.box_geometry(attrs, P)
-    centre = bounds + 0.5 * domain
+    center = bounds + 0.5 * domain
 
     xhii = C.ionized_fraction(args.hdf5_file)
     T = C.read_optional_field(
         args.hdf5_file, "temperature"
     )  # None without OUTPUT_TEMPERATURE
 
-    r_mid, prof = radial_profile(xhii, bounds, dx, centre, args.nshells)
+    r_mid, prof = radial_profile(xhii, bounds, dx, center, args.nshells)
     R_thresh = threshold_radius(r_mid, prof, args.threshold)
-    R_vol = (3.0 * xhii.sum() * np.prod(dx) / (4.0 * np.pi)) ** (1.0 / 3.0)
+    cell_vol = np.prod(dx)
+    R_vol_box = (3.0 * xhii.sum() * cell_vol / (4.0 * np.pi)) ** (1.0 / 3.0)
+    R_vol, vol_name, vol_tex = R_vol_box, "R_vol", r"$R_{\rm vol}$"
+    rvol_note = None
+    if args.rvol_rmax is not None:
+        if R_I_nat <= 0:
+            rvol_note = "  --rvol-rmax ignored: no analytic front yet (R_I = 0); R_vol uses the whole box"
+        else:
+            # Limit the ionized-volume sum to a sphere around the source, so that residual
+            # ionization in the neutral gas far from the front does not inflate R_vol.
+            r_lim = args.rvol_rmax * R_I_nat
+            r_cells = cell_radii(xhii.shape, bounds, dx, center)
+            inside = r_cells <= r_lim
+            R_vol = (3.0 * xhii[inside].sum() * cell_vol / (4.0 * np.pi)) ** (1.0 / 3.0)
+            vol_name = f"R_vol(r<{args.rvol_rmax:g} R_I)"
+            vol_tex = rf"$R_{{\rm vol}}(r<{args.rvol_rmax:g}R_I)$"
+            outside = ~inside
+            x_out = float(xhii[outside].mean()) if outside.any() else 0.0
+            excess = R_vol_box**3 / R_vol**3 - 1.0 if R_vol > 0 else float("nan")
+            rvol_note = (
+                f"  R_vol limited to r < {args.rvol_rmax:g} R_I = {r_lim:.2f} ckpc/h"
+                f" ({int(inside.sum())} of {xhii.size} cells)\n"
+                f"  whole-box R_vol = {R_vol_box:.2f} ckpc/h; gas outside the limit has mean"
+                f" x_HII = {x_out:.3e} and adds {excess:.2%} to the ionized volume"
+            )
+            if r_lim > 0.5 * float(np.min(domain)):
+                rvol_note += "\n  note: the limiting sphere extends beyond the box faces; only cells in the box count"
+    # Photon-budget limit: if every photon emitted since turn-on ionized one H atom and
+    # nothing recombined, the comoving ionized sphere would have this radius.
+    n_photons = c["ndot"] * max(exp["t"] - c["t_i"], 0.0)
+    R_photon = (3.0 * n_photons / (4.0 * np.pi * c["nH_comov"])) ** (1.0 / 3.0) / C.KPC_CM * h
 
     print("=== Cosmology / derived ===")
     print(
@@ -128,7 +178,9 @@ def main():
     if exp["y_closed"] is not None:
         print(f"  EdS closed form eq.(10a): y = {exp['y_closed']:.4f}")
     print("=== Simulation ===")
-    for name, R in (("R_thresh", R_thresh), ("R_vol", R_vol)):
+    if rvol_note is not None:
+        print(rvol_note)
+    for name, R in (("R_thresh", R_thresh), (vol_name, R_vol)):
         if np.isnan(R):
             print(f"  {name}: not found")
         else:
@@ -138,6 +190,11 @@ def main():
             print(
                 f"  {name} = {R:.2f} ckpc/h = {R / h:.2f} ckpc   sim/analytic = {ratio}"
             )
+    if R_photon > 0:
+        print(
+            f"  photon-budget limit (every photon ionizes one H atom, no recombinations):"
+            f" R = {R_photon:.2f} ckpc/h   {vol_name} / limit = {R_vol / R_photon:.4f}"
+        )
 
     tcheck = None
     if T is None:
@@ -179,7 +236,7 @@ def main():
         R_S_nat, color="k", ls=":", lw=1.6, label=f"Expected $R_S(a)$ = {R_S_nat:.1f}"
     )
     ax.axvline(
-        R_vol, color="b", ls=":", lw=1.4, label=f"Sim. $R_{{vol}}$ = {R_vol:.1f}"
+        R_vol, color="b", ls=":", lw=1.4, label=f"Sim. {vol_tex} = {R_vol:.1f}"
     )
     ax.set_xlabel(r"comoving radius [kpc/$h$]")
     ax.set_ylabel(r"$x_{\rm HII}$")
@@ -192,7 +249,7 @@ def main():
     ax.plot(z_arr, RI_arr, "r-", lw=2, label="Expected ionization front $R_I$")
     ax.plot(z_arr, RS_arr, "k:", lw=1.6, label="Expected Strömgren radius $R_S(a)$")
     ax.scatter(
-        [z], [R_vol], color="b", s=70, zorder=5, label=r"Simulation ($R_{\rm vol}$)"
+        [z], [R_vol], color="b", s=70, zorder=5, label=f"Simulation ({vol_tex})"
     )
     if not np.isnan(R_thresh):
         ax.scatter(
@@ -213,7 +270,7 @@ def main():
 
     if T is not None:
         r_T, prof_T = radial_profile(
-            np.asarray(T, dtype=np.float64), bounds, dx, centre, args.nshells
+            np.asarray(T, dtype=np.float64), bounds, dx, center, args.nshells
         )
         ax = axes[2]
         ax.semilogy(r_T, prof_T, "m-", lw=2, label="Simulation (spherical average)")
@@ -236,7 +293,7 @@ def main():
             R_I_nat, color="r", ls="--", lw=1.6, label=f"Expected $R_I$ = {R_I_nat:.1f}"
         )
         ax.axvline(
-            R_vol, color="b", ls=":", lw=1.4, label=f"Sim. $R_{{vol}}$ = {R_vol:.1f}"
+            R_vol, color="b", ls=":", lw=1.4, label=f"Sim. {vol_tex} = {R_vol:.1f}"
         )
         ax.set_xlabel(r"comoving radius [kpc/$h$]")
         ax.set_ylabel("$T$ [K]")
