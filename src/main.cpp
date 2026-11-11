@@ -236,12 +236,12 @@ int main(int argc, char* argv[])
     G.Update_RT_State(&G.Rad.sources.state);
     char rt_restart_fname[MAXLEN];
     const char* restart_fname = nullptr;
-  #ifdef HDF5
+#ifdef HDF5
     if (is_restart) {
       G.Rad.Radiation_Restart_Filename(rt_restart_fname, P.indir, P.nfile);
       restart_fname = rt_restart_fname;
     }
-  #endif
+#endif
     G.Rad.sources.Initialize(P, pmap, G.Rad.photoRates, restart_fname);
   }
 

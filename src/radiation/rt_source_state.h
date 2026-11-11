@@ -10,7 +10,6 @@
   #include "../global/global.h"
 
 struct RT_State {
-
   /*! \var t_mid_myr
    *  \brief Simulation time at the middle of the current step [Myr].
    *  Source lifetimes and luminosities are evaluated here. */
@@ -65,7 +64,7 @@ struct RT_State {
   /*! \var zdglobal
    *  \brief Global domain length in z-direction */
   Real zdglobal = 0;
-  
+
   /*! \var xblocal
    *  \brief Local domain minimum in x-direction */
   Real xblocal = 0;

@@ -9,8 +9,9 @@
   #include <stdio.h>
   #include <stdlib.h>
   #include <string.h>
+
   #include <algorithm>
-  
+
   #include "../global/global.h"
   #include "../grid/grid3D.h"
   #include "../io/io.h"
