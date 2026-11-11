@@ -365,6 +365,7 @@ struct Parameters {
   int rt_num_iterations;
   Real rt_reduced_c;  // reduced speed of light factor for RT_M1; <= 0 selects the legacy scheme
   char rt_outputs_file[MAXLEN];
+  int rt_n_pops;  // number of source populations
 #endif
   Real temperature_floor = 0;
   Real density_floor     = 0;

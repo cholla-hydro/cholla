@@ -2895,6 +2895,10 @@ void Grid3D::Iliev15(struct Parameters P, int test)
 
 #if defined(RT) && defined(CHEMISTRY_GPU)
 
+  // set number of source population to 0
+  // since we have a fixed source
+  Rad.n_pops = 0;
+
   Chem.H.H_fraction       = 1;
   Chem.recombination_case = (test == 1 ? 2 : 1);
 
@@ -3019,6 +3023,10 @@ void Grid3D::Iliev15(struct Parameters P, int test)
 void Grid3D::Iliev6(struct Parameters P)
 {
 #if defined(RT) && defined(CHEMISTRY_GPU)
+
+  // set number of source population to 0
+  // since we have a fixed source
+  Rad.n_pops = 0;
 
   Chem.H.H_fraction       = 1;
   Chem.recombination_case = 1;
@@ -3166,6 +3174,10 @@ void Grid3D::Shapiro_Giroux_Cosmo(struct Parameters P)
   //   xlen = ylen = zlen = 1000.0  # kpc/h comoving, ~1 Mpc/h
 
 #if defined(RT) && defined(CHEMISTRY_GPU) && defined(COSMOLOGY)
+
+  // set number of source population to 0
+  // since we have a fixed source
+  Rad.n_pops = 0;
 
   // ── Cosmological parameters from parameter file ──────────────────────────
   const Real H0_cgs = P.H0 * 1.0e5 / (1.0e3 * LENGTH_UNIT);  // H0: km/s/Mpc -> 1/s

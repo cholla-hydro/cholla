@@ -15,6 +15,8 @@
     #include <hdf5.h>
   #endif
 
+  #include "sources/rt_sources.h"
+
 struct Header;
 class Grav3D;
 
@@ -136,6 +138,8 @@ class Rad3D
     Real *dev_rfNew;
 
   } rtFields;
+
+  RTSources sources;
 
   rt_photo_rates_csi::TableWrapperGPU *photoRates;
   const Header &grid;

@@ -110,8 +110,7 @@ struct RT_State {
   /*! \var zblocal_max */
   /*  \brief Local domain z-direction maximum */
   Real zblocal_max;
-
-} rt_state;
+};
 
 class RTSourceModel {
 
@@ -121,14 +120,17 @@ class RTSourceModel {
      * \brief Constructor for RT Source Model */
     RTSourceModel(void);
 
-    /*! \fn void Initialize(const Parameters &P, RT_State state)
+    /*! \fn void Initialize(const Parameters &P)
      *  \brief Initializes the source model */
-    void Initialize(const Parameters &P, RT_State state);
+    void Initialize(const Parameters &P);
 
-    /*! \fn void Update(RT_State state) 
+    /*! \fn void Update(void) 
      *  \brief  Update the source properties */
-    void Update(RT_State state);
+    void Update(void);
 
+    /*! \var state
+     *  \brief RT_State structure with state info */
+    RT_State start;
 };
 
 #endif // RT_SOURCES_H

@@ -230,6 +230,11 @@ int main(int argc, char* argv[])
   G.Setup_Analytic_Potential(&P);
 #endif
 
+#ifdef RT
+  G.Update_RT_State(&Rad.sources.state);
+  G.Rad.sources.Initialize(P);
+#endif
+
   // now that we are done with initializing various modules, let's check for unused parameters
   Warn_Unused_Params(pmap);
 
