@@ -47,6 +47,7 @@ herr_t Rad3D::Write_HDF5_Attribute(hid_t file_id, hid_t dataspace_id, double* at
 void Rad3D::Read_Restart_HDF5(Parameters* P, int nfile)
 {
   H5open();
+  hsize_t dims[1];
   char filename[MAXLEN];
   Radiation_Restart_Filename(filename, P->indir, nfile);
   hid_t file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
