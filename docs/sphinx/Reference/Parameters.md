@@ -43,3 +43,11 @@ These parameters should all be specified in the `[gravity]` parameter table.
 :::{include} param/Gravity.md
 :::
 
+
+## Radiative Transfer
+
+These parameters are used when compiled with `RT_M1` or `RT_OTVET`; {par:param}`rt_reduced_c` is used only with `RT_M1`.
+See {doc}`../Physics/RT` for a description of the schemes.
+
+:::{include} param/RT.md
+:::

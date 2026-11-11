@@ -28,17 +28,17 @@ typedef double Real;
 #define TINY_NUMBER 1.0e-20
 #define MP          1.672622e-24  // mass of proton, grams
 #define KB          1.380658e-16  // boltzmann constant, cgs
-// #define GN 6.67259e-8 // gravitational constant, cgs
-#define GN  4.49451e-18  // gravitational constant, kpc^3 / M_sun / kyr^2
-#define C_L 0.306594593  // speed of light in kpc/kyr
+#define GN          4.49451e-18   // gravitational constant, kpc^3 / M_sun / kyr^2
+#define C_L         0.306594593   // speed of light in kpc/kyr
 
-#define MYR      31.536e12         // Myears in secs
-#define KPC      3.086e16          // kpc in km
-#define G_COSMO  4.300927161e-06;  // gravitational constant, kpc km^2 s^-2 Msun^-1
-#define MSUN_CGS 1.98847e33;       // Msun in gr
-#define KPC_CGS  3.086e21;         // kpc in cm
-#define KM_CGS   1e5;              // km in cm
-#define MH       1.67262171e-24    // Mass of hydrogen [g]
+#define MYR      31.536e12        // Myears in secs
+#define KPC      3.086e16         // kpc in km
+#define G_COSMO  4.300927161e-06  // gravitational constant, kpc km^2 s^-2 Msun^-1
+#define G_CGS    6.67430e-08      // gravitational constant, cm^3 s^-2 g^-1
+#define MSUN_CGS 1.98847e33       // Msun in gr
+#define KPC_CGS  3.086e21         // kpc in cm
+#define KM_CGS   1e5              // km in cm
+#define MH       1.67262171e-24   // Mass of hydrogen [g]
 
 #define TIME_UNIT           3.15569e10     // 1 kyr in s
 #define LENGTH_UNIT         3.08567758e21  // 1 kpc in cm
@@ -363,6 +363,8 @@ struct Parameters {
 #endif
 #ifdef RT
   int rt_num_iterations;
+  Real rt_reduced_c;  // reduced speed of light factor for RT_M1; <= 0 selects the legacy scheme
+  char rt_outputs_file[MAXLEN];
 #endif
   Real temperature_floor = 0;
   Real density_floor     = 0;

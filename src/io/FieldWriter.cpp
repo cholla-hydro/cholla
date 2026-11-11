@@ -365,14 +365,16 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
   // Likely needs editing, check device or host array and offset
 
   #if defined(RT) && defined(OUTPUT_RADIATION)
-  const Rad3D& Rad = G.Rad;
+
+  Rad3D& Rad = G.Rad;
 
   Real* rtptr = Rad.rtFields.dev_rs;
+
   if constexpr (ForceF32Output) {
     Write_HDF5_Field_3D(H.nx, H.ny, nx_dset, ny_dset, nz_dset, H.n_ghost, file_id, host_dataset_buf, dev_dataset_buf,
-                        rtptr, "/source");
+                        rtptr, "/rf_sources");
   } else {
-    Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, rtptr, "/source");
+    Write_Grid_HDF5_Field_GPU(H, file_id, host_dataset_buf, dev_dataset_buf, rtptr, "/rf_sources");
   }
 
     // loop over the number of radiation fields
@@ -381,11 +383,12 @@ void Write_Fields_to_HDF5_helper_(const std::string& filename, Grid3D& G, const 
                                   "/rf_HI_far",    "/rf_HeI_far", "/rf_HeII_far"};
     #endif
     #ifdef RT_M1
-  const char* rt_dset_names[16] = {"/rf_intensity", "/rf_intensity_Mx", "/rf_intensity_My", "/rf_intensity_Mz",
-                                   "/rf_HI",        "/rf_HI_Mx",        "/rf_HI_My",        "/rf_HI_Mz",
-                                   "/rf_HeI",       "/rf_HeI_Mx",       "/rf_HeI_My",       "/rf_HeI_Mz",
-                                   "/rf_HeII",      "/rf_HeII_Mx",      "/rf_HeII_My",      "/rf_HeII_Mz"};
+  const char* rt_dset_names[16] = {"/rf_HI",     "/rf_HI_Mx",  "/rf_HI_My", "/rf_HI_Mz",   "/rf_HeI",     "/rf_HeI_Mx",
+                                   "/rf_HeI_My", "/rf_HeI_Mz", "/rf_HeII",  "/rf_HeII_Mx", "/rf_HeII_My", "/rf_HeII_Mz",
+                                   "/rf_0",      "/rf_0_Mx",   "/rf_0_My",  "/rf_0_Mz"};
+
     #endif
+
   for (int n = 0; n < Rad.n_rf; n++) {
     rtptr = &Rad.rtFields.dev_rf[n * H.n_cells];
     if constexpr (ForceF32Output) {

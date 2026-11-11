@@ -409,6 +409,9 @@ class Grid3D
 
   Real Calc_Inverse_Timestep();
 
+  /*! \brief Update the next snapshot output time */
+  Real Update_Output_Time(Real outtime, const Parameters &P);
+
   /*! \fn void Set_Domain_Properties(struct Parameters P)
    *  \brief Set local domain properties */
   void Set_Domain_Properties(struct Parameters P);
@@ -631,6 +634,7 @@ class Grid3D
   void Iliev0(struct Parameters P);
   void Iliev15(struct Parameters P, int test);
   void Iliev6(struct Parameters P);
+  void Shapiro_Giroux_Cosmo(struct Parameters P);  // Shapiro & Giroux 1987, ApJ 321, L107
 
 #ifdef MHD
   /*!
@@ -975,8 +979,12 @@ class Grid3D
 
 #ifdef RT
   void Initialize_RT();
-  void Update_RT();
+  void Update_RT(Real *dt_max, const Parameters &params);
   int Load_RT_Fields_To_Buffer(int direction, int side, Real *buffer, int buffer_start);
+
+  /*! \fn void set_dt_RT()
+   *  \brief Calculate the timestep for radiative transfer. */
+  void set_dt_RT();
 #endif
 
 #ifdef ANALYSIS

@@ -116,6 +116,8 @@ void Grid3D::Set_Initial_Conditions(Parameters P, const ParameterMap &pmap)
     Iliev15(P, 5);
   } else if (strcmp(P.init, "Iliev6") == 0) {
     Iliev6(P);
+  } else if (strcmp(P.init, "Shapiro_Giroux_Cosmo") == 0) {
+    Shapiro_Giroux_Cosmo(P);
 #ifdef MHD
   } else if (strcmp(P.init, "Circularly_Polarized_Alfven_Wave") == 0) {
     Circularly_Polarized_Alfven_Wave(P);
@@ -2801,7 +2803,7 @@ void Grid3D::Iliev0(struct Parameters P)
   Real rho = MP * 1 / DENSITY_UNIT;         // 1 per cc
   Real U   = 1.5 * KB * 100 / ENERGY_UNIT;  // 100 K
 
-  chprintf("rho=%g U=%g\n", rho, U);
+  chprintf("ICs: Iliev0: rho=%g U=%g\n", rho, U);
 
   int i, j, k, id;
   for (k = 0; k < H.nz; k++) {
@@ -2845,6 +2847,52 @@ void Grid3D::Iliev0(struct Parameters P)
 
 void Grid3D::Iliev15(struct Parameters P, int test)
 {
+  // Implements two test problems from the cosmological radiative transfer
+  // code comparison paper of Iliev et al. (2006), MNRAS 371, 1057.
+  //
+  // Both tests use a uniform, static, pure-hydrogen box with:
+  //   - Hydrogen number density: n_H = 1e-3 cm^-3
+  //   - A point source at the box center emitting Ndot = 5e48 photons/s
+  //   - Initial seed ionization fraction xe = 1.2e-3
+  //
+  // The source is deposited uniformly over the 8 cells nearest the box center
+  // (cells with r < dx), with amplitude 0.125/dx^3 so that the volume integral
+  // over those cells equals unity. It is then scaled by the spectral shape and
+  // the factor Ndot/(c * LENGTH_UNIT^2) to convert to code-unit radiation
+  // energy density rate per frequency bin.
+  //
+  // Under RT_M1 all radiation fields are initialized to zero; the field builds
+  // from the source during the run.
+  //
+  // test == 1: Iliev et al. (2006) Test 1 -- isothermal HII region expansion.
+  //   - T = 1e4 K (thermal energy density U = 1.5 * n * k_B * T in code units)
+  //   - Monochromatic source at the HI Lyman limit (13.6 eV).
+  //     The spectral shape is a delta function at the HI threshold frequency bin.
+  //     A correction factor of 6.34/5.92 is applied because the bin center sits
+  //     at nu_0 * exp(0.5*dxi) rather than exactly at threshold, shifting the
+  //     effective cross section from sigma_0 = 6.34e-18 cm^2 to 5.92e-18 cm^2.
+  //   - Case B recombination (recombinations to the ground state are on-the-spot).
+  //   - Has an analytic Stromgren radius solution; tests ionization front speed
+  //     and final HII region size.
+  //
+  // test == 5: Iliev et al. (2006) Test 5 -- HII region expansion with heating.
+  //   - T = 100 K (gas starts cold)
+  //   - Blackbody source spectrum at T* = 1e5 K, normalized to Ndot = 5e48 photons/s.
+  //     SpectralShape::BlackBody computes x^3/(e^x-1) in log-frequency (x = h*nu/k*T*),
+  //     normalized to integrate to unity above the HI threshold, then scaled by
+  //     Ndot/(c * LENGTH_UNIT^2).
+  //   - Case A recombination (ground-state recombination photons escape the medium).
+  //   - Tests both ionization front propagation and photoheating; gas temperature
+  //     rises from 100 K as the HII region expands.
+  //
+  // Units:
+  //   rho is in Cholla code units: physical mass density / DENSITY_UNIT,
+  //     where DENSITY_UNIT = MASS_UNIT / kpc^3.
+  //   U is in Cholla code units: physical energy density / ENERGY_UNIT,
+  //     where ENERGY_UNIT = DENSITY_UNIT * VELOCITY_UNIT^2.
+  //   rs (the source field) is in physical units at this point:
+  //     [photons / s / cm^3 / (code length)^3], normalized per frequency bin.
+
 #if defined(RT) && defined(CHEMISTRY_GPU)
 
   Chem.H.H_fraction       = 1;
@@ -2866,7 +2914,8 @@ void Grid3D::Iliev15(struct Parameters P, int test)
     }
   }
 
-  chprintf("rho=%g U=%g recombination_case %d\n", rho, U, Chem.recombination_case);
+  chprintf("ICs: Iliev%d: rho=%g U=%g recombination_case %d\n", (test == 1 ? 1 : 5), rho, U, Chem.recombination_case);
+  chprintf("ICs: RTConstant::c %e\n", RTConstant::c);
 
   double xcen[3] = {H.xbound + 0.5 * H.xdglobal, H.ybound + 0.5 * H.ydglobal, H.zbound + 0.5 * H.zdglobal};
   double dx2     = H.dx * H.dx;
@@ -2886,12 +2935,17 @@ void Grid3D::Iliev15(struct Parameters P, int test)
     // normal solution
     spectralShape[xs->thresholds[rt_physics::rt_atomic_data::CrossSection::IonizationHI].idx] =
         5e48 / RTConstant::c / pow(LENGTH_UNIT, 2) / xs->dxi * 6.34 / 5.92;
+
+    chprintf("LENGTH_UNIT %e xs->dxi %e 6.34 / 5.92 %e H.dx %e\n", LENGTH_UNIT, xs->dxi, 6.34 / 5.92, H.dx);
+    // chexit(0);
   } else {
     SpectralShape::BlackBody(1.0e5, spectralShape);
     for (auto &s : spectralShape) {
       s *= 5e48 / RTConstant::c / pow(LENGTH_UNIT, 2);
     }
   }
+  // 5e48 is photons per second
+  //
 
   Rad.photoRates->Update(0, spectralShape.data(), xs->dxi * RTConstant::c * 1.0e-24);
 
@@ -2900,7 +2954,7 @@ void Grid3D::Iliev15(struct Parameters P, int test)
     for (j = 0; j < H.ny; j++) {
       for (i = 0; i < H.nx; i++) {
         // get cell index
-        id = i + H.nx * (j + H.ny * k);
+        id = i + j * H.nx + k * H.nx * H.ny;
 
         C.density[id]    = rho;
         C.momentum_x[id] = 0;
@@ -2911,7 +2965,6 @@ void Grid3D::Iliev15(struct Parameters P, int test)
   #ifdef DE
         C.GasEnergy[id] = U;
   #endif
-
         C.HI_density[id]    = rho * (1 - xe);
         C.HII_density[id]   = rho * xe;
         C.HeI_density[id]   = rho * 1.0e-20;
@@ -2938,9 +2991,9 @@ void Grid3D::Iliev15(struct Parameters P, int test)
         auto eps2et = 4 * eps2ot;
 
         Rad.rtFields.rs[id] = (r2 < dx2 ? 0.125 / pow(H.dx, 3) : 0);
-        Rad.rtFields.rf[id] = 1 / (12.5664 * (eps2ot + r2));
 
   #ifdef RT_OTVET
+        Rad.rtFields.rf[id] = 1 / (12.5664 * (eps2ot + r2));
         for (int ii = 1; ii < 1 + Rad.n_fpfreq * Rad.n_freq; ii++) Rad.rtFields.rf[id + ii * H.n_cells] = 0;
         Rad.rtFields.et[id + 0 * H.n_cells] = (eps2et / 3 + x[0] * x[0]) / (eps2et + r2);
         Rad.rtFields.et[id + 1 * H.n_cells] = (x[1] * x[0]) / (eps2et + r2);
@@ -2955,7 +3008,7 @@ void Grid3D::Iliev15(struct Parameters P, int test)
     }
   }
 
-  chprintf("Iliev15 ICs finalized...\n");
+  chprintf("ICs: Iliev%d initial conditions finalized...\n", (test == 1 ? 1 : 5));
 
 #else   // !defined(RT) && defined(CHEMISTRY_GPU)
   chprintf("This requires RT && CHEMISTRY_GPU turned on! \n");
@@ -3058,6 +3111,186 @@ void Grid3D::Iliev6(struct Parameters P)
   chprintf("This requires RT && CHEMISTRY_GPU turned on! \n");
   chexit(-1);
 #endif  // defined(RT) && defined(CHEMISTRY_GPU)
+}
+
+void Grid3D::Shapiro_Giroux_Cosmo(struct Parameters P)
+{
+  // Cosmological expanding-universe Strömgren sphere test.
+  //
+  // Generalizes Iliev et al. (2006) Test 1 to an expanding FRW universe,
+  // following Shapiro & Giroux (1987), ApJ 321, L107.
+  //
+  // A point source emitting Ndot = 5e48 photons/s (constant comoving
+  // luminosity) sits at the center of a uniform, static, pure-hydrogen box.
+  // The comoving hydrogen number density is derived from the baryon density
+  // parameter: n_H_comov = Omega_b * rho_crit(H0) / m_p.  The gas is
+  // isothermal at T_init (set to 1e4 K in the parameter file) with Case B
+  // recombination.  Helium is set to zero (YHe = 0) and the gas starts
+  // fully neutral.
+  //
+  // Cosmological parameters from the parameter file:
+  //   H0, Omega_M, Omega_b, Omega_L, Init_redshift, T_init
+  //
+  // Derived quantites:
+  //   z_i      = Init_redshift                            [starting redshift]
+  //   n_{H,i}  = Omega_b * rho_crit / m_p * (1 + z_i)^3   [physical cm^-3 at z_i]
+  //   q_0      = Omega_M/2 - Omega_L                      [deceleration parameter]
+  //   t_i      = Cosmo.t_secs                             [cosmic time at z_i, seconds]
+  //   lambda   = alpha_B(T_init) * n_{H,i} * t_i          [dimensionless recomb. param.]
+  //
+  // Analytical Solution (Shapiro & Giroux 1987, eqs. 3, 5, 6, 10a):
+  //
+  //   Comoving Stromgren radius at turn-on:
+  //     r_{S,i} = [3*Ndot / (4*pi * alpha_B * n_{H,i}^2)]^(1/3)   [cm, comoving at z_i]
+  //
+  //   Dimensionless front position y(t) = (r_I / r_{S,i})^3 satisfies:
+  //     dy/dx = lambda * (1 - y/a^3),   x = t/t_i,  a = (t/t_i)^(2/3) for EdS
+  //
+  //   For EdS (Omega_M=1, Omega_L=0, q_0=1/2), closed-form solution (eq. 10a):
+  //     y(t) = lambda * exp(lambda*t_i/t) * [(t/t_i)*E2(lambda*t_i/t) - E2(lambda)]
+  //   where E2(x) = integral_1^inf exp(-xt)/t^2 dt (exponential integral, order 2).
+  //
+  //   For general cosmology (q_0 != 1/2), integrate eq. (6) numerically in
+  //   post-processing using the same H(z) used by Cholla.
+  //
+  //   The simulation should be compared against r_I(a) = r_{S,i} * y(a)^(1/3)
+  //   at each output redshift, measured as the comoving radius where x_HII ~ 0.5.
+  //
+  // Recommended parameter file settings for the analytic EdS case:
+  //   H0          = 70.0      # km/s/Mpc
+  //   Omega_M     = 1.0       # EdS
+  //   Omega_b     = 0.1       # yields n_H,comov = 1e-3 cm^-3 for h=0.7
+  //   Omega_L     = 0.0       # EdS
+  //   Init_redshift = 7.0
+  //   T_init      = 1.0e4     # K, isothermal
+  //   xlen = ylen = zlen = 1000.0  # kpc/h comoving, ~1 Mpc/h
+
+#if defined(RT) && defined(CHEMISTRY_GPU) && defined(COSMOLOGY)
+
+  // ── Cosmological parameters from parameter file ──────────────────────────
+  const Real H0_cgs = P.H0 * 1.0e5 / (1.0e3 * LENGTH_UNIT);  // H0: km/s/Mpc -> 1/s
+  const Real h      = P.H0 / 100.0;
+  const Real a_init = 1. / (1. + P.Init_redshift);  // = 1/(1+z_i)
+  const Real z_i    = 1.0 / a_init - 1.0;
+
+  // compute t vs. z using growth factor
+  Cosmo.Compute_Growth_Function(&P);
+
+  Real t_i       = Cosmo.t_Growth(a_init) * KPC;  // cosmic time at z_i [1/s]
+  const Real q_0 = 0.5 * P.Omega_M - P.Omega_L;   // deceleration parameter
+
+  // ── Gas setup: pure hydrogen, YHe = 0 ───────────────────────────────────
+  Chem.H.H_fraction       = 1.0;
+  Chem.recombination_case = 2;  // Case B, as in Iliev Test 1
+
+  // Physical hydrogen number density at z_i [cm^-3]
+  // rho_crit(H0) = 3*H0^2/(8*pi*G); n_H,i = Omega_b * rho_crit / m_p * (1+z_i)^3
+  const Real rho_crit_cgs = 3.0 * H0_cgs * H0_cgs / (8.0 * M_PI * G_CGS);
+  const Real n_H_phys     = P.Omega_b * rho_crit_cgs / MP * pow(1.0 + z_i, 3.0);  // cm^-3
+  const Real n_H_comov    = P.Omega_b * rho_crit_cgs / MP;                        // cm^-3, comoving
+
+  // Convert physical number density to Cholla code units (mass density)
+  // const Real rho          = n_H_phys * MP / DENSITY_UNIT;  // code units, physical at z_i
+  const Real rho = n_H_comov * MP / DENSITY_UNIT / (h * h);  // code units, physical at z_i
+
+  // Thermal energy density: U = (3/2) * n * k_B * T (monatomic ideal gas, physical)
+  // Energy in the cosmological 'physical' frame that Change_GAS_Frame_System expects:
+  // density (h^2 Msun/kpc^3) times specific energy (km/s)^2; neutral H, mu = 1.
+  const Real U = rho * 1.5 * KB * P.T_init / MP * 1.0e-10;
+
+  // ── Radiation source ─────────────────────────────────────────────────────
+  // Monochromatic at the HI Lyman limit, Ndot = 5e48 photons/s.
+  // Spectral shape identical to Iliev Test 1; see Iliev15() comments for
+  // the 6.34/5.92 cross-section correction at the bin center.
+  Rad.rtFields.rs = (Real *)malloc(H.n_cells * sizeof(Real));
+
+  auto xs = rt_physics::rt_atomic_data::CrossSections();
+  std::vector<float> spectralShape(xs->nxi, 0);
+  // normalize with the code length (kpc/h under COSMOLOGY), consistent with rs_unit
+  spectralShape[xs->thresholds[rt_physics::rt_atomic_data::CrossSection::IonizationHI].idx] =
+      5e48 / RTConstant::c / pow(Rad3D::Length_Unit_CGS(P), 2) / xs->dxi * 6.34 / 5.92;
+  Rad.photoRates->Update(0, spectralShape.data(), xs->dxi * RTConstant::c * 1.0e-24);
+
+  // ── Diagnostic: log derived quantities ───────────────────────────────────
+  // Case B recombination coefficient at T_init (Spitzer 1978)
+  const Real alpha_B = 2.6e-13 * pow(P.T_init / 1.0e4, -0.8);  // cm^3/s
+  const Real lambda  = alpha_B * n_H_phys * t_i;
+
+  // Comoving Strömgren radius at z_i [kpc, comoving]
+  const Real r_S_i_cm  = pow(3.0 * 5e48 / (4.0 * M_PI * alpha_B * n_H_comov * n_H_comov), 1.0 / 3.0);
+  const Real r_S_i_kpc = r_S_i_cm / (LENGTH_UNIT);
+
+  chprintf("ICs: Shapiro_Giroux_Cosmo:\n");
+  chprintf("  P.H0       = %g\n", P.H0);
+  chprintf("  H0_cgs     = %g\n", H0_cgs);  // should be in seconds
+  chprintf("  z_i        = %g\n", z_i);
+  chprintf("  t_i        = %g Myr\n", t_i / MYR);
+  chprintf("  n_H_phys   = %g cm^-3\n", n_H_phys);
+  chprintf("  n_H_comov  = %g cm^-3\n", n_H_comov);
+  chprintf("  q_0        = %g\n", q_0);
+  chprintf("  lambda     = %g\n", lambda);
+  chprintf("  r_{S,i}    = %g kpc (comoving at z_i)\n", r_S_i_kpc);
+  chprintf("  T_init     = %g K\n", P.T_init);
+  chprintf("  alpha_B    = %g cm^3/s\n", alpha_B);
+  chprintf("  rho (code) = %g\n", rho);
+  chprintf("  U   (code) = %g\n", U);
+  chprintf("  recombination_case = %d\n", Chem.recombination_case);
+
+  // ── Per-cell initialization ───────────────────────────────────────────────
+  double xcen[3] = {H.xbound + 0.5 * H.xdglobal, H.ybound + 0.5 * H.ydglobal, H.zbound + 0.5 * H.zdglobal};
+  double dx2     = H.dx * H.dx;
+
+  int i, j, k, id;
+  for (k = 0; k < H.nz; k++) {
+    for (j = 0; j < H.ny; j++) {
+      for (i = 0; i < H.nx; i++) {
+        id = i + j * H.nx + k * H.nx * H.ny;
+
+        // Gas: uniform, fully neutral, pure hydrogen
+        C.density[id]    = rho;
+        C.momentum_x[id] = 0;
+        C.momentum_y[id] = 0;
+        C.momentum_z[id] = 0;
+        C.Energy[id]     = U;
+  #ifdef DE
+        C.GasEnergy[id] = U;
+  #endif
+        // Fully neutral: HI = rho, HII = 0, He negligible (YHe = 0)
+        C.HI_density[id]    = rho;
+        C.HII_density[id]   = 0.0;
+        C.HeI_density[id]   = 0.0;
+        C.HeII_density[id]  = 0.0;
+        C.HeIII_density[id] = 0.0;
+        C.e_density[id]     = 0.0;
+
+        // Cell position relative to box center
+        double x[3] = {H.xblocal + H.dx * (i + 0.5 - H.n_ghost), H.yblocal + H.dy * (j + 0.5 - H.n_ghost),
+                       H.zblocal + H.dz * (k + 0.5 - H.n_ghost)};
+        double r2   = 0;
+        for (int axis = 0; axis < 3; axis++) {
+          x[axis] -= xcen[axis];
+          r2 += x[axis] * x[axis];
+        }
+
+        // Source: distributed over 8 cells nearest the box center,
+        // normalized so the volume integral equals unity.
+        // rs is in physical units here; Initialize_GPU() converts to
+        // comoving (rs_comov = a * rs_phys) before the device copy.
+        Rad.rtFields.rs[id] = (r2 < dx2 ? 0.125 / pow(H.dx, 3) : 0.0);
+
+        // Radiation field: start from zero; builds from source during run.
+  #ifdef RT_M1
+        for (int ii = 0; ii < Rad.n_fpfreq * Rad.n_freq; ii++) Rad.rtFields.rf[id + ii * H.n_cells] = 0.0;
+  #endif
+      }
+    }
+  }
+
+  chprintf("ICs: Shapiro_Giroux_Cosmo initial conditions finalized.\n");
+#else
+  chprintf("Shapiro_Giroux_Cosmo requires RT, CHEMISTRY_GPU, and COSMOLOGY.\n");
+  chexit(-1);
+#endif
 }
 
 #ifdef MHD

@@ -267,6 +267,7 @@ void Cosmology::Compute_Growth_Function(struct Parameters *P)
 
   Real a_max = 1.0;
 
+  // while ((t < tmax) && (y_n[0] < a_max)) {
   while ((t < tmax) && (y_n[0] < a_max)) {
     if (t + dt > tmax) {
       dt = tmax - t;
@@ -346,6 +347,12 @@ Real Cosmology::LinearInterpolation(const std::vector<Real> &x, const std::vecto
   return y[index] + (y[index + 1] - y[index]) * (a - x[index]) / dx;
 }
 
+Real Cosmology::t_Growth(Real a)
+{
+  // interpolate (a,t)
+  return LinearInterpolation(a_array, t_array, a);
+}
+
 Real Cosmology::D_Growth(Real a)
 {
   // interpolate (a,D)
@@ -385,6 +392,16 @@ void Grid3D::Change_Cosmological_Frame_System(bool forward)
   Change_GAS_Frame_System_GPU(forward);
 
   Change_GAS_Frame_System(forward);
+    #ifdef RT
+  // RT fields use the same frame change as the gas: comoving code units during the run,
+  // the cosmological physical frame on disk (RT_DISK_FIELD_ASCALE_POWER sets the convention).
+  Rad.current_a = Cosmo.current_a;
+  if (forward) {
+    Rad.RF_Physical_to_Comoving_Units_GPU();
+  } else {
+    Rad.RF_Comoving_to_Physical_Units_GPU();
+  }
+    #endif
   #endif  // ONLY_PARTICLES
 }
 void Grid3D::Change_DM_Frame_System(bool forward)
