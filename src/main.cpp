@@ -230,6 +230,7 @@ int main(int argc, char* argv[])
   G.Setup_Analytic_Potential(&P);
 #endif
 
+#ifdef RT
   // Source populations: needs Cosmo (time, scale factor) and must run before Warn_Unused_Params
   // so that the rt_pop* keys count as used.
   if (P.rt_n_pops > 0) {
@@ -244,6 +245,7 @@ int main(int argc, char* argv[])
 #endif
     G.Rad.sources.Initialize(P, pmap, G.Rad.photoRates, restart_fname);
   }
+#endif 
 
   // now that we are done with initializing various modules, let's check for unused parameters
   Warn_Unused_Params(pmap);
