@@ -10,18 +10,25 @@ was split for a different decomposition.
 The decomposition must be explicit: set n_proc_x, n_proc_y and n_proc_z in the parameter
 file (Cholla's automatic tiling is not reproduced here), or pass --nproc.
 
-Input catalog: ASCII, one source per line, '#' starts a comment, columns
-    x y z vx vy vz lum t_birth t_life [id]
-or a .npy array with the same columns. Units match the C++ reader
-(src/radiation/sources/rt_source_io.cpp): positions in code length units (comoving kpc/h
-under COSMOLOGY), velocities in the particle convention, lum = L / L_ref, t_birth and
-t_life in Myr (t_life <= 0: never dies). If id is missing, the row index is used.
+Input catalog: a CSV file whose first row names the columns. Columns may appear in any
+order, and names are case-insensitive. Lines starting with '#' are ignored.
+
+    column    required  default  meaning
+    x, y, z   yes                position, code length units (comoving kpc/h under COSMOLOGY)
+    lum       yes                L / L_ref (L_ref is rt_pop<N>_Lref, photons/s)
+    vx,vy,vz  no        0        velocity, particle convention
+    t_birth   no        -1e30    birth time [Myr] (default: always on)
+    t_life    no        0        lifetime [Myr]; <= 0 means the source never dies
+    id        no        row no.  integer source id (row index from 0 if omitted)
+
+Units match the C++ reader (src/radiation/sources/rt_source_io.cpp).
 
 Example:
-    python rt_split_sources.py sources.txt --param shapiro_giroux_cosmo.txt --prefix sg_source
+    python rt_split_sources.py sources.csv --param shapiro_giroux_cosmo.txt --prefix sg_source
 """
 
 import argparse
+import csv
 import os
 import sys
 
@@ -33,6 +40,10 @@ except ImportError:
     sys.exit("rt_split_sources.py needs h5py (pip install h5py)")
 
 N_FIELDS = 10  # must match SRC_NFIELDS in src/radiation/sources/rt_source_store.h
+# Column order of the per-rank files: must match enum SourceField in rt_source_store.h.
+FIELD_NAMES = ["x", "y", "z", "vx", "vy", "vz", "lum", "t_birth", "t_life", "id"]
+REQUIRED_FIELDS = {"x", "y", "z", "lum"}
+FIELD_DEFAULTS = {"vx": 0.0, "vy": 0.0, "vz": 0.0, "t_birth": -1.0e30, "t_life": 0.0}
 GEOMETRY_KEYS = ["nx", "ny", "nz", "xmin", "ymin", "zmin", "xlen", "ylen", "zlen"]
 NPROC_KEYS = ["n_proc_x", "n_proc_y", "n_proc_z"]
 
@@ -49,26 +60,53 @@ def read_param_file(fname):
             params[key] = value.strip("\"'")
     return params
 
-
 def read_catalog(fname):
-    """Return an (N, N_FIELDS) float64 array, adding the id column if it is missing."""
-    if fname.endswith(".npy"):
-        cat = np.load(fname)
-    else:
-        cat = np.loadtxt(fname, comments="#", ndmin=2)
-    cat = np.asarray(cat, dtype=np.float64)
-    if cat.size == 0:
-        cat = np.zeros((0, N_FIELDS))
-    if cat.ndim != 2 or cat.shape[1] not in (N_FIELDS - 1, N_FIELDS):
-        sys.exit(
-            f"{fname}: expected {N_FIELDS - 1} or {N_FIELDS} columns, got shape {cat.shape}"
-        )
-    if cat.shape[1] == N_FIELDS - 1:
-        cat = np.column_stack([cat, np.arange(cat.shape[0], dtype=np.float64)])
+    """Read a CSV catalog with a header row; return an (N, N_FIELDS) float64 array with
+    columns in FIELD_NAMES order, filling optional columns with their defaults."""
+    with open(fname, newline="") as f:
+        rows = [r for r in csv.reader(f) if r and not r[0].lstrip().startswith("#")]
+    if not rows:
+        sys.exit(f"{fname}: empty file (expected a header row naming the columns)")
+
+    header = [h.strip().lower() for h in rows[0]]
+    unknown = [h for h in header if h not in FIELD_NAMES]
+    if unknown:
+        sys.exit(f"{fname}: unknown column(s) {unknown}; allowed: {FIELD_NAMES}")
+    dupes = sorted({h for h in header if header.count(h) > 1})
+    if dupes:
+        sys.exit(f"{fname}: duplicate column(s) {dupes}")
+    missing = sorted(REQUIRED_FIELDS - set(header))
+    if missing:
+        sys.exit(f"{fname}: missing required column(s) {missing}")
+
+    body = rows[1:]
+    values = np.zeros((len(body), len(header)))
+    for i, row in enumerate(body):
+        if len(row) != len(header):
+            sys.exit(
+                f"{fname}: data row {i + 1} has {len(row)} values, header has {len(header)}"
+            )
+        try:
+            values[i] = [float(v) for v in row]
+        except ValueError as err:
+            sys.exit(f"{fname}: data row {i + 1}: {err}")
+
+    cat = np.zeros((len(body), N_FIELDS))
+    for f_idx, name in enumerate(FIELD_NAMES):
+        if name in header:
+            cat[:, f_idx] = values[:, header.index(name)]
+        elif name == "id":
+            cat[:, f_idx] = np.arange(len(body), dtype=np.float64)
+        else:
+            cat[:, f_idx] = FIELD_DEFAULTS[name]
+
     if not np.all(np.isfinite(cat)):
         sys.exit(f"{fname}: catalog contains non-finite values")
-    if np.any(cat[:, 6] < 0):
+    if np.any(cat[:, FIELD_NAMES.index("lum")] < 0):
         sys.exit(f"{fname}: negative lum values")
+    ids = cat[:, FIELD_NAMES.index("id")]
+    if np.any(ids != np.round(ids)) or len(np.unique(ids)) != len(ids):
+        sys.exit(f"{fname}: ids must be unique integers")
     return cat
 
 
@@ -92,7 +130,7 @@ def main():
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    ap.add_argument("catalog", help="global catalog (ASCII or .npy)")
+    ap.add_argument("catalog", help="global catalog (CSV with a header row)")
     ap.add_argument(
         "--param", help="Cholla parameter file to take the grid and n_proc_* from"
     )
