@@ -60,6 +60,7 @@ def read_param_file(fname):
             params[key] = value.strip("\"'")
     return params
 
+
 def read_catalog(fname):
     """Read a CSV catalog with a header row; return an (N, N_FIELDS) float64 array with
     columns in FIELD_NAMES order, filling optional columns with their defaults."""
