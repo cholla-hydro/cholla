@@ -85,6 +85,7 @@ struct ChemistryHeader {
   const PhotoRateTableStretchCSI *dStretch;
   Real unitPhotoHeating;
   Real unitPhotoIonization;
+  Real rf_to_proper;
 #endif
 
   // inherit the temperature floor

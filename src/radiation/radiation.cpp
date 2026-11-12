@@ -10,12 +10,15 @@
   #include <stdlib.h>
   #include <string.h>
 
+  #include <algorithm>
+
   #include "../global/global.h"
   #include "../grid/grid3D.h"
   #include "../io/io.h"
   #include "RT_functions.h"
   #include "alt/atomic_data.h"
   #include "alt/photo_rates_csi_gpu.h"
+  #include "alt/rt_constants.h"
 
 Rad3D::Rad3D(const Header& grid_) : grid(grid_)
 {
@@ -43,6 +46,8 @@ Rad3D::~Rad3D()
 void Rad3D::Initialize_Start(const Parameters& params)
 {
   num_iterations = params.rt_num_iterations;
+  n_pops         = params.rt_n_pops;     // needed before the ICs and the restart read
+  reduced_c      = params.rt_reduced_c;  // reduced speed of light factor (see radiation.h)
 
   // allocate memory on the host
   #ifdef RT_OTVET
@@ -77,7 +82,7 @@ void Rad3D::Initialize_Start(const Parameters& params)
 }
 
 // function to do various initialization tasks, i.e. allocating memory, etc.
-void Rad3D::Initialize_Finish()
+void Rad3D::Initialize_Finish(const Parameters& params, Real current_time)
 {
   #ifdef RT_OTVET
   int eqn_mode = 2;  // Updating to 4
@@ -103,8 +108,8 @@ void Rad3D::Initialize_Finish()
   GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_et, 6 * grid.n_cells * sizeof(Real)));
   #endif
 
-  // Allocate memory for radiation source field only on device
-  GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_rs, grid.n_cells * sizeof(Real)));
+  // Allocate memory for radiation source field(s) only on device
+  GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_rs, std::max(1, n_pops) * grid.n_cells * sizeof(Real)));
 
   // Allocate temporary fields on device
   GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_abc, n_freq * grid.n_cells * sizeof(Real)));
@@ -112,13 +117,102 @@ void Rad3D::Initialize_Finish()
 
   // Initialize Field values (for now)
   this->Initialize_GPU();
+
+  #ifndef COSMOLOGY
+  // Set the RT output times. Under COSMOLOGY outputs are scheduled by scale factor in Cosmo;
+  // current_time is not a time there and RT must not schedule or end the run.
+  Set_Outputs(params, current_time);
+  #endif
 }
 
 // function to call the radiation solver from main
-void Grid3D::Update_RT()
+void Grid3D::Update_RT(Real* dt_max, const Parameters& P)
 {
+  #ifdef COSMOLOGY
+  // Refresh the RT unit layer (speed of light, source factor, comoving->proper factor)
+  // for the current scale factor before the RT solve and the chemistry update.
+  Rad.current_a = Cosmo.current_a;
+  Rad.Set_Units(Cosmo.current_a, Cosmo.cosmo_h, Cosmo.rho_0_gas, Cosmo.v_0_gas);
+  #endif
+
+  // Rebuild dev_rs from the source populations (no-op when rt_n_pops = 0)
+  if (Rad.sources.Active()) {
+    Update_RT_State(&Rad.sources.state);
+    Rad.sources.Update(Rad.rtFields.dev_rs);
+  }
+
   // passes d_scalar as that is the pointer to the first abundance array, rho_HI
-  Rad.rtSolve(C.d_scalar);
+  Rad.rtSolve(C.d_scalar);  // in RT_functions.cu
+
+  // update max logarithmic time increment
+  if (P.max_timestep_dexinc != 0) {
+    *dt_max *= pow(10.0, P.max_timestep_dexinc);
+  }
+}
+
+// Copy the grid and time information the RT source model needs into state.
+// Called once before RTSourceModel::Initialize and at the start of every Update_RT.
+void Grid3D::Update_RT_State(RT_State* state)
+{
+  state->dx     = H.dx;
+  state->dy     = H.dy;
+  state->dz     = H.dz;
+  state->nx     = H.nx;
+  state->ny     = H.ny;
+  state->nz     = H.nz;
+  state->nghost = H.n_ghost;
+  state->ncells = H.n_cells;
+
+  state->xbound   = H.xbound;
+  state->ybound   = H.ybound;
+  state->zbound   = H.zbound;
+  state->xdglobal = H.xdglobal;
+  state->ydglobal = H.ydglobal;
+  state->zdglobal = H.zdglobal;
+
+  state->xblocal     = H.xblocal;
+  state->yblocal     = H.yblocal;
+  state->zblocal     = H.zblocal;
+  state->xblocal_max = H.xblocal_max;
+  state->yblocal_max = H.yblocal_max;
+  state->zblocal_max = H.zblocal_max;
+
+  for (int i = 0; i < 6; i++) state->flags[i] = Rad.flags[i];
+
+  #ifdef COSMOLOGY
+  // At Update_RT, set_dt has already advanced Cosmo.t_secs to the END of the step, while
+  // Cosmo.current_a is still the scale factor at its start.
+  state->current_a = Cosmo.current_a;
+  state->dt_myr    = Cosmo.dt_secs / MYR;
+  state->t_mid_myr = (Cosmo.t_secs - 0.5 * Cosmo.dt_secs) / MYR;
+  // Same position drift as Advance_Particles_KDK_Step1_Cosmo_Kernel, so source velocities
+  // use the particle convention.
+  const Real da       = Cosmo.delta_a;
+  const Real a_half   = Cosmo.current_a + 0.5 * da;
+  const Real H_half   = Cosmo.Get_Hubble_Parameter(a_half);
+  state->drift_factor = da / (a_half * H_half) * Cosmo.cosmo_h / a_half;
+  #else
+  // H.t is the start of the step (Update_Time runs after Update_RT); code time unit is kyr.
+  state->current_a    = 1;
+  state->dt_myr       = H.dt * TIME_UNIT / MYR;
+  state->t_mid_myr    = (H.t + 0.5 * H.dt) * TIME_UNIT / MYR;
+  state->drift_factor = H.dt;
+  #endif
+}
+
+// Set the RT timestep
+void Grid3D::set_dt_RT()
+{
+  // limit to 0.2 ky at the
+  // beginning of the simulation
+
+  #ifndef COSMOLOGY
+  // we may want to expand this
+  // to allow for sources to "turn on"
+  if (H.t < 2) {
+    H.dt = fmin(H.dt, 0.2);
+  }
+  #endif
 }
 
 // Set boundary cells for radiation fields

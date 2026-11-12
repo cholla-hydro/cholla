@@ -289,11 +289,11 @@ __device__ void Get_Current_UVB_Rates(Real current_z, ChemistryHeader &Chem_H, c
     #endif                     // RT_OTVET
 
     #ifdef RT_M1
-  const int stride_0    = 0;             // 0    -- intensity field
-  const int stride_HI   = n_fpfreq;      // HI   -- intensity field
-  const int stride_HeI  = 2 * n_fpfreq;  // HeI  -- intensity field
-  const int stride_HeII = 3 * n_fpfreq;  // HeII -- intensity field
-    #endif                               // RT_M1
+  const int stride_HI   = 0;             // HI   -- intensity field
+  const int stride_HeI  = n_fpfreq;      // HeI  -- intensity field
+  const int stride_HeII = 2 * n_fpfreq;  // HeII -- intensity field
+  const int stride_0    = 3 * n_fpfreq;  // 0    -- intensity field
+    #endif                            // RT_M1
 
   // This applies to all methods
   // For RT_OTVET, this is the near field
@@ -313,7 +313,13 @@ __device__ void Get_Current_UVB_Rates(Real current_z, ChemistryHeader &Chem_H, c
     Chem_H.dTables[0]->GetValues(x, pRates, 0, 6);
 
     for (unsigned int i = 0; i < 6; i++) {
+    #ifdef COSMOLOGY
+      // Under COSMOLOGY dev_rf holds the comoving photon density (a^3 * n); convert it to
+      // the proper density before forming photo rates. Non-cosmological runs are unchanged.
+      pRates[i] *= rfN0 * Chem_H.rf_to_proper;
+    #else
       pRates[i] *= rfN0;
+    #endif
     }
 
     #ifdef RT_OTVET
@@ -638,19 +644,26 @@ __global__ void Update_Chemistry_kernel(Real *dev_conserved, const Real *dev_rf,
     d *= density_conv / a3;
     GE *= energy_conv / a2;
 
-  // TODO(brant): Currently the RT implementation assumes a different
-  // set of units than the other Cholla modules, including the cooling
-  // units. The following unit change was removed by Nick, and it's
-  // now been couched within an RT ifdef, whereas the original RT branch
-  // just directly implmemented the change and overwrote the original
-  // unit system. This needs to be resolved in the future.
-  #ifndef RT
-    dt_hydro = dt_hydro / Chem_H.time_units;  // Nick flagged this as a bug NG
-  #endif                                      // RT
+    // TODO(brant): Currently the RT implementation assumes a different
+    // set of units than the other Cholla modules, including the cooling
+    // units. The following unit change was removed by Nick, and it's
+    // now been couched within an RT ifdef, whereas the original RT branch
+    // just directly implmemented the change and overwrote the original
+    // unit system. This needs to be resolved in the future.
+    // #ifndef RT
+    //  dt_hydro = dt_hydro / Chem_H.time_units;  // Nick flagged this as a bug NG
+    // #endif                                      // RT
+    // #ifdef COSMOLOGY
+    //  dt_hydro *= current_a * current_a / Chem_H.H0 * 1000 * KPC;
+    // #endif  // COSMOLOGY
 
   #ifdef COSMOLOGY
-    dt_hydro *= current_a * current_a / Chem_H.H0 * 1000 * KPC;
-  #endif  // COSMOLOGY
+    Real dt_sec = dt_hydro * current_a * current_a / Chem_H.H0 * 1000 * KPC;
+  #else
+    Real dt_sec = dt_hydro * TIME_UNIT;
+  #endif
+    dt_hydro = dt_sec / Chem_H.time_units;
+
     // dt_hydro = dt_hydro * current_a * current_a / Chem_H.H0 *
     // 1000 * KPC / Chem_H.time_units;
     //  delta_a = Chem_H.H0 * sqrt( Chem_H.Omega_M/current_a +
