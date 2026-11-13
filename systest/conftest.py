@@ -26,6 +26,20 @@ def pytest_addoption(parser):
             "will be replaced wth the desired number of process"
         ),
     )
+    # in the future, it would be nice if the following were runtime-choices or could at
+    # least be inferred from the binary
+    parser.addoption(
+        "--build-preset",
+        choices=("hydro", "mhd", "cosmology"),
+        default=None,
+        help="the build-preset of the cholla binary",
+    )
+    parser.addoption(
+        "--reconstruct-kind",
+        choices=("PCM", "PLMC", "PLMP", "PPMC", "PPMP"),
+        default=None,
+        help="the reconstruction strategy hardcoded in the cholla binary",
+    )
 
 
 # this hook gets executed after pytest finishes parsing all of the config opts
@@ -34,8 +48,18 @@ def pytest_configure(config):
     if any("--help" == arg for arg in sys.argv[1:]):
         return
 
+    if config.getoption("cholla_bin") is None:
+        raise pytest.UsageError("--cholla-bin is missing")
+    elif config.getoption("build_preset") is None:
+        raise pytest.UsageError("--build-preset is missing")
+    elif config.getoption("reconstruct_kind") is None:
+        raise pytest.UsageError("--reconstruct-kind is missing")
+
     config.stash[_CHOLLA_SPEC_KEY] = ChollaSpec(
-        launcher=config.getoption("launcher"), cholla_bin=config.getoption("cholla_bin")
+        launcher=config.getoption("launcher"),
+        cholla_bin=config.getoption("cholla_bin"),
+        build_preset=config.getoption("build_preset"),
+        reconstruct_kind=config.getoption("reconstruct_kind"),
     )
 
 

@@ -4,7 +4,7 @@ import pathlib
 import re
 import shutil
 import subprocess
-import types
+from types import MappingProxyType
 import time
 
 import cholla_utils
@@ -16,8 +16,15 @@ class ChollaSpec:
     """Encodes information about cholla and how to construct a command"""
 
     _common_args: list[str]
+    props: MappingProxyType[str, str]
 
-    def __init__(self, launcher: str, cholla_bin: str):
+    def __init__(
+        self,
+        launcher: str | None,
+        cholla_bin: str,
+        build_preset: str,
+        reconstruct_kind: str,
+    ):
         # build up common_args
         self._common_args = []
         launcher = [] if launcher is None else launcher.split(";")
@@ -40,6 +47,9 @@ class ChollaSpec:
         if not os.path.isfile(cholla_bin):
             raise ValueError(f"{cholla_bin} is not a valid path")
         self._common_args.append(os.path.abspath(cholla_bin))
+        self.props = MappingProxyType(
+            {"build_preset": build_preset, "reconstruct_kind": reconstruct_kind}
+        )
 
     @property
     def compile_profile(self) -> str:
@@ -129,8 +139,12 @@ class SimTester:
         self._reuse_existing = reuse_existing
 
     @property
-    def configs(self) -> types.MappingProxyType[str, SimConf]:
-        return types.MappingProxyType(self._sim_confs)
+    def binary_props(self) -> MappingProxyType[str, str]:
+        return self._sim_spec.props
+
+    @property
+    def configs(self) -> MappingProxyType[str, SimConf]:
+        return MappingProxyType(self._sim_confs)
 
     def configure_sim(
         self,
