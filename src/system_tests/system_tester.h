@@ -323,30 +323,6 @@ class system_test::SystemTestRunner
   std::vector<double> loadTestFieldData(std::string dataSetName, std::vector<size_t> &testDims,
                                         std::vector<H5::H5File> file = {});
 
-  /*!
-   * \brief Generate a std::vector of the specified size populated by a sine
-   * wave. The equation used to generate the wave is:
-   *
-   * wave = offset + amplitude * sin(kx*xIndex + ky*yIndex + kz*zIndex + phase)
-   *
-   * \param[in] offset Flat offset from zero
-   * \param[in] amplitude Amplitude of the wave
-   * \param[in] kx The x component of the wave vector in pixel units
-   * \param[in] ky The y component of the wave vector in pixel units
-   * \param[in] kz The z component of the wave vector in pixel units
-   * \param[in] phase Phase of the sine wave
-   * \param[in] nx (optional) The size of the field in the x-direction.
-   * Defaults to 1
-   * \param[in] ny (optional) The size of the field in the y-direction.
-   * Defaults to 1
-   * \param[in] nz (optional) The size of the field in the z-direction.
-   * Defaults to 1
-   * \return std::vector<double> A 1-dimensional std::vector of the required
-   * size containing the data.
-   */
-  std::vector<double> generateSineData(double const &offset, double const &amplitude, double const &kx,
-                                       double const &ky, double const &kz, double const &phase, size_t const &nx = 1,
-                                       size_t const &ny = 1, size_t const &nz = 1);
 
   // Constructor and Destructor
   /*!
