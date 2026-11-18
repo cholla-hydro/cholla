@@ -387,7 +387,12 @@ void system_test::SystemTestRunner::launchCholla()
                              << "failed to launch. Please see the log files" << std::endl;
 
   // Move the output files to the correct spots
-  std::filesystem::rename(::globalChollaRoot.getString() + "/run_output.log", _outputDirectory + "/run_output.log");
+  try {
+    std::filesystem::rename(::globalChollaRoot.getString() + "/run_output.log", _outputDirectory + "/run_output.log");
+  } catch (const std::filesystem::filesystem_error &error) {
+    ADD_FAILURE() << "the simulation failed before it even produced a log file\n"
+                  << "For context, the Launch command is: `" << chollaRunCommand << '`';
+  }
   try {
     std::filesystem::rename(::globalChollaRoot.getString() + "/run_timing.log", _outputDirectory + "/run_timing.log");
   } catch (const std::filesystem::filesystem_error &error) {

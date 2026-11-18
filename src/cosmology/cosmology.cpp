@@ -53,6 +53,9 @@ void Cosmology::Initialize(struct Parameters *P, Grav3D &Grav, Particles3D &Part
   time_conversion = KPC;
   t_secs          = 0;
 
+  // Initialize the number of cosmological fields to 0
+  n_fields = 0;
+
   // The following code computes the universal time
   // at the scale factor of the ICs or restart file
   // Pick a small scale factor step for integrating the universal time
