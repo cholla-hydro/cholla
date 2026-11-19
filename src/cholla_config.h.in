@@ -167,6 +167,7 @@
 #configurefile_define OUTPUT_CHEMISTRY
 #configurefile_define OUTPUT_POTENTIAL
 #configurefile_define OUTPUT_SKEWERS
+#configurefile_define OUTPUT_SKEWERS_TRANSMITTED_FLUX
 #configurefile_define OUTPUT_TEMPERATURE
 #configurefile_define PROJECTION
 #configurefile_define ROTATED_PROJECTION
