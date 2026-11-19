@@ -15,6 +15,9 @@
 
 using std::max;
 void AnalysisModule::Transfer_Skewers_Global_Axis(int axis)
+using std::max;
+#ifdef OUTPUT_SKEWERS
+void AnalysisModule::Transfer_Skewers_Global_Axis(int axis)
 {
   bool am_I_root;
   int n_skewers_root, n_los;
