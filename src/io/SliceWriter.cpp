@@ -158,7 +158,7 @@ static void Write_Slices_HDF5_(const Grid3D &G, hid_t file_id,
   const int nx      = H.nx;
   const int ny      = H.ny;
 
-  int buf_len = std::max({H.nx_real * H.ny_real, H.nx_real * H.ny_real, H.ny_real * H.nz_real});
+  int buf_len = std::max({H.nx_real * H.ny_real, H.nx_real * H.nz_real, H.ny_real * H.nz_real});
   std::vector<Real> buf(buf_len);
 
   for (const SliceProps &slice_prop : slice_props) {
