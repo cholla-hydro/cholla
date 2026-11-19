@@ -14,9 +14,8 @@
 // #define PRINT_ANALYSIS_LOG
 
 using std::max;
-void AnalysisModule::Transfer_Skewers_Global_Axis(int axis)
-using std::max;
-#ifdef OUTPUT_SKEWERS
+void AnalysisModule::Transfer_Skewers_Global_Axis(int axis) using std::max;
+    #ifdef OUTPUT_SKEWERS
 void AnalysisModule::Transfer_Skewers_Global_Axis(int axis)
 {
   bool am_I_root;
@@ -109,7 +108,7 @@ void AnalysisModule::Transfer_Skewers_Global_Axis(int axis)
   MPI_Status mpi_status;
   int n_added, offset;
 
-    #ifdef OUTPUT_SKEWERS
+      #ifdef OUTPUT_SKEWERS
   // Set the density array
   if (procID == 0) {
     // Write the local data into the global array
@@ -134,7 +133,7 @@ void AnalysisModule::Transfer_Skewers_Global_Axis(int axis)
   } else {
     MPI_Send(skewers_density_root, n_skewers_root * n_los, MPI_CHREAL, 0, 0, world);
   }
-    #endif
+      #endif
 
   // Set the HI density array
   if (procID == 0) {
@@ -287,9 +286,11 @@ void AnalysisModule::Transfer_Skewers_Global_Axis(int axis)
   } else {
     MPI_Send(skewers_F_HeII_root, n_skewers_root * n_los, MPI_CHREAL, 0, 0, world);
   }
-} #endif //OUTPUT_SKEWERS
+}
+#endif  // OUTPUT_SKEWERS
 
-int Locate_Index(Real val, Real *values, int N)
+    int
+    Locate_Index(Real val, Real *values, int N)
 {
   // Find the index such that  values[index] < val < values[index+1]
   // Values has to be sorted
@@ -740,9 +741,9 @@ void AnalysisModule::Reduce_Lya_Mean_Flux_Axis(int axis)
     Flux_mean_root_HeII      = &Flux_mean_root_HeII_z;
   }
 
-    #ifdef MPI_CHOLLA
+      #ifdef MPI_CHOLLA
 
-      #ifdef PRINT_ANALYSIS_LOG
+        #ifdef PRINT_ANALYSIS_LOG
   for (int i = 0; i < nproc; i++) {
     if (procID == i)
       printf("   procID:%d   Flux_HI_Sum: %e     N_Skewers_Processed: %d \n", procID, (*Flux_mean_root_HI),
@@ -750,19 +751,19 @@ void AnalysisModule::Reduce_Lya_Mean_Flux_Axis(int axis)
     MPI_Barrier(world);
     sleep(1);
   }
-      #endif
+        #endif
 
   MPI_Allreduce(Flux_mean_root_HI, Flux_mean_HI, 1, MPI_CHREAL, MPI_SUM, world);
   MPI_Allreduce(Flux_mean_root_HeII, Flux_mean_HeII, 1, MPI_CHREAL, MPI_SUM, world);
   MPI_Allreduce(n_skewers_processed_root, n_skewers_processed, 1, MPI_INT, MPI_SUM, world);
 
-    #else
+      #else
 
   *Flux_mean_HI        = *Flux_mean_root_HI;
   *Flux_mean_HeII      = *Flux_mean_root_HeII;
   *n_skewers_processed = *n_skewers_processed_root;
 
-    #endif
+      #endif
 
   *Flux_mean_HI   = *Flux_mean_HI / *n_skewers_processed;
   *Flux_mean_HeII = *Flux_mean_HeII / *n_skewers_processed;
@@ -1066,16 +1067,16 @@ void AnalysisModule::Transfer_Skewers_Data(int axis)
   Real *skewers_velocity_root;
   Real *skewers_temperature_root;
 
-    #ifdef OUTPUT_SKEWERS
+      #ifdef OUTPUT_SKEWERS
   Real *skewers_density_local;
   Real *skewers_density_root;
-    #endif
+      #endif
 
-    #ifdef MPI_CHOLLA
+      #ifdef MPI_CHOLLA
   std::vector<int> mpi_indices;
   MPI_Status mpi_status;
 
-    #endif
+      #endif
 
   if (axis == 0) {
     root_id                    = root_id_x;
@@ -1091,13 +1092,13 @@ void AnalysisModule::Transfer_Skewers_Data(int axis)
     skewers_temperature_local  = skewers_temperature_local_x;
     skewers_velocity_root      = skewers_velocity_root_x;
     skewers_temperature_root   = skewers_temperature_root_x;
-    #ifdef MPI_CHOLLA
+      #ifdef MPI_CHOLLA
     mpi_indices = mpi_indices_x;
-    #endif
-    #ifdef OUTPUT_SKEWERS
+      #endif
+      #ifdef OUTPUT_SKEWERS
     skewers_density_root  = skewers_density_root_x;
     skewers_density_local = skewers_density_local_x;
-    #endif
+      #endif
   }
 
   if (axis == 1) {
@@ -1114,13 +1115,13 @@ void AnalysisModule::Transfer_Skewers_Data(int axis)
     skewers_HI_density_root    = skewers_HI_density_root_y;
     skewers_velocity_root      = skewers_velocity_root_y;
     skewers_temperature_root   = skewers_temperature_root_y;
-    #ifdef MPI_CHOLLA
+      #ifdef MPI_CHOLLA
     mpi_indices = mpi_indices_y;
-    #endif
-    #ifdef OUTPUT_SKEWERS
+      #endif
+      #ifdef OUTPUT_SKEWERS
     skewers_density_root  = skewers_density_root_y;
     skewers_density_local = skewers_density_local_y;
-    #endif
+      #endif
   }
 
   if (axis == 2) {
@@ -1137,13 +1138,13 @@ void AnalysisModule::Transfer_Skewers_Data(int axis)
     skewers_HI_density_root    = skewers_HI_density_root_z;
     skewers_velocity_root      = skewers_velocity_root_z;
     skewers_temperature_root   = skewers_temperature_root_z;
-    #ifdef MPI_CHOLLA
+      #ifdef MPI_CHOLLA
     mpi_indices = mpi_indices_z;
-    #endif
-    #ifdef OUTPUT_SKEWERS
+      #endif
+      #ifdef OUTPUT_SKEWERS
     skewers_density_root  = skewers_density_root_z;
     skewers_density_local = skewers_density_local_z;
-    #endif
+      #endif
   }
 
   // Copy Skewers Local Data to Root data
@@ -1151,7 +1152,7 @@ void AnalysisModule::Transfer_Skewers_Data(int axis)
   Real HI_density, HeII_density, velocity, temperature;
   Real density;
 
-    #ifdef MPI_CHOLLA
+      #ifdef MPI_CHOLLA
   if (am_I_root) {
     if (root_id != procID) {
       printf("ERROR: Root ID doesn't match procID\n");
@@ -1168,18 +1169,18 @@ void AnalysisModule::Transfer_Skewers_Data(int axis)
         skewers_HeII_density_root[skewer_id * n_los_total + los_id] = HeII_density;
         skewers_velocity_root[skewer_id * n_los_total + los_id]     = velocity;
         skewers_temperature_root[skewer_id * n_los_total + los_id]  = temperature;
-      #ifdef OUTPUT_SKEWERS
+        #ifdef OUTPUT_SKEWERS
         density = skewers_density_local[skewer_id * n_los_local + los_id];
         skewers_density_root[skewer_id * n_los_total + los_id] = density;
-      #endif
+        #endif
       }
     }
 
     int n_indices = mpi_indices.size();
 
-      #ifdef PRINT_ANALYSIS_LOG
+        #ifdef PRINT_ANALYSIS_LOG
     printf("  N MPI indices: %d \n", n_indices);
-      #endif
+        #endif
 
     int mpi_id;
     for (int indx = 0; indx < n_indices; indx++) {
@@ -1192,18 +1193,18 @@ void AnalysisModule::Transfer_Skewers_Data(int axis)
         continue;
       }
 
-      #ifdef PRINT_ANALYSIS_LOG
+        #ifdef PRINT_ANALYSIS_LOG
       printf("  Receiving Skewers From pID: %d\n", mpi_id);
-      #endif
+        #endif
 
       MPI_Recv(skewers_HI_density_local, n_skewers * n_los_local, MPI_CHREAL, mpi_id, 0, world, &mpi_status);
       MPI_Recv(skewers_velocity_local, n_skewers * n_los_local, MPI_CHREAL, mpi_id, 1, world, &mpi_status);
       MPI_Recv(skewers_temperature_local, n_skewers * n_los_local, MPI_CHREAL, mpi_id, 2, world, &mpi_status);
       MPI_Recv(skewers_HeII_density_local, n_skewers * n_los_local, MPI_CHREAL, mpi_id, 3, world, &mpi_status);
 
-      #ifdef OUTPUT_SKEWERS
+        #ifdef OUTPUT_SKEWERS
       MPI_Recv(skewers_density_local, n_skewers * n_los_local, MPI_CHREAL, mpi_id, 4, world, &mpi_status);
-      #endif
+        #endif
 
       for (int skewer_id = 0; skewer_id < n_skewers; skewer_id++) {
         for (int los_id = 0; los_id < n_los_local; los_id++) {
@@ -1215,10 +1216,10 @@ void AnalysisModule::Transfer_Skewers_Data(int axis)
               skewers_velocity_local[skewer_id * n_los_local + los_id];
           skewers_temperature_root[skewer_id * n_los_total + indx * n_los_local + los_id] =
               skewers_temperature_local[skewer_id * n_los_local + los_id];
-      #ifdef OUTPUT_SKEWERS
+        #ifdef OUTPUT_SKEWERS
           skewers_density_root[skewer_id * n_los_total + indx * n_los_local + los_id] =
               skewers_density_local[skewer_id * n_los_local + los_id];
-      #endif
+        #endif
         }
       }
     }
@@ -1229,17 +1230,17 @@ void AnalysisModule::Transfer_Skewers_Data(int axis)
     MPI_Send(skewers_velocity_local, n_skewers * n_los_local, MPI_CHREAL, root_id, 1, world);
     MPI_Send(skewers_temperature_local, n_skewers * n_los_local, MPI_CHREAL, root_id, 2, world);
     MPI_Send(skewers_HeII_density_local, n_skewers * n_los_local, MPI_CHREAL, root_id, 3, world);
-      #ifdef OUTPUT_SKEWERS
+        #ifdef OUTPUT_SKEWERS
     MPI_Send(skewers_density_local, n_skewers * n_los_local, MPI_CHREAL, root_id, 4, world);
-      #endif
+        #endif
   }
 
   MPI_Barrier(world);
-    #endif
+      #endif
 
-    #ifdef PRINT_ANALYSIS_LOG
+      #ifdef PRINT_ANALYSIS_LOG
   chprintf("  Skewers Data Transferred\n");
-    #endif
+      #endif
 }
 
 void Grid3D::Populate_Lya_Skewers_Local(int axis)
@@ -1274,9 +1275,9 @@ void Grid3D::Populate_Lya_Skewers_Local(int axis)
     HeII_density_los = Analysis.skewers_HeII_density_local_x;
     velocity_los     = Analysis.skewers_velocity_local_x;
     temperature_los  = Analysis.skewers_temperature_local_x;
-    #ifdef OUTPUT_SKEWERS
+      #ifdef OUTPUT_SKEWERS
     density_los = Analysis.skewers_density_local_x;
-    #endif
+      #endif
   }
 
   // Y axis
@@ -1290,9 +1291,9 @@ void Grid3D::Populate_Lya_Skewers_Local(int axis)
     HeII_density_los = Analysis.skewers_HeII_density_local_y;
     velocity_los     = Analysis.skewers_velocity_local_y;
     temperature_los  = Analysis.skewers_temperature_local_y;
-    #ifdef OUTPUT_SKEWERS
+      #ifdef OUTPUT_SKEWERS
     density_los = Analysis.skewers_density_local_y;
-    #endif
+      #endif
   }
 
   // Z axis
@@ -1306,9 +1307,9 @@ void Grid3D::Populate_Lya_Skewers_Local(int axis)
     HeII_density_los = Analysis.skewers_HeII_density_local_z;
     velocity_los     = Analysis.skewers_velocity_local_z;
     temperature_los  = Analysis.skewers_temperature_local_z;
-    #ifdef OUTPUT_SKEWERS
+      #ifdef OUTPUT_SKEWERS
     density_los = Analysis.skewers_density_local_z;
-    #endif
+      #endif
   }
 
   int n_iter_i, n_iter_j, id_grid;
@@ -1327,27 +1328,27 @@ void Grid3D::Populate_Lya_Skewers_Local(int axis)
         if (axis == 2) id_grid = (id_i + n_ghost) + (id_j + n_ghost) * nx_grid + (id_los + n_ghost) * nx_grid * nz_grid;
         density  = C.density[id_grid] * Cosmo.rho_0_gas;
         velocity = momentum_los[id_grid] * Cosmo.rho_0_gas * Cosmo.v_0_gas / Cosmo.current_a / density;
-    #ifdef COOLING_GRACKLE
+      #ifdef COOLING_GRACKLE
         HI_density   = Cool.fields.HI_density[id_grid] * Cosmo.rho_0_gas;
         HeII_density = Cool.fields.HeII_density[id_grid] * Cosmo.rho_0_gas;
         temperature  = Cool.temperature[id_grid];
-    #elif defined CHEMISTRY_GPU
+      #elif defined CHEMISTRY_GPU
         HI_density   = C.HI_density[id_grid] * Cosmo.rho_0_gas;
         HeII_density = C.HeII_density[id_grid] * Cosmo.rho_0_gas;
         temperature  = Chem.Fields.temperature_h[id_grid];
-    #else
+      #else
         chprintf(
             "ERROR: Lya Statistics only supported for Grackle Cooling or "
             "CHEMISTRY_GPU\n");
         exit(-1);
-    #endif
+      #endif
         HI_density_los[skewer_id * n_los + id_los]   = HI_density;
         HeII_density_los[skewer_id * n_los + id_los] = HeII_density;
         velocity_los[skewer_id * n_los + id_los]     = velocity;
         temperature_los[skewer_id * n_los + id_los]  = temperature;
-    #ifdef OUTPUT_SKEWERS
+      #ifdef OUTPUT_SKEWERS
         density_los[skewer_id * n_los + id_los] = density;
-    #endif
+      #endif
       }
       skewer_id += 1;
     }
@@ -1384,15 +1385,15 @@ void AnalysisModule::Initialize_Lya_Statistics(struct Parameters *P)
   n_skewers_local_y = (nx_local / n_stride) * (nz_local / n_stride);
   n_skewers_local_z = (nx_local / n_stride) * (ny_local / n_stride);
 
-    #ifdef MPI_CHOLLA
+      #ifdef MPI_CHOLLA
   n_skewers_total_x = (ny_total / n_stride) * (nz_total / n_stride);
   n_skewers_total_y = (nx_total / n_stride) * (nz_total / n_stride);
   n_skewers_total_z = (nx_total / n_stride) * (ny_total / n_stride);
-    #else
+      #else
   n_skewers_total_x = n_skewers_local_x;
   n_skewers_total_y = n_skewers_local_y;
   n_skewers_total_z = n_skewers_local_z;
-    #endif
+      #endif
 
   // Alocate Memory For Properties of Local Skewers
   skewers_HI_density_local_x = (Real *)malloc(n_skewers_local_x * nx_local * sizeof(Real));
@@ -1411,21 +1412,21 @@ void AnalysisModule::Initialize_Lya_Statistics(struct Parameters *P)
   skewers_temperature_local_y = (Real *)malloc(n_skewers_local_y * ny_local * sizeof(Real));
   skewers_temperature_local_z = (Real *)malloc(n_skewers_local_z * nz_local * sizeof(Real));
 
-    #ifdef OUTPUT_SKEWERS
+      #ifdef OUTPUT_SKEWERS
   skewers_density_local_x = (Real *)malloc(n_skewers_local_x * nx_local * sizeof(Real));
   skewers_density_local_y = (Real *)malloc(n_skewers_local_y * ny_local * sizeof(Real));
   skewers_density_local_z = (Real *)malloc(n_skewers_local_z * nz_local * sizeof(Real));
-    #endif
+      #endif
 
-    // for (int i=0; i<nproc; i++ ){
-    //   // if ( procID == i  )  printf( " pID: %d    n_x: %d   n_y:%d   n_z:%d
-    //   \n", procID, n_skewers_total_x, n_skewers_total_y, n_skewers_total_z );
-    //   if ( procID == i  )  printf( " pID: %d    n_x: %d   n_y:%d   n_z:%d
-    //   \n", procID, n_skewers_local_x, n_skewers_local_y, n_skewers_local_z );
-    //   MPI_Barrier(world);
-    // }
+      // for (int i=0; i<nproc; i++ ){
+      //   // if ( procID == i  )  printf( " pID: %d    n_x: %d   n_y:%d   n_z:%d
+      //   \n", procID, n_skewers_total_x, n_skewers_total_y, n_skewers_total_z );
+      //   if ( procID == i  )  printf( " pID: %d    n_x: %d   n_y:%d   n_z:%d
+      //   \n", procID, n_skewers_local_x, n_skewers_local_y, n_skewers_local_z );
+      //   MPI_Barrier(world);
+      // }
 
-    #ifdef MPI_CHOLLA
+      #ifdef MPI_CHOLLA
   mpi_domain_boundary_x = (Real *)malloc(nproc * sizeof(Real));
   mpi_domain_boundary_y = (Real *)malloc(nproc * sizeof(Real));
   mpi_domain_boundary_z = (Real *)malloc(nproc * sizeof(Real));
@@ -1582,21 +1583,21 @@ void AnalysisModule::Initialize_Lya_Statistics(struct Parameters *P)
       n_skewers_global_z += n_skewers_local_z * root_procs_z[p_id];
     }
   }
-if (procID == 0) {
-n_skewers_global_x = 0;
-n_skewers_global_y = 0;
-n_skewers_global_z = 0;
-for (int p_id = 0; p_id < nproc; p_id++) {
-n_skewers_global_x += n_skewers_local_x * root_procs_x[p_id];
-n_skewers_global_y += n_skewers_local_y * root_procs_y[p_id];
-n_skewers_global_z += n_skewers_local_z * root_procs_z[p_id];
-}
+  if (procID == 0) {
+    n_skewers_global_x = 0;
+    n_skewers_global_y = 0;
+    n_skewers_global_z = 0;
+    for (int p_id = 0; p_id < nproc; p_id++) {
+      n_skewers_global_x += n_skewers_local_x * root_procs_x[p_id];
+      n_skewers_global_y += n_skewers_local_y * root_procs_y[p_id];
+      n_skewers_global_z += n_skewers_local_z * root_procs_z[p_id];
+    }
 
-chprintf("  N Skewers Global:  x:%d  y:%d  z:%d \n", n_skewers_global_x, n_skewers_global_y, n_skewers_global_z);
-}
+    chprintf("  N Skewers Global:  x:%d  y:%d  z:%d \n", n_skewers_global_x, n_skewers_global_y, n_skewers_global_z);
+  }
 
-      // Allocate Memory for Global Skewers Data
-      #ifdef OUTPUT_SKEWERS
+        // Allocate Memory for Global Skewers Data
+        #ifdef OUTPUT_SKEWERS
   if (procID == 0) {
     skewers_transmitted_flux_HI_x_global = (Real *)malloc(n_skewers_global_x * nx_total * sizeof(Real));
     skewers_transmitted_flux_HI_y_global = (Real *)malloc(n_skewers_global_y * ny_total * sizeof(Real));
@@ -1630,9 +1631,9 @@ chprintf("  N Skewers Global:  x:%d  y:%d  z:%d \n", n_skewers_global_x, n_skewe
     transfer_buffer_root_y = (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
     transfer_buffer_root_z = (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
   }
-      #endif
+        #endif
 
-      #ifdef PRINT_ANALYSIS_LOG
+        #ifdef PRINT_ANALYSIS_LOG
   chprintf(" Root Ids X:  \n");
   MPI_Barrier(world);
   sleep(1);
@@ -1679,7 +1680,7 @@ chprintf("  N Skewers Global:  x:%d  y:%d  z:%d \n", n_skewers_global_x, n_skewe
     }
     printf("\n");
   }
-      #endif
+        #endif
 
   if (am_I_root_x) {
     skewers_HI_density_root_x       = (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
@@ -1695,9 +1696,9 @@ chprintf("  N Skewers Global:  x:%d  y:%d  z:%d \n", n_skewers_global_x, n_skewe
     full_vel_Hubble_x               = (Real *)malloc(n_los_full_x * sizeof(Real));
     skewers_transmitted_flux_HI_x   = (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
     skewers_transmitted_flux_HeII_x = (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
-      #ifdef OUTPUT_SKEWERS
+        #ifdef OUTPUT_SKEWERS
     skewers_density_root_x = (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
-      #endif
+        #endif
 
     // Alocate Memory For Power Spectrum Calculation
     delta_F_x      = (Real *)malloc(nx_total * sizeof(Real));
@@ -1722,9 +1723,9 @@ chprintf("  N Skewers Global:  x:%d  y:%d  z:%d \n", n_skewers_global_x, n_skewe
     full_vel_Hubble_y               = (Real *)malloc(n_los_full_y * sizeof(Real));
     skewers_transmitted_flux_HI_y   = (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
     skewers_transmitted_flux_HeII_y = (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
-      #ifdef OUTPUT_SKEWERS
+        #ifdef OUTPUT_SKEWERS
     skewers_density_root_y = (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
-      #endif
+        #endif
 
     // Alocate Memory For Power Spectrum Calculation
     delta_F_y      = (Real *)malloc(ny_total * sizeof(Real));
@@ -1749,9 +1750,9 @@ chprintf("  N Skewers Global:  x:%d  y:%d  z:%d \n", n_skewers_global_x, n_skewe
     full_vel_Hubble_z               = (Real *)malloc(n_los_full_z * sizeof(Real));
     skewers_transmitted_flux_HI_z   = (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
     skewers_transmitted_flux_HeII_z = (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
-      #ifdef OUTPUT_SKEWERS
+        #ifdef OUTPUT_SKEWERS
     skewers_density_root_z = (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
-      #endif
+        #endif
 
     // Alocate Memory For Power Spectrum Calculation
     delta_F_z      = (Real *)malloc(nz_total * sizeof(Real));
@@ -1762,7 +1763,7 @@ chprintf("  N Skewers Global:  x:%d  y:%d  z:%d \n", n_skewers_global_x, n_skewe
   }
   k_vals_z = (Real *)malloc(n_fft_z * sizeof(Real));
 
-    #else
+      #else
 
   skewers_HI_density_root_x = skewers_HI_density_local_x;
   skewers_HI_density_root_y = skewers_HI_density_local_y;
@@ -1797,14 +1798,14 @@ chprintf("  N Skewers Global:  x:%d  y:%d  z:%d \n", n_skewers_global_x, n_skewe
   full_vel_Hubble_z    = (Real *)malloc(n_los_full_z * sizeof(Real));
   transmitted_flux_z   = (Real *)malloc(nz_total * sizeof(Real));
 
-    #endif
+      #endif
 
-    #ifdef GPU_LYA_FLUX
+      #ifdef GPU_LYA_FLUX
   Initialize_Lya_Statistics_GPU();
-    #endif
+      #endif
 
   chprintf(" Lya Statistics Initialized.\n");
 }
 
-  #endif  // LYA_STATISTICS
-#endif    // ANALYSIS
+    #endif  // LYA_STATISTICS
+  #endif    // ANALYSIS
