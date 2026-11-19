@@ -400,9 +400,9 @@ Parameters::Parameters(ParameterMap &pmap)
   // -> previously, there weren't any defaults
 #ifdef ANALYSIS
   Load_String_Param_Into_Char_Buffer(pmap, "analysis_scale_outputs_file", parms->analysis_scale_outputs_file, "");
-  Load_String_Param_Into_Char_Buffer(pmap, "analysisdir", parms->analysis_scale_outputs_file, "");
-  parms->lya_skewers_stride = pmap.value_or("lya_skewers_stride", 0);
-  parms->lya_Pk_d_log_k     = pmap.value_or("lya_Pk_d_log_k", 0.0);
+  Load_String_Param_Into_Char_Buffer(pmap, "analysisdir", parms->analysisdir, "");
+  parms->lya_skewers_stride = pmap.value_or("lya_skewers_stride", 8);
+  parms->lya_Pk_d_log_k     = pmap.value_or("lya_Pk_d_log_k", 0.1);
   #ifdef OUTPUT_SKEWERS
   Load_String_Param_Into_Char_Buffer(pmap, "skewersdir", parms->skewersdir, nullptr);
   #endif

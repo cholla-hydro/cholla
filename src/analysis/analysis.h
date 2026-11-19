@@ -156,6 +156,32 @@ class AnalysisModule
   Real *skewers_transmitted_flux_HeII_y;
   Real *skewers_transmitted_flux_HeII_z;
 
+      #ifdef GPU_LYA_FLUX
+  Real *dev_skewers_HI_density_x;
+  Real *dev_skewers_HI_density_y;
+  Real *dev_skewers_HI_density_z;
+
+  Real *dev_skewers_HeII_density_x;
+  Real *dev_skewers_HeII_density_y;
+  Real *dev_skewers_HeII_density_z;
+
+  Real *dev_skewers_velocity_x;
+  Real *dev_skewers_velocity_y;
+  Real *dev_skewers_velocity_z;
+
+  Real *dev_skewers_temperature_x;
+  Real *dev_skewers_temperature_y;
+  Real *dev_skewers_temperature_z;
+
+  Real *dev_skewers_transmitted_flux_HI_x;
+  Real *dev_skewers_transmitted_flux_HI_y;
+  Real *dev_skewers_transmitted_flux_HI_z;
+
+  Real *dev_skewers_transmitted_flux_HeII_x;
+  Real *dev_skewers_transmitted_flux_HeII_y;
+  Real *dev_skewers_transmitted_flux_HeII_z;
+      #endif  // GPU_LYA_FLUX
+
       #ifdef OUTPUT_SKEWERS
 
   Real *skewers_density_local_x;
@@ -283,9 +309,9 @@ class AnalysisModule
   Real *mpi_domain_boundary_x;
   Real *mpi_domain_boundary_y;
   Real *mpi_domain_boundary_z;
-  vector<int> mpi_indices_x;
-  vector<int> mpi_indices_y;
-  vector<int> mpi_indices_z;
+  std::vector<int> mpi_indices_x;
+  std::vector<int> mpi_indices_y;
+  std::vector<int> mpi_indices_z;
       #endif
 
     #endif
@@ -314,6 +340,10 @@ class AnalysisModule
   void Reduce_Power_Spectrum_Axis(int axis);
   void Reduce_Power_Spectrum_Global();
   void Transfer_Skewers_Global_Axis(int axis);
+      #ifdef GPU_LYA_FLUX
+  void Initialize_Lya_Statistics_GPU();
+  void Free_Lya_Statistics_GPU();
+      #endif
     #endif
 };
 

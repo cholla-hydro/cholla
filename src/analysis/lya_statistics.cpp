@@ -14,6 +14,8 @@
 // #define PRINT_ANALYSIS_LOG
 
 using std::max;
+void AnalysisModule::Transfer_Skewers_Global_Axis(int axis) using std::max;
+    #ifdef OUTPUT_SKEWERS
 void AnalysisModule::Transfer_Skewers_Global_Axis(int axis)
 {
   bool am_I_root;
@@ -106,7 +108,7 @@ void AnalysisModule::Transfer_Skewers_Global_Axis(int axis)
   MPI_Status mpi_status;
   int n_added, offset;
 
-    #ifdef OUTPUT_SKEWERS
+      #ifdef OUTPUT_SKEWERS
   // Set the density array
   if (procID == 0) {
     // Write the local data into the global array
@@ -131,7 +133,7 @@ void AnalysisModule::Transfer_Skewers_Global_Axis(int axis)
   } else {
     MPI_Send(skewers_density_root, n_skewers_root * n_los, MPI_CHREAL, 0, 0, world);
   }
-    #endif
+      #endif
 
   // Set the HI density array
   if (procID == 0) {
@@ -285,6 +287,7 @@ void AnalysisModule::Transfer_Skewers_Global_Axis(int axis)
     MPI_Send(skewers_F_HeII_root, n_skewers_root * n_los, MPI_CHREAL, 0, 0, world);
   }
 }
+    #endif  // OUTPUT_SKEWERS
 
 int Locate_Index(Real val, Real *values, int N)
 {
@@ -843,6 +846,22 @@ void AnalysisModule::Initialize_Lya_Statistics_Measurements(int axis)
   }
 }
 
+void Grid3D::Compute_Transmitted_Flux_Skewers_CPU(int axis)
+{
+  int n_skewers;
+
+  if (axis == 0) n_skewers = Analysis.n_skewers_local_x;
+  if (axis == 1) n_skewers = Analysis.n_skewers_local_y;
+  if (axis == 2) n_skewers = Analysis.n_skewers_local_z;
+
+  // std::cout << "computing transmitted flux skewers on CPU  for axis: " << axis << " with n_skewers: " << n_skewers <<
+  // std::endl;
+  for (int skewer_id = 0; skewer_id < n_skewers; skewer_id++) {
+    Compute_Transmitted_Flux_Skewer(skewer_id, axis);
+    Analysis.Compute_Lya_Mean_Flux_Skewer(skewer_id, axis);
+  }
+}
+
 void Grid3D::Compute_Transmitted_Flux_Skewer(int skewer_id, int axis)
 {
   int n_los_full, n_los_total, n_ghost;
@@ -1053,7 +1072,7 @@ void AnalysisModule::Transfer_Skewers_Data(int axis)
     #endif
 
     #ifdef MPI_CHOLLA
-  vector<int> mpi_indices;
+  std::vector<int> mpi_indices;
   MPI_Status mpi_status;
 
     #endif
@@ -1563,7 +1582,18 @@ void AnalysisModule::Initialize_Lya_Statistics(struct Parameters *P)
       n_skewers_global_z += n_skewers_local_z * root_procs_z[p_id];
     }
   }
-  chprintf("  N Skewers Global:  x:%d  y:%d  z:%d \n", n_skewers_global_x, n_skewers_global_y, n_skewers_global_z);
+  if (procID == 0) {
+    n_skewers_global_x = 0;
+    n_skewers_global_y = 0;
+    n_skewers_global_z = 0;
+    for (int p_id = 0; p_id < nproc; p_id++) {
+      n_skewers_global_x += n_skewers_local_x * root_procs_x[p_id];
+      n_skewers_global_y += n_skewers_local_y * root_procs_y[p_id];
+      n_skewers_global_z += n_skewers_local_z * root_procs_z[p_id];
+    }
+
+    chprintf("  N Skewers Global:  x:%d  y:%d  z:%d \n", n_skewers_global_x, n_skewers_global_y, n_skewers_global_z);
+  }
 
       // Allocate Memory for Global Skewers Data
       #ifdef OUTPUT_SKEWERS
@@ -1665,7 +1695,7 @@ void AnalysisModule::Initialize_Lya_Statistics(struct Parameters *P)
     full_vel_Hubble_x               = (Real *)malloc(n_los_full_x * sizeof(Real));
     skewers_transmitted_flux_HI_x   = (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
     skewers_transmitted_flux_HeII_x = (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
-      #if OUTPUT_SKEWERS
+      #ifdef OUTPUT_SKEWERS
     skewers_density_root_x = (Real *)malloc(n_skewers_local_x * nx_total * sizeof(Real));
       #endif
 
@@ -1692,7 +1722,7 @@ void AnalysisModule::Initialize_Lya_Statistics(struct Parameters *P)
     full_vel_Hubble_y               = (Real *)malloc(n_los_full_y * sizeof(Real));
     skewers_transmitted_flux_HI_y   = (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
     skewers_transmitted_flux_HeII_y = (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
-      #if OUTPUT_SKEWERS
+      #ifdef OUTPUT_SKEWERS
     skewers_density_root_y = (Real *)malloc(n_skewers_local_y * ny_total * sizeof(Real));
       #endif
 
@@ -1719,7 +1749,7 @@ void AnalysisModule::Initialize_Lya_Statistics(struct Parameters *P)
     full_vel_Hubble_z               = (Real *)malloc(n_los_full_z * sizeof(Real));
     skewers_transmitted_flux_HI_z   = (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
     skewers_transmitted_flux_HeII_z = (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
-      #if OUTPUT_SKEWERS
+      #ifdef OUTPUT_SKEWERS
     skewers_density_root_z = (Real *)malloc(n_skewers_local_z * nz_total * sizeof(Real));
       #endif
 
@@ -1767,6 +1797,10 @@ void AnalysisModule::Initialize_Lya_Statistics(struct Parameters *P)
   full_vel_Hubble_z    = (Real *)malloc(n_los_full_z * sizeof(Real));
   transmitted_flux_z   = (Real *)malloc(nz_total * sizeof(Real));
 
+    #endif
+
+    #ifdef GPU_LYA_FLUX
+  Initialize_Lya_Statistics_GPU();
     #endif
 
   chprintf(" Lya Statistics Initialized.\n");

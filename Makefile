@@ -134,10 +134,9 @@ ifeq ($(findstring -DPARIS,$(DFLAGS)),-DPARIS)
   endif
 endif
 
-ifeq ($(findstring -DFEEDBACK,$(DFLAGS)),-DFEEDBACK)
-    ifdef HIPCONFIG
-	COMMON_COMPILEFLAGS += -isystem $(ROCM_PATH)/include/hiprand -isystem $(ROCM_PATH)/hiprand/include
-    endif
+# src/feedback/ratecalc.h includes hiprand.h and is compiled even without -DFEEDBACK
+ifdef HIPCONFIG
+  COMMON_COMPILEFLAGS += -isystem $(ROCM_PATH)/include/hiprand -isystem $(ROCM_PATH)/hiprand/include
 endif
 
 ifeq ($(findstring -DHDF5,$(DFLAGS)),-DHDF5)
