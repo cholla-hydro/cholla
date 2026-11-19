@@ -1582,7 +1582,18 @@ void AnalysisModule::Initialize_Lya_Statistics(struct Parameters *P)
       n_skewers_global_z += n_skewers_local_z * root_procs_z[p_id];
     }
   }
-  chprintf("  N Skewers Global:  x:%d  y:%d  z:%d \n", n_skewers_global_x, n_skewers_global_y, n_skewers_global_z);
+if (procID == 0) {
+n_skewers_global_x = 0;
+n_skewers_global_y = 0;
+n_skewers_global_z = 0;
+for (int p_id = 0; p_id < nproc; p_id++) {
+n_skewers_global_x += n_skewers_local_x * root_procs_x[p_id];
+n_skewers_global_y += n_skewers_local_y * root_procs_y[p_id];
+n_skewers_global_z += n_skewers_local_z * root_procs_z[p_id];
+}
+
+chprintf("  N Skewers Global:  x:%d  y:%d  z:%d \n", n_skewers_global_x, n_skewers_global_y, n_skewers_global_z);
+}
 
       // Allocate Memory for Global Skewers Data
       #ifdef OUTPUT_SKEWERS
