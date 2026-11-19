@@ -287,7 +287,7 @@ void AnalysisModule::Transfer_Skewers_Global_Axis(int axis)
   } else {
     MPI_Send(skewers_F_HeII_root, n_skewers_root * n_los, MPI_CHREAL, 0, 0, world);
   }
-}
+} #endif //OUTPUT_SKEWERS
 
 int Locate_Index(Real val, Real *values, int N)
 {
