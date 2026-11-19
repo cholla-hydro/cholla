@@ -189,17 +189,14 @@ void Grid3D::Write_Header(AttrRecorderInterface &attr_recorder) const
   attr_recorder.record("Omega_R", Cosmo.Omega_R);
   attr_recorder.record("w0", Cosmo.w0);
   attr_recorder.record("wa", Cosmo.wa);
-  attr_recorder.record("YHe", Cosmo.YHe);
   attr_recorder.record("xHp_ion_init", Cosmo.xHp_ion_init);
   attr_recorder.record("xHep_ion_init", Cosmo.xHep_ion_init);
   attr_recorder.record("T_init", Cosmo.T_init);
   attr_recorder.record("YHe", Cosmo.YHe);
   attr_recorder.record("Init_redshift", Cosmo.Init_redshift);
   attr_recorder.record("cosmo_ics_seed", Cosmo.cosmo_ics_seed);
-
   attr_recorder.record("Current_z", Cosmo.current_z);
   attr_recorder.record("Current_a", Cosmo.current_a);
-  
 #endif
 
   // Now, do 3-element attributes
