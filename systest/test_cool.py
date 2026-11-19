@@ -1,6 +1,7 @@
 import os
 import pathlib
 
+import pytest
 from utils import SimTester, assert_expected_uniform_vals
 
 # TODO: come up with a better solution (for this stuff)
@@ -15,6 +16,8 @@ def _legacy_fname(prefix: str) -> pathlib.Path:
 _COOL_RHO = 6.9498489284711
 
 
+@pytest.mark.bpreset_hydro
+@pytest.mark.bpreset_mhd
 def test_cool5(simtester: SimTester):
     # comment from c++
     # ----------------
@@ -43,6 +46,8 @@ def test_cool5(simtester: SimTester):
     )
 
 
+@pytest.mark.bpreset_hydro
+@pytest.mark.bpreset_mhd
 def test_cool7(simtester: SimTester):
     # comment from c++
     # ----------------
@@ -71,6 +76,8 @@ def test_cool7(simtester: SimTester):
     )
 
 
+@pytest.mark.bpreset_hydro
+@pytest.mark.bpreset_mhd
 def test_cool8(simtester: SimTester):
     # comment from c++
     # ----------------
