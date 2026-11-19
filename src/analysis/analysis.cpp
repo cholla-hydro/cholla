@@ -29,7 +29,7 @@ void Grid3D::Compute_Lya_Statistics()
   time_start = Get_Time();
 
   // Copmpute Lya Statitics
-  chprintf("Computing Lya Absorbiton along skewers \n");
+  chprintf("Computing Lya Absorption along skewers \n");
   for (axis = 0; axis < 3; axis++) {
     if (axis == 0) chprintf(" Computing Along X axis: ");
     if (axis == 1) chprintf(" Computing Along Y axis: ");
