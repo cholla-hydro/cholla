@@ -24,6 +24,12 @@ class Cosmology
   Real Omega_R;
   Real w0;
   Real wa;
+  Real xHp_ion_init;
+  Real xHep_ion_init;
+  Real T_init;
+  Real YHe;
+  Real Init_redshift;
+  int cosmo_ics_seed;
 
   /*! Calculate rho_DE(z) / rho_DE(z=0) at some scale factor */
   Real Get_DE_Density_from_a(Real a);

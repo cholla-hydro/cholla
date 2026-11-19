@@ -89,6 +89,24 @@ void Grid3D::Write_Skewers_Header_HDF5(hid_t file_id)
   attribute_id = H5Acreate(file_id, "wa", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
   status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.wa);
   status       = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "xHp_ion_init", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.xHp_ion_init);
+  status       = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "xHep_ion_init", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.xHep_ion_init);
+  status       = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "T_init", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.T_init);
+  status       = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "YHe", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.YHe);
+  status       = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "Init_redshift", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.Init_redshift);
+  status       = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "cosmo_ics_seed", H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, &Cosmo.cosmo_ics_seed);
+  status       = H5Aclose(attribute_id);
     #endif
 
   status = H5Sclose(dataspace_id);
@@ -551,6 +569,24 @@ void Grid3D::Write_Analysis_Header_HDF5(hid_t file_id)
   status       = H5Aclose(attribute_id);
   attribute_id = H5Acreate(file_id, "wa", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
   status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.wa);
+  status       = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "xHp_ion_init", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.xHp_ion_init);
+  status       = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "xHep_ion_init", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.xHep_ion_init);
+  status       = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "T_init", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.T_init);
+  status       = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "YHe", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.YHe);
+  status       = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "Init_redshift", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &Cosmo.Init_redshift);
+  status       = H5Aclose(attribute_id);
+  attribute_id = H5Acreate(file_id, "cosmo_ics_seed", H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, &Cosmo.cosmo_ics_seed);
   status       = H5Aclose(attribute_id);
   #endif
 
