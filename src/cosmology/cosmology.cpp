@@ -21,11 +21,11 @@ void Cosmology::Initialize(struct Parameters *P, Grav3D &Grav, Particles3D &Part
   w0      = P->w0;
   wa      = P->wa;
 
-  xHp_ion_init = P->xHp_ion_init;
-  xHep_ion_init = P->xHep_ion_init;
-  T_init = P->T_init;
-  YHe = P->YHe;
-  Init_redshift = P->Init_redshift;
+  xHp_ion_init   = P->xHp_ion_init;
+  xHep_ion_init  = P->xHep_ion_init;
+  T_init         = P->T_init;
+  YHe            = P->YHe;
+  Init_redshift  = P->Init_redshift;
   cosmo_ics_seed = P->cosmo_ics_seed;
 
   if (P->wDE_file.length() != 0) {
