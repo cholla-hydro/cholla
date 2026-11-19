@@ -319,7 +319,7 @@ __global__ void Wind_Boundary_kernel(Real *c_device, int nx, int ny, int nz, int
   P_0 = n_0 * KB * T_0 / PRESSURE_UNIT;
 #ifdef CLOUD_TRACKING
   d_0 = density_wind_init / DENSITY_UNIT;
-  n_0 = d_0 / (mu * MP) * DENSITY_UNIT
+  n_0 = d_0 / (mu * MP) * DENSITY_UNIT;
 #endif
 
   vx = 100 * TIME_UNIT / KPC;  // km/s * (cholla unit conversion)
