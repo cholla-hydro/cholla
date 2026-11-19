@@ -28,14 +28,11 @@
  * The summation order over the extended skewer matches the CPU implementation
  * in Grid3D::Compute_Transmitted_Flux_Skewer.
  */
-__global__ void Compute_Transmitted_Flux_Skewers_kernel(int n_skewers, int n_los, int n_ghost, Real dens_factor_HI,
-                                                        Real dens_factor_HeII, Real vel_factor, Real temp_factor_HI,
-                                                        Real temp_factor_HeII, Real dv_Hubble, Real Lya_sigma_HI,
-                                                        Real Lya_sigma_HeII, const Real *skewers_HI_density,
-                                                        const Real *skewers_HeII_density, const Real *skewers_velocity,
-                                                        const Real *skewers_temperature,
-                                                        Real *skewers_transmitted_flux_HI,
-                                                        Real *skewers_transmitted_flux_HeII)
+__global__ void Compute_Transmitted_Flux_Skewers_kernel(
+    int n_skewers, int n_los, int n_ghost, Real dens_factor_HI, Real dens_factor_HeII, Real vel_factor,
+    Real temp_factor_HI, Real temp_factor_HeII, Real dv_Hubble, Real Lya_sigma_HI, Real Lya_sigma_HeII,
+    const Real *skewers_HI_density, const Real *skewers_HeII_density, const Real *skewers_velocity,
+    const Real *skewers_temperature, Real *skewers_transmitted_flux_HI, Real *skewers_transmitted_flux_HeII)
 {
   __shared__ Real sh_n_HI[TPB_LYA_FLUX];
   __shared__ Real sh_n_HeII[TPB_LYA_FLUX];
@@ -180,7 +177,8 @@ void Grid3D::Compute_Transmitted_Flux_Skewers_GPU(int axis)
   if (!am_I_root) return;
   if (n_skewers == 0) return;
 
-  std::cout << "computing transmitted flux skewers on GPU  for axis: " << axis << " with n_skewers: " << n_skewers << std::endl;
+  std::cout << "computing transmitted flux skewers on GPU  for axis: " << axis << " with n_skewers: " << n_skewers
+            << std::endl;
 
   // Constants in CGS
   Real Msun, kpc, Mp, kpc3, Me, e_charge, c, Kb;
@@ -209,9 +207,9 @@ void Grid3D::Compute_Transmitted_Flux_Skewers_GPU(int axis)
   H         = Cosmo.Get_Hubble_Parameter(current_a);
   dv_Hubble = H * dx_proper * vel_factor;  // cm/s
 
-  Lya_lambda_HI   = 1.21567e-5;          // cm  Rest wave length of the Lyman Alpha Transition Hydrogen
-  Lya_lambda_HeII = Lya_lambda_HI / 4;   // cm  Rest wave length of the Lyman Alpha Transition Helium II
-  f_12            = 0.416;               // Lya transition Oscillator strength
+  Lya_lambda_HI   = 1.21567e-5;         // cm  Rest wave length of the Lyman Alpha Transition Hydrogen
+  Lya_lambda_HeII = Lya_lambda_HI / 4;  // cm  Rest wave length of the Lyman Alpha Transition Helium II
+  f_12            = 0.416;              // Lya transition Oscillator strength
   H_cgs           = H * 1e5 / kpc;
 
   Lya_sigma_HI   = M_PI * e_charge * e_charge / Me / c * Lya_lambda_HI * f_12 / H_cgs;
@@ -223,8 +221,7 @@ void Grid3D::Compute_Transmitted_Flux_Skewers_GPU(int axis)
 
   size_t const field_size = static_cast<size_t>(n_skewers) * n_los_total * sizeof(Real);
   GPU_Error_Check(cudaMemcpy(dev_skewers_HI_density, skewers_HI_density_root, field_size, cudaMemcpyHostToDevice));
-  GPU_Error_Check(
-      cudaMemcpy(dev_skewers_HeII_density, skewers_HeII_density_root, field_size, cudaMemcpyHostToDevice));
+  GPU_Error_Check(cudaMemcpy(dev_skewers_HeII_density, skewers_HeII_density_root, field_size, cudaMemcpyHostToDevice));
   GPU_Error_Check(cudaMemcpy(dev_skewers_velocity, skewers_velocity_root, field_size, cudaMemcpyHostToDevice));
   GPU_Error_Check(cudaMemcpy(dev_skewers_temperature, skewers_temperature_root, field_size, cudaMemcpyHostToDevice));
 
@@ -234,16 +231,16 @@ void Grid3D::Compute_Transmitted_Flux_Skewers_GPU(int axis)
   dim3 dim1dBlock(TPB_LYA_FLUX, 1, 1);
 
   hipLaunchKernelGGL(Compute_Transmitted_Flux_Skewers_kernel, dim2dGrid, dim1dBlock, 0, 0, n_skewers, n_los_total,
-                     n_ghost, dens_factor_HI, dens_factor_HeII, vel_factor, temp_factor_HI, temp_factor_HeII,
-                     dv_Hubble, Lya_sigma_HI, Lya_sigma_HeII, dev_skewers_HI_density, dev_skewers_HeII_density,
+                     n_ghost, dens_factor_HI, dens_factor_HeII, vel_factor, temp_factor_HI, temp_factor_HeII, dv_Hubble,
+                     Lya_sigma_HI, Lya_sigma_HeII, dev_skewers_HI_density, dev_skewers_HeII_density,
                      dev_skewers_velocity, dev_skewers_temperature, dev_skewers_transmitted_flux_HI,
                      dev_skewers_transmitted_flux_HeII);
   GPU_Error_Check();
 
   GPU_Error_Check(
       cudaMemcpy(skewers_transmitted_flux_HI, dev_skewers_transmitted_flux_HI, field_size, cudaMemcpyDeviceToHost));
-  GPU_Error_Check(cudaMemcpy(skewers_transmitted_flux_HeII, dev_skewers_transmitted_flux_HeII, field_size,
-                             cudaMemcpyDeviceToHost));
+  GPU_Error_Check(
+      cudaMemcpy(skewers_transmitted_flux_HeII, dev_skewers_transmitted_flux_HeII, field_size, cudaMemcpyDeviceToHost));
 
   for (int skewer_id = 0; skewer_id < n_skewers; skewer_id++) {
     Analysis.Compute_Lya_Mean_Flux_Skewer(skewer_id, axis);

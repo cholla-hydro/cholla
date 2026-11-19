@@ -850,8 +850,9 @@ void Grid3D::Compute_Transmitted_Flux_Skewers_CPU(int axis)
   if (axis == 0) n_skewers = Analysis.n_skewers_local_x;
   if (axis == 1) n_skewers = Analysis.n_skewers_local_y;
   if (axis == 2) n_skewers = Analysis.n_skewers_local_z;
-  
-  // std::cout << "computing transmitted flux skewers on CPU  for axis: " << axis << " with n_skewers: " << n_skewers << std::endl;
+
+  // std::cout << "computing transmitted flux skewers on CPU  for axis: " << axis << " with n_skewers: " << n_skewers <<
+  // std::endl;
   for (int skewer_id = 0; skewer_id < n_skewers; skewer_id++) {
     Compute_Transmitted_Flux_Skewer(skewer_id, axis);
     Analysis.Compute_Lya_Mean_Flux_Skewer(skewer_id, axis);
