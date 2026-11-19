@@ -323,7 +323,6 @@ class system_test::SystemTestRunner
   std::vector<double> loadTestFieldData(std::string dataSetName, std::vector<size_t> &testDims,
                                         std::vector<H5::H5File> file = {});
 
-
   // Constructor and Destructor
   /*!
    * \brief Construct a new System Test Runner object
