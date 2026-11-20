@@ -1,0 +1,56 @@
+######################################
+# Parameter file for the Shapiro_Giroux_Cosmo test:
+# cosmological Stromgren sphere (Shapiro & Giroux 1987)
+######################################
+# number of grid cells in the x dimension
+nx=128
+# number of grid cells in the y dimension
+ny=128
+# number of grid cells in the z dimension
+nz=128
+# output time
+tout=1000
+# how often to output
+outstep=1000
+# value of gamma
+gamma=1.66666667
+# name of initial conditions
+init="Shapiro_Giroux_Cosmo"
+# RT: maximum number of substeps per hydro step
+rt_num_iterations=30
+# RT: reduced speed of light; cosmological runs need rt_reduced_c > 0
+rt_reduced_c=1.0
+# snapshot scale factors
+scale_outputs_file="scale_output_files/outputs_shapiro_giroux_cosmo.txt"
+# domain properties (comoving kpc/h)
+xmin=0.0
+ymin=0.0
+zmin=0.0
+xlen=2000.0
+ylen=2000.0
+zlen=2000.0
+# type of boundary conditions
+xl_bcnd=1
+xu_bcnd=1
+yl_bcnd=1
+yu_bcnd=1
+zl_bcnd=1
+zu_bcnd=1
+# path to output directory
+outdir="data/"
+# Hubble parameter in km/s/Mpc
+H0=70.0
+# matter, baryon, dark energy and radiation density parameters
+Omega_M=1.0
+Omega_b=0.1
+Omega_L=0
+Omega_R=0
+# initial ionization fractions of H and He
+xHp_ion_init=0
+xHep_ion_init=0
+# initial gas temperature (K)
+T_init=1e4
+# helium mass fraction
+YHe=0
+# initial redshift (source turn-on)
+Init_redshift=7.0

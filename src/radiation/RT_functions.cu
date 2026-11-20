@@ -21,6 +21,9 @@
   #ifdef MPI_CHOLLA
     #include "../mpi/mpi_routines.h"
   #endif
+  #ifdef COSMOLOGY
+    #include "../cosmology/field_operations.h"
+  #endif
 
 void Rad3D::Initialize_GPU()
 {
@@ -30,6 +33,7 @@ void Rad3D::Initialize_GPU()
                              cudaMemcpyHostToDevice));
   #endif  // RT_OTVET
   #ifdef RT_M1
+
   // copy over data from CPU fields
   GPU_Error_Check(cudaMemcpy(rtFields.dev_rf, rtFields.rf, n_fpfreq * n_freq * grid.n_cells * sizeof(Real),
                              cudaMemcpyHostToDevice));
@@ -49,11 +53,165 @@ void Rad3D::Initialize_GPU()
   #endif  // RT_OTVET
 
   // source radiation field
-  if (rtFields.rs != nullptr) {
+  if (n_pops > 0) {
+    // The source model rebuilds dev_rs every step; anything the ICs put in rs is ignored.
+    GPU_Error_Check(cudaMemset(rtFields.dev_rs, 0, n_pops * grid.n_cells * sizeof(Real)));
+  } else if (rtFields.rs != nullptr) {
     GPU_Error_Check(cudaMemcpy(rtFields.dev_rs, rtFields.rs, grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
   } else {
     GPU_Error_Check(cudaMemset(rtFields.dev_rs, 0, grid.n_cells * sizeof(Real)));
   }
+}
+
+  #ifdef COSMOLOGY
+void Rad3D::RF_Physical_to_Comoving_Units(void)
+{
+  // This routine converts from physical to comoving
+  // units for the host fields
+
+  // number of cells in all fields
+  const int n_rt = n_fpfreq * n_freq * grid.n_cells;
+
+  // Physical -> comoving conversion factor
+  Real a_power = 1.0;
+  for (int i = 0; i < RT_COSMO_FIELD_ASCALE_POWER; i++) {
+    a_power *= current_a;
+  }
+
+  // Apply the conversion to the RF fields
+  for (int i = 0; i < n_rt; i++) rtFields.rf[i] *= a_power;
+}
+
+void Rad3D::RF_Comoving_to_Physical_Units(void)
+{
+  // This routine converts from comoving to physical
+  // units for the host fields
+
+  // number of cells in all fields
+  const int n_rt = n_fpfreq * n_freq * grid.n_cells;
+
+  // Comoving -> physical conversion factor
+  Real a_inv_power = 1.0;
+  for (int i = 0; i < RT_COSMO_FIELD_ASCALE_POWER; i++) {
+    a_inv_power /= current_a;
+  }
+
+  // Apply the conversion to the RF fields
+  for (int i = 0; i < n_rt; i++) rtFields.rf[i] *= a_inv_power;
+}
+
+void Rad3D::RS_Physical_to_Comoving_Units(void)
+{
+  // convert source field to comoving coordinate system
+  for (int i = 0; i < grid.n_cells; i++) rtFields.rs[i] *= current_a;
+}
+
+void Rad3D::RS_Comoving_to_Physical_Units(void)
+{
+  // convert source field to physical unit system
+  for (int i = 0; i < grid.n_cells; i++) rtFields.rs[i] /= current_a;
+}
+void Rad3D::RF_Physical_to_Comoving_Units_GPU(void)
+{
+  // Physical -> comoving conversion factor
+  Real a_power = 1.0;
+  // Only the on-disk frame change is applied here (gas convention: power 0 = comoving).
+  for (int i = 0; i < RT_DISK_FIELD_ASCALE_POWER; i++) {
+    a_power *= current_a;
+  }
+
+  // number of cells in all fields
+  const int n_rt = n_fpfreq * n_freq * grid.n_cells;
+
+  // set values for GPU kernels
+  int ngrid = (n_rt - 1) / TPB_RT + 1;
+
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB_RT, 1, 1);
+
+  // rescale the fields on the device
+  hipLaunchKernelGGL(Rescale_Array_GPU, dim1dGrid, dim1dBlock, 0, 0, rtFields.dev_rf, a_power, n_rt);
+}
+void Rad3D::RF_Comoving_to_Physical_Units_GPU(void)
+{
+  // Comoving -> physical conversion factor
+  Real a_inv_power = 1.0;
+  // Only the on-disk frame change is applied here (gas convention: power 0 = comoving).
+  for (int i = 0; i < RT_DISK_FIELD_ASCALE_POWER; i++) {
+    a_inv_power /= current_a;
+  }
+
+  // number of cells in all fields
+  const int n_rt = n_fpfreq * n_freq * grid.n_cells;
+
+  // set values for GPU kernels
+  int ngrid = (n_rt - 1) / TPB_RT + 1;
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB_RT, 1, 1);
+
+  // rescale the fields on the device
+  hipLaunchKernelGGL(Rescale_Array_GPU, dim1dGrid, dim1dBlock, 0, 0, rtFields.dev_rf, a_inv_power, n_rt);
+}
+void Rad3D::RS_Physical_to_Comoving_Units_GPU(void)
+{
+  // set values for GPU kernels
+  int ngrid = (grid.n_cells - 1) / TPB_RT + 1;
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB_RT, 1, 1);
+
+  // rescale the fields on the device
+  hipLaunchKernelGGL(Rescale_Array_GPU, dim1dGrid, dim1dBlock, 0, 0, rtFields.dev_rs, current_a, grid.n_cells);
+}
+void Rad3D::RS_Comoving_to_Physical_Units_GPU(void)
+{
+  // comoving to physical requires undoing scale factor
+  Real a_inv = 1. / current_a;
+
+  // set values for GPU kernels
+  int ngrid = (grid.n_cells - 1) / TPB_RT + 1;
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB_RT, 1, 1);
+
+  // rescale the fields on the device
+  hipLaunchKernelGGL(Rescale_Array_GPU, dim1dGrid, dim1dBlock, 0, 0, rtFields.dev_rs, a_inv, grid.n_cells);
+}
+
+void Rad3D::RS_Scale_for_Kernel_GPU(Real factor)
+{
+  // set values for GPU kernels
+  int ngrid = (grid.n_cells - 1) / TPB_RT + 1;
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB_RT, 1, 1);
+
+  // rescale the fields on the device
+  hipLaunchKernelGGL(Rescale_Array_GPU, dim1dGrid, dim1dBlock, 0, 0, rtFields.dev_rs, factor, grid.n_cells);
+}
+
+  #endif
+
+// RT unit layer under COSMOLOGY, in Cholla's cosmological code units: comoving kpc/h,
+// super-conformal time dtau = H0 dt / a^2, and v_code = v_pec * a / v_0 (as for the gas).
+// Does nothing without COSMOLOGY.
+void Rad3D::Set_Units(Real a, Real h, Real rho_0, Real v_0)
+{
+  #ifdef COSMOLOGY
+  cosmo_h      = h;
+  rho_0_gas    = rho_0;
+  v_0_gas      = v_0;
+  c_code       = RTConstant::c * a / (v_0 * 1.0e5);
+  rs_unit      = a;
+  rf_to_proper = pow(a, -RT_COSMO_FIELD_ASCALE_POWER);
+  #endif
 }
 
 void Rad3D::Copy_RT_Fields(void)
@@ -215,7 +373,8 @@ void Rad3D::Calc_Absorption(Real* dev_scalar)
   auto ufac =
       1.0e-24 / RTConstant::mb * DENSITY_UNIT * LENGTH_UNIT;  // ufac is per length, hence multiplied by Units::Length.
   #ifdef COSMOLOGY
-    #error "Not implemented.\n"
+  //  ufac *= rho_0_gas * current_a;  // adjust for comoving density and length
+  ufac *= rho_0_gas * cosmo_h / (current_a * current_a);  // adjust for comoving density and length
   #endif
   CrossSectionInCU xs;
   xs.HIatHI     = rt_physics::rt_atomic_data::CrossSections()->csHIatHI * ufac;
@@ -246,7 +405,7 @@ void __global__ RT_OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Re
 void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real dx, Real cdt2dxRSL, Real gamma,
                                         const Real* __restrict__ rs, const Real* __restrict__ rfi,
                                         const Real* __restrict__ abc, const Real* __restrict__ pij_,
-                                        Real* __restrict__ rfiNew, int deb);
+                                        Real* __restrict__ rfiNew, int freq, int deb);
 
 // Function to limit the RF fields after the iteration kernel
 // void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* __restrict__ rfi, int nout, Real*
@@ -297,9 +456,24 @@ struct DEVICE_ALIGN_DECL PijFunctorRT_M1 {
   __device__ void operator()(int offset, int nx, int ny, int nz, int ic, int jc, int kc, const Real* rfi, Real* pij,
                              int deb)
   {
+    // Noting that here nx, ny, and nz contain 2*n_ghost cells plus the local grid dimensions
+    // the input rfi field contains the intensity, Mx, My, and Mz fields for one frequency
+    // the output rfiOut contains the clipped fields
+
+    // offset here is n_ghost
+
+    // The fields should be ordered as:
+    // *intensity, *intensity_Mx, *intensity_My, and *intensity_Mz
+
+    // def_rfNew should be n_fpfreq * grid.n_cells, which
+    // represents the intensity and moments at each frequency
+
+    // the ic, jc, kc have already been filtered for real cells
+
     if (ic < offset || jc < offset || kc < offset || ic >= nx - offset || jc >= ny - offset || kc >= nz - offset)
       return;
 
+    // here nw3 is the
     const int nw3  = nx * ny * nz;
     const int idx  = ic + nx * (jc + ny * kc);
     const float r  = rfi[idx];
@@ -310,8 +484,9 @@ struct DEVICE_ALIGN_DECL PijFunctorRT_M1 {
     if (r > 0) {
       float flux2 = fx * fx + fy * fy + fz * fz;
       if (flux2 > 0) {
-        float f2 = min(flux2 / (r * r), 1.0f);
+        float f2 = min(flux2 / (r * r), 1.0F);
 
+        // see equations 20, 21, and 22 of Aubert & Teyssier 2008
         float alpha = (3 + 4 * f2) / (5 + 2 * sqrt(4 - 3 * f2));
         float wd    = (1 - alpha) / 2 * r;
         float wn    = (3 * alpha - 1) / 2 * r / flux2;
@@ -356,28 +531,69 @@ void Rad3D::StepRFiIteration(Real cdt2dxRSL, Real gamma_sis)
   //  number of threads per 1D block
   dim3 dim1dBlock(numThreadsPerBlock, 1, 1);
 
+  // chprintf("RT: StepRFi: n_cells %d\n",grid.n_cells);
+
+  /*Real *RFCatch = (Real *) malloc(n_fpfreq*grid.n_cells*sizeof(Real));
+  Real E0, F00, F10, F20;
+  Real E1, F01, F11, F21;
+  int nx = grid.nx;
+  int ny = grid.ny;
+  int nz = grid.nz;
+  int idxrep = nx/2 + ny/2 * nx + nz/2 * nx * ny;*/
+
   // Create the pressure tensor by allocating memory on the device
   GPU_Error_Check(cudaMalloc((void**)&rtFields.dev_pij, 6 * grid.n_cells * sizeof(Real)));
 
   // Launch the StepRFiIteration kernel for one frequency at a time
+  // note that grid.n_cells contains 2*n_ghost cells in each dimension
+  // The ordering of the fields for each frequency are Intensity, Mx, My, Mz
   for (int freq = 0; freq < n_freq; freq++) {  /// hold -- 4 fields per freq * number of freq in RT_M1
+    int fabc   = (freq < 3 ? freq : 0);
     auto rfOld = rtFields.dev_rf + grid.n_cells * (n_fpfreq * freq);  // old radiation fields at this frequency
     auto rfNew = rtFields.dev_rfNew;                                  // updated radiation fields at this frequency
-    auto abc   = rtFields.dev_abc + freq * grid.n_cells;              // absorption coefficients at this frequency
+    auto abc   = rtFields.dev_abc + fabc * grid.n_cells;              // absorption coefficients at this frequency
     auto pij   = rtFields.dev_pij;                                    // reuse pressure tensor each frequency
+
+    /*if(freq == 0) {
+          GPU_Error_Check(cudaMemcpy(RFCatch, rfOld, n_fpfreq * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
+          E0 = RFCatch[idxrep];
+          F00 = RFCatch[idxrep + grid.n_cells];
+          F10 = RFCatch[idxrep + grid.n_cells];
+          F20 = RFCatch[idxrep + grid.n_cells];
+    }*/
 
     // Populate the pressure tensor for this frequency
     // GLFMakeP(nx,ny,nz,n_ghost,dx,rfOld,pij,pf,deb);
+    // Defined in RT_functors.h
     hipLaunchKernelGGL(GLFMakeP_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, grid.dx,
                        rfOld, pij, pf, (freq == 0 ? 1 : 0));
 
     // DEBUG
     // Step the radiation fields at this frequency
+    // Defined in RT_kernels.cu
     hipLaunchKernelGGL(StepRFiIteration_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost,
-                       grid.dx, cdt2dxRSL, gamma_sis, rtFields.dev_rs, rfOld, abc, pij, rfNew, (freq == 0 ? 1 : 0));
+                       grid.dx, cdt2dxRSL, gamma_sis, rtFields.dev_rs, rfOld, abc, pij, rfNew, freq,
+                       (freq == 0 ? 1 : 0));
+    // GPU_Error_Check(cudaMemcpyAsync(rfNew, rfOld, n_fpfreq * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
+    // // dummy
     GPU_Error_Check(cudaMemcpyAsync(rfOld, rfNew, n_fpfreq * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToDevice));
+
+    /*if(freq == 0) {
+          GPU_Error_Check(cudaMemcpy(RFCatch, rfNew, n_fpfreq * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
+          E1 = RFCatch[idxrep];
+          F01 = RFCatch[idxrep + grid.n_cells];
+          F11 = RFCatch[idxrep + grid.n_cells];
+          F21 = RFCatch[idxrep + grid.n_cells];
+    }*/
   }
   GPU_Error_Check(cudaDeviceSynchronize());
+
+  // free(RFCatch);
+
+  // chprintf("RT-GPU-E    %.2f -> %.2f cdt2dx=%.6f\n",E0,E1,cdt2dxRSL);
+  // chprintf("RT-GPU-F[0] %.2f -> %.2f\n",F00,F01);
+  // chprintf("RT-GPU-F[1] %.2f -> %.2f\n",F10,F11);
+  // chprintf("RT-GPU-F[2] %.2f -> %.2f\n",F20,F21);
 
   // Destroy the pressure tensor by freeing memory on the device
   cudaFree(rtFields.dev_pij);
@@ -395,14 +611,28 @@ void Rad3D::ClipRFiIteration(void)
   //  number of threads per 1D block
   dim3 dim1dBlock(numThreadsPerBlock, 1, 1);
 
+  // chprintf("RT: Clip: n_cells %d n_fpfreq %d n_freq %d\n",grid.n_cells,n_fpfreq,n_freq);
+
+  // Noting that here grid.nx, grid.ny, and grid.nz contain 2*n_ghost cells plus the local grid dimensions
+  // grid.n_cells = grid.nx*grid.ny*grid.nz
+  // and for M1, n_freq = 4 (HI, HeI, HeII, and total intensity)
+  // and n_fpfreq = 4 for the intensity, Mx, My, and Mz fields
+
+  // The fields should be ordered as:
+  // intensity, intensity_Mx, intensity_My, and intensity_Mz
+  // HI_intensity, HI_intensity_Mx, HI_intensity_My, HI_intensity_Mz
+  // HeI_intensity, HeI_intensity_Mx, HeI_intensity_My, HeI_intensity_Mz
+  // HeII_intensity, HeII_intensity_Mx, HeII_intensity_My, HeII_intensity_Mz
+
+  // def_rfNew should be n_fpfreq * grid.n_cells, which
+  // represents the intensity and moments at each frequency
+
   // Launch the kernel for one frequency at a time
   for (int freq = 0; freq < n_freq; freq++) {
     auto rfOld = rtFields.dev_rf + grid.n_cells * (n_fpfreq * freq);  // old radiation fields at this frequency
     auto rfNew = rtFields.dev_rfNew;                                  // clipped radiation fields at this frequency
 
     // Clip the radiation fields at this frequency
-    //    hipLaunchKernelGGL(ClipRFi_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost,
-    //    rfOld, nout, rfNew, (freq == 0 ? 1 : 0));
     hipLaunchKernelGGL(ClipRFi_Kernel, dim1dGrid, dim1dBlock, 0, 0, grid.nx, grid.ny, grid.nz, grid.n_ghost, rfOld,
                        rfNew, (freq == 0 ? 1 : 0));
 
@@ -532,16 +762,25 @@ void Rad3D::ClipRFiIteration(void)
       unsigned int numIterationsAtC = (unsigned int)(1+mSpeedOfLightInCodeUnits*dt/dx);
 
 */
+
+// In the RT solve, there likely needs to be updates every
+// RT iteration or two to fix the boundaries
+
 // CPU function that calls the GPU-based RT functions
 void Rad3D::rtSolve(Real* dev_scalar)
 {
   auto dt = grid.dt;
 
+  chprintf("RT: in rtSolve dt = %e\n", dt);
+
   // first call absorption coefficient kernel
   Calc_Absorption(dev_scalar);
 
-  int niters                   = this->num_iterations;
-  Real speedOfLightInCodeUnits = 3e10 / VELOCITY_UNIT;
+  int niters = this->num_iterations;
+
+  // Speed of light in code velocity units, from the RT unit layer. Non-cosmological value:
+  // c/VELOCITY_UNIT. Under COSMOLOGY: c*a/v_0 (Set_Units), because H.dt is super-conformal.
+  Real speedOfLightInCodeUnits = c_code;
 
   int n_iters_check = 0;  // check the number of iterations
 
@@ -604,17 +843,29 @@ void Rad3D::rtSolve(Real* dev_scalar)
     }
   }
 
-  int niters_cfl = 1 + speedOfLightInCodeUnits * dt / (CFL_RT * grid.dx);
+  // int niters_cfl = 1 + speedOfLightInCodeUnits * dt / (CFL_RT * grid.dx);
+  // Real f_CFL     = speedOfLightInCodeUnits * dt / (CFL_RT * grid.dx); // previous
+  // int niters_cfl = 1 + ceil(f_CFL); // previous
+
   // if (niters_cfl < this->num_iterations) niters_cfl = this->num_iterations;
 
   // int niters2 = (dt > 0 ? static_cast<int>(1 + speedOfLightInCodeUnits * dt / grid.dx) : niters);
-  int niters2 = (dt > 0 ? static_cast<int>(niters_cfl) : niters);
-  if (niters > niters2) niters = niters2;
-  niters_cfl = niters;  // NEED TO SORT CFL ISSUES AFTER TESTING
+  // int niters2 = (dt > 0 ? static_cast<int>(niters_cfl) : niters);
+  // if (niters > niters2) niters = niters2;
+  // niters_cfl = niters;  // NEED TO SORT CFL ISSUES AFTER TESTING
   // niters_cfl = this->num_iterations;
-  if (niters_cfl > this->num_iterations) niters_cfl = this->num_iterations;
+  // if (niters_cfl > this->num_iterations) niters_cfl = this->num_iterations; // previous
 
-  Real cdt2dxRSL = fminf(CFL_RT, speedOfLightInCodeUnits * dt / (grid.dx * niters_cfl));
+  // Real cdt2dxRSL = fminf(CFL_RT, speedOfLightInCodeUnits * dt / grid.dx);
+  // Real cdt2dxRSL = fminf(CFL_RT, speedOfLightInCodeUnits * dt / (grid.dx * niters_cfl));
+
+  // Note need to restore this, check CFL issues
+  // Real cdt2dxRSL = speedOfLightInCodeUnits * dt / (grid.dx * niters_cfl);
+  // Real cdt2dxRSL = 1. / niters_cfl; // previous
+  /*if(cdt2dxRSL > CFL_RT) {
+    niters_cfl = ceil(fmaxf(2,1./CFL_RT));
+    cdt2dxRSL = 1./niters_cfl;
+  }*/
 
   // the following triggers niters=1, need to set correctly
   // int niters2                  = (dt > 0 ? static_cast<int>(1 + speedOfLightInCodeUnits * dt / grid.dx) : niters);
@@ -623,6 +874,25 @@ void Rad3D::rtSolve(Real* dev_scalar)
   //        fs.numSteps = 1 + mRSLFactor*cdt/(mSchemeCFL*dx);
   //        auto cdt2dx = cdt/(dx*fs.numSteps); // numSteps is because cdt2dxRSL is per step, not per update
 
+  // Substeps from the (reduced) speed of light: the RT clock now follows the hydro dt.
+  // reduced_c > 0: light travels reduced_c*c*dt per hydro step (capped by num_iterations*CFL_RT).
+  // reduced_c <= 0: legacy scheme, light advances one cell per hydro step (identical to 5f10f1f).
+  int niters_cfl;
+  Real cdt2dxRSL;
+  if (reduced_c > 0) {
+    Real f_CFL = reduced_c * speedOfLightInCodeUnits * dt / (CFL_RT * grid.dx);
+    niters_cfl = (int)ceil(f_CFL);
+    if (niters_cfl < 1) niters_cfl = 1;
+    if (niters_cfl > num_iterations) niters_cfl = num_iterations;
+    cdt2dxRSL = fmin(reduced_c * speedOfLightInCodeUnits * dt / (grid.dx * niters_cfl), CFL_RT);
+  } else {
+    Real f_CFL = speedOfLightInCodeUnits * dt / (CFL_RT * grid.dx);
+    niters_cfl = 1 + ceil(f_CFL);
+    if (niters_cfl > num_iterations) niters_cfl = num_iterations;
+    cdt2dxRSL = 1. / niters_cfl;
+  }
+  if (dt > 0) chprintf("RT: c_eff/c = %e\n", cdt2dxRSL * niters_cfl * grid.dx / (speedOfLightInCodeUnits * dt));
+
   /*
   chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, niters2: %d, dt: %e, c: %e, dx %e)\n",
             niters,this->num_iterations,niters2,dt,speedOfLightInCodeUnits,grid.dx);
@@ -630,8 +900,18 @@ void Rad3D::rtSolve(Real* dev_scalar)
   chprintf("RT: Number of RT iterations in rtSolve: %d (num_iterations: %d, dt: %e, c: %e, dx %e, cdt2dxRSL %e)\n",
            niters_cfl, this->num_iterations, dt, speedOfLightInCodeUnits, grid.dx, cdt2dxRSL);
 
+    #ifdef COSMOLOGY
+  // Source term of the comoving equation in cosmological code units: the kernel injects
+  // c_code*dtau*rs, while photons arrive at dt/dtau ~ a^2 per comoving volume and
+  // c_code ~ a, so the code-unit source shape is scaled by rs_unit = a.
+  RS_Scale_for_Kernel_GPU(rs_unit);
+    #endif
+
+  // treating a as constant across substeps
+
+  //  for (int iter = 0; iter < niters_cfl; iter++) {
+  //    this->lastIteration = (iter == niters_cfl - 1);
   for (int iter = 0; iter < niters_cfl; iter++) {
-    this->lastIteration = (iter == niters_cfl - 1);
     // Call the StepRFi Iteration kernel
     // This must create and destroy the pressure fields
     StepRFiIteration(cdt2dxRSL, gamma_sis);
@@ -645,6 +925,10 @@ void Rad3D::rtSolve(Real* dev_scalar)
     // count the number of RT iterations
     n_iters_check++;
   }
+    #ifdef COSMOLOGY
+  // undo rescaling
+  RS_Scale_for_Kernel_GPU(1. / rs_unit);  // restore dev_rs to code units after the RT substeps
+    #endif
   #endif
 
   // This should match niters_cfl.  Now we need to check that
@@ -652,7 +936,7 @@ void Rad3D::rtSolve(Real* dev_scalar)
   chprintf("RT: Number of iterations executed: %d\n", n_iters_check);
 }
 
-  #ifdef GRAVITY
+  #ifdef RT_OTVET
 void Rad3D::ComputeEddingtonTensor(const Parameters& P, Grav3D& G)
 {
   // Compute the eddington tensor
@@ -670,6 +954,6 @@ void Rad3D::ComputeEddingtonTensor(const Parameters& P, Grav3D& G)
 
   G.Poisson_solver.Get_EddingtonTensor(grid.n_ghost, rs, et, ot);
 }
-  #endif  // GRAVITY
+  #endif  // RT_OTVET
 #endif    // RT
 // #endif    // CUDA
