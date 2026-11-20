@@ -97,6 +97,8 @@ Note: feedback requires PARTICLES, PARTICLES_GPU, PARTICLE_IDS, PARTICLE_AGE, DE
 
 * **DUST**: Initialize a dust density field. Requires that the `SCALAR` flag is also turned on.
 
+* **METALS**: Initialize a metal density field. Requires that the `SCALAR` flag is also turned on.
+
 ## Cosmological Simulations
 * **COSMOLOGY**: Perform a cosmological simulation in an expanding reference frame.
 
