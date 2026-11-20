@@ -125,7 +125,9 @@ const std::set<std::string> optionalParams = {"flag_delta",
                                               "tile_length",
                                               "outstep_dexinc",
                                               "max_timestep_dexinc",
-                                              "max_timestep"};  // NOLINT //BRANT
+                                              "max_timestep",
+                                              "density_cloud_init",
+                                              "density_wind_init"};  // NOLINT //BRANT
 
 void Warn_Unused_Params(ParameterMap &pmap) { pmap.warn_unused_parameters(optionalParams); }
 
@@ -419,6 +421,16 @@ Parameters::Parameters(ParameterMap &pmap)
     chprintf("WARNING: parameter file doesn't include density_floor parameter. Defaulting to value of 0!\n");
   }
   parms->density_floor = pmap.value_or("density_floor", 0.0);
+#endif
+#ifdef CLOUD_TRACKING
+  if (not pmap.has_param("density_cloud_init")) {
+    chprintf("WARNING: parameter file doesn't include density_cloud_init parameter. Defaulting to value of 1e-24!\n");
+  }
+  parms->density_cloud_init = pmap.value_or("density_cloud_init", 1e-24);
+  if (not pmap.has_param("density_wind_init")) {
+    chprintf("WARNING: parameter file doesn't include density_wind_init parameter. Defaulting to value of 1e-26!\n");
+  }
+  parms->density_wind_init = pmap.value_or("density_wind_init", 1e-26);
 #endif
 #ifdef SCALAR_FLOOR
   if (not pmap.has_param("scalar_floor")) {
