@@ -443,29 +443,6 @@ std::vector<double> system_test::SystemTestRunner::generateConstantData(double c
 // =============================================================================
 
 // =============================================================================
-std::vector<double> system_test::SystemTestRunner::generateSineData(double const &offset, double const &amplitude,
-                                                                    double const &kx, double const &ky,
-                                                                    double const &kz, double const &phase,
-                                                                    size_t const &nx, size_t const &ny,
-                                                                    size_t const &nz)
-{
-  size_t const length = nx * ny * nz;
-  std::vector<double> outVec(length);
-  for (size_t i = 0; i < nx; i++) {
-    for (size_t j = 0; j < ny; j++) {
-      for (size_t k = 0; k < nz; k++) {
-        double value = offset + amplitude * std::sin(kx * i + ky * j + kz * k + phase);
-
-        size_t index  = (i * ny * nz) + (j * nz) + k;
-        outVec[index] = value;
-      }
-    }
-  }
-  return outVec;
-}
-// =============================================================================
-
-// =============================================================================
 // Constructor
 system_test::SystemTestRunner::SystemTestRunner(bool const &particleData, bool const &hydroData,
                                                 bool const &useFiducialFile, bool const &useSettingsFile,
