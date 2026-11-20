@@ -76,7 +76,7 @@ inline __device__ Real primordial_cool(Real n, Real T)
   // (Table 2 from Katz 1996)
   alpha_hp   = (8.4e-11) * (1.0 / sqrt(T)) * pow((T / 1e3), (-0.2)) * (1.0 / (1.0 + pow((T / 1e6), (0.7))));
   alpha_hep  = (1.5e-10) * (pow(T, (-0.6353)));
-  alpha_d    = (1.9e-3) * (pow(T, (-1.5))) * exp(-470000.0 / T) * (1.0 + 0.3 * exp(-94000.0 / T));
+  alpha_d    = (1.9e-3) * (pow(T, (-1.5)))*exp(-470000.0 / T) * (1.0 + 0.3 * exp(-94000.0 / T));
   alpha_hepp = (3.36e-10) * (1.0 / sqrt(T)) * pow((T / 1e3), (-0.2)) * (1.0 / (1.0 + pow((T / 1e6), (0.7))));
   gamma_eh0  = (5.85e-11) * sqrt(T) * exp(-157809.1 / T) * (1.0 / (1.0 + sqrt(T / 1e5)));
   gamma_ehe0 = (2.38e-11) * sqrt(T) * exp(-285335.4 / T) * (1.0 / (1.0 + sqrt(T / 1e5)));

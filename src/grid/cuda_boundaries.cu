@@ -143,9 +143,9 @@ __global__ void SetGhostCellsKernel(Real *c_head, int nx, int ny, int nz, int n_
           c_head[momdex] = 0.0;
         }
       }
-    }   // end energy correction for transmissive boundaries
+    }  // end energy correction for transmissive boundaries
 #endif  // not MHD
-  }     // end idx>=0
+  }  // end idx>=0
 }  // end function
 
 void SetGhostCells(Real *c_head, int nx, int ny, int nz, int n_fields, int n_cells, int n_ghost, int flags[], int isize,

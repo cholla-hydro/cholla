@@ -84,8 +84,8 @@ INSTANTIATE_TEST_SUITE_P(
 TEST(tALLTabulatedDynamicalDarkEnergyEoSDeathTest, InvalidPath)
 {
   std::string path = "not/a/real/path.txt";
-  ASSERT_DEATH({ TabulatedDynamicalDarkEnergyEoS dyanmical_eos(path); },
-               "Unable to open DE equation of state file: " + path);
+  ASSERT_DEATH(
+      { TabulatedDynamicalDarkEnergyEoS dyanmical_eos(path); }, "Unable to open DE equation of state file: " + path);
 }
 
 TEST(tALLTabulatedDynamicalDarkEnergyEoSDeathTest, MissingRedshift0)
@@ -94,8 +94,9 @@ TEST(tALLTabulatedDynamicalDarkEnergyEoSDeathTest, MissingRedshift0)
   6.938631476027579126e-03 -9.769941793369097960e-01
   1.392540755881421788e-02 -9.772263520514015145e-01)LITERAL";
 
-  ASSERT_DEATH({ TabulatedDynamicalDarkEnergyEoS dyanmical_eos = construct_from_string_(contents); },
-               "We require z_min = 0 so that w\\(z=0\\) is well defined");
+  ASSERT_DEATH(
+      { TabulatedDynamicalDarkEnergyEoS dyanmical_eos = construct_from_string_(contents); },
+      "We require z_min = 0 so that w\\(z=0\\) is well defined");
 }
 
 TEST(tALLTabulatedDynamicalDarkEnergyEoSDeathTest, OutOfOrder)
@@ -116,8 +117,9 @@ TEST(tALLTabulatedDynamicalDarkEnergyEoSDeathTest, SingleElemOnLine2)
 0.000000000000000000e+00 
 1.392540755881421788e-02 -9.772263520514015145e-01)LITERAL";
 
-  ASSERT_DEATH({ TabulatedDynamicalDarkEnergyEoS dyanmical_eos = construct_from_string_(contents); },
-               string_file_path_ + std::string(":2 doesn't specify 2 elements"));
+  ASSERT_DEATH(
+      { TabulatedDynamicalDarkEnergyEoS dyanmical_eos = construct_from_string_(contents); },
+      string_file_path_ + std::string(":2 doesn't specify 2 elements"));
 }
 
 TEST(tALLTabulatedDynamicalDarkEnergyEoSDeathTest, ThreeElemsOnLine2)
@@ -126,8 +128,9 @@ TEST(tALLTabulatedDynamicalDarkEnergyEoSDeathTest, ThreeElemsOnLine2)
 0.0 -0.97 342
 1.392540755881421788e-02 -9.772263520514015145e-01)LITERAL";
 
-  ASSERT_DEATH({ TabulatedDynamicalDarkEnergyEoS dyanmical_eos = construct_from_string_(contents); },
-               string_file_path_ + std::string(":2 doesn't specify 2 elements"));
+  ASSERT_DEATH(
+      { TabulatedDynamicalDarkEnergyEoS dyanmical_eos = construct_from_string_(contents); },
+      string_file_path_ + std::string(":2 doesn't specify 2 elements"));
 }
 
 // -------------------------------------------------------------------------------------
@@ -141,8 +144,9 @@ class tALLTabulatedDynamicalDarkEnergyEoSNoContentsDeathTest : public testing::T
 
 TEST_P(tALLTabulatedDynamicalDarkEnergyEoSNoContentsDeathTest, Simple)
 {
-  ASSERT_DEATH({ TabulatedDynamicalDarkEnergyEoS dynamical_eos = construct_from_string_(GetParam().content); },
-               string_file_path_ + std::string(" doesn't contain any data"));
+  ASSERT_DEATH(
+      { TabulatedDynamicalDarkEnergyEoS dynamical_eos = construct_from_string_(GetParam().content); },
+      string_file_path_ + std::string(" doesn't contain any data"));
 }
 
 const FileVariation invalid_variants_[] = {

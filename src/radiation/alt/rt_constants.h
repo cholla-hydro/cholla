@@ -43,6 +43,6 @@ constexpr double sigmaT = 6.6524e-25;  // Thompson cross-section
 
 constexpr double Msun = 1.32712440018e26 / G;
 constexpr double Lsun = 3.839e33;  // from Wikipedia
-};                                 // namespace RTConstant
+};  // namespace RTConstant
 
 #endif  // RT_CONSTANT_H

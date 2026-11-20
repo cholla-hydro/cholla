@@ -150,7 +150,7 @@ TEST(tHYDROtMHDSYSTEMSoundWave3D, CorrectInputExpectCorrectOutput)
 class tHYDROtMHDSYSTEMLinearWavesParameterizedMpi : public ::testing::TestWithParam<size_t>
 {
  public:
-  tHYDROtMHDSYSTEMLinearWavesParameterizedMpi() : waveTest(false, true, false, false){};
+  tHYDROtMHDSYSTEMLinearWavesParameterizedMpi() : waveTest(false, true, false, false) {};
 
  protected:
   system_test::SystemTestRunner waveTest;
