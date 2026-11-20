@@ -186,7 +186,8 @@ __global__ void Set_RT_Boundaries_Periodic_Kernel(int direction, int side, int n
   }
   #endif  // RT_M1
 }
-
+// last field in m1 has zero calc abs
+// last field is 0 field
 void __global__ Calc_Absorption_Kernel(int nx, int ny, int nz, Real dx, CrossSectionInCU xs,
                                        const Real* __restrict__ dens, Real* __restrict__ abc)
 {
@@ -210,7 +211,7 @@ void __global__ Calc_Absorption_Kernel(int nx, int ny, int nz, Real dx, CrossSec
 
   #define PU(TT, I, J, K) rfNear[i + I + nx * (j + J + ny * (k + K))] * et##TT[i + I + nx * (j + J + ny * (k + K))]
   #define PV(TT, I, J, K) \
-    rfFar[i + I + nx * (j + J + ny * (k + K))] * (1.0f / 3.0f)  // et for the far field is unitary matrix/3
+    rfFar[i + I + nx * (j + J + ny * (k + K))] * (1.0F / 3.0F)  // et for the far field is unitary matrix/3
 
 void __global__ RT_OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real dx, bool lastIteration,
                                          const Real rsFarFactor, const Real* __restrict__ rs,
@@ -253,8 +254,8 @@ void __global__ RT_OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Re
   //  X-direction
   //
   // float ahx = epsNum + 0.5f*(abc.Val(0,i,j,k)+abc.Val(0,i+1,j,k));
-  const Real ahpcc = epsNum + 0.5f * (abc[i + nx * (j + ny * k)] + abc[i + 1 + nx * (j + ny * k)]);
-  const Real ahmcc = epsNum + 0.5f * (abc[i + nx * (j + ny * k)] + abc[i - 1 + nx * (j + ny * k)]);
+  const Real ahpcc = epsNum + 0.5F * (abc[i + nx * (j + ny * k)] + abc[i + 1 + nx * (j + ny * k)]);
+  const Real ahmcc = epsNum + 0.5F * (abc[i + nx * (j + ny * k)] + abc[i - 1 + nx * (j + ny * k)]);
 
   // float ux = rfNear.Val(0,i+1,j,k)*et.Val(0,i+1,j,k) - rfNear.Val(0,i,j,k)*et.Val(0,i,j,k);
   Real uxp = PU(XX, 1, 0, 0) - PU(XX, 0, 0, 0);
@@ -264,15 +265,15 @@ void __global__ RT_OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Re
 
   // float uy = 0.25f*(rfNear.Val(0,i+1,j+1,k)*et.Val(1,i+1,j+1,k) + rfNear.Val(0,i,j+1,k)*et.Val(1,i,j+1,k) -
   //                   rfNear.Val(0,i+1,j-1,k)*et.Val(1,i+1,j-1,k) - rfNear.Val(0,i,j-1,k)*et.Val(1,i,j-1,k));
-  Real uyp = 0.25f * (PU(XY, 1, 1, 0) + PU(XY, 0, 1, 0) - PU(XY, 1, -1, 0) - PU(XY, 0, -1, 0));
-  Real uym = 0.25f * (PU(XY, 0, 1, 0) + PU(XY, -1, 1, 0) - PU(XY, 0, -1, 0) - PU(XY, -1, -1, 0));
+  Real uyp = 0.25F * (PU(XY, 1, 1, 0) + PU(XY, 0, 1, 0) - PU(XY, 1, -1, 0) - PU(XY, 0, -1, 0));
+  Real uym = 0.25F * (PU(XY, 0, 1, 0) + PU(XY, -1, 1, 0) - PU(XY, 0, -1, 0) - PU(XY, -1, -1, 0));
   Real vyp = 0;
   Real vym = 0;
 
   // float uz = 0.25f*(rfNear.Val(0,i+1,j,k+1)*et.Val(3,i+1,j,k+1) + rfNear.Val(0,i,j,k+1)*et.Val(3,i,j,k+1) -
   //                   rfNear.Val(0,i+1,j,k-1)*et.Val(3,i+1,j,k-1) - rfNear.Val(0,i,j,k-1)*et.Val(3,i,j,k-1));
-  Real uzp = 0.25f * (PU(XZ, 1, 0, 1) + PU(XZ, 0, 0, 1) - PU(XZ, 1, 0, -1) - PU(XZ, 0, 0, -1));
-  Real uzm = 0.25f * (PU(XZ, 0, 0, 1) + PU(XZ, -1, 0, 1) - PU(XZ, 0, 0, -1) - PU(XZ, -1, 0, -1));
+  Real uzp = 0.25F * (PU(XZ, 1, 0, 1) + PU(XZ, 0, 0, 1) - PU(XZ, 1, 0, -1) - PU(XZ, 0, 0, -1));
+  Real uzm = 0.25F * (PU(XZ, 0, 0, 1) + PU(XZ, -1, 0, 1) - PU(XZ, 0, 0, -1) - PU(XZ, -1, 0, -1));
   Real vzp = 0;
   Real vzm = 0;
 
@@ -286,8 +287,8 @@ void __global__ RT_OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Re
   //  Y-direction
   //
   // float ahy = epsNum + 0.5f*(abc.Val(0,i,j,k)+abc.Val(0,i,j+1,k));
-  const Real ahcpc = epsNum + 0.5f * (abc[i + nx * (j + ny * k)] + abc[i + nx * (j + 1 + ny * k)]);
-  const Real ahcmc = epsNum + 0.5f * (abc[i + nx * (j + ny * k)] + abc[i + nx * (j - 1 + ny * k)]);
+  const Real ahcpc = epsNum + 0.5F * (abc[i + nx * (j + ny * k)] + abc[i + nx * (j + 1 + ny * k)]);
+  const Real ahcmc = epsNum + 0.5F * (abc[i + nx * (j + ny * k)] + abc[i + nx * (j - 1 + ny * k)]);
 
   // float uy = rfNear.Val(0,i,j+1,k)*et.Val(2,i,j+1,k) - rfNear.Val(0,i,j,k)*et.Val(2,i,j,k);
   uyp = PU(YY, 0, 1, 0) - PU(YY, 0, 0, 0);
@@ -297,15 +298,15 @@ void __global__ RT_OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Re
 
   // float ux = 0.25f*(rfNear.Val(0,i+1,j+1,k)*et.Val(1,i+1,j+1,k) + rfNear.Val(0,i+1,j,k)*et.Val(1,i+1,j,k) -
   //                   rfNear.Val(0,i-1,j+1,k)*et.Val(1,i-1,j+1,k) - rfNear.Val(0,i-1,j,k)*et.Val(1,i-1,j,k));
-  uxp = 0.25f * (PU(XY, 1, 1, 0) + PU(XY, 1, 0, 0) - PU(XY, -1, 1, 0) - PU(XY, -1, 0, 0));
-  uxm = 0.25f * (PU(XY, 1, 0, 0) + PU(XY, 1, -1, 0) - PU(XY, -1, 0, 0) - PU(XY, -1, -1, 0));
+  uxp = 0.25F * (PU(XY, 1, 1, 0) + PU(XY, 1, 0, 0) - PU(XY, -1, 1, 0) - PU(XY, -1, 0, 0));
+  uxm = 0.25F * (PU(XY, 1, 0, 0) + PU(XY, 1, -1, 0) - PU(XY, -1, 0, 0) - PU(XY, -1, -1, 0));
   vxp = 0;
   vxm = 0;
 
   // float uz = 0.25f*(rfNear.Val(0,i,j+1,k+1)*et.Val(4,i,j+1,k+1) + rfNear.Val(0,i,j,k+1)*et.Val(4,i,j,k+1) -
   //                   rfNear.Val(0,i,j+1,k-1)*et.Val(4,i,j+1,k-1) - rfNear.Val(0,i,j,k-1)*et.Val(4,i,j,k-1));
-  uzp = 0.25f * (PU(YZ, 0, 1, 1) + PU(YZ, 0, 0, 1) - PU(YZ, 0, 1, -1) - PU(YZ, 0, 0, -1));
-  uzm = 0.25f * (PU(YZ, 0, 0, 1) + PU(YZ, 0, -1, 1) - PU(YZ, 0, 0, -1) - PU(YZ, 0, -1, -1));
+  uzp = 0.25F * (PU(YZ, 0, 1, 1) + PU(YZ, 0, 0, 1) - PU(YZ, 0, 1, -1) - PU(YZ, 0, 0, -1));
+  uzm = 0.25F * (PU(YZ, 0, 0, 1) + PU(YZ, 0, -1, 1) - PU(YZ, 0, 0, -1) - PU(YZ, 0, -1, -1));
   vzp = 0;
   vzm = 0;
 
@@ -319,8 +320,8 @@ void __global__ RT_OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Re
   //  Z-direction
   //
   // float ahz = epsNum + 0.5f*(abc.Val(0,i,j,k)+abc.Val(0,i,j,k+1));
-  const Real ahccp = epsNum + 0.5f * (abc[i + nx * (j + ny * k)] + abc[i + nx * (j + ny * (k + 1))]);
-  const Real ahccm = epsNum + 0.5f * (abc[i + nx * (j + ny * k)] + abc[i + nx * (j + ny * (k - 1))]);
+  const Real ahccp = epsNum + 0.5F * (abc[i + nx * (j + ny * k)] + abc[i + nx * (j + ny * (k + 1))]);
+  const Real ahccm = epsNum + 0.5F * (abc[i + nx * (j + ny * k)] + abc[i + nx * (j + ny * (k - 1))]);
 
   // float uz = rfNear.Val(0,i,j,k+1)*et.Val(5,i,j,k+1) - rfNear.Val(0,i,j,k)*et.Val(5,i,j,k);
   uzp = PU(ZZ, 0, 0, 1) - PU(ZZ, 0, 0, 0);
@@ -337,8 +338,8 @@ void __global__ RT_OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Re
 
   // float uy = 0.25f*(rfNear.Val(0,i,j+1,k+1)*et.Val(4,i,j+1,k+1) + rfNear.Val(0,i,j+1,k)*et.Val(4,i,j+1,k) -
   //                   rfNear.Val(0,i,j-1,k+1)*et.Val(4,i,j-1,k+1) - rfNear.Val(0,i,j-1,k)*et.Val(4,i,j-1,k));
-  uyp = 0.25f * (PU(YZ, 0, 1, 1) + PU(YZ, 0, 1, 0) - PU(YZ, 0, -1, 1) - PU(YZ, 0, -1, 0));
-  uym = 0.25f * (PU(YZ, 0, 1, 0) + PU(YZ, 0, 1, -1) - PU(YZ, 0, -1, 0) - PU(YZ, 0, -1, -1));
+  uyp = 0.25F * (PU(YZ, 0, 1, 1) + PU(YZ, 0, 1, 0) - PU(YZ, 0, -1, 1) - PU(YZ, 0, -1, 0));
+  uym = 0.25F * (PU(YZ, 0, 1, 0) + PU(YZ, 0, 1, -1) - PU(YZ, 0, -1, 0) - PU(YZ, 0, -1, -1));
   vyp = 0;
   vym = 0;
 
@@ -354,8 +355,8 @@ void __global__ RT_OTVETIteration_Kernel(int nx, int ny, int nz, int n_ghost, Re
   const Real uminus_wII = etXX[i + nx * (j + ny * k)] * (1 / ahpcc + 1 / ahmcc) +
                           etYY[i + nx * (j + ny * k)] * (1 / ahcpc + 1 / ahcmc) +
                           etZZ[i + nx * (j + ny * k)] * (1 / ahccp + 1 / ahccm);
-  const Real vminus_wII = (1.0f / 3.0f) / ahpcc + (1.0f / 3.0f) / ahmcc + (1.0f / 3.0f) / ahcpc +
-                          (1.0f / 3.0f) / ahcmc + (1.0f / 3.0f) / ahccp + (1.0f / 3.0f) / ahccm;
+  const Real vminus_wII = (1.0F / 3.0F) / ahpcc + (1.0F / 3.0F) / ahmcc + (1.0F / 3.0F) / ahcpc +
+                          (1.0F / 3.0F) / ahcmc + (1.0F / 3.0F) / ahccp + (1.0F / 3.0F) / ahccm;
 
   // float A = gamma/(1+gamma*(abc.Val(0,iw,jw,kw)+minus_wII));
   const Real Au = gamma / (1 + gamma * (abc[i + nx * (j + ny * k)] + uminus_wII));
@@ -423,7 +424,7 @@ template<bool Split> void __global__ StepRFiIteration_Kernel( int nx, int ny, in
 void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Real dx, Real cdt2dxRSL, Real gamma,
                                         const Real* __restrict__ rs, const Real* __restrict__ rfi,
                                         const Real* __restrict__ abc, const Real* __restrict__ pij_,
-                                        Real* __restrict__ rfiNew, int deb)
+                                        Real* __restrict__ rfiNew, int freq, int deb)
 {
   /*
   // following altair
@@ -438,10 +439,14 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
 
   // from cal abs
   const int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  const int jk  = tid / nx;
-  const int i   = tid % nx;
-  const int j   = jk % ny;
-  const int k   = jk / ny;
+  // const int jk  = tid / nx;
+  // const int i   = tid % nx;
+  // const int j   = jk % ny;
+  // const int k   = jk / ny;
+
+  const int k = tid / (nx * ny);
+  const int j = (tid - k * nx * ny) / nx;
+  const int i = tid - k * nx * ny - j * nx;
 
   if (i < n_ghost || j < n_ghost || k < n_ghost || i >= nx - n_ghost || j >= ny - n_ghost || k >= nz - n_ghost) return;
 
@@ -459,32 +464,70 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
 
   const int nw3 = nx * ny * nz;
 
-  const Real* rf     = rfi;
-  const Real* fi[3]  = {rfi + nw3, rfi + 2 * nw3, rfi + 3 * nw3};
+  const Real* rf    = rfi;
+  const Real* fi[3] = {rfi + nw3, rfi + 2 * nw3, rfi + 3 * nw3};
+
+  // check this indexing
   const Real* pij[6] = {pij_, pij_ + nw3, pij_ + 2 * nw3, pij_ + 3 * nw3, pij_ + 4 * nw3, pij_ + 5 * nw3};
   Real* fiNew[3]     = {rfiNew + nw3, rfiNew + 2 * nw3, rfiNew + 3 * nw3};
 
   const Real d =
       dx * rs[ic + nx * (jc + ny * kc)] +
-      0.5f * (fi[0][im + nx * (jc + ny * kc)] - fi[0][ip + nx * (jc + ny * kc)] + fi[1][ic + nx * (jm + ny * kc)] -
+      0.5F * (fi[0][im + nx * (jc + ny * kc)] - fi[0][ip + nx * (jc + ny * kc)] + fi[1][ic + nx * (jm + ny * kc)] -
               fi[1][ic + nx * (jp + ny * kc)] + fi[2][ic + nx * (jc + ny * km)] - fi[2][ic + nx * (jc + ny * kp)]) +
-      0.5f * (rf[im + nx * (jc + ny * kc)] + rf[ip + nx * (jc + ny * kc)] + rf[ic + nx * (jm + ny * kc)] +
+      0.5F * (rf[im + nx * (jc + ny * kc)] + rf[ip + nx * (jc + ny * kc)] + rf[ic + nx * (jm + ny * kc)] +
               rf[ic + nx * (jp + ny * kc)] + rf[ic + nx * (jc + ny * km)] + rf[ic + nx * (jc + ny * kp)] -
               6 * rf[ic + nx * (jc + ny * kc)]);
 
+  Real E0, E1;
+  Real f0[6];
+  Real d0, dF[3];
+  Real w0, wF0[3];
+  // Real abc0;
+  Real fu = dx * (nx - 2 * n_ghost);
+  fu *= fu;
+  // Real fu = 1;
+
   Real rf1, cdt2dx, w1, w2;
+
+  // absorption coefficient is 0 for freq >= 3
+  Real abc0 = (freq < 3 ? abc[ic + nx * (jc + ny * kc)] : 0);
   if (Split) {
-    cdt2dx   = cdt2dxRSL / (1 + cdt2dxRSL * gamma * 3);
-    Real tau = cdt2dx * abc[ic + nx * (jc + ny * kc)];
+    cdt2dx = cdt2dxRSL / (1 + cdt2dxRSL * gamma * 3);
+
+    Real tau = cdt2dx * abc0;
     w1       = expf(-tau);
-    w2       = (tau < 0.1f ? 1 - 0.5f * tau * (1 - (1.0f / 3.0f) * tau * (1 - 0.25f * tau)) : (1 - w1) / tau);
+    // maybe lower to 0.01?
+    w2 = (tau < 0.1F ? 1 - 0.5F * tau * (1 - (1.0F / 3.0F) * tau * (1 - 0.25F * tau)) : (1 - w1) / tau);
 
     rf1 = rf[ic + nx * (jc + ny * kc)] * w1 + cdt2dx * d * w2;
-  } else {
-    cdt2dx = cdt2dxRSL / (1 + cdt2dxRSL * gamma * (abc[ic + nx * (jc + ny * kc)] + 3));
 
-    rf1 = rf[ic + nx * (jc + ny * kc)] + cdt2dx * (d - abc[ic + nx * (jc + ny * kc)] * rf[ic + nx * (jc + ny * kc)]);
+    // copy
+    E0    = rf[ic + nx * (jc + ny * kc)];
+    E1    = rf1;
+    d0    = d;
+    w0    = cdt2dx * d * w2;
+    f0[0] = fi[0][im + nx * (jc + ny * kc)];
+    f0[1] = fi[0][ip + nx * (jc + ny * kc)];
+    f0[2] = fi[1][ic + nx * (jm + ny * kc)];
+    f0[3] = fi[1][ic + nx * (jp + ny * kc)];
+    f0[4] = fi[2][ic + nx * (jc + ny * km)];
+    f0[5] = fi[2][ic + nx * (jc + ny * kp)];
+  } else {
+    cdt2dx = cdt2dxRSL / (1 + cdt2dxRSL * gamma * (abc0 + 3));
+
+    rf1 = rf[ic + nx * (jc + ny * kc)] + cdt2dx * (d - abc0 * rf[ic + nx * (jc + ny * kc)]);
   }
+
+  // diagnostic messages
+  /*0
+  if ((ic == nx / 2) and (jc == ny / 2) and (kc == nz / 2) and deb) {
+    // printf("RT-GPU-E %6.3g -> %6.3g cdt2dx=%.6g d=%6.4g abc=%.6g f =(%.5g,%.5g,%.5g,%.5g,%.5g,%.5g)
+    // w=%6.3g\n",fu*E0,fu*E1,cdt2dx,fu*d0,abc0,fu*f0[0],fu*f0[1],fu*f0[2],fu*f0[3],fu*f0[4],fu*f0[5],fu*w0);
+    // printf("RT-GPU-E %6.3f -> %6.3f cdt2dx=%.6f d=%6.4f abc=%.6f f =(%.5g,%.5g,%.5g,%.5g,%.5g,%.5g)\n", fu * E0,
+    //       fu * E1, cdt2dx, fu * d0, abc0, fu * f0[0], fu * f0[1], fu * f0[2], fu * f0[3], fu * f0[4], fu * f0[5]);
+  }
+  */
 
   rfiNew[ic + nx * (jc + ny * kc)] = (rf1 < 0 ? 0 : rf1);
 
@@ -498,20 +541,42 @@ void __global__ StepRFiIteration_Kernel(int nx, int ny, int nz, int n_ghost, Rea
     constexpr int iy[] = {1, 2, 4};
     constexpr int iz[] = {3, 4, 5};
 
+    // Aubert & Teyssier 2008, equation 30
     const Real df =
-        0.5f * (pij[ix[m]][im + nx * (jc + ny * kc)] - pij[ix[m]][ip + nx * (jc + ny * kc)] +
+        0.5F * (pij[ix[m]][im + nx * (jc + ny * kc)] - pij[ix[m]][ip + nx * (jc + ny * kc)] +
                 pij[iy[m]][ic + nx * (jm + ny * kc)] - pij[iy[m]][ic + nx * (jp + ny * kc)] +
                 pij[iz[m]][ic + nx * (jc + ny * km)] - pij[iz[m]][ic + nx * (jc + ny * kp)]) +
-        0.5f * (fi[m][im + nx * (jc + ny * kc)] + fi[m][ip + nx * (jc + ny * kc)] + fi[m][ic + nx * (jm + ny * kc)] +
+        0.5F * (fi[m][im + nx * (jc + ny * kc)] + fi[m][ip + nx * (jc + ny * kc)] + fi[m][ic + nx * (jm + ny * kc)] +
                 fi[m][ic + nx * (jp + ny * kc)] + fi[m][ic + nx * (jc + ny * km)] + fi[m][ic + nx * (jc + ny * kp)] -
                 6 * fi[m][ic + nx * (jc + ny * kc)]);
 
     if (Split) {
+      // this is fiNew = fi*exp(-tau) + df * cdt2dx * (1-exp(-tau))/tau
       fiNew[m][ic + nx * (jc + ny * kc)] = fi[m][ic + nx * (jc + ny * kc)] * w1 + cdt2dx * df * w2;  // testing RHS
+
+      E0    = fi[m][ic + nx * (jc + ny * kc)];
+      E1    = fiNew[m][ic + nx * (jc + ny * kc)];
+      d0    = df;
+      f0[0] = pij[ix[m]][im + nx * (jc + ny * kc)];
+      f0[1] = pij[ix[m]][ip + nx * (jc + ny * kc)];
+      f0[2] = pij[iy[m]][ic + nx * (jm + ny * kc)];
+      f0[3] = pij[iy[m]][ic + nx * (jp + ny * kc)];
+      f0[4] = pij[iz[m]][ic + nx * (jc + ny * km)];
+      f0[5] = pij[iz[m]][ic + nx * (jc + ny * kp)];
+      w0    = cdt2dx * df * w2;
+
+      // diagnostic messages
+      /*
+      if ((ic == nx / 2) and (jc == ny / 2) and (kc == nz / 2) and deb) {
+        // printf("RT-GPU-F[%d] %.5g -> %.5g d=%6.4g f=(%.6g,%.6g,%.6g,%.6g,%.6g,%.6g)
+        // w=%6.3g\n",m,fu*E0,fu*E1,fu*d0,fu*f0[0],fu*f0[1],fu*f0[2],fu*f0[3],fu*f0[4],fu*f0[5],fu*w0);
+        //printf("RT-GPU-F[%d] %.5g -> %.5g d=%6.4g f=(%.6g,%.6g,%.6g,%.6g,%.6g,%.6g)\n", m, fu * E0, fu * E1, fu * d0,
+        //       fu * f0[0], fu * f0[1], fu * f0[2], fu * f0[3], fu * f0[4], fu * f0[5]);
+      }
+      */
     } else {
       fiNew[m][ic + nx * (jc + ny * kc)] =
-          fi[m][ic + nx * (jc + ny * kc)] +
-          cdt2dx * (df - abc[ic + nx * (jc + ny * kc)] * fi[m][ic + nx * (jc + ny * kc)]);  // testing RHS
+          fi[m][ic + nx * (jc + ny * kc)] + cdt2dx * (df - abc0 * fi[m][ic + nx * (jc + ny * kc)]);  // testing RHS
     }
   }
 }
@@ -569,6 +634,18 @@ if(ic>=orig && jc>=orig && kc>=orig && ic<nmax && jc<nmax && kc<nmax)
 void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* __restrict__ rfi,
                                Real* __restrict__ rfiOut, int deb)
 {
+  // Noting that here nx, ny, and nz contain 2*n_ghost cells plus the local grid dimensions
+  // the input rfi field contains the intensity, Mx, My, and Mz fields for one frequency
+  // the output rfiOut contains the clipped fields
+
+  // The fields should be ordered as:
+  // *intensity, *intensity_Mx, *intensity_My, and *intensity_Mz
+
+  // def_rfNew should be n_fpfreq * grid.n_cells, which
+  // represents the intensity and moments at each frequency
+
+  // Consider re-writing to follow normal GPU thread indexing throughout Cholla
+
   /*
   const int tid = threadIdx.x + blockIdx.x*blockDim.x;
   const int nc = nx - 2*n_ghost;
@@ -590,29 +667,32 @@ void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* 
 
   // same indexing as calc_abs
   const int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  const int jk  = tid / nx;
-  const int i   = tid % nx;
-  const int j   = jk % ny;
-  const int k   = jk / ny;
+  // const int jk  = tid / nx;
+  // const int i   = tid % nx;
+  // const int j   = jk % ny;
+  // const int k   = jk / ny;
+
+  const int k = tid / (nx * ny);
+  const int j = (tid - k * nx * ny) / nx;
+  const int i = tid - k * nx * ny - j * nx;
 
   if (i < n_ghost || j < n_ghost || k < n_ghost || i >= nx - n_ghost || j >= ny - n_ghost || k >= nz - n_ghost) return;
 
-  const int ic = i;
-  const int jc = j;
-  const int kc = k;
+  // const int ic = i;
+  // const int jc = j;
+  // const int kc = k;
 
   //  if(ic>=origx && jc>=origy && kc>=origx && ic<nmaxx && jc<nmaxy && kc<nmaxz)
   if (true) {
     // const int idx = (ic-origx) + nout*(jc-origy+nout*(kc-origz));
-    const int idx = ic + nx * (jc + ny * kc);
+    // const int idx = ic + nx * (jc + ny * kc);
+    const int idx = i + nx * (j + ny * k);
 
-    // rfiOut[idx] = rfi[ic+nx*(jc+ny*kc)];
     rfiOut[idx] = rfi[idx];
 
+    // Loop over the moment fields
     for (int m = 0; m < 3; m++) {
-      //          rfiOut[idx+(m+1)*nout3] = fminf(fmaxf(rfi[ic+nx*(jc+ny*kc)+nw3*(m+1)],
-      //                                               -rfi[ic+nx*(jc+ny*kc)]),
-      //                                                rfi[ic+nx*(jc+ny*kc)]);
+      // limit the moment fields to be greater than -intensity and less than the intensity
       rfiOut[idx + nw3 * (m + 1)] = fminf(fmaxf(rfi[idx + nw3 * (m + 1)], -rfi[idx]), rfi[idx]);
     }
   }
@@ -668,61 +748,6 @@ void __global__ ClipRFi_Kernel(int nx, int ny, int nz, int n_ghost, const Real* 
   }
   */
 
-  /*
-  struct DEVICE_ALIGN_DECL PijFunctorRT_M1
-  {
-      __global__ void operator()(int offset, int nx, int ny, int nz,
-                      int ic, int jc, int kc, const Real* rfi, Real* pij, int deb)
-      {
-          if(ic<offset || jc<offset || kc<offset || ic>=nx-offset || jc>=ny-offset || kc>=nz-offset) return;
-
-          const int nw3 = nx*ny*nz;
-          const int idx = ic + nx*(jc+ny*kc);
-          const float r =  rfi[idx];
-          const float fx = rfi[idx+1*nw3];
-          const float fy = rfi[idx+2*nw3];
-          const float fz = rfi[idx+3*nw3];
-
-          if(r > 0)
-          {
-              float flux2 = fx*fx + fy*fy + fz*fz;
-              if(flux2 > 0)
-              {
-                  float f2 = min(flux2/(r*r),1.0f);
-
-                  float alpha = (3+4*f2)/(5+2*sqrt(4-3*f2));
-                  float wd = (1-alpha)/2*r;
-                  float wn = (3*alpha-1)/2*r/flux2;
-
-                  pij[idx+0*nw3] = wn*fx*fx + wd;
-                  pij[idx+1*nw3] = wn*fy*fx;
-                  pij[idx+2*nw3] = wn*fy*fy + wd;
-                  pij[idx+3*nw3] = wn*fz*fx;
-                  pij[idx+4*nw3] = wn*fz*fy;
-                  pij[idx+5*nw3] = wn*fz*fz + wd;
-              }
-              else
-              {
-                  pij[idx+0*nw3] = r/3;
-                  pij[idx+1*nw3] = 0;
-                  pij[idx+2*nw3] = r/3;
-                  pij[idx+3*nw3] = 0;
-                  pij[idx+4*nw3] = 0;
-                  pij[idx+5*nw3] = r/3;
-              }
-          }
-          else
-          {
-              pij[idx+0*nw3] = 0;
-              pij[idx+1*nw3] = 0;
-              pij[idx+2*nw3] = 0;
-              pij[idx+3*nw3] = 0;
-              pij[idx+4*nw3] = 0;
-              pij[idx+5*nw3] = 0;
-          }
-      }
-  };
-  */
   #endif  // RT_M1
 
 #endif  // RT

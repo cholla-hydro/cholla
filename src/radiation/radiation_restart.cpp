@@ -61,11 +61,23 @@ void Rad3D::Read_Restart_HDF5(Parameters* P, int nfile)
   herr_t status      = H5Aread(attribute_id, H5T_NATIVE_INT, &rt_mode);
   status             = H5Aclose(attribute_id);
 
+  #ifdef COSMOLOGY
+  // Read in the current scale factor, required for
+  // conversion to comoving coordinates
+  double restart_a = 1.0;
+  attribute_id     = H5Aopen(file_id, "current_a", H5P_DEFAULT);
+  H5Aread(attribute_id, H5T_NATIVE_DOUBLE, &restart_a);
+  H5Aclose(attribute_id);
+
+  // set the current scale factor from the restart
+  current_a = (Real)restart_a;
+  #endif
+
   // Read source and copy to device
   Read_HDF5_Dataset(file_id, rtFields.rs, "/source");
   GPU_Error_Check(cudaMemcpy(rtFields.dev_rs, rtFields.rs, grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
-  // Read radiation fiels and copy to device
+  // Read radiation fields and copy to device
   Read_HDF5_Dataset(file_id, rtFields.rf, "/radiation");
   GPU_Error_Check(cudaMemcpy(rtFields.dev_rf, rtFields.rf, n_rf * grid.n_cells * sizeof(Real), cudaMemcpyHostToDevice));
 
@@ -79,6 +91,7 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
   hsize_t dims[1];
   int int_data[3];
   Real Real_data[3];
+  Real* rtptr;
 
   std::string filename = fname_template.format_fname(nfile, "_rt");
   hid_t file_id        = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -95,9 +108,17 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
   rt_mode = 1;  // RT_M1
   #endif
 
-  hid_t attribute_id = H5Acreate(file_id, "rt_mode", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  hid_t attribute_id = H5Acreate(file_id, "rt_mode", H5T_NATIVE_INT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
   herr_t status      = H5Awrite(attribute_id, H5T_NATIVE_INT, &rt_mode);
   status             = H5Aclose(attribute_id);
+
+  attribute_id = H5Acreate(file_id, "n_ghost", H5T_NATIVE_INT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, &grid.n_ghost);
+  status       = H5Aclose(attribute_id);
+
+  attribute_id = H5Acreate(file_id, "n_rf", H5T_NATIVE_INT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status       = H5Awrite(attribute_id, H5T_NATIVE_INT, &n_rf);
+  status       = H5Aclose(attribute_id);
 
   status = H5Sclose(dataspace_id);
 
@@ -160,16 +181,29 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
   // Close the dataspace
   status = H5Sclose(dataspace_id);
 
+  #ifdef COSMOLOGY
+  // We will save the RT data in physical units
+  // Store the scale factor so we can convert from
+  // physical to cosmological units after reading
+  // from the restart file.
+  attr_dims          = 1;
+  dataspace_id       = H5Screate_simple(1, &attr_dims, NULL);
+  double current_a_d = (double)current_a;  // current scale factor
+  attribute_id       = H5Acreate(file_id, "current_a", H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  status             = H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &current_a_d);
+  status             = H5Aclose(attribute_id);
+  H5Sclose(dataspace_id);
+  #endif
+
   // Source field
 
   // Copy device to host
   GPU_Error_Check(cudaMemcpy(rtFields.rs, rtFields.dev_rs, grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
 
   // Write source field
-  dims[0] = grid.n_cells;
-
+  dims[0]      = grid.n_cells;
   dataspace_id = H5Screate_simple(1, dims, NULL);
-  Write_HDF5_Dataset(file_id, dataspace_id, rtFields.rs, "/source");
+  Write_HDF5_Dataset(file_id, dataspace_id, rtFields.rs, "/rf_sources");
   H5Sclose(dataspace_id);
 
   // Radiation fields
@@ -178,11 +212,25 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
   GPU_Error_Check(cudaMemcpy(rtFields.rf, rtFields.dev_rf, n_rf * grid.n_cells * sizeof(Real), cudaMemcpyDeviceToHost));
 
   // Write radiation fields
-  dims[0] = n_rf * grid.n_cells;
 
-  dataspace_id = H5Screate_simple(1, dims, NULL);
-  Write_HDF5_Dataset(file_id, dataspace_id, rtFields.rf, "/radiation");
-  H5Sclose(dataspace_id);
+  #ifdef RT_OTVET
+  const char* rt_dset_names[7] = {"/rf_intensity", "/rf_HI_near", "/rf_HeI_near", "/rf_HeII_near",
+                                  "/rf_HI_far",    "/rf_HeI_far", "/rf_HeII_far"};
+  #endif
+  #ifdef RT_M1
+  const char* rt_dset_names[16] = {
+      "/rf_HI",   "/rf_HI_Mx",   "/rf_HI_My",   "/rf_HI_Mz",   "/rf_HeI", "/rf_HeI_Mx", "/rf_HeI_My", "/rf_HeI_Mz",
+      "/rf_HeII", "/rf_HeII_Mx", "/rf_HeII_My", "/rf_HeII_Mz", "/rf_0",   "/rf_0_Mx",   "/rf_0_My",   "/rf_0_Mz",
+  };
+  #endif
+
+  dims[0] = grid.n_cells;
+  for (int n = 0; n < n_rf; n++) {
+    dataspace_id = H5Screate_simple(1, dims, NULL);
+    rtptr        = &rtFields.rf[n * grid.n_cells];
+    Write_HDF5_Dataset(file_id, dataspace_id, rtptr, rt_dset_names[n]);
+    H5Sclose(dataspace_id);
+  }
 
   // close the file
   H5Fclose(file_id);
@@ -195,10 +243,12 @@ void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fn
 void Rad3D::Read_Restart_HDF5(Parameters* P, int nfile)
 {
   chprintf("WARNING from file %s line %d: Rad3D::Read_Restart_HDF5 did nothing", __FILE__, __LINE__);
+  CHOLLA_ERROR("Radiation currently requires HDF5 for restarting.\n");
 }
 
 void Rad3D::Write_Restart_HDF5(Parameters* P, int nfile, const FnameTemplate& fname_template)
 {
   chprintf("WARNING from file %s line %d: Rad3D::Write_Restart_HDF5 did nothing", __FILE__, __LINE__);
+  CHOLLA_ERROR("Radiation currently requires HDF5 for checkpointing.\n");
 }
 #endif

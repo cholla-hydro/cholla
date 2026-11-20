@@ -16,6 +16,7 @@
   #include "RT_functions.h"
   #include "alt/atomic_data.h"
   #include "alt/photo_rates_csi_gpu.h"
+  #include "alt/rt_constants.h"
 
 Rad3D::Rad3D(const Header& grid_) : grid(grid_)
 {
@@ -43,6 +44,7 @@ Rad3D::~Rad3D()
 void Rad3D::Initialize_Start(const Parameters& params)
 {
   num_iterations = params.rt_num_iterations;
+  reduced_c      = params.rt_reduced_c;  // reduced speed of light factor (see radiation.h)
 
   // allocate memory on the host
   #ifdef RT_OTVET
@@ -77,7 +79,7 @@ void Rad3D::Initialize_Start(const Parameters& params)
 }
 
 // function to do various initialization tasks, i.e. allocating memory, etc.
-void Rad3D::Initialize_Finish()
+void Rad3D::Initialize_Finish(const Parameters& params, Real current_time)
 {
   #ifdef RT_OTVET
   int eqn_mode = 2;  // Updating to 4
@@ -112,13 +114,46 @@ void Rad3D::Initialize_Finish()
 
   // Initialize Field values (for now)
   this->Initialize_GPU();
+
+  #ifndef COSMOLOGY
+  // Set the RT output times. Under COSMOLOGY outputs are scheduled by scale factor in Cosmo;
+  // current_time is not a time there and RT must not schedule or end the run.
+  Set_Outputs(params, current_time);
+  #endif
 }
 
 // function to call the radiation solver from main
-void Grid3D::Update_RT()
+void Grid3D::Update_RT(Real* dt_max, const Parameters& P)
 {
+  #ifdef COSMOLOGY
+  // Refresh the RT unit layer (speed of light, source factor, comoving->proper factor)
+  // for the current scale factor before the RT solve and the chemistry update.
+  Rad.current_a = Cosmo.current_a;
+  Rad.Set_Units(Cosmo.current_a, Cosmo.cosmo_h, Cosmo.rho_0_gas, Cosmo.v_0_gas);
+  #endif
+
   // passes d_scalar as that is the pointer to the first abundance array, rho_HI
-  Rad.rtSolve(C.d_scalar);
+  Rad.rtSolve(C.d_scalar);  // in RT_functions.cu
+
+  // update max logarithmic time increment
+  if (P.max_timestep_dexinc != 0) {
+    *dt_max *= pow(10.0, P.max_timestep_dexinc);
+  }
+}
+
+// Set the RT timestep
+void Grid3D::set_dt_RT()
+{
+  // limit to 0.2 ky at the
+  // beginning of the simulation
+
+  #ifndef COSMOLOGY
+  // we may want to expand this
+  // to allow for sources to "turn on"
+  if (H.t < 2) {
+    H.dt = fmin(H.dt, 0.2);
+  }
+  #endif
 }
 
 // Set boundary cells for radiation fields

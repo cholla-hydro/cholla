@@ -22,5 +22,6 @@ Continue porting me from the [wiki](https://github.com/cholla-hydro/cholla/wiki/
 2D-Kelvin-Helmholtz-Discontinuous/overview
 2D-Kelvin-Helmholtz-Resolution-Independent/overview
 3D-Adiabatic-Expansion/3D-Adiabatic-Expansion.md
+3D-Shapiro-Giroux/3D-Shapiro-Giroux.md
 Reconstruction-Methods/overview
 :::

@@ -93,6 +93,8 @@ class Cosmology
   void Create_Growth_Function_File(struct Parameters *P);
   /*! \brief Perform linear interpolation on vectors */
   Real LinearInterpolation(const std::vector<Real> &x, const std::vector<Real> &y, Real a);
+  /*! \brief Cosmological time at scale factor a*/
+  Real t_Growth(Real a);
   /*! \brief Cosmological growth function at scale factor a */
   Real D_Growth(Real a);
   /*! \brief Cosmological growth function time derivative at scale factor a */

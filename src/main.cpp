@@ -60,10 +60,13 @@ int main(int argc, char* argv[])
   Real dti = 0;  // inverse time step, 1.0 / dt
 
   Real dt_max = 0.0;  // maximum allowed time step
-#ifdef RT
-  // limit max time, added for RT tests
-  Real outstep;  // output timestep for RT
-#endif           // RT
+
+  /*
+  #ifdef RT
+    // limit max time, added for RT tests
+    Real outstep;  // output timestep for RT
+  #endif           // RT
+  */
 
   // input parameter variables
   int nfile    = 0;  // number of output files
@@ -158,7 +161,17 @@ int main(int argc, char* argv[])
   }
 
 #ifdef RT
-  G.Rad.Initialize_Finish();
+  if (is_restart) {
+    G.Rad.is_restart = true;
+  #ifdef HDF5
+    G.Rad.Read_Restart_HDF5(&P, P.nfile);
+  #else
+    CHOLLA_ERROR("Radiation currently requires HDF5 for restarting.\n");
+  #endif
+  }
+  // Cosmo is not initialized yet (Initialize_Cosmology comes later), so G.Cosmo.current_a
+  // is not valid here; RT does not schedule outputs under COSMOLOGY anyway.
+  G.Rad.Initialize_Finish(P, G.H.t);
 #endif
 
 #ifdef DE
@@ -271,7 +284,7 @@ int main(int argc, char* argv[])
 #endif  // MHD
 
   // increment the next output time
-  outtime += P.outstep;
+  outtime = G.Update_Output_Time(outtime, P);
 
 #ifdef CPU_TIME
   stop_init = Get_Time();
@@ -316,19 +329,13 @@ int main(int argc, char* argv[])
 
     // calculate the timestep by calling MPI_Allreduce
     G.set_dt(dti);
+    chprintf("dti = %e G.H.dt %e\n", dti, G.H.dt);
 
     // adjust timestep based on the next available scheduled time
     const Real next_scheduled_time = fmin(outtime, P.tout);
     if (G.H.t + G.H.dt > next_scheduled_time) {
       G.H.dt = next_scheduled_time - G.H.t;
     }
-
-#ifdef RT
-    // update the log timestep // BRANT
-    if (P.max_timestep_dexinc != 0) {
-      dt_max *= pow(10.0, P.max_timestep_dexinc);
-    }
-#endif  // RT
 
 #ifdef PARTICLES
     // Advance the particles KDK( first step ): Velocities are updated by 0.5*dt
@@ -341,7 +348,7 @@ int main(int argc, char* argv[])
 
 #ifdef RT
     // Perform the radiative transfer solve
-    G.Update_RT();
+    G.Update_RT(&dt_max, P);
 #endif
 
     // Advance the grid by one timestep
@@ -416,6 +423,11 @@ int main(int argc, char* argv[])
     // if ( P.n_steps_output > 0 && G.H.n_step % P.n_steps_output == 0)
     // G.H.Output_Now = true;
 
+#ifdef RT
+    chprintf("CHECK: G.H.t %e G.H.dt %e 1./dti %e outtime %e RT.next_output %e Output_Now %d dt_max %e\n", G.H.t,
+             G.H.dt, 1. / dti, outtime, G.Rad.next_output, G.H.Output_Now, dt_max);
+#endif
+
     if (G.H.t == outtime || G.H.Output_Now) {
 #ifdef OUTPUT
       /*output the grid data*/
@@ -423,8 +435,11 @@ int main(int argc, char* argv[])
       // add one to the output file count
       nfile++;
 #endif  // OUTPUT
+
       if (G.H.t == outtime) {
-        outtime = std::fmin(outtime + P.outstep, P.tout);  // update to the next output time
+        // increment the next output time
+        outtime = G.Update_Output_Time(outtime, P);
+        outtime = std::fmin(outtime, P.tout);
       }
     }
 
@@ -444,6 +459,14 @@ int main(int argc, char* argv[])
     // Exit the loop when reached the last scale_factor output
     if (G.Cosmo.exit_now) {
       chprintf("\nReached Last Cosmological Output: Ending Simulation\n");
+      break;
+    }
+#endif
+
+#if defined(RT) && !defined(COSMOLOGY)  // RT output list must not end a cosmological run
+    // Exit the loop when reached the last rt time output
+    if (G.Rad.exit_now) {
+      chprintf("\nRT: Reached Last RT Output: Ending Simulation\n");
       break;
     }
 #endif
