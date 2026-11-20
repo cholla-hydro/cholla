@@ -13,9 +13,8 @@
 
 // #define PRINT_ANALYSIS_LOG
 
-using std::max;
-void AnalysisModule::Transfer_Skewers_Global_Axis(int axis) using std::max;
     #ifdef OUTPUT_SKEWERS
+using std::max;
 void AnalysisModule::Transfer_Skewers_Global_Axis(int axis)
 {
   bool am_I_root;
