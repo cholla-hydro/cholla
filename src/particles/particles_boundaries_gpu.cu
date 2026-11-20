@@ -557,6 +557,66 @@ void Unload_Particles_Int_to_Transfer_GPU_function(int n_local, int n_transfer, 
   GPU_Error_Check();
 }
 
+
+// CUDA Kernel to compute the CIC density from the particles positions
+__global__ void Check_Particle_Domain_Kernel(part_int_t n_local, Real particle_mass, Real *density_dev, Real *pos_x_dev,
+                                       Real *pos_y_dev, Real *pos_z_dev, Real *mass_dev, Real xMin, Real yMin,
+                                       Real zMin, Real xMax, Real yMax, Real zMax, Real dx, Real dy, Real dz, int nx,
+                                       int ny, int nz, int n_ghost)
+{
+  int tid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (tid >= n_local) {
+    return;
+  }
+
+  Real pos_x, pos_y, pos_z;
+
+  pos_x = pos_x_dev[tid];
+  pos_y = pos_y_dev[tid];
+  pos_z = pos_z_dev[tid];
+
+  bool in_local = true;
+
+  if (pos_x < xMin || pos_x >= xMax) {
+    in_local = false;
+  }
+  if (pos_y < yMin || pos_y >= yMax) {
+    in_local = false;
+  }
+  if (pos_z < zMin || pos_z >= zMax) {
+    in_local = false;
+  }
+  if (!in_local) {
+    printf(
+        " Check_Particle_Domain Error: Particle outside local domain [%f  %f  %f]  [%f "
+        "%f] [%f %f] [%f %f]\n ",
+        pos_x, pos_y, pos_z, xMin, xMax, yMin, yMax, zMin, zMax);
+    return;
+  }
+}
+
+// Call the CIC density kernel to get the particles density
+void Particles3D::Check_Particle_Domain_GPU_function(part_int_t n_local, Real particle_mass, Real xMin, Real xMax, Real yMin,
+                                               Real yMax, Real zMin, Real zMax, Real dx, Real dy, Real dz, int nx_local,
+                                               int ny_local, int nz_local, int n_ghost_particles_grid, int n_cells,
+                                               Real *pos_x_dev, Real *pos_y_dev, Real *pos_z_dev)
+{
+  // set values for GPU kernels
+  int ngrid = (n_local - 1) / TPB_PARTICLES + 1;
+  // number of blocks per 1D grid
+  dim3 dim1dGrid(ngrid, 1, 1);
+  //  number of threads per 1D block
+  dim3 dim1dBlock(TPB_PARTICLES, 1, 1);
+
+  // Only runs if there are local particles
+  if (n_local > 0) {
+    hipLaunchKernelGGL(Check_Particle_Domain_Kernel, dim1dGrid, dim1dBlock, 0, 0, n_local, particle_mass, density_dev,
+                       pos_x_dev, pos_y_dev, pos_z_dev, mass_dev, xMin, yMin, zMin, xMax, yMax, zMax, dx, dy, dz,
+                       nx_local, ny_local, nz_local, n_ghost_particles_grid);
+    GPU_Error_Check();
+    cudaDeviceSynchronize();
+  }
+
 // #endif//MPI_CHOLLA
 
 #endif  // PARTICLES
