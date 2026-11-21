@@ -73,7 +73,7 @@ void Grid3D::Copy_Particles_Density()
   #elif defined(GRAVITY)
 
     #ifndef PARALLEL_OMP
-  Copy_Particles_Density_function(0, Grav.nz_local);
+  Copy_Particles_Density_function(0, Grav.spatial_props.nz_local);
     #else
 
       #pragma omp parallel num_threads(N_OMP_THREADS)
@@ -84,7 +84,7 @@ void Grid3D::Copy_Particles_Density()
     omp_id      = omp_get_thread_num();
     n_omp_procs = omp_get_num_threads();
 
-    Get_OMP_Grid_Indxs(Grav.nz_local, n_omp_procs, omp_id, &g_start, &g_end);
+    Get_OMP_Grid_Indxs(Grav.spatial_props.nz_local, n_omp_procs, omp_id, &g_start, &g_end);
 
     Copy_Particles_Density_function(g_start, g_end);
   }
@@ -103,9 +103,9 @@ void Grid3D::Copy_Particles_Density_function(int g_start, int g_end)
   nz_part = Particles.G.nz_local + 2 * nGHST;
 
   int nx_dens, ny_dens, nz_dens;
-  nx_dens = Grav.nx_local;
-  ny_dens = Grav.ny_local;
-  nz_dens = Grav.nz_local;
+  nx_dens = Grav.spatial_props.nx_local;
+  ny_dens = Grav.spatial_props.ny_local;
+  nz_dens = Grav.spatial_props.nz_local;
 
   int i, j, k, id_CIC, id_grid;
   for (k = g_start; k < g_end; k++) {

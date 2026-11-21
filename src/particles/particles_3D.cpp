@@ -30,7 +30,7 @@ void Grid3D::Initialize_Particles(struct Parameters *P)
   chprintf("\nInitializing Particles...\n");
 
   #ifdef GRAVITY
-  SpatialDomainProps spatial_props = SpatialDomainProps::From_Grav3D(Grav);
+  SpatialDomainProps spatial_props = Grav.spatial_props;
   #else
   SpatialDomainProps spatial_props = SpatialDomainProps::From_Grid3D(*this, P);
   #endif

@@ -107,9 +107,9 @@ void __global__ Copy_Hydro_Density_to_Gravity_Kernel(Real *src_density_d, Real *
 void Grid3D::Copy_Hydro_Density_to_Gravity_GPU()
 {
   int nx_local, ny_local, nz_local, n_ghost;
-  nx_local = Grav.nx_local;
-  ny_local = Grav.ny_local;
-  nz_local = Grav.nz_local;
+  nx_local = Grav.spatial_props.nx_local;
+  ny_local = Grav.spatial_props.ny_local;
+  nz_local = Grav.spatial_props.nz_local;
   n_ghost  = H.n_ghost;
 
   // set values for GPU kernels
@@ -164,9 +164,9 @@ void __global__ Add_Analytic_Potential_Kernel(Real *analytic_d, Real *potential_
 void Grid3D::Add_Analytic_Potential_GPU()
 {
   int nx_pot, ny_pot, nz_pot;
-  nx_pot = Grav.nx_local + 2 * N_GHOST_POTENTIAL;
-  ny_pot = Grav.ny_local + 2 * N_GHOST_POTENTIAL;
-  nz_pot = Grav.nz_local + 2 * N_GHOST_POTENTIAL;
+  nx_pot = Grav.spatial_props.nx_local + 2 * N_GHOST_POTENTIAL;
+  ny_pot = Grav.spatial_props.ny_local + 2 * N_GHOST_POTENTIAL;
+  nz_pot = Grav.spatial_props.nz_local + 2 * N_GHOST_POTENTIAL;
 
   // set values for GPU kernels
   int tpb_x = TPBX_GRAV;
@@ -244,15 +244,15 @@ void __global__ Extrapolate_Grav_Potential_Kernel(Real *dst_potential, Real *src
 void Grid3D::Extrapolate_Grav_Potential_GPU()
 {
   int nx_pot, ny_pot, nz_pot;
-  nx_pot = Grav.nx_local + 2 * N_GHOST_POTENTIAL;
-  ny_pot = Grav.ny_local + 2 * N_GHOST_POTENTIAL;
-  nz_pot = Grav.nz_local + 2 * N_GHOST_POTENTIAL;
+  nx_pot = Grav.spatial_props.nx_local + 2 * N_GHOST_POTENTIAL;
+  ny_pot = Grav.spatial_props.ny_local + 2 * N_GHOST_POTENTIAL;
+  nz_pot = Grav.spatial_props.nz_local + 2 * N_GHOST_POTENTIAL;
 
   int n_ghost_grid, nx_grid, ny_grid, nz_grid;
   n_ghost_grid = H.n_ghost;
-  nx_grid      = Grav.nx_local + 2 * n_ghost_grid;
-  ny_grid      = Grav.ny_local + 2 * n_ghost_grid;
-  nz_grid      = Grav.nz_local + 2 * n_ghost_grid;
+  nx_grid      = Grav.spatial_props.nx_local + 2 * n_ghost_grid;
+  ny_grid      = Grav.spatial_props.ny_local + 2 * n_ghost_grid;
+  nz_grid      = Grav.spatial_props.nz_local + 2 * n_ghost_grid;
 
   int n_offset = n_ghost_grid - N_GHOST_POTENTIAL;
 

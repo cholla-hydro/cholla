@@ -41,41 +41,8 @@ class Grav3D
   Real Lbox_y;
   Real Lbox_z;
 
-  Real xMin;
-  Real yMin;
-  Real zMin;
-  Real xMax;
-  Real yMax;
-  Real zMax;
-  /*! \var nx
-   *  \brief Total number of cells in the x-dimension */
-  int nx_total;
-  /*! \var ny
-   *  \brief Total number of cells in the y-dimension */
-  int ny_total;
-  /*! \var nz
-   *  \brief Total number of cells in the z-dimension */
-  int nz_total;
-
-  /*! \var nx_local
-   *  \brief Local number of cells in the x-dimension */
-  int nx_local;
-  /*! \var ny_local
-   *  \brief Local number of cells in the y-dimension */
-  int ny_local;
-  /*! \var nz_local
-   *  \brief Local number of cells in the z-dimension */
-  int nz_local;
-
-  /*! \var dx
-   *  \brief x-width of cells */
-  Real dx;
-  /*! \var dy
-   *  \brief y-width of cells */
-  Real dy;
-  /*! \var dz
-   *  \brief z-width of cells */
-  Real dz;
+  /// Aggregates spatial properties
+  SpatialDomainProps spatial_props;
 
 #ifdef COSMOLOGY
   Real current_a;
@@ -189,13 +156,15 @@ class Grav3D
 
   } F;
 
-  /*! \fn Grav3D(void)
-   *  \brief Constructor for the gravity class */
+  /*! \brief Constructor for the gravity class
+   *
+   *  The constructed object is **NOT** in a valid state. You must call @ref Initialize
+   *  before you try to use it. (Ideally, we will fix this in the future).
+   */
   Grav3D(void);
 
-  /*! \fn void Initialize(int nx_in, int ny_in, int nz_in)
-   *  \brief Initialize the grid. */
-  void Initialize(const SpatialDomainProps &spatial_props, Real Lx, Real Ly, Real Lz, int n_ghost_pot_offset,
+  /*! \brief Initialize the gravity object. */
+  void Initialize(const SpatialDomainProps &external_spatial_props, Real Lx, Real Ly, Real Lz, int n_ghost_pot_offset,
                   Parameters *P);
 
   void AllocateMemory_CPU(void);
