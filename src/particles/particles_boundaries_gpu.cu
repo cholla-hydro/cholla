@@ -123,14 +123,19 @@ __global__ void Scan_Kernel(part_int_t n_total, bool *transfer_flags_d, int *pre
   int ai, bi;
   int t;
 
+  // The barrier must stay at the end of the loop body: with it at the top, ROCm >= 6.2 emits the loop-head s_barrier
+  // for gfx90a without waiting on the previous iteration's LDS write, so other waves can read a stale partial sum.
+  // Placing it at the end does not change the scan: the loads above are already followed by a barrier, so every
+  // level still reads only after the previous level's writes are synchronized, and the final barrier also orders the
+  // last up-sweep write before the last element is cleared below.
   for (int d = n / 2; d > 0; d /= 2) {
-    __syncthreads();
     if (tid_block < d) {
       ai = offset * (2 * tid_block + 1) - 1;
       bi = offset * (2 * tid_block + 2) - 1;
       data_sh[bi] += data_sh[ai];
     }
     offset *= 2;
+    __syncthreads();
   }
 
   // Clear the last element
