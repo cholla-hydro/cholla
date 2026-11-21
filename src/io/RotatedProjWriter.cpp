@@ -83,7 +83,7 @@ void Write_Rotated_Projection_HDF5_(const Grid3D &G, hid_t file_id, const io::Ro
     return;
   }
 
-  const FieldInfo &field_info = G.field_info;
+  const FieldInfo &field_info = G.field_info();
   const Grid3D::Conserved &C  = G.C;
   hid_t dataset_id, dataspace_xzr_id;
   Real *dataset_buffer_dxzr;

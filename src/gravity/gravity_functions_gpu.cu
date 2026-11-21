@@ -7,20 +7,24 @@
   #include "../io/io.h"
   #include "../utils/error_handling.h"
 
-void Grav3D::AllocateMemory_GPU()
+void Grav3D::AllocateMemory_GPU(FieldManager &field_man)
 {
-  GPU_Error_Check(cudaMalloc((void **)&F.density_d, n_cells * sizeof(Real)));
-  GPU_Error_Check(cudaMalloc((void **)&F.potential_d, n_cells_potential * sizeof(Real)));
-  GPU_Error_Check(cudaMalloc((void **)&F.potential_1_d, n_cells_potential * sizeof(Real)));
+  // copy pointers to pre-allocated field_buffers
+  // --------------------------------------------
+  F.density_d = field_man.field_or_abort(MemSpace::DEV, "total_density");
+
+  // reminder: other fields have a ghost depth of N_GHOST_POTENTIAL
+  F.potential_d   = field_man.field_or_abort(MemSpace::DEV, "potential");    // potential @ n-th timestep
+  F.potential_1_d = field_man.field_or_abort(MemSpace::DEV, "potential_1");  // potential @ (n-1)-th timestep
 
   #ifdef GRAVITY_GPU
+  // "analytic_potential" field exists based on whether or not GRAVITY_ANALYTIC_COMP is defined
+  F.analytic_potential_d = field_man.field(MemSpace::DEV, "potential").value_or(nullptr);
+  #endif
 
-    #ifdef GRAVITY_ANALYTIC_COMP
-  GPU_Error_Check(cudaMalloc((void **)&F.analytic_potential_d, n_cells_potential * sizeof(Real)));
-    #else
-  F.analytic_potential_d = nullptr;
-    #endif
-
+  // allocate memory for remaining arrays
+  // ------------------------------------
+  #ifdef GRAVITY_GPU
     #ifdef GRAV_ISOLATED_BOUNDARY_X
   GPU_Error_Check(cudaMalloc((void **)&F.pot_boundary_x0_d, N_GHOST_POTENTIAL * ny_local * nz_local * sizeof(Real)));
   GPU_Error_Check(cudaMalloc((void **)&F.pot_boundary_x1_d, N_GHOST_POTENTIAL * ny_local * nz_local * sizeof(Real)));
@@ -41,15 +45,7 @@ void Grav3D::AllocateMemory_GPU()
 
 void Grav3D::FreeMemory_GPU(void)
 {
-  cudaFree(F.density_d);
-  cudaFree(F.potential_d);
-  cudaFree(F.potential_1_d);
-
   #ifdef GRAVITY_GPU
-
-    #ifdef GRAVITY_ANALYTIC_COMP
-  cudaFree(F.analytic_potential_d);
-    #endif
 
     #ifdef GRAV_ISOLATED_BOUNDARY_X
   cudaFree(F.pot_boundary_x0_d);
