@@ -30,20 +30,18 @@ TEST(tMHDGrid3DcheckMagneticDivergence, CorrectInputExpectCorrectOutput)
   size_t const gridSize = 96;  // Needs to be at least 64 so that each thread has a value
   size_t const n_ghost  = 4;
 
-  // Instantiate Grid3D object
-  Grid3D G;
-  G.H.dx       = 3;
-  G.H.dy       = G.H.dx;
-  G.H.dz       = G.H.dx;
-  G.H.nx       = gridSize + 2 * n_ghost;
-  G.H.ny       = G.H.nx;
-  G.H.nz       = G.H.nx;
-  G.H.n_cells  = G.H.nx * G.H.ny * G.H.nz;
-  G.H.n_fields = 8;
+  Real dx      = 3;
+  Real dy      = dx;
+  Real dz      = dx;
+  int nx       = static_cast<int>(gridSize + 2 * n_ghost);
+  int ny       = nx;
+  int nz       = nx;
+  int n_cells  = nx * ny * nz;
+  int n_fields = 8;
 
   // Setup host grid. Fill host grid with random values and randomly assign
   // maximum value
-  std::vector<Real> host_grid(G.H.n_cells * G.H.n_fields);
+  std::vector<Real> host_grid(n_cells * n_fields);
   std::mt19937 prng(1);
   std::uniform_real_distribution<double> doubleRand(1, 5);
   for (double& host_data : host_grid) {
@@ -52,12 +50,11 @@ TEST(tMHDGrid3DcheckMagneticDivergence, CorrectInputExpectCorrectOutput)
 
   // Allocating and copying to device
   cuda_utilities::DeviceVector<double> dev_grid(host_grid.size());
-  G.C.device = dev_grid.data();
   dev_grid.cpyHostToDevice(host_grid);
 
   // Perform test
   InitializeChollaMPI(NULL, NULL);
-  double max_magnetic_divergence = mhd::checkMagneticDivergence(G);
+  double max_magnetic_divergence = mhd::checkMagneticDivergence(dev_grid.data(), dx, dy, dz, nx, ny, nz, n_cells);
   MPI_Finalize();
   // Perform Comparison
   Real const fiducialDivergence = 3.6318132783263106 / 1E15;

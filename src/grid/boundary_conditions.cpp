@@ -25,9 +25,9 @@ void Grid3D::Set_Boundary_Conditions_Grid(Parameters P)
   #ifdef CPU_TIME
   Timer.Boundaries.Start();
   #endif  // CPU_TIME
-  H.TRANSFER_HYDRO_BOUNDARIES = true;
+  state.TRANSFER_HYDRO_BOUNDARIES = true;
   Set_Boundary_Conditions(P);
-  H.TRANSFER_HYDRO_BOUNDARIES = false;
+  state.TRANSFER_HYDRO_BOUNDARIES = false;
   #ifdef CPU_TIME
   Timer.Boundaries.End();
   #endif  // CPU_TIME
@@ -55,7 +55,7 @@ void Grid3D::Set_Boundary_Conditions(Parameters P)
 {
   // Check Only one boundary type id being transferred
   int n_bounds = 0;
-  n_bounds += (int)H.TRANSFER_HYDRO_BOUNDARIES;
+  n_bounds += (int)state.TRANSFER_HYDRO_BOUNDARIES;
 #ifdef GRAVITY
   n_bounds += (int)Grav.TRANSFER_POTENTIAL_BOUNDARIES;
   #ifdef SOR
@@ -72,7 +72,7 @@ void Grid3D::Set_Boundary_Conditions(Parameters P)
         "ERROR: More than one boundary type for transfer. N boundary types: "
         "%d\n",
         n_bounds);
-    printf(" Boundary Hydro: %d\n", (int)H.TRANSFER_HYDRO_BOUNDARIES);
+    printf(" Boundary Hydro: %d\n", (int)state.TRANSFER_HYDRO_BOUNDARIES);
 #ifdef GRAVITY
     printf(" Boundary Potential: %d\n", (int)Grav.TRANSFER_POTENTIAL_BOUNDARIES);
   #ifdef SOR
