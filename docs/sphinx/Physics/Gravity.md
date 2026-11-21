@@ -74,9 +74,6 @@ As of 10-27-2023, this is hard-coded to a Milky Way galaxy model in the function
 
 ``PARIS_GALACTIC_5PT``: Same as above but for the analytic boundary version
 
-``PARIS_GALACTIC_TEST``: Turn on to test whether Paris returns the same gravitational potential as the SOR solver.
-Doesn't work with ``GRAVITY_GPU``, should probably be deprecated.
-
 ### Runtime Parameters associated with Static Gravity
 
 At the time of writing, the only runtime parameter is {par:param}`gravity.gas_only_use_static_grav`
