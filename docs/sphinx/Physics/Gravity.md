@@ -63,10 +63,6 @@ In general, this module relies on a particle-mesh scheme. Broadly speaking, for 
 
 ``GRAVITY_ANALYTIC_COMP``: Add an analytic component to the gravitational potential. As of 10-27-2023, this is hard-coded to a Milky Way galaxy model in the function `Setup_Analytic_Potential` from [gravity_functions.cpp](https://github.com/cholla-hydro/cholla/blob/dev/src/gravity/gravity_functions.cpp). 
 
-``PARIS_3PT``: Use a 3-point gradient for the divergence operator approximation in Paris (default behavior is to use a spectral method)
-
-``PARIS_5PT``: Use a 5-point gradient for the divergence operator approximation in Paris
-
 ``PARIS_GALACTIC``: Use the Paris Poisson solver on a domain with analytic boundaries set to match the selected model in the DiskGalaxy class.
 As of 10-27-2023, this is hard-coded to a Milky Way galaxy model in the function `Compute_Gravitational_Potential` from [gravity_functions.cpp](https://github.com/cholla-hydro/cholla/blob/dev/src/gravity/gravity_functions.cpp) and in `Compute_Potential_Isolated_Boundary` from [gravity_boundaries.cpp](https://github.com/cholla-hydro/cholla/blob/dev/src/gravity/gravity_boundaries.cpp).
 
