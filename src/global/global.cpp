@@ -101,34 +101,6 @@ char *Trim(char *s)
   return s;
 }
 
-// NOLINTNEXTLINE(cert-err58-cpp)
-// NOLINTNEXTLINE(*)
-const std::set<std::string> optionalParams = {"flag_delta",
-                                              "ddelta_dt",
-                                              "n_delta",
-                                              "Lz",
-                                              "Lx",
-                                              "phi",
-                                              "theta",
-                                              "delta",
-                                              "nzr",
-                                              "nxr",
-                                              "H0",
-                                              "Omega_M",
-                                              "Omega_L",
-                                              "Omega_R",
-                                              "Omega_K",
-                                              "w0",
-                                              "wa",
-                                              "Init_redshift",
-                                              "End_redshift",
-                                              "tile_length",
-                                              "outstep_dexinc",
-                                              "max_timestep_dexinc",
-                                              "max_timestep"};  // NOLINT //BRANT
-
-void Warn_Unused_Params(ParameterMap &pmap) { pmap.warn_unused_parameters(optionalParams); }
-
 /*! \brief this would be entirely unnecessary if the Parameters struct directly stored a std::string
  */
 static void Load_String_Param_Into_Char_Buffer(ParameterMap &pmap, const std::string &param, char *dest_buffer,
@@ -336,11 +308,8 @@ Parameters::Parameters(ParameterMap &pmap)
 #endif  // defined(SCALAR) && defined(DUST)
 
   // in the future, it would probably be good to move this logic into Cosmology::Initialize (or somewhere similar)
-  // and remove these parameters from the global struct. This would provide a few benefits:
-  //   - we could take steps towards removing the optionalParams global variable (there is alternative machinery
-  //     in place to check for unused parameters)
-  //   - we could remove ifdef statements from here and the global Parameters struct (we would also remove the
-  //     these parameters from the Parameters struct)
+  // and remove these parameters from the global struct. This would let us remove ifdef statements from here and
+  // the global Parameters struct (since we would remove these parameters from the Parameters struct)
   //
   // Prior to relocating this parameter-parsing, Cosmological simulations simply assumed that all of these parameters
   // were specified (& there were no default values). Now cosmological simulations will loudly fail if a user forgets
