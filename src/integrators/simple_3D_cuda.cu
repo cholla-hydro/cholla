@@ -184,7 +184,6 @@ void Simple_Algorithm_3D_CUDA(Real *d_conserved, Real *d_grav_potential, int nx,
 void Free_Memory_Simple_3D()
 {
   // free the GPU memory
-  cudaFree(dev_conserved);
   cudaFree(Q_Lx);
   cudaFree(Q_Rx);
   cudaFree(Q_Ly);

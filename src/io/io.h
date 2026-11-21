@@ -139,30 +139,33 @@ class H5AttrRecorder : public AttrRecorderInterface
 herr_t Read_HDF5_Dataset(hid_t file_id, double* dataset_buffer, const char* name);
 herr_t Read_HDF5_Dataset(hid_t file_id, float* dataset_buffer, const char* name);
 
-herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id, double* dataset_buffer, const char* name);
-herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id, float* dataset_buffer, const char* name);
+herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id, const double* dataset_buffer, const char* name);
+herr_t Write_HDF5_Dataset(hid_t file_id, hid_t dataspace_id, const float* dataset_buffer, const char* name);
 
 /* \brief After HDF5 reads data into a buffer, remap and write to grid buffer. */
 void Fill_Grid_From_HDF5_Buffer(int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, int n_ghost,
                                 Real* hdf5_buffer, Real* grid_buffer);
 
 /*! Data moves from host grid_buffer to dataset_buffer to hdf5 file */
-void Write_Grid_HDF5_Field_CPU(Header H, hid_t file_id, Real* dataset_buffer, Real* grid_buffer, const char* name);
+void Write_Grid_HDF5_Field_CPU(Header H, hid_t file_id, Real* dataset_buffer, const Real* grid_buffer,
+                               const char* name);
 
 /*! Data moves from device_grid_buffer to device_hdf5_buffer to dataset_buffer to hdf5 file */
 void Write_Grid_HDF5_Field_GPU(Header H, hid_t file_id, Real* dataset_buffer, Real* device_hdf5_buffer,
-                               Real* device_grid_buffer, const char* name);
+                               const Real* device_grid_buffer, const char* name);
 
 /*! Generic field writer from GPU */
 void Write_Generic_HDF5_Field_GPU(int nx, int ny, int nz, int nx_real, int ny_real, int nz_real, int n_ghost,
-                                  hid_t file_id, Real* dataset_buffer, Real* device_hdf5_buffer, Real* source_buffer,
-                                  const char* name);
+                                  hid_t file_id, Real* dataset_buffer, Real* device_hdf5_buffer,
+                                  const Real* source_buffer, const char* name);
 
 // From io/io_gpu.cu
 // Use GPU to pack source -> device_buffer, then copy device_buffer -> buffer,
 // then write HDF5 field
 void Write_HDF5_Field_3D(int nx, int ny, int nx_real, int ny_real, int nz_real, int n_ghost, hid_t file_id,
-                         float* buffer, float* device_buffer, Real* source, const char* name, int mhd_direction = -1);
+                         float* buffer, float* device_buffer, const Real* source, const char* name,
+                         int mhd_direction = -1);
 void Write_HDF5_Field_3D(int nx, int ny, int nx_real, int ny_real, int nz_real, int n_ghost, hid_t file_id,
-                         double* buffer, double* device_buffer, Real* source, const char* name, int mhd_direction = -1);
+                         double* buffer, double* device_buffer, const Real* source, const char* name,
+                         int mhd_direction = -1);
 #endif
