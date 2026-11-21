@@ -176,7 +176,7 @@
  *  writing this logic for \ref ModelCollection since triggering the deserialization
  *  logic that creates the appropriate type of model can be a little messy/verbose, the
  *  data structures initialized within a model from parameters can be quite
- *  sophisticated (see \ref ClusteredDiskGalaxy), and most mutable state is typically
+ *  sophisticated (see \ref DiskGalaxy), and most mutable state is typically
  *  quite simple. This is all quite doable, but it's simpler to avoid implementing it
  *  by only constructing models once (at startup) from the parameter file and handling
  *  the mutable state separately.
@@ -193,8 +193,8 @@ struct DummyModel {
 
 // a type-safe union that can represent all model types
 // -> to add a new kind of model, append it to the list of template arguments
-// -> todo: consolidate DiskGalaxy and ClusteredDiskGalaxy into a single class
-using model_variant = std::variant<DummyModel, ClusteredDiskGalaxy>;
+// -> todo: consolidate DiskGalaxy and DiskGalaxy into a single class
+using model_variant = std::variant<DummyModel, DiskGalaxy>;
 
 // define logic to check if a type T is an allowed type of a std::variant
 template <typename T, typename variant>

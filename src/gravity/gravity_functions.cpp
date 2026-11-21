@@ -373,7 +373,7 @@ void Grid3D::Initialize_Gravity(struct Parameters *P)
     const int ni    = Grav.nx_local + twoNG;
     const Real dr   = 0.5 - ng;
 
-    const ClusteredDiskGalaxy *galaxy_model = models().try_get<ClusteredDiskGalaxy>();
+    const DiskGalaxy *galaxy_model = models().try_get<DiskGalaxy>();
     CHOLLA_ASSERT(galaxy_model != nullptr, "no galaxy model was initialized");
 
   #ifdef PARIS_GALACTIC_TEST
@@ -546,7 +546,7 @@ void Grid3D::Compute_Gravitational_Potential(struct Parameters *P)
       #ifdef GRAVITY_GPU
         #error "GRAVITY_GPU not yet supported with PARIS_GALACTIC_TEST"
       #endif
-  const ClusteredDiskGalaxy *galaxy_model = models().try_get<ClusteredDiskGalaxy>();
+  const DiskGalaxy *galaxy_model = models().try_get<DiskGalaxy>();
   CHOLLA_ASSERT(galaxy_model != nullptr, "no galaxy model was initialized");
   Grav.Poisson_solver_test.Get_Potential(input_density, output_potential, Grav_Constant, *galaxy_model);
 
@@ -563,7 +563,7 @@ void Grid3D::Compute_Gravitational_Potential(struct Parameters *P)
   // single time we need it
   // - this is ok for right now, but will become costly as we add more models
   // - we can adopt a strategy like the one mentioned within gravity_boundaries.cu
-  const ClusteredDiskGalaxy *galaxy_model = models().try_get<ClusteredDiskGalaxy>();
+  const DiskGalaxy *galaxy_model = models().try_get<DiskGalaxy>();
   CHOLLA_ASSERT(galaxy_model != nullptr, "no galaxy model was initialized");
   Grav.Poisson_solver.Get_Potential(input_density, output_potential, Grav_Constant, *galaxy_model);
   #else
@@ -578,7 +578,7 @@ void Grid3D::Compute_Gravitational_Potential(struct Parameters *P)
   #ifdef GRAVITY_ANALYTIC_COMP
 void Grid3D::Setup_Analytic_Potential(struct Parameters *P)
 {
-  const ClusteredDiskGalaxy *galaxy_model = models().try_get<ClusteredDiskGalaxy>();
+  const DiskGalaxy *galaxy_model = models().try_get<DiskGalaxy>();
   CHOLLA_ASSERT(galaxy_model != nullptr, "no galaxy model was initialized");
 
     #ifndef PARALLEL_OMP
